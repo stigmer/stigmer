@@ -13,6 +13,7 @@ import {
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { toProtoInteractionMode } from "../composer/interaction-mode.js";
+import { toProtoServiceTier, type ServiceTierOption } from "../models/service-tier.js";
 import { toProtoHarness, type HarnessOption } from "../models/harness.js";
 import {
   toProtoExecutionTarget,
@@ -123,6 +124,19 @@ export interface SharedAgentExecutionFields {
    * Maps to `ExecutionConfig.interaction_mode` in the proto.
    */
   readonly interactionMode?: "agent" | "plan";
+  /**
+   * Service tier for this execution's model calls (stigmer/stigmer#357).
+   *
+   * - `"standard"` (default): the model's base-priced configuration,
+   *   requested explicitly — never the provider account default.
+   * - `"fast"`: the provider's fast variant at fast rates. Valid only for
+   *   models whose registry entry prices a fast variant — the backend
+   *   refuses the create otherwise, so gate the option on
+   *   `ModelInfo.serviceTiers`.
+   *
+   * Maps to `ExecutionConfig.service_tier` in the proto.
+   */
+  readonly serviceTier?: ServiceTierOption;
   /**
    * Marks this execution as a Build-from-plan turn: the user approved a
    * plan from a prior Plan-mode execution and asked the agent to implement
@@ -302,6 +316,7 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
         const hasConfig =
           input.modelName ||
           input.interactionMode ||
+          input.serviceTier ||
           input.structuredOutputSchema ||
           input.buildFromPlan;
         const executionConfig = hasConfig
@@ -309,6 +324,9 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
               ...(input.modelName ? { modelName: input.modelName } : {}),
               ...(input.interactionMode
                 ? { interactionMode: toProtoInteractionMode(input.interactionMode) }
+                : {}),
+              ...(input.serviceTier
+                ? { serviceTier: toProtoServiceTier(input.serviceTier) }
                 : {}),
               ...(input.structuredOutputSchema
                 ? { structuredOutputSchema: input.structuredOutputSchema }

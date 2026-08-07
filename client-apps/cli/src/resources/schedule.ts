@@ -16,6 +16,7 @@
 
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleRunOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";

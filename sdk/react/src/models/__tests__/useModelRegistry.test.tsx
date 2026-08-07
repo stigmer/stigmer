@@ -73,6 +73,9 @@ const TEST_REGISTRY_JSON = {
       costTier: "standard",
       featured: false,
       pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 },
+      pricingVariants: {
+        fast: { inputPricePerMillion: 18, outputPricePerMillion: 90 },
+      },
     },
     {
       id: "ollama-local",
@@ -102,6 +105,18 @@ function createWrapper(models: readonly ModelInfo[] = TEST_MODELS) {
     );
   };
 }
+
+describe("parseRegistryJson service tiers (#357)", () => {
+  it("surfaces pricingVariants keys as serviceTiers", () => {
+    const withVariants = TEST_MODELS.find((m) => m.modelId === "claude-4.6-sonnet");
+    expect(withVariants?.serviceTiers).toEqual(["fast"]);
+  });
+
+  it("yields an empty serviceTiers list for models without variants", () => {
+    const withoutVariants = TEST_MODELS.find((m) => m.modelId === "claude-sonnet-4.6");
+    expect(withoutVariants?.serviceTiers).toEqual([]);
+  });
+});
 
 describe("useModelRegistry", () => {
   describe("unified mode (no harness)", () => {

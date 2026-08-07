@@ -34,15 +34,51 @@ describe("AgentCallForm", () => {
     expect(textarea.value).toBe("Hello world");
   });
 
-  it("renders model input from nested config", () => {
+  it("renders model input from the run_config block", () => {
     const node = makeNode(WorkflowTaskKind.agent_call, {
       agent: "x",
       message: "y",
-      config: { model: "claude-sonnet-4", timeout: 120 },
+      run_config: { model_name: "claude-sonnet-4", max_cost_usd: 0.5 },
     });
     render(<AgentCallForm node={node} onFieldChange={vi.fn()} />);
     const input = screen.getByTestId("agent-call-model-input") as HTMLInputElement;
     expect(input.value).toBe("claude-sonnet-4");
+    const budget = screen.getByTestId("agent-call-budget-input") as HTMLInputElement;
+    expect(budget.value).toBe("0.5");
+  });
+
+  it("emits an undefined run_config when the last field is cleared", () => {
+    const onFieldChange = vi.fn();
+    const node = makeNode(WorkflowTaskKind.agent_call, {
+      agent: "x",
+      message: "y",
+      run_config: { max_cost_usd: 0.5 },
+    });
+    render(<AgentCallForm node={node} onFieldChange={onFieldChange} />);
+
+    const budget = screen.getByTestId("agent-call-budget-input") as HTMLInputElement;
+    fireEvent.change(budget, { target: { value: "" } });
+
+    // Empty means omit: a blank field must not persist a zero override.
+    expect(onFieldChange).toHaveBeenCalledWith("run_config", undefined);
+  });
+
+  it("writes budget changes into run_config.max_cost_usd", () => {
+    const onFieldChange = vi.fn();
+    const node = makeNode(WorkflowTaskKind.agent_call, {
+      agent: "x",
+      message: "y",
+      run_config: { model_name: "claude-sonnet-4" },
+    });
+    render(<AgentCallForm node={node} onFieldChange={onFieldChange} />);
+
+    const budget = screen.getByTestId("agent-call-budget-input") as HTMLInputElement;
+    fireEvent.change(budget, { target: { value: "1.25" } });
+
+    expect(onFieldChange).toHaveBeenCalledWith("run_config", {
+      model_name: "claude-sonnet-4",
+      max_cost_usd: 1.25,
+    });
   });
 
   it("shows structured output section when output is present", () => {

@@ -17,8 +17,24 @@ const inputClass =
  * Specialized configuration form for `agent_call` tasks.
  *
  * Organizes agent-specific fields into semantic sections: Agent identity,
- * harness selection, message prompt, environment variables, execution
- * config (model, timeout, temperature, cost cap), and structured output.
+ * harness selection, message prompt, environment variables, run config
+ * (model, budget per run), and structured output.
+ *
+ * The run config edits the shared `run_config` block (the
+ * agentexecution RunConfig vocabulary, stigmer/stigmer#358): model
+ * override plus a per-run USD budget that the runner actually
+ * enforces. `max_tool_rounds` is API-reachable but deliberately absent
+ * from the form (DD-018 D-5: an implementation knob, not a user
+ * concept). Assembly follows the schedule form's empty-means-omit rule:
+ * a blank field must not become a zero override.
+ *
+ * Workspace and environments edit the shared vocabulary's
+ * `workspace_entries` (git-only at this surface) and `environment_refs`
+ * as controlled structured rows. The schedule form's richer components
+ * (WorkspaceEditor with the GitHub repo picker, EnvironmentPicker) are
+ * data-connected and need org context this inspector tree does not
+ * carry yet — adopting them here is a named follow-up, not a silent
+ * divergence.
  *
  * Composes primitive field controls rather than rendering a generic
  * schema form — following the research report guidance that "the forms
@@ -31,7 +47,7 @@ export const AgentCallForm = memo(function AgentCallForm({
   onFieldChange,
 }: AgentCallFormProps) {
   const config = node.config as Record<string, unknown>;
-  const execConfig = (config.config ?? {}) as Record<string, unknown>;
+  const runConfig = (config.run_config ?? {}) as Record<string, unknown>;
   const outputContract = (config.output ?? {}) as Record<string, unknown>;
   const hasOutput = Object.keys(outputContract).length > 0;
   const [showOutput, setShowOutput] = useState(hasOutput);
@@ -43,14 +59,18 @@ export const AgentCallForm = memo(function AgentCallForm({
     [onFieldChange],
   );
 
-  const handleExecConfigChange = useCallback(
+  const handleRunConfigChange = useCallback(
     (field: string, value: unknown) => {
-      onFieldChange("config", {
-        ...execConfig,
+      const next: Record<string, unknown> = {
+        ...runConfig,
         [field]: value === "" ? undefined : value,
-      });
+      };
+      for (const key of Object.keys(next)) {
+        if (next[key] === undefined) delete next[key];
+      }
+      onFieldChange("run_config", Object.keys(next).length > 0 ? next : undefined);
     },
-    [execConfig, onFieldChange],
+    [runConfig, onFieldChange],
   );
 
   const handleOutputChange = useCallback(
@@ -165,53 +185,44 @@ export const AgentCallForm = memo(function AgentCallForm({
         </section>
       )}
 
-      {/* Execution config */}
+      {/* Run config */}
       <section className="flex flex-col gap-2">
         <SectionLabel>Execution</SectionLabel>
         <FieldRow label="Model" hint="Override the agent's default model">
           <input
             type="text"
-            value={typeof execConfig.model === "string" ? execConfig.model : ""}
-            onChange={(e) => handleExecConfigChange("model", e.target.value)}
+            value={typeof runConfig.model_name === "string" ? runConfig.model_name : ""}
+            onChange={(e) => handleRunConfigChange("model_name", e.target.value)}
             placeholder="Agent default"
             className={inputClass}
             data-testid="agent-call-model-input"
           />
         </FieldRow>
-        <FieldRow label="Timeout" hint="Seconds (1–3600)">
+        <FieldRow label="Budget per run (USD)" hint="The call stops when its estimated cost reaches this amount">
           <input
             type="number"
-            value={typeof execConfig.timeout === "number" ? execConfig.timeout : ""}
-            onChange={(e) => handleExecConfigChange("timeout", e.target.value ? parseInt(e.target.value, 10) : undefined)}
-            placeholder="300"
-            min={1}
-            max={3600}
-            className={inputClass}
-          />
-        </FieldRow>
-        <FieldRow label="Temperature" hint="0.0 (deterministic) to 1.0 (creative)">
-          <input
-            type="number"
-            value={typeof execConfig.temperature === "number" ? execConfig.temperature : ""}
-            onChange={(e) => handleExecConfigChange("temperature", e.target.value ? parseFloat(e.target.value) : undefined)}
-            placeholder="0.7"
-            min={0}
-            max={1}
-            step={0.1}
-            className={inputClass}
-          />
-        </FieldRow>
-        <FieldRow label="Max cost" hint="Per-task cap in micro-USD (1 USD = 1,000,000)">
-          <input
-            type="number"
-            value={typeof execConfig.max_cost_micros === "number" ? execConfig.max_cost_micros : ""}
-            onChange={(e) => handleExecConfigChange("max_cost_micros", e.target.value ? parseInt(e.target.value, 10) : undefined)}
+            value={typeof runConfig.max_cost_usd === "number" ? runConfig.max_cost_usd : ""}
+            onChange={(e) => handleRunConfigChange("max_cost_usd", e.target.value ? parseFloat(e.target.value) : undefined)}
             placeholder="No limit"
             min={0}
+            step={0.05}
             className={inputClass}
+            data-testid="agent-call-budget-input"
           />
         </FieldRow>
       </section>
+
+      {/* Workspace (git-only at this surface) */}
+      <WorkspaceEntriesSection
+        entries={config.workspace_entries}
+        onChange={(entries) => onFieldChange("workspace_entries", entries)}
+      />
+
+      {/* Environments */}
+      <EnvironmentRefsSection
+        refs={config.environment_refs}
+        onChange={(refs) => onFieldChange("environment_refs", refs)}
+      />
 
       {/* Structured output */}
       <section className="flex flex-col gap-2">
@@ -277,6 +288,218 @@ export const AgentCallForm = memo(function AgentCallForm({
     </div>
   );
 });
+
+// ---------------------------------------------------------------------------
+// Workspace entries (git-only structured rows)
+// ---------------------------------------------------------------------------
+
+interface WorkspaceEntryRow {
+  readonly name?: string;
+  readonly source?: { readonly git_repo?: { readonly url?: string; readonly branch?: string } };
+}
+
+/**
+ * Edits `workspace_entries` as structured URL + branch rows. Only git
+ * sources exist at this surface (write-time validation rejects
+ * local_path — no client is connected when a workflow task fires), so
+ * the row model is deliberately git-shaped. Private repos need an
+ * org-visibility Environment holding GITHUB_TOKEN bound under
+ * Environments below (DD-018 D-4).
+ */
+function WorkspaceEntriesSection({
+  entries,
+  onChange,
+}: {
+  entries: unknown;
+  onChange: (entries: WorkspaceEntryRow[] | undefined) => void;
+}) {
+  const rows = useMemo<readonly WorkspaceEntryRow[]>(
+    () => (Array.isArray(entries) ? (entries as WorkspaceEntryRow[]) : []),
+    [entries],
+  );
+
+  const commit = useCallback(
+    (next: WorkspaceEntryRow[]) => {
+      onChange(next.length > 0 ? next : undefined);
+    },
+    [onChange],
+  );
+
+  const updateRow = useCallback(
+    (index: number, url: string, branch: string) => {
+      const next = rows.map((row, i) => {
+        if (i !== index) return row;
+        const gitRepo: { url: string; branch?: string } = { url };
+        if (branch) gitRepo.branch = branch;
+        return { ...(row.name ? { name: row.name } : {}), source: { git_repo: gitRepo } };
+      });
+      commit([...next]);
+    },
+    [rows, commit],
+  );
+
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <SectionLabel>Workspace</SectionLabel>
+        <button
+          type="button"
+          onClick={() => commit([...rows, { source: { git_repo: { url: "" } } }])}
+          className="text-[10px] font-medium text-[var(--stgm-primary,#6366f1)]"
+          data-testid="agent-call-workspace-add"
+        >
+          + Add repository
+        </button>
+      </div>
+      {rows.length === 0 ? (
+        <p className="text-[10px] leading-tight text-[var(--stgm-muted-foreground,#737373)]">
+          Git repositories the agent works on. Private repos need an org-shared
+          environment holding GITHUB_TOKEN bound under Environments.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          {rows.map((row, i) => {
+            const gitRepo = row.source?.git_repo ?? {};
+            return (
+              <div key={i} className="flex items-start gap-1">
+                <input
+                  type="text"
+                  value={gitRepo.url ?? ""}
+                  onChange={(e) => updateRow(i, e.target.value, gitRepo.branch ?? "")}
+                  placeholder="https://github.com/org/repo"
+                  className={`${inputClass} flex-1`}
+                  data-testid={`agent-call-workspace-url-${i}`}
+                />
+                <input
+                  type="text"
+                  value={gitRepo.branch ?? ""}
+                  onChange={(e) => updateRow(i, gitRepo.url ?? "", e.target.value)}
+                  placeholder="branch"
+                  className={`${inputClass} w-1/4`}
+                  data-testid={`agent-call-workspace-branch-${i}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => commit(rows.filter((_, j) => j !== i))}
+                  aria-label={`Remove workspace entry ${i + 1}`}
+                  className="mt-1 text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-destructive,#ef4444)]"
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Environment references (structured rows)
+// ---------------------------------------------------------------------------
+
+interface EnvironmentRefRow {
+  readonly org?: string;
+  readonly slug?: string;
+  readonly kind?: string;
+}
+
+/**
+ * Edits `environment_refs` as slug rows (org optional — empty means the
+ * workflow's own org). These are how a tool-using agent becomes callable
+ * from a workflow: the task binds the credentials its child runs need
+ * without touching the agent. Resolved server-side at execution create;
+ * an unresolvable ref fails the run closed.
+ */
+function EnvironmentRefsSection({
+  refs,
+  onChange,
+}: {
+  refs: unknown;
+  onChange: (refs: EnvironmentRefRow[] | undefined) => void;
+}) {
+  const rows = useMemo<readonly EnvironmentRefRow[]>(
+    () => (Array.isArray(refs) ? (refs as EnvironmentRefRow[]) : []),
+    [refs],
+  );
+
+  const commit = useCallback(
+    (next: EnvironmentRefRow[]) => {
+      onChange(next.length > 0 ? next : undefined);
+    },
+    [onChange],
+  );
+
+  const updateRow = useCallback(
+    (index: number, field: "org" | "slug", value: string) => {
+      const next = rows.map((row, i) => {
+        if (i !== index) return row;
+        const updated: Record<string, string> = {};
+        const org = field === "org" ? value : row.org ?? "";
+        const slug = field === "slug" ? value : row.slug ?? "";
+        if (org) updated.org = org;
+        updated.slug = slug;
+        return updated as EnvironmentRefRow;
+      });
+      commit([...next]);
+    },
+    [rows, commit],
+  );
+
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <SectionLabel>Environments</SectionLabel>
+        <button
+          type="button"
+          onClick={() => commit([...rows, { slug: "" }])}
+          className="text-[10px] font-medium text-[var(--stgm-primary,#6366f1)]"
+          data-testid="agent-call-envref-add"
+        >
+          + Bind environment
+        </button>
+      </div>
+      {rows.length === 0 ? (
+        <p className="text-[10px] leading-tight text-[var(--stgm-muted-foreground,#737373)]">
+          Environment resources whose values are provided to this call&apos;s runs
+          — credentials bind here, not on the agent.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          {rows.map((row, i) => (
+            <div key={i} className="flex items-start gap-1">
+              <input
+                type="text"
+                value={row.org ?? ""}
+                onChange={(e) => updateRow(i, "org", e.target.value)}
+                placeholder="org (optional)"
+                className={`${inputClass} w-1/3`}
+                data-testid={`agent-call-envref-org-${i}`}
+              />
+              <input
+                type="text"
+                value={row.slug ?? ""}
+                onChange={(e) => updateRow(i, "slug", e.target.value)}
+                placeholder="environment slug"
+                className={`${inputClass} flex-1`}
+                data-testid={`agent-call-envref-slug-${i}`}
+              />
+              <button
+                type="button"
+                onClick={() => commit(rows.filter((_, j) => j !== i))}
+                aria-label={`Remove environment reference ${i + 1}`}
+                className="mt-1 text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-destructive,#ef4444)]"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Output schema editor (JSON textarea with parse validation)

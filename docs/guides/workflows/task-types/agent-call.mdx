@@ -13,7 +13,7 @@ AI agents.
 
 `agent_call`
 
-## YAML Example
+## YAML Examples
 
 ```yaml
 - name: triage_ticket
@@ -37,6 +37,22 @@ AI agents.
     as: "${ .structured }"
 ```
 
+```yaml
+- name: fix_flaky_test
+  kind: agent_call
+  task_config:
+    agent: "code-reviewer"
+    message: "Fix the flaky test in ${ .failing_test }"
+    harness: HARNESS_CURSOR
+    run_config:
+      model_name: "composer-2.5"
+      max_cost_usd: 0.50
+      # Fast tier: billed at the model's fast rates. Valid only for
+      # models with a fast pricing tier; refused at create otherwise.
+      # The shorthand spellings "standard"/"fast" are also accepted.
+      service_tier: SERVICE_TIER_FAST
+```
+
 ## task_config Fields
 
 <TypeTable
@@ -45,10 +61,6 @@ AI agents.
       type: "string",
       description: 'Agent reference in "org/slug" or "slug" format.',
       required: true,
-    },
-    org: {
-      type: "string",
-      description: "Explicit organization for agent resolution.",
     },
     message: {
       type: "string",
@@ -59,10 +71,10 @@ AI agents.
       type: "Record<string, string>",
       description: "Runtime environment variables to pass to the agent.",
     },
-    config: {
-      type: "AgentExecutionConfig",
-      description: "Execution configuration for the agent invocation.",
-      typeDescriptionLink: "#agentexecutionconfig",
+    run_config: {
+      type: "RunConfig",
+      description: "Per-call model choice and run bounds.",
+      typeDescriptionLink: "#runconfig",
     },
     output: {
       type: "AgentCallOutputContract",
@@ -74,61 +86,42 @@ AI agents.
       description: "Execution harness for the agent invocation.",
       typeDescriptionLink: "#harness",
     },
+    workspace_entries: {
+      type: "WorkspaceEntry[]",
+      description: "Workspace the child run's session operates on.",
+      typeDescriptionLink: "#workspaceentry",
+    },
+    environment_refs: {
+      type: "ApiResourceReference[]",
+      description:
+        "References to Environment resources whose values are provided to the child runs this task creates.",
+      typeDescriptionLink: "#apiresourcereference",
+    },
   }}
 />
 
 ## Nested Types
 
-### AgentExecutionConfig
+### RunConfig
 
-AgentExecutionConfig defines optional execution parameters for agent calls.
-
-<TypeTable
-  type={{
-    model: {
-      type: "string",
-      description: "LLM model to use for this invocation.",
-    },
-    timeout: {
-      type: "number",
-      description: "Timeout for agent execution in seconds.",
-    },
-    temperature: {
-      type: "number",
-      description: "Temperature for LLM sampling (0.0 to 1.0).",
-    },
-    context_management: {
-      type: "ContextManagementConfig",
-      description:
-        "Context management configuration for this agent invocation.",
-      typeDescriptionLink: "#contextmanagementconfig",
-    },
-    max_cost_micros: {
-      type: "number",
-      description:
-        "Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros).",
-    },
-  }}
-/>
-
-### ContextManagementConfig
-
-ContextManagementConfig controls automatic context summarization behavior.
+RunConfig is the owner-settable model choice and run bounds.
 
 <TypeTable
   type={{
-    disable_summarization: {
-      type: "boolean",
+    model_name: { type: "string", description: "The model each run uses." },
+    max_cost_usd: {
+      type: "number",
+      description: "Maximum estimated cost in USD per run.",
+    },
+    max_tool_rounds: {
+      type: "number",
+      description: "Maximum model-to-tools reasoning cycles per run.",
+    },
+    service_tier: {
+      type: "ServiceTier",
       description:
-        "Disable automatic context summarization for this execution.",
-    },
-    custom_trigger_threshold: {
-      type: "number",
-      description: "Custom token threshold to trigger summarization.",
-    },
-    custom_target_tokens: {
-      type: "number",
-      description: "Custom target token count after summarization.",
+        "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.",
+      typeDescriptionLink: "#servicetier",
     },
   }}
 />
@@ -164,7 +157,127 @@ task.
   }}
 />
 
+### WorkspaceEntry
+
+WorkspaceEntry pairs a WorkspaceSource with a human-readable name, forming an
+addressable unit within a session's workspace.
+
+<TypeTable
+  type={{
+    name: {
+      type: "string",
+      description: "Short identifier for this workspace entry.",
+    },
+    source: {
+      type: "WorkspaceSource",
+      description: "The source that provides this entry's content.",
+      typeDescriptionLink: "#workspacesource",
+      required: true,
+    },
+  }}
+/>
+
+### WorkspaceSource
+
+WorkspaceSource defines where the workspace content comes from.
+
+<TypeTable
+  type={{
+    git_repo: {
+      type: "GitRepoSource",
+      description: "Clone a git repository as the workspace source.",
+      typeDescriptionLink: "#gitreposource",
+    },
+    local_path: {
+      type: "LocalPathSource",
+      description: "Use an existing local directory as the workspace source.",
+      typeDescriptionLink: "#localpathsource",
+    },
+  }}
+/>
+
+### GitRepoSource
+
+GitRepoSource provisions a workspace by cloning a git repository.
+
+<TypeTable
+  type={{
+    url: {
+      type: "string",
+      description: "HTTPS clone URL for the repository.",
+      required: true,
+    },
+    branch: { type: "string", description: "Branch to clone." },
+    commit: {
+      type: "string",
+      description: "Commit SHA to checkout after cloning.",
+    },
+    depth: {
+      type: "number",
+      description: "Number of commits to include in the clone history.",
+    },
+    write_back_mode: {
+      type: "GitWriteBackMode",
+      description:
+        "Controls whether the platform creates a branch and pull request from the agent's file changes.",
+      typeDescriptionLink: "#gitwritebackmode",
+    },
+  }}
+/>
+
+### LocalPathSource
+
+LocalPathSource uses an existing directory on the host filesystem as the
+workspace.
+
+<TypeTable
+  type={{
+    path: {
+      type: "string",
+      description:
+        "Absolute path to an existing directory on the host filesystem.",
+    },
+  }}
+/>
+
+### ApiResourceReference
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: {
+      type: "string",
+      description: "Organization that owns the referenced resource.",
+    },
+    kind: {
+      type: "ApiResourceKind",
+      description:
+        "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
+      typeDescriptionLink: "#apiresourcekind",
+    },
+    slug: {
+      type: "string",
+      description:
+        "Resource slug (user-friendly identifier, unique within org).",
+      required: true,
+    },
+    version: {
+      type: "string",
+      description:
+        "Version of the resource (optional, only applicable to versioned resources like Skills).",
+    },
+  }}
+/>
+
 ## Enums
+
+### ServiceTier
+
+| Value                   | Description |
+| ----------------------- | ----------- |
+| `SERVICE_TIER_STANDARD` |             |
+| `SERVICE_TIER_FAST`     |             |
 
 ### OnInvalidOutputPolicy
 
@@ -180,6 +293,45 @@ task.
 | ---------------- | ----------- |
 | `HARNESS_NATIVE` |             |
 | `HARNESS_CURSOR` |             |
+
+### GitWriteBackMode
+
+| Value                          | Description |
+| ------------------------------ | ----------- |
+| `GIT_WRITE_BACK_BRANCH_AND_PR` |             |
+
+### ApiResourceKind
+
+| Value                  | Description |
+| ---------------------- | ----------- |
+| `api_resource_version` |             |
+| `iam_policy`           |             |
+| `identity_account`     |             |
+| `api_key`              |             |
+| `invitation`           |             |
+| `identity_provider`    |             |
+| `oauth_app`            |             |
+| `platform_client`      |             |
+| `organization`         |             |
+| `platform`             |             |
+| `agent`                |             |
+| `agent_execution`      |             |
+| `session`              |             |
+| `skill`                |             |
+| `mcp_server`           |             |
+| `agent_instance`       |             |
+| `agent_share`          |             |
+| `agent_channel`        |             |
+| `channel_app`          |             |
+| `datastore`            |             |
+| `workflow`             |             |
+| `workflow_instance`    |             |
+| `workflow_execution`   |             |
+| `environment`          |             |
+| `artifact`             |             |
+| `execution_context`    |             |
+| `schedule`             |             |
+| `project`              |             |
 
 ## Output Shape
 

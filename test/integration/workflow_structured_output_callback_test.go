@@ -150,7 +150,6 @@ func buildCallbackHandoffWorkflow(
 
 	taskConfigMap := map[string]any{
 		"agent":   agentSlug,
-		"org":     harness.TestOrg,
 		"message": "$trigger",
 		"output": map[string]any{
 			"schema":     schema.AsMap(),

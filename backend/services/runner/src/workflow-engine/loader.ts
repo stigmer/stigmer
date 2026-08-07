@@ -489,12 +489,123 @@ function parseAgentCallConfig(raw: unknown): AgentCallConfig {
   return {
     agent: obj.agent,
     message: obj.message,
-    org: typeof obj.org === "string" ? obj.org : undefined,
     env: obj.env as Record<string, string> | undefined,
-    config: obj.config as AgentCallConfig["config"],
+    run_config: parseAgentCallRunConfig(obj.run_config),
     output: obj.output as AgentCallConfig["output"],
     harness,
+    workspace_entries: parseAgentCallWorkspaceEntries(obj.workspace_entries),
   };
+}
+
+/**
+ * Parses workspace entries with structural validation. Write-time
+ * validation already enforces the git-only constraint, so a malformed
+ * entry here means a converter defect or hand-edited YAML — either way
+ * an error the author must hear about, not a silent skip.
+ */
+function parseAgentCallWorkspaceEntries(
+  raw: unknown,
+): AgentCallConfig["workspace_entries"] {
+  if (raw === undefined || raw === null) return undefined;
+  if (!Array.isArray(raw)) {
+    throw new Error("call:agent 'workspace_entries' must be a list");
+  }
+
+  return raw.map((item, i) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      throw new Error(`call:agent 'workspace_entries[${i}]' must be a mapping`);
+    }
+    const entry = item as Record<string, unknown>;
+    const source = entry.source as Record<string, unknown> | undefined;
+    const gitRepo = source?.git_repo as Record<string, unknown> | undefined;
+    if (!gitRepo || typeof gitRepo.url !== "string" || !gitRepo.url) {
+      throw new Error(
+        `call:agent 'workspace_entries[${i}]' requires 'source.git_repo.url' ` +
+        `(the workflow surface supports git sources only)`,
+      );
+    }
+    return {
+      name: typeof entry.name === "string" && entry.name ? entry.name : undefined,
+      source: {
+        git_repo: {
+          url: gitRepo.url,
+          branch: typeof gitRepo.branch === "string" && gitRepo.branch ? gitRepo.branch : undefined,
+        },
+      },
+    };
+  });
+}
+
+/**
+ * Parses the shared RunConfig block with per-key validation rather than a
+ * bare cast: a typo'd key or mistyped value is an authoring error the
+ * author must hear about, not something to silently carry along.
+ */
+function parseAgentCallRunConfig(raw: unknown): AgentCallConfig["run_config"] {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("call:agent 'run_config' must be a mapping");
+  }
+  const obj = raw as Record<string, unknown>;
+
+  const known = new Set(["model_name", "max_cost_usd", "max_tool_rounds", "service_tier"]);
+  for (const key of Object.keys(obj)) {
+    if (!known.has(key)) {
+      throw new Error(
+        `call:agent 'run_config' has unknown field '${key}' ` +
+        `(expected: model_name, max_cost_usd, max_tool_rounds, service_tier)`,
+      );
+    }
+  }
+
+  const modelName = obj.model_name;
+  if (modelName !== undefined && typeof modelName !== "string") {
+    throw new Error("call:agent 'run_config.model_name' must be a string");
+  }
+  const maxCostUsd = obj.max_cost_usd;
+  if (maxCostUsd !== undefined && (typeof maxCostUsd !== "number" || maxCostUsd < 0)) {
+    throw new Error("call:agent 'run_config.max_cost_usd' must be a number >= 0");
+  }
+  const maxToolRounds = obj.max_tool_rounds;
+  if (maxToolRounds !== undefined && (typeof maxToolRounds !== "number" || maxToolRounds < 0)) {
+    throw new Error("call:agent 'run_config.max_tool_rounds' must be a number >= 0");
+  }
+  const serviceTier = parseServiceTier(obj.service_tier);
+
+  return {
+    model_name: modelName,
+    max_cost_usd: maxCostUsd,
+    max_tool_rounds: maxToolRounds,
+    service_tier: serviceTier,
+  };
+}
+
+/**
+ * Maps YAML service-tier shorthands to canonical enum names, mirroring
+ * HARNESS_SHORTHANDS. Unknown values are authoring errors: the tier
+ * exists to make pricing deterministic, so a typo must never silently
+ * fall back to the default.
+ */
+const SERVICE_TIER_SHORTHANDS: Record<string, string> = {
+  standard: "SERVICE_TIER_STANDARD",
+  fast: "SERVICE_TIER_FAST",
+};
+
+function parseServiceTier(raw: unknown): string | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== "string") {
+    throw new Error("call:agent 'run_config.service_tier' must be a string");
+  }
+  const canonical =
+    SERVICE_TIER_SHORTHANDS[raw.toLowerCase()] ??
+    (Object.values(SERVICE_TIER_SHORTHANDS).includes(raw) ? raw : undefined);
+  if (!canonical) {
+    throw new Error(
+      `call:agent 'run_config.service_tier' has unknown value '${raw}' ` +
+      `(expected: standard, fast)`,
+    );
+  }
+  return canonical;
 }
 
 function parseHumanInputConfig(taskName: string, raw: unknown): import("./types.js").HumanInputConfig {

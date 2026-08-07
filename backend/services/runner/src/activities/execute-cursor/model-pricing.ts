@@ -140,6 +140,29 @@ export function getCursorModelPricing(model: string): CursorModelPricing {
 }
 
 /**
+ * Look up pricing for a Cursor model under an explicitly requested speed
+ * variant (stigmer/stigmer#357). Unlike the suffix inference above — which
+ * derives the variant from a wire id like "composer-2.5-fast" — this is for
+ * callers that KNOW the variant because they requested it. Falls back to
+ * base rates (with a warning) when the registry prices no such variant;
+ * create-time validation makes that unreachable short of registry drift.
+ */
+export function getCursorModelPricingForVariant(
+  model: string,
+  variant: "fast" | null,
+): CursorModelPricing {
+  const base = getCursorModelPricing(model);
+  if (variant !== "fast") return base;
+  const fast = applyFastVariant(base, model);
+  if (fast) return fast;
+  console.warn(
+    `Requested fast-variant pricing for "${model}" but the registry prices no fast variant — ` +
+    `estimating at base rates (billing reconciliation remains authoritative)`,
+  );
+  return base;
+}
+
+/**
  * Compute USD cost for a single turn.
  *
  * The Cursor SDK follows Anthropic's convention: `inputTokens` is the

@@ -320,6 +320,48 @@ func ValidateTaskConfigRequiredFields(spec *workflowv1.WorkflowSpec) []string {
 			if activity := getStringField(fields, "activity"); activity == "" {
 				errors = append(errors, fmt.Sprintf("task '%s' (activity_call): required field 'activity' is missing or empty", task.Name))
 			}
+
+		case workflowv1.WorkflowTaskKind_agent_call:
+			// RunConfig's buf.validate gte-0 rules cannot run at Layer 1
+			// (task_config is an opaque Struct there), so the bounds are
+			// enforced here. Keep the strings in lockstep with the cloud
+			// Java validator.
+			if rc := getStructField(fields, "run_config"); rc != nil {
+				rcFields := rc.GetFields()
+				if v, ok := rcFields["max_cost_usd"]; ok && v.GetNumberValue() < 0 {
+					errors = append(errors, fmt.Sprintf("task '%s' (agent_call): run_config.max_cost_usd must be >= 0", task.Name))
+				}
+				if v, ok := rcFields["max_tool_rounds"]; ok && v.GetNumberValue() < 0 {
+					errors = append(errors, fmt.Sprintf("task '%s' (agent_call): run_config.max_tool_rounds must be >= 0", task.Name))
+				}
+			}
+
+			// Surface constraint on the shared WorkspaceEntry vocabulary
+			// (the schedule discipline, workflow-flavored): sources must
+			// be git_repo — no client is connected to serve a local_path
+			// when a workflow task fires. Refusing at write time beats a
+			// deterministic provisioning failure at run time. The https
+			// rule mirrors GitRepoSource's proto CEL, unreachable at
+			// Layer 1 through the Struct envelope.
+			for i, v := range getListField(fields, "workspace_entries") {
+				entry := v.GetStructValue()
+				if entry == nil {
+					continue
+				}
+				source := getStructField(entry.GetFields(), "source")
+				if source == nil {
+					errors = append(errors, fmt.Sprintf("task '%s' (agent_call): workspace_entries[%d] requires a source", task.Name, i))
+					continue
+				}
+				gitRepo := getStructField(source.GetFields(), "git_repo")
+				if gitRepo == nil {
+					errors = append(errors, fmt.Sprintf("task '%s' (agent_call): workspace_entries[%d] must use a git_repo source — no client is connected to serve a local_path when a workflow task fires", task.Name, i))
+					continue
+				}
+				if url := getStringField(gitRepo.GetFields(), "url"); !strings.HasPrefix(url, "https://") {
+					errors = append(errors, fmt.Sprintf("task '%s' (agent_call): workspace_entries[%d] url must use HTTPS (e.g. https://github.com/org/repo). SSH URLs are not supported.", task.Name, i))
+				}
+			}
 		}
 	}
 	return errors

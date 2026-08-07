@@ -52,6 +52,7 @@ private static final long serialVersionUID = 0L;
   }
   private RunConfig() {
     modelName_ = "";
+    serviceTier_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -155,6 +156,50 @@ private static final long serialVersionUID = 0L;
     return maxToolRounds_;
   }
 
+  public static final int SERVICE_TIER_FIELD_NUMBER = 4;
+  private int serviceTier_ = 0;
+  /**
+   * <pre>
+   * Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
+   *
+   * In workflow YAML the shorthand spellings "standard"/"fast" are
+   * accepted alongside the canonical enum names.
+   *
+   * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
+   * surface's platform default, which itself resolves to STANDARD —
+   * never the provider account default. FAST requires model_name
+   * (here or from the platform profile) to name a model with a
+   * registry fast pricing variant; validated fail-closed at create.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4 [json_name = "serviceTier", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for serviceTier.
+   */
+  @java.lang.Override public int getServiceTierValue() {
+    return serviceTier_;
+  }
+  /**
+   * <pre>
+   * Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
+   *
+   * In workflow YAML the shorthand spellings "standard"/"fast" are
+   * accepted alongside the canonical enum names.
+   *
+   * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
+   * surface's platform default, which itself resolves to STANDARD —
+   * never the provider account default. FAST requires model_name
+   * (here or from the platform profile) to name a model with a
+   * registry fast pricing variant; validated fail-closed at create.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4 [json_name = "serviceTier", (.buf.validate.field) = { ... }</code>
+   * @return The serviceTier.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ServiceTier getServiceTier() {
+    ai.stigmer.agentic.agentexecution.v1.ServiceTier result = ai.stigmer.agentic.agentexecution.v1.ServiceTier.forNumber(serviceTier_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.ServiceTier.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -178,6 +223,9 @@ private static final long serialVersionUID = 0L;
     if (maxToolRounds_ != 0) {
       output.writeInt32(3, maxToolRounds_);
     }
+    if (serviceTier_ != ai.stigmer.agentic.agentexecution.v1.ServiceTier.SERVICE_TIER_UNSPECIFIED.getNumber()) {
+      output.writeEnum(4, serviceTier_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -197,6 +245,10 @@ private static final long serialVersionUID = 0L;
     if (maxToolRounds_ != 0) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(3, maxToolRounds_);
+    }
+    if (serviceTier_ != ai.stigmer.agentic.agentexecution.v1.ServiceTier.SERVICE_TIER_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(4, serviceTier_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -220,6 +272,7 @@ private static final long serialVersionUID = 0L;
             other.getMaxCostUsd())) return false;
     if (getMaxToolRounds()
         != other.getMaxToolRounds()) return false;
+    if (serviceTier_ != other.serviceTier_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -238,6 +291,8 @@ private static final long serialVersionUID = 0L;
         java.lang.Double.doubleToLongBits(getMaxCostUsd()));
     hash = (37 * hash) + MAX_TOOL_ROUNDS_FIELD_NUMBER;
     hash = (53 * hash) + getMaxToolRounds();
+    hash = (37 * hash) + SERVICE_TIER_FIELD_NUMBER;
+    hash = (53 * hash) + serviceTier_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -395,6 +450,7 @@ private static final long serialVersionUID = 0L;
       modelName_ = "";
       maxCostUsd_ = 0D;
       maxToolRounds_ = 0;
+      serviceTier_ = 0;
       return this;
     }
 
@@ -437,6 +493,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.maxToolRounds_ = maxToolRounds_;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.serviceTier_ = serviceTier_;
+      }
     }
 
     @java.lang.Override
@@ -461,6 +520,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getMaxToolRounds() != 0) {
         setMaxToolRounds(other.getMaxToolRounds());
+      }
+      if (other.serviceTier_ != 0) {
+        setServiceTierValue(other.getServiceTierValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -503,6 +565,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 24
+            case 32: {
+              serviceTier_ = input.readEnum();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 32
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -714,6 +781,123 @@ private static final long serialVersionUID = 0L;
     public Builder clearMaxToolRounds() {
       bitField0_ = (bitField0_ & ~0x00000004);
       maxToolRounds_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private int serviceTier_ = 0;
+    /**
+     * <pre>
+     * Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
+     *
+     * In workflow YAML the shorthand spellings "standard"/"fast" are
+     * accepted alongside the canonical enum names.
+     *
+     * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
+     * surface's platform default, which itself resolves to STANDARD —
+     * never the provider account default. FAST requires model_name
+     * (here or from the platform profile) to name a model with a
+     * registry fast pricing variant; validated fail-closed at create.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4 [json_name = "serviceTier", (.buf.validate.field) = { ... }</code>
+     * @return The enum numeric value on the wire for serviceTier.
+     */
+    @java.lang.Override public int getServiceTierValue() {
+      return serviceTier_;
+    }
+    /**
+     * <pre>
+     * Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
+     *
+     * In workflow YAML the shorthand spellings "standard"/"fast" are
+     * accepted alongside the canonical enum names.
+     *
+     * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
+     * surface's platform default, which itself resolves to STANDARD —
+     * never the provider account default. FAST requires model_name
+     * (here or from the platform profile) to name a model with a
+     * registry fast pricing variant; validated fail-closed at create.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4 [json_name = "serviceTier", (.buf.validate.field) = { ... }</code>
+     * @param value The enum numeric value on the wire for serviceTier to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setServiceTierValue(int value) {
+      serviceTier_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
+     *
+     * In workflow YAML the shorthand spellings "standard"/"fast" are
+     * accepted alongside the canonical enum names.
+     *
+     * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
+     * surface's platform default, which itself resolves to STANDARD —
+     * never the provider account default. FAST requires model_name
+     * (here or from the platform profile) to name a model with a
+     * registry fast pricing variant; validated fail-closed at create.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4 [json_name = "serviceTier", (.buf.validate.field) = { ... }</code>
+     * @return The serviceTier.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ServiceTier getServiceTier() {
+      ai.stigmer.agentic.agentexecution.v1.ServiceTier result = ai.stigmer.agentic.agentexecution.v1.ServiceTier.forNumber(serviceTier_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.ServiceTier.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
+     *
+     * In workflow YAML the shorthand spellings "standard"/"fast" are
+     * accepted alongside the canonical enum names.
+     *
+     * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
+     * surface's platform default, which itself resolves to STANDARD —
+     * never the provider account default. FAST requires model_name
+     * (here or from the platform profile) to name a model with a
+     * registry fast pricing variant; validated fail-closed at create.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4 [json_name = "serviceTier", (.buf.validate.field) = { ... }</code>
+     * @param value The serviceTier to set.
+     * @return This builder for chaining.
+     */
+    public Builder setServiceTier(ai.stigmer.agentic.agentexecution.v1.ServiceTier value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000008;
+      serviceTier_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
+     *
+     * In workflow YAML the shorthand spellings "standard"/"fast" are
+     * accepted alongside the canonical enum names.
+     *
+     * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
+     * surface's platform default, which itself resolves to STANDARD —
+     * never the provider account default. FAST requires model_name
+     * (here or from the platform profile) to name a model with a
+     * registry fast pricing variant; validated fail-closed at create.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4 [json_name = "serviceTier", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearServiceTier() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      serviceTier_ = 0;
       onChanged();
       return this;
     }

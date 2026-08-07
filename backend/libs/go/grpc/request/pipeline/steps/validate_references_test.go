@@ -63,6 +63,21 @@ func (m *mockStore) DeleteResourcesByKind(_ context.Context, _ apiresourcekind.A
 func (m *mockStore) DeleteResourcesByIdPrefix(_ context.Context, _ apiresourcekind.ApiResourceKind, _ string) (int64, error) {
 	return 0, nil
 }
+func (m *mockStore) UpsertScheduleRun(_ context.Context, _ *store.ScheduleRunRecord) error {
+	return nil
+}
+func (m *mockStore) MarkLatestScheduleRunTerminal(_ context.Context, _, _, _, _, _ string) error {
+	return nil
+}
+func (m *mockStore) ListScheduleRuns(_ context.Context, _ string, _, _ int) ([]*store.ScheduleRunRecord, int, error) {
+	return nil, 0, nil
+}
+func (m *mockStore) DeleteScheduleRunsBySchedule(_ context.Context, _ string) (int64, error) {
+	return 0, nil
+}
+func (m *mockStore) PruneScheduleRuns(_ context.Context, _ string) (int64, error) {
+	return 0, nil
+}
 func (m *mockStore) SaveAudit(_ context.Context, _ apiresourcekind.ApiResourceKind, _ string, _ proto.Message, _, _ string) error {
 	return nil
 }

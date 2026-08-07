@@ -13,7 +13,10 @@
  * wire via ProxyUsageReporter once traffic routing (Task 5B) is complete.
  */
 
-import { getCursorModelPricing, computeTurnCost } from "./model-pricing.js";
+import type { ModelParameterValue } from "@cursor/sdk";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+
+import { getCursorModelPricingForVariant, computeTurnCost } from "./model-pricing.js";
 
 export interface TurnUsage {
   readonly inputTokens?: number;
@@ -32,6 +35,10 @@ export interface UsageSnapshot {
   readonly estimatedCostUsd: number;
   readonly model: string;
   readonly observedAt: string;
+  /** Tier the runner requested — always explicit post-translation (#357). */
+  readonly requestedServiceTier: ServiceTier;
+  /** JSON-encoded ModelSelection.params the runner sent; "" when none. */
+  readonly requestedModelParams: string;
 }
 
 const EMPTY_SNAPSHOT: UsageSnapshot = {
@@ -44,6 +51,8 @@ const EMPTY_SNAPSHOT: UsageSnapshot = {
   estimatedCostUsd: 0,
   model: "",
   observedAt: "",
+  requestedServiceTier: ServiceTier.UNSPECIFIED,
+  requestedModelParams: "",
 };
 
 export interface TurnRecord {
@@ -64,7 +73,22 @@ export class UsageAccumulator {
   private observedAt = "";
   private readonly turnRecords: TurnRecord[] = [];
 
-  constructor(private readonly model: string) {}
+  /** JSON-encoded params the runner sent with the model selection (#357). */
+  private readonly requestedModelParams: string;
+
+  constructor(
+    private readonly model: string,
+    /**
+     * The explicit tier the runner requested from the provider. Recorded
+     * verbatim into status as the audit trail that the account default was
+     * never left in control (#357).
+     */
+    private readonly requestedServiceTier: ServiceTier = ServiceTier.UNSPECIFIED,
+    requestedModelParams: readonly ModelParameterValue[] = [],
+  ) {
+    this.requestedModelParams =
+      requestedModelParams.length > 0 ? JSON.stringify(requestedModelParams) : "";
+  }
 
   addTurn(usage: TurnUsage): void {
     const input = usage.inputTokens ?? 0;
@@ -86,7 +110,13 @@ export class UsageAccumulator {
       cacheWriteTokens: cacheWrite,
     });
 
-    const pricing = getCursorModelPricing(this.model);
+    // Estimate at the rates of the variant we explicitly requested — a
+    // FAST run priced at base rates would understate the display estimate
+    // ~4x relative to the authoritative bill (#357).
+    const pricing = getCursorModelPricingForVariant(
+      this.model,
+      this.requestedServiceTier === ServiceTier.FAST ? "fast" : null,
+    );
     this.estimatedCostUsd += computeTurnCost(
       pricing, input, output, cacheWrite, cacheRead,
     );
@@ -122,6 +152,8 @@ export class UsageAccumulator {
       estimatedCostUsd: this.estimatedCostUsd,
       model: this.model,
       observedAt: this.observedAt,
+      requestedServiceTier: this.requestedServiceTier,
+      requestedModelParams: this.requestedModelParams,
     };
   }
 }

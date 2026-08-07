@@ -109,7 +109,6 @@ func runTaskRegistryGeneration(schemaDir, outputDir, metaDir string) error {
 		fmt.Printf("  Warning: could not load shared types: %v\n", err)
 		sharedTypes = make(map[string]*TypeSchema)
 	}
-	_ = sharedTypes // reserved for future nested type resolution
 
 	// Load sidecar metadata
 	sidecars, err := loadSidecarMetadata(metaDir)
@@ -125,7 +124,7 @@ func runTaskRegistryGeneration(schemaDir, outputDir, metaDir string) error {
 	// Merge schemas with sidecars into registry entries
 	var entries []TaskKindRegistryEntry
 	for _, schema := range taskSchemas {
-		entry := buildRegistryEntry(schema, sidecars)
+		entry := buildRegistryEntry(schema, sidecars, sharedTypes)
 		entries = append(entries, entry)
 	}
 
@@ -245,7 +244,7 @@ func loadSidecarMetadata(dir string) (map[string]*SidecarMeta, error) {
 	return sidecars, nil
 }
 
-func buildRegistryEntry(schema *TaskConfigSchema, sidecars map[string]*SidecarMeta) TaskKindRegistryEntry {
+func buildRegistryEntry(schema *TaskConfigSchema, sidecars map[string]*SidecarMeta, sharedTypes map[string]*TypeSchema) TaskKindRegistryEntry {
 	kind := schema.DiscriminatorValue
 	if kind == "" {
 		kind = strings.ToLower(schema.Kind)
@@ -322,12 +321,12 @@ func buildRegistryEntry(schema *TaskConfigSchema, sidecars map[string]*SidecarMe
 	}
 
 	// Generate JSON Schema from fields
-	entry.ConfigJsonSchema = generateJsonSchema(schema)
+	entry.ConfigJsonSchema = generateJsonSchema(schema, sharedTypes)
 
 	return entry
 }
 
-func generateJsonSchema(schema *TaskConfigSchema) map[string]interface{} {
+func generateJsonSchema(schema *TaskConfigSchema, sharedTypes map[string]*TypeSchema) map[string]interface{} {
 	jsonSchema := map[string]interface{}{
 		"$schema":              "https://json-schema.org/draft/2020-12/schema",
 		"title":                schema.Name,
@@ -339,7 +338,7 @@ func generateJsonSchema(schema *TaskConfigSchema) map[string]interface{} {
 	var required []string
 
 	for _, field := range schema.Fields {
-		prop := fieldToJsonSchemaProperty(field)
+		prop := fieldToJsonSchemaProperty(field, sharedTypes, map[string]bool{})
 		properties[field.ProtoField] = prop
 		if field.Required {
 			required = append(required, field.ProtoField)
@@ -354,7 +353,7 @@ func generateJsonSchema(schema *TaskConfigSchema) map[string]interface{} {
 	return jsonSchema
 }
 
-func fieldToJsonSchemaProperty(field *FieldSchema) map[string]interface{} {
+func fieldToJsonSchemaProperty(field *FieldSchema, sharedTypes map[string]*TypeSchema, seen map[string]bool) map[string]interface{} {
 	prop := make(map[string]interface{})
 
 	desc := cleanDescription(field.Description)
@@ -420,13 +419,17 @@ func fieldToJsonSchemaProperty(field *FieldSchema) map[string]interface{} {
 	case "array":
 		prop["type"] = "array"
 		if field.Type.ElementType != nil {
-			prop["items"] = typeSpecToJsonSchema(field.Type.ElementType)
+			prop["items"] = typeSpecToJsonSchema(field.Type.ElementType, sharedTypes, seen)
 		}
 		if field.Validation != nil && field.Validation.MinItems > 0 {
 			prop["minItems"] = field.Validation.MinItems
 		}
 	case "message":
-		prop["type"] = "object"
+		// Expand the nested message into a full typed sub-schema so authors
+		// get validation and autocomplete inside it (e.g. agent_call's
+		// run_config and output), instead of a bare object that accepts
+		// anything (stigmer/stigmer#358).
+		expandMessageSchema(prop, field.Type.MessageType, sharedTypes, seen)
 	case "timestamp":
 		prop["type"] = "string"
 		prop["format"] = "date-time"
@@ -440,7 +443,7 @@ func fieldToJsonSchemaProperty(field *FieldSchema) map[string]interface{} {
 	return prop
 }
 
-func typeSpecToJsonSchema(ts *TypeSpec) map[string]interface{} {
+func typeSpecToJsonSchema(ts *TypeSpec, sharedTypes map[string]*TypeSchema, seen map[string]bool) map[string]interface{} {
 	switch ts.Kind {
 	case "string":
 		if ts.EnumType != "" && len(ts.EnumValues) > 0 {
@@ -459,9 +462,42 @@ func typeSpecToJsonSchema(ts *TypeSpec) map[string]interface{} {
 		// google.protobuf.Value — any JSON value; empty schema accepts all.
 		return map[string]interface{}{}
 	case "message":
-		return map[string]interface{}{"type": "object"}
+		prop := map[string]interface{}{}
+		expandMessageSchema(prop, ts.MessageType, sharedTypes, seen)
+		return prop
 	default:
 		return map[string]interface{}{"type": "string"}
+	}
+}
+
+// expandMessageSchema fills prop with the typed object schema of a shared
+// message type. Falls back to a bare "object" when the type schema is not
+// available (proto2schema did not extract it) or when the type recurses —
+// the fallback is exactly the pre-expansion behavior, so unknown types
+// never make the schema stricter than the data.
+func expandMessageSchema(prop map[string]interface{}, messageType string, sharedTypes map[string]*TypeSchema, seen map[string]bool) {
+	prop["type"] = "object"
+
+	typeSchema := sharedTypes[messageType]
+	if typeSchema == nil || seen[messageType] {
+		return
+	}
+	seen[messageType] = true
+	defer delete(seen, messageType)
+
+	properties := make(map[string]interface{})
+	var required []string
+	for _, field := range typeSchema.Fields {
+		properties[field.ProtoField] = fieldToJsonSchemaProperty(field, sharedTypes, seen)
+		if field.Required {
+			required = append(required, field.ProtoField)
+		}
+	}
+
+	prop["additionalProperties"] = false
+	prop["properties"] = properties
+	if len(required) > 0 {
+		prop["required"] = required
 	}
 }
 

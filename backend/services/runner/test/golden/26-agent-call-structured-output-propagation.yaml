@@ -29,9 +29,11 @@ do:
 
           Data source: decor schema in the analytics database.
           Analyze DAU, cohort breakdown, retention, and anomalies.
-        config:
-          model: "claude-sonnet-4"
-          timeout: 300
+        run_config:
+          model_name: "claude-sonnet-4"
+          # Fast tier via the YAML shorthand — golden coverage for the
+          # loader's shorthand mapping riding a full workflow load (#357).
+          service_tier: fast
         output:
           schema:
             type: object

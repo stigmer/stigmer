@@ -11,6 +11,7 @@ import ai.stigmer.agentic.agentexecution.v1.Attachment;
 import ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig;
 import ai.stigmer.agentic.agentexecution.v1.ExecutionConfig;
 import ai.stigmer.agentic.agentexecution.v1.InteractionMode;
+import ai.stigmer.agentic.agentexecution.v1.ServiceTier;
 import ai.stigmer.agentic.executioncontext.v1.ExecutionValue;
 import ai.stigmer.agentic.session.v1.CursorMode;
 import ai.stigmer.agentic.session.v1.ExecutionTarget;
@@ -540,6 +541,7 @@ public final class AgentExecutionInput {
         private final java.util.Map<String, Object> structuredOutputSchema;
         private final boolean buildFromPlan;
         private final ApprovalMode approvalMode;
+        private final ServiceTier serviceTier;
 
         private ExecutionConfigInput(Builder builder) {
             this.modelName = builder.modelName;
@@ -551,6 +553,7 @@ public final class AgentExecutionInput {
             this.structuredOutputSchema = builder.structuredOutputSchema;
             this.buildFromPlan = builder.buildFromPlan;
             this.approvalMode = builder.approvalMode;
+            this.serviceTier = builder.serviceTier;
         }
 
         ExecutionConfig toProto() {
@@ -574,6 +577,9 @@ public final class AgentExecutionInput {
             if (this.approvalMode != null) {
                 builder.setApprovalMode(this.approvalMode);
             }
+            if (this.serviceTier != null) {
+                builder.setServiceTier(this.serviceTier);
+            }
             return builder.build();
         }
 
@@ -589,6 +595,7 @@ public final class AgentExecutionInput {
             private java.util.Map<String, Object> structuredOutputSchema;
             private boolean buildFromPlan;
             private ApprovalMode approvalMode;
+            private ServiceTier serviceTier;
 
             private Builder() {}
 
@@ -601,6 +608,7 @@ public final class AgentExecutionInput {
             public Builder structuredOutputSchema(java.util.Map<String, Object> structuredOutputSchema) { this.structuredOutputSchema = structuredOutputSchema; return this; }
             public Builder buildFromPlan(boolean buildFromPlan) { this.buildFromPlan = buildFromPlan; return this; }
             public Builder approvalMode(ApprovalMode approvalMode) { this.approvalMode = approvalMode; return this; }
+            public Builder serviceTier(ServiceTier serviceTier) { this.serviceTier = serviceTier; return this; }
 
             public ExecutionConfigInput build() { return new ExecutionConfigInput(this); }
         }

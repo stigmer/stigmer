@@ -43,7 +43,6 @@ func TestWorkflowCursorCall_DispatchOffline(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": "Reply with: dispatch-test-ok",
 		"harness": "cursor",
 	})
@@ -123,7 +122,6 @@ func TestWorkflowCursorCall_FileCanary(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": "Create exactly one file named canary.txt containing only the text 'hello-from-cursor'. Do not create any other files.",
 		"harness": "cursor",
 	})
@@ -197,7 +195,6 @@ func TestWorkflowCursorCall_StructuredOutput(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": "Classify the sentiment of this text and respond with JSON: 'This product is fantastic!'",
 		"harness": "cursor",
 	})

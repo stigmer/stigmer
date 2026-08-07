@@ -1,11 +1,13 @@
 package converter
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"google.golang.org/protobuf/types/known/structpb"
+	"gopkg.in/yaml.v3"
 )
 
 func TestProtoToYAML_BasicSetVars(t *testing.T) {
@@ -154,10 +156,10 @@ func TestProtoToYAML_AgentCallWithOutputContract(t *testing.T) {
 			"max_retries":   float64(3),
 			"fallback_task": "human_review",
 		},
-		"config": map[string]interface{}{
-			"model":           "claude-sonnet-4",
-			"timeout":         float64(300),
-			"max_cost_micros": float64(500000),
+		"run_config": map[string]interface{}{
+			"model_name":   "claude-sonnet-4",
+			"max_cost_usd": 0.5,
+			"service_tier": "SERVICE_TIER_STANDARD",
 		},
 		"harness": "HARNESS_CURSOR",
 	})
@@ -200,13 +202,149 @@ func TestProtoToYAML_AgentCallWithOutputContract(t *testing.T) {
 		{"fallback_task: human_review", "fallback task"},
 		{"export:", "export block"},
 		{"harness: cursor", "cursor harness"},
-		{"max_cost_micros:", "per-task budget cap"},
+		{"run_config:", "run config block"},
+		{"model_name: claude-sonnet-4", "model override"},
+		{"max_cost_usd:", "per-task budget cap"},
+		{"service_tier: standard", "service tier shorthand (#357)"},
 	}
 
 	for _, c := range checks {
 		if !strings.Contains(yaml, c.substr) {
 			t.Errorf("YAML should contain %s (%q), got:\n%s", c.desc, c.substr, yaml)
 		}
+	}
+}
+
+// TestProtoToYAML_AgentCallEmissionContract pins the cross-edition emission
+// contract for agent_call (issue #358): this converter and the cloud Java
+// InProcessWorkflowValidator must emit a `with:` block with exactly these
+// keys and values for this fixture — the runner executes whichever
+// edition's YAML was stored at validation time, so divergence here means
+// the two editions execute different workflows from the same spec. The
+// Java twin (InProcessWorkflowValidatorTest#agentCallEmissionContract)
+// pins the same fixture; change both together or not at all. The contract
+// is parsed structural equality of the with-block, not byte equality of
+// the YAML (the editions order map keys differently).
+func TestProtoToYAML_AgentCallEmissionContract(t *testing.T) {
+	config, _ := structpb.NewStruct(map[string]interface{}{
+		"agent":   "acme/code-reviewer",
+		"message": "Review ${ $context.pr.diff }",
+		"env": map[string]interface{}{
+			"GITHUB_TOKEN": "${ .secrets.GH }",
+		},
+		"run_config": map[string]interface{}{
+			"model_name":      "claude-sonnet-4-6",
+			"max_cost_usd":    0.5,
+			"max_tool_rounds": float64(15),
+			"service_tier":    "fast",
+		},
+		"output": map[string]interface{}{
+			"schema":        map[string]interface{}{"type": "object"},
+			"on_invalid":    "ON_INVALID_RETRY",
+			"max_retries":   float64(2),
+			"fallback_task": "review_fallback",
+		},
+		"harness": "cursor",
+		"workspace_entries": []interface{}{
+			map[string]interface{}{
+				"name": "app",
+				"source": map[string]interface{}{
+					"git_repo": map[string]interface{}{
+						"url":    "https://github.com/acme/app",
+						"branch": "main",
+					},
+				},
+			},
+		},
+		"environment_refs": []interface{}{
+			map[string]interface{}{"slug": "shared-secrets"},
+		},
+	})
+	fallbackConfig, _ := structpb.NewStruct(map[string]interface{}{
+		"variables": map[string]interface{}{"done": "true"},
+	})
+
+	spec := &workflowv1.WorkflowSpec{
+		Document: &workflowv1.WorkflowDocument{
+			Dsl:       "1.0.0",
+			Namespace: "test",
+			Name:      "agent-emission-contract",
+			Version:   "1.0.0",
+		},
+		Tasks: []*workflowv1.WorkflowTask{
+			{
+				Name:       "review",
+				Kind:       workflowv1.WorkflowTaskKind_agent_call,
+				TaskConfig: config,
+			},
+			{
+				Name:       "review_fallback",
+				Kind:       workflowv1.WorkflowTaskKind_set_vars,
+				TaskConfig: fallbackConfig,
+			},
+		},
+	}
+
+	yamlStr, err := NewConverter().ProtoToYAML(spec)
+	if err != nil {
+		t.Fatalf("ProtoToYAML failed: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := yaml.Unmarshal([]byte(yamlStr), &parsed); err != nil {
+		t.Fatalf("emitted YAML does not parse: %v", err)
+	}
+
+	doTasks, ok := parsed["do"].([]interface{})
+	if !ok || len(doTasks) != 2 {
+		t.Fatalf("expected 2 do-tasks, got %v", parsed["do"])
+	}
+	reviewTask, ok := doTasks[0].(map[string]interface{})["review"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("missing 'review' task in %v", doTasks[0])
+	}
+	if reviewTask["call"] != "agent" {
+		t.Fatalf("expected call: agent, got %v", reviewTask["call"])
+	}
+
+	expectedWith := map[string]interface{}{
+		"agent":   "acme/code-reviewer",
+		"message": "Review ${ $context.pr.diff }",
+		"env": map[string]interface{}{
+			"GITHUB_TOKEN": "${ .secrets.GH }",
+		},
+		"run_config": map[string]interface{}{
+			"model_name":      "claude-sonnet-4-6",
+			"max_cost_usd":    0.5,
+			"max_tool_rounds": 15,
+			"service_tier":    "fast",
+		},
+		"output": map[string]interface{}{
+			"schema":        map[string]interface{}{"type": "object"},
+			"on_invalid":    "ON_INVALID_RETRY",
+			"max_retries":   2,
+			"fallback_task": "review_fallback",
+		},
+		"harness": "cursor",
+		// workspace_entries pass through to the runner; environment_refs
+		// deliberately do NOT (resolved server-side from the Workflow row —
+		// see the emission comment in task_converters.go).
+		"workspace_entries": []interface{}{
+			map[string]interface{}{
+				"name": "app",
+				"source": map[string]interface{}{
+					"git_repo": map[string]interface{}{
+						"url":    "https://github.com/acme/app",
+						"branch": "main",
+					},
+				},
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(reviewTask["with"], expectedWith) {
+		t.Errorf("agent_call with-block diverges from the pinned emission contract.\ngot:  %#v\nwant: %#v",
+			reviewTask["with"], expectedWith)
 	}
 }
 

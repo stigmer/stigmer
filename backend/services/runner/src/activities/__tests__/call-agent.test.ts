@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 let mockGetAgentByReference: ReturnType<typeof vi.fn>;
 let mockCreateSession: ReturnType<typeof vi.fn>;
@@ -93,11 +94,11 @@ describe("callAgentAction", () => {
       expect(ref.slug).toBe("my-agent");
     });
 
-    it("uses config.org over __stigmer_org_id when both are present", async () => {
+    it("org/slug agent reference overrides the workflow org for lookup only", async () => {
       await expect(
         callAgentAction(
-          { agent: "my-agent", message: "Hello", org: "explicit-org" },
-          { __stigmer_org_id: "fallback-org" },
+          { agent: "explicit-org/my-agent", message: "Hello" },
+          { __stigmer_org_id: "workflow-org" },
           "wfl_parent789",
         ),
       ).rejects.toThrow("CompleteAsyncError");
@@ -106,6 +107,11 @@ describe("callAgentAction", () => {
       expect(ref.org).toBe("explicit-org");
       expect(ref.slug).toBe("my-agent");
       expect(ref.kind).toBe(ApiResourceKind.agent);
+
+      // The execution itself is still created in the workflow's org — the
+      // cross-org reference changes agent lookup, never the billing org.
+      const execution = mockCreateAgentExecution.mock.calls[0][0];
+      expect(execution.metadata?.org).toBe("workflow-org");
     });
   });
 
@@ -120,7 +126,7 @@ describe("callAgentAction", () => {
       ).rejects.toThrow("call:agent requires an organization context");
     });
 
-    it("falls back to __stigmer_org_id from runtime env", async () => {
+    it("uses __stigmer_org_id from runtime env", async () => {
       await expect(
         callAgentAction(
           { agent: "my-agent", message: "Hello" },
@@ -258,6 +264,142 @@ describe("callAgentAction", () => {
 
       const execution = mockCreateAgentExecution.mock.calls[0][0];
       expect(execution.spec.activityTaskQueue).toBe("");
+    });
+  });
+
+  describe("run_config → ExecutionConfig mapping (#358)", () => {
+    it("maps model_name, max_cost_usd, and max_tool_rounds onto ExecutionConfig", async () => {
+      await expect(
+        callAgentAction(
+          {
+            agent: "my-agent",
+            message: "Hello",
+            run_config: {
+              model_name: "claude-sonnet-4-6",
+              max_cost_usd: 0.75,
+              max_tool_rounds: 15,
+            },
+          },
+          { __stigmer_org_id: "test-org" },
+          "wfl_parent",
+        ),
+      ).rejects.toThrow("CompleteAsyncError");
+
+      const execution = mockCreateAgentExecution.mock.calls[0][0];
+      expect(execution.spec.executionConfig).toBeDefined();
+      expect(execution.spec.executionConfig.modelName).toBe("claude-sonnet-4-6");
+      expect(execution.spec.executionConfig.maxCostUsd).toBe(0.75);
+      expect(execution.spec.executionConfig.maxToolRounds).toBe(15);
+    });
+
+    it("maps a canonical service_tier onto ExecutionConfig.serviceTier (#357)", async () => {
+      await expect(
+        callAgentAction(
+          {
+            agent: "my-agent",
+            message: "Hello",
+            run_config: { service_tier: "SERVICE_TIER_FAST" },
+          },
+          { __stigmer_org_id: "test-org" },
+          "wfl_parent",
+        ),
+      ).rejects.toThrow("CompleteAsyncError");
+
+      const execution = mockCreateAgentExecution.mock.calls[0][0];
+      expect(execution.spec.executionConfig).toBeDefined();
+      expect(execution.spec.executionConfig.serviceTier).toBe(ServiceTier.FAST);
+    });
+
+    it("fails loudly on a service_tier value with no proto mapping", async () => {
+      // The loader canonicalizes tiers; an unmapped value reaching the
+      // activity means loader/activity drift. A pricing directive must
+      // never be silently dropped.
+      await expect(
+        callAgentAction(
+          {
+            agent: "my-agent",
+            message: "Hello",
+            run_config: { service_tier: "SERVICE_TIER_TURBO" },
+          },
+          { __stigmer_org_id: "test-org" },
+          "wfl_parent",
+        ),
+      ).rejects.toThrow(
+        "call:agent run_config.service_tier 'SERVICE_TIER_TURBO' has no proto mapping",
+      );
+    });
+
+    it("omits ExecutionConfig entirely when run_config and output are absent", async () => {
+      await expect(
+        callAgentAction(
+          { agent: "my-agent", message: "Hello" },
+          { __stigmer_org_id: "test-org" },
+          "wfl_parent",
+        ),
+      ).rejects.toThrow("CompleteAsyncError");
+
+      const execution = mockCreateAgentExecution.mock.calls[0][0];
+      expect(execution.spec.executionConfig).toBeUndefined();
+    });
+
+    it("treats zero bounds as no override", async () => {
+      await expect(
+        callAgentAction(
+          {
+            agent: "my-agent",
+            message: "Hello",
+            run_config: { model_name: "claude-sonnet-4-6", max_cost_usd: 0, max_tool_rounds: 0 },
+          },
+          { __stigmer_org_id: "test-org" },
+          "wfl_parent",
+        ),
+      ).rejects.toThrow("CompleteAsyncError");
+
+      const execution = mockCreateAgentExecution.mock.calls[0][0];
+      expect(execution.spec.executionConfig.modelName).toBe("claude-sonnet-4-6");
+      // Proto zero values: unset numerics read back as 0, but nothing was
+      // deliberately written — the guards must not have set them from a
+      // zero "no override" input.
+      expect(execution.spec.executionConfig.maxCostUsd).toBe(0);
+      expect(execution.spec.executionConfig.maxToolRounds).toBe(0);
+    });
+  });
+
+  describe("env secret marking", () => {
+    it("preserves the agent-declared secret flag when a task env override supplies the value", async () => {
+      // The agent declares API_TOKEN as secret. A task-level env override
+      // provides the value — the secret marking must survive (#358: the
+      // override used to hardcode isSecret:false, a redaction downgrade).
+      mockGetAgentByReference.mockResolvedValue({
+        metadata: { id: "agt_test123" },
+        status: { defaultInstanceId: "ain_default456" },
+        spec: {
+          env: {
+            API_TOKEN: { isSecret: true },
+            REGION: { isSecret: false },
+          },
+        },
+      });
+
+      await expect(
+        callAgentAction(
+          {
+            agent: "my-agent",
+            message: "Hello",
+            env: { API_TOKEN: "resolved-secret-value", REGION: "us-east-1", EXTRA: "plain" },
+          },
+          { __stigmer_org_id: "test-org" },
+          "wfl_parent",
+        ),
+      ).rejects.toThrow("CompleteAsyncError");
+
+      const execution = mockCreateAgentExecution.mock.calls[0][0];
+      const runtimeEnv = execution.spec.runtimeEnv;
+      expect(runtimeEnv.API_TOKEN.value).toBe("resolved-secret-value");
+      expect(runtimeEnv.API_TOKEN.isSecret).toBe(true);
+      expect(runtimeEnv.REGION.isSecret).toBe(false);
+      // Keys the agent never declared stay non-secret.
+      expect(runtimeEnv.EXTRA.isSecret).toBe(false);
     });
   });
 });

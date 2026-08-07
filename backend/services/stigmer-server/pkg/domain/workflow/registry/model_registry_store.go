@@ -59,20 +59,45 @@ type ModelRegistryStore struct {
 	modelsByHarness       map[string]map[string]bool
 	sortedModelsByHarness map[string][]string
 
+	// Pricing-variant capability index (stigmer/stigmer#357): variant key
+	// ("fast") → harness → model references that price it. Presence of a
+	// priced variant IS the selectability capability — a tier with no price
+	// would trip billing's undercharge guard, so selection and billability
+	// are coupled by construction. The harness dimension exists for the
+	// workflow validators (which know the task's harness); the execution
+	// create step stays deliberately harness-free (it never resolves the
+	// session) and unions across harnesses.
+	modelsByVariant map[string]map[string]map[string]bool
+	// variant key → sorted canonical ids across all harnesses (create-step
+	// refusal messages).
+	sortedModelsByVariant map[string][]string
+	// variant key → harness → sorted canonical ids (workflow-validation
+	// refusal messages).
+	sortedModelsByVariantHarness map[string]map[string][]string
+
 	// Log-noise control: the first refresh failure warns, subsequent
 	// consecutive failures log at debug until a refresh succeeds again.
 	failureLogged bool
 }
 
+// FastVariantKey is the registry pricing-variant key backing
+// SERVICE_TIER_FAST (stigmer/stigmer#357) — the one vocabulary shared by
+// every consumer (execution create validation, workflow validation), defined
+// beside the index it queries so the selectable key and the priced key can
+// never drift.
+const FastVariantKey = "fast"
+
 // The subset of a registry entry the store indexes. Both canonical ids
 // and provider api ids are accepted as valid references because the
 // runner resolves canonical ids via the registry and passes
 // unknown-but-registered api ids to the provider verbatim
-// (stigmer/stigmer#240).
+// (stigmer/stigmer#240). PricingVariants values are deliberately not
+// modeled — only the key set matters for capability.
 type modelRegistryEntry struct {
-	ID         string `json:"id"`
-	ApiModelID string `json:"apiModelId"`
-	Harness    string `json:"harness"`
+	ID              string                     `json:"id"`
+	ApiModelID      string                     `json:"apiModelId"`
+	Harness         string                     `json:"harness"`
+	PricingVariants map[string]json.RawMessage `json:"pricingVariants"`
 }
 
 type modelRegistryData struct {
@@ -145,6 +170,52 @@ func (s *ModelRegistryStore) CanonicalModels(harness string) []string {
 	return s.sortedModelsByHarness[harness]
 }
 
+// HasPricingVariant reports whether a model reference (canonical id or
+// provider api id) prices the given variant key (e.g. "fast") under ANY
+// harness — the registry-backed capability check for
+// ExecutionConfig.service_tier at execution create (stigmer/stigmer#357),
+// which is deliberately harness-free (it never resolves the session).
+func (s *ModelRegistryStore) HasPricingVariant(model, variant string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, refs := range s.modelsByVariant[variant] {
+		if refs[model] {
+			return true
+		}
+	}
+	return false
+}
+
+// HasPricingVariantForHarness reports whether a model reference prices the
+// given variant key under the given harness. The workflow validators use
+// this form — the task config names its harness, so a fast variant priced
+// only under another harness must not validate (it would execute as a
+// silent no-op).
+func (s *ModelRegistryStore) HasPricingVariantForHarness(harness, model, variant string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.modelsByVariant[variant][harness][model]
+}
+
+// CanonicalModelsWithVariant returns the sorted canonical model ids that
+// price the given variant key under any harness, for actionable refusal
+// messages ("fast is available on: ..."). Callers must not mutate the
+// slice.
+func (s *ModelRegistryStore) CanonicalModelsWithVariant(variant string) []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.sortedModelsByVariant[variant]
+}
+
+// CanonicalModelsWithVariantForHarness returns the sorted canonical model
+// ids that price the given variant key under the given harness. Callers
+// must not mutate the slice.
+func (s *ModelRegistryStore) CanonicalModelsWithVariantForHarness(harness, variant string) []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.sortedModelsByVariantHarness[variant][harness]
+}
+
 // applyDocument sanity-gates and installs a registry document: it must
 // parse, and it must index at least one model. A malformed or empty
 // upstream response never replaces a working registry.
@@ -156,6 +227,11 @@ func (s *ModelRegistryStore) applyDocument(data []byte) error {
 
 	byHarness := make(map[string]map[string]bool)
 	canonicalByHarness := make(map[string][]string)
+	byVariant := make(map[string]map[string]map[string]bool)
+	// Set-backed: the same canonical id may price a variant under more than
+	// one harness, and the union list must not repeat it.
+	canonicalByVariantSet := make(map[string]map[string]bool)
+	canonicalByVariantHarness := make(map[string]map[string][]string)
 	for _, m := range parsed.Models {
 		// $comment section dividers carry no id/harness.
 		if m.ID == "" || m.Harness == "" {
@@ -169,6 +245,27 @@ func (s *ModelRegistryStore) applyDocument(data []byte) error {
 		if m.ApiModelID != "" {
 			byHarness[m.Harness][m.ApiModelID] = true
 		}
+		for variant := range m.PricingVariants {
+			if byVariant[variant] == nil {
+				byVariant[variant] = make(map[string]map[string]bool)
+			}
+			if byVariant[variant][m.Harness] == nil {
+				byVariant[variant][m.Harness] = make(map[string]bool)
+			}
+			byVariant[variant][m.Harness][m.ID] = true
+			if m.ApiModelID != "" {
+				byVariant[variant][m.Harness][m.ApiModelID] = true
+			}
+			if canonicalByVariantSet[variant] == nil {
+				canonicalByVariantSet[variant] = make(map[string]bool)
+			}
+			canonicalByVariantSet[variant][m.ID] = true
+			if canonicalByVariantHarness[variant] == nil {
+				canonicalByVariantHarness[variant] = make(map[string][]string)
+			}
+			canonicalByVariantHarness[variant][m.Harness] =
+				append(canonicalByVariantHarness[variant][m.Harness], m.ID)
+		}
 	}
 	if len(byHarness) == 0 {
 		return fmt.Errorf("registry document contains no model entries")
@@ -176,12 +273,29 @@ func (s *ModelRegistryStore) applyDocument(data []byte) error {
 	for _, ids := range canonicalByHarness {
 		sort.Strings(ids)
 	}
+	canonicalByVariant := make(map[string][]string, len(canonicalByVariantSet))
+	for variant, idSet := range canonicalByVariantSet {
+		ids := make([]string, 0, len(idSet))
+		for id := range idSet {
+			ids = append(ids, id)
+		}
+		sort.Strings(ids)
+		canonicalByVariant[variant] = ids
+	}
+	for _, byH := range canonicalByVariantHarness {
+		for _, ids := range byH {
+			sort.Strings(ids)
+		}
+	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.document = data
 	s.modelsByHarness = byHarness
 	s.sortedModelsByHarness = canonicalByHarness
+	s.modelsByVariant = byVariant
+	s.sortedModelsByVariant = canonicalByVariant
+	s.sortedModelsByVariantHarness = canonicalByVariantHarness
 	return nil
 }
 

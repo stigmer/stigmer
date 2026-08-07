@@ -733,6 +733,7 @@ RunConfig is the owner-settable model choice and run bounds.
     modelName: { type: "string", description: "The model each run uses." },
     maxCostUsd: { type: "number", description: "Maximum estimated cost in USD per run." },
     maxToolRounds: { type: "number", description: "Maximum model-to-tools reasoning cycles per run." },
+    serviceTier: { type: "ServiceTier", description: "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.", typeDescriptionLink: "#servicetier" },
   }}
 />
 
@@ -865,6 +866,15 @@ GitWriteBackMode controls the platform's git workflow for a git-backed workspace
 | Value | Description |
 |-------|-------------|
 | `GIT_WRITE_BACK_BRANCH_AND_PR` | Create a branch and pull request from the agent's file changes after execution completes. |
+
+### ServiceTier
+
+ServiceTier selects the provider-side speed/service tier for an execution's model calls.
+
+| Value | Description |
+|-------|-------------|
+| `SERVICE_TIER_STANDARD` | Standard tier: the model's base-priced configuration, requested explicitly. |
+| `SERVICE_TIER_FAST` | Fast tier: the model's fast variant, billed at the registry's fast variant rates. |
 
 ### ScheduleRunOrigin
 

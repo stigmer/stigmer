@@ -438,6 +438,7 @@ export function useSessionPageFlow(
         runtimeEnv,
         attachments: context?.attachments,
         interactionMode: context?.interactionMode,
+        serviceTier: context?.serviceTier,
         buildFromPlan: context?.buildFromPlan,
         // Sourced from the session-scoped preference set at the approval gate,
         // not from the composer (the pre-arm toggle was removed).

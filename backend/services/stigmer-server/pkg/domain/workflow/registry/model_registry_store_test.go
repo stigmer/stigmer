@@ -63,6 +63,76 @@ func TestModelRegistryStore_BundleLoadsAndIndexes(t *testing.T) {
 	}
 }
 
+func TestModelRegistryStore_PricingVariantCapabilityIndex(t *testing.T) {
+	s := newStoreFromEmbed(t)
+
+	// composer-2.5 carries pricingVariants.fast in the bundle — the
+	// capability that makes SERVICE_TIER_FAST selectable (#357).
+	if !s.HasPricingVariant("composer-2.5", "fast") {
+		t.Error("composer-2.5 must price the fast variant in the bundled registry")
+	}
+	// A native-harness model with no variant block must fail closed.
+	if s.HasPricingVariant("claude-sonnet-4.6", "fast") {
+		t.Error("claude-sonnet-4.6 must not report a fast variant")
+	}
+	if s.HasPricingVariant("not-a-model", "fast") {
+		t.Error("unknown models must not report variants")
+	}
+	if s.HasPricingVariant("composer-2.5", "turbo") {
+		t.Error("unknown variant keys must not match")
+	}
+
+	withFast := s.CanonicalModelsWithVariant("fast")
+	if len(withFast) == 0 {
+		t.Fatal("expected at least one model pricing the fast variant")
+	}
+	found := false
+	for i, id := range withFast {
+		if id == "composer-2.5" {
+			found = true
+		}
+		if i > 0 && withFast[i-1] > id {
+			t.Errorf("CanonicalModelsWithVariant must be sorted; %q before %q", withFast[i-1], id)
+		}
+	}
+	if !found {
+		t.Error("CanonicalModelsWithVariant(\"fast\") must include composer-2.5")
+	}
+}
+
+// The harness-scoped variant lookup backs the workflow validators: the fast
+// variant must be priced FOR THE TASK'S HARNESS, so a variant priced only
+// under cursor never validates a native task (the silent-no-op leak, #357).
+func TestModelRegistryStore_PricingVariantHarnessScope(t *testing.T) {
+	s := Store()
+
+	if !s.HasPricingVariantForHarness("cursor", "composer-2.5", "fast") {
+		t.Error("composer-2.5 must price the fast variant under the cursor harness")
+	}
+	// The bundle prices composer-2.5's fast variant under cursor only — the
+	// native scope must fail closed even though the any-harness form passes.
+	if s.HasPricingVariantForHarness("native", "composer-2.5", "fast") {
+		t.Error("composer-2.5 must not report a fast variant under the native harness")
+	}
+	if s.HasPricingVariantForHarness("cursor", "not-a-model", "fast") {
+		t.Error("unknown models must not report variants under any harness")
+	}
+
+	cursorFast := s.CanonicalModelsWithVariantForHarness("cursor", "fast")
+	if len(cursorFast) == 0 {
+		t.Fatal("expected cursor-harness models pricing the fast variant")
+	}
+	for i := 1; i < len(cursorFast); i++ {
+		if cursorFast[i-1] > cursorFast[i] {
+			t.Errorf("CanonicalModelsWithVariantForHarness must be sorted; %q before %q",
+				cursorFast[i-1], cursorFast[i])
+		}
+	}
+	if got := s.CanonicalModelsWithVariantForHarness("native", "fast"); len(got) != 0 {
+		t.Errorf("expected no native-harness fast models in the bundle, got %v", got)
+	}
+}
+
 func TestModelRegistryStore_RefreshAppliesUpstreamToDocumentAndValidation(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != publicModelRegistryPath {

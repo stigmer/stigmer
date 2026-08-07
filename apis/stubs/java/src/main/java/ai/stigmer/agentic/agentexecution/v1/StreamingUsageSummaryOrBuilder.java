@@ -85,7 +85,14 @@ public interface StreamingUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Model identifier observed during streaming (from RunResult or assistant events).
+   * Model identifier the runner requested for this execution's turns.
+   *
+   * &#64;internal
+   * This is the validated REQUESTED model (UsageAccumulator constructor
+   * argument), not a provider-reported resolved id — the Cursor SDK echoes
+   * the requested selection and never reports the served variant, so the
+   * authoritative resolved model lives on billing's LlmCallUsageRecord
+   * (requested_model / resolved_model / service_tier), not here.
    * </pre>
    *
    * <code>string model = 8 [json_name = "model"];</code>
@@ -94,7 +101,14 @@ public interface StreamingUsageSummaryOrBuilder extends
   java.lang.String getModel();
   /**
    * <pre>
-   * Model identifier observed during streaming (from RunResult or assistant events).
+   * Model identifier the runner requested for this execution's turns.
+   *
+   * &#64;internal
+   * This is the validated REQUESTED model (UsageAccumulator constructor
+   * argument), not a provider-reported resolved id — the Cursor SDK echoes
+   * the requested selection and never reports the served variant, so the
+   * authoritative resolved model lives on billing's LlmCallUsageRecord
+   * (requested_model / resolved_model / service_tier), not here.
    * </pre>
    *
    * <code>string model = 8 [json_name = "model"];</code>
@@ -122,4 +136,67 @@ public interface StreamingUsageSummaryOrBuilder extends
    */
   com.google.protobuf.ByteString
       getObservedAtBytes();
+
+  /**
+   * <pre>
+   * Service tier the runner requested for this execution's model calls.
+   *
+   * Always explicit once the runner has translated the execution config
+   * (STANDARD when ExecutionConfig.service_tier was unset) — the audit
+   * record that the account default was never left in control.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier requested_service_tier = 10 [json_name = "requestedServiceTier"];</code>
+   * @return The enum numeric value on the wire for requestedServiceTier.
+   */
+  int getRequestedServiceTierValue();
+  /**
+   * <pre>
+   * Service tier the runner requested for this execution's model calls.
+   *
+   * Always explicit once the runner has translated the execution config
+   * (STANDARD when ExecutionConfig.service_tier was unset) — the audit
+   * record that the account default was never left in control.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier requested_service_tier = 10 [json_name = "requestedServiceTier"];</code>
+   * @return The requestedServiceTier.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ServiceTier getRequestedServiceTier();
+
+  /**
+   * <pre>
+   * JSON-encoded provider variant parameters the runner sent with the model
+   * selection (Cursor ModelSelection.params, e.g.
+   * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
+   *
+   * &#64;internal
+   * Recorded verbatim for audit: tier→params translation depends on the
+   * provider catalog at send time, so the derivation is not reproducible
+   * later from the tier alone. Mirrors the Cursor SDK's own analytics
+   * convention (SdkRunCreatedProps.model_params).
+   * </pre>
+   *
+   * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>
+   * @return The requestedModelParams.
+   */
+  java.lang.String getRequestedModelParams();
+  /**
+   * <pre>
+   * JSON-encoded provider variant parameters the runner sent with the model
+   * selection (Cursor ModelSelection.params, e.g.
+   * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
+   *
+   * &#64;internal
+   * Recorded verbatim for audit: tier→params translation depends on the
+   * provider catalog at send time, so the derivation is not reproducible
+   * later from the tier alone. Mirrors the Cursor SDK's own analytics
+   * convention (SdkRunCreatedProps.model_params).
+   * </pre>
+   *
+   * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>
+   * @return The bytes for requestedModelParams.
+   */
+  com.google.protobuf.ByteString
+      getRequestedModelParamsBytes();
 }

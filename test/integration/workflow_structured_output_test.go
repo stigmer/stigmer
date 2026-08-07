@@ -227,7 +227,6 @@ func buildStructuredOutputWorkflow(t *testing.T, name, agentSlug, harnessName st
 	schema := harness.SummaryScoreSchema(t)
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agentSlug,
-		"org":     "test-org",
 		"message": "$trigger",
 		"output": map[string]any{
 			"schema":     schema.AsMap(),
@@ -266,7 +265,6 @@ func buildStrictSchemaWorkflow(t *testing.T, name, agentSlug, harnessName string
 	schema := harness.SummaryScoreSchema(t)
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agentSlug,
-		"org":     "test-org",
 		"message": "$trigger",
 		"output": map[string]any{
 			"schema":     schema.AsMap(),

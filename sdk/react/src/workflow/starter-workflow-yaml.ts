@@ -23,7 +23,8 @@ spec:
     - name: step_1
       kind: agent_call
       task_config:
-        agent_ref: "org/agent-slug"
+        agent: "org/agent-slug"
+        message: "Describe what this step should do"
       flow:
         then: end
 `;

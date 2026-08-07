@@ -44,25 +44,26 @@ stigmer run my-agent -m "Summarize the Q4 earnings report"
 
 ## Options
 
-| Flag                | Type     | Default | Description                                                                  |
-| ------------------- | -------- | ------- | ---------------------------------------------------------------------------- |
-| `--approve-default` | `string` |         | auto-resolve approvals in headless mode (approve, skip, reject, approve-all) |
-| `--attach`          | `string` |         | file or directory to attach as input (repeatable)                            |
-| `--auto-approve`    | `bool`   |         | automatically approve all tool executions                                    |
-| `--branch`          | `string` |         | git branch to clone (single git workspace only)                              |
-| `--commit`          | `string` |         | git commit SHA to checkout (single git workspace only)                       |
-| `--detach`          | `bool`   |         | start execution and return immediately without streaming                     |
-| `--download`        | `string` |         | download artifacts to directory when complete                                |
-| `--env`             | `string` |         | runtime env var KEY=VALUE (repeatable)                                       |
-| `--env-file`        | `string` |         | load env from file (repeatable, later override earlier)                      |
-| `--json`            | `bool`   |         | stream events as newline-delimited JSON                                      |
-| `--message`, `-m`   | `string` |         | initial message/prompt for execution                                         |
-| `--mode`            | `string` |         | interaction mode: "agent" (default) or "plan" (read-only)                    |
-| `--model`           | `string` |         | LLM model to use (e.g. claude-sonnet-4-6)                                    |
-| `--secret`          | `string` |         | secret env var KEY=VALUE (repeatable, encrypted)                             |
-| `--secret-file`     | `string` |         | load secrets from file (repeatable, encrypted)                               |
-| `--verbose`, `-v`   | `bool`   |         | show execution IDs and phase transitions                                     |
-| `--workspace`, `-w` | `string` |         | workspace: HTTPS git URL or local path (repeatable)                          |
+| Flag                | Type     | Default | Description                                                                                                                 |
+| ------------------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `--approve-default` | `string` |         | auto-resolve approvals in headless mode (approve, skip, reject, approve-all)                                                |
+| `--attach`          | `string` |         | file or directory to attach as input (repeatable)                                                                           |
+| `--auto-approve`    | `bool`   |         | automatically approve all tool executions                                                                                   |
+| `--branch`          | `string` |         | git branch to clone (single git workspace only)                                                                             |
+| `--commit`          | `string` |         | git commit SHA to checkout (single git workspace only)                                                                      |
+| `--detach`          | `bool`   |         | start execution and return immediately without streaming                                                                    |
+| `--download`        | `string` |         | download artifacts to directory when complete                                                                               |
+| `--env`             | `string` |         | runtime env var KEY=VALUE (repeatable)                                                                                      |
+| `--env-file`        | `string` |         | load env from file (repeatable, later override earlier)                                                                     |
+| `--json`            | `bool`   |         | stream events as newline-delimited JSON                                                                                     |
+| `--message`, `-m`   | `string` |         | initial message/prompt for execution                                                                                        |
+| `--mode`            | `string` |         | interaction mode: "agent" (default) or "plan" (read-only)                                                                   |
+| `--model`           | `string` |         | LLM model to use (e.g. claude-sonnet-4-6)                                                                                   |
+| `--secret`          | `string` |         | secret env var KEY=VALUE (repeatable, encrypted)                                                                            |
+| `--secret-file`     | `string` |         | load secrets from file (repeatable, encrypted)                                                                              |
+| `--service-tier`    | `string` |         | model service tier: "standard" (default) or "fast" (requires --model naming a model with a fast tier; billed at fast rates) |
+| `--verbose`, `-v`   | `bool`   |         | show execution IDs and phase transitions                                                                                    |
+| `--workspace`, `-w` | `string` |         | workspace: HTTPS git URL or local path (repeatable)                                                                         |
 
 ### Environment variables
 

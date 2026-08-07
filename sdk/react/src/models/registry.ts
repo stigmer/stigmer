@@ -89,6 +89,16 @@ export interface ModelInfo {
    * before "Show All Models" is expanded or search is used).
    */
   readonly featured: boolean;
+  /**
+   * Pricing-variant keys the registry prices for this model (e.g.
+   * `["fast"]`). A priced variant is a *selectable* service tier
+   * (stigmer/stigmer#357): the tier toggle renders only for models whose
+   * `serviceTiers` includes it. Empty for models with no variants.
+   *
+   * Distinct from {@link speedTier}, which is a static latency badge,
+   * not a selectable option.
+   */
+  readonly serviceTiers: readonly string[];
 }
 
 /**
@@ -153,6 +163,8 @@ interface RegistryJsonEntry {
     cacheWritePricePerMillion: number;
     cacheReadPricePerMillion: number;
   };
+  /** Variant-key → variant pricing block; only the key set matters here. */
+  pricingVariants?: Record<string, unknown>;
   $comment?: string;
 }
 
@@ -192,6 +204,10 @@ export function parseRegistryJson(data: unknown): ModelInfo[] {
       costTier: m.costTier as CostTier,
       harness: m.harness as HarnessOption,
       featured: m.featured ?? false,
+      serviceTiers:
+        m.pricingVariants && typeof m.pricingVariants === "object"
+          ? Object.keys(m.pricingVariants).sort()
+          : [],
     }));
 }
 

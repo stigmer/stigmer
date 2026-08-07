@@ -42,6 +42,7 @@ export async function executeResolvedAgent(input: ResolvedAgentExecInput): Promi
     workspaceEntries: prepared.workspaceEntries,
     model: prepared.model,
     mode: prepared.mode,
+    serviceTier: prepared.serviceTier,
     autoApproveAll: prepared.autoApproveAll,
   });
 

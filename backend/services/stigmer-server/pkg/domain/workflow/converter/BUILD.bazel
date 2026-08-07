@@ -10,6 +10,7 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/converter",
     visibility = ["//visibility:public"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
         "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks",
@@ -26,6 +27,7 @@ go_test(
     embed = [":converter"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
+        "@in_gopkg_yaml_v3//:yaml_v3",
         "@org_golang_google_protobuf//types/known/structpb",
     ],
 )

@@ -30,8 +30,12 @@ const (
 // composer's vocabulary (agent, message, harness, workspace,
 // environments, run bounds) minus what an unattended surface makes
 // structurally impossible. Surfaces that trigger agents on someone's
-// behalf (schedules today; workflow agent_call and channels are named
-// adopters) embed this message instead of re-deriving the shape.
+// behalf embed this message instead of re-deriving the shape:
+// schedules embed it whole; the workflow agent_call task adopts it at
+// the TYPE level (embedding RunConfig and documenting a field-by-field
+// correspondence) because its task config is a kind+Struct authoring
+// DSL whose field names are the YAML keys — see
+// workflow/v1/tasks/agent_call.proto; channels embed RunConfig.
 //
 // @internal
 // Project DD-018 (whatsapp-proactive-messaging). An ALLOWLIST by
@@ -227,6 +231,17 @@ type RunConfig struct {
 	// An implementation knob, not a user concept: API-reachable for
 	// operators, deliberately absent from creation forms (DD-018 D-5).
 	MaxToolRounds int32 `protobuf:"varint,3,opt,name=max_tool_rounds,json=maxToolRounds,proto3" json:"max_tool_rounds,omitempty"`
+	// Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
+	//
+	// In workflow YAML the shorthand spellings "standard"/"fast" are
+	// accepted alongside the canonical enum names.
+	//
+	// Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
+	// surface's platform default, which itself resolves to STANDARD —
+	// never the provider account default. FAST requires model_name
+	// (here or from the platform profile) to name a model with a
+	// registry fast pricing variant; validated fail-closed at create.
+	ServiceTier   ServiceTier `protobuf:"varint,4,opt,name=service_tier,json=serviceTier,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ServiceTier" json:"service_tier,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -282,11 +297,18 @@ func (x *RunConfig) GetMaxToolRounds() int32 {
 	return 0
 }
 
+func (x *RunConfig) GetServiceTier() ServiceTier {
+	if x != nil {
+		return x.ServiceTier
+	}
+	return ServiceTier_SERVICE_TIER_UNSPECIFIED
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_invocation_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_rawDesc = "" +
 	"\n" +
-	"5ai/stigmer/agentic/agentexecution/v1/invocation.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xba\x05\n" +
+	"5ai/stigmer/agentic/agentexecution/v1/invocation.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xba\x05\n" +
 	"\x0fAgentInvocation\x12\xb6\x01\n" +
 	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n" +
 	"\x0eagent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\bagentRef\x12$\n" +
@@ -297,13 +319,14 @@ const file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_rawDesc = "" +
 	"\x10environment_refs\x18\x05 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
 	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x12N\n" +
 	"\n" +
-	"run_config\x18\x06 \x01(\v2/.ai.stigmer.agentic.agentexecution.v1.RunConfigR\trunConfig\"\x8d\x01\n" +
+	"run_config\x18\x06 \x01(\v2/.ai.stigmer.agentic.agentexecution.v1.RunConfigR\trunConfig\"\xed\x01\n" +
 	"\tRunConfig\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x01 \x01(\tR\tmodelName\x120\n" +
 	"\fmax_cost_usd\x18\x02 \x01(\x01B\x0e\xbaH\v\x12\t)\x00\x00\x00\x00\x00\x00\x00\x00R\n" +
 	"maxCostUsd\x12/\n" +
-	"\x0fmax_tool_rounds\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\rmaxToolRoundsB\xd0\x02\n" +
+	"\x0fmax_tool_rounds\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\rmaxToolRounds\x12^\n" +
+	"\fservice_tier\x18\x04 \x01(\x0e21.ai.stigmer.agentic.agentexecution.v1.ServiceTierB\b\xbaH\x05\x82\x01\x02\x10\x01R\vserviceTierB\xd0\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\x0fInvocationProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -325,6 +348,7 @@ var file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_goTypes = []any{
 	(*apiresource.ApiResourceReference)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceReference
 	(v1.Harness)(0),                          // 3: ai.stigmer.agentic.session.v1.Harness
 	(*v1.WorkspaceEntry)(nil),                // 4: ai.stigmer.agentic.session.v1.WorkspaceEntry
+	(ServiceTier)(0),                         // 5: ai.stigmer.agentic.agentexecution.v1.ServiceTier
 }
 var file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_depIdxs = []int32{
 	2, // 0: ai.stigmer.agentic.agentexecution.v1.AgentInvocation.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
@@ -332,11 +356,12 @@ var file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_depIdxs = []int32
 	4, // 2: ai.stigmer.agentic.agentexecution.v1.AgentInvocation.workspace_entries:type_name -> ai.stigmer.agentic.session.v1.WorkspaceEntry
 	2, // 3: ai.stigmer.agentic.agentexecution.v1.AgentInvocation.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	1, // 4: ai.stigmer.agentic.agentexecution.v1.AgentInvocation.run_config:type_name -> ai.stigmer.agentic.agentexecution.v1.RunConfig
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	5, // 5: ai.stigmer.agentic.agentexecution.v1.RunConfig.service_tier:type_name -> ai.stigmer.agentic.agentexecution.v1.ServiceTier
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_init() }
@@ -344,6 +369,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_init() {
 	if File_ai_stigmer_agentic_agentexecution_v1_invocation_proto != nil {
 		return
 	}
+	file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

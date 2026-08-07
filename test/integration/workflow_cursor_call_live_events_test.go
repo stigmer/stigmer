@@ -45,7 +45,6 @@ func TestWorkflowCursorCall_AgentCallStartedEmittedBeforeFailure(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": "Reply with: cursor-event-test",
 		"harness": "cursor",
 	})
@@ -164,7 +163,6 @@ func TestWorkflowCursorCall_LiveEventsEmitted(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": "Reply with exactly: cursor-live-events-ok",
 		"harness": "cursor",
 	})
@@ -291,7 +289,6 @@ func TestWorkflowCursorCall_EventsPersistedViaGetEventLog(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": "Reply with exactly: cursor-persist-ok",
 		"harness": "cursor",
 	})
@@ -443,7 +440,6 @@ func TestWorkflowAgentCall_TaskSnapshotMetadata_AgentExecutionId(t *testing.T) {
 
 			config := map[string]any{
 				"agent":   agent.GetMetadata().GetSlug(),
-				"org":     harness.TestOrg,
 				"message": "Reply with exactly: metadata-ok",
 			}
 			if st.harness != "" {

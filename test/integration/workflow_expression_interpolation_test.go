@@ -48,7 +48,6 @@ func TestWorkflowExpressionInterpolation_EmbeddedEnvInAgentMessage(t *testing.T)
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": "Value is ${ $env.TEST_VALUE } and optional is ${ $env.OPTIONAL_VAR } — end",
 	})
 	require.NoError(t, err)

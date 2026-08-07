@@ -10,7 +10,7 @@ import type { Client } from "@connectrpc/connect";
 import { create, type DescService } from "@bufbuild/protobuf";
 import { type AgentExecution, AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { InteractionMode, ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import {
   AgentExecutionSpecSchema,
@@ -29,7 +29,7 @@ import { WorkflowExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { RuntimeEnv } from "./env.js";
-import type { RunMode } from "./prepare.js";
+import type { RunMode, ServiceTierFlag } from "./prepare.js";
 
 const API_VERSION = "agentic.stigmer.ai/v1";
 
@@ -57,6 +57,7 @@ export interface CreateAgentExecutionInput {
   readonly workspaceEntries: readonly WorkspaceEntry[];
   readonly model: string;
   readonly mode: RunMode;
+  readonly serviceTier: ServiceTierFlag;
   readonly autoApproveAll: boolean;
 }
 
@@ -83,7 +84,7 @@ export async function createAgentExecution(
         input.workspaceEntries.length > 0
           ? create(SessionSpecSchema, { workspaceEntries: [...input.workspaceEntries] })
           : undefined,
-      executionConfig: buildExecutionConfig(input.model, input.mode),
+      executionConfig: buildExecutionConfig(input.model, input.mode, input.serviceTier),
     }),
   });
   return controller(AgentExecutionCommandController).create(execution);
@@ -119,14 +120,22 @@ export async function createWorkflowExecution(
   return controller(WorkflowExecutionCommandController).create(execution);
 }
 
-// Build ExecutionConfig, or undefined when neither flag is set so the backend
+// Build ExecutionConfig, or undefined when no flag is set so the backend
 // applies its defaults. Mirrors Go's buildExecutionConfig (only "plan" maps to a
-// non-default InteractionMode; "agent"/"" leave it unspecified).
-function buildExecutionConfig(model: string, mode: RunMode): ExecutionConfig | undefined {
-  if (model === "" && mode === "") return undefined;
+// non-default InteractionMode; "agent"/"" leave it unspecified). An explicit
+// --service-tier value maps to the enum even for "standard": unspecified vs
+// explicit-standard is a load-bearing ledger distinction (#357).
+function buildExecutionConfig(
+  model: string,
+  mode: RunMode,
+  serviceTier: ServiceTierFlag,
+): ExecutionConfig | undefined {
+  if (model === "" && mode === "" && serviceTier === "") return undefined;
   const cfg = create(ExecutionConfigSchema);
   if (model !== "") cfg.modelName = model;
   if (mode === "plan") cfg.interactionMode = InteractionMode.PLAN;
+  if (serviceTier === "fast") cfg.serviceTier = ServiceTier.FAST;
+  else if (serviceTier === "standard") cfg.serviceTier = ServiceTier.STANDARD;
   return cfg;
 }
 

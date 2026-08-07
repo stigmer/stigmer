@@ -41,7 +41,6 @@ func TestWorkflow_SequentialCursorAgentCalls(t *testing.T) {
 
 	task1Config, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": "Reply with: task-one-complete",
 		"harness": "cursor",
 	})
@@ -49,7 +48,6 @@ func TestWorkflow_SequentialCursorAgentCalls(t *testing.T) {
 
 	task2Config, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": "Reply with: task-two-complete",
 		"harness": "cursor",
 	})

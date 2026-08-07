@@ -41,7 +41,9 @@ Use the exact YAML `kind` names below. An unknown kind fails validation.
   `response_schema` (with `on_invalid` / `max_retries`) for structured JSON output.
 - **`agent_call`** — Run a defined Stigmer agent by slug, passing a `message`. The
   agent brings its own MCP tools and skills. Supports `harness`, an `output.schema`
-  with `on_invalid`/`max_retries` for structured results, and `config.timeout`.
+  with `on_invalid`/`max_retries` for structured results, and a `run_config` block
+  (`model_name`, `max_cost_usd`, `max_tool_rounds`) for per-call model choice and
+  enforced run bounds.
 
 ### Control flow
 

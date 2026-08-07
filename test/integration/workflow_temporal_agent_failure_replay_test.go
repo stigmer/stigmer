@@ -91,7 +91,6 @@ func TestAgentExecution_FailureReplayDeterminism(t *testing.T) {
 	// We do NOT skip on missing CURSOR_API_KEY -- we WANT the failure.
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   created.GetMetadata().GetSlug(),
-		"org":     "test-org",
 		"message": "Use the nonexistent-replay-det-mcp tool to process this",
 		"harness": "cursor",
 	})

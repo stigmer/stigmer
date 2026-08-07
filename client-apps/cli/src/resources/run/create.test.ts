@@ -4,7 +4,7 @@
 // is faked to capture the exact proto sent to the RPC.
 
 import { describe, expect, it } from "vitest";
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { InteractionMode, ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { create } from "@bufbuild/protobuf";
 import {
   LocalPathSourceSchema,
@@ -40,6 +40,7 @@ describe("createAgentExecution", () => {
       workspaceEntries: [],
       model: "claude",
       mode: "plan",
+      serviceTier: "",
       autoApproveAll: true,
     });
 
@@ -67,10 +68,49 @@ describe("createAgentExecution", () => {
       workspaceEntries: [],
       model: "",
       mode: "",
+      serviceTier: "",
       autoApproveAll: false,
     });
     expect(exec.spec?.message).toBe("hi");
     expect(exec.spec?.executionConfig).toBeUndefined();
+  });
+
+  it("maps --service-tier fast to the enum (#357)", async () => {
+    const { fn } = fakeController();
+    const exec = await createAgentExecution(fn, {
+      agentId: "agt_1",
+      orgId: "acme",
+      message: "x",
+      runtimeEnv: {},
+      attachments: [],
+      workspaceFileRefs: [],
+      workspaceEntries: [],
+      model: "composer-2.5",
+      mode: "",
+      serviceTier: "fast",
+      autoApproveAll: false,
+    });
+    expect(exec.spec?.executionConfig?.serviceTier).toBe(ServiceTier.FAST);
+  });
+
+  it("maps an explicit --service-tier standard to STANDARD, not UNSPECIFIED", async () => {
+    // Unspecified-vs-explicit-standard is a load-bearing ledger
+    // distinction (#357): an explicit choice must survive to the proto.
+    const { fn } = fakeController();
+    const exec = await createAgentExecution(fn, {
+      agentId: "agt_1",
+      orgId: "acme",
+      message: "x",
+      runtimeEnv: {},
+      attachments: [],
+      workspaceFileRefs: [],
+      workspaceEntries: [],
+      model: "",
+      mode: "",
+      serviceTier: "standard",
+      autoApproveAll: false,
+    });
+    expect(exec.spec?.executionConfig?.serviceTier).toBe(ServiceTier.STANDARD);
   });
 
   it("leaves InteractionMode unspecified for agent mode", async () => {
@@ -85,6 +125,7 @@ describe("createAgentExecution", () => {
       workspaceEntries: [],
       model: "m",
       mode: "agent",
+      serviceTier: "",
       autoApproveAll: false,
     });
     expect(exec.spec?.sessionId).toBe("ses_1");
@@ -110,6 +151,7 @@ describe("createAgentExecution", () => {
       workspaceEntries: [entry],
       model: "",
       mode: "",
+      serviceTier: "",
       autoApproveAll: false,
     });
 
@@ -132,6 +174,7 @@ describe("createAgentExecution", () => {
       workspaceEntries: [],
       model: "",
       mode: "",
+      serviceTier: "",
       autoApproveAll: false,
     });
     expect(exec.spec?.sessionSpec).toBeUndefined();

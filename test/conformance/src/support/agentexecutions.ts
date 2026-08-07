@@ -13,6 +13,7 @@ import type { MessageInitShape } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { McpToolFixture } from "../harness/mcp-server";
@@ -43,11 +44,14 @@ export interface AgentExecutionOptions {
   // Execution-scoped env overrides (spec.runtime_env) — the highest-precedence
   // layer of the env merge, materialized into the ExecutionContext at create.
   runtimeEnv?: Record<string, ExecutionValueInit>;
+  // Execution-time overrides (spec.execution_config) — model pin, service
+  // tier, interaction mode. Left unset by default (the runner picks defaults).
+  executionConfig?: MessageInitShape<typeof ExecutionConfigSchema>;
 }
 
 // A complete, valid AgentExecution create request. execution_config is left unset
-// (the runner picks defaults), so the only variable inputs are the reference, the
-// message, and the optional auto-approve bypass.
+// unless provided, so the only variable inputs are the reference, the message,
+// and the optional overrides.
 export function makeAgentExecution(opts: AgentExecutionOptions): MessageInitShape<typeof AgentExecutionSchema> {
   return {
     apiVersion: AGENT_EXECUTION_API_VERSION,
@@ -60,6 +64,7 @@ export function makeAgentExecution(opts: AgentExecutionOptions): MessageInitShap
       message: opts.message ?? "Say hello.",
       ...(opts.autoApproveAll !== undefined ? { autoApproveAll: opts.autoApproveAll } : {}),
       ...(opts.runtimeEnv !== undefined ? { runtimeEnv: makeExecutionValues(opts.runtimeEnv) } : {}),
+      ...(opts.executionConfig !== undefined ? { executionConfig: opts.executionConfig } : {}),
     },
   };
 }

@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Stigmer } from "@stigmer/sdk";
-import { type AgentExecFlags, parseApprovalAction, prepareAgentExec, validateMode } from "./prepare.js";
+import { type AgentExecFlags, parseApprovalAction, prepareAgentExec, validateMode, validateServiceTier } from "./prepare.js";
 
 describe("parseApprovalAction", () => {
   it("maps each accepted value (case-insensitive)", () => {
@@ -35,6 +35,18 @@ describe("validateMode", () => {
   });
 });
 
+describe("validateServiceTier", () => {
+  it("accepts empty, standard, and fast", () => {
+    expect(() => validateServiceTier("")).not.toThrow();
+    expect(() => validateServiceTier("standard")).not.toThrow();
+    expect(() => validateServiceTier("fast")).not.toThrow();
+  });
+
+  it("rejects anything else before a network round trip", () => {
+    expect(() => validateServiceTier("turbo")).toThrow(/must be "standard" or "fast"/);
+  });
+});
+
 const BASE_FLAGS: AgentExecFlags = {
   message: "hi",
   attach: [],
@@ -51,6 +63,7 @@ const BASE_FLAGS: AgentExecFlags = {
   model: "",
   autoApprove: false,
   mode: "",
+  serviceTier: "",
 };
 
 // prepareAgentExec only touches client.agentExecution for attachment uploads;

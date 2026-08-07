@@ -420,12 +420,13 @@ do:
       with:
         agent: "acme/support-triage"
         message: "Triage this ticket"
-        org: acme
         env:
           API_KEY: "\${.secrets.KEY}"
-        config:
-          model: claude-3-5-sonnet
-          timeout: 300
+        run_config:
+          model_name: claude-3-5-sonnet
+          max_cost_usd: 0.5
+          max_tool_rounds: 15
+          service_tier: fast
         output:
           schema:
             type: object
@@ -444,15 +445,125 @@ do:
       if (task.kind === "call:agent") {
         expect(task.with.agent).toBe("acme/support-triage");
         expect(task.with.message).toBe("Triage this ticket");
-        expect(task.with.org).toBe("acme");
         expect(task.with.env?.API_KEY).toBe("${.secrets.KEY}");
-        expect(task.with.config?.model).toBe("claude-3-5-sonnet");
-        expect(task.with.config?.timeout).toBe(300);
+        expect(task.with.run_config?.model_name).toBe("claude-3-5-sonnet");
+        expect(task.with.run_config?.max_cost_usd).toBe(0.5);
+        expect(task.with.run_config?.max_tool_rounds).toBe(15);
+        expect(task.with.run_config?.service_tier).toBe("SERVICE_TIER_FAST");
         expect(task.with.output?.schema.type).toBe("object");
         expect(task.with.output?.on_invalid).toBe("ON_INVALID_RETRY");
         expect(task.with.output?.max_retries).toBe(2);
         expect(task.with.harness).toBe("HARNESS_CURSOR");
       }
+    });
+
+    it("rejects unknown run_config keys with a named error", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - invoke:
+      call: agent
+      with:
+        agent: reviewer
+        message: Review
+        run_config:
+          model: claude-sonnet-4-6
+`;
+      // "model" is the pre-#358 key; the shared RunConfig field is
+      // "model_name". A typo'd knob must fail parsing, not silently no-op.
+      expect(() => loadWorkflowFromYaml(yaml)).toThrow(
+        "call:agent 'run_config' has unknown field 'model'",
+      );
+    });
+
+    it("maps service_tier shorthands and canonical names to the enum name", () => {
+      for (const [written, expected] of [
+        ["standard", "SERVICE_TIER_STANDARD"],
+        ["fast", "SERVICE_TIER_FAST"],
+        ["FAST", "SERVICE_TIER_FAST"],
+        ["SERVICE_TIER_STANDARD", "SERVICE_TIER_STANDARD"],
+      ] as const) {
+        const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - invoke:
+      call: agent
+      with:
+        agent: reviewer
+        message: Review
+        run_config:
+          service_tier: "${written}"
+`;
+        const model = loadWorkflowFromYaml(yaml);
+        const task = model.do[0].task;
+        if (task.kind === "call:agent") {
+          expect(task.with.run_config?.service_tier).toBe(expected);
+        } else {
+          throw new Error("expected call:agent task");
+        }
+      }
+    });
+
+    it("rejects an unknown service_tier value with a named error", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - invoke:
+      call: agent
+      with:
+        agent: reviewer
+        message: Review
+        run_config:
+          service_tier: turbo
+`;
+      // The tier exists to make pricing deterministic — a typo must fail
+      // parsing, never silently fall back to the default tier.
+      expect(() => loadWorkflowFromYaml(yaml)).toThrow(
+        "call:agent 'run_config.service_tier' has unknown value 'turbo'",
+      );
+    });
+
+    it("rejects negative run_config bounds", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - invoke:
+      call: agent
+      with:
+        agent: reviewer
+        message: Review
+        run_config:
+          max_cost_usd: -1
+`;
+      expect(() => loadWorkflowFromYaml(yaml)).toThrow(
+        "call:agent 'run_config.max_cost_usd' must be a number >= 0",
+      );
+    });
+
+    it("rejects a non-mapping run_config", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - invoke:
+      call: agent
+      with:
+        agent: reviewer
+        message: Review
+        run_config: "cheap"
+`;
+      expect(() => loadWorkflowFromYaml(yaml)).toThrow(
+        "call:agent 'run_config' must be a mapping",
+      );
     });
 
     it("normalizes harness shorthand 'native' to HARNESS_NATIVE", () => {

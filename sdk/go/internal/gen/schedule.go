@@ -110,6 +110,7 @@ type RunConfigInput struct {
 	ModelName     string
 	MaxCostUsd    float64
 	MaxToolRounds int32
+	ServiceTier   agentexecutionv1.ServiceTier
 }
 
 func (i *ScheduleInput) toProto() *schedulev1.Schedule {
@@ -158,6 +159,7 @@ func (i *RunConfigInput) toProto() *agentexecutionv1.RunConfig {
 		ModelName:     i.ModelName,
 		MaxCostUsd:    i.MaxCostUsd,
 		MaxToolRounds: i.MaxToolRounds,
+		ServiceTier:   i.ServiceTier,
 	}
 }
 
@@ -211,5 +213,6 @@ func runConfigInputFromProto(p *agentexecutionv1.RunConfig) *RunConfigInput {
 	input.ModelName = p.GetModelName()
 	input.MaxCostUsd = p.GetMaxCostUsd()
 	input.MaxToolRounds = p.GetMaxToolRounds()
+	input.ServiceTier = p.GetServiceTier()
 	return input
 }

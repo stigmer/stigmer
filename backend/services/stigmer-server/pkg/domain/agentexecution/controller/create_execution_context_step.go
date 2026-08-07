@@ -13,6 +13,10 @@ import (
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	schedulev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/envmerge"
@@ -22,6 +26,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
 	scheduletemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/schedule/temporal"
+	workflowconverter "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/converter"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/environment"
@@ -187,6 +192,22 @@ func (b *executionContextBuilder) buildAndPersist(
 	}
 	if len(scheduleEnvironments) > 0 {
 		environments = append(scheduleEnvironments, environments...)
+	}
+
+	// 4.6 Workflow-created executions (agent_call): merge the task's own
+	// environment_refs BELOW instance refs — the same lowest-priority
+	// layering as 4.5, fourth in the share/channel/schedule lineage
+	// (issue #358 Phase 2). This is how a tool-using agent becomes
+	// callable from a workflow: the agent_call task binds the
+	// credentials its child runs need without touching the agent or its
+	// default instance. At most one of 4.5/4.6 applies: an execution is
+	// created by a schedule fire or by a workflow task, never both.
+	workflowEnvironments, err := b.resolveWorkflowTaskEnvironments(ctx, execution)
+	if err != nil {
+		return err
+	}
+	if len(workflowEnvironments) > 0 {
+		environments = append(workflowEnvironments, environments...)
 	}
 
 	// 5. Merge all layers
@@ -767,6 +788,150 @@ func (b *executionContextBuilder) resolveScheduleEnvironments(
 	log.Debug().Str("schedule_id", scheduleID).Int("count", len(environments)).
 		Msg("Resolved schedule environment references")
 	return environments, nil
+}
+
+// Workflow provenance labels, stamped by the workflow runner's CallAgent
+// activity (backend/services/runner/src/activities/call-agent.ts) on every
+// execution it creates. Consumed here as the environment-resolution key —
+// OSS has no caller tokens to carry a claim, and this single-user edition
+// has no trust boundary the labels could widen (the DD-015 divergence
+// posture; the cloud edition gates the same resolution on its trusted
+// runner caller identity before reading these fields).
+const (
+	// WorkflowExecutionIDLabelKey carries the WorkflowExecution resource id
+	// (wex_...) of the run whose agent_call task created this execution.
+	WorkflowExecutionIDLabelKey = "stigmer.ai/workflow-execution-id"
+	// WorkflowTaskLabelKey carries the agent_call task name within that
+	// workflow, identifying which task's environment_refs to resolve.
+	WorkflowTaskLabelKey = "stigmer.ai/workflow-task"
+)
+
+// resolveWorkflowTaskEnvironments resolves the environment_refs of the
+// agent_call task that created this execution, identified by the
+// workflow-provenance labels the runner stamps. Executions without the
+// labels (every non-workflow execution) answer nil at the cost of two map
+// lookups. A workflow execution, workflow, or task deleted or renamed
+// between dispatch and this step degrades to no workflow environments —
+// the run proceeds with the instance's own refs, exactly as it would have
+// before the binding existed. An unresolvable REF, by contrast, fails the
+// create: that is an authoring error that must surface as a deterministic
+// refusal, never a silent run without credentials.
+func (b *executionContextBuilder) resolveWorkflowTaskEnvironments(
+	ctx context.Context,
+	execution *agentexecutionv1.AgentExecution,
+) ([]*environmentv1.Environment, error) {
+	labels := execution.GetMetadata().GetLabels()
+	workflowExecutionID := labels[WorkflowExecutionIDLabelKey]
+	taskName := labels[WorkflowTaskLabelKey]
+	if workflowExecutionID == "" || taskName == "" {
+		return nil, nil
+	}
+
+	executionID := execution.GetMetadata().GetId()
+
+	workflowExecution := &workflowexecutionv1.WorkflowExecution{}
+	if err := b.store.GetResource(ctx, apiresourcekind.ApiResourceKind_workflow_execution,
+		workflowExecutionID, workflowExecution); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			log.Warn().Str("workflow_execution_id", workflowExecutionID).
+				Str("execution_id", executionID).
+				Msg("Workflow-labeled execution's workflow execution row is gone — running without workflow environments")
+			return nil, nil
+		}
+		return nil, fmt.Errorf("load workflow execution %s for environment resolution: %w", workflowExecutionID, err)
+	}
+
+	workflowID := workflowExecution.GetSpec().GetWorkflowId()
+	if workflowID == "" {
+		// Instance-first executions carry only the instance id; the
+		// workflow id lives on the instance.
+		instanceID := workflowExecution.GetSpec().GetWorkflowInstanceId()
+		if instanceID == "" {
+			return nil, nil
+		}
+		instance := &workflowinstancev1.WorkflowInstance{}
+		if err := b.store.GetResource(ctx, apiresourcekind.ApiResourceKind_workflow_instance,
+			instanceID, instance); err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				log.Warn().Str("workflow_instance_id", instanceID).
+					Str("execution_id", executionID).
+					Msg("Workflow-labeled execution's instance row is gone — running without workflow environments")
+				return nil, nil
+			}
+			return nil, fmt.Errorf("load workflow instance %s for environment resolution: %w", instanceID, err)
+		}
+		workflowID = instance.GetSpec().GetWorkflowId()
+	}
+	if workflowID == "" {
+		return nil, nil
+	}
+
+	workflow := &workflowv1.Workflow{}
+	if err := b.store.GetResource(ctx, apiresourcekind.ApiResourceKind_workflow,
+		workflowID, workflow); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			log.Warn().Str("workflow_id", workflowID).
+				Str("execution_id", executionID).
+				Msg("Workflow-labeled execution's workflow row is gone — running without workflow environments")
+			return nil, nil
+		}
+		return nil, fmt.Errorf("load workflow %s for environment resolution: %w", workflowID, err)
+	}
+
+	refs := agentCallTaskEnvironmentRefs(workflow, taskName)
+	if len(refs) == 0 {
+		return nil, nil
+	}
+
+	// A ref may omit the org (relative form); environment resolution
+	// follows the workflow's org, which is also the execution's billing
+	// org — the runner always creates child executions in it.
+	resolved := make([]*apiresource.ApiResourceReference, 0, len(refs))
+	for _, ref := range refs {
+		if ref.GetOrg() == "" {
+			resolved = append(resolved, &apiresource.ApiResourceReference{
+				Kind: ref.GetKind(),
+				Org:  workflow.GetMetadata().GetOrg(),
+				Slug: ref.GetSlug(),
+			})
+			continue
+		}
+		resolved = append(resolved, ref)
+	}
+
+	environments, err := b.resolveEnvironments(ctx, resolved)
+	if err != nil {
+		return nil, fmt.Errorf("resolve workflow %s task %q environment_refs: %w", workflowID, taskName, err)
+	}
+	log.Debug().Str("workflow_id", workflowID).Str("task_name", taskName).
+		Int("count", len(environments)).
+		Msg("Resolved workflow agent_call environment references")
+	return environments, nil
+}
+
+// agentCallTaskEnvironmentRefs extracts the environment_refs of the named
+// agent_call task from the workflow spec. A missing or renamed task, a
+// non-agent_call task under that name, or an unparsable config all answer
+// nil — the binding simply no longer exists in the current workflow
+// revision, which is the degrade-not-fail case.
+func agentCallTaskEnvironmentRefs(workflow *workflowv1.Workflow, taskName string) []*apiresource.ApiResourceReference {
+	for _, task := range workflow.GetSpec().GetTasks() {
+		if task.GetName() != taskName || task.GetKind() != workflowv1.WorkflowTaskKind_agent_call {
+			continue
+		}
+		msg, err := workflowconverter.UnmarshalTaskConfigPublic(task.GetKind(), task.GetTaskConfig())
+		if err != nil {
+			log.Warn().Str("task_name", taskName).Err(err).
+				Msg("agent_call task config no longer parses — running without workflow environments")
+			return nil
+		}
+		cfg, ok := msg.(*tasksv1.AgentCallTaskConfig)
+		if !ok {
+			return nil
+		}
+		return cfg.GetEnvironmentRefs()
+	}
+	return nil
 }
 
 func (b *executionContextBuilder) resolveEnvironments(

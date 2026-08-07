@@ -8,9 +8,9 @@ package tasks
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v11 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
-	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	v11 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -29,14 +29,56 @@ const (
 // AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.
 //
 // @internal
+// This message is the workflow DSL's adoption of the shared
+// AgentInvocation vocabulary (agentexecution/v1/invocation.proto) at
+// the TYPE level — issue stigmer/stigmer#358, per DD-018
+// (whatsapp-proactive-messaging, stigmer-cloud). Because
+// WorkflowTask.task_config is a "kind + Struct" envelope, this message
+// IS the authoring schema: its field names are the YAML keys workflow
+// authors write. Embedding AgentInvocation as a nested message would
+// force either a nested `invocation:` authoring block or
+// flatten/unflatten rewrites in every Struct consumer, so the DSL
+// stays flat and shares the vocabulary type-by-type instead.
+//
+// Field-by-field correspondence to AgentInvocation (keep in lockstep;
+// a field added there must be consciously adopted or consciously
+// excluded here, with the reason recorded):
+//   - agent      ↔ agent_ref  — the DSL string form ("org/slug"); the
+//     workflow runner parses it into an agent reference.
+//   - message    ↔ message    — expression-carrying in the DSL.
+//   - harness    ↔ harness    — same shared enum, same semantics.
+//   - run_config ↔ run_config — the shared message, embedded directly.
+//   - workspace_entries ↔ workspace_entries — same shared type; git
+//     sources only (no client is connected to serve a
+//     local_path when a workflow task fires).
+//   - environment_refs ↔ environment_refs — same shared type; resolved
+//     server-side at execution create, never carried in the
+//     create request (the schedule/channel/share posture).
+//
+// Surface-specific fields with their reasons (the DD-017/018 bucket
+// discipline):
+//   - env: the workflow's context-forwarding channel. Values are JQ
+//     expressions resolved from workflow state/secrets at run time, not
+//     plaintext literals in a manifest — which is why AgentInvocation's
+//     runtime_env exclusion does not apply to it.
+//   - output: the structured-output contract is a workflow-routing
+//     concern (switch_case on typed fields), meaningless to other
+//     invocation surfaces.
+//
+// Deleted in the #358 clean break (no reserved numbers; task configs
+// are stored as JSON Structs, so field numbers never hit a wire):
+//   - org: redundant with the "org/slug" form of `agent`, and the
+//     proto→YAML converter never emitted it.
+//   - AgentExecutionConfig (timeout, temperature, context_management,
+//     max_cost_micros): declared knobs the runtime silently ignored.
+//     The cost cap lives on run_config.max_cost_usd and is now actually
+//     enforced; timeout/temperature had no runtime counterpart at all.
+//
 // The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer").
 // Resolution order:
-// 1. If org is specified: look in that org's agents
-// 2. If org is empty: use the workflow's org
+// 1. "org/slug": look in that org's agents
+// 2. "slug" only: use the workflow's org
 // 3. Before external lookup, check manifest (current deployment)
-//
-// The workflow's execution context (environment variables, secrets) is
-// passed to the agent invocation, allowing agents to access workflow state.
 //
 // YAML Example (without structured output):
 //   - analyze:
@@ -46,9 +88,9 @@ const (
 //     message: "Review this code: ${ $context.fetchCode.body }"
 //     env:
 //     GITHUB_TOKEN: "${ .secrets.GH_TOKEN }"
-//     config:
-//     model: "claude-3-5-sonnet"
-//     timeout: 300
+//     run_config:
+//     model_name: "claude-sonnet-4-6"
+//     max_cost_usd: 0.50
 //
 // YAML Example (with structured output):
 //   - triage_ticket:
@@ -75,8 +117,6 @@ const (
 //     fallback_task: human_review
 //     export:
 //     as: "${ .structured }"
-//
-// Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
 type AgentCallTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Agent reference in "org/slug" or "slug" format.
@@ -84,25 +124,39 @@ type AgentCallTaskConfig struct {
 	// - "org/slug": explicit organization reference
 	// Examples: "code-reviewer", "stigmer/code-reviewer", "acme/data-analyst"
 	// Required field.
+	//
+	// @internal
+	// The DSL string form of AgentInvocation.agent_ref. The structured
+	// ApiResourceReference shape is deliberately not used here: the
+	// authoring surface is YAML written by hand, and "org/slug" is its
+	// idiom.
 	Agent string `protobuf:"bytes,1,opt,name=agent,proto3" json:"agent,omitempty"`
-	// Explicit organization for agent resolution. Optional.
-	// If empty, the org is parsed from the agent field or defaults to workflow's org.
-	// Use this when you need to override the parsed org.
-	Org string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
 	// Instructions/prompt to send to the agent.
 	// Supports interpolation of workflow variables using JQ expressions.
 	// Example: "Analyze this code: ${ $context.fetchCode.body }"
 	// Required field.
-	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 	// Runtime environment variables to pass to the agent.
 	// Values can be literal strings or JQ expressions that reference
 	// workflow context or secrets.
 	// Example: {"GITHUB_TOKEN": "${ .secrets.GH_TOKEN }"}
 	// Optional.
-	Env map[string]string `protobuf:"bytes,4,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Execution configuration for the agent invocation.
-	// Optional - defaults are applied if not specified.
-	Config *AgentExecutionConfig `protobuf:"bytes,5,opt,name=config,proto3" json:"config,omitempty"`
+	Env map[string]string `protobuf:"bytes,3,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Per-call model choice and run bounds. Unset fields inherit the
+	// platform defaults.
+	//
+	// @internal
+	// The shared RunConfig (DD-018 D-2) — the same message schedules
+	// embed, so the run-bound vocabulary cannot drift between
+	// triggering surfaces. Semantics at the workflow surface:
+	// model_name replaces the agent's default outright; max_cost_usd
+	// maps to ExecutionConfig.max_cost_usd and is enforced by the
+	// runner's harness-generic cost guards; max_tool_rounds maps to
+	// ExecutionConfig.max_tool_rounds (native harness only — inert on
+	// cursor, whose sole bound is cost). No platform clamp profile is
+	// applied at this surface yet: per the RunConfig contract, an unset
+	// platform cap means the owner value stands.
+	RunConfig *v1.RunConfig `protobuf:"bytes,4,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
 	// Structured output contract for this agent call.
 	//
 	// When set, the workflow runner extracts structured JSON from the agent's
@@ -110,11 +164,10 @@ type AgentCallTaskConfig struct {
 	// JSON is placed in the task output under the "structured" key, enabling
 	// reliable downstream routing via switch_case expressions.
 	//
-	// When not set, the task output contains the agent's raw text response
-	// (backward compatible with existing workflows).
+	// When not set, the task output contains the agent's raw text response.
 	//
 	// @since T02 (Structured Agent Output Model)
-	Output *AgentCallOutputContract `protobuf:"bytes,6,opt,name=output,proto3" json:"output,omitempty"`
+	Output *AgentCallOutputContract `protobuf:"bytes,5,opt,name=output,proto3" json:"output,omitempty"`
 	// Execution harness for the agent invocation.
 	//
 	// Determines which execution engine processes the agent call:
@@ -125,7 +178,8 @@ type AgentCallTaskConfig struct {
 	// the AgentExecution. The harness is a session-level concern — it determines
 	// tool availability, state management, model access, and billing tier.
 	//
-	// When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+	// When unspecified, defaults to HARNESS_NATIVE (the workflow
+	// surface's platform default).
 	//
 	// YAML Example:
 	//   - code_review:
@@ -134,9 +188,42 @@ type AgentCallTaskConfig struct {
 	//     agent: "code-reviewer"
 	//     harness: cursor
 	//     message: "Review this PR"
-	Harness       v1.Harness `protobuf:"varint,7,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Harness v11.Harness `protobuf:"varint,6,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
+	// Workspace the child run's session operates on. Empty means no workspace.
+	//
+	// @internal
+	// The shared WorkspaceEntry type (AgentInvocation correspondence).
+	// Maps onto SessionSpec.workspace_entries of the session each call
+	// creates. Surface constraint, enforced in workflow validation (both
+	// editions): sources must be git_repo — no client is connected to
+	// serve a local_path when a workflow task fires. Credentials follow
+	// DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
+	// environment; for private repos the supported contract is an
+	// org-visibility Environment holding GITHUB_TOKEN bound via
+	// environment_refs. Public repos need no token.
+	WorkspaceEntries []*v11.WorkspaceEntry `protobuf:"bytes,7,rep,name=workspace_entries,json=workspaceEntries,proto3" json:"workspace_entries,omitempty"`
+	// References to Environment resources whose values are provided to
+	// the child runs this task creates.
+	//
+	// This is how a tool-using agent becomes runnable from a workflow:
+	// bind an org-shared environment holding the needed credentials, and
+	// the child runs receive its values at runtime. The agent and its
+	// default instance stay untouched.
+	//
+	// @internal
+	// The AgentShare/AgentChannel/Schedule environment_refs lineage.
+	// Never carried in the execution create request and never emitted
+	// into execution YAML: CreateExecutionContextStep resolves them from
+	// the Workflow row, gated on the trusted runner caller identity and
+	// keyed by parent_workflow_id + task label — prepended at LOWEST
+	// merge priority (instance refs and runtime_env override on key
+	// conflicts). No write-time existence or visibility check:
+	// enforcement lives solely at runtime resolution, which fails closed.
+	// When kind is unset in YAML, the DSL normalizer defaults it to
+	// environment.
+	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,8,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *AgentCallTaskConfig) Reset() {
@@ -176,13 +263,6 @@ func (x *AgentCallTaskConfig) GetAgent() string {
 	return ""
 }
 
-func (x *AgentCallTaskConfig) GetOrg() string {
-	if x != nil {
-		return x.Org
-	}
-	return ""
-}
-
 func (x *AgentCallTaskConfig) GetMessage() string {
 	if x != nil {
 		return x.Message
@@ -197,9 +277,9 @@ func (x *AgentCallTaskConfig) GetEnv() map[string]string {
 	return nil
 }
 
-func (x *AgentCallTaskConfig) GetConfig() *AgentExecutionConfig {
+func (x *AgentCallTaskConfig) GetRunConfig() *v1.RunConfig {
 	if x != nil {
-		return x.Config
+		return x.RunConfig
 	}
 	return nil
 }
@@ -211,11 +291,25 @@ func (x *AgentCallTaskConfig) GetOutput() *AgentCallOutputContract {
 	return nil
 }
 
-func (x *AgentCallTaskConfig) GetHarness() v1.Harness {
+func (x *AgentCallTaskConfig) GetHarness() v11.Harness {
 	if x != nil {
 		return x.Harness
 	}
-	return v1.Harness(0)
+	return v11.Harness(0)
+}
+
+func (x *AgentCallTaskConfig) GetWorkspaceEntries() []*v11.WorkspaceEntry {
+	if x != nil {
+		return x.WorkspaceEntries
+	}
+	return nil
+}
+
+func (x *AgentCallTaskConfig) GetEnvironmentRefs() []*apiresource.ApiResourceReference {
+	if x != nil {
+		return x.EnvironmentRefs
+	}
+	return nil
 }
 
 // AgentCallOutputContract defines the structured output contract for an agent_call task.
@@ -359,134 +453,22 @@ func (x *AgentCallOutputContract) GetFallbackTask() string {
 	return ""
 }
 
-// AgentExecutionConfig defines optional execution parameters for agent calls.
-// These settings override the agent's default configuration for this specific invocation.
-type AgentExecutionConfig struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// LLM model to use for this invocation.
-	// Example: "claude-3-5-sonnet", "gpt-4", "claude-3-opus"
-	// Optional - uses agent's default model if not specified.
-	Model string `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
-	// Timeout for agent execution in seconds.
-	// Default: 300 (5 minutes)
-	// Optional.
-	Timeout int32 `protobuf:"varint,2,opt,name=timeout,proto3" json:"timeout,omitempty"`
-	// Temperature for LLM sampling (0.0 to 1.0).
-	// Lower = more deterministic, Higher = more creative
-	// Default: 0.7
-	// Optional.
-	Temperature float32 `protobuf:"fixed32,3,opt,name=temperature,proto3" json:"temperature,omitempty"`
-	// Context management configuration for this agent invocation.
-	// Controls automatic summarization behavior for long-running conversations.
-	// When specified, overrides model defaults from the Model Registry.
-	//
-	// @internal
-	// @since Phase 3 (Context Summarization Architecture)
-	//
-	// Use cases:
-	// - Disable summarization for short-lived agents
-	// - Custom thresholds for agents with specific context requirements
-	// - Fine-tune summarization behavior per workflow task
-	//
-	// Example YAML:
-	//
-	//	config:
-	//	  model: "claude-sonnet-4.5"
-	//	  context_management:
-	//	    custom_trigger_threshold: 150000
-	//	    custom_target_tokens: 120000
-	ContextManagement *v11.ContextManagementConfig `protobuf:"bytes,4,opt,name=context_management,json=contextManagement,proto3" json:"context_management,omitempty"`
-	// Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros).
-	// When set, the runtime terminates this agent call if its accumulated cost
-	// exceeds this limit. This uses the workflow domain's micro-USD convention
-	// and provides per-task cost control at the workflow level.
-	// The runtime checks both: per-task limit first, then workflow remaining budget.
-	// Optional — when 0, no per-task cost limit is enforced.
-	//
-	// @since T05 (Workflow-Level Budget Primitives)
-	MaxCostMicros int64 `protobuf:"varint,5,opt,name=max_cost_micros,json=maxCostMicros,proto3" json:"max_cost_micros,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AgentExecutionConfig) Reset() {
-	*x = AgentExecutionConfig{}
-	mi := &file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AgentExecutionConfig) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AgentExecutionConfig) ProtoMessage() {}
-
-func (x *AgentExecutionConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AgentExecutionConfig.ProtoReflect.Descriptor instead.
-func (*AgentExecutionConfig) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *AgentExecutionConfig) GetModel() string {
-	if x != nil {
-		return x.Model
-	}
-	return ""
-}
-
-func (x *AgentExecutionConfig) GetTimeout() int32 {
-	if x != nil {
-		return x.Timeout
-	}
-	return 0
-}
-
-func (x *AgentExecutionConfig) GetTemperature() float32 {
-	if x != nil {
-		return x.Temperature
-	}
-	return 0
-}
-
-func (x *AgentExecutionConfig) GetContextManagement() *v11.ContextManagementConfig {
-	if x != nil {
-		return x.ContextManagement
-	}
-	return nil
-}
-
-func (x *AgentExecutionConfig) GetMaxCostMicros() int64 {
-	if x != nil {
-		return x.MaxCostMicros
-	}
-	return 0
-}
-
 var File_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc = "" +
 	"\n" +
-	"5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a1ai/stigmer/agentic/workflow/v1/tasks/common.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x80\x04\n" +
+	"5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a5ai/stigmer/agentic/agentexecution/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a1ai/stigmer/agentic/workflow/v1/tasks/common.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa2\x06\n" +
 	"\x13AgentCallTaskConfig\x12\"\n" +
-	"\x05agent\x18\x01 \x01(\tB\f\xbaH\t\xc8\x01\x01r\x04\x10\x01\x18\x7fR\x05agent\x12\x10\n" +
-	"\x03org\x18\x02 \x01(\tR\x03org\x12(\n" +
-	"\amessage\x18\x03 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\amessage\x12T\n" +
-	"\x03env\x18\x04 \x03(\v2B.ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntryR\x03env\x12R\n" +
-	"\x06config\x18\x05 \x01(\v2:.ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfigR\x06config\x12U\n" +
-	"\x06output\x18\x06 \x01(\v2=.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractR\x06output\x12@\n" +
-	"\aharness\x18\a \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x1a6\n" +
+	"\x05agent\x18\x01 \x01(\tB\f\xbaH\t\xc8\x01\x01r\x04\x10\x01\x18\x7fR\x05agent\x12(\n" +
+	"\amessage\x18\x02 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\amessage\x12T\n" +
+	"\x03env\x18\x03 \x03(\v2B.ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntryR\x03env\x12N\n" +
+	"\n" +
+	"run_config\x18\x04 \x01(\v2/.ai.stigmer.agentic.agentexecution.v1.RunConfigR\trunConfig\x12U\n" +
+	"\x06output\x18\x05 \x01(\v2=.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractR\x06output\x12@\n" +
+	"\aharness\x18\x06 \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x12Z\n" +
+	"\x11workspace_entries\x18\a \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12\xd9\x01\n" +
+	"\x10environment_refs\x18\b \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
+	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x1a6\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:\x0e\xea\x8b,\n" +
@@ -497,16 +479,7 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc = "" +
 	"on_invalid\x18\x02 \x01(\x0e2;.ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicyR\tonInvalid\x12*\n" +
 	"\vmax_retries\x18\x03 \x01(\x05B\t\xbaH\x06\x1a\x04\x18\x05(\x01R\n" +
 	"maxRetries\x12#\n" +
-	"\rfallback_task\x18\x04 \x01(\tR\ffallbackTask\"\x9b\x02\n" +
-	"\x14AgentExecutionConfig\x12\x14\n" +
-	"\x05model\x18\x01 \x01(\tR\x05model\x12$\n" +
-	"\atimeout\x18\x02 \x01(\x05B\n" +
-	"\xbaH\a\x1a\x05\x18\x90\x1c(\x01R\atimeout\x121\n" +
-	"\vtemperature\x18\x03 \x01(\x02B\x0f\xbaH\f\n" +
-	"\n" +
-	"\x1d\x00\x00\x80?-\x00\x00\x00\x00R\vtemperature\x12l\n" +
-	"\x12context_management\x18\x04 \x01(\v2=.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfigR\x11contextManagement\x12&\n" +
-	"\x0fmax_cost_micros\x18\x05 \x01(\x03R\rmaxCostMicrosB\xc1\x02\n" +
+	"\rfallback_task\x18\x04 \x01(\tR\ffallbackTaskB\xc1\x02\n" +
 	"(com.ai.stigmer.agentic.workflow.v1.tasksB\x0eAgentCallProtoP\x01ZMgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 
 var (
@@ -521,30 +494,32 @@ func file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDescGZIP() []
 	return file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_goTypes = []any{
-	(*AgentCallTaskConfig)(nil),         // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
-	(*AgentCallOutputContract)(nil),     // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract
-	(*AgentExecutionConfig)(nil),        // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
-	nil,                                 // 3: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
-	(v1.Harness)(0),                     // 4: ai.stigmer.agentic.session.v1.Harness
-	(*structpb.Struct)(nil),             // 5: google.protobuf.Struct
-	(OnInvalidOutputPolicy)(0),          // 6: ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy
-	(*v11.ContextManagementConfig)(nil), // 7: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
+	(*AgentCallTaskConfig)(nil),              // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+	(*AgentCallOutputContract)(nil),          // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract
+	nil,                                      // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
+	(*v1.RunConfig)(nil),                     // 3: ai.stigmer.agentic.agentexecution.v1.RunConfig
+	(v11.Harness)(0),                         // 4: ai.stigmer.agentic.session.v1.Harness
+	(*v11.WorkspaceEntry)(nil),               // 5: ai.stigmer.agentic.session.v1.WorkspaceEntry
+	(*apiresource.ApiResourceReference)(nil), // 6: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*structpb.Struct)(nil),                  // 7: google.protobuf.Struct
+	(OnInvalidOutputPolicy)(0),               // 8: ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy
 }
 var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_depIdxs = []int32{
-	3, // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.env:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
-	2, // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.config:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
+	2, // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.env:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
+	3, // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.run_config:type_name -> ai.stigmer.agentic.agentexecution.v1.RunConfig
 	1, // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.output:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract
 	4, // 3: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
-	5, // 4: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.schema:type_name -> google.protobuf.Struct
-	6, // 5: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.on_invalid:type_name -> ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy
-	7, // 6: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	5, // 4: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.workspace_entries:type_name -> ai.stigmer.agentic.session.v1.WorkspaceEntry
+	6, // 5: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	7, // 6: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.schema:type_name -> google.protobuf.Struct
+	8, // 7: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.on_invalid:type_name -> ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_init() }
@@ -559,7 +534,7 @@ func file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc), len(file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

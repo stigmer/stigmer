@@ -31,6 +31,13 @@ import { AgentExecutionSpecSchema, ExecutionConfigSchema } from "@stigmer/protos
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import {
+  WorkspaceEntrySchema,
+  WorkspaceSourceSchema,
+  GitRepoSourceSchema,
+  type WorkspaceEntry,
+} from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
@@ -62,14 +69,15 @@ export async function callAgentAction(
     );
   }
 
-  const orgId = resolved.org
-    ?? (runtimeEnv["__stigmer_org_id"] as string | undefined)
-    ?? "";
+  // The execution is always created in the workflow's org — the workflow
+  // owner pays for the run. A cross-org agent reference ("org/slug") only
+  // changes where the agent blueprint is looked up, never the billing org.
+  const orgId = (runtimeEnv["__stigmer_org_id"] as string | undefined) ?? "";
 
   if (!orgId) {
     throw new Error(
       "call:agent requires an organization context. " +
-      "Set 'org' in the task config or ensure '__stigmer_org_id' is in the workflow environment.",
+      "Ensure '__stigmer_org_id' is in the workflow environment.",
     );
   }
 
@@ -142,6 +150,7 @@ export async function callAgentAction(
         harness,
         executionTarget,
         subject: "Auto-created session",
+        workspaceEntries: buildWorkspaceEntries(resolved.workspace_entries),
       }),
     }),
   );
@@ -170,10 +179,17 @@ export async function callAgentAction(
     );
   }
 
-  // Task-config-level env takes precedence over auto-forwarded values
+  // Task-config-level env takes precedence over auto-forwarded values.
+  // The agent's declared secret marking survives the override: a key the
+  // agent declares secret stays secret no matter which channel supplied
+  // the value, so an explicit task-level `env:` entry cannot downgrade
+  // redaction (issue #358 — the override used to hardcode isSecret:false).
   if (resolved.env) {
     for (const [key, value] of Object.entries(resolved.env)) {
-      executionRuntimeEnv[key] = { value: String(value), isSecret: false };
+      executionRuntimeEnv[key] = {
+        value: String(value),
+        isSecret: agentEnvDecls[key]?.isSecret ?? false,
+      };
     }
   }
 
@@ -196,13 +212,41 @@ export async function callAgentAction(
   const parentQueue = runtimeEnv["__stigmer_activity_task_queue"] as string | undefined;
   const activityTaskQueue = parentQueue?.startsWith("wfexec:") ? parentQueue : "";
 
-  const hasModel = !!resolved.config?.model;
+  // Honest RunConfig → ExecutionConfig mapping (issue #358): every field
+  // the author may set is forwarded to a field the runner enforces.
+  // model_name replaces the agent's default outright; max_cost_usd feeds
+  // the harness-generic cost guards (cost-cap middleware / cursor
+  // cost-guard); max_tool_rounds feeds resolveRecursionLimit (native
+  // harness only); service_tier feeds the cursor harness's explicit
+  // variant selection (issue #357). Zero/unset means "no override" and is
+  // omitted.
+  const runConfig = resolved.run_config;
+  const hasModel = !!runConfig?.model_name;
+  const hasCostCap = (runConfig?.max_cost_usd ?? 0) > 0;
+  const hasToolRounds = (runConfig?.max_tool_rounds ?? 0) > 0;
+  // Loader guarantees a canonical enum name; an unknown one here means the
+  // loader and this mapping drifted — fail the task, never silently drop a
+  // pricing directive.
+  const SERVICE_TIER_BY_NAME: Record<string, ServiceTier> = {
+    SERVICE_TIER_STANDARD: ServiceTier.STANDARD,
+    SERVICE_TIER_FAST: ServiceTier.FAST,
+  };
+  const serviceTier = runConfig?.service_tier
+    ? SERVICE_TIER_BY_NAME[runConfig.service_tier]
+    : undefined;
+  if (runConfig?.service_tier && serviceTier === undefined) {
+    throw new Error(
+      `call:agent run_config.service_tier '${runConfig.service_tier}' has no proto mapping`,
+    );
+  }
+  const hasServiceTier = serviceTier !== undefined;
   const hasOutputSchema = !!resolved.output?.schema;
 
   console.log(
     `[CallAgent] schema propagation diagnostic: ` +
     `hasOutputSchema=${hasOutputSchema}, ` +
-    `hasModel=${hasModel}, ` +
+    `hasModel=${hasModel}, hasCostCap=${hasCostCap}, hasToolRounds=${hasToolRounds}, ` +
+    `hasServiceTier=${hasServiceTier}, ` +
     `configKeys=[${Object.keys(resolved).join(",")}], ` +
     `hasOutput=${resolved.output !== undefined}, ` +
     `outputKeys=${resolved.output ? JSON.stringify(Object.keys(resolved.output)) : "N/A"}, ` +
@@ -220,13 +264,27 @@ export async function callAgentAction(
     runtimeEnv: runtimeEnvProto,
   });
 
-  if (hasModel || hasOutputSchema) {
+  if (hasModel || hasCostCap || hasToolRounds || hasServiceTier || hasOutputSchema) {
     const execConfig = create(ExecutionConfigSchema, {});
-    if (hasModel) execConfig.modelName = resolved.config!.model!;
+    if (hasModel) execConfig.modelName = runConfig!.model_name!;
+    if (hasCostCap) execConfig.maxCostUsd = runConfig!.max_cost_usd!;
+    if (hasToolRounds) execConfig.maxToolRounds = runConfig!.max_tool_rounds!;
+    if (hasServiceTier) execConfig.serviceTier = serviceTier!;
     if (hasOutputSchema) {
       execConfig.structuredOutputSchema = resolved.output!.schema as JsonObject;
     }
     executionSpec.executionConfig = execConfig;
+  }
+
+  // Workflow provenance labels: the server's CreateExecutionContextStep
+  // keys the agent_call environment_refs resolution on these (the
+  // schedule-label lineage). The cloud edition additionally gates the
+  // branch on the trusted runner caller identity, so the labels are only
+  // load-bearing inside that trust boundary.
+  const labels: Record<string, string> = {};
+  if (wfExecId && taskName) {
+    labels["stigmer.ai/workflow-execution-id"] = wfExecId;
+    labels["stigmer.ai/workflow-task"] = taskName;
   }
 
   await client.createAgentExecution(
@@ -236,12 +294,38 @@ export async function callAgentAction(
       metadata: create(ApiResourceMetadataSchema, {
         name: executionName,
         org: orgId,
+        labels,
       }),
       spec: executionSpec,
     }),
   );
 
   throw new CompleteAsyncError();
+}
+
+// buildWorkspaceEntries maps the task's git-only workspace entries onto the
+// shared session WorkspaceEntry proto. Provisioning credentials are NOT the
+// runner's concern here: the provisioner resolves GITHUB_TOKEN from the
+// merged environment (DD-018 D-4), which the task's environment_refs feed
+// via server-side resolution.
+function buildWorkspaceEntries(
+  entries: AgentCallConfig["workspace_entries"],
+): WorkspaceEntry[] {
+  if (!entries || entries.length === 0) return [];
+  return entries.map((entry) =>
+    create(WorkspaceEntrySchema, {
+      name: entry.name ?? "",
+      source: create(WorkspaceSourceSchema, {
+        source: {
+          case: "gitRepo",
+          value: create(GitRepoSourceSchema, {
+            url: entry.source.git_repo.url,
+            branch: entry.source.git_repo.branch ?? "",
+          }),
+        },
+      }),
+    }),
+  );
 }
 
 function parseAgentReference(

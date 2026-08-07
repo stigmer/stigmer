@@ -10,8 +10,6 @@
  * This builder is sandbox-safe — it evaluates jq expressions and
  * delegates to `ctx.callAgent()`. The async completion and signal
  * logic live in the workflow-side orchestrator, not here.
- *
- * Mirrors Go's `CallAgentTaskBuilder` in `task_builder_call_agent.go`.
  */
 
 import type {

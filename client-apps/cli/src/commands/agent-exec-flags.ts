@@ -3,7 +3,7 @@
 // execution flag is added here once and both surfaces pick it up.
 
 import type { Command } from "commander";
-import type { AgentExecFlags, RunMode } from "../resources/run/prepare.js";
+import type { AgentExecFlags, RunMode, ServiceTierFlag } from "../resources/run/prepare.js";
 
 /** Commander collector for repeatable string options. */
 export const collect = (value: string, previous: string[]): string[] => [...previous, value];
@@ -25,6 +25,7 @@ export interface AgentExecOptions {
   model?: string;
   autoApprove?: boolean;
   mode?: string;
+  serviceTier?: string;
 }
 
 /**
@@ -50,7 +51,8 @@ export function addAgentExecFlags(command: Command, requireMessage = false): Com
     .option("--secret-file <path>", "load secrets from file (repeatable, encrypted)", collect, [])
     .option("--model <model>", "LLM model to use (e.g. claude-sonnet-4-6)")
     .option("--auto-approve", "automatically approve all tool executions")
-    .option("--mode <mode>", 'interaction mode: "agent" (default) or "plan" (read-only)');
+    .option("--mode <mode>", 'interaction mode: "agent" (default) or "plan" (read-only)')
+    .option("--service-tier <tier>", 'model service tier: "standard" (default) or "fast" (requires --model naming a model with a fast tier; billed at fast rates)');
 }
 
 /** Map parsed commander options onto the shared {@link AgentExecFlags} shape. */
@@ -71,5 +73,6 @@ export function toAgentExecFlags(options: AgentExecOptions): AgentExecFlags {
     model: options.model ?? "",
     autoApprove: options.autoApprove === true,
     mode: (options.mode ?? "") as RunMode,
+    serviceTier: (options.serviceTier ?? "") as ServiceTierFlag,
   };
 }

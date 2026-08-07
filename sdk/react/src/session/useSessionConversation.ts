@@ -17,6 +17,7 @@ import type {
   WorkspaceEntryInput,
 } from "@stigmer/sdk";
 import { isTerminalPhase } from "../execution/execution-phases.js";
+import type { ServiceTierOption } from "../models/service-tier.js";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { useConversationStoreRef } from "../internal/store/index.js";
@@ -96,6 +97,16 @@ export interface SendFollowUpOptions {
    * - `"plan"`: read-only analysis, no file mutations.
    */
   readonly interactionMode?: "agent" | "plan";
+  /**
+   * Service tier for this execution's model calls (stigmer/stigmer#357).
+   *
+   * Only set when the user actively selected `"fast"`; `undefined` preserves
+   * the unspecified-vs-explicit distinction (unset resolves to standard on
+   * the platform side — never the provider account default).
+   *
+   * @see {@link CreateAgentExecutionInput.serviceTier}
+   */
+  readonly serviceTier?: ServiceTierOption;
   /**
    * Marks this execution as a Build-from-plan turn.
    *
@@ -642,6 +653,7 @@ export function useSessionConversation(
           runtimeEnv: options?.runtimeEnv,
           attachments: options?.attachments,
           interactionMode: options?.interactionMode,
+          serviceTier: options?.serviceTier,
           buildFromPlan: options?.buildFromPlan,
           autoApproveAll: options?.autoApproveAll,
           workspaceFileRefs: options?.workspaceFileRefs,

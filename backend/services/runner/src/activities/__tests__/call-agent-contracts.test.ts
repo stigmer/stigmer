@@ -400,7 +400,7 @@ describe("CallAgent server contract compliance", () => {
     it("sets structuredOutputSchema when output.schema is present", async () => {
       await exerciseCallAgent({
         output: { schema: cohortSchema, on_invalid: "ON_INVALID_FAIL" },
-        config: { model: "claude-sonnet-4" },
+        run_config: { model_name: "claude-sonnet-4" },
       });
       const execConfig = capturedCreateExecution.spec.executionConfig;
       expect(execConfig).toBeDefined();
@@ -414,7 +414,7 @@ describe("CallAgent server contract compliance", () => {
     it("sets both modelName and structuredOutputSchema when both are present", async () => {
       await exerciseCallAgent({
         output: { schema: cohortSchema },
-        config: { model: "claude-sonnet-4" },
+        run_config: { model_name: "claude-sonnet-4" },
       });
       const execConfig = capturedCreateExecution.spec.executionConfig;
       expect(execConfig.modelName).toBe("claude-sonnet-4");
@@ -433,7 +433,7 @@ describe("CallAgent server contract compliance", () => {
     });
 
     it("does not set structuredOutputSchema when output is absent", async () => {
-      await exerciseCallAgent({ config: { model: "claude-sonnet-4" } });
+      await exerciseCallAgent({ run_config: { model_name: "claude-sonnet-4" } });
       const execConfig = capturedCreateExecution.spec.executionConfig;
       expect(execConfig).toBeDefined();
       expect(execConfig.modelName).toBe("claude-sonnet-4");
@@ -459,7 +459,7 @@ describe("CallAgent server contract compliance", () => {
       await exerciseCallAgent(
         {
           output: { schema: cohortSchema, on_invalid: "ON_INVALID_FAIL" },
-          config: { model: "claude-sonnet-4", timeout: 300 },
+          run_config: { model_name: "claude-sonnet-4" },
           harness: "HARNESS_CURSOR",
           __taskName: "analyze_player_data",
         } as any,

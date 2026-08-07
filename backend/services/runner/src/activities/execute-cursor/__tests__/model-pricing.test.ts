@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeAll } from "vitest";
  */
 describe("getCursorModelPricing — speed variant resolution", () => {
   let getCursorModelPricing: typeof import("../model-pricing.js").getCursorModelPricing;
+  let getCursorModelPricingForVariant: typeof import("../model-pricing.js").getCursorModelPricingForVariant;
   let computeTurnCost: typeof import("../model-pricing.js").computeTurnCost;
 
   beforeAll(async () => {
@@ -58,6 +59,7 @@ describe("getCursorModelPricing — speed variant resolution", () => {
     const mod = await import("../model-pricing.js");
     await mod.ensureLoaded();
     getCursorModelPricing = mod.getCursorModelPricing;
+    getCursorModelPricingForVariant = mod.getCursorModelPricingForVariant;
     computeTurnCost = mod.computeTurnCost;
   });
 
@@ -88,5 +90,23 @@ describe("getCursorModelPricing — speed variant resolution", () => {
     // (266,945 - 222,432 cache read). 44,513*$3 + 7,069*$15 + 222,432*$0.2 ≈ $0.284
     const cost = computeTurnCost(p, 266_945, 7_069, 0, 222_432);
     expect(cost).toBeCloseTo(0.28406, 5);
+  });
+
+  it("getCursorModelPricingForVariant('fast') prices a base id at fast rates (#357)", () => {
+    // The explicit-tier path: the caller KNOWS the variant (it requested
+    // it) — no wire-id suffix inference involved.
+    const p = getCursorModelPricingForVariant("composer-2.5", "fast");
+    expect(p.inputPricePerMillion).toBe(3.0);
+    expect(p.outputPricePerMillion).toBe(15.0);
+  });
+
+  it("getCursorModelPricingForVariant(null) keeps base rates", () => {
+    const p = getCursorModelPricingForVariant("composer-2.5", null);
+    expect(p.inputPricePerMillion).toBe(0.5);
+  });
+
+  it("getCursorModelPricingForVariant('fast') falls back to base rates when unpriced", () => {
+    const p = getCursorModelPricingForVariant("claude-opus-4-6", "fast");
+    expect(p.inputPricePerMillion).toBe(5.0);
   });
 });

@@ -8,8 +8,9 @@
  * 4. Updating workflow approval status via local activities
  * 5. Returning the agent result when the activity completes
  *
- * The kernel's CallAgentTaskBuilder calls `ctx.callAgent()`, which
- * is wired to `orchestrateAgentCall()` in execute-serverless-workflow.ts.
+ * The workflow engine's CallAgentTaskBuilder (workflow-engine/tasks/
+ * call-agent.ts) calls `ctx.callAgent()`, which is wired to
+ * `orchestrateAgentCall()` in execute-serverless-workflow.ts.
  *
  * SANDBOX RULES: Only @temporalio/workflow imports, type-only imports,
  * and pure logic. No Node.js built-ins.
@@ -54,6 +55,11 @@ type AgentActivities = ReturnType<typeof createCallAgentActivities>;
 type StatusActivities = ReturnType<typeof createCallAgentStatusActivities>;
 type EventActivities = ReturnType<typeof createWorkflowEventActivities>;
 
+// The 1h ceiling is a deliberate platform constant, not a user knob: the
+// old AgentCallTaskConfig declared a per-task `timeout` that nothing ever
+// read, and #358 deleted it rather than declaring what isn't honored. The
+// real per-run bound is run_config.max_cost_usd, enforced inside the
+// agent execution itself.
 const agentProxy = proxyActivities<AgentActivities>({
   startToCloseTimeout: "1h",
   retry: {

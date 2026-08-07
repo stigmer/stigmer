@@ -23,6 +23,28 @@
     "rules": {
       "description": "Business rules to evaluate against the input data. Each rule is a boolean expression that must evaluate to true. Rules complement schema validation by expressing constraints that JSON Schema cannot: cross-field dependencies, conditional requirements, and domain-specific invariants. At least one of schema or rules must be set.",
       "items": {
+        "additionalProperties": false,
+        "properties": {
+          "expression": {
+            "description": "Boolean expression that must evaluate to true for the rule to pass. Supports ${ } expression interpolation. The expression receives the validate task's input data as its context. Example: \"${ .severity != 'critical' || (.rationale != null \u0026\u0026 .rationale != '') }\"",
+            "minLength": 1,
+            "type": "string"
+          },
+          "message": {
+            "description": "Error message included in validation output when the rule fails. Supports ${ } expression interpolation for dynamic error messages. When empty, a generic message is generated from the rule name. Example: \"Critical severity requires a rationale\"",
+            "type": "string"
+          },
+          "name": {
+            "description": "Rule identifier for error reporting and debugging. Appears in validation error output so operators can identify which specific rule failed. Examples: \"critical_needs_rationale\", \"customer_impact_requires_high_severity\"",
+            "maxLength": 127,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "expression"
+        ],
         "type": "object"
       },
       "type": "array"

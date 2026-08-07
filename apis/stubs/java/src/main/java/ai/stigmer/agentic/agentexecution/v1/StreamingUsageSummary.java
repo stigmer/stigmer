@@ -35,6 +35,8 @@ private static final long serialVersionUID = 0L;
   private StreamingUsageSummary() {
     model_ = "";
     observedAt_ = "";
+    requestedServiceTier_ = 0;
+    requestedModelParams_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -168,7 +170,14 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object model_ = "";
   /**
    * <pre>
-   * Model identifier observed during streaming (from RunResult or assistant events).
+   * Model identifier the runner requested for this execution's turns.
+   *
+   * &#64;internal
+   * This is the validated REQUESTED model (UsageAccumulator constructor
+   * argument), not a provider-reported resolved id — the Cursor SDK echoes
+   * the requested selection and never reports the served variant, so the
+   * authoritative resolved model lives on billing's LlmCallUsageRecord
+   * (requested_model / resolved_model / service_tier), not here.
    * </pre>
    *
    * <code>string model = 8 [json_name = "model"];</code>
@@ -189,7 +198,14 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Model identifier observed during streaming (from RunResult or assistant events).
+   * Model identifier the runner requested for this execution's turns.
+   *
+   * &#64;internal
+   * This is the validated REQUESTED model (UsageAccumulator constructor
+   * argument), not a provider-reported resolved id — the Cursor SDK echoes
+   * the requested selection and never reports the served variant, so the
+   * authoritative resolved model lives on billing's LlmCallUsageRecord
+   * (requested_model / resolved_model / service_tier), not here.
    * </pre>
    *
    * <code>string model = 8 [json_name = "model"];</code>
@@ -257,6 +273,103 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int REQUESTED_SERVICE_TIER_FIELD_NUMBER = 10;
+  private int requestedServiceTier_ = 0;
+  /**
+   * <pre>
+   * Service tier the runner requested for this execution's model calls.
+   *
+   * Always explicit once the runner has translated the execution config
+   * (STANDARD when ExecutionConfig.service_tier was unset) — the audit
+   * record that the account default was never left in control.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier requested_service_tier = 10 [json_name = "requestedServiceTier"];</code>
+   * @return The enum numeric value on the wire for requestedServiceTier.
+   */
+  @java.lang.Override public int getRequestedServiceTierValue() {
+    return requestedServiceTier_;
+  }
+  /**
+   * <pre>
+   * Service tier the runner requested for this execution's model calls.
+   *
+   * Always explicit once the runner has translated the execution config
+   * (STANDARD when ExecutionConfig.service_tier was unset) — the audit
+   * record that the account default was never left in control.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier requested_service_tier = 10 [json_name = "requestedServiceTier"];</code>
+   * @return The requestedServiceTier.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ServiceTier getRequestedServiceTier() {
+    ai.stigmer.agentic.agentexecution.v1.ServiceTier result = ai.stigmer.agentic.agentexecution.v1.ServiceTier.forNumber(requestedServiceTier_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.ServiceTier.UNRECOGNIZED : result;
+  }
+
+  public static final int REQUESTED_MODEL_PARAMS_FIELD_NUMBER = 11;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object requestedModelParams_ = "";
+  /**
+   * <pre>
+   * JSON-encoded provider variant parameters the runner sent with the model
+   * selection (Cursor ModelSelection.params, e.g.
+   * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
+   *
+   * &#64;internal
+   * Recorded verbatim for audit: tier→params translation depends on the
+   * provider catalog at send time, so the derivation is not reproducible
+   * later from the tier alone. Mirrors the Cursor SDK's own analytics
+   * convention (SdkRunCreatedProps.model_params).
+   * </pre>
+   *
+   * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>
+   * @return The requestedModelParams.
+   */
+  @java.lang.Override
+  public java.lang.String getRequestedModelParams() {
+    java.lang.Object ref = requestedModelParams_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      requestedModelParams_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * JSON-encoded provider variant parameters the runner sent with the model
+   * selection (Cursor ModelSelection.params, e.g.
+   * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
+   *
+   * &#64;internal
+   * Recorded verbatim for audit: tier→params translation depends on the
+   * provider catalog at send time, so the derivation is not reproducible
+   * later from the tier alone. Mirrors the Cursor SDK's own analytics
+   * convention (SdkRunCreatedProps.model_params).
+   * </pre>
+   *
+   * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>
+   * @return The bytes for requestedModelParams.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getRequestedModelParamsBytes() {
+    java.lang.Object ref = requestedModelParams_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      requestedModelParams_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -297,6 +410,12 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(observedAt_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 9, observedAt_);
+    }
+    if (requestedServiceTier_ != ai.stigmer.agentic.agentexecution.v1.ServiceTier.SERVICE_TIER_UNSPECIFIED.getNumber()) {
+      output.writeEnum(10, requestedServiceTier_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(requestedModelParams_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 11, requestedModelParams_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -341,6 +460,13 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(observedAt_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(9, observedAt_);
     }
+    if (requestedServiceTier_ != ai.stigmer.agentic.agentexecution.v1.ServiceTier.SERVICE_TIER_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(10, requestedServiceTier_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(requestedModelParams_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(11, requestedModelParams_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -375,6 +501,9 @@ private static final long serialVersionUID = 0L;
         .equals(other.getModel())) return false;
     if (!getObservedAt()
         .equals(other.getObservedAt())) return false;
+    if (requestedServiceTier_ != other.requestedServiceTier_) return false;
+    if (!getRequestedModelParams()
+        .equals(other.getRequestedModelParams())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -410,6 +539,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getModel().hashCode();
     hash = (37 * hash) + OBSERVED_AT_FIELD_NUMBER;
     hash = (53 * hash) + getObservedAt().hashCode();
+    hash = (37 * hash) + REQUESTED_SERVICE_TIER_FIELD_NUMBER;
+    hash = (53 * hash) + requestedServiceTier_;
+    hash = (37 * hash) + REQUESTED_MODEL_PARAMS_FIELD_NUMBER;
+    hash = (53 * hash) + getRequestedModelParams().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -555,6 +688,8 @@ private static final long serialVersionUID = 0L;
       estimatedCostUsd_ = 0D;
       model_ = "";
       observedAt_ = "";
+      requestedServiceTier_ = 0;
+      requestedModelParams_ = "";
       return this;
     }
 
@@ -615,6 +750,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000100) != 0)) {
         result.observedAt_ = observedAt_;
       }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.requestedServiceTier_ = requestedServiceTier_;
+      }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.requestedModelParams_ = requestedModelParams_;
+      }
     }
 
     @java.lang.Override
@@ -658,6 +799,14 @@ private static final long serialVersionUID = 0L;
       if (!other.getObservedAt().isEmpty()) {
         observedAt_ = other.observedAt_;
         bitField0_ |= 0x00000100;
+        onChanged();
+      }
+      if (other.requestedServiceTier_ != 0) {
+        setRequestedServiceTierValue(other.getRequestedServiceTierValue());
+      }
+      if (!other.getRequestedModelParams().isEmpty()) {
+        requestedModelParams_ = other.requestedModelParams_;
+        bitField0_ |= 0x00000400;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -731,6 +880,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000100;
               break;
             } // case 74
+            case 80: {
+              requestedServiceTier_ = input.readEnum();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 80
+            case 90: {
+              requestedModelParams_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 90
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1068,7 +1227,14 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object model_ = "";
     /**
      * <pre>
-     * Model identifier observed during streaming (from RunResult or assistant events).
+     * Model identifier the runner requested for this execution's turns.
+     *
+     * &#64;internal
+     * This is the validated REQUESTED model (UsageAccumulator constructor
+     * argument), not a provider-reported resolved id — the Cursor SDK echoes
+     * the requested selection and never reports the served variant, so the
+     * authoritative resolved model lives on billing's LlmCallUsageRecord
+     * (requested_model / resolved_model / service_tier), not here.
      * </pre>
      *
      * <code>string model = 8 [json_name = "model"];</code>
@@ -1088,7 +1254,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Model identifier observed during streaming (from RunResult or assistant events).
+     * Model identifier the runner requested for this execution's turns.
+     *
+     * &#64;internal
+     * This is the validated REQUESTED model (UsageAccumulator constructor
+     * argument), not a provider-reported resolved id — the Cursor SDK echoes
+     * the requested selection and never reports the served variant, so the
+     * authoritative resolved model lives on billing's LlmCallUsageRecord
+     * (requested_model / resolved_model / service_tier), not here.
      * </pre>
      *
      * <code>string model = 8 [json_name = "model"];</code>
@@ -1109,7 +1282,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Model identifier observed during streaming (from RunResult or assistant events).
+     * Model identifier the runner requested for this execution's turns.
+     *
+     * &#64;internal
+     * This is the validated REQUESTED model (UsageAccumulator constructor
+     * argument), not a provider-reported resolved id — the Cursor SDK echoes
+     * the requested selection and never reports the served variant, so the
+     * authoritative resolved model lives on billing's LlmCallUsageRecord
+     * (requested_model / resolved_model / service_tier), not here.
      * </pre>
      *
      * <code>string model = 8 [json_name = "model"];</code>
@@ -1126,7 +1306,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Model identifier observed during streaming (from RunResult or assistant events).
+     * Model identifier the runner requested for this execution's turns.
+     *
+     * &#64;internal
+     * This is the validated REQUESTED model (UsageAccumulator constructor
+     * argument), not a provider-reported resolved id — the Cursor SDK echoes
+     * the requested selection and never reports the served variant, so the
+     * authoritative resolved model lives on billing's LlmCallUsageRecord
+     * (requested_model / resolved_model / service_tier), not here.
      * </pre>
      *
      * <code>string model = 8 [json_name = "model"];</code>
@@ -1140,7 +1327,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Model identifier observed during streaming (from RunResult or assistant events).
+     * Model identifier the runner requested for this execution's turns.
+     *
+     * &#64;internal
+     * This is the validated REQUESTED model (UsageAccumulator constructor
+     * argument), not a provider-reported resolved id — the Cursor SDK echoes
+     * the requested selection and never reports the served variant, so the
+     * authoritative resolved model lives on billing's LlmCallUsageRecord
+     * (requested_model / resolved_model / service_tier), not here.
      * </pre>
      *
      * <code>string model = 8 [json_name = "model"];</code>
@@ -1245,6 +1439,230 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       observedAt_ = value;
       bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+
+    private int requestedServiceTier_ = 0;
+    /**
+     * <pre>
+     * Service tier the runner requested for this execution's model calls.
+     *
+     * Always explicit once the runner has translated the execution config
+     * (STANDARD when ExecutionConfig.service_tier was unset) — the audit
+     * record that the account default was never left in control.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier requested_service_tier = 10 [json_name = "requestedServiceTier"];</code>
+     * @return The enum numeric value on the wire for requestedServiceTier.
+     */
+    @java.lang.Override public int getRequestedServiceTierValue() {
+      return requestedServiceTier_;
+    }
+    /**
+     * <pre>
+     * Service tier the runner requested for this execution's model calls.
+     *
+     * Always explicit once the runner has translated the execution config
+     * (STANDARD when ExecutionConfig.service_tier was unset) — the audit
+     * record that the account default was never left in control.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier requested_service_tier = 10 [json_name = "requestedServiceTier"];</code>
+     * @param value The enum numeric value on the wire for requestedServiceTier to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setRequestedServiceTierValue(int value) {
+      requestedServiceTier_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Service tier the runner requested for this execution's model calls.
+     *
+     * Always explicit once the runner has translated the execution config
+     * (STANDARD when ExecutionConfig.service_tier was unset) — the audit
+     * record that the account default was never left in control.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier requested_service_tier = 10 [json_name = "requestedServiceTier"];</code>
+     * @return The requestedServiceTier.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ServiceTier getRequestedServiceTier() {
+      ai.stigmer.agentic.agentexecution.v1.ServiceTier result = ai.stigmer.agentic.agentexecution.v1.ServiceTier.forNumber(requestedServiceTier_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.ServiceTier.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Service tier the runner requested for this execution's model calls.
+     *
+     * Always explicit once the runner has translated the execution config
+     * (STANDARD when ExecutionConfig.service_tier was unset) — the audit
+     * record that the account default was never left in control.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier requested_service_tier = 10 [json_name = "requestedServiceTier"];</code>
+     * @param value The requestedServiceTier to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRequestedServiceTier(ai.stigmer.agentic.agentexecution.v1.ServiceTier value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000200;
+      requestedServiceTier_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Service tier the runner requested for this execution's model calls.
+     *
+     * Always explicit once the runner has translated the execution config
+     * (STANDARD when ExecutionConfig.service_tier was unset) — the audit
+     * record that the account default was never left in control.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier requested_service_tier = 10 [json_name = "requestedServiceTier"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearRequestedServiceTier() {
+      bitField0_ = (bitField0_ & ~0x00000200);
+      requestedServiceTier_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object requestedModelParams_ = "";
+    /**
+     * <pre>
+     * JSON-encoded provider variant parameters the runner sent with the model
+     * selection (Cursor ModelSelection.params, e.g.
+     * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
+     *
+     * &#64;internal
+     * Recorded verbatim for audit: tier→params translation depends on the
+     * provider catalog at send time, so the derivation is not reproducible
+     * later from the tier alone. Mirrors the Cursor SDK's own analytics
+     * convention (SdkRunCreatedProps.model_params).
+     * </pre>
+     *
+     * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>
+     * @return The requestedModelParams.
+     */
+    public java.lang.String getRequestedModelParams() {
+      java.lang.Object ref = requestedModelParams_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        requestedModelParams_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * JSON-encoded provider variant parameters the runner sent with the model
+     * selection (Cursor ModelSelection.params, e.g.
+     * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
+     *
+     * &#64;internal
+     * Recorded verbatim for audit: tier→params translation depends on the
+     * provider catalog at send time, so the derivation is not reproducible
+     * later from the tier alone. Mirrors the Cursor SDK's own analytics
+     * convention (SdkRunCreatedProps.model_params).
+     * </pre>
+     *
+     * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>
+     * @return The bytes for requestedModelParams.
+     */
+    public com.google.protobuf.ByteString
+        getRequestedModelParamsBytes() {
+      java.lang.Object ref = requestedModelParams_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        requestedModelParams_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * JSON-encoded provider variant parameters the runner sent with the model
+     * selection (Cursor ModelSelection.params, e.g.
+     * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
+     *
+     * &#64;internal
+     * Recorded verbatim for audit: tier→params translation depends on the
+     * provider catalog at send time, so the derivation is not reproducible
+     * later from the tier alone. Mirrors the Cursor SDK's own analytics
+     * convention (SdkRunCreatedProps.model_params).
+     * </pre>
+     *
+     * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>
+     * @param value The requestedModelParams to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRequestedModelParams(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      requestedModelParams_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * JSON-encoded provider variant parameters the runner sent with the model
+     * selection (Cursor ModelSelection.params, e.g.
+     * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
+     *
+     * &#64;internal
+     * Recorded verbatim for audit: tier→params translation depends on the
+     * provider catalog at send time, so the derivation is not reproducible
+     * later from the tier alone. Mirrors the Cursor SDK's own analytics
+     * convention (SdkRunCreatedProps.model_params).
+     * </pre>
+     *
+     * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearRequestedModelParams() {
+      requestedModelParams_ = getDefaultInstance().getRequestedModelParams();
+      bitField0_ = (bitField0_ & ~0x00000400);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * JSON-encoded provider variant parameters the runner sent with the model
+     * selection (Cursor ModelSelection.params, e.g.
+     * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
+     *
+     * &#64;internal
+     * Recorded verbatim for audit: tier→params translation depends on the
+     * provider catalog at send time, so the derivation is not reproducible
+     * later from the tier alone. Mirrors the Cursor SDK's own analytics
+     * convention (SdkRunCreatedProps.model_params).
+     * </pre>
+     *
+     * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>
+     * @param value The bytes for requestedModelParams to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRequestedModelParamsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      requestedModelParams_ = value;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }

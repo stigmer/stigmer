@@ -8,7 +8,7 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ToolApprovalOverrideSchema, McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
-import { InteractionMode, ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { InteractionMode, ApprovalMode, ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { AgentExecutionIdSchema, AgentExecutionUpdateStatusInputSchema, UpdateStatusResponseSchema, SubmitApprovalInputSchema, SubmitFileDecisionInputSchema, CancelAgentExecutionInputSchema, TerminateAgentExecutionInputSchema, RecoverAgentExecutionInputSchema, PauseAgentExecutionInputSchema, ResumeAgentExecutionInputSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema, ListAgentExecutionsRequestSchema, AgentExecutionListSchema, ListAgentExecutionsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetExecutionUsageReportInputSchema, GetExecutionUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetAgentExecutionSummaryRequestSchema, AgentExecutionSummarySchema, type AgentExecutionUpdateStatusInput, type UpdateStatusResponse, type SubmitApprovalInput, type SubmitFileDecisionInput, type CancelAgentExecutionInput, type TerminateAgentExecutionInput, type RecoverAgentExecutionInput, type PauseAgentExecutionInput, type ResumeAgentExecutionInput, type UploadAttachmentRequest, type UploadAttachmentResponse, type ListAgentExecutionsRequest, type AgentExecutionList, type ListAgentExecutionsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetExecutionUsageReportInput, type GetExecutionUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetAgentExecutionSummaryRequest, type AgentExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
 import { AgentExecutionSpecSchema, ContextManagementConfigSchema, ExecutionConfigSchema, AttachmentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
@@ -259,6 +259,7 @@ export interface ExecutionConfigInput {
   structuredOutputSchema?: JsonObject;
   buildFromPlan?: boolean;
   approvalMode?: ApprovalMode;
+  serviceTier?: ServiceTier;
 }
 
 /** SDK input type for ContextManagementConfig. */
@@ -362,6 +363,7 @@ function buildExecutionConfigProto(input: ExecutionConfigInput) {
   if (input.structuredOutputSchema !== undefined) msg.structuredOutputSchema = input.structuredOutputSchema;
   if (input.buildFromPlan !== undefined) msg.buildFromPlan = input.buildFromPlan;
   if (input.approvalMode !== undefined) msg.approvalMode = input.approvalMode;
+  if (input.serviceTier !== undefined) msg.serviceTier = input.serviceTier;
   return msg;
 }
 

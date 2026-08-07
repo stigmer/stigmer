@@ -83,7 +83,6 @@ func TestWorkflowAgentCall_CursorHarness_MissingEnvVar(t *testing.T) {
 	// but does NOT provide a value in runtimeEnv (simulating unprovisioned secret).
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   created.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": "Reply with: env-test-ok",
 		"harness": "cursor",
 	})

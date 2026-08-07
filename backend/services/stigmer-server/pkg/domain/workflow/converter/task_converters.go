@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
@@ -569,6 +570,15 @@ func convertEvalTask(cfg *tasksv1.EvalTaskConfig) map[string]interface{} {
 	}
 }
 
+// convertAgentCallTask emits the agent_call `with:` block.
+//
+// The emission contract is pinned across editions (issue #358): exactly
+// the declared AgentCallTaskConfig fields — agent, message, env,
+// run_config, output, harness — and nothing else. The cloud Java
+// converter's agent_call branch must emit an identical block for the
+// same spec; previously cloud passed the raw Struct through (leaking
+// unknown keys into execution YAML) while this converter filtered, so
+// the two editions executed different YAML for the same workflow.
 func convertAgentCallTask(cfg *tasksv1.AgentCallTaskConfig) map[string]interface{} {
 	with := map[string]interface{}{
 		"agent":   cfg.Agent,
@@ -579,22 +589,28 @@ func convertAgentCallTask(cfg *tasksv1.AgentCallTaskConfig) map[string]interface
 		with["env"] = cfg.Env
 	}
 
-	if cfg.Config != nil {
-		config := map[string]interface{}{}
-		if cfg.Config.Model != "" {
-			config["model"] = cfg.Config.Model
+	if rc := cfg.RunConfig; rc != nil {
+		runConfig := map[string]interface{}{}
+		if rc.ModelName != "" {
+			runConfig["model_name"] = rc.ModelName
 		}
-		if cfg.Config.Timeout > 0 {
-			config["timeout"] = cfg.Config.Timeout
+		if rc.MaxCostUsd > 0 {
+			runConfig["max_cost_usd"] = rc.MaxCostUsd
 		}
-		if cfg.Config.Temperature != 0 {
-			config["temperature"] = cfg.Config.Temperature
+		if rc.MaxToolRounds > 0 {
+			runConfig["max_tool_rounds"] = rc.MaxToolRounds
 		}
-		if cfg.Config.MaxCostMicros > 0 {
-			config["max_cost_micros"] = cfg.Config.MaxCostMicros
+		// Emitted as the lowercase shorthand ("standard"/"fast"), the same
+		// authoring idiom as harness below; the runner loader maps it back
+		// to the canonical enum name.
+		switch rc.ServiceTier {
+		case agentexecutionv1.ServiceTier_SERVICE_TIER_STANDARD:
+			runConfig["service_tier"] = "standard"
+		case agentexecutionv1.ServiceTier_SERVICE_TIER_FAST:
+			runConfig["service_tier"] = "fast"
 		}
-		if len(config) > 0 {
-			with["config"] = config
+		if len(runConfig) > 0 {
+			with["run_config"] = runConfig
 		}
 	}
 
@@ -625,6 +641,34 @@ func convertAgentCallTask(cfg *tasksv1.AgentCallTaskConfig) map[string]interface
 			with["harness"] = "cursor"
 		}
 	}
+
+	if len(cfg.WorkspaceEntries) > 0 {
+		entries := make([]interface{}, 0, len(cfg.WorkspaceEntries))
+		for _, entry := range cfg.WorkspaceEntries {
+			m := map[string]interface{}{}
+			if entry.GetName() != "" {
+				m["name"] = entry.GetName()
+			}
+			// Write-time validation guarantees git_repo sources only; a
+			// local_path can only appear in a pre-validation spec and is
+			// deliberately not emitted.
+			if git := entry.GetSource().GetGitRepo(); git != nil {
+				gitRepo := map[string]interface{}{"url": git.GetUrl()}
+				if git.GetBranch() != "" {
+					gitRepo["branch"] = git.GetBranch()
+				}
+				m["source"] = map[string]interface{}{"git_repo": gitRepo}
+			}
+			entries = append(entries, m)
+		}
+		with["workspace_entries"] = entries
+	}
+
+	// environment_refs are deliberately NOT emitted into execution YAML:
+	// the runner never reads them. CreateExecutionContextStep resolves
+	// them server-side from the Workflow row (keyed on the runner-stamped
+	// provenance labels), the same posture schedules use — refs never
+	// travel with the run they credential.
 
 	return map[string]interface{}{
 		"call": "agent",

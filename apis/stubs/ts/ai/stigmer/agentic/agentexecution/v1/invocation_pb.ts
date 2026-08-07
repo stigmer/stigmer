@@ -4,6 +4,8 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { ServiceTier } from "./enum_pb.js";
+import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb.js";
 import type { Harness } from "../../session/v1/enum_pb.js";
 import { file_ai_stigmer_agentic_session_v1_enum } from "../../session/v1/enum_pb.js";
 import type { WorkspaceEntry } from "../../session/v1/workspace_pb.js";
@@ -18,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/invocation.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_invocation: GenFile = /*@__PURE__*/
-  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvaW52b2NhdGlvbi5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIvAECg9BZ2VudEludm9jYXRpb24SrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEhsKB21lc3NhZ2UYAiABKAlCCrpIB3IFEAEYgEASNwoHaGFybmVzcxgDIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3MSSAoRd29ya3NwYWNlX2VudHJpZXMYBCADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRLIAQoQZW52aXJvbm1lbnRfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJ4ukhxkgFuImy6AWkKFWVudmlyb25tZW50X3JlZnMua2luZBI/ZW52aXJvbm1lbnRfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPWVudmlyb25tZW50Gg90aGlzLmtpbmQgPT0gNTPghSw1EkMKCnJ1bl9jb25maWcYBiABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUnVuQ29uZmlnImcKCVJ1bkNvbmZpZxISCgptb2RlbF9uYW1lGAEgASgJEiQKDG1heF9jb3N0X3VzZBgCIAEoAUIOukgLEgkpAAAAAAAAAAASIAoPbWF4X3Rvb2xfcm91bmRzGAMgASgFQge6SAQaAigAYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvaW52b2NhdGlvbi5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIvAECg9BZ2VudEludm9jYXRpb24SrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEhsKB21lc3NhZ2UYAiABKAlCCrpIB3IFEAEYgEASNwoHaGFybmVzcxgDIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3MSSAoRd29ya3NwYWNlX2VudHJpZXMYBCADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRLIAQoQZW52aXJvbm1lbnRfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJ4ukhxkgFuImy6AWkKFWVudmlyb25tZW50X3JlZnMua2luZBI/ZW52aXJvbm1lbnRfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPWVudmlyb25tZW50Gg90aGlzLmtpbmQgPT0gNTPghSw1EkMKCnJ1bl9jb25maWcYBiABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUnVuQ29uZmlnIroBCglSdW5Db25maWcSEgoKbW9kZWxfbmFtZRgBIAEoCRIkCgxtYXhfY29zdF91c2QYAiABKAFCDrpICxIJKQAAAAAAAAAAEiAKD21heF90b29sX3JvdW5kcxgDIAEoBUIHukgEGgIoABJRCgxzZXJ2aWNlX3RpZXIYBCABKA4yMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU2VydmljZVRpZXJCCLpIBYIBAhABYgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentInvocation is what a caller may ask an agent to do.
@@ -27,8 +29,12 @@ export const file_ai_stigmer_agentic_agentexecution_v1_invocation: GenFile = /*@
  * composer's vocabulary (agent, message, harness, workspace,
  * environments, run bounds) minus what an unattended surface makes
  * structurally impossible. Surfaces that trigger agents on someone's
- * behalf (schedules today; workflow agent_call and channels are named
- * adopters) embed this message instead of re-deriving the shape.
+ * behalf embed this message instead of re-deriving the shape:
+ * schedules embed it whole; the workflow agent_call task adopts it at
+ * the TYPE level (embedding RunConfig and documenting a field-by-field
+ * correspondence) because its task config is a kind+Struct authoring
+ * DSL whose field names are the YAML keys — see
+ * workflow/v1/tasks/agent_call.proto; channels embed RunConfig.
  *
  * @internal
  * Project DD-018 (whatsapp-proactive-messaging). An ALLOWLIST by
@@ -205,6 +211,22 @@ export type RunConfig = Message<"ai.stigmer.agentic.agentexecution.v1.RunConfig"
    * @generated from field: int32 max_tool_rounds = 3;
    */
   maxToolRounds: number;
+
+  /**
+   * Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
+   *
+   * In workflow YAML the shorthand spellings "standard"/"fast" are
+   * accepted alongside the canonical enum names.
+   *
+   * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
+   * surface's platform default, which itself resolves to STANDARD —
+   * never the provider account default. FAST requires model_name
+   * (here or from the platform profile) to name a model with a
+   * registry fast pricing variant; validated fail-closed at create.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4;
+   */
+  serviceTier: ServiceTier;
 };
 
 /**

@@ -22,15 +22,17 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-from ai.stigmer.agentic.agentexecution.v1 import spec_pb2 as ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_spec__pb2
+from ai.stigmer.agentic.agentexecution.v1 import invocation_pb2 as ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_invocation__pb2
 from ai.stigmer.agentic.session.v1 import enum_pb2 as ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_enum__pb2
+from ai.stigmer.agentic.session.v1 import workspace_pb2 as ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_workspace__pb2
 from ai.stigmer.agentic.workflow.v1.tasks import common_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_tasks_dot_common__pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_field__options__pb2
+from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import struct_pb2 as google_dot_protobuf_dot_struct__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a\x31\x61i/stigmer/agentic/workflow/v1/tasks/common.proto\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x80\x04\n\x13\x41gentCallTaskConfig\x12\"\n\x05\x61gent\x18\x01 \x01(\tB\x0c\xbaH\tr\x04\x10\x01\x18\x7f\xc8\x01\x01R\x05\x61gent\x12\x10\n\x03org\x18\x02 \x01(\tR\x03org\x12(\n\x07message\x18\x03 \x01(\tB\x0e\xbaH\x07r\x02\x10\x01\xc8\x01\x01\xd8\x85,\x01R\x07message\x12T\n\x03\x65nv\x18\x04 \x03(\x0b\x32\x42.ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntryR\x03\x65nv\x12R\n\x06\x63onfig\x18\x05 \x01(\x0b\x32:.ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfigR\x06\x63onfig\x12U\n\x06output\x18\x06 \x01(\x0b\x32=.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractR\x06output\x12@\n\x07harness\x18\x07 \x01(\x0e\x32&.ai.stigmer.agentic.session.v1.HarnessR\x07harness\x1a\x36\n\x08\x45nvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01:\x0e\xea\x8b,\nagent_call\"\xff\x01\n\x17\x41gentCallOutputContract\x12\x37\n\x06schema\x18\x01 \x01(\x0b\x32\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\x06schema\x12Z\n\non_invalid\x18\x02 \x01(\x0e\x32;.ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicyR\tonInvalid\x12*\n\x0bmax_retries\x18\x03 \x01(\x05\x42\t\xbaH\x06\x1a\x04\x18\x05(\x01R\nmaxRetries\x12#\n\rfallback_task\x18\x04 \x01(\tR\x0c\x66\x61llbackTask\"\x9b\x02\n\x14\x41gentExecutionConfig\x12\x14\n\x05model\x18\x01 \x01(\tR\x05model\x12$\n\x07timeout\x18\x02 \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\x90\x1c(\x01R\x07timeout\x12\x31\n\x0btemperature\x18\x03 \x01(\x02\x42\x0f\xbaH\x0c\n\n\x1d\x00\x00\x80?-\x00\x00\x00\x00R\x0btemperature\x12l\n\x12\x63ontext_management\x18\x04 \x01(\x0b\x32=.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfigR\x11\x63ontextManagement\x12&\n\x0fmax_cost_micros\x18\x05 \x01(\x03R\rmaxCostMicrosB\xf2\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\x0e\x41gentCallProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a\x35\x61i/stigmer/agentic/agentexecution/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a\x31\x61i/stigmer/agentic/workflow/v1/tasks/common.proto\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa2\x06\n\x13\x41gentCallTaskConfig\x12\"\n\x05\x61gent\x18\x01 \x01(\tB\x0c\xbaH\tr\x04\x10\x01\x18\x7f\xc8\x01\x01R\x05\x61gent\x12(\n\x07message\x18\x02 \x01(\tB\x0e\xbaH\x07r\x02\x10\x01\xc8\x01\x01\xd8\x85,\x01R\x07message\x12T\n\x03\x65nv\x18\x03 \x03(\x0b\x32\x42.ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntryR\x03\x65nv\x12N\n\nrun_config\x18\x04 \x01(\x0b\x32/.ai.stigmer.agentic.agentexecution.v1.RunConfigR\trunConfig\x12U\n\x06output\x18\x05 \x01(\x0b\x32=.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractR\x06output\x12@\n\x07harness\x18\x06 \x01(\x0e\x32&.ai.stigmer.agentic.session.v1.HarnessR\x07harness\x12Z\n\x11workspace_entries\x18\x07 \x03(\x0b\x32-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12\xd9\x01\n\x10\x65nvironment_refs\x18\x08 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n\x15\x65nvironment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0f\x65nvironmentRefs\x1a\x36\n\x08\x45nvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01:\x0e\xea\x8b,\nagent_call\"\xff\x01\n\x17\x41gentCallOutputContract\x12\x37\n\x06schema\x18\x01 \x01(\x0b\x32\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\x06schema\x12Z\n\non_invalid\x18\x02 \x01(\x0e\x32;.ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicyR\tonInvalid\x12*\n\x0bmax_retries\x18\x03 \x01(\x05\x42\t\xbaH\x06\x1a\x04\x18\x05(\x01R\nmaxRetries\x12#\n\rfallback_task\x18\x04 \x01(\tR\x0c\x66\x61llbackTaskB\xf2\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\x0e\x41gentCallProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -44,22 +46,18 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_AGENTCALLTASKCONFIG'].fields_by_name['agent']._serialized_options = b'\272H\tr\004\020\001\030\177\310\001\001'
   _globals['_AGENTCALLTASKCONFIG'].fields_by_name['message']._loaded_options = None
   _globals['_AGENTCALLTASKCONFIG'].fields_by_name['message']._serialized_options = b'\272H\007r\002\020\001\310\001\001\330\205,\001'
+  _globals['_AGENTCALLTASKCONFIG'].fields_by_name['environment_refs']._loaded_options = None
+  _globals['_AGENTCALLTASKCONFIG'].fields_by_name['environment_refs']._serialized_options = b'\272Hq\222\001n\"l\272\001i\n\025environment_refs.kind\022?environment_refs must reference resources with kind=environment\032\017this.kind == 53\340\205,5'
   _globals['_AGENTCALLTASKCONFIG']._loaded_options = None
   _globals['_AGENTCALLTASKCONFIG']._serialized_options = b'\352\213,\nagent_call'
   _globals['_AGENTCALLOUTPUTCONTRACT'].fields_by_name['schema']._loaded_options = None
   _globals['_AGENTCALLOUTPUTCONTRACT'].fields_by_name['schema']._serialized_options = b'\272H\003\310\001\001'
   _globals['_AGENTCALLOUTPUTCONTRACT'].fields_by_name['max_retries']._loaded_options = None
   _globals['_AGENTCALLOUTPUTCONTRACT'].fields_by_name['max_retries']._serialized_options = b'\272H\006\032\004\030\005(\001'
-  _globals['_AGENTEXECUTIONCONFIG'].fields_by_name['timeout']._loaded_options = None
-  _globals['_AGENTEXECUTIONCONFIG'].fields_by_name['timeout']._serialized_options = b'\272H\007\032\005\030\220\034(\001'
-  _globals['_AGENTEXECUTIONCONFIG'].fields_by_name['temperature']._loaded_options = None
-  _globals['_AGENTEXECUTIONCONFIG'].fields_by_name['temperature']._serialized_options = b'\272H\014\n\n\035\000\000\200?-\000\000\000\000'
-  _globals['_AGENTCALLTASKCONFIG']._serialized_start=349
-  _globals['_AGENTCALLTASKCONFIG']._serialized_end=861
-  _globals['_AGENTCALLTASKCONFIG_ENVENTRY']._serialized_start=791
-  _globals['_AGENTCALLTASKCONFIG_ENVENTRY']._serialized_end=845
-  _globals['_AGENTCALLOUTPUTCONTRACT']._serialized_start=864
-  _globals['_AGENTCALLOUTPUTCONTRACT']._serialized_end=1119
-  _globals['_AGENTEXECUTIONCONFIG']._serialized_start=1122
-  _globals['_AGENTEXECUTIONCONFIG']._serialized_end=1405
+  _globals['_AGENTCALLTASKCONFIG']._serialized_start=443
+  _globals['_AGENTCALLTASKCONFIG']._serialized_end=1245
+  _globals['_AGENTCALLTASKCONFIG_ENVENTRY']._serialized_start=1175
+  _globals['_AGENTCALLTASKCONFIG_ENVENTRY']._serialized_end=1229
+  _globals['_AGENTCALLOUTPUTCONTRACT']._serialized_start=1248
+  _globals['_AGENTCALLOUTPUTCONTRACT']._serialized_end=1503
 # @@protoc_insertion_point(module_scope)

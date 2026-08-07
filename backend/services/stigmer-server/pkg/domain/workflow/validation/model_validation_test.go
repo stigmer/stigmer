@@ -12,12 +12,38 @@ import (
 func makeAgentCallTask(name string, harness string, model string) *workflowv1.WorkflowTask {
 	config := map[string]interface{}{}
 	if model != "" {
-		config["config"] = map[string]interface{}{
-			"model": model,
+		config["run_config"] = map[string]interface{}{
+			"model_name": model,
 		}
 	}
 	config["agent"] = "test-agent"
 	config["message"] = "test message"
+	if harness != "" {
+		config["harness"] = harness
+	}
+	cfg, _ := structpb.NewStruct(config)
+	return &workflowv1.WorkflowTask{
+		Name:       name,
+		Kind:       workflowv1.WorkflowTaskKind_agent_call,
+		TaskConfig: cfg,
+	}
+}
+
+func makeAgentCallTaskWithTier(name, harness, model, serviceTier string) *workflowv1.WorkflowTask {
+	config := map[string]interface{}{
+		"agent":   "test-agent",
+		"message": "test message",
+	}
+	runConfig := map[string]interface{}{}
+	if model != "" {
+		runConfig["model_name"] = model
+	}
+	if serviceTier != "" {
+		runConfig["service_tier"] = serviceTier
+	}
+	if len(runConfig) > 0 {
+		config["run_config"] = runConfig
+	}
 	if harness != "" {
 		config["harness"] = harness
 	}
@@ -235,6 +261,66 @@ func TestValidateModelReferences_AgentCallNoConfig_NoError(t *testing.T) {
 	errors := ValidateModelReferences(spec)
 	if len(errors) != 0 {
 		t.Errorf("Expected no errors when agent_call has no config block, got: %v", errors)
+	}
+}
+
+// Service-tier rules at the workflow surface (stigmer/stigmer#357): the same
+// fail-closed posture as execution create — FAST needs a pinned model that
+// prices a fast variant — plus the harness dimension the workflow surface
+// has and execution create does not: the fast variant must be priced FOR
+// THE TASK'S HARNESS. STANDARD/unset is always valid.
+func TestValidateModelReferences_ServiceTier(t *testing.T) {
+	tests := []struct {
+		name         string
+		task         *workflowv1.WorkflowTask
+		wantErrors   int
+		wantContains string
+	}{
+		{
+			name:       "FAST with a fast-priced model passes",
+			task:       makeAgentCallTaskWithTier("triage", "cursor", "composer-2.5", "fast"),
+			wantErrors: 0,
+		},
+		{
+			name:       "explicit standard passes without a model",
+			task:       makeAgentCallTaskWithTier("triage", "cursor", "", "standard"),
+			wantErrors: 0,
+		},
+		{
+			name:         "FAST without model_name fails closed",
+			task:         makeAgentCallTaskWithTier("triage", "cursor", "", "fast"),
+			wantErrors:   1,
+			wantContains: "requires run_config.model_name",
+		},
+		{
+			name:         "FAST on a model with no fast variant fails closed",
+			task:         makeAgentCallTaskWithTier("triage", "native", "claude-sonnet-4.6", "fast"),
+			wantErrors:   1,
+			wantContains: "prices no fast variant",
+		},
+		{
+			// composer-2.5 prices a fast variant — but under the cursor
+			// harness. A native agent_call must not validate it: the native
+			// path can never apply the tier (silent-no-op leak). The second
+			// error is the ordinary model-for-harness refusal.
+			name:         "FAST priced only under another harness fails closed",
+			task:         makeAgentCallTaskWithTier("triage", "native", "composer-2.5", "fast"),
+			wantErrors:   2,
+			wantContains: "on harness 'native'",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			spec := &workflowv1.WorkflowSpec{Tasks: []*workflowv1.WorkflowTask{tt.task}}
+			errors := ValidateModelReferences(spec)
+			if len(errors) != tt.wantErrors {
+				t.Fatalf("expected %d errors, got %d: %v", tt.wantErrors, len(errors), errors)
+			}
+			if tt.wantContains != "" && !strings.Contains(errors[0], tt.wantContains) {
+				t.Errorf("expected error to contain %q, got: %s", tt.wantContains, errors[0])
+			}
+		})
 	}
 }
 

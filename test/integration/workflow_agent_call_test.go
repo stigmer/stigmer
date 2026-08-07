@@ -45,7 +45,6 @@ func TestWorkflowAgentCall_SimpleExecution(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     "test-org",
 		"message": "Reply with exactly: hello-from-agent",
 	})
 	require.NoError(t, err)
@@ -120,7 +119,6 @@ func TestWorkflowAgentCall_StructuredOutput(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     "test-org",
 		"message": "Classify the sentiment of this text and respond with JSON: 'This product is fantastic!'",
 	})
 	require.NoError(t, err)
@@ -200,7 +198,6 @@ func TestWorkflowAgentCall_NonexistentAgent(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   "nonexistent-agent-slug-xyz",
-		"org":     "test-org",
 		"message": "This should fail because the agent does not exist",
 	})
 	require.NoError(t, err)
@@ -302,7 +299,6 @@ func TestWorkflowAgentCall_ChildFailurePropagates(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   created.GetMetadata().GetSlug(),
-		"org":     "test-org",
 		"message": "Use the nonexistent-mcp-tool to process this request",
 	})
 	require.NoError(t, err)

@@ -7,6 +7,7 @@ import { useStigmerPortalContainer } from "../portal-container.js";
 import { useModelRegistry } from "./useModelRegistry.js";
 import type { ModelInfo, CostTier, SpeedTier } from "./registry.js";
 import { HARNESS_META, HARNESS_OPTIONS, type HarnessOption } from "./harness.js";
+import { FAST_SERVICE_TIER, type ServiceTierOption } from "./service-tier.js";
 
 const COST_TIER_LABEL: Record<CostTier, string> = {
   economy: "$",
@@ -72,6 +73,22 @@ export interface ModelSelectorProps {
   readonly placeholderLabel?: string;
 
   /**
+   * Current service tier for the selected model (stigmer/stigmer#357).
+   * Defaults to "standard". Only meaningful together with
+   * {@link onServiceTierChange}.
+   */
+  readonly serviceTier?: ServiceTierOption;
+  /**
+   * Called when the user toggles the fast tier. Providing this enables the
+   * tier toggle, which renders ONLY when the selected model prices a fast
+   * variant ({@link ModelInfo.serviceTiers}) — no dead controls. Selecting
+   * a model without a fast tier while "fast" is active resets the tier to
+   * "standard" through this callback, so an unsupported combination can
+   * never be submitted.
+   */
+  readonly onServiceTierChange?: (tier: ServiceTierOption) => void;
+
+  /**
    * @deprecated Use {@link onHarnessChange} instead.
    */
   readonly onHarnessResolved?: (harness: HarnessOption) => void;
@@ -114,6 +131,8 @@ export function ModelSelector({
   className,
   disabled,
   placeholderLabel,
+  serviceTier = "standard",
+  onServiceTierChange,
 }: ModelSelectorProps) {
   const portalContainer = useStigmerPortalContainer();
 
@@ -226,9 +245,19 @@ export function ModelSelector({
   const selectModel = useCallback(
     (model: ModelInfo) => {
       onValueChange(model.modelId);
+      // Fail-safe: the fast tier is per-model; carrying it onto a model
+      // that does not price it would be refused at create time (#357), so
+      // reset here instead of surfacing a dead selection.
+      if (
+        serviceTier === "fast"
+        && onServiceTierChange
+        && !model.serviceTiers.includes(FAST_SERVICE_TIER)
+      ) {
+        onServiceTierChange("standard");
+      }
       setOpen(false);
     },
-    [onValueChange],
+    [onValueChange, serviceTier, onServiceTierChange],
   );
 
   const scrollHighlightIntoView = useCallback((idx: number) => {
@@ -275,6 +304,15 @@ export function ModelSelector({
 
   const showShowAllButton = !isSearching && !showAll && featuredModels.length > 0 && featuredModels.length < models.length;
 
+  // The tier toggle exists only where it applies: a consumer opted in AND
+  // the selected model prices a fast variant (recognition over recall —
+  // never a dead control on models with no tier choice).
+  const showServiceTierToggle =
+    onServiceTierChange !== undefined
+    && selectedModel !== undefined
+    && selectedModel.serviceTiers.includes(FAST_SERVICE_TIER);
+  const fastActive = serviceTier === "fast";
+
   const usingPlaceholder = !value && placeholderLabel !== undefined;
   const triggerLabel = usingPlaceholder
     ? placeholderLabel
@@ -304,6 +342,16 @@ export function ModelSelector({
           <span className="shrink-0 text-border" aria-hidden>·</span>
         )}
         <span className="truncate">{triggerLabel}</span>
+        {showServiceTierToggle && fastActive && (
+          <span
+            className={cn(
+              "shrink-0 rounded-sm border border-border px-1 py-px",
+              "text-[0.6rem] font-medium uppercase tracking-wider text-muted-foreground",
+            )}
+          >
+            Fast
+          </span>
+        )}
         <ChevronIcon />
       </Popover.Trigger>
 
@@ -487,6 +535,39 @@ export function ModelSelector({
                 </button>
               )}
             </div>
+
+            {/* Service tier toggle — only for models that price a fast variant (#357) */}
+            {showServiceTierToggle && (
+              <div className="flex items-center justify-between border-t border-border px-3 py-2">
+                <div className="flex flex-col">
+                  <span className="text-xs text-foreground">Fast tier</span>
+                  <span className="text-[0.65rem] text-muted-foreground">
+                    Faster responses at higher per-token rates
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={fastActive}
+                  aria-label="Fast tier"
+                  className={cn(
+                    "relative h-4.5 w-8 shrink-0 rounded-full transition-colors cursor-pointer",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    fastActive ? "bg-primary" : "bg-muted",
+                  )}
+                  onClick={() =>
+                    onServiceTierChange?.(fastActive ? "standard" : "fast")
+                  }
+                >
+                  <span
+                    className={cn(
+                      "absolute top-0.5 size-3.5 rounded-full bg-background shadow-sm transition-transform",
+                      fastActive ? "translate-x-4" : "translate-x-0.5",
+                    )}
+                  />
+                </button>
+              </div>
+            )}
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>

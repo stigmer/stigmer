@@ -20,7 +20,8 @@ const INVOCATION_KINDS = new Set(["http_call", "grpc_call", "activity_call", "ru
  * Runtime tab — timeout, retry, budget, and execution policies.
  *
  * Content varies by task kind category:
- * - AI kinds: model, timeout, temperature, max cost
+ * - agent_call: model + budget per run (the shared run_config block)
+ * - llm_call / eval: timeout, max cost
  * - Invocation kinds: timeout
  * - Container kinds: concurrency, join policy
  *
@@ -43,8 +44,12 @@ export const RuntimeTab = memo(function RuntimeTab({
 
   return (
     <div className="flex flex-col gap-4 px-3 py-3">
-      {isAi && (
-        <AgentRuntimeSection config={config} kindString={kindString} onChange={handleChange} />
+      {kindString === "agent_call" && (
+        <AgentCallRuntimeSection config={config} onChange={handleChange} />
+      )}
+
+      {isAi && kindString !== "agent_call" && (
+        <AgentRuntimeSection config={config} onChange={handleChange} />
       )}
 
       {isInvocation && (
@@ -69,16 +74,77 @@ export const RuntimeTab = memo(function RuntimeTab({
 });
 
 // ---------------------------------------------------------------------------
-// Agent/LLM runtime
+// Agent call runtime (shared run_config vocabulary)
+// ---------------------------------------------------------------------------
+
+/**
+ * Edits the agent_call `run_config` block (the shared agentexecution
+ * RunConfig, stigmer/stigmer#358): model override + per-run USD budget,
+ * both enforced by the runner. `max_tool_rounds` stays off the form
+ * (DD-018 D-5). Empty means omit — a blank field never becomes a zero
+ * override.
+ */
+function AgentCallRuntimeSection({
+  config,
+  onChange,
+}: {
+  config: Record<string, unknown>;
+  onChange: (field: string, value: unknown) => void;
+}) {
+  const runConfig = (config.run_config ?? {}) as Record<string, unknown>;
+
+  const handleRunConfigChange = useCallback(
+    (field: string, value: unknown) => {
+      const next: Record<string, unknown> = {
+        ...runConfig,
+        [field]: value === "" ? undefined : value,
+      };
+      for (const key of Object.keys(next)) {
+        if (next[key] === undefined) delete next[key];
+      }
+      onChange("run_config", Object.keys(next).length > 0 ? next : undefined);
+    },
+    [runConfig, onChange],
+  );
+
+  return (
+    <section className="flex flex-col gap-3">
+      <SectionLabel>Execution</SectionLabel>
+
+      <FieldRow label="Model" hint="Override agent default model">
+        <input
+          type="text"
+          value={typeof runConfig.model_name === "string" ? runConfig.model_name : ""}
+          onChange={(e) => handleRunConfigChange("model_name", e.target.value || undefined)}
+          placeholder="Agent default"
+          className={inputClass}
+        />
+      </FieldRow>
+
+      <FieldRow label="Budget per run (USD)" hint="The call stops when its estimated cost reaches this amount">
+        <input
+          type="number"
+          value={typeof runConfig.max_cost_usd === "number" ? runConfig.max_cost_usd : ""}
+          onChange={(e) => handleRunConfigChange("max_cost_usd", e.target.value ? parseFloat(e.target.value) : undefined)}
+          placeholder="No limit"
+          min={0}
+          step={0.05}
+          className={inputClass}
+        />
+      </FieldRow>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// LLM/eval runtime
 // ---------------------------------------------------------------------------
 
 function AgentRuntimeSection({
   config,
-  kindString,
   onChange,
 }: {
   config: Record<string, unknown>;
-  kindString: string;
   onChange: (field: string, value: unknown) => void;
 }) {
   const nestedConfig = (config.config ?? {}) as Record<string, unknown>;
@@ -94,18 +160,6 @@ function AgentRuntimeSection({
     <section className="flex flex-col gap-3">
       <SectionLabel>Execution</SectionLabel>
 
-      {kindString === "agent_call" && (
-        <FieldRow label="Model" hint="Override agent default model">
-          <input
-            type="text"
-            value={typeof nestedConfig.model === "string" ? nestedConfig.model : ""}
-            onChange={(e) => handleNestedChange("model", e.target.value || undefined)}
-            placeholder="Agent default"
-            className={inputClass}
-          />
-        </FieldRow>
-      )}
-
       <FieldRow label="Timeout" hint="Seconds before the task is cancelled">
         <input
           type="number"
@@ -117,21 +171,6 @@ function AgentRuntimeSection({
           className={inputClass}
         />
       </FieldRow>
-
-      {kindString === "agent_call" && (
-        <FieldRow label="Temperature" hint="0.0 (deterministic) to 1.0 (creative)">
-          <input
-            type="number"
-            value={typeof nestedConfig.temperature === "number" ? nestedConfig.temperature : ""}
-            onChange={(e) => handleNestedChange("temperature", e.target.value ? parseFloat(e.target.value) : undefined)}
-            placeholder="0.7"
-            min={0}
-            max={1}
-            step={0.1}
-            className={inputClass}
-          />
-        </FieldRow>
-      )}
 
       <FieldRow label="Max cost" hint="Per-task cost cap in micro-USD">
         <input

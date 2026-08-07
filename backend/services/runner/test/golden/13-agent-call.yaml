@@ -53,10 +53,10 @@ do:
           Provide a structured assessment including severity, category, and rationale.
         env:
           GITHUB_TOKEN: "${.secrets.GITHUB_TOKEN}"
-        config:
-          model: "claude-3-5-sonnet"
-          timeout: 300
-          temperature: 0.2
+        run_config:
+          model_name: "claude-3-5-sonnet"
+          max_cost_usd: 0.75
+          service_tier: standard
         output:
           schema:
             type: object

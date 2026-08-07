@@ -36,6 +36,7 @@ import {
   type RunConfig,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import {
   cadenceToCron,
@@ -53,6 +54,11 @@ import {
   toProtoHarness,
   type HarnessOption,
 } from "../models/harness.js";
+import {
+  fromProtoServiceTier,
+  toProtoServiceTier,
+  type ServiceTierOption,
+} from "../models/service-tier.js";
 import { deriveScheduleState, formatNextFire } from "./scheduleState.js";
 import {
   ScheduleRunsCompactList,
@@ -591,10 +597,10 @@ export function ScheduleDetailView({
             {editable && target ? (
               <EngineModelInlineEditor
                 invocation={target}
-                onSave={(harness, modelName) =>
+                onSave={(harness, modelName, serviceTier) =>
                   saveSpecField("engine-model", (s) => {
                     if (s.target.case === "agent") {
-                      applyEngineModel(s.target.value, harness, modelName);
+                      applyEngineModel(s.target.value, harness, modelName, serviceTier);
                     }
                   })
                 }
@@ -1004,13 +1010,18 @@ function EngineModelInlineEditor({
   error,
 }: {
   readonly invocation: AgentInvocation;
-  readonly onSave: (harness: Harness, modelName: string) => Promise<boolean>;
+  readonly onSave: (
+    harness: Harness,
+    modelName: string,
+    serviceTier: ServiceTierOption,
+  ) => Promise<boolean>;
   readonly isSaving: boolean;
   readonly error?: string;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [modelName, setModelName] = useState("");
   const [harness, setHarness] = useState<HarnessOption>("cursor");
+  const [serviceTier, setServiceTier] = useState<ServiceTierOption>("standard");
 
   const startEdit = () => {
     setModelName(invocation.runConfig?.modelName ?? "");
@@ -1018,6 +1029,9 @@ function EngineModelInlineEditor({
       invocation.harness !== Harness.UNSPECIFIED
         ? fromProtoHarness(invocation.harness)
         : "cursor",
+    );
+    setServiceTier(
+      fromProtoServiceTier(invocation.runConfig?.serviceTier) ?? "standard",
     );
     setIsEditing(true);
   };
@@ -1038,13 +1052,18 @@ function EngineModelInlineEditor({
           onValueChange={setModelName}
           initialHarness={harness}
           onHarnessChange={setHarness}
+          serviceTier={serviceTier}
+          onServiceTierChange={setServiceTier}
           placeholderLabel="Platform default"
           disabled={isSaving}
         />
         {modelName !== "" && (
           <button
             type="button"
-            onClick={() => setModelName("")}
+            onClick={() => {
+              setModelName("");
+              setServiceTier("standard");
+            }}
             disabled={isSaving}
             className="rounded-md px-2 py-1 text-[0.65rem] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
           >
@@ -1062,6 +1081,7 @@ function EngineModelInlineEditor({
           const ok = await onSave(
             modelName !== "" ? toProtoHarness(harness) : Harness.UNSPECIFIED,
             modelName,
+            serviceTier,
           );
           if (ok) setIsEditing(false);
         }}
@@ -1146,12 +1166,15 @@ function applyEngineModel(
   invocation: AgentInvocation,
   harness: Harness,
   modelName: string,
+  serviceTier: ServiceTierOption,
 ): void {
   invocation.harness = harness;
   invocation.runConfig = normalizeRunConfig(
     modelName,
     invocation.runConfig?.maxCostUsd ?? 0,
     invocation.runConfig?.maxToolRounds ?? 0,
+    // The tier rides the model choice: no model, no tier (#357).
+    modelName.trim() !== "" ? serviceTier : "standard",
   );
 }
 
@@ -1164,6 +1187,7 @@ function applyBudget(
     invocation.runConfig?.modelName ?? "",
     maxCostUsd ?? 0,
     invocation.runConfig?.maxToolRounds ?? 0,
+    fromProtoServiceTier(invocation.runConfig?.serviceTier) ?? "standard",
   );
 }
 
@@ -1171,11 +1195,20 @@ function normalizeRunConfig(
   modelName: string,
   maxCostUsd: number,
   maxToolRounds: number,
+  serviceTier: ServiceTierOption,
 ): RunConfig | undefined {
-  const fields: { modelName?: string; maxCostUsd?: number; maxToolRounds?: number } = {};
+  const fields: {
+    modelName?: string;
+    maxCostUsd?: number;
+    maxToolRounds?: number;
+    serviceTier?: ServiceTier;
+  } = {};
   if (modelName.trim() !== "") fields.modelName = modelName.trim();
   if (maxCostUsd > 0) fields.maxCostUsd = maxCostUsd;
   if (maxToolRounds > 0) fields.maxToolRounds = maxToolRounds;
+  // Only an active fast choice is carried — an untouched toggle stays
+  // absent, preserving the unspecified-vs-explicit ledger distinction (#357).
+  if (serviceTier === "fast") fields.serviceTier = toProtoServiceTier(serviceTier);
 
   return Object.keys(fields).length > 0
     ? create(RunConfigSchema, fields)
@@ -1391,6 +1424,9 @@ function EngineModelSummary({
     parts.push(HARNESS_META[fromProtoHarness(harness)].label);
   }
   parts.push(modelName !== "" ? modelName : "platform-default model");
+  if (invocation?.runConfig?.serviceTier === ServiceTier.FAST) {
+    parts.push("Fast tier");
+  }
   return <span className="text-sm text-foreground">{parts.join(" · ")}</span>;
 }
 

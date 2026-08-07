@@ -3,7 +3,30 @@
   "additionalProperties": false,
   "properties": {
     "duration": {
+      "additionalProperties": false,
       "description": "Relative duration to wait from now. Use this when you want to wait for a specific amount of time regardless of when the workflow reaches this task. Example: { days: 7 } = wait 1 week from now",
+      "properties": {
+        "days": {
+          "description": "Number of days to wait (24 hours each).",
+          "type": "integer"
+        },
+        "hours": {
+          "description": "Number of hours to wait.",
+          "type": "integer"
+        },
+        "milliseconds": {
+          "description": "Number of milliseconds to wait.",
+          "type": "integer"
+        },
+        "minutes": {
+          "description": "Number of minutes to wait.",
+          "type": "integer"
+        },
+        "seconds": {
+          "description": "Number of seconds to wait.",
+          "type": "integer"
+        }
+      },
       "type": "object"
     },
     "until": {

@@ -204,7 +204,6 @@ func TestSession_SubjectGeneration_WorkflowCallAgent(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     "test-org",
 		"message": "Explain how PostgreSQL B-tree indexes handle range queries",
 	})
 	require.NoError(t, err)

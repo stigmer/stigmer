@@ -1627,12 +1627,35 @@ type StreamingUsageSummary struct {
 	// Estimated cost in USD computed from runner-side rate card.
 	// Labeled "Estimated" in the UI — not provider-verified.
 	EstimatedCostUsd float64 `protobuf:"fixed64,7,opt,name=estimated_cost_usd,json=estimatedCostUsd,proto3" json:"estimated_cost_usd,omitempty"`
-	// Model identifier observed during streaming (from RunResult or assistant events).
+	// Model identifier the runner requested for this execution's turns.
+	//
+	// @internal
+	// This is the validated REQUESTED model (UsageAccumulator constructor
+	// argument), not a provider-reported resolved id — the Cursor SDK echoes
+	// the requested selection and never reports the served variant, so the
+	// authoritative resolved model lives on billing's LlmCallUsageRecord
+	// (requested_model / resolved_model / service_tier), not here.
 	Model string `protobuf:"bytes,8,opt,name=model,proto3" json:"model,omitempty"`
 	// ISO 8601 timestamp of the last turn-ended event observed.
-	ObservedAt    string `protobuf:"bytes,9,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ObservedAt string `protobuf:"bytes,9,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+	// Service tier the runner requested for this execution's model calls.
+	//
+	// Always explicit once the runner has translated the execution config
+	// (STANDARD when ExecutionConfig.service_tier was unset) — the audit
+	// record that the account default was never left in control.
+	RequestedServiceTier ServiceTier `protobuf:"varint,10,opt,name=requested_service_tier,json=requestedServiceTier,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ServiceTier" json:"requested_service_tier,omitempty"`
+	// JSON-encoded provider variant parameters the runner sent with the model
+	// selection (Cursor ModelSelection.params, e.g.
+	// [{"id":"fast","value":"false"}]). Empty when the harness sent none.
+	//
+	// @internal
+	// Recorded verbatim for audit: tier→params translation depends on the
+	// provider catalog at send time, so the derivation is not reproducible
+	// later from the tier alone. Mirrors the Cursor SDK's own analytics
+	// convention (SdkRunCreatedProps.model_params).
+	RequestedModelParams string `protobuf:"bytes,11,opt,name=requested_model_params,json=requestedModelParams,proto3" json:"requested_model_params,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *StreamingUsageSummary) Reset() {
@@ -1728,11 +1751,25 @@ func (x *StreamingUsageSummary) GetObservedAt() string {
 	return ""
 }
 
+func (x *StreamingUsageSummary) GetRequestedServiceTier() ServiceTier {
+	if x != nil {
+		return x.RequestedServiceTier
+	}
+	return ServiceTier_SERVICE_TIER_UNSPECIFIED
+}
+
+func (x *StreamingUsageSummary) GetRequestedModelParams() string {
+	if x != nil {
+		return x.RequestedModelParams
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_usage_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"\n" +
-	"0ai/stigmer/agentic/agentexecution/v1/usage.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf7\x04\n" +
+	"0ai/stigmer/agentic/agentexecution/v1/usage.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf7\x04\n" +
 	"\n" +
 	"TokenUsage\x12!\n" +
 	"\finput_tokens\x18\x01 \x01(\x03R\vinputTokens\x12#\n" +
@@ -1858,7 +1895,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"\n" +
 	"call_count\x18\a \x01(\x05R\tcallCount\x120\n" +
 	"\x14billable_cost_micros\x18\b \x01(\x03R\x12billableCostMicros\x120\n" +
-	"\x14provider_cost_micros\x18\t \x01(\x03R\x12providerCostMicros\"\xe0\x02\n" +
+	"\x14provider_cost_micros\x18\t \x01(\x03R\x12providerCostMicros\"\xff\x03\n" +
 	"\x15StreamingUsageSummary\x12!\n" +
 	"\finput_tokens\x18\x01 \x01(\x03R\vinputTokens\x12#\n" +
 	"\routput_tokens\x18\x02 \x01(\x03R\foutputTokens\x12*\n" +
@@ -1870,7 +1907,10 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"\x12estimated_cost_usd\x18\a \x01(\x01R\x10estimatedCostUsd\x12\x14\n" +
 	"\x05model\x18\b \x01(\tR\x05model\x12\x1f\n" +
 	"\vobserved_at\x18\t \x01(\tR\n" +
-	"observedAt*\xae\x02\n" +
+	"observedAt\x12g\n" +
+	"\x16requested_service_tier\x18\n" +
+	" \x01(\x0e21.ai.stigmer.agentic.agentexecution.v1.ServiceTierR\x14requestedServiceTier\x124\n" +
+	"\x16requested_model_params\x18\v \x01(\tR\x14requestedModelParams*\xae\x02\n" +
 	"\x13UsageMeteringSource\x12%\n" +
 	"!USAGE_METERING_SOURCE_UNSPECIFIED\x10\x00\x121\n" +
 	"-USAGE_METERING_SOURCE_PROXY_PROVIDER_REPORTED\x10\x01\x126\n" +
@@ -1946,6 +1986,7 @@ var file_ai_stigmer_agentic_agentexecution_v1_usage_proto_goTypes = []any{
 	nil,                           // 15: ai.stigmer.agentic.agentexecution.v1.TokenUsage.ProviderTokenDetailsEntry
 	nil,                           // 16: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.LabelsEntry
 	(*timestamppb.Timestamp)(nil), // 17: google.protobuf.Timestamp
+	(ServiceTier)(0),              // 18: ai.stigmer.agentic.agentexecution.v1.ServiceTier
 }
 var file_ai_stigmer_agentic_agentexecution_v1_usage_proto_depIdxs = []int32{
 	15, // 0: ai.stigmer.agentic.agentexecution.v1.TokenUsage.provider_token_details:type_name -> ai.stigmer.agentic.agentexecution.v1.TokenUsage.ProviderTokenDetailsEntry
@@ -1970,11 +2011,12 @@ var file_ai_stigmer_agentic_agentexecution_v1_usage_proto_depIdxs = []int32{
 	9,  // 19: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.proxy_timing:type_name -> ai.stigmer.agentic.agentexecution.v1.ProxyTiming
 	10, // 20: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.billing:type_name -> ai.stigmer.agentic.agentexecution.v1.BillingLink
 	16, // 21: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.labels:type_name -> ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.LabelsEntry
-	22, // [22:22] is the sub-list for method output_type
-	22, // [22:22] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	18, // 22: ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.requested_service_tier:type_name -> ai.stigmer.agentic.agentexecution.v1.ServiceTier
+	23, // [23:23] is the sub-list for method output_type
+	23, // [23:23] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_usage_proto_init() }
@@ -1982,6 +2024,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_usage_proto_init() {
 	if File_ai_stigmer_agentic_agentexecution_v1_usage_proto != nil {
 		return
 	}
+	file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

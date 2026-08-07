@@ -64,7 +64,6 @@ func TestWorkflowEnvInterpolation_OptionalVarMissing_ResolvesToEmpty(t *testing.
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": message,
 	})
 	require.NoError(t, err)
@@ -133,7 +132,6 @@ func TestWorkflowEnvInterpolation_OptionalVarProvided_ResolvesToValue(t *testing
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": message,
 	})
 	require.NoError(t, err)
@@ -204,7 +202,6 @@ func TestWorkflowEnvInterpolation_MultiLineMultipleEnvRefs(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": message,
 	})
 	require.NoError(t, err)
@@ -281,7 +278,6 @@ func TestWorkflowEnvInterpolation_RequiredVarProvided_ResolvesCorrectly(t *testi
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": message,
 	})
 	require.NoError(t, err)

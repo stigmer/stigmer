@@ -6,13 +6,15 @@
 import { generateSlug, visibilityFromString, enumFromString, toTimestamp } from "./apply-runtime.js";
 import { create, fromJson, toJson, type JsonObject, type JsonValue } from "@bufbuild/protobuf";
 import { ValueSchema } from "@bufbuild/protobuf/wkt";
-import { ContextManagementConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { GitWriteBackMode, Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { WorkflowSchema, type Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowTaskKind, BudgetExceededPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { WorkflowSpecSchema, WorkflowDocumentSchema, ExportSchema, FlowControlSchema, WorkflowTaskSchema, WorkflowBudgetSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
-import { AgentExecutionConfigSchema, AgentCallOutputContractSchema, AgentCallTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/agent_call_pb";
+import { AgentCallOutputContractSchema, AgentCallTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/agent_call_pb";
 import { CallActivityTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/call_activity_pb";
 import { OnInvalidOutputPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/common_pb";
 import { EmitEventSpecSchema, EmitEventTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/emit_event_pb";
@@ -33,6 +35,8 @@ import { TransformTaskConfigSchema, TransformEngine } from "@stigmer/protos/ai/s
 import { CatchBlockSchema, TryTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/try_pb";
 import { ValidationRuleSchema, ValidateTaskConfigSchema, ValidationFailPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/validate_pb";
 import { DurationSchema, WaitTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/wait_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { z } from "zod";
 
@@ -63,21 +67,13 @@ const WorkflowDocumentInputSchema = z.object({
 });
 type WorkflowDocumentInput = z.infer<typeof WorkflowDocumentInputSchema>;
 
-const ContextManagementConfigInputSchema = z.object({
-  disable_summarization: z.boolean().optional().describe("Disable automatic context summarization for this execution. When true, the agent will never trigger automatic summarization, even if the context window approaches the model's limit. Use cases: - Short-lived executions that won't approach context limits - Debugging context-related issues - Workflows that manage their own context externally Warning: Disabling summarization may cause execution failure if context exceeds model limits. Default: false (summarization enabled based on model defaults)"),
-  custom_trigger_threshold: z.number().optional().describe("Custom token threshold to trigger summarization. When the context token count exceeds this threshold, summarization is triggered to reduce context size. Set to 0 to use model default. The default trigger threshold from Model Registry is typically 90% of the model's context window (e.g., 180K for 200K context models). Must be greater than custom_target_tokens if both are specified. Default: 0 (use model default from Model Registry)"),
-  custom_target_tokens: z.number().optional().describe("Custom target token count after summarization. Summarization aims to reduce context to approximately this size. Set to 0 to use model default. The default target from Model Registry is typically 80% of the model's context window (e.g., 160K for 200K context models). Must be less than custom_trigger_threshold if both are specified. Default: 0 (use model default from Model Registry)"),
+const RunConfigInputSchema = z.object({
+  model_name: z.string().optional().describe("The model each run uses. Example: 'claude-sonnet-4-6'."),
+  max_cost_usd: z.number().optional().describe("Maximum estimated cost in USD per run. The surface's platform execution profile caps this value; the lower bound wins."),
+  max_tool_rounds: z.number().optional().describe("Maximum model-to-tools reasoning cycles per run. The surface's platform execution profile caps this value; the lower bound wins. @internal An implementation knob, not a user concept: API-reachable for operators, deliberately absent from creation forms (DD-018 D-5)."),
+  service_tier: z.string().optional().describe("Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one. In workflow YAML the shorthand spellings 'standard'/'fast' are accepted alongside the canonical enum names. Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the surface's platform default, which itself resolves to STANDARD — never the provider account default. FAST requires model_name (here or from the platform profile) to name a model with a registry fast pricing variant; validated fail-closed at create. Allowed values: SERVICE_TIER_STANDARD, SERVICE_TIER_FAST."),
 });
-type ContextManagementConfigInput = z.infer<typeof ContextManagementConfigInputSchema>;
-
-const AgentExecutionConfigInputSchema = z.object({
-  model: z.string().optional().describe("LLM model to use for this invocation. Example: 'claude-3-5-sonnet', 'gpt-4', 'claude-3-opus' Optional - uses agent's default model if not specified."),
-  timeout: z.number().optional().describe("Timeout for agent execution in seconds. Default: 300 (5 minutes) Optional."),
-  temperature: z.number().optional().describe("Temperature for LLM sampling (0.0 to 1.0). Lower = more deterministic, Higher = more creative Default: 0.7 Optional."),
-  context_management: z.lazy(() => ContextManagementConfigInputSchema).optional().describe("Context management configuration for this agent invocation. Controls automatic summarization behavior for long-running conversations. When specified, overrides model defaults from the Model Registry. @internal @since Phase 3 (Context Summarization Architecture) Use cases: - Disable summarization for short-lived agents - Custom thresholds for agents with specific context requirements - Fine-tune summarization behavior per workflow task Example YAML: config: model: 'claude-sonnet-4.5' context_management: custom_trigger_threshold: 150000 custom_target_tokens: 120000"),
-  max_cost_micros: z.union([z.number(), z.string()]).optional().describe("Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this agent call if its accumulated cost exceeds this limit. This uses the workflow domain's micro-USD convention and provides per-task cost control at the workflow level. The runtime checks both: per-task limit first, then workflow remaining budget. Optional — when 0, no per-task cost limit is enforced. @since T05 (Workflow-Level Budget Primitives)"),
-});
-type AgentExecutionConfigInput = z.infer<typeof AgentExecutionConfigInputSchema>;
+type RunConfigInput = z.infer<typeof RunConfigInputSchema>;
 
 const AgentCallOutputContractInputSchema = z.object({
   schema: z.record(z.unknown()).describe("JSON Schema that the agent's structured output must conform to. Standard JSON Schema (draft 2020-12 or compatible). The workflow runner extracts JSON from the agent's final response and validates it against this schema. If validation fails, the on_invalid policy determines what happens next. The schema is carried as a google.protobuf.Struct to preserve the existing kind+Struct envelope pattern and allow YAML authors to write standard JSON Schema inline without a Stigmer-specific schema language."),
@@ -87,14 +83,47 @@ const AgentCallOutputContractInputSchema = z.object({
 });
 type AgentCallOutputContractInput = z.infer<typeof AgentCallOutputContractInputSchema>;
 
+const GitRepoSourceInputSchema = z.object({
+  url: z.string().describe("HTTPS clone URL for the repository."),
+  branch: z.string().optional().describe("Branch to clone. When empty, the repository's default branch is used."),
+  commit: z.string().optional().describe("Commit SHA to checkout after cloning. When set, the workspace is checked out at this exact commit. When both branch and commit are set, the branch is cloned first, then the commit is checked out."),
+  depth: z.number().optional().describe("Number of commits to include in the clone history. When not set, defaults to a shallow clone with depth 1. Set to 0 for a full clone with complete history. @internal Uses proto3 optional to distinguish 'not set' from 'set to 0.' Absent: shallow clone depth 1; 0: full clone; N > 0: shallow clone depth N."),
+  write_back_mode: z.string().optional().describe("Controls whether the platform creates a branch and pull request from the agent's file changes. @internal This is a platform-level workflow, not an agent-level decision. The agent focuses on making code changes; the platform packages them incrementally — the PR appears the moment the first file is written and the diff grows in real time as the agent works. Requires GITHUB_TOKEN in the execution environment. If credentials are not available, the write-back is silently skipped regardless of this setting. Default (UNSPECIFIED): platform decides. Currently defaults to write-back enabled when git credentials are available. Allowed values: GIT_WRITE_BACK_BRANCH_AND_PR."),
+});
+type GitRepoSourceInput = z.infer<typeof GitRepoSourceInputSchema>;
+
+const LocalPathSourceInputSchema = z.object({
+  path: z.string().optional().describe("Absolute path to an existing directory on the host filesystem."),
+});
+type LocalPathSourceInput = z.infer<typeof LocalPathSourceInputSchema>;
+
+const WorkspaceSourceInputSchema = z.object({
+  git_repo: z.lazy(() => GitRepoSourceInputSchema).optional().describe("Clone a git repository as the workspace source."),
+  local_path: z.lazy(() => LocalPathSourceInputSchema).optional().describe("Use an existing local directory as the workspace source."),
+});
+type WorkspaceSourceInput = z.infer<typeof WorkspaceSourceInputSchema>;
+
+const WorkspaceEntryInputSchema = z.object({
+  name: z.string().optional().describe("Short identifier for this workspace entry."),
+  source: z.lazy(() => WorkspaceSourceInputSchema).describe("The source that provides this entry's content."),
+});
+type WorkspaceEntryInput = z.infer<typeof WorkspaceEntryInputSchema>;
+
+const EnvironmentRefInputSchema = z.object({
+  org: z.string().optional().describe("Organization that owns the referenced resource. When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters). Example: 'stigmer', 'acme-corp'. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form). Use empty org for same-org references (the common case). Use explicit org for cross-org references (e.g., marketplace resources)."),
+  slug: z.string().describe("Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'code-reviewer'). Length: 2-63 characters."),
+});
+type EnvironmentRefInput = z.infer<typeof EnvironmentRefInputSchema>;
+
 const AgentCallTaskConfigInputSchema = z.object({
-  agent: z.string().describe("Agent reference in 'org/slug' or 'slug' format. - 'slug' only: uses the workflow's organization - 'org/slug': explicit organization reference Examples: 'code-reviewer', 'stigmer/code-reviewer', 'acme/data-analyst' Required field."),
-  org: z.string().optional().describe("Explicit organization for agent resolution. Optional. If empty, the org is parsed from the agent field or defaults to workflow's org. Use this when you need to override the parsed org."),
+  agent: z.string().describe("Agent reference in 'org/slug' or 'slug' format. - 'slug' only: uses the workflow's organization - 'org/slug': explicit organization reference Examples: 'code-reviewer', 'stigmer/code-reviewer', 'acme/data-analyst' Required field. @internal The DSL string form of AgentInvocation.agent_ref. The structured ApiResourceReference shape is deliberately not used here: the authoring surface is YAML written by hand, and 'org/slug' is its idiom."),
   message: z.string().describe("Instructions/prompt to send to the agent. Supports interpolation of workflow variables using JQ expressions. Example: 'Analyze this code: ${ $context.fetchCode.body }' Required field."),
   env: z.record(z.string()).optional().describe("Runtime environment variables to pass to the agent. Values can be literal strings or JQ expressions that reference workflow context or secrets. Example: {'GITHUB_TOKEN': '${ .secrets.GH_TOKEN }'} Optional."),
-  config: z.lazy(() => AgentExecutionConfigInputSchema).optional().describe("Execution configuration for the agent invocation. Optional - defaults are applied if not specified."),
-  output: z.lazy(() => AgentCallOutputContractInputSchema).optional().describe("Structured output contract for this agent call. When set, the workflow runner extracts structured JSON from the agent's final response and validates it against the declared schema. The validated JSON is placed in the task output under the 'structured' key, enabling reliable downstream routing via switch_case expressions. When not set, the task output contains the agent's raw text response (backward compatible with existing workflows). @since T02 (Structured Agent Output Model)"),
-  harness: z.string().optional().describe("Execution harness for the agent invocation. Determines which execution engine processes the agent call: - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph) - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor) The workflow-runner creates a Session with this harness before creating the AgentExecution. The harness is a session-level concern — it determines tool availability, state management, model access, and billing tier. When unspecified, defaults to HARNESS_NATIVE for backward compatibility. YAML Example: - code_review: call: agent with: agent: 'code-reviewer' harness: cursor message: 'Review this PR' Allowed values: HARNESS_NATIVE, HARNESS_CURSOR."),
+  run_config: z.lazy(() => RunConfigInputSchema).optional().describe("Per-call model choice and run bounds. Unset fields inherit the platform defaults. @internal The shared RunConfig (DD-018 D-2) — the same message schedules embed, so the run-bound vocabulary cannot drift between triggering surfaces. Semantics at the workflow surface: model_name replaces the agent's default outright; max_cost_usd maps to ExecutionConfig.max_cost_usd and is enforced by the runner's harness-generic cost guards; max_tool_rounds maps to ExecutionConfig.max_tool_rounds (native harness only — inert on cursor, whose sole bound is cost). No platform clamp profile is applied at this surface yet: per the RunConfig contract, an unset platform cap means the owner value stands."),
+  output: z.lazy(() => AgentCallOutputContractInputSchema).optional().describe("Structured output contract for this agent call. When set, the workflow runner extracts structured JSON from the agent's final response and validates it against the declared schema. The validated JSON is placed in the task output under the 'structured' key, enabling reliable downstream routing via switch_case expressions. When not set, the task output contains the agent's raw text response. @since T02 (Structured Agent Output Model)"),
+  harness: z.string().optional().describe("Execution harness for the agent invocation. Determines which execution engine processes the agent call: - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph) - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor) The workflow-runner creates a Session with this harness before creating the AgentExecution. The harness is a session-level concern — it determines tool availability, state management, model access, and billing tier. When unspecified, defaults to HARNESS_NATIVE (the workflow surface's platform default). YAML Example: - code_review: call: agent with: agent: 'code-reviewer' harness: cursor message: 'Review this PR' Allowed values: HARNESS_NATIVE, HARNESS_CURSOR."),
+  workspace_entries: z.array(z.lazy(() => WorkspaceEntryInputSchema)).optional().describe("Workspace the child run's session operates on. Empty means no workspace. @internal The shared WorkspaceEntry type (AgentInvocation correspondence). Maps onto SessionSpec.workspace_entries of the session each call creates. Surface constraint, enforced in workflow validation (both editions): sources must be git_repo — no client is connected to serve a local_path when a workflow task fires. Credentials follow DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged environment; for private repos the supported contract is an org-visibility Environment holding GITHUB_TOKEN bound via environment_refs. Public repos need no token."),
+  environment_refs: z.array(z.lazy(() => EnvironmentRefInputSchema)).optional().describe("References to Environment resources whose values are provided to the child runs this task creates. This is how a tool-using agent becomes runnable from a workflow: bind an org-shared environment holding the needed credentials, and the child runs receive its values at runtime. The agent and its default instance stay untouched. @internal The AgentShare/AgentChannel/Schedule environment_refs lineage. Never carried in the execution create request and never emitted into execution YAML: CreateExecutionContextStep resolves them from the Workflow row, gated on the trusted runner caller identity and keyed by parent_workflow_id + task label — prepended at LOWEST merge priority (instance refs and runtime_env override on key conflicts). No write-time existence or visibility check: enforcement lives solely at runtime resolution, which fails closed. When kind is unset in YAML, the DSL normalizer defaults it to environment."),
 });
 type AgentCallTaskConfigInput = z.infer<typeof AgentCallTaskConfigInputSchema>;
 
@@ -384,7 +413,7 @@ interface WorkflowTaskInput {
 const WorkflowTaskInputSchema: z.ZodType<WorkflowTaskInput> = z.lazy(() => z.object({
   name: z.string().optional().describe("Task name/identifier (must be unique within workflow). Must be a valid C-style identifier: starts with a letter or underscore, followed by letters, digits, or underscores."),
   kind: z.string().describe("Task type. Set the matching config field (e.g. kind='http_call' -> populate http_call). Allowed values: set_vars, http_call, grpc_call, activity_call, switch_case, for_each, fork, try_catch, listen, wait, raise_error, run_workflow, agent_call, llm_call, transform, human_input, validate, emit_event, notification, eval."),
-  agent_call: z.lazy(() => AgentCallTaskConfigInputSchema).optional().describe("Required when kind='agent_call'. AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents. @internal The agent is referenced by org/slug format (e.g., 'stigmer/code-reviewer'). Resolution order: 1. If org is specified: look in that org's agents 2. If org is empty: use the workflow's org 3. Before external lookup, check manifest (current deployment) The workflow's execution context (environment variables, secrets) is passed to the agent invocation, allowing agents to access workflow state. YAML Example (without structured output): - analyze: call: agent with: agent: 'code-reviewer' message: 'Review this code: ${ $context.fetchCode.body }' env: GITHUB_TOKEN: '${ .secrets.GH_TOKEN }' config: model: 'claude-3-5-sonnet' timeout: 300 YAML Example (with structured output): - triage_ticket: call: agent with: agent: 'support-triage' message: '${ .ticket.description }' output: schema: type: object required: [severity, category, customer_impact] properties: severity: type: string enum: [low, medium, high, critical] category: type: string customer_impact: type: boolean rationale: type: string on_invalid: ON_INVALID_RETRY max_retries: 2 fallback_task: human_review export: as: '${ .structured }' Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md"),
+  agent_call: z.lazy(() => AgentCallTaskConfigInputSchema).optional().describe("Required when kind='agent_call'. AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents. @internal This message is the workflow DSL's adoption of the shared AgentInvocation vocabulary (agentexecution/v1/invocation.proto) at the TYPE level — issue stigmer/stigmer#358, per DD-018 (whatsapp-proactive-messaging, stigmer-cloud). Because WorkflowTask.task_config is a 'kind + Struct' envelope, this message IS the authoring schema: its field names are the YAML keys workflow authors write. Embedding AgentInvocation as a nested message would force either a nested 'invocation:' authoring block or flatten/unflatten rewrites in every Struct consumer, so the DSL stays flat and shares the vocabulary type-by-type instead. Field-by-field correspondence to AgentInvocation (keep in lockstep; a field added there must be consciously adopted or consciously excluded here, with the reason recorded): - agent ↔ agent_ref — the DSL string form ('org/slug'); the workflow runner parses it into an agent reference. - message ↔ message — expression-carrying in the DSL. - harness ↔ harness — same shared enum, same semantics. - run_config ↔ run_config — the shared message, embedded directly. - workspace_entries ↔ workspace_entries — same shared type; git sources only (no client is connected to serve a local_path when a workflow task fires). - environment_refs ↔ environment_refs — same shared type; resolved server-side at execution create, never carried in the create request (the schedule/channel/share posture). Surface-specific fields with their reasons (the DD-017/018 bucket discipline): - env: the workflow's context-forwarding channel. Values are JQ expressions resolved from workflow state/secrets at run time, not plaintext literals in a manifest — which is why AgentInvocation's runtime_env exclusion does not apply to it. - output: the structured-output contract is a workflow-routing concern (switch_case on typed fields), meaningless to other invocation surfaces. Deleted in the #358 clean break (no reserved numbers; task configs are stored as JSON Structs, so field numbers never hit a wire): - org: redundant with the 'org/slug' form of 'agent', and the proto→YAML converter never emitted it. - AgentExecutionConfig (timeout, temperature, context_management, max_cost_micros): declared knobs the runtime silently ignored. The cost cap lives on run_config.max_cost_usd and is now actually enforced; timeout/temperature had no runtime counterpart at all. The agent is referenced by org/slug format (e.g., 'stigmer/code-reviewer'). Resolution order: 1. 'org/slug': look in that org's agents 2. 'slug' only: use the workflow's org 3. Before external lookup, check manifest (current deployment) YAML Example (without structured output): - analyze: call: agent with: agent: 'code-reviewer' message: 'Review this code: ${ $context.fetchCode.body }' env: GITHUB_TOKEN: '${ .secrets.GH_TOKEN }' run_config: model_name: 'claude-sonnet-4-6' max_cost_usd: 0.50 YAML Example (with structured output): - triage_ticket: call: agent with: agent: 'support-triage' message: '${ .ticket.description }' output: schema: type: object required: [severity, category, customer_impact] properties: severity: type: string enum: [low, medium, high, critical] category: type: string customer_impact: type: boolean rationale: type: string on_invalid: ON_INVALID_RETRY max_retries: 2 fallback_task: human_review export: as: '${ .structured }'"),
   activity_call: z.lazy(() => CallActivityTaskConfigInputSchema).optional().describe("Required when kind='activity_call'. CallActivityTaskConfig defines the configuration for activity_call tasks that execute activities. @internal Executes Temporal activities. YAML Example: - taskName: call: activity with: activity: 'ProcessDataActivity' input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 10"),
   emit_event: z.lazy(() => EmitEventTaskConfigInputSchema).optional().describe("Required when kind='emit_event'. EmitEventTaskConfig defines the configuration for emit_event tasks that publish CloudEvents to external consumers, other workflows, audit trails, and metrics systems. @internal emit_event is the complement to listen. While listen waits for Temporal signals (internal workflow primitives), emit_event publishes business events using the CloudEvents envelope (a standard external contract). The runtime (T13) bridges the two: an emitted CloudEvent can be delivered as a Temporal signal to another workflow's listen task, or routed to external consumers via message queues, webhooks, or event buses. The task output is the fully-resolved CloudEvents envelope with runtime-generated fields populated: { 'id': '<generated UUID>', 'specversion': '1.0', 'type': 'stigmer.workflow.ticket.classified', 'source': '/workflows/triage/executions/abc-123', 'time': '2026-05-12T14:30:00Z', 'subject': 'TICKET-456', 'datacontenttype': 'application/json', 'data': { <resolved payload> } } YAML Example (emit a classification event): - notify_classified: emit_event: event: type: 'stigmer.workflow.ticket.classified' subject: '${ $context.ticket.id }' data: ticket_id: '${ $context.ticket.id }' severity: '${ $context.triage.severity }' category: '${ $context.triage.category }' classified_by: '${ $context.workflow_instance_id }' export: as: '${ . }' YAML Example (emit with explicit source): - publish_completion: emit_event: event: type: 'acme.order.fulfilled' source: 'urn:acme:fulfillment-service' subject: '${ $context.order.number }' data: order_id: '${ $context.order.id }' status: 'fulfilled' fulfilled_at: '${ $context.timestamp }' export: as: '${ . }'"),
   eval: z.lazy(() => EvalTaskConfigInputSchema).optional().describe("Required when kind='eval'. EvalTaskConfig defines the configuration for eval tasks that use an LLM judge to assess the semantic quality of workflow data. @internal Use eval when you need to assess quality, correctness, safety, or completeness of LLM-generated or agent-produced content. This fills the gap between structural validation (validate task — JSON Schema, business rules) and human review (human_input task — manual inspection). The eval task constructs a judge prompt from the rubric and subject, calls the specified LLM with structured output enforcement, parses the judge's response, and applies the threshold to determine pass/fail. Key differences from validate: - validate checks deterministic structural properties (schema, rules) - eval checks semantic quality via an LLM judge (hallucination, relevance, safety) Key differences from llm_call: - llm_call is a general-purpose LLM invocation - eval has built-in judge prompt construction, scoring semantics, threshold application, and on_fail branching Task output structure: { 'pass': true/false, 'score': 0.85, // present for numeric_score and multi_criteria 'reasoning': 'The response...', 'criteria': [ // present only for multi_criteria {'name': 'accuracy', 'score': 0.9, 'reasoning': '...'}, {'name': 'safety', 'score': 0.8, 'reasoning': '...'} ], 'model_used': 'gpt-4o', 'subject': <original subject data> } YAML Example (binary pass/fail evaluation): - check_summary_quality: call: eval with: model: 'gpt-4o' subject: '${ $context.summarize.text }' rubric: | Evaluate whether this summary accurately captures the key points of the source document without hallucinations or omissions. The summary should be concise (under 3 sentences) and factually correct. scoring_mode: EVAL_PASS_FAIL on_fail: EVAL_FAIL_BRANCH fallback_task: regenerate_summary export: as: '${ . }' YAML Example (numeric score with threshold): - score_translation: call: eval with: model: 'gpt-4o' subject: '${ $context.translate.text }' rubric: | Rate the quality of this translation on accuracy, fluency, and preservation of meaning. Score 0.0 (unusable) to 1.0 (perfect). scoring_mode: EVAL_NUMERIC_SCORE threshold: 0.7 on_fail: EVAL_FAIL_WARN export: as: '${ . }' YAML Example (multi-criteria evaluation): - evaluate_response: call: eval with: model: 'gpt-4o' subject: '${ $context.agent_response }' rubric: 'Evaluate this customer support response.' scoring_mode: EVAL_MULTI_CRITERIA threshold: 0.75 criteria: - name: accuracy description: 'Is the information factually correct?' weight: 3.0 - name: helpfulness description: 'Does it address the customer's actual question?' weight: 2.0 - name: tone description: 'Is the tone professional and empathetic?' weight: 1.0 on_fail: EVAL_FAIL_RAISE export: as: '${ . }'"),
@@ -461,21 +490,12 @@ function workflowDocumentInputToProto(input: WorkflowDocumentInput) {
   return result;
 }
 
-function contextManagementConfigInputToProto(input: ContextManagementConfigInput) {
-  const result = create(ContextManagementConfigSchema);
-  if (input.disable_summarization !== undefined) result.disableSummarization = input.disable_summarization;
-  if (input.custom_trigger_threshold !== undefined) result.customTriggerThreshold = input.custom_trigger_threshold;
-  if (input.custom_target_tokens !== undefined) result.customTargetTokens = input.custom_target_tokens;
-  return result;
-}
-
-function agentExecutionConfigInputToProto(input: AgentExecutionConfigInput) {
-  const result = create(AgentExecutionConfigSchema);
-  if (input.model !== undefined) result.model = input.model;
-  if (input.timeout !== undefined) result.timeout = input.timeout;
-  if (input.temperature !== undefined) result.temperature = input.temperature;
-  if (input.context_management !== undefined) result.contextManagement = contextManagementConfigInputToProto(input.context_management);
-  if (input.max_cost_micros !== undefined) result.maxCostMicros = BigInt(input.max_cost_micros);
+function runConfigInputToProto(input: RunConfigInput) {
+  const result = create(RunConfigSchema);
+  if (input.model_name !== undefined) result.modelName = input.model_name;
+  if (input.max_cost_usd !== undefined) result.maxCostUsd = input.max_cost_usd;
+  if (input.max_tool_rounds !== undefined) result.maxToolRounds = input.max_tool_rounds;
+  result.serviceTier = enumFromString(ServiceTier, input.service_tier) as ServiceTier;
   return result;
 }
 
@@ -488,15 +508,54 @@ function agentCallOutputContractInputToProto(input: AgentCallOutputContractInput
   return result;
 }
 
+function gitRepoSourceInputToProto(input: GitRepoSourceInput) {
+  const result = create(GitRepoSourceSchema);
+  if (input.url !== undefined) result.url = input.url;
+  if (input.branch !== undefined) result.branch = input.branch;
+  if (input.commit !== undefined) result.commit = input.commit;
+  if (input.depth !== undefined) result.depth = input.depth;
+  result.writeBackMode = enumFromString(GitWriteBackMode, input.write_back_mode) as GitWriteBackMode;
+  return result;
+}
+
+function localPathSourceInputToProto(input: LocalPathSourceInput) {
+  const result = create(LocalPathSourceSchema);
+  if (input.path !== undefined) result.path = input.path;
+  return result;
+}
+
+function workspaceSourceInputToProto(input: WorkspaceSourceInput) {
+  const result = create(WorkspaceSourceSchema);
+  if (input.git_repo !== undefined) result.source = { case: "gitRepo", value: gitRepoSourceInputToProto(input.git_repo) };
+  if (input.local_path !== undefined) result.source = { case: "localPath", value: localPathSourceInputToProto(input.local_path) };
+  return result;
+}
+
+function workspaceEntryInputToProto(input: WorkspaceEntryInput) {
+  const result = create(WorkspaceEntrySchema);
+  if (input.name !== undefined) result.name = input.name;
+  if (input.source !== undefined) result.source = workspaceSourceInputToProto(input.source);
+  return result;
+}
+
+function environmentRefInputToProto(input: EnvironmentRefInput) {
+  return create(ApiResourceReferenceSchema, {
+    org: input.org,
+    slug: input.slug,
+    kind: ApiResourceKind.environment,
+  });
+}
+
 function agentCallTaskConfigInputToProto(input: AgentCallTaskConfigInput) {
   const result = create(AgentCallTaskConfigSchema);
   if (input.agent !== undefined) result.agent = input.agent;
-  if (input.org !== undefined) result.org = input.org;
   if (input.message !== undefined) result.message = input.message;
   if (input.env !== undefined) result.env = input.env;
-  if (input.config !== undefined) result.config = agentExecutionConfigInputToProto(input.config);
+  if (input.run_config !== undefined) result.runConfig = runConfigInputToProto(input.run_config);
   if (input.output !== undefined) result.output = agentCallOutputContractInputToProto(input.output);
   result.harness = enumFromString(Harness, input.harness) as Harness;
+  if (input.workspace_entries !== undefined) result.workspaceEntries = input.workspace_entries.map(workspaceEntryInputToProto);
+  if (input.environment_refs !== undefined) result.environmentRefs = input.environment_refs.map(environmentRefInputToProto);
   return result;
 }
 

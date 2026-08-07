@@ -16,6 +16,7 @@
 // single-source-of-truth clearing) needs a live engine and stays in the
 // execution suite.
 import { Code } from "@connectrpc/connect";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { afterAll, beforeAll, describe, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -71,6 +72,54 @@ describe("AgentExecution conformance — one-call session bootstrap validation (
         ),
       Code.InvalidArgument,
       "create with a session_spec carrying harness_state_id",
+    );
+  });
+});
+
+describe("AgentExecution conformance — service-tier fail-closed validation (#357)", () => {
+  // The tier exists to make pricing deterministic, so it is validated where
+  // the price is decided — at create, against the model registry — with
+  // identical rules and messages in both editions (OSS Go
+  // validateServiceTierStep, cloud Java ValidateServiceTierStep). Both
+  // refusals fire before any resource resolution, so fake ids suffice.
+
+  it("rejects fast without a pinned model (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    await expectGrpcCode(
+      () =>
+        clients.agentExecutionCommand.create(
+          makeAgentExecution({
+            org,
+            name: uniqueName("aex-tier-no-model"),
+            agentId: "agt_fake",
+            executionConfig: { serviceTier: ServiceTier.FAST },
+          }),
+        ),
+      Code.InvalidArgument,
+      "create with service_tier fast and no model_name",
+    );
+  });
+
+  it("rejects fast on a model with no registry fast variant (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    // claude-haiku-4-5 is registered but prices no fast variant — selecting
+    // a tier billing cannot price would trip the undercharge guard, so
+    // selection and billability are coupled by refusing here.
+    await expectGrpcCode(
+      () =>
+        clients.agentExecutionCommand.create(
+          makeAgentExecution({
+            org,
+            name: uniqueName("aex-tier-unpriced"),
+            agentId: "agt_fake",
+            executionConfig: {
+              modelName: "claude-haiku-4-5",
+              serviceTier: ServiceTier.FAST,
+            },
+          }),
+        ),
+      Code.InvalidArgument,
+      "create with service_tier fast on a model without a fast variant",
     );
   });
 });

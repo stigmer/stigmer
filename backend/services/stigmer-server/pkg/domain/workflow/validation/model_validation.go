@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
@@ -31,7 +32,7 @@ const (
 // are valid entries in the model registry for the task's effective harness.
 //
 // Validated task kinds:
-//   - agent_call: config.model (optional) against harness from task config
+//   - agent_call: run_config.model_name (optional) against harness from task config
 //   - llm_call: model (required) against native harness
 //   - eval: model (required) against native harness
 //
@@ -67,10 +68,16 @@ func ValidateModelReferences(spec *workflowv1.WorkflowSpec) []string {
 				continue
 			}
 			harness = resolveHarnessName(cfg.Harness)
-			if cfg.Config == nil || cfg.Config.Model == "" {
+			// Tier validation is independent of the model check below: FAST
+			// with no model_name must fail even though the model loop skips
+			// (#357, same fail-closed rule as execution create).
+			if tierErr := validateAgentCallServiceTier(models, task.Name, harness, cfg.GetRunConfig()); tierErr != "" {
+				errors = append(errors, tierErr)
+			}
+			if cfg.GetRunConfig().GetModelName() == "" {
 				continue
 			}
-			model = cfg.Config.Model
+			model = cfg.GetRunConfig().GetModelName()
 
 		case workflowv1.WorkflowTaskKind_llm_call:
 			kindLabel = "llm_call"
@@ -114,6 +121,51 @@ func ValidateModelReferences(spec *workflowv1.WorkflowSpec) []string {
 	}
 
 	return errors
+}
+
+// validateAgentCallServiceTier applies the same fail-closed service-tier
+// rules as execution create to an agent_call's run_config, with one extra
+// dimension execution create cannot have: the task config names its
+// harness, so the fast variant must be priced FOR THAT HARNESS — a fast
+// price under another harness would validate a tier the execution path can
+// never apply (a silent no-op, the exact class #357 exists to kill).
+//
+// STANDARD/unset is always valid; unknown tier strings never reach this
+// function (protojson refuses non-canonical enum values at conversion).
+// The message strings are pinned identical to the cloud Java
+// ModelValidationHelper — keep them in lockstep.
+func validateAgentCallServiceTier(models *registry.ModelRegistryStore,
+	taskName, harness string, rc *agentexecutionv1.RunConfig) string {
+	if rc.GetServiceTier() != agentexecutionv1.ServiceTier_SERVICE_TIER_FAST {
+		return ""
+	}
+	modelName := strings.TrimSpace(rc.GetModelName())
+	if modelName == "" {
+		return fmt.Sprintf(
+			"task '%s' (agent_call): run_config.service_tier 'fast' requires "+
+				"run_config.model_name — the fast tier is a per-model price",
+			taskName)
+	}
+	if !models.HasPricingVariantForHarness(harness, modelName, registry.FastVariantKey) {
+		return fmt.Sprintf(
+			"task '%s' (agent_call): run_config.service_tier 'fast' is not available "+
+				"for model '%s' on harness '%s': the model registry prices no fast "+
+				"variant for it%s",
+			taskName, modelName, harness, fastCapableSuffix(models, harness))
+	}
+	return ""
+}
+
+// fastCapableSuffix renders "; models with a fast tier on '<harness>':
+// a, b, c" — actionable refusal detail, sorted (the store keeps the list
+// sorted), empty when the registry prices none for that harness.
+func fastCapableSuffix(models *registry.ModelRegistryStore, harness string) string {
+	capable := models.CanonicalModelsWithVariantForHarness(harness, registry.FastVariantKey)
+	if len(capable) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("; models with a fast tier on '%s': %s",
+		harness, strings.Join(capable, ", "))
 }
 
 func resolveHarnessName(h sessionv1.Harness) string {

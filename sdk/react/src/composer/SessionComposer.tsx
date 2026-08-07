@@ -7,6 +7,7 @@ import { useComposer } from "./useComposer.js";
 import { ComposerToolbar } from "./ComposerToolbar.js";
 import { type ConfigureMenuItem } from "./ConfigureMenu.js";
 import type { HarnessOption } from "../models/harness.js";
+import type { ServiceTierOption } from "../models/service-tier.js";
 import type { InteractionModeOption } from "./InteractionModePicker.js";
 import { parseModelKey } from "../models/registry.js";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor.js";
@@ -147,6 +148,14 @@ export interface SessionComposerSubmitContext {
    * Pass to execution creation as `execution_config.interaction_mode`.
    */
   readonly interactionMode?: InteractionModeOption;
+  /**
+   * Service tier the user actively selected for this execution
+   * (stigmer/stigmer#357). Only ever `"fast"` — an untouched toggle means
+   * "platform default" and is carried as `undefined`, preserving the
+   * unspecified-vs-explicit distinction all the way to the ledger.
+   * Pass to execution creation as `execution_config.service_tier`.
+   */
+  readonly serviceTier?: ServiceTierOption;
   /**
    * Workspace-relative file paths the user referenced via drag-to-reference.
    *
@@ -622,6 +631,11 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     setModelIdRaw(id);
   }, []);
 
+  // Service tier (#357): composer-local state like modelId. "standard" is
+  // the resting default; the ModelSelector's fail-safe resets it when the
+  // user switches to a model without a fast tier.
+  const [serviceTier, setServiceTier] = useState<ServiceTierOption>("standard");
+
   const [displayNames, setDisplayNames] = useState<Map<string, string>>(
     () => new Map(),
   );
@@ -850,13 +864,20 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           : undefined);
       const hasFileRefs = enableFileReferences && fileRefs.hasRefs;
       const buildFromPlan = overrides?.buildFromPlan;
+      // Carried only when the user actively chose fast: an untouched
+      // toggle means "platform default" (which resolves to standard in
+      // the runner), and the UNSPECIFIED-vs-explicit distinction is
+      // load-bearing telemetry (#357).
+      const effectiveServiceTier = serviceTier === "fast" ? serviceTier : undefined;
 
       const context: SessionComposerSubmitContext | undefined =
         hasEnv || hasAttachments || effectiveMode || hasFileRefs || buildFromPlan
+        || effectiveServiceTier
           ? {
               runtimeEnv: hasEnv ? env : undefined,
               attachments: hasAttachments ? attachmentInputs : undefined,
               interactionMode: effectiveMode,
+              serviceTier: effectiveServiceTier,
               workspaceFileRefs: hasFileRefs ? [...fileRefs.refs] : undefined,
               buildFromPlan,
             }
@@ -874,7 +895,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         fileRefs.clear();
       }
     },
-    [onSubmit, modelId, stigmer, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv, showInteractionModePicker, interactionMode],
+    [onSubmit, modelId, serviceTier, stigmer, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv, showInteractionModePicker, interactionMode],
   );
 
   const composer = useComposer({
@@ -1614,6 +1635,8 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           showModelSelector={showModelSelector}
           modelId={modelId}
           onModelChange={handleModelChange}
+          serviceTier={serviceTier}
+          onServiceTierChange={setServiceTier}
         />
       </div>
     </div>

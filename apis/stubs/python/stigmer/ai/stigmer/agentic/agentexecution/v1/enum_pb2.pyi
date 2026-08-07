@@ -141,6 +141,12 @@ class ApprovalMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     APPROVAL_MODE_INTERACTIVE: _ClassVar[ApprovalMode]
     APPROVAL_MODE_UNATTENDED: _ClassVar[ApprovalMode]
 
+class ServiceTier(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    SERVICE_TIER_UNSPECIFIED: _ClassVar[ServiceTier]
+    SERVICE_TIER_STANDARD: _ClassVar[ServiceTier]
+    SERVICE_TIER_FAST: _ClassVar[ServiceTier]
+
 class FileChangeType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     FILE_CHANGE_TYPE_UNSPECIFIED: _ClassVar[FileChangeType]
@@ -325,6 +331,9 @@ INTERACTION_MODE_PLAN: InteractionMode
 APPROVAL_MODE_UNSPECIFIED: ApprovalMode
 APPROVAL_MODE_INTERACTIVE: ApprovalMode
 APPROVAL_MODE_UNATTENDED: ApprovalMode
+SERVICE_TIER_UNSPECIFIED: ServiceTier
+SERVICE_TIER_STANDARD: ServiceTier
+SERVICE_TIER_FAST: ServiceTier
 FILE_CHANGE_TYPE_UNSPECIFIED: FileChangeType
 FILE_CHANGE_TYPE_CREATE: FileChangeType
 FILE_CHANGE_TYPE_MODIFY: FileChangeType

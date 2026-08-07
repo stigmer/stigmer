@@ -224,7 +224,6 @@ func TestWorkflow_SchemaPropagation(t *testing.T) {
 
 				taskConfig, err := structpb.NewStruct(map[string]any{
 					"agent":   agent.GetMetadata().GetSlug(),
-					"org":     harness.TestOrg,
 					"message": "Summarize and score. Respond with JSON only.",
 					"output": map[string]any{
 						"schema":     schema.AsMap(),
@@ -321,11 +320,9 @@ func buildSchemaPropWorkflow(
 
 	taskConfigMap := map[string]any{
 		"agent":   agentSlug,
-		"org":     harness.TestOrg,
 		"message": message,
-		"config": map[string]any{
-			"model":   "claude-sonnet-4",
-			"timeout": 300,
+		"run_config": map[string]any{
+			"model_name": "claude-sonnet-4",
 		},
 		"output": map[string]any{
 			"schema":     schema.AsMap(),

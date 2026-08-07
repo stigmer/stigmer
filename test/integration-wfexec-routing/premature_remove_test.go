@@ -68,7 +68,6 @@ func TestWfExecDispatch_RemoveDuringExecuteCursor(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": "Analyze the workspace and provide a detailed summary of all files you find. Take your time and be thorough.",
 		"harness": "cursor",
 	})

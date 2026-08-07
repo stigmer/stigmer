@@ -6,6 +6,7 @@ import { ConfigureMenu, type ConfigureMenuItem } from "./ConfigureMenu.js";
 import { ModelSelector } from "../models/ModelSelector.js";
 import { HarnessSelector } from "../models/HarnessSelector.js";
 import type { HarnessOption } from "../models/harness.js";
+import type { ServiceTierOption } from "../models/service-tier.js";
 import { InteractionModePicker, type InteractionModeOption } from "./InteractionModePicker.js";
 import {
   PaperclipIcon,
@@ -42,6 +43,10 @@ export interface ComposerToolbarProps {
   readonly showModelSelector: boolean;
   readonly modelId?: string;
   readonly onModelChange: (id: string) => void;
+  /** Current service tier for the selected model (#357). */
+  readonly serviceTier?: ServiceTierOption;
+  /** Enables the fast-tier toggle inside the model selector. */
+  readonly onServiceTierChange?: (tier: ServiceTierOption) => void;
 
   // -- Right group: Secondary actions (icon-only) ---------------------------
 
@@ -115,6 +120,8 @@ export function ComposerToolbar({
   showModelSelector,
   modelId,
   onModelChange,
+  serviceTier,
+  onServiceTierChange,
 }: ComposerToolbarProps) {
   const showHarnessSeparate = showHarnessSelector && !showModelSelector;
 
@@ -146,6 +153,8 @@ export function ComposerToolbar({
             harness={showHarnessSelector ? undefined : harness}
             initialHarness={showHarnessSelector ? harness : undefined}
             onHarnessChange={showHarnessSelector ? onHarnessChange : undefined}
+            serviceTier={serviceTier}
+            onServiceTierChange={onServiceTierChange}
             disabled={disabled}
           />
         )}

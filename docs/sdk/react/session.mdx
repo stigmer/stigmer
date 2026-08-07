@@ -1631,6 +1631,7 @@ values are scoped to the single execution and deleted on completion.
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
     modelName: { type: "string", description: "LLM model name to use for this execution. Overrides the session default." },
     runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped secrets and configuration (Execution Flow).  Values are injected into the agent sandbox for this execution only and deleted when the execution completes. They override both Environment values and agent defaults." },
+    serviceTier: { type: "ServiceTierOption", description: "Service tier for this execution's model calls (stigmer/stigmer#357).  Only set when the user actively selected `\"fast\"`; `undefined` preserves the unspecified-vs-explicit distinction (unset resolves to standard on the platform side — never the provider account default)." },
     skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for this execution." },
     supersedesExecutionId: { type: "string", description: "ID of the execution this follow-up supersedes (edit-and-resubmit).  The conversation read model hides the superseded execution so the edited message replaces the original in place." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries to attach to the execution." },

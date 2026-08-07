@@ -389,6 +389,7 @@ export function useNewSessionFlow(
           runtimeEnv,
           attachments: context?.attachments,
           interactionMode: context?.interactionMode,
+          serviceTier: context?.serviceTier,
           workspaceFileRefs: context?.workspaceFileRefs,
         };
 

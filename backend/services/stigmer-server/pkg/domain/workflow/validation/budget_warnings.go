@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"math"
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
@@ -61,10 +62,16 @@ func CheckBudgetWarnings(budget *workflowv1.WorkflowBudget, tasks []*workflowv1.
 	}
 
 	if budget.MaxCostMicros > 0 {
-		var perTaskEntries []struct {
-			name string
-			cost int64
+		// Per-task caps are compared in micros. llm_call declares micros
+		// natively; agent_call declares the shared RunConfig's max_cost_usd
+		// (USD, double) and is converted here. Each entry carries its own
+		// field label so the warning names the field the author actually set.
+		type perTaskEntry struct {
+			name        string
+			costMicros  int64
+			fieldLabel  string
 		}
+		var perTaskEntries []perTaskEntry
 
 		for _, task := range tasks {
 			switch task.Kind {
@@ -74,10 +81,11 @@ func CheckBudgetWarnings(budget *workflowv1.WorkflowBudget, tasks []*workflowv1.
 					continue
 				}
 				if cfg, ok := msg.(*tasksv1.LlmCallTaskConfig); ok && cfg.MaxCostMicros > 0 {
-					perTaskEntries = append(perTaskEntries, struct {
-						name string
-						cost int64
-					}{task.Name, cfg.MaxCostMicros})
+					perTaskEntries = append(perTaskEntries, perTaskEntry{
+						name:       task.Name,
+						costMicros: cfg.MaxCostMicros,
+						fieldLabel: fmt.Sprintf("max_cost_micros (%d)", cfg.MaxCostMicros),
+					})
 				}
 
 			case workflowv1.WorkflowTaskKind_agent_call:
@@ -85,22 +93,24 @@ func CheckBudgetWarnings(budget *workflowv1.WorkflowBudget, tasks []*workflowv1.
 				if err != nil {
 					continue
 				}
-				if cfg, ok := msg.(*tasksv1.AgentCallTaskConfig); ok && cfg.Config != nil && cfg.Config.MaxCostMicros > 0 {
-					perTaskEntries = append(perTaskEntries, struct {
-						name string
-						cost int64
-					}{task.Name, cfg.Config.MaxCostMicros})
+				if cfg, ok := msg.(*tasksv1.AgentCallTaskConfig); ok && cfg.GetRunConfig().GetMaxCostUsd() > 0 {
+					usd := cfg.GetRunConfig().GetMaxCostUsd()
+					perTaskEntries = append(perTaskEntries, perTaskEntry{
+						name:       task.Name,
+						costMicros: usdToMicros(usd),
+						fieldLabel: fmt.Sprintf("run_config.max_cost_usd ($%.2f)", usd),
+					})
 				}
 			}
 		}
 
 		var perTaskCostSum int64
 		for _, entry := range perTaskEntries {
-			perTaskCostSum += entry.cost
-			if entry.cost > budget.MaxCostMicros {
+			perTaskCostSum += entry.costMicros
+			if entry.costMicros > budget.MaxCostMicros {
 				warnings = append(warnings, fmt.Sprintf(
-					"Task '%s' has max_cost_micros (%d) that exceeds the workflow budget max_cost_micros (%d).",
-					entry.name, entry.cost, budget.MaxCostMicros))
+					"Task '%s' has %s that exceeds the workflow budget max_cost_micros (%d).",
+					entry.name, entry.fieldLabel, budget.MaxCostMicros))
 			}
 		}
 
@@ -114,4 +124,10 @@ func CheckBudgetWarnings(budget *workflowv1.WorkflowBudget, tasks []*workflowv1.
 	}
 
 	return warnings
+}
+
+// usdToMicros converts a USD amount to micro-USD (1 USD = 1,000,000 micros),
+// rounding to the nearest micro so float noise cannot skew budget comparisons.
+func usdToMicros(usd float64) int64 {
+	return int64(math.Round(usd * 1_000_000))
 }

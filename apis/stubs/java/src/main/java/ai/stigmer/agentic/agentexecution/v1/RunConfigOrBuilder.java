@@ -55,4 +55,41 @@ public interface RunConfigOrBuilder extends
    * @return The maxToolRounds.
    */
   int getMaxToolRounds();
+
+  /**
+   * <pre>
+   * Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
+   *
+   * In workflow YAML the shorthand spellings "standard"/"fast" are
+   * accepted alongside the canonical enum names.
+   *
+   * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
+   * surface's platform default, which itself resolves to STANDARD —
+   * never the provider account default. FAST requires model_name
+   * (here or from the platform profile) to name a model with a
+   * registry fast pricing variant; validated fail-closed at create.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4 [json_name = "serviceTier", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for serviceTier.
+   */
+  int getServiceTierValue();
+  /**
+   * <pre>
+   * Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
+   *
+   * In workflow YAML the shorthand spellings "standard"/"fast" are
+   * accepted alongside the canonical enum names.
+   *
+   * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
+   * surface's platform default, which itself resolves to STANDARD —
+   * never the provider account default. FAST requires model_name
+   * (here or from the platform profile) to name a model with a
+   * registry fast pricing variant; validated fail-closed at create.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4 [json_name = "serviceTier", (.buf.validate.field) = { ... }</code>
+   * @return The serviceTier.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ServiceTier getServiceTier();
 }

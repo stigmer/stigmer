@@ -1421,6 +1421,7 @@ Configuration that can be applied at execution time.
     structuredOutputSchema: { type: "object", description: "JSON Schema that the agent's output must conform to." },
     buildFromPlan: { type: "boolean", description: "Marks this execution as a \"Build from plan\" turn: the user approved a plan produced by a prior Plan-mode execution and asked the agent to implement it." },
     approvalMode: { type: "ApprovalMode", description: "How approval gates resolve for this execution.", typeDescriptionLink: "#approvalmode" },
+    serviceTier: { type: "ServiceTier", description: "Service tier for this execution's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.", typeDescriptionLink: "#servicetier" },
   }}
 />
 
@@ -2268,8 +2269,10 @@ Accumulated token usage from execution worker turn-ended events.
     totalTokens: { type: "number", description: "Total tokens across all turns: input_tokens + output_tokens." },
     turnCount: { type: "number", description: "Number of completed turns observed." },
     estimatedCostUsd: { type: "number", description: "Estimated cost in USD computed from runner-side rate card." },
-    model: { type: "string", description: "Model identifier observed during streaming (from RunResult or assistant events)." },
+    model: { type: "string", description: "Model identifier the runner requested for this execution's turns." },
     observedAt: { type: "string", description: "ISO 8601 timestamp of the last turn-ended event observed." },
+    requestedServiceTier: { type: "ServiceTier", description: "Service tier the runner requested for this execution's model calls.", typeDescriptionLink: "#servicetier" },
+    requestedModelParams: { type: "string", description: "JSON-encoded provider variant parameters the runner sent with the model selection (Cursor ModelSelection.params, e.g. [{\"id\":\"fast\",\"value\":\"false\"}])." },
   }}
 />
 
@@ -2643,6 +2646,15 @@ SnapshotKind is the substrate backing a SnapshotRef.
 | `SNAPSHOT_KIND_GIT_TREE_REF` | A git no-commit tree ref (git-tracked/untracked paths only). |
 | `SNAPSHOT_KIND_CAS_MANIFEST` | A content-addressed manifest (ignored/non-git paths; Phase 3). |
 | `SNAPSHOT_KIND_HYBRID` | Both a git tree ref and a CAS manifest (mixed workspace). |
+
+### ServiceTier
+
+ServiceTier selects the provider-side speed/service tier for an execution's model calls.
+
+| Value | Description |
+|-------|-------------|
+| `SERVICE_TIER_STANDARD` | Standard tier: the model's base-priced configuration, requested explicitly. |
+| `SERVICE_TIER_FAST` | Fast tier: the model's fast variant, billed at the registry's fast variant rates. |
 
 ### SubAgentStatus
 

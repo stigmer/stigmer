@@ -694,22 +694,55 @@ export type CallAgentFn = (
 /**
  * Agent call configuration — mirrors the proto `AgentCallTaskConfig`.
  * Parsed from the YAML `with:` block of a `call: agent` task.
+ *
+ * The agent may be referenced as "slug" (workflow's org) or "org/slug"
+ * (explicit org); there is no separate org field.
  */
 export interface AgentCallConfig {
   readonly agent: string;
   readonly message: string;
-  readonly org?: string;
   readonly env?: Record<string, string>;
-  readonly config?: AgentExecutionCallConfig;
+  readonly run_config?: AgentCallRunConfig;
   readonly output?: AgentCallOutputContract;
   readonly harness?: string;
+  readonly workspace_entries?: readonly AgentCallWorkspaceEntry[];
 }
 
-export interface AgentExecutionCallConfig {
-  readonly model?: string;
-  readonly timeout?: number;
-  readonly temperature?: number;
-  readonly max_cost_micros?: number;
+/**
+ * Mirrors the shared `ai.stigmer.agentic.session.v1.WorkspaceEntry` in its
+ * git-only form — the workflow surface rejects local_path sources at write
+ * time (no client is connected to serve one when a task fires), so by the
+ * time YAML reaches the runner only git_repo entries exist.
+ *
+ * The task's `environment_refs` sibling never appears in execution YAML:
+ * the server resolves it from the Workflow row at execution create.
+ */
+export interface AgentCallWorkspaceEntry {
+  readonly name?: string;
+  readonly source: {
+    readonly git_repo: {
+      readonly url: string;
+      readonly branch?: string;
+    };
+  };
+}
+
+/**
+ * Mirrors the shared `ai.stigmer.agentic.agentexecution.v1.RunConfig`
+ * (issue #358) — the same run-bound vocabulary schedules embed. Every
+ * field maps onto its `ExecutionConfig` namesake and is enforced by the
+ * runner's generic cost/tool-round guards; nothing here is decorative.
+ */
+export interface AgentCallRunConfig {
+  readonly model_name?: string;
+  readonly max_cost_usd?: number;
+  readonly max_tool_rounds?: number;
+  /**
+   * Canonical ServiceTier enum name ("SERVICE_TIER_STANDARD" /
+   * "SERVICE_TIER_FAST"); the loader maps the YAML shorthands
+   * ("standard"/"fast") to these, mirroring harness.
+   */
+  readonly service_tier?: string;
 }
 
 export interface AgentCallOutputContract {

@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agentexecution.v1;
 
+import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 import "ai/stigmer/agentic/session/v1/enum.proto";
 import "ai/stigmer/agentic/session/v1/workspace.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
@@ -14,8 +15,12 @@ import "buf/validate/validate.proto";
 // composer's vocabulary (agent, message, harness, workspace,
 // environments, run bounds) minus what an unattended surface makes
 // structurally impossible. Surfaces that trigger agents on someone's
-// behalf (schedules today; workflow agent_call and channels are named
-// adopters) embed this message instead of re-deriving the shape.
+// behalf embed this message instead of re-deriving the shape:
+// schedules embed it whole; the workflow agent_call task adopts it at
+// the TYPE level (embedding RunConfig and documenting a field-by-field
+// correspondence) because its task config is a kind+Struct authoring
+// DSL whose field names are the YAML keys — see
+// workflow/v1/tasks/agent_call.proto; channels embed RunConfig.
 //
 // @internal
 // Project DD-018 (whatsapp-proactive-messaging). An ALLOWLIST by
@@ -160,4 +165,16 @@ message RunConfig {
   // An implementation knob, not a user concept: API-reachable for
   // operators, deliberately absent from creation forms (DD-018 D-5).
   int32 max_tool_rounds = 3 [(buf.validate.field).int32.gte = 0];
+
+  // Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
+  //
+  // In workflow YAML the shorthand spellings "standard"/"fast" are
+  // accepted alongside the canonical enum names.
+  //
+  // Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
+  // surface's platform default, which itself resolves to STANDARD —
+  // never the provider account default. FAST requires model_name
+  // (here or from the platform profile) to name a model with a
+  // registry fast pricing variant; validated fail-closed at create.
+  ServiceTier service_tier = 4 [(buf.validate.field).enum.defined_only = true];
 }

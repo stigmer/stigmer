@@ -48,7 +48,6 @@ func TestWorkflowAgentCall_EnvVarsForwardedToChildExecution(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": "Reply with exactly: env-forwarding-ok",
 	})
 	require.NoError(t, err)
@@ -157,7 +156,6 @@ func TestWorkflowAgentCall_IdempotentSessionReuse(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": "Reply with exactly: idempotent-test-ok",
 	})
 	require.NoError(t, err)
@@ -338,7 +336,6 @@ func TestWorkflowAgentCall_EnvVarsForwardedWithMcpServerRef(t *testing.T) {
 	// 4. Create a workflow that declares the same env var and uses agent_call.
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   createdAgent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": "Reply with exactly: mcp-env-forwarding-ok",
 	})
 	require.NoError(t, err)

@@ -171,3 +171,65 @@ func mustStruct(m map[string]interface{}) *structpb.Struct {
 	s, _ := structpb.NewStruct(m)
 	return s
 }
+
+// RunConfig's gte-0 bounds are enforced here at Layer 2 because Layer-1
+// protovalidate cannot see inside the task_config Struct envelope. The
+// error strings are pinned in lockstep with the cloud Java validator.
+func TestValidateTaskConfigRequiredFields_AgentCallRunConfigBounds(t *testing.T) {
+	makeSpec := func(runConfig map[string]interface{}) *workflowv1.WorkflowSpec {
+		return &workflowv1.WorkflowSpec{
+			Tasks: []*workflowv1.WorkflowTask{
+				makeTask("triage", workflowv1.WorkflowTaskKind_agent_call, map[string]interface{}{
+					"agent":      "test-agent",
+					"message":    "test message",
+					"run_config": runConfig,
+				}),
+			},
+		}
+	}
+
+	t.Run("negative max_cost_usd is rejected", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"max_cost_usd": -0.5,
+		}))
+		want := "task 'triage' (agent_call): run_config.max_cost_usd must be >= 0"
+		if len(errors) != 1 || errors[0] != want {
+			t.Errorf("expected [%q], got %v", want, errors)
+		}
+	})
+
+	t.Run("negative max_tool_rounds is rejected", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"max_tool_rounds": float64(-1),
+		}))
+		want := "task 'triage' (agent_call): run_config.max_tool_rounds must be >= 0"
+		if len(errors) != 1 || errors[0] != want {
+			t.Errorf("expected [%q], got %v", want, errors)
+		}
+	})
+
+	t.Run("valid bounds pass", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"model_name":      "claude-sonnet-4-6",
+			"max_cost_usd":    0.5,
+			"max_tool_rounds": float64(15),
+		}))
+		if len(errors) != 0 {
+			t.Errorf("expected no errors, got %v", errors)
+		}
+	})
+
+	t.Run("absent run_config passes", func(t *testing.T) {
+		spec := &workflowv1.WorkflowSpec{
+			Tasks: []*workflowv1.WorkflowTask{
+				makeTask("triage", workflowv1.WorkflowTaskKind_agent_call, map[string]interface{}{
+					"agent":   "test-agent",
+					"message": "test message",
+				}),
+			},
+		}
+		if errors := ValidateTaskConfigRequiredFields(spec); len(errors) != 0 {
+			t.Errorf("expected no errors, got %v", errors)
+		}
+	})
+}

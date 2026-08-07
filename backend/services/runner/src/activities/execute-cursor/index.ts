@@ -121,6 +121,7 @@ import { statusProtoWriter } from "../../shared/execution-status-writer.js";
 import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
 import { closeProxySessions } from "./http2-interceptor.js";
 import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "./model-pricing.js";
+import { resolveEffectiveServiceTier, resolveServiceTierParams } from "./service-tier.js";
 import { UsageAccumulator } from "./usage-accumulator.js";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
@@ -889,7 +890,9 @@ async function executeCursorInner(
     await ensurePricingLoaded();
     setupTiming.mark("load_pricing");
 
-    // Phase 6: Validate model selection
+    // Phase 6: Validate model selection and resolve the service tier.
+    // UNSPECIFIED → STANDARD resolves here and nowhere else (#357): every
+    // upstream layer preserves the caller's raw enum value.
     const requestedModel = spec.executionConfig?.modelName || "default";
     const validatedModel = resolveModelId(requestedModel);
     if (validatedModel !== requestedModel) {
@@ -897,6 +900,7 @@ async function executeCursorInner(
         `ExecuteCursor model resolved: execution=${executionId}, requested="${requestedModel}", using="${validatedModel}"`,
       );
     }
+    const requestedServiceTier = resolveEffectiveServiceTier(spec.executionConfig?.serviceTier);
 
     heartbeat();
 
@@ -931,10 +935,21 @@ async function executeCursorInner(
       );
     }
 
+    // Translate the tier into the explicit variant params sent with every
+    // create/resume. Never a bare { id }: the catalog's default variant is
+    // account-influenced and picks the price (#357).
+    const modelParams = await resolveServiceTierParams({
+      apiKey: effectiveApiKey,
+      modelId: validatedModel,
+      tier: requestedServiceTier,
+      executionId,
+    });
+
     const createOptions: CreateAgentOptions | CreateCloudAgentOptions = agentMode === "cloud"
       ? {
           apiKey: effectiveApiKey,
           model: validatedModel || undefined,
+          modelParams,
           repos: blueprint.cloudRepos,
           sessionId,
           mcpServers: mcpConfig,
@@ -943,6 +958,7 @@ async function executeCursorInner(
       : {
           apiKey: effectiveApiKey,
           model: validatedModel,
+          modelParams,
           workspaceDirs: blueprint.workspaceDirs,
           sessionId,
           workspaceRootDir: config.workspaceRootDir,
@@ -1075,7 +1091,11 @@ async function executeCursorInner(
 
     // Phase 10b: Initialize usage accumulator for runner-side token tracking
     await ensurePricingLoaded();
-    const usageAccumulator = new UsageAccumulator(validatedModel);
+    const usageAccumulator = new UsageAccumulator(
+      validatedModel,
+      requestedServiceTier,
+      modelParams,
+    );
 
     // Phase 10c: Start OTel turn span. Coarse-grained — spans the whole turn
     // (agent.send + stream + any recovery retry + the turn boundary), ended once
@@ -1577,14 +1597,36 @@ async function executeCursorInner(
 
     // Phase 13: Map final result
     const result = await run.wait();
-    const sdkResolvedModel = result.model?.id || undefined;
     console.log(
       `ExecuteCursor run.wait() result: execution=${executionId}, result=${JSON.stringify(result)}`,
     );
-    if (sdkResolvedModel && sdkResolvedModel !== validatedModel) {
-      console.log(
-        `ExecuteCursor model divergence: execution=${executionId}, requested=${validatedModel}, sdkResolved=${sdkResolvedModel}`,
-      );
+    // Echo sanity check only: result.model ECHOES the requested selection —
+    // the SDK never reports the variant that actually served the call
+    // (verified against the billing ledger, #357). A mismatch here means the
+    // SDK rewrote our selection (contract change), not variant drift; the
+    // authoritative requested-vs-billed reconciliation is the cloud billing
+    // handler's pricing_variant mismatch metric.
+    const echoedSelection = result.model;
+    if (echoedSelection) {
+      const idMatches = echoedSelection.id === validatedModel;
+      // Compare id/value pairs explicitly, never serialized objects: the SDK
+      // may add fields to ModelParameterValue or reorder keys, and neither
+      // is contract drift.
+      const echoedParams = [...(echoedSelection.params ?? [])]
+        .sort((a, b) => a.id.localeCompare(b.id));
+      const paramsMatch =
+        echoedParams.length === modelParams.length &&
+        echoedParams.every(
+          (p, i) => p.id === modelParams[i].id && p.value === modelParams[i].value,
+        );
+      if (!idMatches || !paramsMatch) {
+        console.warn(
+          `ExecuteCursor model selection echo mismatch (SDK contract drift?): ` +
+          `execution=${executionId}, ` +
+          `requested=${JSON.stringify({ id: validatedModel, params: modelParams })}, ` +
+          `echoed=${JSON.stringify(echoedSelection)}`,
+        );
+      }
     }
     status.completedAt = utcTimestamp();
 

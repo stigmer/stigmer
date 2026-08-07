@@ -13,8 +13,12 @@ package ai.stigmer.agentic.agentexecution.v1;
  * composer's vocabulary (agent, message, harness, workspace,
  * environments, run bounds) minus what an unattended surface makes
  * structurally impossible. Surfaces that trigger agents on someone's
- * behalf (schedules today; workflow agent_call and channels are named
- * adopters) embed this message instead of re-deriving the shape.
+ * behalf embed this message instead of re-deriving the shape:
+ * schedules embed it whole; the workflow agent_call task adopts it at
+ * the TYPE level (embedding RunConfig and documenting a field-by-field
+ * correspondence) because its task config is a kind+Struct authoring
+ * DSL whose field names are the YAML keys — see
+ * workflow/v1/tasks/agent_call.proto; channels embed RunConfig.
  *
  * &#64;internal
  * Project DD-018 (whatsapp-proactive-messaging). An ALLOWLIST by
@@ -794,8 +798,12 @@ private static final long serialVersionUID = 0L;
    * composer's vocabulary (agent, message, harness, workspace,
    * environments, run bounds) minus what an unattended surface makes
    * structurally impossible. Surfaces that trigger agents on someone's
-   * behalf (schedules today; workflow agent_call and channels are named
-   * adopters) embed this message instead of re-deriving the shape.
+   * behalf embed this message instead of re-deriving the shape:
+   * schedules embed it whole; the workflow agent_call task adopts it at
+   * the TYPE level (embedding RunConfig and documenting a field-by-field
+   * correspondence) because its task config is a kind+Struct authoring
+   * DSL whose field names are the YAML keys — see
+   * workflow/v1/tasks/agent_call.proto; channels embed RunConfig.
    *
    * &#64;internal
    * Project DD-018 (whatsapp-proactive-messaging). An ALLOWLIST by

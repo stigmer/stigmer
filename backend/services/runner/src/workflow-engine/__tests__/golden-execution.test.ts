@@ -404,9 +404,9 @@ describe("Golden Execution — Tier 1d: Advanced Tasks", () => {
     expect(config.message).not.toContain("${ $context");
     expect(config.message).not.toContain("${ $input");
     expect(config.env).toEqual({ GITHUB_TOKEN: "${.secrets.GITHUB_TOKEN}" });
-    expect(config.config?.model).toBe("claude-3-5-sonnet");
-    expect(config.config?.timeout).toBe(300);
-    expect(config.config?.temperature).toBe(0.2);
+    expect(config.run_config?.model_name).toBe("claude-3-5-sonnet");
+    expect(config.run_config?.max_cost_usd).toBe(0.75);
+    expect(config.run_config?.service_tier).toBe("SERVICE_TIER_STANDARD");
     expect(config.harness).toBe("HARNESS_NATIVE");
     expect(config.output?.schema).toBeDefined();
     expect(config.output?.schema.required).toContain("severity");
@@ -428,7 +428,6 @@ describe("Golden Execution — Tier 1d: Advanced Tasks", () => {
       "      with:",
       '        agent: "stigmer/code-reviewer"',
       '        message: "Review this"',
-      '        org: "stigmer"',
     ].join("\n");
 
     const model = loadWorkflowFromYaml(crossOrgYaml);
@@ -444,7 +443,6 @@ describe("Golden Execution — Tier 1d: Advanced Tasks", () => {
     expect(mockCallAgent).toHaveBeenCalledOnce();
     const [config] = mockCallAgent.mock.calls[0];
     expect(config.agent).toBe("stigmer/code-reviewer");
-    expect(config.org).toBe("stigmer");
     expect(config.message).toBe("Review this");
   });
 
@@ -1048,9 +1046,11 @@ describe("Golden Execution — Structured Output Pipeline", () => {
     expect(config.message).toContain("Date: 2026-05-26");
     expect(config.message).not.toContain("${ $env");
 
-    // Config and harness preserved
-    expect(config.config?.model).toBe("claude-sonnet-4");
-    expect(config.config?.timeout).toBe(300);
+    // Run config and harness preserved. The tier arrives canonical from the
+    // golden's "fast" shorthand — the loader mapping riding a full workflow
+    // load (#357).
+    expect(config.run_config?.model_name).toBe("claude-sonnet-4");
+    expect(config.run_config?.service_tier).toBe("SERVICE_TIER_FAST");
     expect(config.harness).toBe("HARNESS_CURSOR");
     expect(metadata.taskName).toBe("analyze_player_data");
 

@@ -487,6 +487,21 @@ message ExecutionConfig {
   // unattended mode resolves gates so tools SKIP. When both are set the
   // bypass wins by layer order (the gate never fires).
   ApprovalMode approval_mode = 9 [(buf.validate.field).enum.defined_only = true];
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Service Tier
+  //
+  // Provider-side speed/service tier for this execution's model calls.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Service tier for this execution's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
+  //
+  // UNSPECIFIED/STANDARD: the model's base-priced configuration, requested
+  // explicitly — never the provider account default. FAST: the model's fast
+  // variant at the registry's fast rates; valid only for models whose
+  // registry entry declares a fast pricing variant, and requires model_name
+  // to be set (validated fail-closed at create time).
+  ServiceTier service_tier = 10 [(buf.validate.field).enum.defined_only = true];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

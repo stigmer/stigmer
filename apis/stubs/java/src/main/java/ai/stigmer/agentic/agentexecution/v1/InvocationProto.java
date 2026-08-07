@@ -47,42 +47,47 @@ public final class InvocationProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n5ai/stigmer/agentic/agentexecution/v1/i" +
       "nvocation.proto\022$ai.stigmer.agentic.agen" +
-      "texecution.v1\032(ai/stigmer/agentic/sessio" +
-      "n/v1/enum.proto\032-ai/stigmer/agentic/sess" +
-      "ion/v1/workspace.proto\0322ai/stigmer/commo" +
-      "ns/apiresource/field_options.proto\032\'ai/s" +
-      "tigmer/commons/apiresource/io.proto\032\033buf" +
-      "/validate/validate.proto\"\272\005\n\017AgentInvoca" +
-      "tion\022\266\001\n\tagent_ref\030\001 \001(\01324.ai.stigmer.co" +
-      "mmons.apiresource.ApiResourceReferenceBc" +
-      "\272H\\\272\001V\n\016agent_ref.kind\0223agent_ref must r" +
-      "eference a resource with kind=agent\032\017thi" +
-      "s.kind == 40\310\001\001\340\205,(R\010agentRef\022$\n\007message" +
-      "\030\002 \001(\tB\n\272H\007r\005\020\001\030\200@R\007message\022@\n\007harness\030\003" +
-      " \001(\0162&.ai.stigmer.agentic.session.v1.Har" +
-      "nessR\007harness\022Z\n\021workspace_entries\030\004 \003(\013" +
-      "2-.ai.stigmer.agentic.session.v1.Workspa" +
-      "ceEntryR\020workspaceEntries\022\331\001\n\020environmen" +
-      "t_refs\030\005 \003(\01324.ai.stigmer.commons.apires" +
-      "ource.ApiResourceReferenceBx\272Hq\222\001n\"l\272\001i\n" +
-      "\025environment_refs.kind\022?environment_refs" +
-      " must reference resources with kind=envi" +
-      "ronment\032\017this.kind == 53\340\205,5R\017environmen" +
-      "tRefs\022N\n\nrun_config\030\006 \001(\0132/.ai.stigmer.a" +
-      "gentic.agentexecution.v1.RunConfigR\trunC" +
-      "onfig\"\215\001\n\tRunConfig\022\035\n\nmodel_name\030\001 \001(\tR" +
-      "\tmodelName\0220\n\014max_cost_usd\030\002 \001(\001B\016\272H\013\022\t)" +
-      "\000\000\000\000\000\000\000\000R\nmaxCostUsd\022/\n\017max_tool_rounds\030" +
-      "\003 \001(\005B\007\272H\004\032\002(\000R\rmaxToolRoundsB\306\001B\017Invoca" +
-      "tionProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic." +
-      "Agentexecution.V1\312\002$Ai\\Stigmer\\Agentic\\A" +
-      "gentexecution\\V1\342\0020Ai\\Stigmer\\Agentic\\Ag" +
-      "entexecution\\V1\\GPBMetadata\352\002(Ai::Stigme" +
-      "r::Agentic::Agentexecution::V1b\006proto3"
+      "texecution.v1\032/ai/stigmer/agentic/agente" +
+      "xecution/v1/enum.proto\032(ai/stigmer/agent" +
+      "ic/session/v1/enum.proto\032-ai/stigmer/age" +
+      "ntic/session/v1/workspace.proto\0322ai/stig" +
+      "mer/commons/apiresource/field_options.pr" +
+      "oto\032\'ai/stigmer/commons/apiresource/io.p" +
+      "roto\032\033buf/validate/validate.proto\"\272\005\n\017Ag" +
+      "entInvocation\022\266\001\n\tagent_ref\030\001 \001(\01324.ai.s" +
+      "tigmer.commons.apiresource.ApiResourceRe" +
+      "ferenceBc\272H\\\272\001V\n\016agent_ref.kind\0223agent_r" +
+      "ef must reference a resource with kind=a" +
+      "gent\032\017this.kind == 40\310\001\001\340\205,(R\010agentRef\022$" +
+      "\n\007message\030\002 \001(\tB\n\272H\007r\005\020\001\030\200@R\007message\022@\n\007" +
+      "harness\030\003 \001(\0162&.ai.stigmer.agentic.sessi" +
+      "on.v1.HarnessR\007harness\022Z\n\021workspace_entr" +
+      "ies\030\004 \003(\0132-.ai.stigmer.agentic.session.v" +
+      "1.WorkspaceEntryR\020workspaceEntries\022\331\001\n\020e" +
+      "nvironment_refs\030\005 \003(\01324.ai.stigmer.commo" +
+      "ns.apiresource.ApiResourceReferenceBx\272Hq" +
+      "\222\001n\"l\272\001i\n\025environment_refs.kind\022?environ" +
+      "ment_refs must reference resources with " +
+      "kind=environment\032\017this.kind == 53\340\205,5R\017e" +
+      "nvironmentRefs\022N\n\nrun_config\030\006 \001(\0132/.ai." +
+      "stigmer.agentic.agentexecution.v1.RunCon" +
+      "figR\trunConfig\"\355\001\n\tRunConfig\022\035\n\nmodel_na" +
+      "me\030\001 \001(\tR\tmodelName\0220\n\014max_cost_usd\030\002 \001(" +
+      "\001B\016\272H\013\022\t)\000\000\000\000\000\000\000\000R\nmaxCostUsd\022/\n\017max_too" +
+      "l_rounds\030\003 \001(\005B\007\272H\004\032\002(\000R\rmaxToolRounds\022^" +
+      "\n\014service_tier\030\004 \001(\01621.ai.stigmer.agenti" +
+      "c.agentexecution.v1.ServiceTierB\010\272H\005\202\001\002\020" +
+      "\001R\013serviceTierB\306\001B\017InvocationProtoP\001\242\002\004A" +
+      "SAA\252\002$Ai.Stigmer.Agentic.Agentexecution." +
+      "V1\312\002$Ai\\Stigmer\\Agentic\\Agentexecution\\V" +
+      "1\342\0020Ai\\Stigmer\\Agentic\\Agentexecution\\V1" +
+      "\\GPBMetadata\352\002(Ai::Stigmer::Agentic::Age" +
+      "ntexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor(),
           ai.stigmer.agentic.session.v1.EnumProto.getDescriptor(),
           ai.stigmer.agentic.session.v1.WorkspaceProto.getDescriptor(),
           ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor(),
@@ -100,8 +105,9 @@ public final class InvocationProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_RunConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_RunConfig_descriptor,
-        new java.lang.String[] { "ModelName", "MaxCostUsd", "MaxToolRounds", });
+        new java.lang.String[] { "ModelName", "MaxCostUsd", "MaxToolRounds", "ServiceTier", });
     descriptor.resolveAllFeaturesImmutable();
+    ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor();
     ai.stigmer.agentic.session.v1.EnumProto.getDescriptor();
     ai.stigmer.agentic.session.v1.WorkspaceProto.getDescriptor();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();

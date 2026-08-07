@@ -15,6 +15,7 @@ import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
 import { useGitHubConnection } from "../github/useGitHubConnection.js";
 import { ModelSelector } from "../models/ModelSelector.js";
 import { toProtoHarness, type HarnessOption } from "../models/harness.js";
+import { toProtoServiceTier, type ServiceTierOption } from "../models/service-tier.js";
 import { Switch } from "../switch/Switch.js";
 import { useStigmerPortalContainer } from "../portal-container.js";
 import { useWorkspaceEntries } from "../workspace/useWorkspaceEntries.js";
@@ -106,6 +107,12 @@ export function ScheduleForm({
   // the popover without picking a model pins nothing.
   const [modelName, setModelName] = useState("");
   const [modelHarness, setModelHarness] = useState<HarnessOption>("cursor");
+  // Service tier rides the model choice (#357): the ModelSelector renders
+  // the fast toggle only for models whose registry entry prices a fast
+  // variant, and resets it when the user switches to one that does not.
+  // No model pinned = no tier pinned (fast requires a model, and the form's
+  // reset button clears both).
+  const [serviceTier, setServiceTier] = useState<ServiceTierOption>("standard");
 
   const [budgetUsd, setBudgetUsd] = useState("");
 
@@ -142,7 +149,7 @@ export function ScheduleForm({
       if (!canSubmit || !agentRef) return;
 
       clearError();
-      const runConfig = buildRunConfig(modelName, budgetUsd);
+      const runConfig = buildRunConfig(modelName, budgetUsd, serviceTier);
       try {
         const schedule = await create({
           name: trimmedName,
@@ -184,6 +191,7 @@ export function ScheduleForm({
       environmentRefs,
       modelName,
       modelHarness,
+      serviceTier,
       budgetUsd,
       workspace,
       onComplete,
@@ -349,13 +357,18 @@ export function ScheduleForm({
             onValueChange={setModelName}
             initialHarness={modelHarness}
             onHarnessChange={setModelHarness}
+            serviceTier={serviceTier}
+            onServiceTierChange={setServiceTier}
             placeholderLabel="Platform default"
             disabled={isCreating}
           />
           {modelName !== "" && (
             <button
               type="button"
-              onClick={() => setModelName("")}
+              onClick={() => {
+                setModelName("");
+                setServiceTier("standard");
+              }}
               disabled={isCreating}
               className={cn(
                 "rounded-md px-2 py-1 text-[0.65rem] text-muted-foreground",
@@ -497,6 +510,7 @@ const hintClasses = "text-[0.65rem] text-muted-foreground";
 function buildRunConfig(
   modelName: string,
   budgetUsd: string,
+  serviceTier: ServiceTierOption,
 ): RunConfigInput | undefined {
   const model = modelName.trim();
   const cost = Number.parseFloat(budgetUsd);
@@ -504,6 +518,13 @@ function buildRunConfig(
   const config: RunConfigInput = {};
   if (model !== "") config.modelName = model;
   if (Number.isFinite(cost) && cost > 0) config.maxCostUsd = cost;
+  // Carried only when the user actively chose fast AND pinned a model
+  // (fast is a per-model price; the server refuses it without one). An
+  // untouched toggle stays absent — unspecified-vs-explicit is a
+  // load-bearing ledger distinction (#357).
+  if (serviceTier === "fast" && model !== "") {
+    config.serviceTier = toProtoServiceTier(serviceTier);
+  }
 
   return Object.keys(config).length > 0 ? config : undefined;
 }

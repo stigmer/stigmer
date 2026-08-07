@@ -5,6 +5,7 @@ import { stripUndefined } from "./proto-utils.js";
 import { type ResourceRef } from "./types.js";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { RunConfigSchema, AgentInvocationSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
@@ -149,6 +150,7 @@ export interface RunConfigInput {
   modelName?: string;
   maxCostUsd?: number;
   maxToolRounds?: number;
+  serviceTier?: ServiceTier;
 }
 
 function buildGitRepoSourceProto(input: GitRepoSourceInput) {
@@ -189,6 +191,7 @@ function buildRunConfigProto(input: RunConfigInput) {
     modelName: input.modelName,
     maxCostUsd: input.maxCostUsd,
     maxToolRounds: input.maxToolRounds,
+    serviceTier: input.serviceTier,
   }));
 }
 

@@ -39,7 +39,6 @@ func TestWorkflowAgentCall_LiveEventsEmitted(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     "test-org",
 		"message": "Reply with exactly: live-events-ok",
 	})
 	require.NoError(t, err)
@@ -153,7 +152,6 @@ func TestWorkflowAgentCall_ProgressEventsHaveChildExecutionId(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     "test-org",
 		"message": "Reply with exactly: child-id-ok",
 	})
 	require.NoError(t, err)
@@ -272,7 +270,6 @@ func TestWorkflowAgentCall_EventsPersistedAndStreamable(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     "test-org",
 		"message": "Reply with exactly: persist-ok",
 	})
 	require.NoError(t, err)

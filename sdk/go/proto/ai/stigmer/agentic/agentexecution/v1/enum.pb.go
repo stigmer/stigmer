@@ -1528,6 +1528,96 @@ func (ApprovalMode) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{15}
 }
 
+// ServiceTier selects the provider-side speed/service tier for an execution's
+// model calls.
+//
+// Providers spell this differently — Cursor exposes per-model "fast" variants
+// at higher per-token rates, Anthropic and OpenAI expose service tiers — but
+// the platform semantic is uniform: the tier is a deterministic, user-selected
+// attribute validated against the model registry at create time. A tier is
+// selectable for a model only when the registry prices it
+// (pricingVariants.<tier>), so a selected tier is always billable.
+//
+// The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never
+// the provider account default. The runner always sends the provider an
+// explicit variant selection, so an out-of-band account setting can never
+// silently change what an execution pays (stigmer/stigmer#357).
+//
+// @internal
+// Resolution of UNSPECIFIED → STANDARD happens exactly once, in the runner's
+// translation layer; every upstream layer preserves the caller's raw value so
+// "user explicitly chose standard" stays distinguishable from "platform
+// default". v1 supports the Cursor harness only: FAST on a model without a
+// registry fast variant is refused at create time (INVALID_ARGUMENT), which
+// also covers native-harness models since only cursor-harness registry entries
+// carry fast variants today. Native (Anthropic/OpenAI) service-tier mapping is
+// a tracked follow-up.
+type ServiceTier int32
+
+const (
+	// Default — resolves to SERVICE_TIER_STANDARD, never the provider account
+	// default.
+	ServiceTier_SERVICE_TIER_UNSPECIFIED ServiceTier = 0
+	// Standard tier: the model's base-priced configuration, requested
+	// explicitly.
+	//
+	// @internal
+	// For the Cursor harness the runner pins every price-bearing variant
+	// parameter to its base value (fast=false, and thinking=false where the
+	// parameter exists); price-neutral parameters (e.g. effort) follow the
+	// catalog default variant. Confirmed against the billing ledger 2026-08-06:
+	// explicit base params bill base wire ids on create AND resume (see
+	// stigmer-cloud _projects/2026-08/20260806.04.model-service-tier).
+	ServiceTier_SERVICE_TIER_STANDARD ServiceTier = 1
+	// Fast tier: the model's fast variant, billed at the registry's fast
+	// variant rates.
+	//
+	// Valid only for models whose registry entry declares a fast pricing
+	// variant; refused at execution create otherwise.
+	ServiceTier_SERVICE_TIER_FAST ServiceTier = 2
+)
+
+// Enum value maps for ServiceTier.
+var (
+	ServiceTier_name = map[int32]string{
+		0: "SERVICE_TIER_UNSPECIFIED",
+		1: "SERVICE_TIER_STANDARD",
+		2: "SERVICE_TIER_FAST",
+	}
+	ServiceTier_value = map[string]int32{
+		"SERVICE_TIER_UNSPECIFIED": 0,
+		"SERVICE_TIER_STANDARD":    1,
+		"SERVICE_TIER_FAST":        2,
+	}
+)
+
+func (x ServiceTier) Enum() *ServiceTier {
+	p := new(ServiceTier)
+	*p = x
+	return p
+}
+
+func (x ServiceTier) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ServiceTier) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[16].Descriptor()
+}
+
+func (ServiceTier) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[16]
+}
+
+func (x ServiceTier) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ServiceTier.Descriptor instead.
+func (ServiceTier) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{16}
+}
+
 // FileChangeType is the per-file outcome of a file mutation in a tool call.
 //
 // Distinct from ToolKind, which classifies the tool: a single tool call may
@@ -1578,11 +1668,11 @@ func (x FileChangeType) String() string {
 }
 
 func (FileChangeType) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[16].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[17].Descriptor()
 }
 
 func (FileChangeType) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[16]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[17]
 }
 
 func (x FileChangeType) Number() protoreflect.EnumNumber {
@@ -1591,7 +1681,7 @@ func (x FileChangeType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileChangeType.Descriptor instead.
 func (FileChangeType) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{16}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{17}
 }
 
 // FileChangeCaptureLevel describes how complete a FileChange's captured content
@@ -1636,11 +1726,11 @@ func (x FileChangeCaptureLevel) String() string {
 }
 
 func (FileChangeCaptureLevel) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[17].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[18].Descriptor()
 }
 
 func (FileChangeCaptureLevel) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[17]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[18]
 }
 
 func (x FileChangeCaptureLevel) Number() protoreflect.EnumNumber {
@@ -1649,7 +1739,7 @@ func (x FileChangeCaptureLevel) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileChangeCaptureLevel.Descriptor instead.
 func (FileChangeCaptureLevel) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{17}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{18}
 }
 
 // FileChangeSetStatus is the state of a FileChangeSet, DERIVED by folding its
@@ -1708,11 +1798,11 @@ func (x FileChangeSetStatus) String() string {
 }
 
 func (FileChangeSetStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[18].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[19].Descriptor()
 }
 
 func (FileChangeSetStatus) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[18]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[19]
 }
 
 func (x FileChangeSetStatus) Number() protoreflect.EnumNumber {
@@ -1721,7 +1811,7 @@ func (x FileChangeSetStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileChangeSetStatus.Descriptor instead.
 func (FileChangeSetStatus) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{18}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{19}
 }
 
 // FileChangeKind is the per-file outcome within a FileChangeSet.
@@ -1781,11 +1871,11 @@ func (x FileChangeKind) String() string {
 }
 
 func (FileChangeKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[19].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[20].Descriptor()
 }
 
 func (FileChangeKind) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[19]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[20]
 }
 
 func (x FileChangeKind) Number() protoreflect.EnumNumber {
@@ -1794,7 +1884,7 @@ func (x FileChangeKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileChangeKind.Descriptor instead.
 func (FileChangeKind) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{19}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{20}
 }
 
 // FileCaptureClass records how a file was captured, which governs which
@@ -1846,11 +1936,11 @@ func (x FileCaptureClass) String() string {
 }
 
 func (FileCaptureClass) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[20].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[21].Descriptor()
 }
 
 func (FileCaptureClass) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[20]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[21]
 }
 
 func (x FileCaptureClass) Number() protoreflect.EnumNumber {
@@ -1859,7 +1949,7 @@ func (x FileCaptureClass) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileCaptureClass.Descriptor instead.
 func (FileCaptureClass) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{20}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{21}
 }
 
 // DiffCompleteness describes whether a change set's rendered diff is complete
@@ -1921,11 +2011,11 @@ func (x DiffCompleteness) String() string {
 }
 
 func (DiffCompleteness) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[21].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[22].Descriptor()
 }
 
 func (DiffCompleteness) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[21]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[22]
 }
 
 func (x DiffCompleteness) Number() protoreflect.EnumNumber {
@@ -1934,7 +2024,7 @@ func (x DiffCompleteness) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DiffCompleteness.Descriptor instead.
 func (DiffCompleteness) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{21}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{22}
 }
 
 // SnapshotKind is the substrate backing a SnapshotRef.
@@ -1980,11 +2070,11 @@ func (x SnapshotKind) String() string {
 }
 
 func (SnapshotKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[22].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[23].Descriptor()
 }
 
 func (SnapshotKind) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[22]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[23]
 }
 
 func (x SnapshotKind) Number() protoreflect.EnumNumber {
@@ -1993,7 +2083,7 @@ func (x SnapshotKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SnapshotKind.Descriptor instead.
 func (SnapshotKind) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{22}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{23}
 }
 
 // FileDecisionScope is the granularity a FileDecision applies to.
@@ -2038,11 +2128,11 @@ func (x FileDecisionScope) String() string {
 }
 
 func (FileDecisionScope) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[23].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[24].Descriptor()
 }
 
 func (FileDecisionScope) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[23]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[24]
 }
 
 func (x FileDecisionScope) Number() protoreflect.EnumNumber {
@@ -2051,7 +2141,7 @@ func (x FileDecisionScope) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileDecisionScope.Descriptor instead.
 func (FileDecisionScope) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{23}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{24}
 }
 
 // FileDecisionAction is a user's verdict on a change set or file.
@@ -2093,11 +2183,11 @@ func (x FileDecisionAction) String() string {
 }
 
 func (FileDecisionAction) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[24].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[25].Descriptor()
 }
 
 func (FileDecisionAction) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[24]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[25]
 }
 
 func (x FileDecisionAction) Number() protoreflect.EnumNumber {
@@ -2106,7 +2196,7 @@ func (x FileDecisionAction) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileDecisionAction.Descriptor instead.
 func (FileDecisionAction) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{24}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{25}
 }
 
 // FileDecisionOrigin records which authority authored a FileDecision: a human
@@ -2158,11 +2248,11 @@ func (x FileDecisionOrigin) String() string {
 }
 
 func (FileDecisionOrigin) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[25].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[26].Descriptor()
 }
 
 func (FileDecisionOrigin) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[25]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[26]
 }
 
 func (x FileDecisionOrigin) Number() protoreflect.EnumNumber {
@@ -2171,7 +2261,7 @@ func (x FileDecisionOrigin) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileDecisionOrigin.Descriptor instead.
 func (FileDecisionOrigin) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{25}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{26}
 }
 
 // FileReviewEventType is the kind of event in the append-only file-review
@@ -2228,11 +2318,11 @@ func (x FileReviewEventType) String() string {
 }
 
 func (FileReviewEventType) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[26].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[27].Descriptor()
 }
 
 func (FileReviewEventType) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[26]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[27]
 }
 
 func (x FileReviewEventType) Number() protoreflect.EnumNumber {
@@ -2241,7 +2331,7 @@ func (x FileReviewEventType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileReviewEventType.Descriptor instead.
 func (FileReviewEventType) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{26}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{27}
 }
 
 // FileReviewFailureKind is the precise cause carried by a FAILED file-review
@@ -2294,11 +2384,11 @@ func (x FileReviewFailureKind) String() string {
 }
 
 func (FileReviewFailureKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[27].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[28].Descriptor()
 }
 
 func (FileReviewFailureKind) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[27]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[28]
 }
 
 func (x FileReviewFailureKind) Number() protoreflect.EnumNumber {
@@ -2307,7 +2397,7 @@ func (x FileReviewFailureKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileReviewFailureKind.Descriptor instead.
 func (FileReviewFailureKind) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{27}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{28}
 }
 
 // FileReviewBlockReason is the honest cause a captured file's diff is not fully
@@ -2362,11 +2452,11 @@ func (x FileReviewBlockReason) String() string {
 }
 
 func (FileReviewBlockReason) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[28].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[29].Descriptor()
 }
 
 func (FileReviewBlockReason) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[28]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[29]
 }
 
 func (x FileReviewBlockReason) Number() protoreflect.EnumNumber {
@@ -2375,7 +2465,7 @@ func (x FileReviewBlockReason) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileReviewBlockReason.Descriptor instead.
 func (FileReviewBlockReason) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{28}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{29}
 }
 
 var File_ai_stigmer_agentic_agentexecution_v1_enum_proto protoreflect.FileDescriptor
@@ -2490,7 +2580,11 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\fApprovalMode\x12\x1d\n" +
 	"\x19APPROVAL_MODE_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19APPROVAL_MODE_INTERACTIVE\x10\x01\x12\x1c\n" +
-	"\x18APPROVAL_MODE_UNATTENDED\x10\x02*\xa6\x01\n" +
+	"\x18APPROVAL_MODE_UNATTENDED\x10\x02*]\n" +
+	"\vServiceTier\x12\x1c\n" +
+	"\x18SERVICE_TIER_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15SERVICE_TIER_STANDARD\x10\x01\x12\x15\n" +
+	"\x11SERVICE_TIER_FAST\x10\x02*\xa6\x01\n" +
 	"\x0eFileChangeType\x12 \n" +
 	"\x1cFILE_CHANGE_TYPE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17FILE_CHANGE_TYPE_CREATE\x10\x01\x12\x1b\n" +
@@ -2575,7 +2669,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 29)
+var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 30)
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(ExecutionPhase)(0),           // 0: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
 	(MessageType)(0),              // 1: ai.stigmer.agentic.agentexecution.v1.MessageType
@@ -2593,19 +2687,20 @@ var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(ApprovalRetractionReason)(0), // 13: ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionReason
 	(InteractionMode)(0),          // 14: ai.stigmer.agentic.agentexecution.v1.InteractionMode
 	(ApprovalMode)(0),             // 15: ai.stigmer.agentic.agentexecution.v1.ApprovalMode
-	(FileChangeType)(0),           // 16: ai.stigmer.agentic.agentexecution.v1.FileChangeType
-	(FileChangeCaptureLevel)(0),   // 17: ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel
-	(FileChangeSetStatus)(0),      // 18: ai.stigmer.agentic.agentexecution.v1.FileChangeSetStatus
-	(FileChangeKind)(0),           // 19: ai.stigmer.agentic.agentexecution.v1.FileChangeKind
-	(FileCaptureClass)(0),         // 20: ai.stigmer.agentic.agentexecution.v1.FileCaptureClass
-	(DiffCompleteness)(0),         // 21: ai.stigmer.agentic.agentexecution.v1.DiffCompleteness
-	(SnapshotKind)(0),             // 22: ai.stigmer.agentic.agentexecution.v1.SnapshotKind
-	(FileDecisionScope)(0),        // 23: ai.stigmer.agentic.agentexecution.v1.FileDecisionScope
-	(FileDecisionAction)(0),       // 24: ai.stigmer.agentic.agentexecution.v1.FileDecisionAction
-	(FileDecisionOrigin)(0),       // 25: ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin
-	(FileReviewEventType)(0),      // 26: ai.stigmer.agentic.agentexecution.v1.FileReviewEventType
-	(FileReviewFailureKind)(0),    // 27: ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind
-	(FileReviewBlockReason)(0),    // 28: ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason
+	(ServiceTier)(0),              // 16: ai.stigmer.agentic.agentexecution.v1.ServiceTier
+	(FileChangeType)(0),           // 17: ai.stigmer.agentic.agentexecution.v1.FileChangeType
+	(FileChangeCaptureLevel)(0),   // 18: ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel
+	(FileChangeSetStatus)(0),      // 19: ai.stigmer.agentic.agentexecution.v1.FileChangeSetStatus
+	(FileChangeKind)(0),           // 20: ai.stigmer.agentic.agentexecution.v1.FileChangeKind
+	(FileCaptureClass)(0),         // 21: ai.stigmer.agentic.agentexecution.v1.FileCaptureClass
+	(DiffCompleteness)(0),         // 22: ai.stigmer.agentic.agentexecution.v1.DiffCompleteness
+	(SnapshotKind)(0),             // 23: ai.stigmer.agentic.agentexecution.v1.SnapshotKind
+	(FileDecisionScope)(0),        // 24: ai.stigmer.agentic.agentexecution.v1.FileDecisionScope
+	(FileDecisionAction)(0),       // 25: ai.stigmer.agentic.agentexecution.v1.FileDecisionAction
+	(FileDecisionOrigin)(0),       // 26: ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin
+	(FileReviewEventType)(0),      // 27: ai.stigmer.agentic.agentexecution.v1.FileReviewEventType
+	(FileReviewFailureKind)(0),    // 28: ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind
+	(FileReviewBlockReason)(0),    // 29: ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason
 }
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -2625,7 +2720,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc)),
-			NumEnums:      29,
+			NumEnums:      30,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

@@ -11,6 +11,7 @@ import { useState, type ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
@@ -382,6 +383,7 @@ describe("ScheduleForm", () => {
       costTier: "standard",
       harness: "cursor",
       featured: true,
+      serviceTiers: [],
     };
 
     function RegistryWrapper({ children }: { children: ReactNode }) {
@@ -424,6 +426,69 @@ describe("ScheduleForm", () => {
     const input = apply.mock.calls[0][0];
     expect(input.agent.runConfig).toEqual({ modelName: "claude-sonnet-4-6" });
     expect(input.agent.harness).toBe(Harness.CURSOR);
+  });
+
+  it("toggling the fast tier on a capable model lands service_tier on run_config (#357)", async () => {
+    const apply = vi.fn().mockResolvedValue(CREATED);
+    const client = createClient({ apply });
+    const onComplete = vi.fn();
+
+    const fastCapable: ModelInfo = {
+      modelId: "composer-2.5",
+      provider: "cursor",
+      displayName: "Composer 2.5",
+      shortDescription: "Fast agentic model",
+      speedTier: "fastest",
+      costTier: "economy",
+      harness: "cursor",
+      featured: true,
+      serviceTiers: ["fast"],
+    };
+
+    function RegistryWrapper({ children }: { children: ReactNode }) {
+      const Base = wrapper(client);
+      return (
+        <ModelRegistryContext.Provider
+          value={{
+            models: [fastCapable],
+            isLoading: false,
+            error: null,
+            refetch: () => {},
+          }}
+        >
+          <Base>{children}</Base>
+        </ModelRegistryContext.Provider>
+      );
+    }
+
+    render(<ScheduleForm org="isc" onComplete={onComplete} />, {
+      wrapper: RegistryWrapper,
+    });
+
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "daily-fee-reminders" },
+    });
+    fireEvent.change(screen.getByLabelText("Message"), {
+      target: { value: "Send today's reminders." },
+    });
+    await pickAgent();
+
+    fireEvent.click(screen.getByRole("button", { name: /Platform default/ }));
+    fireEvent.click(await screen.findByRole("option", { name: /Composer 2\.5/ }));
+
+    // The popover closed on selection; reopen it — the toggle renders only
+    // for the now-selected fast-capable model.
+    fireEvent.click(screen.getByRole("button", { name: /Composer 2\.5/ }));
+    fireEvent.click(await screen.findByRole("switch", { name: "Fast tier" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Create schedule" }));
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
+    const input = apply.mock.calls[0][0];
+    expect(input.agent.runConfig).toEqual({
+      modelName: "composer-2.5",
+      serviceTier: ServiceTier.FAST,
+    });
   });
 
   it("surfaces the server error verbatim and stays editable", async () => {

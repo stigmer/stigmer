@@ -33,6 +33,26 @@
     "outcomes": {
       "description": "Named outcomes that the reviewer can select. Each outcome represents a decision the reviewer can make, with optional routing to a different downstream task. This enables rich branching beyond binary approve/deny. When empty, the task defaults to binary behavior: - \"approve\": task completes, workflow continues to next task - \"deny\": task fails (enters try_catch or EXECUTION_FAILED) When custom outcomes are defined, the first outcome is used as the default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used as the default for HUMAN_INPUT_TIMEOUT_DENY.",
       "items": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "description": "Human-readable label for the button/action in the approval UI. When empty, the UI displays the capitalized name. Examples: \"Approve Escalation\", \"Reject — Not Customer-Impacting\"",
+            "type": "string"
+          },
+          "name": {
+            "description": "Outcome identifier used in task output and routing. Examples: \"approve\", \"deny\", \"needs_revision\", \"escalate\", \"defer\" Must be unique within the outcomes list.",
+            "maxLength": 63,
+            "minLength": 1,
+            "type": "string"
+          },
+          "then": {
+            "description": "Task to branch to when this outcome is selected. Must reference a valid task name in the same workflow. When empty, the workflow continues to the next task in sequence.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
         "type": "object"
       },
       "type": "array"

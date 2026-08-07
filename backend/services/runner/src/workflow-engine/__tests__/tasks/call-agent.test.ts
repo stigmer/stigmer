@@ -108,16 +108,15 @@ describe("CallAgentTaskBuilder", () => {
     expect(config.env.GITHUB_TOKEN).toBe("${.secrets.GH_TOKEN}");
   });
 
-  it("passes org from config when specified", async () => {
+  it("passes org-prefixed agent references through untouched", async () => {
     mockCallAgent.mockResolvedValue({ final_text: "done" });
 
     const taskDef: CallAgentTaskDef = {
       kind: "call:agent",
       call: "agent",
       with: {
-        agent: "my-agent",
+        agent: "acme/my-agent",
         message: "Hello",
-        org: "acme",
       },
     };
 
@@ -127,7 +126,7 @@ describe("CallAgentTaskBuilder", () => {
     await executor({}, createState(), makeCtx());
 
     const [config] = mockCallAgent.mock.calls[0];
-    expect(config.org).toBe("acme");
+    expect(config.agent).toBe("acme/my-agent");
   });
 
   it("shouldRun returns true", async () => {
@@ -495,7 +494,7 @@ describe("CallAgentTaskBuilder — output.schema propagation", () => {
         agent: "notification-analyst",
         message: "Generate the daily cohort analysis report.",
         output: { schema: cohortSchema, on_invalid: "ON_INVALID_FAIL" },
-        config: { model: "claude-sonnet-4", timeout: 300 },
+        run_config: { model_name: "claude-sonnet-4" },
         harness: "HARNESS_CURSOR",
       },
     };
@@ -525,7 +524,7 @@ describe("CallAgentTaskBuilder — output.schema propagation", () => {
           "Date: ${ $env.NOTIFICATION_DATE }\n" +
           "Data source: decor schema.",
         output: { schema: cohortSchema, on_invalid: "ON_INVALID_FAIL" },
-        config: { model: "claude-sonnet-4" },
+        run_config: { model_name: "claude-sonnet-4" },
       },
     };
 
@@ -596,7 +595,7 @@ describe("CallAgentTaskBuilder — output.schema propagation", () => {
     expect(config.output.schema.required).toEqual(["executive_summary", "cohorts", "anomalies"]);
   });
 
-  it("preserves output.schema alongside config, harness, and env fields", async () => {
+  it("preserves output.schema alongside run_config, harness, and env fields", async () => {
     mockCallAgent.mockResolvedValue({ structured: { executive_summary: "ok", cohorts: [], anomalies: [] } });
 
     const taskDef: CallAgentTaskDef = {
@@ -606,7 +605,7 @@ describe("CallAgentTaskBuilder — output.schema propagation", () => {
         agent: "notification-analyst",
         message: "Analyze data.",
         env: { POSTGRES_CONNECTION_URL: "${.secrets.PG_URL}" },
-        config: { model: "claude-sonnet-4", timeout: 300 },
+        run_config: { model_name: "claude-sonnet-4", max_cost_usd: 0.5 },
         output: { schema: cohortSchema, on_invalid: "ON_INVALID_FAIL" },
         harness: "HARNESS_CURSOR",
       },
@@ -618,7 +617,8 @@ describe("CallAgentTaskBuilder — output.schema propagation", () => {
 
     const [config] = mockCallAgent.mock.calls[0];
     expect(config.agent).toBe("notification-analyst");
-    expect(config.config?.model).toBe("claude-sonnet-4");
+    expect(config.run_config?.model_name).toBe("claude-sonnet-4");
+    expect(config.run_config?.max_cost_usd).toBe(0.5);
     expect(config.env?.POSTGRES_CONNECTION_URL).toBe("${.secrets.PG_URL}");
     expect(config.harness).toBe("HARNESS_CURSOR");
     expect(config.output).toBeDefined();

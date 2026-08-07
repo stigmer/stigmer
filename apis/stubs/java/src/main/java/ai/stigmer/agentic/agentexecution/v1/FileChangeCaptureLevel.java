@@ -141,7 +141,7 @@ public enum FileChangeCaptureLevel
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(17);
+    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(18);
   }
 
   private static final FileChangeCaptureLevel[] VALUES = values();

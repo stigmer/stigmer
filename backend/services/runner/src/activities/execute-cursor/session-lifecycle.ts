@@ -40,7 +40,12 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { Agent } from "@cursor/sdk";
-import type { SDKAgent, CursorAgentPlatformOptions, AgentDefinition } from "@cursor/sdk";
+import type {
+  SDKAgent,
+  CursorAgentPlatformOptions,
+  AgentDefinition,
+  ModelParameterValue,
+} from "@cursor/sdk";
 import { withTimeout, TimeoutError } from "../../shared/with-timeout.js";
 import type { CursorMcpServerConfig } from "./mcp-resolver.js";
 
@@ -83,6 +88,15 @@ const LOCAL_SETTING_SOURCES = ["project"] as const;
 export interface CreateAgentOptions {
   apiKey: string;
   model: string;
+  /**
+   * Explicit variant parameters sent with the model selection on every
+   * create AND resume (stigmer/stigmer#357). A bare `{ id }` lets the
+   * Cursor catalog's default variant pick the price, so the caller always
+   * supplies the pinned params from resolveServiceTierParams — possibly
+   * empty (Auto, or a model with no price-bearing parameters), but never
+   * absent by accident.
+   */
+  modelParams?: ModelParameterValue[];
   workspaceDirs: string[];
   sessionId: string;
   /** Durable workspace volume root; the SDK state store lives under it. */
@@ -112,6 +126,8 @@ export interface ResumeAgentOptions {
   /** Durable workspace volume root; the SDK state store lives under it. */
   workspaceRootDir: string;
   model?: string;
+  /** Explicit variant parameters — see {@link CreateAgentOptions.modelParams}. */
+  modelParams?: ModelParameterValue[];
   mcpServers?: Record<string, CursorMcpServerConfig>;
   /** Custom sub-agents — see {@link CreateAgentOptions.agents}. */
   agents?: Record<string, AgentDefinition>;
@@ -129,6 +145,8 @@ export interface CloudRepo {
 export interface CreateCloudAgentOptions {
   apiKey: string;
   model?: string;
+  /** Explicit variant parameters — see {@link CreateAgentOptions.modelParams}. */
+  modelParams?: ModelParameterValue[];
   repos: CloudRepo[];
   sessionId: string;
   mcpServers?: Record<string, CursorMcpServerConfig>;
@@ -140,6 +158,8 @@ export interface ResumeCloudAgentOptions {
   apiKey: string;
   agentId: string;
   model?: string;
+  /** Explicit variant parameters — see {@link CreateAgentOptions.modelParams}. */
+  modelParams?: ModelParameterValue[];
   mcpServers?: Record<string, CursorMcpServerConfig>;
   /** Custom sub-agents — see {@link CreateAgentOptions.agents}. */
   agents?: Record<string, AgentDefinition>;
@@ -245,7 +265,9 @@ export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent
 
   return Agent.create({
     apiKey: options.apiKey,
-    model: { id: options.model },
+    // Always a full selection — id AND params. A bare { id } would let the
+    // catalog's default variant (account-influenced) pick the price (#357).
+    model: { id: options.model, params: options.modelParams },
     local: { cwd, settingSources: [...LOCAL_SETTING_SOURCES] },
     mcpServers: options.mcpServers as Record<string, any>,
     agents: options.agents,
@@ -273,7 +295,11 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent
 
   return Agent.resume(options.agentId, {
     apiKey: options.apiKey,
-    model: options.model ? { id: options.model } : undefined,
+    // Variant params must be re-supplied on resume exactly like mcpServers:
+    // explicit params hold across resume (verified against the billing
+    // ledger, #357), but an id-only resume would fall back to the catalog
+    // default variant for the new turns.
+    model: options.model ? { id: options.model, params: options.modelParams } : undefined,
     // Neither cwd nor settingSources survive Agent.resume(); both must be
     // re-supplied every turn. Omitting cwd makes the SDK fall back to
     // process.cwd(), which re-roots the agent in the runner's own working
@@ -307,7 +333,7 @@ export async function createCloudAgent(options: CreateCloudAgentOptions): Promis
 
   return Agent.create({
     apiKey: options.apiKey,
-    model: options.model ? { id: options.model } : undefined,
+    model: options.model ? { id: options.model, params: options.modelParams } : undefined,
     cloud: { repos: options.repos },
     mcpServers: options.mcpServers as Record<string, any>,
     agents: options.agents,
@@ -328,7 +354,7 @@ export async function resumeCloudAgent(options: ResumeCloudAgentOptions): Promis
 
   return Agent.resume(options.agentId, {
     apiKey: options.apiKey,
-    model: options.model ? { id: options.model } : undefined,
+    model: options.model ? { id: options.model, params: options.modelParams } : undefined,
     mcpServers: options.mcpServers as Record<string, any>,
     agents: options.agents,
   });
@@ -372,6 +398,7 @@ export async function resolveAgent(
             apiKey: options.apiKey,
             agentId: harnessStateId,
             model: options.model,
+            modelParams: options.modelParams,
             mcpServers: options.mcpServers,
             agents: options.agents,
           })
@@ -382,6 +409,7 @@ export async function resolveAgent(
             workspaceDirs: (options as CreateAgentOptions).workspaceDirs,
             workspaceRootDir: (options as CreateAgentOptions).workspaceRootDir,
             model: options.model,
+            modelParams: options.modelParams,
             mcpServers: options.mcpServers,
             agents: options.agents,
           });

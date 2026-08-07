@@ -1,5 +1,6 @@
 import datetime
 
+from ai.stigmer.agentic.agentexecution.v1 import enum_pb2 as _enum_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
@@ -337,7 +338,7 @@ class ModelUsage(_message.Message):
     def __init__(self, model: _Optional[str] = ..., provider: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_creation_input_tokens: _Optional[int] = ..., cache_read_input_tokens: _Optional[int] = ..., call_count: _Optional[int] = ..., billable_cost_micros: _Optional[int] = ..., provider_cost_micros: _Optional[int] = ...) -> None: ...
 
 class StreamingUsageSummary(_message.Message):
-    __slots__ = ("input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens", "total_tokens", "turn_count", "estimated_cost_usd", "model", "observed_at")
+    __slots__ = ("input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens", "total_tokens", "turn_count", "estimated_cost_usd", "model", "observed_at", "requested_service_tier", "requested_model_params")
     INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     OUTPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     CACHE_READ_TOKENS_FIELD_NUMBER: _ClassVar[int]
@@ -347,6 +348,8 @@ class StreamingUsageSummary(_message.Message):
     ESTIMATED_COST_USD_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
     OBSERVED_AT_FIELD_NUMBER: _ClassVar[int]
+    REQUESTED_SERVICE_TIER_FIELD_NUMBER: _ClassVar[int]
+    REQUESTED_MODEL_PARAMS_FIELD_NUMBER: _ClassVar[int]
     input_tokens: int
     output_tokens: int
     cache_read_tokens: int
@@ -356,4 +359,6 @@ class StreamingUsageSummary(_message.Message):
     estimated_cost_usd: float
     model: str
     observed_at: str
-    def __init__(self, input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_read_tokens: _Optional[int] = ..., cache_write_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., turn_count: _Optional[int] = ..., estimated_cost_usd: _Optional[float] = ..., model: _Optional[str] = ..., observed_at: _Optional[str] = ...) -> None: ...
+    requested_service_tier: _enum_pb2.ServiceTier
+    requested_model_params: str
+    def __init__(self, input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_read_tokens: _Optional[int] = ..., cache_write_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., turn_count: _Optional[int] = ..., estimated_cost_usd: _Optional[float] = ..., model: _Optional[str] = ..., observed_at: _Optional[str] = ..., requested_service_tier: _Optional[_Union[_enum_pb2.ServiceTier, str]] = ..., requested_model_params: _Optional[str] = ...) -> None: ...

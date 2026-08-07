@@ -43,7 +43,6 @@ func TestAgentCallAffinity_ChildRoutesToParentQueue(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": "Reply with exactly: affinity-test-ok",
 	})
 	require.NoError(t, err)
@@ -173,7 +172,6 @@ func TestAgentCallAffinity_CursorRoutesToParentQueue(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": "Reply with exactly: cursor-affinity-test-ok",
 		"harness": "cursor",
 	})

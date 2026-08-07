@@ -370,7 +370,6 @@ func TestRecover_AgentCallTaskSkip(t *testing.T) {
 
 	agentCallConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     harness.TestOrg,
 		"message": "Reply with exactly: recovery-test-ok",
 		"harness": "cursor",
 	})

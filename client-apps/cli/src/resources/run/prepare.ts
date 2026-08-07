@@ -19,6 +19,13 @@ import { localWorkspaceRoots, parseWorkspaceEntries } from "./workspace.js";
 /** The interaction mode requested for the run; "" means the agent default. */
 export type RunMode = "" | "agent" | "plan";
 
+/**
+ * The `--service-tier` flag's value space (#357). Empty means unset —
+ * distinct from an explicit "standard" so the ledger keeps the
+ * unspecified-vs-explicit distinction.
+ */
+export type ServiceTierFlag = "" | "standard" | "fast";
+
 /** Raw agent-execution flags shared by `run` and `draft` (Go's agentExecFlags). */
 export interface AgentExecFlags {
   readonly message: string;
@@ -36,6 +43,7 @@ export interface AgentExecFlags {
   readonly model: string;
   readonly autoApprove: boolean;
   readonly mode: RunMode;
+  readonly serviceTier: ServiceTierFlag;
 }
 
 /**
@@ -54,6 +62,7 @@ export interface PreparedRun {
   readonly model: string;
   readonly autoApproveAll: boolean;
   readonly mode: RunMode;
+  readonly serviceTier: ServiceTierFlag;
 }
 
 /**
@@ -68,6 +77,7 @@ export async function prepareAgentExec(
 ): Promise<PreparedRun> {
   const defaultAction = parseApprovalAction(flags.approveDefault);
   validateMode(flags.mode);
+  validateServiceTier(flags.serviceTier);
 
   const workspaceEntries = parseWorkspaceEntries(flags.workspace, flags.branch, flags.commit);
 
@@ -100,6 +110,7 @@ export async function prepareAgentExec(
     model: flags.model,
     autoApproveAll: flags.autoApprove,
     mode: flags.mode,
+    serviceTier: flags.serviceTier,
   };
 }
 
@@ -135,5 +146,19 @@ export function parseApprovalAction(value: string): ApprovalAction {
 export function validateMode(mode: string): asserts mode is RunMode {
   if (mode !== "" && mode !== "agent" && mode !== "plan") {
     throw new UsageError(`invalid --mode value "${mode}": must be "agent" or "plan"`);
+  }
+}
+
+/**
+ * Validate the `--service-tier` flag. Empty means "platform default" (which
+ * resolves to standard — never the provider account default, #357). The
+ * server refuses fast on models without a registry fast variant; this check
+ * only catches spelling errors before a network round trip.
+ */
+export function validateServiceTier(tier: string): asserts tier is ServiceTierFlag {
+  if (tier !== "" && tier !== "standard" && tier !== "fast") {
+    throw new UsageError(
+      `invalid --service-tier value "${tier}": must be "standard" or "fast"`,
+    );
   }
 }

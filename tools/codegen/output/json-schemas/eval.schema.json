@@ -5,6 +5,28 @@
     "criteria": {
       "description": "Evaluation criteria for multi_criteria mode. Required when scoring_mode is EVAL_MULTI_CRITERIA; ignored otherwise. Each criterion is scored independently, and the overall score is the weighted average (uniform if all weights are equal or zero).",
       "items": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "description": "Description of what this criterion measures. Included in the judge prompt to guide the LLM's assessment. Example: \"Does the response accurately reflect the source data without hallucinations?\"",
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "description": "Name of this evaluation dimension. Used in the judge prompt and appears in the output. Examples: \"accuracy\", \"completeness\", \"safety\", \"relevance\"",
+            "maxLength": 127,
+            "minLength": 1,
+            "type": "string"
+          },
+          "weight": {
+            "description": "Relative weight for computing the weighted average overall score. When all weights are equal (or all zero), criteria are averaged uniformly. Example: accuracy=3.0, formatting=1.0 means accuracy counts 3x more.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "description"
+        ],
         "type": "object"
       },
       "type": "array"

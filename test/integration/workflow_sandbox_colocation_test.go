@@ -46,7 +46,6 @@ func TestSandboxColocation_SessionRunnerID(t *testing.T) {
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"agent":   agent.GetMetadata().GetSlug(),
-		"org":     "test-org",
 		"message": "Reply with exactly: colocation-test",
 	})
 	require.NoError(t, err)

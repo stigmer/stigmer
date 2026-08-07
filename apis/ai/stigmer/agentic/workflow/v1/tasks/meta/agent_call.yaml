@@ -68,3 +68,17 @@ yaml_examples:
           max_retries: 2
       export:
         as: "${ .structured }"
+  - |
+    - name: fix_flaky_test
+      kind: agent_call
+      task_config:
+        agent: "code-reviewer"
+        message: "Fix the flaky test in ${ .failing_test }"
+        harness: HARNESS_CURSOR
+        run_config:
+          model_name: "composer-2.5"
+          max_cost_usd: 0.50
+          # Fast tier: billed at the model's fast rates. Valid only for
+          # models with a fast pricing tier; refused at create otherwise.
+          # The shorthand spellings "standard"/"fast" are also accepted.
+          service_tier: SERVICE_TIER_FAST

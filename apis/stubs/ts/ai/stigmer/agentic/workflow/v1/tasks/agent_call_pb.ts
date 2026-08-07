@@ -4,13 +4,17 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ContextManagementConfig } from "../../../agentexecution/v1/spec_pb.js";
-import { file_ai_stigmer_agentic_agentexecution_v1_spec } from "../../../agentexecution/v1/spec_pb.js";
+import type { RunConfig } from "../../../agentexecution/v1/invocation_pb.js";
+import { file_ai_stigmer_agentic_agentexecution_v1_invocation } from "../../../agentexecution/v1/invocation_pb.js";
 import type { Harness } from "../../../session/v1/enum_pb.js";
 import { file_ai_stigmer_agentic_session_v1_enum } from "../../../session/v1/enum_pb.js";
+import type { WorkspaceEntry } from "../../../session/v1/workspace_pb.js";
+import { file_ai_stigmer_agentic_session_v1_workspace } from "../../../session/v1/workspace_pb.js";
 import type { OnInvalidOutputPolicy } from "./common_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_tasks_common } from "./common_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../../commons/apiresource/field_options_pb.js";
+import type { ApiResourceReference } from "../../../../commons/apiresource/io_pb.js";
+import { file_ai_stigmer_commons_apiresource_io } from "../../../../commons/apiresource/io_pb.js";
 import { file_buf_validate_validate } from "../../../../../../buf/validate/validate_pb.js";
 import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
 import type { JsonObject, Message } from "@bufbuild/protobuf";
@@ -19,20 +23,62 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call: GenFile = /*@__PURE__*/
-  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvYWdlbnRfY2FsbC5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzIsEDChNBZ2VudENhbGxUYXNrQ29uZmlnEhsKBWFnZW50GAEgASgJQgy6SAnIAQFyBBABGH8SCwoDb3JnGAIgASgJEh8KB21lc3NhZ2UYAyABKAlCDrpIB8gBAXICEAHYhSwBEk8KA2VudhgEIAMoCzJCLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5BZ2VudENhbGxUYXNrQ29uZmlnLkVudkVudHJ5EkoKBmNvbmZpZxgFIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5BZ2VudEV4ZWN1dGlvbkNvbmZpZxJNCgZvdXRwdXQYBiABKAsyPS5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuQWdlbnRDYWxsT3V0cHV0Q29udHJhY3QSNwoHaGFybmVzcxgHIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3MaKgoIRW52RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AToO6ossCmFnZW50X2NhbGwi0gEKF0FnZW50Q2FsbE91dHB1dENvbnRyYWN0Ei8KBnNjaGVtYRgBIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3RCBrpIA8gBARJPCgpvbl9pbnZhbGlkGAIgASgOMjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLk9uSW52YWxpZE91dHB1dFBvbGljeRIeCgttYXhfcmV0cmllcxgDIAEoBUIJukgGGgQYBSgBEhUKDWZhbGxiYWNrX3Rhc2sYBCABKAki3AEKFEFnZW50RXhlY3V0aW9uQ29uZmlnEg0KBW1vZGVsGAEgASgJEhsKB3RpbWVvdXQYAiABKAVCCrpIBxoFGJAcKAESJAoLdGVtcGVyYXR1cmUYAyABKAJCD7pIDAoKHQAAgD8tAAAAABJZChJjb250ZXh0X21hbmFnZW1lbnQYBCABKAsyPS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ29udGV4dE1hbmFnZW1lbnRDb25maWcSFwoPbWF4X2Nvc3RfbWljcm9zGAUgASgDYgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_spec, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_workflow_v1_tasks_common, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvYWdlbnRfY2FsbC5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzIsIFChNBZ2VudENhbGxUYXNrQ29uZmlnEhsKBWFnZW50GAEgASgJQgy6SAnIAQFyBBABGH8SHwoHbWVzc2FnZRgCIAEoCUIOukgHyAEBcgIQAdiFLAESTwoDZW52GAMgAygLMkIuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLkFnZW50Q2FsbFRhc2tDb25maWcuRW52RW50cnkSQwoKcnVuX2NvbmZpZxgEIAEoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5SdW5Db25maWcSTQoGb3V0cHV0GAUgASgLMj0uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLkFnZW50Q2FsbE91dHB1dENvbnRyYWN0EjcKB2hhcm5lc3MYBiABKA4yJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5IYXJuZXNzEkgKEXdvcmtzcGFjZV9lbnRyaWVzGAcgAygLMi0uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuV29ya3NwYWNlRW50cnkSyAEKEGVudmlyb25tZW50X3JlZnMYCCADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCeLpIcZIBbiJsugFpChVlbnZpcm9ubWVudF9yZWZzLmtpbmQSP2Vudmlyb25tZW50X3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1lbnZpcm9ubWVudBoPdGhpcy5raW5kID09IDUz4IUsNRoqCghFbnZFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBOg7qiywKYWdlbnRfY2FsbCLSAQoXQWdlbnRDYWxsT3V0cHV0Q29udHJhY3QSLwoGc2NoZW1hGAEgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdEIGukgDyAEBEk8KCm9uX2ludmFsaWQYAiABKA4yOy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuT25JbnZhbGlkT3V0cHV0UG9saWN5Eh4KC21heF9yZXRyaWVzGAMgASgFQgm6SAYaBBgFKAESFQoNZmFsbGJhY2tfdGFzaxgEIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_invocation, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_agentic_workflow_v1_tasks_common, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.
  *
  * @internal
+ * This message is the workflow DSL's adoption of the shared
+ * AgentInvocation vocabulary (agentexecution/v1/invocation.proto) at
+ * the TYPE level — issue stigmer/stigmer#358, per DD-018
+ * (whatsapp-proactive-messaging, stigmer-cloud). Because
+ * WorkflowTask.task_config is a "kind + Struct" envelope, this message
+ * IS the authoring schema: its field names are the YAML keys workflow
+ * authors write. Embedding AgentInvocation as a nested message would
+ * force either a nested `invocation:` authoring block or
+ * flatten/unflatten rewrites in every Struct consumer, so the DSL
+ * stays flat and shares the vocabulary type-by-type instead.
+ *
+ * Field-by-field correspondence to AgentInvocation (keep in lockstep;
+ * a field added there must be consciously adopted or consciously
+ * excluded here, with the reason recorded):
+ * - agent      ↔ agent_ref  — the DSL string form ("org/slug"); the
+ *                workflow runner parses it into an agent reference.
+ * - message    ↔ message    — expression-carrying in the DSL.
+ * - harness    ↔ harness    — same shared enum, same semantics.
+ * - run_config ↔ run_config — the shared message, embedded directly.
+ * - workspace_entries ↔ workspace_entries — same shared type; git
+ *                sources only (no client is connected to serve a
+ *                local_path when a workflow task fires).
+ * - environment_refs ↔ environment_refs — same shared type; resolved
+ *                server-side at execution create, never carried in the
+ *                create request (the schedule/channel/share posture).
+ *
+ * Surface-specific fields with their reasons (the DD-017/018 bucket
+ * discipline):
+ * - env: the workflow's context-forwarding channel. Values are JQ
+ *   expressions resolved from workflow state/secrets at run time, not
+ *   plaintext literals in a manifest — which is why AgentInvocation's
+ *   runtime_env exclusion does not apply to it.
+ * - output: the structured-output contract is a workflow-routing
+ *   concern (switch_case on typed fields), meaningless to other
+ *   invocation surfaces.
+ *
+ * Deleted in the #358 clean break (no reserved numbers; task configs
+ * are stored as JSON Structs, so field numbers never hit a wire):
+ * - org: redundant with the "org/slug" form of `agent`, and the
+ *   proto→YAML converter never emitted it.
+ * - AgentExecutionConfig (timeout, temperature, context_management,
+ *   max_cost_micros): declared knobs the runtime silently ignored.
+ *   The cost cap lives on run_config.max_cost_usd and is now actually
+ *   enforced; timeout/temperature had no runtime counterpart at all.
+ *
  * The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer").
  * Resolution order:
- * 1. If org is specified: look in that org's agents
- * 2. If org is empty: use the workflow's org
+ * 1. "org/slug": look in that org's agents
+ * 2. "slug" only: use the workflow's org
  * 3. Before external lookup, check manifest (current deployment)
- *
- * The workflow's execution context (environment variables, secrets) is
- * passed to the agent invocation, allowing agents to access workflow state.
  *
  * YAML Example (without structured output):
  *   - analyze:
@@ -42,9 +88,9 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call: GenFile = /*@
  *         message: "Review this code: ${ $context.fetchCode.body }"
  *         env:
  *           GITHUB_TOKEN: "${ .secrets.GH_TOKEN }"
- *         config:
- *           model: "claude-3-5-sonnet"
- *           timeout: 300
+ *         run_config:
+ *           model_name: "claude-sonnet-4-6"
+ *           max_cost_usd: 0.50
  *
  * YAML Example (with structured output):
  *   - triage_ticket:
@@ -72,8 +118,6 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call: GenFile = /*@
  *       export:
  *         as: "${ .structured }"
  *
- * Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
  */
 export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig"> & {
@@ -84,18 +128,15 @@ export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
    * Examples: "code-reviewer", "stigmer/code-reviewer", "acme/data-analyst"
    * Required field.
    *
+   * @internal
+   * The DSL string form of AgentInvocation.agent_ref. The structured
+   * ApiResourceReference shape is deliberately not used here: the
+   * authoring surface is YAML written by hand, and "org/slug" is its
+   * idiom.
+   *
    * @generated from field: string agent = 1;
    */
   agent: string;
-
-  /**
-   * Explicit organization for agent resolution. Optional.
-   * If empty, the org is parsed from the agent field or defaults to workflow's org.
-   * Use this when you need to override the parsed org.
-   *
-   * @generated from field: string org = 2;
-   */
-  org: string;
 
   /**
    * Instructions/prompt to send to the agent.
@@ -103,7 +144,7 @@ export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
    * Example: "Analyze this code: ${ $context.fetchCode.body }"
    * Required field.
    *
-   * @generated from field: string message = 3;
+   * @generated from field: string message = 2;
    */
   message: string;
 
@@ -114,17 +155,29 @@ export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
    * Example: {"GITHUB_TOKEN": "${ .secrets.GH_TOKEN }"}
    * Optional.
    *
-   * @generated from field: map<string, string> env = 4;
+   * @generated from field: map<string, string> env = 3;
    */
   env: { [key: string]: string };
 
   /**
-   * Execution configuration for the agent invocation.
-   * Optional - defaults are applied if not specified.
+   * Per-call model choice and run bounds. Unset fields inherit the
+   * platform defaults.
    *
-   * @generated from field: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig config = 5;
+   * @internal
+   * The shared RunConfig (DD-018 D-2) — the same message schedules
+   * embed, so the run-bound vocabulary cannot drift between
+   * triggering surfaces. Semantics at the workflow surface:
+   * model_name replaces the agent's default outright; max_cost_usd
+   * maps to ExecutionConfig.max_cost_usd and is enforced by the
+   * runner's harness-generic cost guards; max_tool_rounds maps to
+   * ExecutionConfig.max_tool_rounds (native harness only — inert on
+   * cursor, whose sole bound is cost). No platform clamp profile is
+   * applied at this surface yet: per the RunConfig contract, an unset
+   * platform cap means the owner value stands.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4;
    */
-  config?: AgentExecutionConfig;
+  runConfig?: RunConfig;
 
   /**
    * Structured output contract for this agent call.
@@ -134,12 +187,11 @@ export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
    * JSON is placed in the task output under the "structured" key, enabling
    * reliable downstream routing via switch_case expressions.
    *
-   * When not set, the task output contains the agent's raw text response
-   * (backward compatible with existing workflows).
+   * When not set, the task output contains the agent's raw text response.
    *
    * @since T02 (Structured Agent Output Model)
    *
-   * @generated from field: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6;
+   * @generated from field: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 5;
    */
   output?: AgentCallOutputContract;
 
@@ -154,7 +206,8 @@ export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
    * the AgentExecution. The harness is a session-level concern — it determines
    * tool availability, state management, model access, and billing tier.
    *
-   * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+   * When unspecified, defaults to HARNESS_NATIVE (the workflow
+   * surface's platform default).
    *
    * YAML Example:
    *   - code_review:
@@ -164,9 +217,52 @@ export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
    *         harness: cursor
    *         message: "Review this PR"
    *
-   * @generated from field: ai.stigmer.agentic.session.v1.Harness harness = 7;
+   * @generated from field: ai.stigmer.agentic.session.v1.Harness harness = 6;
    */
   harness: Harness;
+
+  /**
+   * Workspace the child run's session operates on. Empty means no workspace.
+   *
+   * @internal
+   * The shared WorkspaceEntry type (AgentInvocation correspondence).
+   * Maps onto SessionSpec.workspace_entries of the session each call
+   * creates. Surface constraint, enforced in workflow validation (both
+   * editions): sources must be git_repo — no client is connected to
+   * serve a local_path when a workflow task fires. Credentials follow
+   * DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
+   * environment; for private repos the supported contract is an
+   * org-visibility Environment holding GITHUB_TOKEN bound via
+   * environment_refs. Public repos need no token.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7;
+   */
+  workspaceEntries: WorkspaceEntry[];
+
+  /**
+   * References to Environment resources whose values are provided to
+   * the child runs this task creates.
+   *
+   * This is how a tool-using agent becomes runnable from a workflow:
+   * bind an org-shared environment holding the needed credentials, and
+   * the child runs receive its values at runtime. The agent and its
+   * default instance stay untouched.
+   *
+   * @internal
+   * The AgentShare/AgentChannel/Schedule environment_refs lineage.
+   * Never carried in the execution create request and never emitted
+   * into execution YAML: CreateExecutionContextStep resolves them from
+   * the Workflow row, gated on the trusted runner caller identity and
+   * keyed by parent_workflow_id + task label — prepended at LOWEST
+   * merge priority (instance refs and runtime_env override on key
+   * conflicts). No write-time existence or visibility check:
+   * enforcement lives solely at runtime resolution, which fails closed.
+   * When kind is unset in YAML, the DSL normalizer defaults it to
+   * environment.
+   *
+   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8;
+   */
+  environmentRefs: ApiResourceReference[];
 };
 
 /**
@@ -283,85 +379,4 @@ export type AgentCallOutputContract = Message<"ai.stigmer.agentic.workflow.v1.ta
  */
 export const AgentCallOutputContractSchema: GenMessage<AgentCallOutputContract> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflow_v1_tasks_agent_call, 1);
-
-/**
- * AgentExecutionConfig defines optional execution parameters for agent calls.
- * These settings override the agent's default configuration for this specific invocation.
- *
- * @generated from message ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
- */
-export type AgentExecutionConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig"> & {
-  /**
-   * LLM model to use for this invocation.
-   * Example: "claude-3-5-sonnet", "gpt-4", "claude-3-opus"
-   * Optional - uses agent's default model if not specified.
-   *
-   * @generated from field: string model = 1;
-   */
-  model: string;
-
-  /**
-   * Timeout for agent execution in seconds.
-   * Default: 300 (5 minutes)
-   * Optional.
-   *
-   * @generated from field: int32 timeout = 2;
-   */
-  timeout: number;
-
-  /**
-   * Temperature for LLM sampling (0.0 to 1.0).
-   * Lower = more deterministic, Higher = more creative
-   * Default: 0.7
-   * Optional.
-   *
-   * @generated from field: float temperature = 3;
-   */
-  temperature: number;
-
-  /**
-   * Context management configuration for this agent invocation.
-   * Controls automatic summarization behavior for long-running conversations.
-   * When specified, overrides model defaults from the Model Registry.
-   *
-   * @internal
-   * @since Phase 3 (Context Summarization Architecture)
-   *
-   * Use cases:
-   * - Disable summarization for short-lived agents
-   * - Custom thresholds for agents with specific context requirements
-   * - Fine-tune summarization behavior per workflow task
-   *
-   * Example YAML:
-   *   config:
-   *     model: "claude-sonnet-4.5"
-   *     context_management:
-   *       custom_trigger_threshold: 150000
-   *       custom_target_tokens: 120000
-   *
-   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig context_management = 4;
-   */
-  contextManagement?: ContextManagementConfig;
-
-  /**
-   * Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros).
-   * When set, the runtime terminates this agent call if its accumulated cost
-   * exceeds this limit. This uses the workflow domain's micro-USD convention
-   * and provides per-task cost control at the workflow level.
-   * The runtime checks both: per-task limit first, then workflow remaining budget.
-   * Optional — when 0, no per-task cost limit is enforced.
-   *
-   * @since T05 (Workflow-Level Budget Primitives)
-   *
-   * @generated from field: int64 max_cost_micros = 5;
-   */
-  maxCostMicros: bigint;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig.
- * Use `create(AgentExecutionConfigSchema)` to create a new message.
- */
-export const AgentExecutionConfigSchema: GenMessage<AgentExecutionConfig> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflow_v1_tasks_agent_call, 2);
 

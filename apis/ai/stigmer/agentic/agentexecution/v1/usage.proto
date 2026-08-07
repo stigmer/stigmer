@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agentexecution.v1;
 
+import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 import "google/protobuf/timestamp.proto";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -528,9 +529,34 @@ message StreamingUsageSummary {
   // Labeled "Estimated" in the UI — not provider-verified.
   double estimated_cost_usd = 7;
 
-  // Model identifier observed during streaming (from RunResult or assistant events).
+  // Model identifier the runner requested for this execution's turns.
+  //
+  // @internal
+  // This is the validated REQUESTED model (UsageAccumulator constructor
+  // argument), not a provider-reported resolved id — the Cursor SDK echoes
+  // the requested selection and never reports the served variant, so the
+  // authoritative resolved model lives on billing's LlmCallUsageRecord
+  // (requested_model / resolved_model / service_tier), not here.
   string model = 8;
 
   // ISO 8601 timestamp of the last turn-ended event observed.
   string observed_at = 9;
+
+  // Service tier the runner requested for this execution's model calls.
+  //
+  // Always explicit once the runner has translated the execution config
+  // (STANDARD when ExecutionConfig.service_tier was unset) — the audit
+  // record that the account default was never left in control.
+  ServiceTier requested_service_tier = 10;
+
+  // JSON-encoded provider variant parameters the runner sent with the model
+  // selection (Cursor ModelSelection.params, e.g.
+  // [{"id":"fast","value":"false"}]). Empty when the harness sent none.
+  //
+  // @internal
+  // Recorded verbatim for audit: tier→params translation depends on the
+  // provider catalog at send time, so the derivation is not reproducible
+  // later from the tier alone. Mirrors the Cursor SDK's own analytics
+  // convention (SdkRunCreatedProps.model_params).
+  string requested_model_params = 11;
 }

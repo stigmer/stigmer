@@ -3,7 +3,31 @@
   "additionalProperties": false,
   "properties": {
     "event": {
+      "additionalProperties": false,
       "description": "The event specification to emit. Contains the CloudEvents envelope fields (type, source, data, subject). Required field.",
+      "properties": {
+        "data": {
+          "description": "Event payload data. Arbitrary JSON object carried as the CloudEvents data attribute. Values within the Struct can contain ${ } expressions that the runtime evaluates before emission. Unlike other Struct fields in the workflow domain (response_schema, form_schema, schema) which carry JSON Schema definitions, this field carries the actual event payload — not a schema.",
+          "type": "object"
+        },
+        "source": {
+          "description": "CloudEvents source identifier. URI or URI-reference that identifies the context in which the event happened. Supports ${ } expression interpolation. When empty, the runtime defaults to the workflow execution URI (e.g., \"/workflows/{workflow_id}/executions/{execution_id}\").",
+          "type": "string"
+        },
+        "subject": {
+          "description": "CloudEvents subject identifier. Describes the subject of the event in the context of the event producer. Supports ${ } expression interpolation. Examples: \"${ $context.ticket.id }\", \"${ $context.order.number }\"",
+          "type": "string"
+        },
+        "type": {
+          "description": "CloudEvents type identifier. A reverse-DNS string that categorizes the event for routing and filtering. Examples: \"stigmer.workflow.ticket.classified\", \"acme.order.completed\"",
+          "maxLength": 255,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
       "type": "object"
     }
   },

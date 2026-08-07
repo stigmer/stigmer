@@ -93,8 +93,12 @@ func unmarshalTaskConfig(
 	return protoMsg, nil
 }
 
-// normalizeEnumShorthands rewrites user-friendly enum values (e.g. "cursor")
-// to the full proto enum names (e.g. "HARNESS_CURSOR") that protojson expects.
+// normalizeEnumShorthands rewrites user-friendly DSL forms to the shapes
+// protojson expects: harness shorthands ("cursor" → "HARNESS_CURSOR"),
+// run_config service-tier shorthands ("fast" → "SERVICE_TIER_FAST"), and
+// the environment_refs kind default (an omitted kind means environment —
+// the field can reference nothing else, so requiring authors to spell it
+// would be ceremony).
 func normalizeEnumShorthands(kind workflowv1.WorkflowTaskKind, jsonBytes []byte) []byte {
 	if kind != workflowv1.WorkflowTaskKind_agent_call {
 		return jsonBytes
@@ -116,6 +120,30 @@ func normalizeEnumShorthands(kind workflowv1.WorkflowTaskKind, jsonBytes []byte)
 			case "cursor":
 				m["harness"] = "HARNESS_CURSOR"
 				changed = true
+			}
+		}
+	}
+
+	if rc, ok := m["run_config"].(map[string]interface{}); ok {
+		if st, isStr := rc["service_tier"].(string); isStr {
+			switch strings.ToLower(st) {
+			case "standard":
+				rc["service_tier"] = "SERVICE_TIER_STANDARD"
+				changed = true
+			case "fast":
+				rc["service_tier"] = "SERVICE_TIER_FAST"
+				changed = true
+			}
+		}
+	}
+
+	if refs, ok := m["environment_refs"].([]interface{}); ok {
+		for _, r := range refs {
+			if ref, isMap := r.(map[string]interface{}); isMap {
+				if _, hasKind := ref["kind"]; !hasKind {
+					ref["kind"] = "environment"
+					changed = true
+				}
 			}
 		}
 	}

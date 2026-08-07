@@ -810,6 +810,55 @@ enum ApprovalMode {
   APPROVAL_MODE_UNATTENDED = 2;
 }
 
+// ServiceTier selects the provider-side speed/service tier for an execution's
+// model calls.
+//
+// Providers spell this differently — Cursor exposes per-model "fast" variants
+// at higher per-token rates, Anthropic and OpenAI expose service tiers — but
+// the platform semantic is uniform: the tier is a deterministic, user-selected
+// attribute validated against the model registry at create time. A tier is
+// selectable for a model only when the registry prices it
+// (pricingVariants.<tier>), so a selected tier is always billable.
+//
+// The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never
+// the provider account default. The runner always sends the provider an
+// explicit variant selection, so an out-of-band account setting can never
+// silently change what an execution pays (stigmer/stigmer#357).
+//
+// @internal
+// Resolution of UNSPECIFIED → STANDARD happens exactly once, in the runner's
+// translation layer; every upstream layer preserves the caller's raw value so
+// "user explicitly chose standard" stays distinguishable from "platform
+// default". v1 supports the Cursor harness only: FAST on a model without a
+// registry fast variant is refused at create time (INVALID_ARGUMENT), which
+// also covers native-harness models since only cursor-harness registry entries
+// carry fast variants today. Native (Anthropic/OpenAI) service-tier mapping is
+// a tracked follow-up.
+enum ServiceTier {
+  // Default — resolves to SERVICE_TIER_STANDARD, never the provider account
+  // default.
+  SERVICE_TIER_UNSPECIFIED = 0;
+
+  // Standard tier: the model's base-priced configuration, requested
+  // explicitly.
+  //
+  // @internal
+  // For the Cursor harness the runner pins every price-bearing variant
+  // parameter to its base value (fast=false, and thinking=false where the
+  // parameter exists); price-neutral parameters (e.g. effort) follow the
+  // catalog default variant. Confirmed against the billing ledger 2026-08-06:
+  // explicit base params bill base wire ids on create AND resume (see
+  // stigmer-cloud _projects/2026-08/20260806.04.model-service-tier).
+  SERVICE_TIER_STANDARD = 1;
+
+  // Fast tier: the model's fast variant, billed at the registry's fast
+  // variant rates.
+  //
+  // Valid only for models whose registry entry declares a fast pricing
+  // variant; refused at execution create otherwise.
+  SERVICE_TIER_FAST = 2;
+}
+
 // FileChangeType is the per-file outcome of a file mutation in a tool call.
 //
 // Distinct from ToolKind, which classifies the tool: a single tool call may

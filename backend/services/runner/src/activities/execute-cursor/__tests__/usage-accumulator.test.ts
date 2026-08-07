@@ -1,6 +1,44 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeAll } from "vitest";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 import { UsageAccumulator } from "../usage-accumulator.js";
+
+// The accumulator's per-turn estimate reads the worker's pricing table
+// (model-pricing.ts); load it from a stubbed registry so the fast-rate
+// assertions run against known prices (the model-pricing.test.ts pattern).
+beforeAll(async () => {
+  const registry = {
+    models: [
+      {
+        id: "composer-2.5",
+        displayName: "Composer 2.5",
+        provider: "cursor",
+        harness: "cursor",
+        costTier: "economy",
+        pricing: {
+          inputPricePerMillion: 0.5,
+          outputPricePerMillion: 2.5,
+          cacheWritePricePerMillion: 0,
+          cacheReadPricePerMillion: 0.2,
+        },
+        pricingVariants: {
+          fast: {
+            inputPricePerMillion: 3.0,
+            outputPricePerMillion: 15.0,
+            cacheWritePricePerMillion: 0,
+            cacheReadPricePerMillion: 0.2,
+          },
+        },
+      },
+    ],
+  };
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({ ok: true, status: 200, json: async () => registry })),
+  );
+  process.env.STIGMER_TOKEN = "test-token";
+  await (await import("../model-pricing.js")).ensureLoaded();
+});
 
 /**
  * Guards the token-accounting convention the Usage widget and the billing
@@ -42,5 +80,53 @@ describe("UsageAccumulator", () => {
     expect(snap.inputTokens).toBe(42n);
     expect(snap.outputTokens).toBe(0n);
     expect(snap.totalTokens).toBe(42n);
+  });
+
+  it("records the requested tier and params into the snapshot (#357 audit trail)", () => {
+    const acc = new UsageAccumulator(
+      "composer-2.5",
+      ServiceTier.FAST,
+      [{ id: "fast", value: "true" }],
+    );
+    acc.addTurn({ inputTokens: 10, outputTokens: 5 });
+    const snap = acc.snapshot();
+    expect(snap.requestedServiceTier).toBe(ServiceTier.FAST);
+    expect(snap.requestedModelParams).toBe('[{"id":"fast","value":"true"}]');
+  });
+
+  it("records an empty params string when the runner sent none", () => {
+    const acc = new UsageAccumulator("default", ServiceTier.STANDARD, []);
+    acc.addTurn({ inputTokens: 1 });
+    const snap = acc.snapshot();
+    expect(snap.requestedServiceTier).toBe(ServiceTier.STANDARD);
+    expect(snap.requestedModelParams).toBe("");
+  });
+
+  it("estimates FAST runs at fast-variant rates, not base rates (#357)", () => {
+    // Revert guard for the tier→pricing wiring in addTurn: a FAST run
+    // priced at base rates would understate the display estimate ~6x
+    // relative to the authoritative bill. Rates from the stubbed registry:
+    // base $0.5/$2.5 per M, fast $3/$15 per M.
+    const turn = { inputTokens: 1_000_000, outputTokens: 1_000_000 };
+
+    const standard = new UsageAccumulator("composer-2.5", ServiceTier.STANDARD);
+    standard.addTurn(turn);
+    const fast = new UsageAccumulator("composer-2.5", ServiceTier.FAST);
+    fast.addTurn(turn);
+
+    expect(standard.snapshot().estimatedCostUsd).toBeCloseTo(3.0, 6);
+    expect(fast.snapshot().estimatedCostUsd).toBeCloseTo(18.0, 6);
+  });
+
+  it("estimates UNSPECIFIED at base rates (resolves to standard)", () => {
+    const turn = { inputTokens: 1_000_000, outputTokens: 1_000_000 };
+
+    const unspecified = new UsageAccumulator("composer-2.5");
+    unspecified.addTurn(turn);
+    const standard = new UsageAccumulator("composer-2.5", ServiceTier.STANDARD);
+    standard.addTurn(turn);
+
+    expect(unspecified.snapshot().estimatedCostUsd)
+      .toBe(standard.snapshot().estimatedCostUsd);
   });
 });
