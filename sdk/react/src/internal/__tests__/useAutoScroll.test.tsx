@@ -114,12 +114,22 @@ afterEach(() => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function fireIO(isIntersecting: boolean) {
+/**
+ * Deliver an IO notification with the scroller's LIVE geometry staged to
+ * match the scenario. The hook measures live geometry at delivery time
+ * rather than trusting the entry payload — an entry snapshots
+ * observation-time geometry and can be delivered after the reader has
+ * scrolled again (the stale-payload race pinned in the browser suite) —
+ * so the entry list itself is deliberately empty here.
+ */
+function fireIO(nearBottom: boolean) {
+  const scroller = screen.getByTestId("scroller");
+  Object.defineProperty(scroller, "scrollHeight", { value: 1000, configurable: true });
+  Object.defineProperty(scroller, "clientHeight", { value: 200, configurable: true });
+  // Within the 80px near-bottom margin, or far above it.
+  scroller.scrollTop = nearBottom ? 800 : 0;
   act(() => {
-    ioCallback(
-      [{ isIntersecting } as IntersectionObserverEntry],
-      {} as IntersectionObserver,
-    );
+    ioCallback([], {} as IntersectionObserver);
   });
 }
 

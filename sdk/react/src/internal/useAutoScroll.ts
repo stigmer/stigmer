@@ -87,10 +87,20 @@ export function useAutoScroll(): UseAutoScrollReturn {
     scroller.scrollTop = scroller.scrollHeight;
 
     const io = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (!entry) return;
-        const visible = entry.isIntersecting;
+      () => {
+        // The delivery is the signal; the LIVE geometry is the truth.
+        // An entry snapshots geometry at OBSERVATION time and can be
+        // delivered after the reader has scrolled again — measured in
+        // the F-09 net: a stale "visible" (captured at the pinned
+        // instant) landed after a scroll-up, re-engaged follow, and the
+        // next growth yanked the reader to the bottom. Measuring at
+        // delivery time keeps the observer as a poll-free change
+        // detector without trusting its stale payload.
+        const el = scrollRef.current;
+        if (!el) return;
+        const visible =
+          el.scrollHeight - el.scrollTop - el.clientHeight <=
+          NEAR_BOTTOM_MARGIN_PX;
         isFollowingRef.current = visible;
         setIsFollowing(visible);
       },
@@ -122,9 +132,21 @@ export function useAutoScroll(): UseAutoScrollReturn {
     const ro = new ResizeObserver(() => {
       if (!isFollowingRef.current) return;
       cancelAnimationFrame(rafIdRef.current);
+      // The reader-took-control guard, decided at WRITE time: a frame
+      // can lag (headless and busy tabs throttle rAF) long enough for
+      // the reader to scroll up between scheduling and writing, and a
+      // stale pin then yanks them back to the bottom (the F-09 suite's
+      // scrolled-up case, flaking ~1-in-5 under real Chromium). The
+      // discriminator is scrollTop itself: content growth never moves
+      // it, only the reader does — `isFollowingRef` cannot arbitrate
+      // here because growth makes the sentinel leave the viewport
+      // transiently, so the flag reads false mid-pin by design.
+      const scheduledAt = scrollRef.current?.scrollTop ?? null;
       rafIdRef.current = requestAnimationFrame(() => {
         const el = scrollRef.current;
-        if (el) el.scrollTop = el.scrollHeight;
+        if (!el) return;
+        if (scheduledAt !== null && el.scrollTop !== scheduledAt) return;
+        el.scrollTop = el.scrollHeight;
       });
     });
     ro.observe(node);

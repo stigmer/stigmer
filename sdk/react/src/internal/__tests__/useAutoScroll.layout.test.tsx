@@ -110,7 +110,16 @@ describe("useAutoScroll under real layout (F-09)", () => {
   it("leaves a reader who scrolled up alone, and jumpToLatest recovers", async () => {
     const { rerender } = render(<AsyncThread items={[]} />);
     rerender(<AsyncThread items={messages(30)} />);
-    await settled(() => expect(isPinnedToBottom(scroller())).toBe(true));
+    await settled(() => {
+      expect(isPinnedToBottom(scroller())).toBe(true);
+      // Follow-STATE quiescence, not just position: the pin's own IO
+      // deliveries (a transient not-visible mid-pin, then visible)
+      // must have landed before the reader scrolls up — otherwise the
+      // disengage wait below can pass vacuously on the transient FALSE
+      // while a queued pre-scroll TRUE re-arms follow behind it, and
+      // the growth step yanks the reader (measured ~1-in-40 headless).
+      expect(latest.isFollowing).toBe(true);
+    });
 
     // The reader scrolls up to read history — follow disengages.
     scroller().scrollTop = 0;
