@@ -26,7 +26,10 @@ const SELECTED = { agentChannelId: "ach_wa", conversationKey: "15550001111" };
 function whatsappChannel() {
   return create(AgentChannelSchema, {
     metadata: { id: "ach_wa", org: "acme", name: "support-line", slug: "support-line" },
-    spec: { providerConfig: { case: "whatsapp", value: {} } },
+    spec: {
+      agentRef: { org: "acme", slug: "support-agent" },
+      providerConfig: { case: "whatsapp", value: {} },
+    },
   });
 }
 
@@ -144,7 +147,14 @@ describe("ConversationsWorkbench", () => {
     // the title, so the WhatsApp number renders in the sub-line beside
     // the channel name (F-17).
     expect(screen.getByRole("heading", { name: "Pat" })).toBeDefined();
-    expect(screen.getByText("15550001111 · support-line")).toBeDefined();
+    // Matched on the sub-line's full text content: the contact and the
+    // channel name render as separate nodes (the channel name can be a
+    // link, F-11) but read as one line.
+    expect(
+      screen.getByText(
+        (_, el) => el?.tagName === "P" && el.textContent === "15550001111 · support-line",
+      ),
+    ).toBeDefined();
     const agentChannel = (client as { agentChannel: Record<string, ReturnType<typeof vi.fn>> })
       .agentChannel;
     expect(agentChannel.getConversation).toHaveBeenCalledWith(
@@ -199,6 +209,64 @@ describe("ConversationsWorkbench", () => {
       expect(agentChannel.getTimeline.mock.calls.length).toBeGreaterThan(
         timelineCallsBefore,
       ),
+    );
+  });
+
+  it("links the header's channel name to the host's channel page (F-11)", async () => {
+    render(
+      <ConversationsWorkbench
+        org="acme"
+        selected={SELECTED}
+        onSelectionChange={vi.fn()}
+        channelHref={(channel) =>
+          channel.spec?.agentRef
+            ? `/library/agents/${channel.spec.agentRef.org}/${channel.spec.agentRef.slug}?tab=channels`
+            : null
+        }
+      />,
+      { wrapper: wrapper(createMockStigmer()) },
+    );
+
+    const link = await screen.findByRole("link", { name: "support-line" });
+    expect(link.getAttribute("href")).toBe(
+      "/library/agents/acme/support-agent?tab=channels",
+    );
+  });
+
+  it("keeps the channel name plain text when the host provides no channel route (F-11)", async () => {
+    render(
+      <ConversationsWorkbench org="acme" selected={SELECTED} onSelectionChange={vi.fn()} />,
+      { wrapper: wrapper(createMockStigmer()) },
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          (_, el) => el?.tagName === "P" && el.textContent === "15550001111 · support-line",
+        ),
+      ).toBeDefined(),
+    );
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
+  it("hands the selected channel to a function-form headerAccessory (F-11)", async () => {
+    render(
+      <ConversationsWorkbench
+        org="acme"
+        selected={SELECTED}
+        onSelectionChange={vi.fn()}
+        headerAccessory={({ channel }) => (
+          <span>accessory for {channel?.metadata?.name ?? "nobody"}</span>
+        )}
+      />,
+      { wrapper: wrapper(createMockStigmer()) },
+    );
+
+    // The context carries the loaded channel, so a host can scope its
+    // access affordance ("Channel access" + the channel's name) without
+    // re-fetching what the workbench already holds.
+    await waitFor(() =>
+      expect(screen.getByText("accessory for support-line")).toBeDefined(),
     );
   });
 

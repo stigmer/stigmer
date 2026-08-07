@@ -1,14 +1,16 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { FileCode2, KeyRound, LayoutTemplate, MessageSquare, MoreHorizontal, Trash2 } from "lucide-react";
+import { FileCode2, KeyRound, LayoutTemplate, MessageSquare, MoreHorizontal, Share2, Trash2 } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { toast } from "../feedback/toast.js";
+import { useManageAccess } from "../access/useManageAccess.js";
 import { ActionMenu } from "../action-menu/index.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
@@ -467,6 +469,24 @@ function ChannelCard({
     "can_delete",
   );
 
+  // The channel's canonical access-management home (channel-conversations
+  // F-11): a participant grant covers every conversation on the channel,
+  // so the affordance belongs on the channel card. The conversation
+  // header's "Channel access" button is the point-of-need shortcut to
+  // the same dialog. Self-gates on can_view_access — `action` is null
+  // for viewers who may not see the access list.
+  const access = useManageAccess({
+    resource: id
+      ? {
+          kind: ApiResourceKind.agent_channel,
+          kindString: "agent_channel",
+          id,
+          org: meta?.org ?? "",
+          name: meta?.name || meta?.slug,
+        }
+      : null,
+  });
+
   // On/off is a full-input save with only `enabled` flipped —
   // agentChannelToInput guarantees the toggle can never wipe the agent
   // reference or the provider marker (the fails-closed posture shares use).
@@ -547,6 +567,11 @@ function ChannelCard({
               >
                 Sessions
               </ActionMenu.Item>
+              {access.action && (
+                <ActionMenu.Item icon={<Share2 />} onSelect={access.open}>
+                  Manage access
+                </ActionMenu.Item>
+              )}
               {/* Gated on the bar the server enforces for listTemplates
                   (ChannelMessagingReach: can_edit), and on the provider
                   declaring a template registry at all — hidden, not
@@ -596,6 +621,7 @@ function ChannelCard({
         canEdit={canEdit}
         onEditCredentials={onEditCredentials}
       />
+      {access.dialog}
     </div>
   );
 }

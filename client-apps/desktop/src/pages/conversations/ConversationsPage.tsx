@@ -12,8 +12,10 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
  * The Conversations area (channel-conversations T04) — the desktop twin
  * of web's `domain/conversations/ConversationsPage` (DD-016 parity): a
  * thin shell over the SDK's `ConversationsWorkbench`, owning only the
- * router mapping (`/conversations/:channelId/:key`) and the channel
- * access panel mount.
+ * router mapping (`/conversations/:channelId/:key`), the CHANNEL access
+ * trigger mount (participant grants are per channel, never per
+ * conversation — DD-010 D-c / F-11), and the header's channel link to
+ * the owning agent's Channels tab.
  */
 export default function ConversationsPage() {
   const org = useActiveOrgSlug();
@@ -49,17 +51,31 @@ export default function ConversationsPage() {
         selected={selected}
         onSelectionChange={handleSelectionChange}
         headerAccessory={
-          selected ? (
-            <ManageAccessButton
-              resource={{
-                kind: ApiResourceKind.agent_channel,
-                kindString: "agent_channel",
-                id: selected.agentChannelId,
-                org,
-              }}
-              label="Manage access"
-            />
-          ) : undefined
+          selected
+            ? ({ channel }) => (
+                <ManageAccessButton
+                  resource={{
+                    kind: ApiResourceKind.agent_channel,
+                    kindString: "agent_channel",
+                    id: selected.agentChannelId,
+                    org,
+                    // The dialog's subtitle names the channel — the
+                    // scope every grant covers (F-11).
+                    name: channel?.metadata?.name || channel?.metadata?.slug,
+                  }}
+                  label="Channel access"
+                />
+              )
+            : undefined
+        }
+        // A plain-anchor hash URL, the sessionHref convention: the hash
+        // router picks it up without a reload. The agent page opens on
+        // its default tab (desktop reads no ?tab= param yet); Channels
+        // is one click away there.
+        channelHref={(channel) =>
+          channel.spec?.agentRef
+            ? `#/library/agents/${channel.spec.agentRef.org || org}/${channel.spec.agentRef.slug}?tab=channels`
+            : null
         }
       />
     </div>

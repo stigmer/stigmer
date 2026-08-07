@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MessagesSquare } from "lucide-react";
 import { cn } from "@stigmer/theme";
+import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import type { ChannelConversation } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
 import { ChannelSendOutcome } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { channelProviderOf } from "../channel/providers.js";
@@ -25,6 +26,21 @@ import { useConversationList } from "./useConversationList.js";
 import { useConversationParticipation } from "./useConversationParticipation.js";
 import { useConversationTimeline } from "./useConversationTimeline.js";
 
+/**
+ * Context handed to a function-form
+ * {@link ConversationsWorkbenchProps.headerAccessory}.
+ */
+export interface ConversationHeaderContext {
+  /**
+   * The open conversation's channel, once the org's channel list
+   * answers — `null` while it loads. Carries the channel's name (for
+   * scope-explicit accessories like the "Channel access" trigger) and
+   * `spec.agent_ref` (for navigation), so hosts never re-fetch what the
+   * workbench already holds.
+   */
+  readonly channel: AgentChannel | null;
+}
+
 /** Props for {@link ConversationsWorkbench}. */
 export interface ConversationsWorkbenchProps {
   /** Organization whose conversations to show. */
@@ -43,9 +59,21 @@ export interface ConversationsWorkbenchProps {
   readonly currentIdentityAccountId?: string;
   /**
    * Rendered in the open conversation's header (the host's seam for
-   * page-level actions — e.g. the channel access panel trigger).
+   * page-level actions — e.g. the channel access panel trigger). The
+   * function form receives {@link ConversationHeaderContext} so the
+   * accessory can name the channel it acts on.
    */
-  readonly headerAccessory?: React.ReactNode;
+  readonly headerAccessory?:
+    | React.ReactNode
+    | ((context: ConversationHeaderContext) => React.ReactNode);
+  /**
+   * Maps the open conversation's channel to the host's channel surface
+   * — the owning agent's Channels tab (channels have no standalone
+   * page). When provided, the header's channel name renders as a link;
+   * `null` for a specific channel keeps it plain text. The SDK never
+   * assumes a routing scheme (DD-004).
+   */
+  readonly channelHref?: (channel: AgentChannel) => string | null;
   /** Frozen instant for deterministic hosts (tests, documentation tours). */
   readonly now?: Date;
   /** Additional classes for the workbench container. */
@@ -67,6 +95,7 @@ export function ConversationsWorkbench({
   onSelectionChange,
   currentIdentityAccountId,
   headerAccessory,
+  channelHref,
   now,
   className,
 }: ConversationsWorkbenchProps) {
@@ -187,6 +216,15 @@ export function ConversationsWorkbench({
   const detailContact = detail.conversation
     ? conversationContactOf(detail.conversation, descriptor?.id ?? null)
     : null;
+  const channelName = selectedChannel
+    ? selectedChannel.metadata?.name || selectedChannel.metadata?.slug
+    : null;
+  const selectedChannelHref =
+    selectedChannel && channelHref ? channelHref(selectedChannel) : null;
+  const headerAccessoryNode =
+    typeof headerAccessory === "function"
+      ? headerAccessory({ channel: selectedChannel })
+      : headerAccessory;
 
   return (
     <div
@@ -236,20 +274,28 @@ export function ConversationsWorkbench({
               <h2 className="truncate text-sm font-semibold text-foreground">
                 {detailLabel}
               </h2>
-              {(detailContact !== null || selectedChannel) && (
+              {(detailContact !== null || channelName) && (
                 <p className="truncate text-xs text-muted-foreground">
-                  {[
-                    detailContact,
-                    selectedChannel
-                      ? selectedChannel.metadata?.name || selectedChannel.metadata?.slug
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
+                  {detailContact}
+                  {detailContact !== null && channelName && " · "}
+                  {channelName &&
+                    // The path from a conversation to its channel (F-11):
+                    // the channel name links to the host's channel surface
+                    // when a route exists.
+                    (selectedChannelHref ? (
+                      <a
+                        href={selectedChannelHref}
+                        className="hover:text-foreground hover:underline"
+                      >
+                        {channelName}
+                      </a>
+                    ) : (
+                      channelName
+                    ))}
                 </p>
               )}
             </div>
-            {headerAccessory}
+            {headerAccessoryNode}
           </div>
 
           {detail.conversation && (

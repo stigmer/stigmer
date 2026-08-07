@@ -30,10 +30,12 @@ function parseSelection(path: string): ConversationIdentity | null {
 /**
  * The Conversations area (channel-conversations T04) — a thin shell over
  * the SDK's `ConversationsWorkbench` (DD-002: zero domain logic here).
- * This file owns exactly two console concerns: mapping selection onto
- * the URL through the app's single navigation source of truth, and
- * mounting the channel access panel (participant grants, DD-010 D-c) in
- * the workbench's header seam.
+ * This file owns exactly three console concerns: mapping selection onto
+ * the URL through the app's single navigation source of truth, mounting
+ * the CHANNEL access trigger (participant grants are per channel, never
+ * per conversation — DD-010 D-c / F-11) in the workbench's header seam,
+ * and routing the header's channel link to the owning agent's Channels
+ * tab (channels have no standalone page).
  */
 export function ConversationsPage() {
   const org = useActiveOrgSlug();
@@ -59,17 +61,27 @@ export function ConversationsPage() {
         selected={selected}
         onSelectionChange={handleSelectionChange}
         headerAccessory={
-          selected ? (
-            <ManageAccessButton
-              resource={{
-                kind: ApiResourceKind.agent_channel,
-                kindString: "agent_channel",
-                id: selected.agentChannelId,
-                org,
-              }}
-              label="Manage access"
-            />
-          ) : undefined
+          selected
+            ? ({ channel }) => (
+                <ManageAccessButton
+                  resource={{
+                    kind: ApiResourceKind.agent_channel,
+                    kindString: "agent_channel",
+                    id: selected.agentChannelId,
+                    org,
+                    // The dialog's subtitle names the channel — the
+                    // scope every grant covers (F-11).
+                    name: channel?.metadata?.name || channel?.metadata?.slug,
+                  }}
+                  label="Channel access"
+                />
+              )
+            : undefined
+        }
+        channelHref={(channel) =>
+          channel.spec?.agentRef
+            ? `/library/agents/${channel.spec.agentRef.org || org}/${channel.spec.agentRef.slug}?tab=channels`
+            : null
         }
       />
     </div>

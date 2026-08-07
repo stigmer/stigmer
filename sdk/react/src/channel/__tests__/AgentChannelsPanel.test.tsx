@@ -429,6 +429,37 @@ describe("AgentChannelsPanel", () => {
     expect(screen.queryByRole("menuitem", { name: /disconnect/i })).toBeNull();
   });
 
+  it("offers Manage access from the card menu — the channel's canonical access home (F-11)", async () => {
+    const client = createMockStigmer({
+      channels: [makeChannel({ teamName: "Acme HQ" })],
+    });
+    // The dialog's People section lists existing grants on open.
+    (
+      client as { iamPolicy: Record<string, unknown> }
+    ).iamPolicy.listResourceAccessByPrincipal = vi
+      .fn()
+      .mockResolvedValue({ entries: [] });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+    await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /manage access/i }));
+
+    // The one canonical dialog opens, and its subtitle names the channel
+    // — the scope every grant covers (a participant grant is per
+    // channel, never per conversation).
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { name: "Manage access" })).toBeTruthy(),
+    );
+    const dialog = document.querySelector("dialog");
+    expect(dialog).not.toBeNull();
+    expect(within(dialog as HTMLElement).getByText("Support Slack")).toBeTruthy();
+  });
+
   it("warns on an installed card when a tool-using agent has no credentials bound", async () => {
     const client = createMockStigmer({
       channels: [makeChannel({ teamName: "Acme HQ" })],

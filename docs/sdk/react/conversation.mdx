@@ -314,9 +314,10 @@ different layout compose `ConversationListPane`,
 
 <TypeTable
   type={{
+    channelHref: { type: "(channel: AgentChannel) => string | null", description: "Maps the open conversation's channel to the host's channel surface — the owning agent's Channels tab (channels have no standalone page). When provided, the header's channel name renders as a link; `null` for a specific channel keeps it plain text. The SDK never assumes a routing scheme (DD-004)." },
     className: { type: "string", description: "Additional classes for the workbench container." },
     currentIdentityAccountId: { type: "string", description: "The signed-in staff member's identity account id, when the host knows it — used only for \"You have this conversation\" copy." },
-    headerAccessory: { type: "ReactNode", description: "Rendered in the open conversation's header (the host's seam for page-level actions — e.g. the channel access panel trigger)." },
+    headerAccessory: { type: "ReactNode | (context: ConversationHeaderContext) => ReactNode", description: "Rendered in the open conversation's header (the host's seam for page-level actions — e.g. the channel access panel trigger). The function form receives ConversationHeaderContext so the accessory can name the channel it acts on." },
     now: { type: "Date", description: "Frozen instant for deterministic hosts (tests, documentation tours)." },
     onSelectionChange: { type: "(selection: ConversationIdentity | null) => void", description: "Called when the user opens or leaves a conversation.", required: true },
     org: { type: "string", description: "Organization whose conversations to show.", required: true },
@@ -425,6 +426,18 @@ display rules.
 ```tsx
 function conversationContactOf(conversation: ChannelConversation, provider: ChannelProviderId | null): string | null
 ```
+
+
+### ConversationHeaderContext
+
+Context handed to a function-form
+`ConversationsWorkbenchProps.headerAccessory`.
+
+<TypeTable
+  type={{
+    channel: { type: "AgentChannel | null", description: "The open conversation's channel, once the org's channel list answers — `null` while it loads. Carries the channel's name (for scope-explicit accessories like the \"Channel access\" trigger) and `spec.agent_ref` (for navigation), so hosts never re-fetch what the workbench already holds.", required: true },
+  }}
+/>
 
 
 ### ConversationIdentity

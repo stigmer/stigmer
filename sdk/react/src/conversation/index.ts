@@ -1,5 +1,8 @@
 export { ConversationsWorkbench } from "./ConversationsWorkbench.js";
-export type { ConversationsWorkbenchProps } from "./ConversationsWorkbench.js";
+export type {
+  ConversationHeaderContext,
+  ConversationsWorkbenchProps,
+} from "./ConversationsWorkbench.js";
 
 export { ConversationListPane } from "./ConversationListPane.js";
 export type {

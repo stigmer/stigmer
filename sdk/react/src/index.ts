@@ -1384,6 +1384,7 @@ export {
 } from "./conversation/index.js";
 export type {
   ConversationsWorkbenchProps,
+  ConversationHeaderContext,
   ConversationIdentity,
   ConversationListPaneProps,
   ConversationTimelineViewProps,
