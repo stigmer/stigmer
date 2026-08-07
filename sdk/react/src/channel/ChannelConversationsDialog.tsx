@@ -7,6 +7,7 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { channelSessionExternalUserKey } from "../session/channelOrigin.js";
@@ -192,7 +193,7 @@ function ConversationRow({
   readonly session: Session;
   readonly href?: string;
 }) {
-  const subject = session.spec?.subject || "Untitled conversation";
+  const subject = session.spec?.subject || "Untitled session";
   const externalUser = channelSessionExternalUserKey(session);
   const lastActivity = lastActivityDate(session);
 
@@ -250,9 +251,9 @@ function ConversationsSkeleton() {
 }
 
 /**
- * The conversation's last activity: `statusAudit.updatedAt` (bumped on
- * every meaningful status change), falling back to `specAudit.createdAt`
- * — the recent-activity sort key, so the dialog agrees with the server's
+ * The session's last activity: `statusAudit.updatedAt` (bumped on every
+ * meaningful status change), falling back to `specAudit.createdAt` —
+ * the recent-activity sort key, so the dialog agrees with the server's
  * ordering.
  */
 function lastActivityDate(session: Session): Date | null {
@@ -260,16 +261,4 @@ function lastActivityDate(session: Session): Date | null {
     session.status?.audit?.statusAudit?.updatedAt ??
     session.status?.audit?.specAudit?.createdAt;
   return ts ? timestampDate(ts) : null;
-}
-
-function formatRelativeTime(date: Date): string {
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return date.toLocaleDateString();
 }

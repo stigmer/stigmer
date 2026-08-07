@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
@@ -90,6 +91,42 @@ describe("ChannelConversationsDialog", () => {
       expect(screen.getByText("What is a skill?")).toBeDefined(),
     );
     expect(screen.queryAllByRole("link")).toHaveLength(0);
+  });
+
+  it("titles itself Sessions and falls back to Untitled session (F-04, DD-004 D-g)", async () => {
+    // The word "conversation" belongs to the customer-facing surface;
+    // this dialog is the session-level forensics view.
+    const listByChannel = vi.fn().mockResolvedValue({
+      entries: [makeChannelSession("ses_1", "")],
+    });
+
+    renderDialog(listByChannel);
+
+    expect(screen.getByRole("heading", { name: "Sessions" })).toBeDefined();
+    await waitFor(() => expect(screen.getByText("Untitled session")).toBeDefined());
+    expect(screen.queryByText("Untitled conversation")).toBeNull();
+  });
+
+  it("formats activity in the shared compact style, matching the inbox (F-04)", async () => {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60_000);
+    const listByChannel = vi.fn().mockResolvedValue({
+      entries: [
+        {
+          ...makeChannelSession("ses_1", "Deploy help"),
+          status: {
+            audit: { statusAudit: { updatedAt: timestampFromDate(fiveMinutesAgo) } },
+          },
+        },
+      ],
+    });
+
+    renderDialog(listByChannel);
+
+    // The shared helper's compact single-unit style ("5m"), not the
+    // retired local formatter's "5m ago" — one time vocabulary across
+    // the channel dialog and the conversations inbox.
+    await waitFor(() => expect(screen.getByText("5m")).toBeDefined());
+    expect(screen.queryByText("5m ago")).toBeNull();
   });
 
   it("shows the empty state when nobody has messaged the channel", async () => {
