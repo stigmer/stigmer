@@ -61,6 +61,7 @@ private static final long serialVersionUID = 0L;
     providerMessageId_ = "";
     receiptState_ = 0;
     receiptDetail_ = "";
+    renderedBody_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -872,6 +873,87 @@ private static final long serialVersionUID = 0L;
     return receiptAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : receiptAt_;
   }
 
+  public static final int RENDERED_BODY_FIELD_NUMBER = 20;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object renderedBody_ = "";
+  /**
+   * <pre>
+   * The message body as rendered for the external recipient, recorded at
+   * send time. For template sends this is the registry's body text with
+   * the payload's parameter values substituted; empty for text sends
+   * (the body lives in the payload's text arm), for rows written before
+   * this field existed, and for sends whose registry was unreachable at
+   * send time.
+   *
+   * &#64;internal
+   * The ChannelDelivery.reply_text idiom (channel-conversations DD-004
+   * D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
+   * lane: the conversation timeline renders a template send's bubble
+   * from THIS field, never by re-deriving from the template registry at
+   * read time — template text changes over releases, and a re-derivation
+   * would attribute today's template copy to yesterday's send. Written
+   * once by the send handlers' pre-check normalization (the DD-005 D2
+   * point where the language-resolved payload is fixed), before any
+   * provider I/O; no later writer touches it. No backfill is possible —
+   * pre-field history stays honestly unavailable (the D1-A consequence).
+   * </pre>
+   *
+   * <code>string rendered_body = 20 [json_name = "renderedBody"];</code>
+   * @return The renderedBody.
+   */
+  @java.lang.Override
+  public java.lang.String getRenderedBody() {
+    java.lang.Object ref = renderedBody_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      renderedBody_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The message body as rendered for the external recipient, recorded at
+   * send time. For template sends this is the registry's body text with
+   * the payload's parameter values substituted; empty for text sends
+   * (the body lives in the payload's text arm), for rows written before
+   * this field existed, and for sends whose registry was unreachable at
+   * send time.
+   *
+   * &#64;internal
+   * The ChannelDelivery.reply_text idiom (channel-conversations DD-004
+   * D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
+   * lane: the conversation timeline renders a template send's bubble
+   * from THIS field, never by re-deriving from the template registry at
+   * read time — template text changes over releases, and a re-derivation
+   * would attribute today's template copy to yesterday's send. Written
+   * once by the send handlers' pre-check normalization (the DD-005 D2
+   * point where the language-resolved payload is fixed), before any
+   * provider I/O; no later writer touches it. No backfill is possible —
+   * pre-field history stays honestly unavailable (the D1-A consequence).
+   * </pre>
+   *
+   * <code>string rendered_body = 20 [json_name = "renderedBody"];</code>
+   * @return The bytes for renderedBody.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getRenderedBodyBytes() {
+    java.lang.Object ref = renderedBody_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      renderedBody_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -942,6 +1024,9 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000010) != 0)) {
       output.writeMessage(19, getReceiptAt());
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(renderedBody_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 20, renderedBody_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1019,6 +1104,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(19, getReceiptAt());
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(renderedBody_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(20, renderedBody_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1084,6 +1172,8 @@ private static final long serialVersionUID = 0L;
       if (!getReceiptAt()
           .equals(other.getReceiptAt())) return false;
     }
+    if (!getRenderedBody()
+        .equals(other.getRenderedBody())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1143,6 +1233,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + RECEIPT_AT_FIELD_NUMBER;
       hash = (53 * hash) + getReceiptAt().hashCode();
     }
+    hash = (37 * hash) + RENDERED_BODY_FIELD_NUMBER;
+    hash = (53 * hash) + getRenderedBody().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1344,6 +1436,7 @@ private static final long serialVersionUID = 0L;
         receiptAtBuilder_.dispose();
         receiptAtBuilder_ = null;
       }
+      renderedBody_ = "";
       return this;
     }
 
@@ -1450,6 +1543,9 @@ private static final long serialVersionUID = 0L;
             : receiptAtBuilder_.build();
         to_bitField0_ |= 0x00000010;
       }
+      if (((from_bitField0_ & 0x00080000) != 0)) {
+        result.renderedBody_ = renderedBody_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1539,6 +1635,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasReceiptAt()) {
         mergeReceiptAt(other.getReceiptAt());
+      }
+      if (!other.getRenderedBody().isEmpty()) {
+        renderedBody_ = other.renderedBody_;
+        bitField0_ |= 0x00080000;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1671,6 +1772,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00040000;
               break;
             } // case 154
+            case 162: {
+              renderedBody_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00080000;
+              break;
+            } // case 162
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3778,6 +3884,183 @@ private static final long serialVersionUID = 0L;
         receiptAt_ = null;
       }
       return receiptAtBuilder_;
+    }
+
+    private java.lang.Object renderedBody_ = "";
+    /**
+     * <pre>
+     * The message body as rendered for the external recipient, recorded at
+     * send time. For template sends this is the registry's body text with
+     * the payload's parameter values substituted; empty for text sends
+     * (the body lives in the payload's text arm), for rows written before
+     * this field existed, and for sends whose registry was unreachable at
+     * send time.
+     *
+     * &#64;internal
+     * The ChannelDelivery.reply_text idiom (channel-conversations DD-004
+     * D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
+     * lane: the conversation timeline renders a template send's bubble
+     * from THIS field, never by re-deriving from the template registry at
+     * read time — template text changes over releases, and a re-derivation
+     * would attribute today's template copy to yesterday's send. Written
+     * once by the send handlers' pre-check normalization (the DD-005 D2
+     * point where the language-resolved payload is fixed), before any
+     * provider I/O; no later writer touches it. No backfill is possible —
+     * pre-field history stays honestly unavailable (the D1-A consequence).
+     * </pre>
+     *
+     * <code>string rendered_body = 20 [json_name = "renderedBody"];</code>
+     * @return The renderedBody.
+     */
+    public java.lang.String getRenderedBody() {
+      java.lang.Object ref = renderedBody_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        renderedBody_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The message body as rendered for the external recipient, recorded at
+     * send time. For template sends this is the registry's body text with
+     * the payload's parameter values substituted; empty for text sends
+     * (the body lives in the payload's text arm), for rows written before
+     * this field existed, and for sends whose registry was unreachable at
+     * send time.
+     *
+     * &#64;internal
+     * The ChannelDelivery.reply_text idiom (channel-conversations DD-004
+     * D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
+     * lane: the conversation timeline renders a template send's bubble
+     * from THIS field, never by re-deriving from the template registry at
+     * read time — template text changes over releases, and a re-derivation
+     * would attribute today's template copy to yesterday's send. Written
+     * once by the send handlers' pre-check normalization (the DD-005 D2
+     * point where the language-resolved payload is fixed), before any
+     * provider I/O; no later writer touches it. No backfill is possible —
+     * pre-field history stays honestly unavailable (the D1-A consequence).
+     * </pre>
+     *
+     * <code>string rendered_body = 20 [json_name = "renderedBody"];</code>
+     * @return The bytes for renderedBody.
+     */
+    public com.google.protobuf.ByteString
+        getRenderedBodyBytes() {
+      java.lang.Object ref = renderedBody_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        renderedBody_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The message body as rendered for the external recipient, recorded at
+     * send time. For template sends this is the registry's body text with
+     * the payload's parameter values substituted; empty for text sends
+     * (the body lives in the payload's text arm), for rows written before
+     * this field existed, and for sends whose registry was unreachable at
+     * send time.
+     *
+     * &#64;internal
+     * The ChannelDelivery.reply_text idiom (channel-conversations DD-004
+     * D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
+     * lane: the conversation timeline renders a template send's bubble
+     * from THIS field, never by re-deriving from the template registry at
+     * read time — template text changes over releases, and a re-derivation
+     * would attribute today's template copy to yesterday's send. Written
+     * once by the send handlers' pre-check normalization (the DD-005 D2
+     * point where the language-resolved payload is fixed), before any
+     * provider I/O; no later writer touches it. No backfill is possible —
+     * pre-field history stays honestly unavailable (the D1-A consequence).
+     * </pre>
+     *
+     * <code>string rendered_body = 20 [json_name = "renderedBody"];</code>
+     * @param value The renderedBody to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRenderedBody(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      renderedBody_ = value;
+      bitField0_ |= 0x00080000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The message body as rendered for the external recipient, recorded at
+     * send time. For template sends this is the registry's body text with
+     * the payload's parameter values substituted; empty for text sends
+     * (the body lives in the payload's text arm), for rows written before
+     * this field existed, and for sends whose registry was unreachable at
+     * send time.
+     *
+     * &#64;internal
+     * The ChannelDelivery.reply_text idiom (channel-conversations DD-004
+     * D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
+     * lane: the conversation timeline renders a template send's bubble
+     * from THIS field, never by re-deriving from the template registry at
+     * read time — template text changes over releases, and a re-derivation
+     * would attribute today's template copy to yesterday's send. Written
+     * once by the send handlers' pre-check normalization (the DD-005 D2
+     * point where the language-resolved payload is fixed), before any
+     * provider I/O; no later writer touches it. No backfill is possible —
+     * pre-field history stays honestly unavailable (the D1-A consequence).
+     * </pre>
+     *
+     * <code>string rendered_body = 20 [json_name = "renderedBody"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearRenderedBody() {
+      renderedBody_ = getDefaultInstance().getRenderedBody();
+      bitField0_ = (bitField0_ & ~0x00080000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The message body as rendered for the external recipient, recorded at
+     * send time. For template sends this is the registry's body text with
+     * the payload's parameter values substituted; empty for text sends
+     * (the body lives in the payload's text arm), for rows written before
+     * this field existed, and for sends whose registry was unreachable at
+     * send time.
+     *
+     * &#64;internal
+     * The ChannelDelivery.reply_text idiom (channel-conversations DD-004
+     * D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
+     * lane: the conversation timeline renders a template send's bubble
+     * from THIS field, never by re-deriving from the template registry at
+     * read time — template text changes over releases, and a re-derivation
+     * would attribute today's template copy to yesterday's send. Written
+     * once by the send handlers' pre-check normalization (the DD-005 D2
+     * point where the language-resolved payload is fixed), before any
+     * provider I/O; no later writer touches it. No backfill is possible —
+     * pre-field history stays honestly unavailable (the D1-A consequence).
+     * </pre>
+     *
+     * <code>string rendered_body = 20 [json_name = "renderedBody"];</code>
+     * @param value The bytes for renderedBody to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRenderedBodyBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      renderedBody_ = value;
+      bitField0_ |= 0x00080000;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage)

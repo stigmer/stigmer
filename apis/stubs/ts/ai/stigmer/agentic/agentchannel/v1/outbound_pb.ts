@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/outbound.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_outbound: GenFile = /*@__PURE__*/
-  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL291dGJvdW5kLnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIosGChZDaGFubmVsT3V0Ym91bmRNZXNzYWdlEhsKE291dGJvdW5kX21lc3NhZ2VfaWQYASABKAkSGAoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCRILCgNvcmcYAyABKAkSEgoKc2Vzc2lvbl9pZBgEIAEoCRJJCgZvcmlnaW4YBSABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxPdXRib3VuZE9yaWdpbhIRCglyZWNpcGllbnQYBiABKAkSSwoHcGF5bG9hZBgHIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbE91dGJvdW5kUGF5bG9hZBJJCgZzdGF0dXMYCCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxEZWxpdmVyeVN0YXR1cxIQCghhdHRlbXB0cxgJIAEoBRISCgpsYXN0X2Vycm9yGAogASgJEhcKD2lkZW1wb3RlbmN5X2tleRgLIAEoCRIbChNwcm92aWRlcl9tZXNzYWdlX2lkGAwgASgJEi4KCmNyZWF0ZWRfYXQYDSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYDiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKD25leHRfYXR0ZW1wdF9hdBgPIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASTgoNcmVjZWlwdF9zdGF0ZRgQIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbFJlY2VpcHRTdGF0ZRIWCg5yZWNlaXB0X2RldGFpbBgRIAEoCRIaChJyZWNlaXB0X2Vycm9yX2NvZGUYEiABKAUSLgoKcmVjZWlwdF9hdBgTIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAqgwEKE0NoYW5uZWxSZWNlaXB0U3RhdGUSHQoZcmVjZWlwdF9zdGF0ZV91bnNwZWNpZmllZBAAEhAKDHJlY2VpcHRfc2VudBABEhUKEXJlY2VpcHRfZGVsaXZlcmVkEAISEAoMcmVjZWlwdF9yZWFkEAMSEgoOcmVjZWlwdF9mYWlsZWQQBCqHAQoVQ2hhbm5lbE91dGJvdW5kT3JpZ2luEicKI2NoYW5uZWxfb3V0Ym91bmRfb3JpZ2luX3Vuc3BlY2lmaWVkEAASGAoUY2hhbm5lbF9jb252ZXJzYXRpb24QARIMCghvcGVyYXRvchACEgwKCHBsYXRmb3JtEAMSDwoLcGFydGljaXBhbnQQBGIGcHJvdG8z", [file_ai_stigmer_agentic_agentchannel_v1_delivery, file_ai_stigmer_agentic_agentchannel_v1_message_io, file_google_protobuf_timestamp]);
+  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL291dGJvdW5kLnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIqIGChZDaGFubmVsT3V0Ym91bmRNZXNzYWdlEhsKE291dGJvdW5kX21lc3NhZ2VfaWQYASABKAkSGAoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCRILCgNvcmcYAyABKAkSEgoKc2Vzc2lvbl9pZBgEIAEoCRJJCgZvcmlnaW4YBSABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxPdXRib3VuZE9yaWdpbhIRCglyZWNpcGllbnQYBiABKAkSSwoHcGF5bG9hZBgHIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbE91dGJvdW5kUGF5bG9hZBJJCgZzdGF0dXMYCCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxEZWxpdmVyeVN0YXR1cxIQCghhdHRlbXB0cxgJIAEoBRISCgpsYXN0X2Vycm9yGAogASgJEhcKD2lkZW1wb3RlbmN5X2tleRgLIAEoCRIbChNwcm92aWRlcl9tZXNzYWdlX2lkGAwgASgJEi4KCmNyZWF0ZWRfYXQYDSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYDiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKD25leHRfYXR0ZW1wdF9hdBgPIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASTgoNcmVjZWlwdF9zdGF0ZRgQIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbFJlY2VpcHRTdGF0ZRIWCg5yZWNlaXB0X2RldGFpbBgRIAEoCRIaChJyZWNlaXB0X2Vycm9yX2NvZGUYEiABKAUSLgoKcmVjZWlwdF9hdBgTIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFQoNcmVuZGVyZWRfYm9keRgUIAEoCSqDAQoTQ2hhbm5lbFJlY2VpcHRTdGF0ZRIdChlyZWNlaXB0X3N0YXRlX3Vuc3BlY2lmaWVkEAASEAoMcmVjZWlwdF9zZW50EAESFQoRcmVjZWlwdF9kZWxpdmVyZWQQAhIQCgxyZWNlaXB0X3JlYWQQAxISCg5yZWNlaXB0X2ZhaWxlZBAEKocBChVDaGFubmVsT3V0Ym91bmRPcmlnaW4SJwojY2hhbm5lbF9vdXRib3VuZF9vcmlnaW5fdW5zcGVjaWZpZWQQABIYChRjaGFubmVsX2NvbnZlcnNhdGlvbhABEgwKCG9wZXJhdG9yEAISDAoIcGxhdGZvcm0QAxIPCgtwYXJ0aWNpcGFudBAEYgZwcm90bzM", [file_ai_stigmer_agentic_agentchannel_v1_delivery, file_ai_stigmer_agentic_agentchannel_v1_message_io, file_google_protobuf_timestamp]);
 
 /**
  * ChannelOutboundMessage tracks the delivery of one business-initiated
@@ -208,6 +208,30 @@ export type ChannelOutboundMessage = Message<"ai.stigmer.agentic.agentchannel.v1
    * @generated from field: google.protobuf.Timestamp receipt_at = 19;
    */
   receiptAt?: Timestamp;
+
+  /**
+   * The message body as rendered for the external recipient, recorded at
+   * send time. For template sends this is the registry's body text with
+   * the payload's parameter values substituted; empty for text sends
+   * (the body lives in the payload's text arm), for rows written before
+   * this field existed, and for sends whose registry was unreachable at
+   * send time.
+   *
+   * @internal
+   * The ChannelDelivery.reply_text idiom (channel-conversations DD-004
+   * D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
+   * lane: the conversation timeline renders a template send's bubble
+   * from THIS field, never by re-deriving from the template registry at
+   * read time — template text changes over releases, and a re-derivation
+   * would attribute today's template copy to yesterday's send. Written
+   * once by the send handlers' pre-check normalization (the DD-005 D2
+   * point where the language-resolved payload is fixed), before any
+   * provider I/O; no later writer touches it. No backfill is possible —
+   * pre-field history stays honestly unavailable (the D1-A consequence).
+   *
+   * @generated from field: string rendered_body = 20;
+   */
+  renderedBody: string;
 };
 
 /**

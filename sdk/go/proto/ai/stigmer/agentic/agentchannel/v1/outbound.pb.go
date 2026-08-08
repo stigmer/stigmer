@@ -280,7 +280,26 @@ type ChannelOutboundMessage struct {
 	ReceiptErrorCode int32 `protobuf:"varint,18,opt,name=receipt_error_code,json=receiptErrorCode,proto3" json:"receipt_error_code,omitempty"`
 	// When the provider reported the latest receipt state (the provider's
 	// own event timestamp, not our processing time).
-	ReceiptAt     *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=receipt_at,json=receiptAt,proto3" json:"receipt_at,omitempty"`
+	ReceiptAt *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=receipt_at,json=receiptAt,proto3" json:"receipt_at,omitempty"`
+	// The message body as rendered for the external recipient, recorded at
+	// send time. For template sends this is the registry's body text with
+	// the payload's parameter values substituted; empty for text sends
+	// (the body lives in the payload's text arm), for rows written before
+	// this field existed, and for sends whose registry was unreachable at
+	// send time.
+	//
+	// @internal
+	// The ChannelDelivery.reply_text idiom (channel-conversations DD-004
+	// D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
+	// lane: the conversation timeline renders a template send's bubble
+	// from THIS field, never by re-deriving from the template registry at
+	// read time — template text changes over releases, and a re-derivation
+	// would attribute today's template copy to yesterday's send. Written
+	// once by the send handlers' pre-check normalization (the DD-005 D2
+	// point where the language-resolved payload is fixed), before any
+	// provider I/O; no later writer touches it. No backfill is possible —
+	// pre-field history stays honestly unavailable (the D1-A consequence).
+	RenderedBody  string `protobuf:"bytes,20,opt,name=rendered_body,json=renderedBody,proto3" json:"rendered_body,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -448,11 +467,18 @@ func (x *ChannelOutboundMessage) GetReceiptAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *ChannelOutboundMessage) GetRenderedBody() string {
+	if x != nil {
+		return x.RenderedBody
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_agentchannel_v1_outbound_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_rawDesc = "" +
 	"\n" +
-	"1ai/stigmer/agentic/agentchannel/v1/outbound.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a1ai/stigmer/agentic/agentchannel/v1/delivery.proto\x1a3ai/stigmer/agentic/agentchannel/v1/message_io.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf9\a\n" +
+	"1ai/stigmer/agentic/agentchannel/v1/outbound.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a1ai/stigmer/agentic/agentchannel/v1/delivery.proto\x1a3ai/stigmer/agentic/agentchannel/v1/message_io.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9e\b\n" +
 	"\x16ChannelOutboundMessage\x12.\n" +
 	"\x13outbound_message_id\x18\x01 \x01(\tR\x11outboundMessageId\x12(\n" +
 	"\x10agent_channel_id\x18\x02 \x01(\tR\x0eagentChannelId\x12\x10\n" +
@@ -478,7 +504,8 @@ const file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_rawDesc = "" +
 	"\x0ereceipt_detail\x18\x11 \x01(\tR\rreceiptDetail\x12,\n" +
 	"\x12receipt_error_code\x18\x12 \x01(\x05R\x10receiptErrorCode\x129\n" +
 	"\n" +
-	"receipt_at\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\treceiptAt*\x83\x01\n" +
+	"receipt_at\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\treceiptAt\x12#\n" +
+	"\rrendered_body\x18\x14 \x01(\tR\frenderedBody*\x83\x01\n" +
 	"\x13ChannelReceiptState\x12\x1d\n" +
 	"\x19receipt_state_unspecified\x10\x00\x12\x10\n" +
 	"\freceipt_sent\x10\x01\x12\x15\n" +

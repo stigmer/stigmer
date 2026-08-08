@@ -116,6 +116,26 @@ message ChannelOutboundMessage {
   // When the provider reported the latest receipt state (the provider's
   // own event timestamp, not our processing time).
   google.protobuf.Timestamp receipt_at = 19;
+
+  // The message body as rendered for the external recipient, recorded at
+  // send time. For template sends this is the registry's body text with
+  // the payload's parameter values substituted; empty for text sends
+  // (the body lives in the payload's text arm), for rows written before
+  // this field existed, and for sends whose registry was unreachable at
+  // send time.
+  //
+  // @internal
+  // The ChannelDelivery.reply_text idiom (channel-conversations DD-004
+  // D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
+  // lane: the conversation timeline renders a template send's bubble
+  // from THIS field, never by re-deriving from the template registry at
+  // read time — template text changes over releases, and a re-derivation
+  // would attribute today's template copy to yesterday's send. Written
+  // once by the send handlers' pre-check normalization (the DD-005 D2
+  // point where the language-resolved payload is fixed), before any
+  // provider I/O; no later writer touches it. No backfill is possible —
+  // pre-field history stays honestly unavailable (the D1-A consequence).
+  string rendered_body = 20;
 }
 
 // ChannelReceiptState is the provider-reported delivery progress of an
