@@ -182,6 +182,27 @@ export function useConversation(
     return () => clearInterval(id);
   }, [enabled, refetchIntervalMs, refetch]);
 
+  // Focus refetch (DD-012 D-a: returning to the tab is fresh), guarded by
+  // the same in-flight flag as the interval. Mirrors useFetch's
+  // refetchOnWindowFocus — the second sighting of this listener shape;
+  // extract a shared helper if a third hand-rolled loop ever needs it.
+  useEffect(() => {
+    if (!enabled) return;
+    if (typeof window === "undefined") return;
+    const onActive = () => {
+      if (!isFetchingRef.current) refetch();
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") onActive();
+    };
+    window.addEventListener("focus", onActive);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", onActive);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [enabled, refetch]);
+
   const isLoading = isFetching && !hasAnswer;
   const isRefetching = isFetching && hasAnswer;
 

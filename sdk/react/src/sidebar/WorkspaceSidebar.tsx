@@ -71,6 +71,14 @@ export interface WorkspaceSidebarProps {
    * timestamp column, inside the row.
    */
   readonly renderEntryAccessory?: (entry: RecentActivityEntry) => ReactNode;
+  /**
+   * Count for the Conversations row's badge: how many conversations
+   * want a human right now (`useConversationsWantsHumanCount`). Data as
+   * props per the chrome contract — hosts fetch, deterministic hosts
+   * (tours) pass a fixture or omit. Hidden at `0`/omitted; the display
+   * caps at "99+" while the accessible name keeps the real number.
+   */
+  readonly conversationsBadgeCount?: number;
   /** Footer content — typically the host app's `UserMenu` wrapper. */
   readonly footer: ReactNode;
   /** Reflected as `aria-expanded` on the collapse toggle. @default true */
@@ -122,6 +130,7 @@ export function WorkspaceSidebar({
   activeSessionId = null,
   activeExecutionId = null,
   renderEntryAccessory,
+  conversationsBadgeCount,
   footer,
   isOpen = true,
   onCollapse,
@@ -169,6 +178,11 @@ export function WorkspaceSidebar({
         icon={MessagesSquare}
         active={activeNav === "conversations"}
         renderLink={renderLink}
+        accessory={
+          conversationsBadgeCount !== undefined && conversationsBadgeCount > 0 ? (
+            <WantsHumanBadge count={conversationsBadgeCount} />
+          ) : null
+        }
       />
       <PrimaryNavRow
         id="library"
@@ -220,6 +234,7 @@ function PrimaryNavRow({
   icon: Icon,
   active,
   renderLink,
+  accessory = null,
 }: {
   readonly id: WorkspaceNavId;
   readonly href: string;
@@ -227,6 +242,8 @@ function PrimaryNavRow({
   readonly icon: LucideIcon;
   readonly active: boolean;
   readonly renderLink: RenderSidebarLink;
+  /** Trailing row content (e.g. the Conversations count pill). */
+  readonly accessory?: ReactNode;
 }) {
   return (
     <div className="flex-none px-3 py-1">
@@ -240,10 +257,36 @@ function PrimaryNavRow({
           <>
             <Icon className="size-4 shrink-0" />
             {label}
+            {accessory}
           </>
         ),
       })}
     </div>
+  );
+}
+
+/**
+ * The Conversations row's count pill: how many conversations want a
+ * human right now (DD-011 D-f — `needs_attention` OR awaiting-reply
+ * while human-held). The visible number caps at "99+"; the accessible
+ * name states the meaning with the real number, because a bare "104"
+ * read aloud after "Conversations" says nothing.
+ */
+function WantsHumanBadge({ count }: { readonly count: number }) {
+  return (
+    <span className="ml-auto flex shrink-0 items-center">
+      <span
+        aria-hidden="true"
+        className="bg-sidebar-primary text-sidebar-primary-foreground rounded-full px-1.5 py-0.5 text-[10px] leading-none font-semibold tabular-nums"
+      >
+        {count > 99 ? "99+" : count}
+      </span>
+      <span className="sr-only">
+        {count === 1
+          ? "1 conversation needs a human"
+          : `${count} conversations need a human`}
+      </span>
+    </span>
   );
 }
 

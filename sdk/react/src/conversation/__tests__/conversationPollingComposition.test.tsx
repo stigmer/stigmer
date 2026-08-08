@@ -12,6 +12,7 @@ import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { advanceInSlices } from "../../internal/__tests__/fake-timer-slices";
 import { useConversation } from "../useConversation";
 import { useConversationTimeline } from "../useConversationTimeline";
+import { useConversationsWantsHumanCount } from "../useConversationsWantsHumanCount";
 
 /**
  * The F-14 composition net (channel-conversations T06): the open
@@ -47,6 +48,7 @@ function createMockStigmer() {
     agentChannel: {
       getConversation: vi.fn().mockResolvedValue(conversationRow()),
       getTimeline: vi.fn().mockResolvedValue({ items: [], nextPageToken: "" }),
+      listConversations: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
     },
   };
 }
@@ -100,5 +102,37 @@ describe("conversation polling composition (F-14)", () => {
     await advanceInSlices(15_000);
     expect(client.agentChannel.getConversation).toHaveBeenCalledTimes(6);
     expect(client.agentChannel.getTimeline).toHaveBeenCalledTimes(4);
+  });
+
+  it("the wants-human count keeps polling under the row poll's render cadence (the fourth poller)", async () => {
+    // T05's badge hook joins the same composition (the console mounts
+    // the sidebar beside the open conversation), so it inherits the
+    // F-14 exposure by construction: every row-poll firing re-renders,
+    // and a timer keyed on identity would never complete a period.
+    // Offset intervals for the same reason as above — aligned periods
+    // mask the defect under fake timers.
+    const client = createMockStigmer();
+    renderHook(
+      () => {
+        const detail = useConversation("ach_1", "15550001111", {
+          refetchIntervalMs: 3000,
+        });
+        const count = useConversationsWantsHumanCount("acme", {
+          refetchIntervalMs: 7000,
+        });
+        return { detail, count };
+      },
+      { wrapper: wrapper(client) },
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(client.agentChannel.listConversations).toHaveBeenCalledTimes(1);
+
+    // 21 seconds: the row poll fires at 3s..21s (7 firings, each a
+    // double re-render); the count poll must still fire at 7s, 14s, 21s.
+    await advanceInSlices(21_000);
+    expect(client.agentChannel.listConversations).toHaveBeenCalledTimes(4);
   });
 });

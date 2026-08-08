@@ -3,7 +3,12 @@
 import { type MouseEvent, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useRecentActivity, WorkspaceSidebar } from "@stigmer/react";
+import {
+  useActiveOrgSlug,
+  useConversationsWantsHumanCount,
+  useRecentActivity,
+  WorkspaceSidebar,
+} from "@stigmer/react";
 import type { SidebarLinkRenderProps, WorkspaceNavId } from "@stigmer/react";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
@@ -30,6 +35,11 @@ export function Sidebar() {
   const router = useRouter();
   const recentActivity = useRecentActivity();
   const { refetch, prependOptimistic } = recentActivity;
+  const org = useActiveOrgSlug();
+  // The Conversations badge: conversations wanting a human right now
+  // (channel-conversations DD-011 D-f). Data as props — the SDK sidebar
+  // never fetches for itself (DD-020).
+  const { count: wantsHumanCount } = useConversationsWantsHumanCount(org || null);
   const { activeSessionId, isSessionZone, navigateToSession, navigateToHome } =
     useSessionNavigation();
   const { activeExecutionId, isExecutionZone, navigateToExecution } =
@@ -154,6 +164,7 @@ export function Sidebar() {
       recentActivity={recentActivity}
       activeSessionId={activeSessionId}
       activeExecutionId={activeExecutionId}
+      conversationsBadgeCount={wantsHumanCount}
       footer={<UserMenu />}
       isOpen={sidebar.isOpen}
       onCollapse={sidebar.close}

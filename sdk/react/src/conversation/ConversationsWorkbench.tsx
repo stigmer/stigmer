@@ -4,7 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { MessagesSquare } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import type { ChannelConversation } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+import {
+  ChannelConversationListFilter,
+  type ChannelConversation,
+} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
 import { ChannelSendOutcome } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { channelProviderOf } from "../channel/providers.js";
 import { useOrgAgentChannelList } from "../channel/useOrgAgentChannelList.js";
@@ -100,11 +103,15 @@ export function ConversationsWorkbench({
   className,
 }: ConversationsWorkbenchProps) {
   const [channelFilter, setChannelFilter] = useState("");
+  const [listFilter, setListFilter] = useState(
+    ChannelConversationListFilter.channel_conversation_list_filter_unspecified,
+  );
 
   const { channels } = useOrgAgentChannelList(org || null);
   const list = useConversationList({
     org: org || null,
     agentChannelId: channelFilter,
+    filter: listFilter,
   });
 
   const detail = useConversation(
@@ -115,10 +122,23 @@ export function ConversationsWorkbench({
     selected?.agentChannelId ?? "",
     selected?.conversationKey ?? "",
   );
+  // DD-012 D-a: a command answer is fresher than any in-flight poll on
+  // BOTH surfaces rendering this conversation — fan it out to the detail
+  // seam (banners, composer state) and the list seam (the inbox row), so
+  // your own takeover never lags the inbox (F-06).
+  const detailApply = detail.applyServerState;
+  const listApply = list.applyServerState;
+  const adoptConversation = useCallback(
+    (fresh: ChannelConversation) => {
+      detailApply(fresh);
+      listApply(fresh);
+    },
+    [detailApply, listApply],
+  );
   const participation = useConversationParticipation({
     agentChannelId: selected?.agentChannelId ?? "",
     conversationKey: selected?.conversationKey ?? "",
-    onConversation: detail.applyServerState,
+    onConversation: adoptConversation,
   });
 
   const selectedChannel = useMemo(
@@ -242,6 +262,8 @@ export function ConversationsWorkbench({
         channels={channels}
         channelFilter={channelFilter}
         onChannelFilterChange={setChannelFilter}
+        filter={listFilter}
+        onFilterChange={setListFilter}
         selected={selected}
         onSelect={handleSelect}
         now={now}

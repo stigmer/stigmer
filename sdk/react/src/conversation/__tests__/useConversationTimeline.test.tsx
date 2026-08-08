@@ -1,6 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
+
+// The focus-refetch test broadcasts window events, which reach EVERY
+// still-mounted hook in this file — including earlier tests' hooks whose
+// one-shot mock chains are exhausted. Unmount between tests so a window
+// broadcast only ever exercises the test that sent it.
+afterEach(cleanup);
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { ConversationTimelineItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
@@ -201,6 +207,20 @@ describe("useConversationTimeline", () => {
 
     expect(result.current.items).toHaveLength(0);
     expect(result.current.hasOlder).toBe(false);
+  });
+
+  it("refetches the head when the window regains focus (DD-012: refocus is fresh)", async () => {
+    const getTimeline = vi.fn().mockResolvedValue({ items: [], nextPageToken: "" });
+    renderHook(() => useConversationTimeline("ach_1", "15550001111", NO_POLL), {
+      wrapper: wrapper(createMockStigmer(getTimeline)),
+    });
+    await waitFor(() => expect(getTimeline).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    await waitFor(() => expect(getTimeline).toHaveBeenCalledTimes(2));
   });
 
   it("skips fetching for empty identity (stable no-op)", async () => {

@@ -47,8 +47,15 @@ export type {
   UseConversationParticipationReturn,
 } from "./useConversationParticipation.js";
 
+export { useConversationsWantsHumanCount } from "./useConversationsWantsHumanCount.js";
+export type {
+  UseConversationsWantsHumanCountOptions,
+  UseConversationsWantsHumanCountReturn,
+} from "./useConversationsWantsHumanCount.js";
+
 export {
   authorKindOf,
+  awaitingIndicatorOf,
   compareTimelineItemsNewestFirst,
   conversationContactOf,
   conversationLabelOf,
@@ -58,12 +65,14 @@ export {
   sendAttemptOf,
 } from "./conversationPresentation.js";
 export type {
+  AwaitingIndicator,
   ConversationAuthorKind,
   ReceiptKind,
   SendAttemptKind,
 } from "./conversationPresentation.js";
 
 export {
+  CONVERSATION_BADGE_POLL_INTERVAL_MS,
   CONVERSATION_DETAIL_POLL_INTERVAL_MS,
   CONVERSATION_LIST_POLL_INTERVAL_MS,
 } from "./polling.js";

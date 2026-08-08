@@ -6,6 +6,7 @@ import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import {
+  ChannelConversationListFilter,
   ChannelConversationSchema,
   ConversationControl,
   ConversationItemAuthor,
@@ -183,6 +184,64 @@ describe("ConversationsWorkbench", () => {
     // that truth instead of assuming the caller's transition won.
     await waitFor(() =>
       expect(screen.getByText(/A teammate has this conversation/)).toBeDefined(),
+    );
+  });
+
+  it("reflects a takeover in the inbox row the instant the command answers (DD-012 D-a)", async () => {
+    const user = userEvent.setup();
+    // The retiring head fetch (applyServerState's round-trip) is PARKED:
+    // the row's new state must come from the seam alone — no list answer,
+    // no poll tick. This is the F-06 complaint pinned at the composed
+    // level: your own takeover may never lag the inbox.
+    const listConversations = vi
+      .fn()
+      .mockResolvedValueOnce({ items: [row()], totalCount: 1 })
+      .mockReturnValue(new Promise(() => {}));
+    render(
+      <ConversationsWorkbench
+        org="acme"
+        selected={SELECTED}
+        onSelectionChange={vi.fn()}
+        currentIdentityAccountId="idt_me"
+      />,
+      { wrapper: wrapper(createMockStigmer({ listConversations })) },
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Take over" })).toBeDefined(),
+    );
+    expect(screen.queryByText("Human has the conversation")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Take over" }));
+
+    await waitFor(() =>
+      expect(screen.getByText("Human has the conversation")).toBeDefined(),
+    );
+  });
+
+  it("threads the wants-human filter to the server — never a client-side sieve (DD-011 D-g)", async () => {
+    const user = userEvent.setup();
+    const client = createMockStigmer();
+    render(
+      <ConversationsWorkbench org="acme" selected={null} onSelectionChange={vi.fn()} />,
+      { wrapper: wrapper(client) },
+    );
+    await waitFor(() => expect(screen.getByText("Pat")).toBeDefined());
+
+    await user.click(
+      screen.getByRole("radio", {
+        name: "Conversations where a human action is wanted",
+      }),
+    );
+
+    const agentChannel = (client as {
+      agentChannel: Record<string, ReturnType<typeof vi.fn>>;
+    }).agentChannel;
+    await waitFor(() =>
+      expect(agentChannel.listConversations).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          filter: ChannelConversationListFilter.filter_wants_human,
+        }),
+      ),
     );
   });
 

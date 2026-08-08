@@ -72,6 +72,7 @@ width — the console's app shell owns the `w-70` (280px) column.
     activeExecutionId: { type: "string | null", description: "Workflow-execution id highlighted in Recents, if one is open." },
     activeNav: { type: "WorkspaceNavId | null", description: "Which primary nav row is the current location, or `null`/omitted when none is (e.g. inside a session). The sidebar renders state only — the host decides what \"active\" means for its routes." },
     activeSessionId: { type: "string | null", description: "Session id highlighted in Recents, if a session is open." },
+    conversationsBadgeCount: { type: "number", description: "Count for the Conversations row's badge: how many conversations want a human right now (`useConversationsWantsHumanCount`). Data as props per the chrome contract — hosts fetch, deterministic hosts (tours) pass a fixture or omit. Hidden at `0`/omitted; the display caps at \"99+\" while the accessible name keeps the real number." },
     footer: { type: "ReactNode", description: "Footer content — typically the host app's `UserMenu` wrapper.", required: true },
     isOpen: { type: "boolean", description: "Reflected as `aria-expanded` on the collapse toggle." },
     now: { type: "Date", description: "Reference instant for time bucketing (\"Today\"/\"Yesterday\") and relative stamps (\"2h\"). Defaults to the live clock. **Deterministic hosts (documentation embeds, video export) must pass a frozen instant** — otherwise the depicted times drift with every replay." },

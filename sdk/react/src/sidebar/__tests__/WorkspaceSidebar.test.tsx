@@ -109,6 +109,60 @@ function baseProps() {
   };
 }
 
+describe("WorkspaceSidebar — Conversations badge (channel-conversations DD-011 D-f)", () => {
+  const conversationsRow = (container: HTMLElement) =>
+    container.querySelector<HTMLAnchorElement>('[data-row-id="conversations"]')!;
+
+  it("shows the wants-human count on the Conversations row with a meaning-stating accessible name", () => {
+    const { container } = renderSidebar(
+      <WorkspaceSidebar {...baseProps()} conversationsBadgeCount={3} />,
+    );
+
+    const row = conversationsRow(container);
+    expect(within(row).getByText("3")).toBeDefined();
+    expect(within(row).getByText("3 conversations need a human")).toBeDefined();
+  });
+
+  it("speaks the singular for one conversation", () => {
+    const { container } = renderSidebar(
+      <WorkspaceSidebar {...baseProps()} conversationsBadgeCount={1} />,
+    );
+
+    expect(
+      within(conversationsRow(container)).getByText("1 conversation needs a human"),
+    ).toBeDefined();
+  });
+
+  it("hides the badge at zero and when the host passes no count", () => {
+    const { container } = renderSidebar(
+      <WorkspaceSidebar {...baseProps()} conversationsBadgeCount={0} />,
+    );
+    expect(
+      within(conversationsRow(container)).queryByText(/need(s)? a human/),
+    ).toBeNull();
+
+    cleanup();
+
+    const { container: without } = renderSidebar(
+      <WorkspaceSidebar {...baseProps()} />,
+    );
+    expect(
+      within(conversationsRow(without)).queryByText(/need(s)? a human/),
+    ).toBeNull();
+  });
+
+  it("caps the visible number at 99+ while the accessible name keeps the real count", () => {
+    const { container } = renderSidebar(
+      <WorkspaceSidebar {...baseProps()} conversationsBadgeCount={104} />,
+    );
+
+    const row = conversationsRow(container);
+    expect(within(row).getByText("99+")).toBeDefined();
+    expect(within(row).queryByText("104")).toBeNull();
+    expect(within(row).getByText("104 conversations need a human")).toBeDefined();
+  });
+});
+
 describe("WorkspaceSidebar — primary navigation", () => {
   it("renders the four primary rows through renderLink with stable ids and hrefs", () => {
     const { container } = renderSidebar(<WorkspaceSidebar {...baseProps()} />);

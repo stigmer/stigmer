@@ -5,6 +5,7 @@ import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import {
+  ChannelConversationListFilter,
   ChannelConversationSchema,
   ConversationControl,
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
@@ -188,6 +189,114 @@ describe("ConversationListPane", () => {
     );
 
     expect(screen.getByText("Human has the conversation")).toBeDefined();
+  });
+
+  it("marks an awaiting conversation strongly when a human holds it — the agent will not answer (DD-011 D-a, F-13)", () => {
+    render(
+      <ConversationListPane
+        {...baseProps()}
+        conversations={[
+          conversation({
+            awaitingReply: true,
+            control: ConversationControl.control_human,
+          }),
+        ]}
+      />,
+    );
+
+    expect(
+      screen.getByText("Customer awaiting reply — the conversation is human-held"),
+    ).toBeDefined();
+  });
+
+  it("marks an awaiting agent-held conversation mutedly — the agent is about to answer", () => {
+    render(
+      <ConversationListPane
+        {...baseProps()}
+        conversations={[conversation({ awaitingReply: true })]}
+      />,
+    );
+
+    expect(screen.getByText("Customer awaiting reply")).toBeDefined();
+    expect(
+      screen.queryByText("Customer awaiting reply — the conversation is human-held"),
+    ).toBeNull();
+  });
+
+  it("shows no awaiting indicator once the customer is answered", () => {
+    render(
+      <ConversationListPane {...baseProps()} conversations={[conversation()]} />,
+    );
+
+    expect(screen.queryByText(/Customer awaiting reply/)).toBeNull();
+  });
+
+  it("offers the wants-human filter as a radio group and reports the choice", async () => {
+    const user = userEvent.setup();
+    const onFilterChange = vi.fn();
+    render(
+      <ConversationListPane
+        {...baseProps()}
+        conversations={[conversation()]}
+        onFilterChange={onFilterChange}
+      />,
+    );
+
+    const group = screen.getByRole("radiogroup", { name: "Conversation filter" });
+    expect(group).toBeDefined();
+    expect(
+      screen.getByRole("radio", { name: "All conversations", checked: true }),
+    ).toBeDefined();
+
+    await user.click(
+      screen.getByRole("radio", {
+        name: "Conversations where a human action is wanted",
+      }),
+    );
+
+    expect(onFilterChange).toHaveBeenCalledWith(
+      ChannelConversationListFilter.filter_wants_human,
+    );
+  });
+
+  it("moves selection with arrow keys — the ScopeToggle radiogroup contract", async () => {
+    const user = userEvent.setup();
+    const onFilterChange = vi.fn();
+    render(
+      <ConversationListPane
+        {...baseProps()}
+        conversations={[conversation()]}
+        onFilterChange={onFilterChange}
+      />,
+    );
+
+    screen.getByRole("radio", { name: "All conversations" }).focus();
+    await user.keyboard("{ArrowRight}");
+
+    expect(onFilterChange).toHaveBeenCalledWith(
+      ChannelConversationListFilter.filter_wants_human,
+    );
+  });
+
+  it("renders no filter control when the host does not wire it — a dead toggle would lie", () => {
+    render(
+      <ConversationListPane {...baseProps()} conversations={[conversation()]} />,
+    );
+
+    expect(screen.queryByRole("radiogroup")).toBeNull();
+  });
+
+  it("tells the truth when the filtered list is empty — never 'No conversations yet' over a full inbox", () => {
+    render(
+      <ConversationListPane
+        {...baseProps()}
+        filter={ChannelConversationListFilter.filter_wants_human}
+        onFilterChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Nothing needs a human right now")).toBeDefined();
+    expect(screen.queryByText("No conversations yet")).toBeNull();
   });
 
   it("selects a conversation on click and highlights the open one", async () => {

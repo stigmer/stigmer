@@ -1371,7 +1371,9 @@ export {
   useConversationList,
   useConversationTimeline,
   useConversationParticipation,
+  useConversationsWantsHumanCount,
   authorKindOf,
+  awaitingIndicatorOf,
   compareTimelineItemsNewestFirst,
   conversationContactOf,
   conversationLabelOf,
@@ -1379,6 +1381,7 @@ export {
   isInternalItem,
   receiptOf,
   sendAttemptOf,
+  CONVERSATION_BADGE_POLL_INTERVAL_MS,
   CONVERSATION_DETAIL_POLL_INTERVAL_MS,
   CONVERSATION_LIST_POLL_INTERVAL_MS,
 } from "./conversation/index.js";
@@ -1400,6 +1403,9 @@ export type {
   ConversationCommand,
   UseConversationParticipationOptions,
   UseConversationParticipationReturn,
+  UseConversationsWantsHumanCountOptions,
+  UseConversationsWantsHumanCountReturn,
+  AwaitingIndicator,
   ConversationAuthorKind,
   ReceiptKind,
   SendAttemptKind,
@@ -1407,6 +1413,7 @@ export type {
 // Wire types the conversation hooks answer with (DD-007: generated types
 // are the source of truth — re-exported for consumer convenience).
 export {
+  ChannelConversationListFilter,
   ConversationControl,
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
 export type {

@@ -1,16 +1,18 @@
 // Accessibility audit — the conversation list pane and timeline view.
 //
 // Covers the populated inbox (attention badge, human-control caption,
-// channel filter), the WhatsApp-style timeline (both bubble sides, the
-// two status axes, internal-lane system rows, the Slack honesty notice),
-// and both empty states — each in light + dark against the shipped
-// stylesheet.
+// channel filter, the wants-human filter control, both awaiting-reply
+// indicator strengths), the WhatsApp-style timeline (both bubble sides,
+// the two status axes, internal-lane system rows, the Slack honesty
+// notice), and the empty states including the filtered one — each in
+// light + dark against the shipped stylesheet.
 
 import { describe, it, afterEach, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import {
+  ChannelConversationListFilter,
   ChannelConversationSchema,
   ConversationControl,
   ConversationItemAuthor,
@@ -50,6 +52,8 @@ const conversations = [
     displayName: "Pat",
     needsAttention: true,
     attentionReason: "refund I cannot process",
+    // Agent-held and awaiting: the muted indicator strength.
+    awaitingReply: true,
     lastActivityAt: timestampFromDate(new Date("2026-08-07T11:55:00Z")),
   }),
   create(ChannelConversationSchema, {
@@ -58,6 +62,8 @@ const conversations = [
     org: "acme",
     control: ConversationControl.control_human,
     controlledBy: "idt_staff",
+    // Human-held and awaiting: the strong indicator strength (F-13).
+    awaitingReply: true,
     lastActivityAt: timestampFromDate(new Date("2026-08-07T09:00:00Z")),
   }),
 ];
@@ -140,11 +146,12 @@ afterEach(() => {
 });
 
 describe("Conversation surfaces a11y", () => {
-  it.each(COLOR_MODES)("populated inbox with badges and filter (%s)", async (mode) => {
+  it.each(COLOR_MODES)("populated inbox with badges, indicators, and filters (%s)", async (mode) => {
     const container = renderAudited(
       <ConversationListPane
         {...listBaseProps}
         conversations={conversations}
+        onFilterChange={noop}
         selected={{ agentChannelId: "ach_wa", conversationKey: "15550001111" }}
       />,
       mode,
@@ -164,6 +171,21 @@ describe("Conversation surfaces a11y", () => {
       mode,
     );
     await auditA11y(container, `conversation list empty · ${mode}`);
+  });
+
+  it.each(COLOR_MODES)("filtered inbox empty state (%s)", async (mode) => {
+    const container = renderAudited(
+      <ConversationListPane
+        {...listBaseProps}
+        conversations={[]}
+        hasMore={false}
+        filter={ChannelConversationListFilter.filter_wants_human}
+        onFilterChange={noop}
+        selected={null}
+      />,
+      mode,
+    );
+    await auditA11y(container, `filtered conversation list empty · ${mode}`);
   });
 
   it.each(COLOR_MODES)("timeline with both sides, status axes, internal rows (%s)", async (mode) => {

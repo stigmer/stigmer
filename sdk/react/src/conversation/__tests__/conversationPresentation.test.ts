@@ -3,6 +3,7 @@ import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
   ChannelConversationSchema,
+  ConversationControl,
   ConversationItemAuthor,
   ConversationLane,
   ConversationTimelineItemSchema,
@@ -12,6 +13,7 @@ import { ChannelDeliveryStatus } from "@stigmer/protos/ai/stigmer/agentic/agentc
 import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/outbound_pb";
 import {
   authorKindOf,
+  awaitingIndicatorOf,
   compareTimelineItemsNewestFirst,
   conversationContactOf,
   conversationLabelOf,
@@ -44,6 +46,45 @@ describe("isInternalItem", () => {
     expect(isInternalItem(item({ lane: ConversationLane.lane_internal }))).toBe(true);
     expect(isInternalItem(item({ lane: ConversationLane.lane_public }))).toBe(false);
     expect(isInternalItem(item({}))).toBe(false);
+  });
+});
+
+describe("awaitingIndicatorOf (DD-011 D-a: strength maps the holder)", () => {
+  it("renders strongly when a human holds an awaiting conversation — the agent will not answer", () => {
+    expect(
+      awaitingIndicatorOf(
+        create(ChannelConversationSchema, {
+          awaitingReply: true,
+          control: ConversationControl.control_human,
+        }),
+      ),
+    ).toBe("strong");
+  });
+
+  it("renders mutedly when the agent holds an awaiting conversation — an answer is on its way", () => {
+    expect(
+      awaitingIndicatorOf(
+        create(ChannelConversationSchema, {
+          awaitingReply: true,
+          control: ConversationControl.control_agent,
+        }),
+      ),
+    ).toBe("muted");
+    // The unspecified holder defaults to the agent (proto3 zero value).
+    expect(
+      awaitingIndicatorOf(create(ChannelConversationSchema, { awaitingReply: true })),
+    ).toBe("muted");
+  });
+
+  it("renders nothing once the customer is answered, whoever holds it", () => {
+    expect(
+      awaitingIndicatorOf(
+        create(ChannelConversationSchema, {
+          control: ConversationControl.control_human,
+        }),
+      ),
+    ).toBeNull();
+    expect(awaitingIndicatorOf(create(ChannelConversationSchema, {}))).toBeNull();
   });
 });
 

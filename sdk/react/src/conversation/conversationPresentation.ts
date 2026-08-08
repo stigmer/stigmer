@@ -1,6 +1,7 @@
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import {
   type ChannelConversation,
+  ConversationControl,
   ConversationItemAuthor,
   ConversationLane,
   type ConversationTimelineItem,
@@ -183,6 +184,34 @@ export function conversationContactOf(
   if (provider !== "whatsapp") return null;
   if (conversation.displayName === "") return null;
   return conversation.conversationKey;
+}
+
+/**
+ * How strongly the awaiting-reply indicator renders. Two strengths, not
+ * one, because "waiting" means different things per holder (DD-011 D-a).
+ */
+export type AwaitingIndicator = "strong" | "muted";
+
+/**
+ * The awaiting-reply indicator for a conversation (channel-conversations
+ * DD-011 D-a): `"strong"` when a human holds it — the agent will not
+ * answer, so a person must (F-13's exact case) — and `"muted"` when the
+ * agent holds it: the agent is about to answer, and if its turn dies the
+ * conversation stays visibly waiting, which is the built-in recovery
+ * path (DD-011 D-b). `null` when the customer's last message has been
+ * answered (or the customer has not written).
+ *
+ * The fact itself is server-derived (`awaiting_reply` rides the wire as
+ * a boolean precisely so no client re-implements the NULL-and-compare
+ * rule); this helper only maps fact × holder onto render strength.
+ */
+export function awaitingIndicatorOf(
+  conversation: ChannelConversation,
+): AwaitingIndicator | null {
+  if (!conversation.awaitingReply) return null;
+  return conversation.control === ConversationControl.control_human
+    ? "strong"
+    : "muted";
 }
 
 /**

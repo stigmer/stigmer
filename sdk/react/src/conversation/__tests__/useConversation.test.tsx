@@ -1,6 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
+
+// The focus-refetch tests broadcast window events, which reach EVERY
+// still-mounted hook in this file — including earlier tests' hooks whose
+// one-shot mock chains are exhausted. Unmount between tests so a window
+// broadcast only ever exercises the test that sent it.
+afterEach(cleanup);
 import { create } from "@bufbuild/protobuf";
 import { StigmerError } from "@stigmer/sdk";
 import {
@@ -170,6 +176,54 @@ describe("useConversation", () => {
 
     expect(result.current.conversation).toBeNull();
     expect(result.current.isLoading).toBe(true);
+  });
+
+  it("refetches the row when the window regains focus (DD-012: refocus is fresh)", async () => {
+    const getConversation = vi.fn().mockResolvedValue(row());
+    renderHook(() => useConversation("ach_1", "15550001111", NO_POLL), {
+      wrapper: wrapper(createMockStigmer(getConversation)),
+    });
+    await waitFor(() => expect(getConversation).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    await waitFor(() => expect(getConversation).toHaveBeenCalledTimes(2));
+  });
+
+  it("skips the focus refetch while a fetch is already in flight (no pile-up)", async () => {
+    let release: (value: unknown) => void = () => {};
+    const parked = new Promise((resolve) => {
+      release = resolve;
+    });
+    const getConversation = vi
+      .fn()
+      .mockResolvedValueOnce(row())
+      .mockReturnValueOnce(parked)
+      .mockResolvedValue(row());
+
+    const { result } = renderHook(
+      () => useConversation("ach_1", "15550001111", NO_POLL),
+      { wrapper: wrapper(createMockStigmer(getConversation)) },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    // Park a fetch in flight, then refocus: the guard must not stack a
+    // second request on top of it.
+    act(() => result.current.refetch());
+    await waitFor(() => expect(result.current.isRefetching).toBe(true));
+
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect(getConversation).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      release(row());
+      await parked;
+    });
+    await waitFor(() => expect(result.current.isRefetching).toBe(false));
   });
 
   it("keeps the row reference stable across polls that change nothing (DD-010)", async () => {

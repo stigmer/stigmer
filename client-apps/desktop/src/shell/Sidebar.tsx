@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { NavLink, useNavigate, useParams, useLocation } from "react-router-dom";
 import { cn } from "@stigmer/theme";
-import { useRecentActivity, WorkspaceSidebar } from "@stigmer/react";
+import {
+  useActiveOrgSlug,
+  useConversationsWantsHumanCount,
+  useRecentActivity,
+  WorkspaceSidebar,
+} from "@stigmer/react";
 import type {
   RecentActivityEntry,
   SidebarLinkRenderProps,
@@ -36,6 +41,11 @@ export function Sidebar() {
 
   const recentActivity = useRecentActivity();
   const { refetch, prependOptimistic } = recentActivity;
+  const org = useActiveOrgSlug();
+  // The Conversations badge: conversations wanting a human right now
+  // (channel-conversations DD-011 D-f). Data as props — the SDK sidebar
+  // never fetches for itself (DD-020). Mirrors web (DD-016).
+  const { count: wantsHumanCount } = useConversationsWantsHumanCount(org || null);
 
   // Sessions whose runner worker is still alive but which are NOT the one being
   // viewed: with the deferred-teardown invariant in the runner, a worker stays
@@ -144,6 +154,7 @@ export function Sidebar() {
       activeSessionId={activeSessionId}
       activeExecutionId={activeExecutionId}
       renderEntryAccessory={renderEntryAccessory}
+      conversationsBadgeCount={wantsHumanCount}
       footer={<UserMenu />}
       isOpen={sidebar.isOpen}
       onCollapse={sidebar.close}

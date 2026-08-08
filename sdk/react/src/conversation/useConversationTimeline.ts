@@ -123,6 +123,9 @@ export function useConversationTimeline(
     refetch,
   } = useFetch(fetchFn, [agentChannelId, conversationKey, pageSize, stigmer], EMPTY_HEAD, {
     refetchInterval: refetchIntervalMs,
+    // DD-012 D-a: returning to the tab is fresh (the head re-upserts, so
+    // a focus refetch can never disturb accumulated history).
+    refetchOnWindowFocus: true,
   });
 
   // Everything ever seen for this conversation, by item id.
