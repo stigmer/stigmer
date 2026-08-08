@@ -440,8 +440,8 @@ structured output contract with a fallback path if the Agent doesn't comply.
             minimum: 0
             maximum: 1
       fallback_task: manual_analysis
-    config:
-      max_cost_micros: 500000
+    run_config:
+      max_cost_usd: 0.50
   export:
     as: "${ . }"
 
@@ -462,7 +462,7 @@ structured output contract with a fallback path if the Agent doesn't comply.
 
 - `output.schema` tells the Agent what structure to produce
 - `output.fallback_task` redirects to a different task if the schema isn't met
-- `config.max_cost_micros` caps the cost of the Agent's autonomous work
+- `run_config.max_cost_usd` caps the cost of the Agent's autonomous work
 - The fallback is a `human_input` gate, but could be any task type
 
 ## Budget-gated processing
