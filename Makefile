@@ -906,7 +906,17 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 	if git rev-parse "$$NEW_TAG" >/dev/null 2>&1; then \
 		echo "error: tag $$NEW_TAG already exists" && exit 1; \
 	fi; \
-	echo "$$LATEST_TAG -> $$NEW_TAG"; \
+	NEW_VERSION="$$MAJOR.$$MINOR.$$PATCH"; \
+	PIN=$$(git show HEAD:mcp-server/Dockerfile | sed -n 's/^ARG MCP_SERVER_VERSION=//p'); \
+	if [ "$$PIN" != "$$NEW_VERSION" ]; then \
+		echo "error: mcp-server/Dockerfile at HEAD pins MCP_SERVER_VERSION=$$PIN but this release is $$NEW_TAG."; \
+		echo "release.npm-libs will refuse to publish (prod deploys the pin, not the tag)."; \
+		echo "Bump the pin and COMMIT it before tagging:"; \
+		echo "  sed -i '' 's/^ARG MCP_SERVER_VERSION=.*/ARG MCP_SERVER_VERSION=$$NEW_VERSION/' mcp-server/Dockerfile"; \
+		echo "  git add mcp-server/Dockerfile && git commit -m 'chore(mcp-server): bump the Dockerfile bridge pin to $$NEW_VERSION'"; \
+		exit 1; \
+	fi; \
+	echo "$$LATEST_TAG -> $$NEW_TAG (bridge pin OK)"; \
 	git tag -a "sdk/go/$$NEW_TAG" -m "Release sdk/go $$NEW_TAG"; \
 	git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG"; \
 	for t in "sdk/go/$$NEW_TAG" "$$NEW_TAG"; do \

@@ -58,7 +58,31 @@ git status --short
 
 If there are uncommitted changes, warn the user and ask whether to commit first or abort.
 
-### 5. Compose Release Notes
+### 5. Bump the mcp-server Bridge Pin (MANDATORY before tagging)
+
+`mcp-server/Dockerfile` pins the npm version the production bridge image installs
+(`ARG MCP_SERVER_VERSION=X.Y.Z`). The `release.npm-libs` workflow has a hard
+pre-publish gate: it refuses to publish a release whose version does not match
+this pin — prod deploys the pin, not the tag. The pin must be bumped **in a
+commit that is included in the tag** (the v3.8.0 release failed this gate,
+2026-08-08).
+
+```bash
+# Verify the pin at HEAD matches the new version
+git show HEAD:mcp-server/Dockerfile | sed -n 's/^ARG MCP_SERVER_VERSION=//p'
+```
+
+If it does not match, update the `ARG MCP_SERVER_VERSION=` line in
+`mcp-server/Dockerfile` to the new version, commit it to main
+(`chore(mcp-server): bump the Dockerfile bridge pin to <NEW_VERSION>`), push,
+and tag that commit. `make release` also enforces this check before creating
+any tags.
+
+> Note: the pin-bump push to main triggers a Planton bridge build that can fail
+> once with an npm 404 (the version isn't published yet). Re-run it after
+> `release.npm-libs` completes.
+
+### 6. Compose Release Notes
 
 Build a Markdown-formatted annotated tag message. Start with a user-facing highlights summary, then group commits by Conventional Commit type:
 
@@ -100,14 +124,14 @@ Rules for the notes:
 - Use imperative mood and keep each bullet to one line
 - Include scope in bold when available
 
-### 6. Create Tags
+### 7. Create Tags
 
 Create three annotated tags (mirroring the `make release` target):
 
 ```bash
 git tag -a "sdk/go/v<NEW>"     -m "Release sdk/go v<NEW>"
 git tag -a "mcp-server/v<NEW>" -m "Release mcp-server v<NEW>"
-git tag --cleanup=verbatim -a "v<NEW>" -m "<full release notes from step 5>"
+git tag --cleanup=verbatim -a "v<NEW>" -m "<full release notes from step 6>"
 ```
 
 The `sdk/go` and `mcp-server` tags get short messages; the main `v*` tag gets the full release notes.
@@ -116,7 +140,7 @@ The `sdk/go` and `mcp-server` tags get short messages; the main `v*` tag gets th
 
 > **Go SDK module path (SIV)**: The Go SDK is a v2+ module, so `sdk/go/go.mod` declares the major-version suffix in its path (`module github.com/stigmer/stigmer/sdk/go/v3`) and consumers import `github.com/stigmer/stigmer/sdk/go/v3`. The `sdk/go/vX.Y.Z` tag name is already correct for this layout — Go strips the `/v3` suffix when resolving the repo subdirectory, so **do not** rename the tag to `sdk/go/v3/vX.Y.Z` or move the module into an `sdk/go/v3/` directory. When the major version bumps (v3 → v4), update the module path suffix and all internal import paths accordingly.
 
-### 7. Push Tags
+### 8. Push Tags
 
 ```bash
 for t in "sdk/go/v<NEW>" "mcp-server/v<NEW>" "v<NEW>"; do
@@ -125,7 +149,7 @@ for t in "sdk/go/v<NEW>" "mcp-server/v<NEW>" "v<NEW>"; do
 done
 ```
 
-### 8. Confirm
+### 9. Confirm
 
 After pushing, print the CI summary (same as `make release`):
 
@@ -144,5 +168,6 @@ Tags pushed. CI will handle:
 
 - **Never force-push tags** — if a tag already exists, stop and tell the user
 - **Always confirm** the version bump with the user before creating tags
+- **Never tag without the bridge pin bumped** — `release.npm-libs` will hard-fail the publish if `mcp-server/Dockerfile` pins a different version than the tag (see step 5)
 - **Clean working tree required** — do not tag with uncommitted changes unless the user explicitly approves
 - If the user specifies a bump type (`patch`, `minor`, `major`), use it; otherwise infer from commits
