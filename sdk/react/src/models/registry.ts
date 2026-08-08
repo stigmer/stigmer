@@ -92,8 +92,9 @@ export interface ModelInfo {
   /**
    * Pricing-variant keys the registry prices for this model (e.g.
    * `["fast"]`). A priced variant is a *selectable* service tier
-   * (stigmer/stigmer#357): the tier toggle renders only for models whose
-   * `serviceTiers` includes it. Empty for models with no variants.
+   * (stigmer/stigmer#357): the fast-tier switch in the model popover's
+   * options area renders only while the selected model's `serviceTiers`
+   * includes it. Empty for models with no variants.
    *
    * Distinct from {@link speedTier}, which is a static latency badge,
    * not a selectable option.

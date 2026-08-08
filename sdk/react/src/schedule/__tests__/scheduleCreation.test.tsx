@@ -476,8 +476,8 @@ describe("ScheduleForm", () => {
     fireEvent.click(screen.getByRole("button", { name: /Platform default/ }));
     fireEvent.click(await screen.findByRole("option", { name: /Composer 2\.5/ }));
 
-    // The popover closed on selection; reopen it — the toggle renders only
-    // for the now-selected fast-capable model.
+    // The popover closed on selection; reopen it — the options-area switch
+    // renders only for the now-selected fast-capable model.
     fireEvent.click(screen.getByRole("button", { name: /Composer 2\.5/ }));
     fireEvent.click(await screen.findByRole("switch", { name: "Fast tier" }));
 

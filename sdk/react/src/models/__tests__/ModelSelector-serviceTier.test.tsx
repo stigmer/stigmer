@@ -23,12 +23,16 @@ beforeAll(() => {
 });
 
 /**
- * Service-tier toggle gating (stigmer/stigmer#357).
+ * Fast-tier switch in the popover's options area (stigmer/stigmer#357).
  *
- * The toggle is capability-gated: it renders only when the consumer opted in
- * (onServiceTierChange) AND the selected model prices a fast variant
- * (ModelInfo.serviceTiers). Switching to a model without a fast tier resets
- * an active fast selection — a stale tier would be refused at create time.
+ * The switch sits at the TOP of the popover (the Cursor options-panel
+ * convention) and is capability-gated: it renders only when the consumer
+ * opted in (onServiceTierChange) AND the selected model prices a fast
+ * variant (ModelInfo.serviceTiers) — no dead controls. An active fast
+ * tier persists across switches between fast-capable models (the trigger
+ * badge and the switch keep the state visible), and resets ONLY when the
+ * chosen model prices no fast variant — a stale tier there would be
+ * refused at create time.
  */
 
 const FAST_CAPABLE: ModelInfo = {
@@ -38,6 +42,18 @@ const FAST_CAPABLE: ModelInfo = {
   shortDescription: "Fast agentic model",
   speedTier: "fastest",
   costTier: "economy",
+  harness: "cursor",
+  featured: true,
+  serviceTiers: ["fast"],
+};
+
+const ALSO_FAST_CAPABLE: ModelInfo = {
+  modelId: "claude-opus-4-8",
+  provider: "anthropic",
+  displayName: "Claude 4.8 Opus",
+  shortDescription: "Frontier Opus via Cursor",
+  speedTier: "slow",
+  costTier: "premium",
   harness: "cursor",
   featured: true,
   serviceTiers: ["fast"],
@@ -64,7 +80,7 @@ function renderSelector(
   const result = render(
     <ModelRegistryContext.Provider
       value={{
-        models: [FAST_CAPABLE, NO_FAST_TIER],
+        models: [FAST_CAPABLE, ALSO_FAST_CAPABLE, NO_FAST_TIER],
         isLoading: false,
         error: null,
         refetch: vi.fn(),
@@ -106,8 +122,8 @@ function modelOption(displayName: string): HTMLElement {
 
 afterEach(cleanup);
 
-describe("ModelSelector — service tier toggle", () => {
-  it("renders the toggle for a fast-capable model", async () => {
+describe("ModelSelector — fast tier switch in the options area", () => {
+  it("renders the switch for a fast-capable selected model", async () => {
     renderSelector();
     await openPopover("Composer 2.5");
 
@@ -115,14 +131,28 @@ describe("ModelSelector — service tier toggle", () => {
     expect(toggle.getAttribute("aria-checked")).toBe("false");
   });
 
-  it("does not render the toggle for a model without a fast tier", async () => {
+  it("places the switch in the options area above the model list", async () => {
+    renderSelector();
+    await openPopover("Composer 2.5");
+
+    const toggle = screen.getByRole("switch", { name: "Fast tier" });
+    const search = screen.getByRole("searchbox", { name: "Search models" });
+    // DOCUMENT_POSITION_FOLLOWING: the search input comes after the switch,
+    // i.e. the options area precedes search + list (never a footer).
+    expect(
+      toggle.compareDocumentPosition(search)
+        & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("does not render the switch for a model without a fast tier", async () => {
     renderSelector({ value: "claude-haiku-4-5" });
     await openPopover("Haiku 4.5");
 
     expect(screen.queryByRole("switch", { name: "Fast tier" })).toBeNull();
   });
 
-  it("does not render the toggle when the consumer did not opt in", async () => {
+  it("does not render the switch when the consumer did not opt in", async () => {
     renderSelector({ onServiceTierChange: undefined });
     await openPopover("Composer 2.5");
 
@@ -138,10 +168,76 @@ describe("ModelSelector — service tier toggle", () => {
     expect(onServiceTierChange).toHaveBeenCalledWith("fast");
   });
 
+  it("toggling off an active fast tier fires 'standard'", async () => {
+    const { onServiceTierChange } = renderSelector({ serviceTier: "fast" });
+    await openPopover("Composer 2.5");
+
+    fireEvent.click(screen.getByRole("switch", { name: "Fast tier" }));
+    expect(onServiceTierChange).toHaveBeenCalledOnce();
+    expect(onServiceTierChange).toHaveBeenCalledWith("standard");
+  });
+
+  it("keeps the popover open across a toggle", async () => {
+    renderSelector();
+    await openPopover("Composer 2.5");
+
+    fireEvent.click(screen.getByRole("switch", { name: "Fast tier" }));
+    expect(screen.getByPlaceholderText("Search models…")).toBeTruthy();
+  });
+});
+
+describe("ModelSelector — trigger badge", () => {
   it("shows the Fast badge on the trigger when the fast tier is active", () => {
     renderSelector({ serviceTier: "fast" });
 
     expect(screen.getByText("Fast")).toBeTruthy();
+  });
+
+  it("hides the badge when the selected model has no fast tier", () => {
+    renderSelector({ serviceTier: "fast", value: "claude-haiku-4-5" });
+
+    expect(screen.queryByText("Fast")).toBeNull();
+  });
+});
+
+describe("ModelSelector — fast tier persistence across model switches", () => {
+  it("selecting a model while standard emits no tier change", async () => {
+    const { onValueChange, onServiceTierChange } = renderSelector();
+    await openPopover("Composer 2.5");
+
+    fireEvent.click(modelOption("Composer 2.5"));
+
+    expect(onValueChange).toHaveBeenCalledWith("composer-2.5");
+    expect(onServiceTierChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps an active fast tier when selecting another fast-capable model", async () => {
+    // "Fast, but on that other model" is one action — resetting here made
+    // users re-toggle on every model change, and the tier is never silent
+    // (trigger badge + options switch both show it).
+    const { onValueChange, onServiceTierChange } = renderSelector({
+      serviceTier: "fast",
+    });
+    await openPopover("Composer 2.5");
+
+    fireEvent.click(modelOption("Claude 4.8 Opus"));
+
+    expect(onValueChange).toHaveBeenCalledWith("claude-opus-4-8");
+    expect(onServiceTierChange).not.toHaveBeenCalled();
+  });
+
+  it("toggle-then-pick works in a single popover visit", async () => {
+    // Flip the switch first (popover stays open), then pick a fast-capable
+    // model: the toggle survives the selection.
+    const { onValueChange, onServiceTierChange } = renderSelector();
+    await openPopover("Composer 2.5");
+
+    fireEvent.click(screen.getByRole("switch", { name: "Fast tier" }));
+    fireEvent.click(modelOption("Claude 4.8 Opus"));
+
+    expect(onServiceTierChange).toHaveBeenCalledOnce();
+    expect(onServiceTierChange).toHaveBeenCalledWith("fast");
+    expect(onValueChange).toHaveBeenCalledWith("claude-opus-4-8");
   });
 
   it("resets an active fast tier when selecting a model without one", async () => {
@@ -156,17 +252,5 @@ describe("ModelSelector — service tier toggle", () => {
     expect(onValueChange).toHaveBeenCalledWith("claude-haiku-4-5");
     expect(onServiceTierChange).toHaveBeenCalledOnce();
     expect(onServiceTierChange).toHaveBeenCalledWith("standard");
-  });
-
-  it("keeps an active fast tier when selecting another fast-capable model", async () => {
-    const { onServiceTierChange } = renderSelector({
-      serviceTier: "fast",
-      value: "claude-haiku-4-5",
-    });
-    await openPopover("Haiku 4.5");
-
-    fireEvent.click(modelOption("Composer 2.5"));
-
-    expect(onServiceTierChange).not.toHaveBeenCalled();
   });
 });

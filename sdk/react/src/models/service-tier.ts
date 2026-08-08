@@ -11,7 +11,7 @@ import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v
  */
 export type ServiceTierOption = "standard" | "fast";
 
-/** The tier key a model must price for the fast toggle to render. */
+/** The tier key a model must price for the fast-tier switch to render. */
 export const FAST_SERVICE_TIER = "fast";
 
 /**

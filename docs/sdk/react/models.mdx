@@ -111,6 +111,19 @@ via "Show All Models."
 The trigger button displays the current selection in compact format:
 `Harness · Model Name ▾` (or just `Model Name ▾` when harness is locked).
 
+**Service tier (#357).** When the consumer opts in via
+`ModelSelectorProps.onServiceTierChange` and the selected model
+prices a fast variant, a "Fast tier" switch renders in the options area
+at the TOP of the popover — the first thing visible on open, mirroring
+Cursor's own options panel (Jakob's Law: our users already know that
+layout). Deliberately not a per-row affordance: row-level chips crowd
+the rows and collide with the "Fast/Fastest" speed badge, and an
+interactive element inside `role="option"` is an ARIA authoring error
+(option children are presentational). An active fast tier persists
+across switches between fast-capable models — the visible badge and
+switch keep the state honest — and resets only for models with no fast
+variant, where it would be refused at create time.
+
 **Props** — `ModelSelectorProps`
 
 <TypeTable
@@ -125,7 +138,7 @@ The trigger button displays the current selection in compact format:
     initialHarness: { type: "HarnessOption", description: "Initial harness value for the internal state when `harness` prop is undefined (unlocked mode). Prevents desync when the parent knows the active harness but delegates the dropdown to this component.  When `harness` is provided (locked mode), this prop is ignored.", typeDescriptionLink: "#harnessoption" },
     onHarnessChange: { type: "(harness: HarnessOption) => void", description: "Called when user changes harness in the dropdown." },
     onHarnessResolved: { type: "(harness: HarnessOption) => void", description: "" },
-    onServiceTierChange: { type: "(tier: ServiceTierOption) => void", description: "Called when the user toggles the fast tier. Providing this enables the tier toggle, which renders ONLY when the selected model prices a fast variant (ModelInfo.serviceTiers) — no dead controls. Selecting a model without a fast tier while \"fast\" is active resets the tier to \"standard\" through this callback, so an unsupported combination can never be submitted." },
+    onServiceTierChange: { type: "(tier: ServiceTierOption) => void", description: "Called when the user toggles the fast tier. Providing this enables the \"Fast tier\" switch in the popover's options area (top of the popover, beside the harness row — the Cursor options-panel convention), which renders ONLY while the selected model prices a fast variant (ModelInfo.serviceTiers) — no dead controls.  An active fast tier persists across switches between fast-capable models (the tier is always visible: trigger badge + options switch), so \"fast, but on that other model\" is one action, not a re-toggle. Selecting a model without a fast tier resets to \"standard\" through this callback — an unsupported combination can never be submitted (#357, refused at create time)." },
     onValueChange: { type: "(modelId: string) => void", description: "Called when the user picks a different model. Receives the `modelId`.", required: true },
     placeholderLabel: { type: "string", description: "Trigger label shown while `value` is empty, instead of falling back to the registry's default model. Lets a form distinguish \"nothing pinned — the platform default applies\" from an actual selection (the schedule form's contract: an unset model inherits the surface's platform default). The harness prefix is hidden while the placeholder shows, since no engine is pinned either." },
     serviceTier: { type: "ServiceTierOption", description: "Current service tier for the selected model (stigmer/stigmer#357). Defaults to \"standard\". Only meaningful together with onServiceTierChange." },
@@ -230,7 +243,7 @@ UI-relevant metadata for a single platform-supported LLM model.
     harness: { type: "HarnessOption", description: "Which execution engine serves this model.", required: true, typeDescriptionLink: "#harnessoption" },
     modelId: { type: "string", description: "Unique model identifier sent to the backend (e.g. `\"claude-sonnet-4.5\"`).", required: true },
     provider: { type: "Provider", description: "LLM provider that serves this model.", required: true, typeDescriptionLink: "#provider" },
-    serviceTiers: { type: "readonly string[]", description: "Pricing-variant keys the registry prices for this model (e.g. `[\"fast\"]`). A priced variant is a *selectable* service tier (stigmer/stigmer#357): the tier toggle renders only for models whose `serviceTiers` includes it. Empty for models with no variants.  Distinct from speedTier, which is a static latency badge, not a selectable option.", required: true },
+    serviceTiers: { type: "readonly string[]", description: "Pricing-variant keys the registry prices for this model (e.g. `[\"fast\"]`). A priced variant is a *selectable* service tier (stigmer/stigmer#357): the fast-tier switch in the model popover's options area renders only while the selected model's `serviceTiers` includes it. Empty for models with no variants.  Distinct from speedTier, which is a static latency badge, not a selectable option.", required: true },
     shortDescription: { type: "string", description: "3-6 word pitch explaining why to pick this model. Shown in the curated view.", required: true },
     speedTier: { type: "SpeedTier", description: "Latency characteristic shown as a badge (Fastest / Fast / Balanced / Slow).", required: true },
   }}

@@ -1206,7 +1206,7 @@ function normalizeRunConfig(
   if (modelName.trim() !== "") fields.modelName = modelName.trim();
   if (maxCostUsd > 0) fields.maxCostUsd = maxCostUsd;
   if (maxToolRounds > 0) fields.maxToolRounds = maxToolRounds;
-  // Only an active fast choice is carried — an untouched toggle stays
+  // Only an active fast choice is carried — an untouched tier stays
   // absent, preserving the unspecified-vs-explicit ledger distinction (#357).
   if (serviceTier === "fast") fields.serviceTier = toProtoServiceTier(serviceTier);
 

@@ -45,7 +45,7 @@ export interface ComposerToolbarProps {
   readonly onModelChange: (id: string) => void;
   /** Current service tier for the selected model (#357). */
   readonly serviceTier?: ServiceTierOption;
-  /** Enables the fast-tier toggle inside the model selector. */
+  /** Enables the fast-tier switch inside the model selector's options area. */
   readonly onServiceTierChange?: (tier: ServiceTierOption) => void;
 
   // -- Right group: Secondary actions (icon-only) ---------------------------

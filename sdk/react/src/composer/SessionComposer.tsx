@@ -150,7 +150,7 @@ export interface SessionComposerSubmitContext {
   readonly interactionMode?: InteractionModeOption;
   /**
    * Service tier the user actively selected for this execution
-   * (stigmer/stigmer#357). Only ever `"fast"` — an untouched toggle means
+   * (stigmer/stigmer#357). Only ever `"fast"` — an untouched tier means
    * "platform default" and is carried as `undefined`, preserving the
    * unspecified-vs-explicit distinction all the way to the ledger.
    * Pass to execution creation as `execution_config.service_tier`.
@@ -865,7 +865,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       const hasFileRefs = enableFileReferences && fileRefs.hasRefs;
       const buildFromPlan = overrides?.buildFromPlan;
       // Carried only when the user actively chose fast: an untouched
-      // toggle means "platform default" (which resolves to standard in
+      // tier means "platform default" (which resolves to standard in
       // the runner), and the UNSPECIFIED-vs-explicit distinction is
       // load-bearing telemetry (#357).
       const effectiveServiceTier = serviceTier === "fast" ? serviceTier : undefined;

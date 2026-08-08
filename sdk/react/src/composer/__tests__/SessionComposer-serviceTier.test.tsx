@@ -102,7 +102,8 @@ function submitMessage(message: string) {
 
 /**
  * Open the model selector popover (Base UI portals mount asynchronously in
- * jsdom — the switch is awaited) and flip the fast-tier toggle.
+ * jsdom — the switch is awaited) and flip the fast-tier switch in the
+ * options area, then close the popover (toggling keeps it open).
  */
 async function toggleFastTier() {
   fireEvent.click(screen.getByRole("button", { name: /Composer 2\.5/ }));
@@ -114,7 +115,7 @@ async function toggleFastTier() {
 afterEach(cleanup);
 
 describe("SessionComposer — service tier submit contract", () => {
-  it("renders the tier toggle through the toolbar for a fast-capable model", async () => {
+  it("renders the tier switch through the toolbar for a fast-capable model", async () => {
     renderComposer();
 
     fireEvent.click(screen.getByRole("button", { name: /Composer 2\.5/ }));
@@ -132,7 +133,7 @@ describe("SessionComposer — service tier submit contract", () => {
     expect(context?.serviceTier).toBe("fast");
   });
 
-  it("leaves serviceTier undefined when the toggle is untouched", async () => {
+  it("leaves serviceTier undefined when the switch is untouched", async () => {
     const { onSubmit } = renderComposer();
 
     submitMessage("Run it normally");

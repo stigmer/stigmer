@@ -107,11 +107,12 @@ export function ScheduleForm({
   // the popover without picking a model pins nothing.
   const [modelName, setModelName] = useState("");
   const [modelHarness, setModelHarness] = useState<HarnessOption>("cursor");
-  // Service tier rides the model choice (#357): the ModelSelector renders
-  // the fast toggle only for models whose registry entry prices a fast
-  // variant, and resets it when the user switches to one that does not.
-  // No model pinned = no tier pinned (fast requires a model, and the form's
-  // reset button clears both).
+  // Service tier is scoped by the model choice (#357): the ModelSelector
+  // renders the fast-tier switch only while the selected model's registry
+  // entry prices a fast variant. An active fast tier survives switches
+  // between fast-capable models and resets only when a model without one
+  // is picked. No model pinned = no tier pinned (fast requires a model,
+  // and the form's reset button clears both).
   const [serviceTier, setServiceTier] = useState<ServiceTierOption>("standard");
 
   const [budgetUsd, setBudgetUsd] = useState("");
@@ -520,7 +521,7 @@ function buildRunConfig(
   if (Number.isFinite(cost) && cost > 0) config.maxCostUsd = cost;
   // Carried only when the user actively chose fast AND pinned a model
   // (fast is a per-model price; the server refuses it without one). An
-  // untouched toggle stays absent — unspecified-vs-explicit is a
+  // untouched tier stays absent — unspecified-vs-explicit is a
   // load-bearing ledger distinction (#357).
   if (serviceTier === "fast" && model !== "") {
     config.serviceTier = toProtoServiceTier(serviceTier);

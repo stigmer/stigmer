@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import { useStigmerPortalContainer } from "../portal-container.js";
+import { Switch } from "../switch/Switch.js";
 import { useModelRegistry } from "./useModelRegistry.js";
 import type { ModelInfo, CostTier, SpeedTier } from "./registry.js";
 import { HARNESS_META, HARNESS_OPTIONS, type HarnessOption } from "./harness.js";
@@ -80,11 +81,17 @@ export interface ModelSelectorProps {
   readonly serviceTier?: ServiceTierOption;
   /**
    * Called when the user toggles the fast tier. Providing this enables the
-   * tier toggle, which renders ONLY when the selected model prices a fast
-   * variant ({@link ModelInfo.serviceTiers}) — no dead controls. Selecting
-   * a model without a fast tier while "fast" is active resets the tier to
-   * "standard" through this callback, so an unsupported combination can
-   * never be submitted.
+   * "Fast tier" switch in the popover's options area (top of the popover,
+   * beside the harness row — the Cursor options-panel convention), which
+   * renders ONLY while the selected model prices a fast variant
+   * ({@link ModelInfo.serviceTiers}) — no dead controls.
+   *
+   * An active fast tier persists across switches between fast-capable
+   * models (the tier is always visible: trigger badge + options switch),
+   * so "fast, but on that other model" is one action, not a re-toggle.
+   * Selecting a model without a fast tier resets to "standard" through
+   * this callback — an unsupported combination can never be submitted
+   * (#357, refused at create time).
    */
   readonly onServiceTierChange?: (tier: ServiceTierOption) => void;
 
@@ -104,6 +111,19 @@ export interface ModelSelectorProps {
  *
  * The trigger button displays the current selection in compact format:
  * `Harness · Model Name ▾` (or just `Model Name ▾` when harness is locked).
+ *
+ * **Service tier (#357).** When the consumer opts in via
+ * {@link ModelSelectorProps.onServiceTierChange} and the selected model
+ * prices a fast variant, a "Fast tier" switch renders in the options area
+ * at the TOP of the popover — the first thing visible on open, mirroring
+ * Cursor's own options panel (Jakob's Law: our users already know that
+ * layout). Deliberately not a per-row affordance: row-level chips crowd
+ * the rows and collide with the "Fast/Fastest" speed badge, and an
+ * interactive element inside `role="option"` is an ARIA authoring error
+ * (option children are presentational). An active fast tier persists
+ * across switches between fast-capable models — the visible badge and
+ * switch keep the state honest — and resets only for models with no fast
+ * variant, where it would be refused at create time.
  *
  * @example
  * ```tsx
@@ -245,9 +265,11 @@ export function ModelSelector({
   const selectModel = useCallback(
     (model: ModelInfo) => {
       onValueChange(model.modelId);
-      // Fail-safe: the fast tier is per-model; carrying it onto a model
-      // that does not price it would be refused at create time (#357), so
-      // reset here instead of surfacing a dead selection.
+      // An active fast tier survives a switch between fast-capable models —
+      // resetting it forced users to re-toggle on every model change, and
+      // the tier is never silent (trigger badge + options switch both show
+      // it). It resets ONLY when the new model prices no fast variant: a
+      // stale tier there would be refused at create time (#357).
       if (
         serviceTier === "fast"
         && onServiceTierChange
@@ -268,7 +290,7 @@ export function ModelSelector({
   }, []);
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
       const len = visibleModels.length;
       if (len === 0) return;
 
@@ -304,14 +326,18 @@ export function ModelSelector({
 
   const showShowAllButton = !isSearching && !showAll && featuredModels.length > 0 && featuredModels.length < models.length;
 
-  // The tier toggle exists only where it applies: a consumer opted in AND
-  // the selected model prices a fast variant (recognition over recall —
-  // never a dead control on models with no tier choice).
+  // The options-area switch exists only where it applies: a consumer opted
+  // in AND the selected model prices a fast variant (recognition over
+  // recall — never a dead control on models with no tier choice).
   const showServiceTierToggle =
     onServiceTierChange !== undefined
     && selectedModel !== undefined
     && selectedModel.serviceTiers.includes(FAST_SERVICE_TIER);
-  const fastActive = serviceTier === "fast";
+  // The trigger badge is display-only: fast is in effect iff the tier is
+  // fast AND the selected model actually prices the variant.
+  const fastActive =
+    serviceTier === "fast"
+    && (selectedModel?.serviceTiers.includes(FAST_SERVICE_TIER) ?? false);
 
   const usingPlaceholder = !value && placeholderLabel !== undefined;
   const triggerLabel = usingPlaceholder
@@ -342,13 +368,14 @@ export function ModelSelector({
           <span className="shrink-0 text-border" aria-hidden>·</span>
         )}
         <span className="truncate">{triggerLabel}</span>
-        {showServiceTierToggle && fastActive && (
+        {fastActive && (
           <span
             className={cn(
-              "shrink-0 rounded-sm border border-border px-1 py-px",
-              "text-[0.6rem] font-medium uppercase tracking-wider text-muted-foreground",
+              "inline-flex shrink-0 items-center gap-0.5 rounded-full border border-primary px-1.5 py-px",
+              "text-[0.6rem] font-medium uppercase tracking-wider text-primary",
             )}
           >
+            <BoltIcon />
             Fast
           </span>
         )}
@@ -432,6 +459,29 @@ export function ModelSelector({
                 </div>
               )}
             </div>
+
+            {/* Options area — the Cursor options-panel convention: settings
+                of the CURRENT selection sit at the top of the popover, the
+                first thing visible on open, never buried under the list.
+                Rendered only while the selected model prices a fast
+                variant (#357). */}
+            {showServiceTierToggle && (
+              <div className="flex items-center justify-between border-b border-border px-3 py-2">
+                <div className="flex flex-col">
+                  <span className="text-xs text-foreground">Fast tier</span>
+                  <span className="text-[0.65rem] text-muted-foreground">
+                    Faster responses at higher per-token rates
+                  </span>
+                </div>
+                <Switch
+                  checked={fastActive}
+                  onCheckedChange={(next) =>
+                    onServiceTierChange?.(next ? "fast" : "standard")
+                  }
+                  aria-label="Fast tier"
+                />
+              </div>
+            )}
 
             {/* Search input */}
             <div className="border-b border-border px-3 py-1.5">
@@ -535,39 +585,6 @@ export function ModelSelector({
                 </button>
               )}
             </div>
-
-            {/* Service tier toggle — only for models that price a fast variant (#357) */}
-            {showServiceTierToggle && (
-              <div className="flex items-center justify-between border-t border-border px-3 py-2">
-                <div className="flex flex-col">
-                  <span className="text-xs text-foreground">Fast tier</span>
-                  <span className="text-[0.65rem] text-muted-foreground">
-                    Faster responses at higher per-token rates
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={fastActive}
-                  aria-label="Fast tier"
-                  className={cn(
-                    "relative h-4.5 w-8 shrink-0 rounded-full transition-colors cursor-pointer",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    fastActive ? "bg-primary" : "bg-muted",
-                  )}
-                  onClick={() =>
-                    onServiceTierChange?.(fastActive ? "standard" : "fast")
-                  }
-                >
-                  <span
-                    className={cn(
-                      "absolute top-0.5 size-3.5 rounded-full bg-background shadow-sm transition-transform",
-                      fastActive ? "translate-x-4" : "translate-x-0.5",
-                    )}
-                  />
-                </button>
-              </div>
-            )}
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>
@@ -662,6 +679,21 @@ function CheckIcon({ className }: { className?: string }) {
       strokeLinejoin="round"
     >
       <path d="M2 6L5 9L10 3" />
+    </svg>
+  );
+}
+
+function BoltIcon() {
+  return (
+    <svg
+      className="shrink-0"
+      width="8"
+      height="10"
+      viewBox="0 0 8 10"
+      fill="currentColor"
+      aria-hidden
+    >
+      <path d="M4.9 0.2L0.6 5.6h2.6L3.1 9.8l4.3-5.4H4.8L4.9 0.2z" />
     </svg>
   );
 }
