@@ -271,6 +271,20 @@ pages:
       registration, webhook verification.
     medium: none
 
+  guides/channels/take-over-conversations:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Watch customer conversations in the console's Conversations area, take
+      one over, reply through the channel's number, hand it back, and answer
+      an Agent escalation.
+    medium: screenshot-journey
+    why:
+      A console procedure the reader follows at their own pace — the
+      Conversations inbox, timeline, and banners are depictable stills (the
+      connect-guide precedent); the page ships prose-only until the stills
+      are rendered.
+
   # ── Tools & MCP ────────────────────────────────────────────────────────
   guides/integrations/overview:
     fate: keep

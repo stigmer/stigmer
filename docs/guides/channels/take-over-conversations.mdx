@@ -1,0 +1,108 @@
+---
+title: Take Over Conversations from Your Agent
+description:
+  Watch your Agent's customer conversations live, step in and reply through the
+  same number, and hand the conversation back when you're done.
+---
+
+A connected channel puts your Agent on a real phone number, talking to real
+customers. Sooner or later a customer needs a person — they ask for one, or the
+question is beyond what the Agent should answer alone. This guide shows you how
+to see those conversations, take one over, reply as yourself through the same
+number, and hand it back to the Agent when you're done.
+
+<Callout type="info">
+  Conversations require Stigmer Cloud and a connected channel. If you haven't
+  connected one yet, start with [Connect an Agent to
+  WhatsApp](/docs/guides/channels/connect-whatsapp). Staff replies work on
+  WhatsApp channels today; Slack conversations are readable, but only the Agent
+  replies on them for now.
+</Callout>
+
+## Open the Conversations area
+
+**Conversations** is a top-level item in the console sidebar. It lists every
+customer conversation across all of your organization's channels, newest
+activity first, with the customer's name and number on each row.
+
+Two signals tell you where you're needed:
+
+- The **sidebar badge** counts conversations that want a human right now — the
+  Agent escalated, or a customer is waiting on a reply that only a person will
+  send. Switch the list from **All** to **Needs human** to see exactly those.
+- A **dot on a conversation row** means the customer's last message has not been
+  answered yet. A muted dot means the Agent has it — an answer is on its way, no
+  action needed. A strong dot means a person holds the conversation, so the
+  Agent stays quiet and the reply has to come from your team.
+
+## Read a conversation
+
+Open a row and you get the conversation the way the customer experiences it:
+their messages, the Agent's delivered replies, and your teammates' replies, in
+order. This is deliberately not the Session viewer — no tool calls, no execution
+internals, just what was said on the customer's phone.
+
+Sent messages carry WhatsApp-style ticks. A failed send shows the reason in
+plain words right in the bubble — for example, that WhatsApp refused the message
+because the customer hasn't written in over 24 hours.
+
+## Take over
+
+Press **Take over** in the conversation header. From that moment the Agent goes
+quiet on this one conversation — customer messages still arrive on the timeline,
+but the Agent does not answer them. Every other conversation keeps running
+normally.
+
+You don't have to press the button first: **sending a reply takes the
+conversation over implicitly**. Your message is the takeover.
+
+If the customer writes while your team holds the conversation and nobody has
+replied yet, the platform sends them a single acknowledgment — "Someone from our
+team is looking at this and will reply here." — so they're never left wondering.
+A prompt reply from you replaces it entirely.
+
+## Reply
+
+Type in the composer and send. The reply goes out through the channel's own
+number — to the customer it's the same conversation, now with a person in it.
+Your message appears on the timeline with delivery ticks once the provider
+accepts it.
+
+One WhatsApp rule to know: free-form replies only deliver within 24 hours of the
+customer's last message. If the window has closed, the composer warns you before
+you send — a reply sent anyway will probably fail, and the window reopens the
+moment the customer writes again. Message templates are the lane WhatsApp
+provides for reaching out past the window; sending them from the composer isn't
+available yet.
+
+## Hand back
+
+Press **Hand back to agent** when you're done. The Agent resumes on the next
+customer message — and it resumes informed: it receives a digest of what
+happened while it was quiet (the customer's messages and your replies), so it
+won't re-answer a question you already settled or greet the customer as if
+nothing happened.
+
+If the customer's last message has no reply yet, handing back shows a warning
+first. Handing back runs nothing — the Agent stays silent until the customer
+writes again — so an unanswered customer would simply wait. Answer first, or
+hand back anyway if that's intended.
+
+## When the Agent escalates
+
+Your Agent can decide on its own that a person should look at a conversation — a
+customer demanding a human, a request beyond its remit. The conversation is
+flagged for attention: it lights up the sidebar badge, joins the **Needs human**
+list, and shows a banner with the Agent's reason in the open conversation. The
+Agent keeps serving the customer in the meantime rather than leaving dead air.
+
+Two ways to answer the flag: **Take over** (you step in — the flag clears) or
+**Dismiss** (a false alarm — the flag clears and the Agent carries on).
+
+## Who can step in
+
+Reading conversations comes with channel view access. Replying, taking over, and
+handing back need the **participant** role on the channel. Grant it from the
+channel card's menu on the Agent's **Channels** tab — open **Manage access** and
+add the teammate. One grant covers every conversation on that channel, not just
+one customer.

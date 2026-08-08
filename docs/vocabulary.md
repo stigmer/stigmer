@@ -272,7 +272,8 @@ A process that connects to Stigmer and executes your Agents.
 - **Related terms**: Sessions find a runner one of three ways---automatic
   provisioning, explicit selection from the runner picker, or Session binding (a
   Session reuses the runner that ran its first execution). Do not confuse with
-  "Agent Runner" (the Python Temporal worker binary---architecture docs only).
+  "Agent Runner" (the TypeScript Temporal worker binary---architecture docs
+  only).
 
 **Good examples**:
 
@@ -807,13 +808,14 @@ The open specification that Stigmer's Workflow DSL is based on.
 
 <!-- vale Stigmer.terms = NO -->
 
-The Agent framework used internally by the agent-runner service.
+The Agent framework of the retired Python agent runner. The name survives only
+in historical references; today's runner executes the native harness with
+LangGraph.js deep-agent.
 
 <!-- vale Stigmer.terms = YES -->
 
-- **Context rule**: Architecture docs and contributor guides only. Never in
-  customer-facing documentation. Customers do not interact with Graphton
-  directly.
+- **Context rule**: Historical architecture references only. Never in
+  customer-facing documentation, and never for describing the current runtime.
 
 ---
 
@@ -831,11 +833,17 @@ The Go gRPC API server that powers the local development experience.
 
 #### Agent Runner
 
-The Python Temporal worker that executes AI Agent tasks.
+The TypeScript Temporal worker (`stigmer-runner`, `backend/services/runner`)
+that executes agent sessions and workflow executions, driving both harnesses:
+Cursor and the native deep-agent (LangGraph.js).
 
 - **Capitalize**: Yes.
 - **Context rule**: Architecture docs only. Customers do not start or configure
-  the Agent Runner directly---it is embedded in `stigmer server`.
+  the Agent Runner directly---`stigmer up` runs it for local execution and the
+  desktop app embeds it as a subprocess.
+- **Not Python**: The original Agent Runner was a Python Temporal worker; it was
+  replaced by the TypeScript runner. Any doc describing a "Python Temporal
+  worker" is describing the retired service.
 
 ---
 
