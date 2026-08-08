@@ -18,11 +18,15 @@ export interface ConversationControlBannerProps {
   /** The participation commands (from `useConversationParticipation`). */
   readonly participation: UseConversationParticipationReturn;
   /**
-   * `true` when the newest customer-visible item is an unanswered
-   * customer message — computed from the timeline read. Arms the
-   * handback confirm guard (channel-conversations DD-007 D-e): handing
-   * back runs NO turn, so the agent stays quiet until the customer
-   * next speaks, and the unanswered state must be unmissable.
+   * `true` when the customer's last message has not been answered —
+   * the conversation row's server-derived `awaiting_reply` fact, which
+   * is bounce-aware: a staff reply the provider later failed does not
+   * count as an answer (channel-conversations F-28/DD-015). Arms the
+   * handback confirm guard (DD-007 D-e): handing back runs NO turn, so
+   * the agent stays quiet until the customer next speaks, and the
+   * unanswered state must be unmissable. Never derive this from
+   * timeline authorship — the send attempt's presence on the timeline
+   * says nothing about whether the customer received it.
    */
   readonly unansweredCustomer: boolean;
   /**

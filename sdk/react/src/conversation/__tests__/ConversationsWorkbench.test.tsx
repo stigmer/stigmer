@@ -17,6 +17,7 @@ import {
   ChannelSendOutcome,
   SendChannelMessageOutputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/outbound_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { advanceInSlices } from "../../internal/__tests__/fake-timer-slices";
@@ -422,12 +423,15 @@ describe("ConversationsWorkbench", () => {
   });
 
   it("arms the handback confirm from a customer message that arrives on a poll tick (F-16, DD-007 D-e)", async () => {
-    // The composed guard path: timeline poll → head upsert →
-    // unansweredCustomer → confirm. The banner-level guard is pinned in
-    // ConversationControlBanner.test.tsx; what production exposed (and a
-    // starved poll would break again) is the message ARRIVING here at
-    // all — so this test delivers the unanswered message via a later
-    // poll tick, never via the initial load.
+    // The composed guard path: detail poll → the row's awaiting_reply →
+    // confirm (F-28 moved the guard's input from timeline authorship to
+    // the server fact). The banner-level guard is pinned in
+    // ConversationControlBanner.test.tsx; what production exposed (and
+    // a starved poll would break again) is the fact ARRIVING here at
+    // all — so this test flips awaiting_reply via a later poll tick,
+    // never via the initial load. The detail poll is the hand-rolled
+    // loop that survived the F-14 starvation (OQ-2), and the timeline
+    // poll must still deliver the message VISIBLY in the same window.
     vi.useFakeTimers();
     try {
       const answered = [
@@ -447,12 +451,14 @@ describe("ConversationsWorkbench", () => {
       const getTimeline = vi
         .fn()
         .mockResolvedValue({ items: answered, nextPageToken: "" });
-      const client = createMockStigmer({
-        getConversation: vi.fn().mockResolvedValue(
-          row({ control: ConversationControl.control_human, controlledBy: "idt_me" }),
-        ),
-        getTimeline,
-      });
+      const getConversation = vi.fn().mockResolvedValue(
+        row({
+          control: ConversationControl.control_human,
+          controlledBy: "idt_me",
+          awaitingReply: false,
+        }),
+      );
+      const client = createMockStigmer({ getConversation, getTimeline });
       render(
         <ConversationsWorkbench
           org="acme"
@@ -463,7 +469,7 @@ describe("ConversationsWorkbench", () => {
         { wrapper: wrapper(client) },
       );
 
-      // Flush the initial load: human-held, newest item answered.
+      // Flush the initial load: human-held, the customer answered.
       await act(async () => {
         await Promise.resolve();
         await Promise.resolve();
@@ -473,7 +479,16 @@ describe("ConversationsWorkbench", () => {
       ).toBeDefined();
       const callsBeforePoll = getTimeline.mock.calls.length;
 
-      // The customer writes again; the next poll tick delivers it.
+      // The customer writes again: the next detail poll answers the
+      // row with awaiting_reply true, the next timeline poll delivers
+      // the message itself.
+      getConversation.mockResolvedValue(
+        row({
+          control: ConversationControl.control_human,
+          controlledBy: "idt_me",
+          awaitingReply: true,
+        }),
+      );
       getTimeline.mockResolvedValue({
         items: [
           publicItem(
@@ -506,6 +521,161 @@ describe("ConversationsWorkbench", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("keeps the confirm armed when the newest item is the staff's own BOUNCED reply (F-28, DD-007 D-e)", async () => {
+    // The F-28 live shape (2026-08-08, S11): the newest customer-visible
+    // item is the staff's reply — words Meta later bounced, so the
+    // customer never received them. Timeline authorship reads
+    // "answered"; the row's awaiting_reply reads the truth, because the
+    // receipt-side void re-opened it (T08, DD-015). The guard must read
+    // the fact, never re-derive it from timeline shape — the client-side
+    // twin of the re-derivation DD-011 A-1 removed server-side.
+    const user = userEvent.setup();
+    const client = createMockStigmer({
+      getConversation: vi.fn().mockResolvedValue(
+        row({
+          control: ConversationControl.control_human,
+          controlledBy: "idt_me",
+          awaitingReply: true,
+        }),
+      ),
+      getTimeline: vi.fn().mockResolvedValue({
+        items: [
+          create(ConversationTimelineItemSchema, {
+            itemId: "ob:obm_bounced",
+            lane: ConversationLane.lane_public,
+            author: ConversationItemAuthor.author_teammate,
+            text: "We're on it — expect a call today.",
+            at: timestampFromDate(new Date("2026-08-07T10:05:00Z")),
+            receiptState: ChannelReceiptState.receipt_failed,
+            receiptDetail: "Re-engagement message required",
+          }),
+          customerItem("wa:1", "where is my order?"),
+        ],
+        nextPageToken: "",
+      }),
+    });
+    render(
+      <ConversationsWorkbench
+        org="acme"
+        selected={SELECTED}
+        onSelectionChange={vi.fn()}
+        currentIdentityAccountId="idt_me"
+      />,
+      { wrapper: wrapper(client) },
+    );
+    const handBackButton = await screen.findByRole("button", {
+      name: "Hand back to agent",
+    });
+
+    await user.click(handBackButton);
+
+    expect(
+      screen.getByText(/The customer's last message has no reply/),
+    ).toBeDefined();
+    const agentChannel = (client as {
+      agentChannel: Record<string, ReturnType<typeof vi.fn>>;
+    }).agentChannel;
+    expect(agentChannel.handBack).not.toHaveBeenCalled();
+  });
+
+  it("keeps the confirm armed when the platform acknowledgment is the newest item (F-28)", async () => {
+    // Platform copy ("someone from our team is looking at this") never
+    // answers the customer — it never stamps last_answered_at (DD-011
+    // D-b) — yet an authorship-derived guard read `platform ≠ customer`
+    // and went silent. The same latent miss as the bounced reply, fixed
+    // by the same move: the row's fact decides.
+    const user = userEvent.setup();
+    const client = createMockStigmer({
+      getConversation: vi.fn().mockResolvedValue(
+        row({
+          control: ConversationControl.control_human,
+          controlledBy: "idt_me",
+          awaitingReply: true,
+        }),
+      ),
+      getTimeline: vi.fn().mockResolvedValue({
+        items: [
+          publicItem(
+            "out:ack1",
+            ConversationItemAuthor.author_platform,
+            "2026-08-07T10:05:00Z",
+            "Someone from our team is looking at this and will reply here.",
+          ),
+          customerItem("wa:1", "I need a real person"),
+        ],
+        nextPageToken: "",
+      }),
+    });
+    render(
+      <ConversationsWorkbench
+        org="acme"
+        selected={SELECTED}
+        onSelectionChange={vi.fn()}
+        currentIdentityAccountId="idt_me"
+      />,
+      { wrapper: wrapper(client) },
+    );
+    const handBackButton = await screen.findByRole("button", {
+      name: "Hand back to agent",
+    });
+
+    await user.click(handBackButton);
+
+    expect(
+      screen.getByText(/The customer's last message has no reply/),
+    ).toBeDefined();
+    const agentChannel = (client as {
+      agentChannel: Record<string, ReturnType<typeof vi.fn>>;
+    }).agentChannel;
+    expect(agentChannel.handBack).not.toHaveBeenCalled();
+  });
+
+  it("hands back without the confirm once the row says answered — the fact, never the timeline's shape, decides (F-28)", async () => {
+    // The mirror case: the staff answer DELIVERED (the row settled
+    // awaiting_reply = false) but the reply's ledger item has not
+    // reached the independently-polled timeline window yet, so the
+    // newest visible item is still the customer's. An authorship guard
+    // warns about a customer who was in fact answered; the fact-reading
+    // guard does not. Same single-source-of-truth contract, disarm
+    // direction.
+    const user = userEvent.setup();
+    const client = createMockStigmer({
+      getConversation: vi.fn().mockResolvedValue(
+        row({
+          control: ConversationControl.control_human,
+          controlledBy: "idt_me",
+          awaitingReply: false,
+        }),
+      ),
+      getTimeline: vi.fn().mockResolvedValue({
+        items: [customerItem("wa:1", "where is my order?")],
+        nextPageToken: "",
+      }),
+    });
+    render(
+      <ConversationsWorkbench
+        org="acme"
+        selected={SELECTED}
+        onSelectionChange={vi.fn()}
+        currentIdentityAccountId="idt_me"
+      />,
+      { wrapper: wrapper(client) },
+    );
+    const handBackButton = await screen.findByRole("button", {
+      name: "Hand back to agent",
+    });
+
+    await user.click(handBackButton);
+
+    const agentChannel = (client as {
+      agentChannel: Record<string, ReturnType<typeof vi.fn>>;
+    }).agentChannel;
+    await waitFor(() => expect(agentChannel.handBack).toHaveBeenCalled());
+    expect(
+      screen.queryByText(/The customer's last message has no reply/),
+    ).toBeNull();
   });
 
   it("resets the composer draft when switching conversations (F-22)", async () => {

@@ -18,10 +18,8 @@ import { ConversationControlBanner } from "./ConversationControlBanner.js";
 import { ConversationListPane, type ConversationIdentity } from "./ConversationListPane.js";
 import { ConversationTimelineView } from "./ConversationTimelineView.js";
 import {
-  authorKindOf,
   conversationContactOf,
   conversationLabelOf,
-  isInternalItem,
   outboundItemIdOf,
   serviceWindowOf,
 } from "./conversationPresentation.js";
@@ -151,16 +149,16 @@ export function ConversationsWorkbench({
   );
   const descriptor = channelProviderOf(selectedChannel?.spec?.providerConfig?.case);
 
-  // DD-007 D-e: the handback guard arms when the newest customer-visible
-  // item is the customer's own (their message awaits an answer).
-  const unansweredCustomer = useMemo(() => {
-    for (let i = timeline.items.length - 1; i >= 0; i--) {
-      const item = timeline.items[i];
-      if (isInternalItem(item)) continue;
-      return authorKindOf(item) === "customer";
-    }
-    return false;
-  }, [timeline.items]);
+  // DD-007 D-e: the handback guard arms on the row's server-derived
+  // awaiting_reply fact — bounce-aware since T08 (a staff reply the
+  // provider later failed does NOT count as an answer), and platform
+  // acknowledgments never stamp it. Never re-derive this from timeline
+  // authorship: that derivation read a bounced staff reply as "answered"
+  // and went silent in exactly the scenario the guard exists for (F-28)
+  // — the client-side twin of the re-derivation DD-011 A-1 removed
+  // server-side. No loading gap: the Hand back button renders from this
+  // same row, so the guard and the control it protects appear together.
+  const unansweredCustomer = detail.conversation?.awaitingReply ?? false;
 
   const composerDisabledReason =
     descriptor && !descriptor.supportsStaffReplies
