@@ -49,6 +49,68 @@ func PostWhatsAppWebhook(ctx context.Context, httpBaseURL, channelAppID,
 	return resp.StatusCode, nil
 }
 
+// WhatsAppStatusEvent describes one Meta statuses[] entry for
+// WhatsAppStatusPayload — the receipt lane's front-door input (delivery
+// receipts: sent/delivered/read/failed).
+type WhatsAppStatusEvent struct {
+	// PhoneNumberID routes the webhook (metadata.phone_number_id).
+	PhoneNumberID string
+	// WaID is the recipient (statuses[].recipient_id).
+	WaID string
+	// Wamid is the provider message id the receipt reports on
+	// (statuses[].id) — for delivery receipts, the wamid Graph answered
+	// at send time.
+	Wamid string
+	// CallbackToken is the echoed send-time correlation token
+	// (biz_opaque_callback_data). Read it from the mock Graph's recorded
+	// send body — never re-derive it: the token's wire format lives in
+	// exactly one place (the cloud's ReceiptCorrelationToken).
+	CallbackToken string
+	// Status is Meta's verbatim value: "sent", "delivered", "read",
+	// "failed".
+	Status string
+	// ErrorCode, when non-zero, adds an errors[] arm (errors[0].code) —
+	// Meta ships one on failed statuses.
+	ErrorCode int
+	// ErrorDetail rides errors[0].error_data.details — the most specific
+	// verdict slot, the one the receipt handler prefers.
+	ErrorDetail string
+}
+
+// WhatsAppStatusPayload builds the minimal Meta webhook body the receipt
+// lane routes: a messages-field change carrying one statuses[] entry.
+// Note what delivery receipts DELIBERATELY lack: a type field — Meta sets
+// statuses[].type only on payment events, and the absence IS the
+// message_status discriminator the status-event store normalizes on.
+func WhatsAppStatusPayload(e WhatsAppStatusEvent) []byte {
+	errors := ""
+	if e.ErrorCode != 0 {
+		errors = fmt.Sprintf(
+			`,"errors": [{"code": %d, "title": "Re-engagement message", "error_data": {"details": %q}}]`,
+			e.ErrorCode, e.ErrorDetail)
+	}
+	return []byte(fmt.Sprintf(`{
+	  "object": "whatsapp_business_account",
+	  "entry": [{
+	    "id": "WBA-INTEGRATION",
+	    "changes": [{
+	      "field": "messages",
+	      "value": {
+	        "messaging_product": "whatsapp",
+	        "metadata": {"display_phone_number": "+1 555 025 3483", "phone_number_id": %q},
+	        "statuses": [{
+	          "id": %q,
+	          "status": %q,
+	          "timestamp": "1754476900",
+	          "recipient_id": %q,
+	          "biz_opaque_callback_data": %q%s
+	        }]
+	      }
+	    }]
+	  }]
+	}`, e.PhoneNumberID, e.Wamid, e.Status, e.WaID, e.CallbackToken, errors))
+}
+
 // WhatsAppInboundTextPayload builds the minimal Meta webhook body the
 // inbound pipeline routes: object + messages-field change +
 // metadata.phone_number_id (the routing key) + one text message. The

@@ -511,9 +511,31 @@ type ConversationTimelineItem struct {
 	// axis beside delivery_status — never collapsed into it.
 	ReceiptState ChannelReceiptState `protobuf:"varint,9,opt,name=receipt_state,json=receiptState,proto3,enum=ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState" json:"receipt_state,omitempty"`
 	// Which trust context authorized an outbound-ledger item's send.
-	Origin        ChannelOutboundOrigin `protobuf:"varint,10,opt,name=origin,proto3,enum=ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin" json:"origin,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Origin ChannelOutboundOrigin `protobuf:"varint,10,opt,name=origin,proto3,enum=ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin" json:"origin,omitempty"`
+	// The provider's verbatim explanation when receipt_state is
+	// receipt_failed (WhatsApp: the errors[0] title, plus error_data
+	// details when present). Empty otherwise.
+	//
+	// @internal
+	// channel-conversations DD-014 D-c: a pure relay of
+	// ChannelOutboundMessage.receipt_detail (field 17), inheriting its
+	// discipline verbatim — provider-owned vocabulary, relayed, never
+	// pattern-matched; receipt_error_code is the structured twin a
+	// branching client must key on instead. Rides outbound-ledger ("ob:")
+	// items only: the reply lane has no receipt axis at all, so "dl:" and
+	// inbound items always answer empty.
+	ReceiptDetail string `protobuf:"bytes,11,opt,name=receipt_detail,json=receiptDetail,proto3" json:"receipt_detail,omitempty"`
+	// The provider's numeric error code when receipt_state is
+	// receipt_failed (WhatsApp: errors[0].code, e.g. 131047 "re-engagement
+	// required"). Zero otherwise.
+	//
+	// @internal
+	// The relay of the row's field 18 (DD-014 D-c), shipped WITH
+	// receipt_detail and never after it: a client handed prose first will
+	// pattern-match the prose, which is the coupling this pair prevents.
+	ReceiptErrorCode int32 `protobuf:"varint,12,opt,name=receipt_error_code,json=receiptErrorCode,proto3" json:"receipt_error_code,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ConversationTimelineItem) Reset() {
@@ -614,6 +636,20 @@ func (x *ConversationTimelineItem) GetOrigin() ChannelOutboundOrigin {
 		return x.Origin
 	}
 	return ChannelOutboundOrigin_channel_outbound_origin_unspecified
+}
+
+func (x *ConversationTimelineItem) GetReceiptDetail() string {
+	if x != nil {
+		return x.ReceiptDetail
+	}
+	return ""
+}
+
+func (x *ConversationTimelineItem) GetReceiptErrorCode() int32 {
+	if x != nil {
+		return x.ReceiptErrorCode
+	}
+	return 0
 }
 
 // Input for listing an organization's channel conversations.
@@ -1133,7 +1169,7 @@ const file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDesc = ""
 	" \x01(\tR\vdisplayName\x12S\n" +
 	"\x18last_customer_message_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\x15lastCustomerMessageAt\x12D\n" +
 	"\x10last_activity_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\x0elastActivityAt\x12%\n" +
-	"\x0eawaiting_reply\x18\r \x01(\bR\rawaitingReply\"\xfb\x04\n" +
+	"\x0eawaiting_reply\x18\r \x01(\bR\rawaitingReply\"\xd0\x05\n" +
 	"\x18ConversationTimelineItem\x12\x17\n" +
 	"\aitem_id\x18\x01 \x01(\tR\x06itemId\x12H\n" +
 	"\x04lane\x18\x02 \x01(\x0e24.ai.stigmer.agentic.agentchannel.v1.ConversationLaneR\x04lane\x12R\n" +
@@ -1146,7 +1182,9 @@ const file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDesc = ""
 	"\x0fdelivery_status\x18\b \x01(\x0e29.ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatusR\x0edeliveryStatus\x12\\\n" +
 	"\rreceipt_state\x18\t \x01(\x0e27.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptStateR\freceiptState\x12Q\n" +
 	"\x06origin\x18\n" +
-	" \x01(\x0e29.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOriginR\x06origin\"\x8a\x02\n" +
+	" \x01(\x0e29.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOriginR\x06origin\x12%\n" +
+	"\x0ereceipt_detail\x18\v \x01(\tR\rreceiptDetail\x12,\n" +
+	"\x12receipt_error_code\x18\f \x01(\x05R\x10receiptErrorCode\"\x8a\x02\n" +
 	"\x1dListChannelConversationsInput\x12\x1b\n" +
 	"\x03org\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x03org\x122\n" +
 	"\x10agent_channel_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\x0eagentChannelId\x12=\n" +

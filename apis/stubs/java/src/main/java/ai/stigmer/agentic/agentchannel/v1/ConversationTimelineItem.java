@@ -50,6 +50,7 @@ private static final long serialVersionUID = 0L;
     deliveryStatus_ = 0;
     receiptState_ = 0;
     origin_ = 0;
+    receiptDetail_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -455,6 +456,97 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin.UNRECOGNIZED : result;
   }
 
+  public static final int RECEIPT_DETAIL_FIELD_NUMBER = 11;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object receiptDetail_ = "";
+  /**
+   * <pre>
+   * The provider's verbatim explanation when receipt_state is
+   * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+   * details when present). Empty otherwise.
+   *
+   * &#64;internal
+   * channel-conversations DD-014 D-c: a pure relay of
+   * ChannelOutboundMessage.receipt_detail (field 17), inheriting its
+   * discipline verbatim — provider-owned vocabulary, relayed, never
+   * pattern-matched; receipt_error_code is the structured twin a
+   * branching client must key on instead. Rides outbound-ledger ("ob:")
+   * items only: the reply lane has no receipt axis at all, so "dl:" and
+   * inbound items always answer empty.
+   * </pre>
+   *
+   * <code>string receipt_detail = 11 [json_name = "receiptDetail"];</code>
+   * @return The receiptDetail.
+   */
+  @java.lang.Override
+  public java.lang.String getReceiptDetail() {
+    java.lang.Object ref = receiptDetail_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      receiptDetail_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The provider's verbatim explanation when receipt_state is
+   * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+   * details when present). Empty otherwise.
+   *
+   * &#64;internal
+   * channel-conversations DD-014 D-c: a pure relay of
+   * ChannelOutboundMessage.receipt_detail (field 17), inheriting its
+   * discipline verbatim — provider-owned vocabulary, relayed, never
+   * pattern-matched; receipt_error_code is the structured twin a
+   * branching client must key on instead. Rides outbound-ledger ("ob:")
+   * items only: the reply lane has no receipt axis at all, so "dl:" and
+   * inbound items always answer empty.
+   * </pre>
+   *
+   * <code>string receipt_detail = 11 [json_name = "receiptDetail"];</code>
+   * @return The bytes for receiptDetail.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getReceiptDetailBytes() {
+    java.lang.Object ref = receiptDetail_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      receiptDetail_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int RECEIPT_ERROR_CODE_FIELD_NUMBER = 12;
+  private int receiptErrorCode_ = 0;
+  /**
+   * <pre>
+   * The provider's numeric error code when receipt_state is
+   * receipt_failed (WhatsApp: errors[0].code, e.g. 131047 "re-engagement
+   * required"). Zero otherwise.
+   *
+   * &#64;internal
+   * The relay of the row's field 18 (DD-014 D-c), shipped WITH
+   * receipt_detail and never after it: a client handed prose first will
+   * pattern-match the prose, which is the coupling this pair prevents.
+   * </pre>
+   *
+   * <code>int32 receipt_error_code = 12 [json_name = "receiptErrorCode"];</code>
+   * @return The receiptErrorCode.
+   */
+  @java.lang.Override
+  public int getReceiptErrorCode() {
+    return receiptErrorCode_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -498,6 +590,12 @@ private static final long serialVersionUID = 0L;
     }
     if (origin_ != ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin.channel_outbound_origin_unspecified.getNumber()) {
       output.writeEnum(10, origin_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(receiptDetail_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 11, receiptDetail_);
+    }
+    if (receiptErrorCode_ != 0) {
+      output.writeInt32(12, receiptErrorCode_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -544,6 +642,13 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(10, origin_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(receiptDetail_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(11, receiptDetail_);
+    }
+    if (receiptErrorCode_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(12, receiptErrorCode_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -577,6 +682,10 @@ private static final long serialVersionUID = 0L;
     if (deliveryStatus_ != other.deliveryStatus_) return false;
     if (receiptState_ != other.receiptState_) return false;
     if (origin_ != other.origin_) return false;
+    if (!getReceiptDetail()
+        .equals(other.getReceiptDetail())) return false;
+    if (getReceiptErrorCode()
+        != other.getReceiptErrorCode()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -610,6 +719,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + receiptState_;
     hash = (37 * hash) + ORIGIN_FIELD_NUMBER;
     hash = (53 * hash) + origin_;
+    hash = (37 * hash) + RECEIPT_DETAIL_FIELD_NUMBER;
+    hash = (53 * hash) + getReceiptDetail().hashCode();
+    hash = (37 * hash) + RECEIPT_ERROR_CODE_FIELD_NUMBER;
+    hash = (53 * hash) + getReceiptErrorCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -774,6 +887,8 @@ private static final long serialVersionUID = 0L;
       deliveryStatus_ = 0;
       receiptState_ = 0;
       origin_ = 0;
+      receiptDetail_ = "";
+      receiptErrorCode_ = 0;
       return this;
     }
 
@@ -841,6 +956,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000200) != 0)) {
         result.origin_ = origin_;
       }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.receiptDetail_ = receiptDetail_;
+      }
+      if (((from_bitField0_ & 0x00000800) != 0)) {
+        result.receiptErrorCode_ = receiptErrorCode_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -893,6 +1014,14 @@ private static final long serialVersionUID = 0L;
       }
       if (other.origin_ != 0) {
         setOriginValue(other.getOriginValue());
+      }
+      if (!other.getReceiptDetail().isEmpty()) {
+        receiptDetail_ = other.receiptDetail_;
+        bitField0_ |= 0x00000400;
+        onChanged();
+      }
+      if (other.getReceiptErrorCode() != 0) {
+        setReceiptErrorCode(other.getReceiptErrorCode());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -972,6 +1101,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000200;
               break;
             } // case 80
+            case 90: {
+              receiptDetail_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 90
+            case 96: {
+              receiptErrorCode_ = input.readInt32();
+              bitField0_ |= 0x00000800;
+              break;
+            } // case 96
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1940,6 +2079,218 @@ private static final long serialVersionUID = 0L;
     public Builder clearOrigin() {
       bitField0_ = (bitField0_ & ~0x00000200);
       origin_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object receiptDetail_ = "";
+    /**
+     * <pre>
+     * The provider's verbatim explanation when receipt_state is
+     * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+     * details when present). Empty otherwise.
+     *
+     * &#64;internal
+     * channel-conversations DD-014 D-c: a pure relay of
+     * ChannelOutboundMessage.receipt_detail (field 17), inheriting its
+     * discipline verbatim — provider-owned vocabulary, relayed, never
+     * pattern-matched; receipt_error_code is the structured twin a
+     * branching client must key on instead. Rides outbound-ledger ("ob:")
+     * items only: the reply lane has no receipt axis at all, so "dl:" and
+     * inbound items always answer empty.
+     * </pre>
+     *
+     * <code>string receipt_detail = 11 [json_name = "receiptDetail"];</code>
+     * @return The receiptDetail.
+     */
+    public java.lang.String getReceiptDetail() {
+      java.lang.Object ref = receiptDetail_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        receiptDetail_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The provider's verbatim explanation when receipt_state is
+     * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+     * details when present). Empty otherwise.
+     *
+     * &#64;internal
+     * channel-conversations DD-014 D-c: a pure relay of
+     * ChannelOutboundMessage.receipt_detail (field 17), inheriting its
+     * discipline verbatim — provider-owned vocabulary, relayed, never
+     * pattern-matched; receipt_error_code is the structured twin a
+     * branching client must key on instead. Rides outbound-ledger ("ob:")
+     * items only: the reply lane has no receipt axis at all, so "dl:" and
+     * inbound items always answer empty.
+     * </pre>
+     *
+     * <code>string receipt_detail = 11 [json_name = "receiptDetail"];</code>
+     * @return The bytes for receiptDetail.
+     */
+    public com.google.protobuf.ByteString
+        getReceiptDetailBytes() {
+      java.lang.Object ref = receiptDetail_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        receiptDetail_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The provider's verbatim explanation when receipt_state is
+     * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+     * details when present). Empty otherwise.
+     *
+     * &#64;internal
+     * channel-conversations DD-014 D-c: a pure relay of
+     * ChannelOutboundMessage.receipt_detail (field 17), inheriting its
+     * discipline verbatim — provider-owned vocabulary, relayed, never
+     * pattern-matched; receipt_error_code is the structured twin a
+     * branching client must key on instead. Rides outbound-ledger ("ob:")
+     * items only: the reply lane has no receipt axis at all, so "dl:" and
+     * inbound items always answer empty.
+     * </pre>
+     *
+     * <code>string receipt_detail = 11 [json_name = "receiptDetail"];</code>
+     * @param value The receiptDetail to set.
+     * @return This builder for chaining.
+     */
+    public Builder setReceiptDetail(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      receiptDetail_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The provider's verbatim explanation when receipt_state is
+     * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+     * details when present). Empty otherwise.
+     *
+     * &#64;internal
+     * channel-conversations DD-014 D-c: a pure relay of
+     * ChannelOutboundMessage.receipt_detail (field 17), inheriting its
+     * discipline verbatim — provider-owned vocabulary, relayed, never
+     * pattern-matched; receipt_error_code is the structured twin a
+     * branching client must key on instead. Rides outbound-ledger ("ob:")
+     * items only: the reply lane has no receipt axis at all, so "dl:" and
+     * inbound items always answer empty.
+     * </pre>
+     *
+     * <code>string receipt_detail = 11 [json_name = "receiptDetail"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearReceiptDetail() {
+      receiptDetail_ = getDefaultInstance().getReceiptDetail();
+      bitField0_ = (bitField0_ & ~0x00000400);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The provider's verbatim explanation when receipt_state is
+     * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+     * details when present). Empty otherwise.
+     *
+     * &#64;internal
+     * channel-conversations DD-014 D-c: a pure relay of
+     * ChannelOutboundMessage.receipt_detail (field 17), inheriting its
+     * discipline verbatim — provider-owned vocabulary, relayed, never
+     * pattern-matched; receipt_error_code is the structured twin a
+     * branching client must key on instead. Rides outbound-ledger ("ob:")
+     * items only: the reply lane has no receipt axis at all, so "dl:" and
+     * inbound items always answer empty.
+     * </pre>
+     *
+     * <code>string receipt_detail = 11 [json_name = "receiptDetail"];</code>
+     * @param value The bytes for receiptDetail to set.
+     * @return This builder for chaining.
+     */
+    public Builder setReceiptDetailBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      receiptDetail_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+
+    private int receiptErrorCode_ ;
+    /**
+     * <pre>
+     * The provider's numeric error code when receipt_state is
+     * receipt_failed (WhatsApp: errors[0].code, e.g. 131047 "re-engagement
+     * required"). Zero otherwise.
+     *
+     * &#64;internal
+     * The relay of the row's field 18 (DD-014 D-c), shipped WITH
+     * receipt_detail and never after it: a client handed prose first will
+     * pattern-match the prose, which is the coupling this pair prevents.
+     * </pre>
+     *
+     * <code>int32 receipt_error_code = 12 [json_name = "receiptErrorCode"];</code>
+     * @return The receiptErrorCode.
+     */
+    @java.lang.Override
+    public int getReceiptErrorCode() {
+      return receiptErrorCode_;
+    }
+    /**
+     * <pre>
+     * The provider's numeric error code when receipt_state is
+     * receipt_failed (WhatsApp: errors[0].code, e.g. 131047 "re-engagement
+     * required"). Zero otherwise.
+     *
+     * &#64;internal
+     * The relay of the row's field 18 (DD-014 D-c), shipped WITH
+     * receipt_detail and never after it: a client handed prose first will
+     * pattern-match the prose, which is the coupling this pair prevents.
+     * </pre>
+     *
+     * <code>int32 receipt_error_code = 12 [json_name = "receiptErrorCode"];</code>
+     * @param value The receiptErrorCode to set.
+     * @return This builder for chaining.
+     */
+    public Builder setReceiptErrorCode(int value) {
+
+      receiptErrorCode_ = value;
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The provider's numeric error code when receipt_state is
+     * receipt_failed (WhatsApp: errors[0].code, e.g. 131047 "re-engagement
+     * required"). Zero otherwise.
+     *
+     * &#64;internal
+     * The relay of the row's field 18 (DD-014 D-c), shipped WITH
+     * receipt_detail and never after it: a client handed prose first will
+     * pattern-match the prose, which is the coupling this pair prevents.
+     * </pre>
+     *
+     * <code>int32 receipt_error_code = 12 [json_name = "receiptErrorCode"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearReceiptErrorCode() {
+      bitField0_ = (bitField0_ & ~0x00000800);
+      receiptErrorCode_ = 0;
       onChanged();
       return this;
     }

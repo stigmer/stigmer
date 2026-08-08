@@ -239,4 +239,63 @@ public interface ConversationTimelineItemOrBuilder extends
    * @return The origin.
    */
   ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin getOrigin();
+
+  /**
+   * <pre>
+   * The provider's verbatim explanation when receipt_state is
+   * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+   * details when present). Empty otherwise.
+   *
+   * &#64;internal
+   * channel-conversations DD-014 D-c: a pure relay of
+   * ChannelOutboundMessage.receipt_detail (field 17), inheriting its
+   * discipline verbatim — provider-owned vocabulary, relayed, never
+   * pattern-matched; receipt_error_code is the structured twin a
+   * branching client must key on instead. Rides outbound-ledger ("ob:")
+   * items only: the reply lane has no receipt axis at all, so "dl:" and
+   * inbound items always answer empty.
+   * </pre>
+   *
+   * <code>string receipt_detail = 11 [json_name = "receiptDetail"];</code>
+   * @return The receiptDetail.
+   */
+  java.lang.String getReceiptDetail();
+  /**
+   * <pre>
+   * The provider's verbatim explanation when receipt_state is
+   * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+   * details when present). Empty otherwise.
+   *
+   * &#64;internal
+   * channel-conversations DD-014 D-c: a pure relay of
+   * ChannelOutboundMessage.receipt_detail (field 17), inheriting its
+   * discipline verbatim — provider-owned vocabulary, relayed, never
+   * pattern-matched; receipt_error_code is the structured twin a
+   * branching client must key on instead. Rides outbound-ledger ("ob:")
+   * items only: the reply lane has no receipt axis at all, so "dl:" and
+   * inbound items always answer empty.
+   * </pre>
+   *
+   * <code>string receipt_detail = 11 [json_name = "receiptDetail"];</code>
+   * @return The bytes for receiptDetail.
+   */
+  com.google.protobuf.ByteString
+      getReceiptDetailBytes();
+
+  /**
+   * <pre>
+   * The provider's numeric error code when receipt_state is
+   * receipt_failed (WhatsApp: errors[0].code, e.g. 131047 "re-engagement
+   * required"). Zero otherwise.
+   *
+   * &#64;internal
+   * The relay of the row's field 18 (DD-014 D-c), shipped WITH
+   * receipt_detail and never after it: a client handed prose first will
+   * pattern-match the prose, which is the coupling this pair prevents.
+   * </pre>
+   *
+   * <code>int32 receipt_error_code = 12 [json_name = "receiptErrorCode"];</code>
+   * @return The receiptErrorCode.
+   */
+  int getReceiptErrorCode();
 }

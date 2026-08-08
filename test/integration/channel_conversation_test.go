@@ -4,6 +4,7 @@ package integration
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -850,6 +851,123 @@ func TestChannelConversation_StaffReplyDeliversThroughTheFrontDoor(t *testing.T)
 		}
 	}
 	assert.Equal(t, 1, teammateItems, "the staff reply is teammate-authored on the timeline")
+}
+
+// TestChannelConversation_AsyncSendFailureExplainsItselfOnTheTimeline pins
+// DD-014 D-c end to end through the real front door — the receipt lane's
+// FIRST front-door test. Meta reports send errors synchronously, via
+// webhook, or both: when a staff reply is ACCEPTED at send time and fails
+// LATER through a status webhook (the observed F-21 shape — code 131047,
+// the closed 24-hour service window), the stored verdict must reach the
+// timeline item rather than dying on the outbound row as a bare failed
+// tick. The correlation token is read back out of the recorded send body:
+// the platform stamped it, the webhook echoes it, and the test never
+// re-derives its format — that wire contract lives in exactly one place
+// (the cloud's ReceiptCorrelationToken).
+func TestChannelConversation_AsyncSendFailureExplainsItselfOnTheTimeline(t *testing.T) {
+	requireVisibilityHarness(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	agent := harness.CreateAgent(t, ctx, clients, "test-conv-async-fail",
+		"You are a test agent for the async receipt-failure front door.")
+	fx := applyWhatsAppChannel(t, ctx, clients, agent,
+		"conv-async-fail-"+agent.GetMetadata().GetSlug())
+
+	installed, err := clients.AgentChannelCommand.InitiateInstall(ctx,
+		&agentchannelv1.InitiateChannelInstallInput{ResourceId: fx.ChannelID})
+	require.NoError(t, err)
+	require.True(t, installed.GetCompleted())
+
+	const customer = "15550006666"
+	seeder := harness.NewChannelConversationSeeder(testHarness.AppPostgres)
+	require.NoError(t, seeder.SeedConversation(ctx, harness.SeedConversationInput{
+		AgentChannelID:  fx.ChannelID,
+		ConversationKey: customer,
+		Org:             agent.GetMetadata().GetOrg(),
+		DisplayName:     "Noor",
+		LastActivityAt:  time.Now(),
+	}))
+
+	// The staff reply: the mock Graph accepts it inline — to the operator
+	// this send SUCCEEDED.
+	answer, err := clients.ChannelConversationCommand.Reply(ctx,
+		&agentchannelv1.ReplyToConversationInput{
+			AgentChannelId:  fx.ChannelID,
+			ConversationKey: customer,
+			Payload: &agentchannelv1.ChannelOutboundPayload{
+				Kind: &agentchannelv1.ChannelOutboundPayload_Text{
+					Text: &agentchannelv1.TextPayload{Body: "Hi, this is Sam from the team."},
+				},
+			},
+		})
+	require.NoError(t, err)
+	require.Equal(t, agentchannelv1.ChannelSendOutcome_accepted, answer.GetOutcome(),
+		"the mock provider accepts inline: %s", answer.GetDetail())
+	require.NotEmpty(t, answer.GetProviderMessageId(),
+		"accepted carries the wamid the receipt will report on")
+
+	// The platform stamped its correlation token on the send — read it
+	// back from the recorded Graph body.
+	sends := mockWhatsAppGraph.SendsTo(fx.PhoneNumberID)
+	require.Len(t, sends, 1)
+	var sendBody struct {
+		CallbackData string `json:"biz_opaque_callback_data"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(sends[0].Body), &sendBody))
+	require.NotEmpty(t, sendBody.CallbackData,
+		"the send must carry the correlation token — without it no receipt can find the row")
+
+	// Meta fails the message AFTER accepting it: the signed status webhook
+	// carrying the closed-window verdict.
+	const verdict = "More than 24 hours have passed since the recipient last replied" +
+		" to the sender number."
+	status, err := harness.PostWhatsAppWebhook(ctx, testHarness.Service.HTTPAddress(),
+		fx.ChannelAppID, fx.AppSecret,
+		harness.WhatsAppStatusPayload(harness.WhatsAppStatusEvent{
+			PhoneNumberID: fx.PhoneNumberID,
+			WaID:          customer,
+			Wamid:         answer.GetProviderMessageId(),
+			CallbackToken: sendBody.CallbackData,
+			Status:        "failed",
+			ErrorCode:     131047,
+			ErrorDetail:   verdict,
+		}))
+	require.NoError(t, err)
+	require.Equal(t, 200, status)
+
+	// The verdict reaches the read contract: the ob: item explains its
+	// failed tick with Meta's own words and the structured code.
+	var explained *agentchannelv1.ConversationTimelineItem
+	require.Eventually(t, func() bool {
+		timeline, timelineErr := clients.ChannelConversationQuery.GetTimeline(ctx,
+			&agentchannelv1.GetConversationTimelineInput{
+				AgentChannelId:  fx.ChannelID,
+				ConversationKey: customer,
+			})
+		if timelineErr != nil {
+			return false
+		}
+		for _, item := range timeline.GetItems() {
+			if item.GetItemId() == "ob:"+answer.GetOutboundMessageId() &&
+				item.GetReceiptState() == agentchannelv1.ChannelReceiptState_receipt_failed {
+				explained = item
+				return true
+			}
+		}
+		return false
+	}, 30*time.Second, 250*time.Millisecond,
+		"the async failure receipt must stamp the row and surface on the timeline")
+
+	assert.Equal(t, verdict, explained.GetReceiptDetail(),
+		"the provider's verdict is relayed verbatim (DD-014 D-c)")
+	assert.Equal(t, int32(131047), explained.GetReceiptErrorCode(),
+		"the structured twin ships with the prose, never after it")
+	assert.Equal(t, agentchannelv1.ChannelDeliveryStatus_delivered, explained.GetDeliveryStatus(),
+		"the attempt axis still says delivered — Meta accepted the send; the failure"+
+			" lives on the RECEIPT axis, the two never collapsed (DD-004 D-d)")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

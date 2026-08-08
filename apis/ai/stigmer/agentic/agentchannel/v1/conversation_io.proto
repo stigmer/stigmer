@@ -207,6 +207,30 @@ message ConversationTimelineItem {
 
   // Which trust context authorized an outbound-ledger item's send.
   ChannelOutboundOrigin origin = 10;
+
+  // The provider's verbatim explanation when receipt_state is
+  // receipt_failed (WhatsApp: the errors[0] title, plus error_data
+  // details when present). Empty otherwise.
+  //
+  // @internal
+  // channel-conversations DD-014 D-c: a pure relay of
+  // ChannelOutboundMessage.receipt_detail (field 17), inheriting its
+  // discipline verbatim — provider-owned vocabulary, relayed, never
+  // pattern-matched; receipt_error_code is the structured twin a
+  // branching client must key on instead. Rides outbound-ledger ("ob:")
+  // items only: the reply lane has no receipt axis at all, so "dl:" and
+  // inbound items always answer empty.
+  string receipt_detail = 11;
+
+  // The provider's numeric error code when receipt_state is
+  // receipt_failed (WhatsApp: errors[0].code, e.g. 131047 "re-engagement
+  // required"). Zero otherwise.
+  //
+  // @internal
+  // The relay of the row's field 18 (DD-014 D-c), shipped WITH
+  // receipt_detail and never after it: a client handed prose first will
+  // pattern-match the prose, which is the coupling this pair prevents.
+  int32 receipt_error_code = 12;
 }
 
 // Input for listing an organization's channel conversations.
