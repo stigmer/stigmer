@@ -264,18 +264,18 @@
       "cacheWritePricePerMillion" : 0.0,
       "cacheReadPricePerMillion" : 0.2,
       "source" : "cursor_pricing_page",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-08T06:20:21.585257619Z"
     },
     "pricingVariants" : {
       "fast" : {
         "inputPricePerMillion" : 3.0,
         "outputPricePerMillion" : 15.0,
         "cacheWritePricePerMillion" : 0.0,
-        "cacheReadPricePerMillion" : 0.2,
+        "cacheReadPricePerMillion" : 0.5,
         "wireIds" : [ "composer-2.5-fast" ],
         "source" : "cursor_composer_2_5_docs",
-        "sourceNote" : "Fast (product default) input/output published at https://cursor.com/docs/models/cursor-composer-2-5; cache rates not published, inferred = standard Composer 2.5 cache (write 0, read 0.2) and validated against actual Cursor charges.",
-        "effectiveAt" : "2026-06-04T00:00:00Z"
+        "sourceNote" : "Fast (product default) input/output published at https://cursor.com/docs/models/cursor-composer-2-5; cache rates not published. Cache read 0.5 is ledger-derived: exact zero-residual fit across 7 pinned conversations, 2026-08-01..07 window (workflow billing-provider-reconciliation-cursor-2026-08-08T00:00:00Z; the prior inferred 0.2 under-billed ~18%). Consistent with the Composer 2 precedent, whose fast cache-read (0.35) also differed from standard (0.20).",
+        "effectiveAt" : "2026-08-08T06:20:21.585257619Z"
       }
     }
   }, {
