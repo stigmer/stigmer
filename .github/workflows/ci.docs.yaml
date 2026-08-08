@@ -143,18 +143,19 @@ jobs:
       - name: Install site dependencies
         run: cd site && YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install
 
-      # On PRs and manual dispatches this job is a pure gate: stale
-      # generated docs fail the run and the author regenerates locally.
+      # On PRs this job is a pure gate: stale generated docs fail the run
+      # and the author regenerates locally.
       - name: Verify SDK docs are up to date
-        if: github.event_name != 'push' || github.actor == 'github-actions[bot]'
+        if: github.ref != 'refs/heads/main' || github.actor == 'github-actions[bot]'
         run: make gen-sdk-docs-check
 
-      # On pushes to main, stale generated docs are pure toil — they are
-      # mechanically derivable from the commit that just landed — so this
-      # job heals them itself instead of turning main red and waiting for a
-      # human to push a "regenerate sdk docs" commit.
+      # On main (pushes, or a manual dispatch as a "heal now" button),
+      # stale generated docs are pure toil — they are mechanically
+      # derivable from the commit that just landed — so this job heals
+      # them itself instead of turning main red and waiting for a human to
+      # push a "regenerate sdk docs" commit.
       - name: Regenerate SDK docs (self-heal)
-        if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+        if: github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]'
         run: make gen-sdk-docs
 
       # Loop safety: this push uses the workflow's own GITHUB_TOKEN, and
@@ -164,7 +165,7 @@ jobs:
       # The pushed commit is still validated: it is exactly the tree this
       # run generated, and check-docs-yaml below runs against it.
       - name: Commit regenerated docs (self-heal)
-        if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+        if: github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]'
         run: |
           set -euo pipefail
           # Only the generators' known output paths (plus the yarn.lock that
@@ -194,10 +195,14 @@ jobs:
           fi
           # Ratchet: any remaining tracked change means a generator wrote
           # outside the pathspec above (or is nondeterministic). Fail loudly
-          # so the pathspec gets extended instead of silently drifting.
+          # — with the full diff, so the firing is self-diagnosing — and
+          # extend the pathspec instead of letting it silently drift.
           if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
             echo "::error::make gen-sdk-docs modified tracked files outside the self-heal pathspec:"
             git status --porcelain --untracked-files=no
+            echo "::group::Diff of the unexpected changes"
+            git --no-pager diff
+            echo "::endgroup::"
             exit 1
           fi
 
