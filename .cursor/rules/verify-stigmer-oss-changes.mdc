@@ -20,6 +20,7 @@ Use this mapping to decide which targets to run. A file matching **any** row tri
 | File pattern | Make target | What it checks |
 |---|---|---|
 | `apis/**` | `make -C apis lint` | Proto linting (buf lint) |
+| `apis/**/*.proto` | `make check-docs-yaml && make gen-proto-sdk-docs-check && make gen-task-docs-check && make gen-task-registry-check` | Docs YAML examples still match the proto contracts; generated proto/task docs and the task registry are regenerated. All are fast Go generators (seconds each) — historically the most frequently broken CI gates after proto changes |
 | `backend/**/*.go`, `mcp-server/**/*.go`, `sdk/go/**/*.go`, `tools/**/*.go` | `make tidy && make lint` (Go portions only: `go vet` + `gofmt`) | Go vet, format, mod tidy |
 | `backend/services/agent-runner/**/*.py`, `backend/libs/python/**/*.py` | Python lint from `make lint` (`ruff check`, `mypy`) | Python lint + type check |
 | `sdk/typescript/src/**` | `npm run typecheck -w @stigmer/sdk` | SDK TypeScript type check |
@@ -31,7 +32,7 @@ Use this mapping to decide which targets to run. A file matching **any** row tri
 | `client-apps/cli/src/**`, `client-apps/cli/scripts/**` | `npm run typecheck -w @stigmer/cli && npm run test -w @stigmer/cli` | CLI type check + tests |
 | `client-apps/cli/docs/**`, `client-apps/cli/src/**` | `make gen-cli-docs-check` | CLI reference docs are up to date |
 | `backend/services/stigmer-server/**/*.go` | `make build` (server binary) | Server builds cleanly |
-| `docs/**/*.md`, `docs/**/*.mdx` | `make lint-docs && make format-docs-check` | Vale prose lint + Prettier format |
+| `docs/**/*.md`, `docs/**/*.mdx` | `make lint-docs && make format-docs-check && make check-docs-yaml` | Vale prose lint + Prettier format + every YAML block validates against the proto contracts |
 | `site/**` | `make -C site lint && make -C site typecheck` | Site lint + typecheck |
 
 ### Step 3: Run targets and report
@@ -55,5 +56,7 @@ If warnings or errors appear in files **not** touched by the current session, no
 ## Notes
 
 - This rule runs a **subset** of `make check`. It does **not** replace the full CI gate — it catches the most common issues quickly.
-- Targets like `check-links`, `validate-demos`, `test-demos`, `docs-build`, and `gen-sdk-docs-check` are slow and rarely affected by code changes. They are excluded unless the user explicitly asks for the full gate.
+- Targets like `check-links`, `validate-demos`, `test-demos`, and `docs-build` are slow and rarely affected by code changes. They are excluded unless the user explicitly asks for the full gate.
+- The docs-facing checks for proto changes (`check-docs-yaml`, `gen-proto-sdk-docs-check`, `gen-task-docs-check`, `gen-task-registry-check`) are **mandatory** when `apis/**/*.proto` changes — they are fast (a few seconds each) and are historically the checks that break CI after proto changes. Do not skip them.
+- The TypeDoc-based checks (`gen-react-sdk-docs-check`, `gen-ink-sdk-docs-check`, `gen-theme-docs-check`) stay excluded locally: they are slow, and the SDK Docs Freshness job self-heals stale generated docs on pushes to main (see `.github/workflows/ci.docs.yaml`). Only `check-docs-yaml` failures on main need a human — they mean a hand-written docs example no longer matches the proto contract.
 - When in doubt about whether a target is needed, include it — a few extra seconds of checking is better than a broken CI pipeline.

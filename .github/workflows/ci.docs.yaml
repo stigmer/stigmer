@@ -112,6 +112,10 @@ jobs:
   sdk-docs-freshness:
     name: SDK Docs Freshness
     runs-on: ubuntu-latest
+    # The self-heal step pushes regenerated docs back to main; every other
+    # step only reads the repo.
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -139,9 +143,67 @@ jobs:
       - name: Install site dependencies
         run: cd site && YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install
 
+      # On PRs and manual dispatches this job is a pure gate: stale
+      # generated docs fail the run and the author regenerates locally.
       - name: Verify SDK docs are up to date
+        if: github.event_name != 'push' || github.actor == 'github-actions[bot]'
         run: make gen-sdk-docs-check
 
+      # On pushes to main, stale generated docs are pure toil — they are
+      # mechanically derivable from the commit that just landed — so this
+      # job heals them itself instead of turning main red and waiting for a
+      # human to push a "regenerate sdk docs" commit.
+      - name: Regenerate SDK docs (self-heal)
+        if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+        run: make gen-sdk-docs
+
+      # Loop safety: this push uses the workflow's own GITHUB_TOKEN, and
+      # GitHub never triggers push workflows for commits pushed with that
+      # token — so the self-heal commit cannot re-trigger this workflow.
+      # The actor guard above is belt-and-braces for a future token swap.
+      # The pushed commit is still validated: it is exactly the tree this
+      # run generated, and check-docs-yaml below runs against it.
+      - name: Commit regenerated docs (self-heal)
+        if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+        run: |
+          set -euo pipefail
+          # Only the generators' known output paths (plus the yarn.lock that
+          # the non-immutable site install may touch) are eligible for the
+          # self-heal commit.
+          git add -- \
+            docs/sdk \
+            docs/guides/workflows/task-types \
+            docs/cli/commands \
+            backend/services/stigmer-server/pkg/domain/workflow/registry/data \
+            tools/codegen/output \
+            site/src/data/react-sdk-summary.json \
+            site/yarn.lock
+          if git diff --cached --quiet; then
+            echo "Generated SDK docs are already fresh — nothing to commit."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit \
+              -m "chore(docs): regenerate SDK reference docs" \
+              -m "Automated self-heal by the SDK Docs Freshness job (ci.docs)."
+            # Fail soft on a push race: the commit that beat us triggers its
+            # own run, which regenerates on top of both changes.
+            git push origin HEAD:main \
+              || { git pull --rebase origin main && git push origin HEAD:main; } \
+              || echo "::warning::Self-heal push lost a race with a concurrent push to main; the next run will regenerate."
+          fi
+          # Ratchet: any remaining tracked change means a generator wrote
+          # outside the pathspec above (or is nondeterministic). Fail loudly
+          # so the pathspec gets extended instead of silently drifting.
+          if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+            echo "::error::make gen-sdk-docs modified tracked files outside the self-heal pathspec:"
+            git status --porcelain --untracked-files=no
+            exit 1
+          fi
+
+      # Hand-written docs drift is a different animal: a proto change that
+      # invalidates a guide's YAML example needs editorial judgment, not
+      # regeneration. This stays a hard gate on every run.
       - name: Validate docs YAML against proto contracts
         run: make check-docs-yaml
 
