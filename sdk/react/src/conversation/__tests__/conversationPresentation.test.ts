@@ -22,6 +22,7 @@ import {
   outboundItemIdOf,
   receiptOf,
   sendAttemptOf,
+  serviceWindowOf,
 } from "../conversationPresentation";
 
 function item(fields: Parameters<typeof create<typeof ConversationTimelineItemSchema>>[1]) {
@@ -205,6 +206,47 @@ describe("conversationContactOf", () => {
     // An unknown provider shows nothing rather than guessing that its
     // key is an address.
     expect(conversationContactOf(slackThread, null)).toBeNull();
+  });
+});
+
+describe("serviceWindowOf (DD-014 D-a: client-derived, WhatsApp-only)", () => {
+  const NOW = new Date("2026-08-08T12:00:00Z");
+  const lastWrote = (iso: string) =>
+    create(ChannelConversationSchema, {
+      conversationKey: "15550001111",
+      lastCustomerMessageAt: timestampFromDate(new Date(iso)),
+    });
+
+  it("answers open inside the 24-hour window", () => {
+    expect(serviceWindowOf(lastWrote("2026-08-08T11:59:00Z"), "whatsapp", NOW)).toBe("open");
+    // One millisecond inside the boundary.
+    expect(serviceWindowOf(lastWrote("2026-08-07T12:00:00.001Z"), "whatsapp", NOW)).toBe(
+      "open",
+    );
+  });
+
+  it("answers closed at exactly 24 hours — the tie closes because our anchor already lags Meta's", () => {
+    // The stored anchor is the platform's receipt instant, minutes AFTER
+    // Meta's own clock started the window, so the estimate inherently
+    // errs toward claiming open too long. Closing the tie is the honest
+    // offset; the warn-never-block posture (DD-014 D-b) makes either
+    // direction safe to render.
+    expect(serviceWindowOf(lastWrote("2026-08-07T12:00:00Z"), "whatsapp", NOW)).toBe("closed");
+    expect(serviceWindowOf(lastWrote("2026-08-06T09:00:00Z"), "whatsapp", NOW)).toBe("closed");
+  });
+
+  it("makes no claim without a customer message — that conversation is the composer's disabled branch", () => {
+    expect(serviceWindowOf(create(ChannelConversationSchema, {}), "whatsapp", NOW)).toBeNull();
+  });
+
+  it("makes no claim for providers without a window", () => {
+    const stale = lastWrote("2026-08-01T09:00:00Z");
+    expect(serviceWindowOf(stale, "slack", NOW)).toBeNull();
+    expect(serviceWindowOf(stale, null, NOW)).toBeNull();
+  });
+
+  it("reads a future-dated customer message as open instead of misfiring on clock skew", () => {
+    expect(serviceWindowOf(lastWrote("2026-08-08T12:05:00Z"), "whatsapp", NOW)).toBe("open");
   });
 });
 

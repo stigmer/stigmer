@@ -1,4 +1,4 @@
-import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import {
   type ChannelConversation,
   ConversationControl,
@@ -184,6 +184,54 @@ export function conversationContactOf(
   if (provider !== "whatsapp") return null;
   if (conversation.displayName === "") return null;
   return conversation.conversationKey;
+}
+
+/**
+ * Meta's customer-service window: a business can send free-form WhatsApp
+ * messages for 24 hours after the customer's last inbound message; after
+ * that, only template messages deliver. The constant lives beside its
+ * only consumer and is promoted to `ChannelProviderDescriptor` only if a
+ * second windowed provider ever appears (the second-sighting rule,
+ * DD-014 D-a).
+ */
+const WHATSAPP_SERVICE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/** The service-window estimate, in render vocabulary. */
+export type ServiceWindowState = "open" | "closed";
+
+/**
+ * Estimate whether the provider's free-form reply window is open
+ * (channel-conversations DD-014 D-a). Provider-aware like
+ * {@link conversationLabelOf}: WhatsApp is the only windowed provider, so
+ * every other provider answers `null` — no window, no claim — as does a
+ * conversation whose customer has never written
+ * (`last_customer_message_at` unset; that conversation takes the
+ * composer's disabled branch instead).
+ *
+ * Client-derived on purpose, and NOT a divergence from DD-011 A-1's
+ * "the predicate is expressed once, in SQL" rule: the window is
+ * wall-clock-anchored — it flips with NO row change — so a
+ * server-computed boolean would be stale by construction between polls.
+ * Time-decaying presentation derived from wire instants is this
+ * surface's established class (relative timestamps, day grouping).
+ *
+ * Honesty caveat (DD-014 D-a): the anchor is the platform's receipt
+ * instant, minutes AFTER Meta's own clock started the window, so the
+ * estimate can claim "open" briefly after Meta closed it — which is why
+ * consumers warn and never block (D-b). For the same reason the exact
+ * 24-hour tie reads "closed": erring a moment early offsets an anchor
+ * that always errs late.
+ */
+export function serviceWindowOf(
+  conversation: ChannelConversation,
+  provider: ChannelProviderId | null,
+  now: Date,
+): ServiceWindowState | null {
+  if (provider !== "whatsapp") return null;
+  const anchor = conversation.lastCustomerMessageAt;
+  if (anchor === undefined) return null;
+  const elapsedMs = now.getTime() - timestampDate(anchor).getTime();
+  return elapsedMs >= WHATSAPP_SERVICE_WINDOW_MS ? "closed" : "open";
 }
 
 /**

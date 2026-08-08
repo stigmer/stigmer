@@ -181,6 +181,23 @@ const TimelineItemRow = memo(function TimelineItemRow({
   const isCustomer = author === "customer";
   const body = item.text || inboundPlaceholderOf(item);
 
+  // DD-014 D-c (amended at the Sitting 2 gate, R-1): the provider's
+  // failure explanation is decision-bearing — window closed vs bad
+  // number changes what the operator does next — so it renders as
+  // VISIBLE text, not hover-only (the footer glyphs are deliberately
+  // non-focusable per F-18, which makes a tooltip mouse-only). Verbatim
+  // relay, never pattern-matched; the numeric twin (receipt_error_code)
+  // stays off the surface as machine vocabulary. Gated exactly like
+  // ReceiptTicks' failed arm — attempt delivered AND receipt failed —
+  // so the attempt-axis explanation (last_error, F-25's slice) can
+  // structurally never leak in here.
+  const receiptExplanation =
+    sendAttemptOf(item) === "delivered" &&
+    receiptOf(item) === "failed" &&
+    item.receiptDetail !== ""
+      ? item.receiptDetail
+      : null;
+
   return (
     <li className={cn("flex", isCustomer ? "justify-start" : "justify-end")}>
       <div
@@ -202,6 +219,11 @@ const TimelineItemRow = memo(function TimelineItemRow({
         >
           {body || "Message content unavailable"}
         </p>
+        {receiptExplanation !== null && (
+          <p className="mt-1 break-words text-xs text-destructive">
+            {receiptExplanation}
+          </p>
+        )}
         <ItemFooter item={item} />
       </div>
     </li>

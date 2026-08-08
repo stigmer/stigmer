@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Send } from "lucide-react";
+import { useId, useState } from "react";
+import { Send, TriangleAlert } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { ChannelSendOutcome } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
@@ -22,6 +22,17 @@ export interface ConversationComposerProps {
    * not started yet). `null` enables the composer.
    */
   readonly disabledReason: string | null;
+  /**
+   * A pre-send forecast that ANNOTATES the enabled input — the
+   * `disabledReason` pattern's sibling with the opposite contract
+   * (channel-conversations DD-014 D-e): a closed service window is a
+   * forecast, not a structural block, so the input stays usable and the
+   * send engines remain the authority. Rendered above the input and
+   * associated via `aria-describedby` (never a live region: the
+   * advisory is state a reader meets on open, not an event). Compute it
+   * with `serviceWindowOf`; `null` or omitted renders nothing.
+   */
+  readonly advisory?: string | null;
   /** Additional classes for the composer container. */
   readonly className?: string;
 }
@@ -42,8 +53,11 @@ export function ConversationComposer({
   onSend,
   isSending,
   disabledReason,
+  advisory,
   className,
 }: ConversationComposerProps) {
+  const advisoryId = useId();
+  const hasAdvisory = advisory != null && advisory !== "";
   const [notice, setNotice] = useState<{
     readonly kind: "refused" | "queued" | "error";
     readonly text: string;
@@ -87,6 +101,18 @@ export function ConversationComposer({
 
   return (
     <div className={cn("border-t border-border px-4 py-3", className)}>
+      {/* The persistent forecast sits above the transient send-outcome
+          notice: the notice is the more recent event and belongs closest
+          to the input it reacts to. */}
+      {hasAdvisory && (
+        <p
+          id={advisoryId}
+          className="mb-2 flex items-start gap-1.5 rounded-md bg-status-degraded-subtle px-2.5 py-1.5 text-xs text-status-degraded"
+        >
+          <TriangleAlert aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+          <span className="min-w-0">{advisory}</span>
+        </p>
+      )}
       {notice && (
         <p
           className={cn(
@@ -104,6 +130,7 @@ export function ConversationComposer({
           rows={1}
           placeholder="Reply as your business…"
           aria-label="Reply to the customer"
+          aria-describedby={hasAdvisory ? advisoryId : undefined}
           className={cn(
             "min-h-9 flex-1 resize-none rounded-md border border-border bg-background",
             "px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground-faint",

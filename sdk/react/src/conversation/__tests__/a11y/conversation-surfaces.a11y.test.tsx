@@ -3,9 +3,11 @@
 // Covers the populated inbox (attention badge, human-control caption,
 // channel filter, the wants-human filter control, both awaiting-reply
 // indicator strengths), the WhatsApp-style timeline (both bubble sides,
-// the two status axes, internal-lane system rows, the Slack honesty
-// notice), and the empty states including the filtered one — each in
-// light + dark against the shipped stylesheet.
+// the two status axes, the visible receipt-failure explanation,
+// internal-lane system rows, the Slack honesty notice), the staff
+// composer with the closed-window advisory (T07 DD-014), and the empty
+// states including the filtered one — each in light + dark against the
+// shipped stylesheet.
 
 import { describe, it, afterEach, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -21,6 +23,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
 import { ChannelDeliveryStatus } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/delivery_pb";
 import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/outbound_pb";
+import { ConversationComposer } from "../../ConversationComposer.js";
 import { ConversationListPane } from "../../ConversationListPane.js";
 import { ConversationTimelineView } from "../../ConversationTimelineView.js";
 import {
@@ -106,6 +109,10 @@ const timelineItems = [
     text: "I'll take this personally",
     deliveryStatus: ChannelDeliveryStatus.delivered,
     receiptState: ChannelReceiptState.receipt_failed,
+    // The T07 visible explanation line (DD-014 D-c) rides the audit.
+    receiptDetail:
+      "More than 24 hours have passed since the recipient last replied to the sender number.",
+    receiptErrorCode: 131047,
     at: timestampFromDate(new Date("2026-08-07T09:02:00Z")),
   }),
   create(ConversationTimelineItemSchema, {
@@ -198,6 +205,19 @@ describe("Conversation surfaces a11y", () => {
       mode,
     );
     await auditA11y(container, `conversation timeline · ${mode}`);
+  });
+
+  it.each(COLOR_MODES)("composer with the closed-window advisory (%s)", async (mode) => {
+    const container = renderAudited(
+      <ConversationComposer
+        onSend={() => Promise.reject(new Error("never sent in an audit"))}
+        isSending={false}
+        disabledReason={null}
+        advisory="WhatsApp closes free-form replies 24 hours after the customer's last message — a reply sent now will probably fail. The window reopens when the customer writes again."
+      />,
+      mode,
+    );
+    await auditA11y(container, `composer with advisory · ${mode}`);
   });
 
   it.each(COLOR_MODES)("timeline Slack honesty notice (%s)", async (mode) => {

@@ -91,6 +91,55 @@ describe("ConversationComposer", () => {
     ).toBe(true);
   });
 
+  it("annotates an ENABLED input with the advisory, wired as the input's description (DD-014 D-e)", () => {
+    render(
+      <ConversationComposer
+        onSend={vi.fn()}
+        isSending={false}
+        disabledReason={null}
+        advisory="WhatsApp's 24-hour reply window has closed — a reply sent now will probably fail. It reopens when the customer writes again."
+      />,
+    );
+
+    const input = screen.getByLabelText("Reply to the customer") as HTMLTextAreaElement;
+    // A forecast, not a block: the input stays usable.
+    expect(input.disabled).toBe(false);
+
+    // R-2 (Sitting 2 gate ruling): the advisory is the input's
+    // aria-describedby target — read at the moment of action — never a
+    // live region (it is state a reader meets on open, not an event).
+    const describedBy = input.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    const advisoryEl = document.getElementById(describedBy as string);
+    expect(advisoryEl?.textContent).toContain("24-hour reply window has closed");
+    expect(advisoryEl?.getAttribute("role")).toBeNull();
+
+    // Zero new tab stops (the F-18 discipline).
+    expect(advisoryEl?.querySelector("button, a, [tabindex]")).toBeNull();
+  });
+
+  it("renders no advisory and no dangling description when there is no claim", () => {
+    render(
+      <ConversationComposer onSend={vi.fn()} isSending={false} disabledReason={null} advisory={null} />,
+    );
+    const input = screen.getByLabelText("Reply to the customer");
+    expect(input.getAttribute("aria-describedby")).toBeNull();
+    expect(screen.queryByText(/reply window/)).toBeNull();
+  });
+
+  it("never shows the advisory in the disabled branch — the two states are structurally exclusive", () => {
+    render(
+      <ConversationComposer
+        onSend={vi.fn()}
+        isSending={false}
+        disabledReason="The customer hasn't written yet — staff replies unlock with their first message."
+        advisory="WhatsApp's 24-hour reply window has closed."
+      />,
+    );
+    expect(screen.getByText(/staff replies unlock/)).toBeDefined();
+    expect(screen.queryByText(/reply window/)).toBeNull();
+  });
+
   it("keeps the draft and renders a thrown failure", async () => {
     const user = userEvent.setup();
     const onSend = vi

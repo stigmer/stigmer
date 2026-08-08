@@ -293,6 +293,7 @@ read — this component never fabricates one.
 
 <TypeTable
   type={{
+    advisory: { type: "string | null", description: "A pre-send forecast that ANNOTATES the enabled input — the `disabledReason` pattern's sibling with the opposite contract (channel-conversations DD-014 D-e): a closed service window is a forecast, not a structural block, so the input stays usable and the send engines remain the authority. Rendered above the input and associated via `aria-describedby` (never a live region: the advisory is state a reader meets on open, not an event). Compute it with `serviceWindowOf`; `null` or omitted renders nothing." },
     className: { type: "string", description: "Additional classes for the composer container." },
     disabledReason: { type: "string | null", description: "Why replying is unavailable, when it is — rendered in place of the input (a senderless provider, or a conversation the customer has not started yet). `null` enables the composer.", required: true },
     isSending: { type: "boolean", description: "`true` while a reply is in flight.", required: true },
@@ -625,6 +626,40 @@ Map the wire delivery status onto the render vocabulary.
 ```tsx
 function sendAttemptOf(item: ConversationTimelineItem): SendAttemptKind | null
 ```
+
+
+### serviceWindowOf
+
+Estimate whether the provider's free-form reply window is open
+(channel-conversations DD-014 D-a). Provider-aware like
+[`conversationLabelOf`](#conversationlabelof): WhatsApp is the only windowed provider, so
+every other provider answers `null` — no window, no claim — as does a
+conversation whose customer has never written
+(`last_customer_message_at` unset; that conversation takes the
+composer's disabled branch instead).
+
+Client-derived on purpose, and NOT a divergence from DD-011 A-1's
+"the predicate is expressed once, in SQL" rule: the window is
+wall-clock-anchored — it flips with NO row change — so a
+server-computed boolean would be stale by construction between polls.
+Time-decaying presentation derived from wire instants is this
+surface's established class (relative timestamps, day grouping).
+
+Honesty caveat (DD-014 D-a): the anchor is the platform's receipt
+instant, minutes AFTER Meta's own clock started the window, so the
+estimate can claim "open" briefly after Meta closed it — which is why
+consumers warn and never block (D-b). For the same reason the exact
+24-hour tie reads "closed": erring a moment early offsets an anchor
+that always errs late.
+
+```tsx
+function serviceWindowOf(conversation: ChannelConversation, provider: ChannelProviderId | null, now: Date): ServiceWindowState | null
+```
+
+
+### ServiceWindowState
+
+The service-window estimate, in render vocabulary.
 
 
 ### UseConversationListOptions

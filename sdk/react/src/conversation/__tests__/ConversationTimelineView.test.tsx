@@ -110,6 +110,78 @@ describe("ConversationTimelineView", () => {
     expect(screen.getByText("Delivery failed")).toBeDefined();
   });
 
+  it("renders the provider's failure explanation as VISIBLE text on a failed receipt (DD-014 D-c, R-1)", () => {
+    render(
+      <ConversationTimelineView
+        {...baseProps()}
+        items={[
+          item("ob:1", {
+            author: ConversationItemAuthor.author_teammate,
+            text: "your table is ready",
+            deliveryStatus: ChannelDeliveryStatus.delivered,
+            receiptState: ChannelReceiptState.receipt_failed,
+            receiptDetail:
+              "More than 24 hours have passed since the recipient last replied to the sender number.",
+            receiptErrorCode: 131047,
+          }),
+        ]}
+      />,
+    );
+
+    // Verbatim relay — the provider's own words, never pattern-matched
+    // into local copy. Visible (not hover-only): the reason changes what
+    // the operator does next, and the footer glyphs are deliberately
+    // non-focusable (F-18), so a tooltip reaches mouse users only.
+    expect(
+      screen.getByText(/More than 24 hours have passed since the recipient last replied/),
+    ).toBeDefined();
+    // The numeric code stays off the surface — machine vocabulary for
+    // clients that branch, not operator copy.
+    expect(screen.queryByText(/131047/)).toBeNull();
+  });
+
+  it("keeps today's generic copy when the provider sent no explanation", () => {
+    render(
+      <ConversationTimelineView
+        {...baseProps()}
+        items={[
+          item("ob:1", {
+            author: ConversationItemAuthor.author_agent,
+            text: "your table is ready",
+            deliveryStatus: ChannelDeliveryStatus.delivered,
+            receiptState: ChannelReceiptState.receipt_failed,
+            // A code with no prose: the bare number would tell an
+            // operator nothing, so the tick keeps its generic copy.
+            receiptErrorCode: 131047,
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("Delivery failed")).toBeDefined();
+    expect(screen.queryByText(/131047/)).toBeNull();
+  });
+
+  it("never shows the receipt explanation on an attempt-failed item — the F-25 boundary", () => {
+    render(
+      <ConversationTimelineView
+        {...baseProps()}
+        items={[
+          item("dl:1", {
+            author: ConversationItemAuthor.author_agent,
+            text: "lost reply",
+            deliveryStatus: ChannelDeliveryStatus.failed,
+            // A malformed item carrying a detail on the wrong axis: the
+            // attempt-axis explanation (last_error) is F-25's separate
+            // slice, so this lane renders nothing extra.
+            receiptDetail: "should never render",
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("Not delivered")).toBeDefined();
+    expect(screen.queryByText("should never render")).toBeNull();
+  });
+
   it("renders a dead-lettered send as exactly that", () => {
     render(
       <ConversationTimelineView

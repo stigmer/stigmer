@@ -63,12 +63,14 @@ export {
   isInternalItem,
   receiptOf,
   sendAttemptOf,
+  serviceWindowOf,
 } from "./conversationPresentation.js";
 export type {
   AwaitingIndicator,
   ConversationAuthorKind,
   ReceiptKind,
   SendAttemptKind,
+  ServiceWindowState,
 } from "./conversationPresentation.js";
 
 export {

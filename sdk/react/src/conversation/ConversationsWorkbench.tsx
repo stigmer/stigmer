@@ -23,6 +23,7 @@ import {
   conversationLabelOf,
   isInternalItem,
   outboundItemIdOf,
+  serviceWindowOf,
 } from "./conversationPresentation.js";
 import { useConversation } from "./useConversation.js";
 import { useConversationList } from "./useConversationList.js";
@@ -167,6 +168,23 @@ export function ConversationsWorkbench({
       : detail.awaitingCustomer
         ? "The customer hasn't written yet — staff replies unlock with their first message."
         : null;
+
+  // DD-014 D-b/D-e: the closed-window forecast, computed fresh on EVERY
+  // render — deliberately NOT memoized on [detail.conversation]: the
+  // row's reference is intentionally stable across identical polls
+  // (DD-010) while the window is wall-clock-anchored, so a memo keyed on
+  // the row would freeze this warning forever on a quiet conversation.
+  // The 5s detail poll's re-render is the refresh cadence; the workbench
+  // test "the 5s detail poll alone carries the advisory over the
+  // boundary" is the guard. The advisory names the rule (DD-014 D-c's
+  // one home for it); the failed tick relays the provider's verdict.
+  const serviceWindow = detail.conversation
+    ? serviceWindowOf(detail.conversation, descriptor?.id ?? null, now ?? new Date())
+    : null;
+  const composerAdvisory =
+    serviceWindow === "closed" && descriptor
+      ? `${descriptor.label} closes free-form replies 24 hours after the customer's last message — a reply sent now will probably fail. The window reopens when the customer writes again.`
+      : null;
 
   const handleSelect = useCallback(
     (conversation: ChannelConversation) =>
@@ -353,6 +371,7 @@ export function ConversationsWorkbench({
               participation.pendingCommands.has("reply") || settlingItemId !== null
             }
             disabledReason={composerDisabledReason}
+            advisory={composerAdvisory}
           />
         </div>
       )}

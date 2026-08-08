@@ -1381,6 +1381,7 @@ export {
   isInternalItem,
   receiptOf,
   sendAttemptOf,
+  serviceWindowOf,
   CONVERSATION_BADGE_POLL_INTERVAL_MS,
   CONVERSATION_DETAIL_POLL_INTERVAL_MS,
   CONVERSATION_LIST_POLL_INTERVAL_MS,
@@ -1409,6 +1410,7 @@ export type {
   ConversationAuthorKind,
   ReceiptKind,
   SendAttemptKind,
+  ServiceWindowState,
 } from "./conversation/index.js";
 // Wire types the conversation hooks answer with (DD-007: generated types
 // are the source of truth — re-exported for consumer convenience).

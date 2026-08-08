@@ -539,6 +539,126 @@ describe("ConversationsWorkbench", () => {
     expect((freshInput as HTMLTextAreaElement).value).toBe("");
   });
 
+  it("shows the closed-window advisory on a stale WhatsApp conversation, input still enabled (DD-014 D-b)", async () => {
+    const client = createMockStigmer({
+      getConversation: vi.fn().mockResolvedValue(
+        // The customer last wrote 27 hours before `now` — well outside
+        // Meta's 24-hour customer-service window.
+        row({ lastCustomerMessageAt: timestampFromDate(new Date("2026-08-07T09:00:00Z")) }),
+      ),
+    });
+    render(
+      <ConversationsWorkbench
+        org="acme"
+        selected={SELECTED}
+        onSelectionChange={vi.fn()}
+        now={new Date("2026-08-08T12:00:00Z")}
+      />,
+      { wrapper: wrapper(client) },
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText(/closes free-form replies 24 hours/)).toBeDefined(),
+    );
+    // A forecast, never a gate: the input stays usable — Meta and the
+    // server refusal remain the authority (DD-014 D-b).
+    const input = screen.getByLabelText("Reply to the customer") as HTMLTextAreaElement;
+    expect(input.disabled).toBe(false);
+  });
+
+  it("shows no advisory inside the window", async () => {
+    const client = createMockStigmer({
+      getConversation: vi.fn().mockResolvedValue(
+        row({ lastCustomerMessageAt: timestampFromDate(new Date("2026-08-08T11:00:00Z")) }),
+      ),
+    });
+    render(
+      <ConversationsWorkbench
+        org="acme"
+        selected={SELECTED}
+        onSelectionChange={vi.fn()}
+        now={new Date("2026-08-08T12:00:00Z")}
+      />,
+      { wrapper: wrapper(client) },
+    );
+
+    await screen.findByLabelText("Reply to the customer");
+    expect(screen.queryByText(/closes free-form replies/)).toBeNull();
+  });
+
+  it("recomputes the advisory at render — same data, later instant", async () => {
+    const client = createMockStigmer({
+      getConversation: vi.fn().mockResolvedValue(
+        row({ lastCustomerMessageAt: timestampFromDate(new Date("2026-08-07T09:00:00Z")) }),
+      ),
+    });
+    const { rerender } = render(
+      <ConversationsWorkbench
+        org="acme"
+        selected={SELECTED}
+        onSelectionChange={vi.fn()}
+        // 23 hours after the customer's message: still open.
+        now={new Date("2026-08-08T08:00:00Z")}
+      />,
+      { wrapper: wrapper(client) },
+    );
+    await screen.findByLabelText("Reply to the customer");
+    expect(screen.queryByText(/closes free-form replies/)).toBeNull();
+
+    rerender(
+      <ConversationsWorkbench
+        org="acme"
+        selected={SELECTED}
+        onSelectionChange={vi.fn()}
+        // 24.5 hours: the boundary crossed with NO data change.
+        now={new Date("2026-08-08T09:30:00Z")}
+      />,
+    );
+    expect(screen.getByText(/closes free-form replies/)).toBeDefined();
+  });
+
+  it("the 5s detail poll alone carries the advisory over the boundary — no data change, no memo freeze (DD-014 D-b)", async () => {
+    // The load-bearing composition fact this test pins: `useConversation`
+    // preserves the row's object REFERENCE when a poll answers identical
+    // data (DD-010), so the advisory cannot ride a data change — only the
+    // poll's own re-render refreshes the wall-clock estimate. Wrapping
+    // the workbench's advisory computation in a useMemo keyed on
+    // [detail.conversation] — a plausible "cleanup" — freezes the warning
+    // forever on a quiet conversation, and THIS test is what fails.
+    const SEED = new Date("2026-08-08T12:00:00Z");
+    // Explicit clock seed: the boundary math must not ride vitest's
+    // toFake defaults.
+    vi.useFakeTimers({ now: SEED });
+    try {
+      const staleRow = row({
+        // 10 seconds inside the window at mount; the poll ticks cross it.
+        lastCustomerMessageAt: timestampFromDate(
+          new Date(SEED.getTime() - (24 * 60 * 60 * 1000 - 10_000)),
+        ),
+      });
+      const client = createMockStigmer({
+        getConversation: vi.fn().mockResolvedValue(staleRow),
+      });
+      render(
+        <ConversationsWorkbench org="acme" selected={SELECTED} onSelectionChange={vi.fn()} />,
+        { wrapper: wrapper(client) },
+      );
+
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(screen.getByLabelText("Reply to the customer")).toBeDefined();
+      expect(screen.queryByText(/closes free-form replies/)).toBeNull();
+
+      // Three detail-poll ticks, every answer the SAME row object.
+      await advanceInSlices(15_000);
+      expect(screen.getByText(/closes free-form replies/)).toBeDefined();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("disables the composer on Slack with the honest reason", async () => {
     const client = createMockStigmer({
       list: vi.fn().mockResolvedValue({ items: [slackChannel()], totalCount: 1 }),
