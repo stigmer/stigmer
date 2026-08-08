@@ -909,6 +909,19 @@ func TestChannelConversation_AsyncSendFailureExplainsItselfOnTheTimeline(t *test
 	require.NotEmpty(t, answer.GetProviderMessageId(),
 		"accepted carries the wamid the receipt will report on")
 
+	// To the operator this send SUCCEEDED — and the awaiting fact agrees:
+	// the participant Delivered settle stamped the answer synchronously,
+	// inside the Reply RPC's inline attempt (T05, DD-011 D-b), so no poll
+	// is needed here. This is the optimism T08 exists to correct.
+	answered, err := clients.ChannelConversationQuery.GetConversation(ctx,
+		&agentchannelv1.GetChannelConversationInput{
+			AgentChannelId:  fx.ChannelID,
+			ConversationKey: customer,
+		})
+	require.NoError(t, err)
+	require.False(t, answered.GetAwaitingReply(),
+		"an accepted staff reply answers the seeded customer message")
+
 	// The platform stamped its correlation token on the send — read it
 	// back from the recorded Graph body.
 	sends := mockWhatsAppGraph.SendsTo(fx.PhoneNumberID)
@@ -968,6 +981,38 @@ func TestChannelConversation_AsyncSendFailureExplainsItselfOnTheTimeline(t *test
 	assert.Equal(t, agentchannelv1.ChannelDeliveryStatus_delivered, explained.GetDeliveryStatus(),
 		"the attempt axis still says delivered — Meta accepted the send; the failure"+
 			" lives on the RECEIPT axis, the two never collapsed (DD-004 D-d)")
+
+	// T08 (DD-015): the same failure that explains the tick DISPROVES the
+	// answer — the conversation truthfully returns to awaiting. Polled,
+	// because the void commits moments after the receipt stamp the timeline
+	// read above observed (stamp first, void second — the D-c ordering as
+	// amended at the T08 gate). Before T08, this is the F-26 contradiction:
+	// the timeline showed the red tick while the list said "handled".
+	require.Eventually(t, func() bool {
+		reopened, getErr := clients.ChannelConversationQuery.GetConversation(ctx,
+			&agentchannelv1.GetChannelConversationInput{
+				AgentChannelId:  fx.ChannelID,
+				ConversationKey: customer,
+			})
+		return getErr == nil && reopened.GetAwaitingReply()
+	}, 30*time.Second, 250*time.Millisecond,
+		"a failure receipt on the only staff answer must reopen awaiting_reply")
+
+	// And because the staff reply's implicit takeover made the conversation
+	// human-held, the wants-human union (the badge count and the Needs
+	// human filter, one predicate) reclaims it — the surface the customer
+	// silently vanished from.
+	filtered, err := clients.ChannelConversationQuery.ListConversations(ctx,
+		&agentchannelv1.ListChannelConversationsInput{
+			Org:            agent.GetMetadata().GetOrg(),
+			AgentChannelId: fx.ChannelID,
+			Filter:         agentchannelv1.ChannelConversationListFilter_filter_wants_human,
+		})
+	require.NoError(t, err)
+	require.Equal(t, int32(1), filtered.GetTotalCount(),
+		"the reopened conversation re-enters the Needs-human union")
+	assert.Equal(t, customer, filtered.GetItems()[0].GetConversationKey())
+	assert.True(t, filtered.GetItems()[0].GetAwaitingReply())
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
