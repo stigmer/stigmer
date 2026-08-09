@@ -119,6 +119,37 @@ public final class ChannelConversationQueryControllerGrpc {
     return getGetTimelineMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput,
+      ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl> getGetMediaDownloadUrlMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getMediaDownloadUrl",
+      requestType = ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput.class,
+      responseType = ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput,
+      ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl> getGetMediaDownloadUrlMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput, ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl> getGetMediaDownloadUrlMethod;
+    if ((getGetMediaDownloadUrlMethod = ChannelConversationQueryControllerGrpc.getGetMediaDownloadUrlMethod) == null) {
+      synchronized (ChannelConversationQueryControllerGrpc.class) {
+        if ((getGetMediaDownloadUrlMethod = ChannelConversationQueryControllerGrpc.getGetMediaDownloadUrlMethod) == null) {
+          ChannelConversationQueryControllerGrpc.getGetMediaDownloadUrlMethod = getGetMediaDownloadUrlMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput, ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getMediaDownloadUrl"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl.getDefaultInstance()))
+              .setSchemaDescriptor(new ChannelConversationQueryControllerMethodDescriptorSupplier("getMediaDownloadUrl"))
+              .build();
+        }
+      }
+    }
+    return getGetMediaDownloadUrlMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -267,6 +298,31 @@ public final class ChannelConversationQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ConversationTimeline> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetTimelineMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Mint a short-lived download URL for one inbound timeline item's
+     * media file (an image or document the customer sent).
+     * Answers NOT_FOUND when the item does not exist in this conversation
+     * or carries no ingested media (a text item, or media the platform
+     * declined to ingest).
+     * &#64;internal
+     * whatsapp-media DD-001 D4: addressed by (channel, conversation,
+     * item_id) so the server resolves the storage key from its own row —
+     * the wire never carries blob capabilities, and authorization is
+     * declarative on the channel exactly like getTimeline (the channel is
+     * the trust boundary, DD-003 D-a). Deliberately stricter than the
+     * attachments-blob posture (authentication-only, ULID-as-capability)
+     * that the runner's download path rides: this is the human-facing
+     * read surface and law-firm client documents travel this pipeline.
+     * OSS answers NOT_FOUND unconditionally (cloud-only runtime, the
+     * getConversation posture).
+     * </pre>
+     */
+    default void getMediaDownloadUrl(ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetMediaDownloadUrlMethod(), responseObserver);
+    }
   }
 
   /**
@@ -398,6 +454,32 @@ public final class ChannelConversationQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetTimelineMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Mint a short-lived download URL for one inbound timeline item's
+     * media file (an image or document the customer sent).
+     * Answers NOT_FOUND when the item does not exist in this conversation
+     * or carries no ingested media (a text item, or media the platform
+     * declined to ingest).
+     * &#64;internal
+     * whatsapp-media DD-001 D4: addressed by (channel, conversation,
+     * item_id) so the server resolves the storage key from its own row —
+     * the wire never carries blob capabilities, and authorization is
+     * declarative on the channel exactly like getTimeline (the channel is
+     * the trust boundary, DD-003 D-a). Deliberately stricter than the
+     * attachments-blob posture (authentication-only, ULID-as-capability)
+     * that the runner's download path rides: this is the human-facing
+     * read surface and law-firm client documents travel this pipeline.
+     * OSS answers NOT_FOUND unconditionally (cloud-only runtime, the
+     * getConversation posture).
+     * </pre>
+     */
+    public void getMediaDownloadUrl(ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetMediaDownloadUrlMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -501,6 +583,31 @@ public final class ChannelConversationQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetTimelineMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Mint a short-lived download URL for one inbound timeline item's
+     * media file (an image or document the customer sent).
+     * Answers NOT_FOUND when the item does not exist in this conversation
+     * or carries no ingested media (a text item, or media the platform
+     * declined to ingest).
+     * &#64;internal
+     * whatsapp-media DD-001 D4: addressed by (channel, conversation,
+     * item_id) so the server resolves the storage key from its own row —
+     * the wire never carries blob capabilities, and authorization is
+     * declarative on the channel exactly like getTimeline (the channel is
+     * the trust boundary, DD-003 D-a). Deliberately stricter than the
+     * attachments-blob posture (authentication-only, ULID-as-capability)
+     * that the runner's download path rides: this is the human-facing
+     * read surface and law-firm client documents travel this pipeline.
+     * OSS answers NOT_FOUND unconditionally (cloud-only runtime, the
+     * getConversation posture).
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl getMediaDownloadUrl(ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetMediaDownloadUrlMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -603,6 +710,31 @@ public final class ChannelConversationQueryControllerGrpc {
     public ai.stigmer.agentic.agentchannel.v1.ConversationTimeline getTimeline(ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetTimelineMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Mint a short-lived download URL for one inbound timeline item's
+     * media file (an image or document the customer sent).
+     * Answers NOT_FOUND when the item does not exist in this conversation
+     * or carries no ingested media (a text item, or media the platform
+     * declined to ingest).
+     * &#64;internal
+     * whatsapp-media DD-001 D4: addressed by (channel, conversation,
+     * item_id) so the server resolves the storage key from its own row —
+     * the wire never carries blob capabilities, and authorization is
+     * declarative on the channel exactly like getTimeline (the channel is
+     * the trust boundary, DD-003 D-a). Deliberately stricter than the
+     * attachments-blob posture (authentication-only, ULID-as-capability)
+     * that the runner's download path rides: this is the human-facing
+     * read surface and law-firm client documents travel this pipeline.
+     * OSS answers NOT_FOUND unconditionally (cloud-only runtime, the
+     * getConversation posture).
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl getMediaDownloadUrl(ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetMediaDownloadUrlMethod(), getCallOptions(), request);
     }
   }
 
@@ -710,11 +842,38 @@ public final class ChannelConversationQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetTimelineMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Mint a short-lived download URL for one inbound timeline item's
+     * media file (an image or document the customer sent).
+     * Answers NOT_FOUND when the item does not exist in this conversation
+     * or carries no ingested media (a text item, or media the platform
+     * declined to ingest).
+     * &#64;internal
+     * whatsapp-media DD-001 D4: addressed by (channel, conversation,
+     * item_id) so the server resolves the storage key from its own row —
+     * the wire never carries blob capabilities, and authorization is
+     * declarative on the channel exactly like getTimeline (the channel is
+     * the trust boundary, DD-003 D-a). Deliberately stricter than the
+     * attachments-blob posture (authentication-only, ULID-as-capability)
+     * that the runner's download path rides: this is the human-facing
+     * read surface and law-firm client documents travel this pipeline.
+     * OSS answers NOT_FOUND unconditionally (cloud-only runtime, the
+     * getConversation posture).
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl> getMediaDownloadUrl(
+        ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetMediaDownloadUrlMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_LIST_CONVERSATIONS = 0;
   private static final int METHODID_GET_CONVERSATION = 1;
   private static final int METHODID_GET_TIMELINE = 2;
+  private static final int METHODID_GET_MEDIA_DOWNLOAD_URL = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -744,6 +903,10 @@ public final class ChannelConversationQueryControllerGrpc {
         case METHODID_GET_TIMELINE:
           serviceImpl.getTimeline((ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ConversationTimeline>) responseObserver);
+          break;
+        case METHODID_GET_MEDIA_DOWNLOAD_URL:
+          serviceImpl.getMediaDownloadUrl((ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -784,6 +947,13 @@ public final class ChannelConversationQueryControllerGrpc {
               ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput,
               ai.stigmer.agentic.agentchannel.v1.ConversationTimeline>(
                 service, METHODID_GET_TIMELINE)))
+        .addMethod(
+          getGetMediaDownloadUrlMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput,
+              ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl>(
+                service, METHODID_GET_MEDIA_DOWNLOAD_URL)))
         .build();
   }
 
@@ -835,6 +1005,7 @@ public final class ChannelConversationQueryControllerGrpc {
               .addMethod(getListConversationsMethod())
               .addMethod(getGetConversationMethod())
               .addMethod(getGetTimelineMethod())
+              .addMethod(getGetMediaDownloadUrlMethod())
               .build();
         }
       }

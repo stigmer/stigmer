@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ChannelConversation, ChannelConversationList, ConversationTimeline, GetChannelConversationInput, GetConversationTimelineInput, ListChannelConversationsInput } from "./conversation_io_pbjs";
+import { ChannelConversation, ChannelConversationList, ConversationMediaDownloadUrl, ConversationTimeline, GetChannelConversationInput, GetConversationMediaDownloadUrlInput, GetConversationTimelineInput, ListChannelConversationsInput } from "./conversation_io_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -105,6 +105,34 @@ export const ChannelConversationQueryController = {
       name: "getTimeline",
       I: GetConversationTimelineInput,
       O: ConversationTimeline,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Mint a short-lived download URL for one inbound timeline item's
+     * media file (an image or document the customer sent).
+     *
+     * Answers NOT_FOUND when the item does not exist in this conversation
+     * or carries no ingested media (a text item, or media the platform
+     * declined to ingest).
+     *
+     * @internal
+     * whatsapp-media DD-001 D4: addressed by (channel, conversation,
+     * item_id) so the server resolves the storage key from its own row —
+     * the wire never carries blob capabilities, and authorization is
+     * declarative on the channel exactly like getTimeline (the channel is
+     * the trust boundary, DD-003 D-a). Deliberately stricter than the
+     * attachments-blob posture (authentication-only, ULID-as-capability)
+     * that the runner's download path rides: this is the human-facing
+     * read surface and law-firm client documents travel this pipeline.
+     * OSS answers NOT_FOUND unconditionally (cloud-only runtime, the
+     * getConversation posture).
+     *
+     * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.getMediaDownloadUrl
+     */
+    getMediaDownloadUrl: {
+      name: "getMediaDownloadUrl",
+      I: GetConversationMediaDownloadUrlInput,
+      O: ConversationMediaDownloadUrl,
       kind: MethodKind.Unary,
     },
   }

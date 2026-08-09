@@ -4,7 +4,7 @@
 
 import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ChannelConversationListSchema, ChannelConversationSchema, ConversationTimelineSchema, GetChannelConversationInputSchema, GetConversationTimelineInputSchema, ListChannelConversationsInputSchema } from "./conversation_io_pb.js";
+import type { ChannelConversationListSchema, ChannelConversationSchema, ConversationMediaDownloadUrlSchema, ConversationTimelineSchema, GetChannelConversationInputSchema, GetConversationMediaDownloadUrlInputSchema, GetConversationTimelineInputSchema, ListChannelConversationsInputSchema } from "./conversation_io_pb.js";
 import { file_ai_stigmer_agentic_agentchannel_v1_conversation_io } from "./conversation_io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -13,7 +13,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agentchannel/v1/conversation_query.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_conversation_query: GenFile = /*@__PURE__*/
-  fileDesc("CjthaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2NvbnZlcnNhdGlvbl9xdWVyeS5wcm90bxIiYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MTKABQoiQ2hhbm5lbENvbnZlcnNhdGlvblF1ZXJ5Q29udHJvbGxlchKZAQoRbGlzdENvbnZlcnNhdGlvbnMSQS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkxpc3RDaGFubmVsQ29udmVyc2F0aW9uc0lucHV0GjsuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsQ29udmVyc2F0aW9uTGlzdCIE0LgYARLbAQoPZ2V0Q29udmVyc2F0aW9uEj8uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5HZXRDaGFubmVsQ29udmVyc2F0aW9uSW5wdXQaNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxDb252ZXJzYXRpb24iTsK4GEoIARAvIhBhZ2VudF9jaGFubmVsX2lkKjJ1bmF1dGhvcml6ZWQgdG8gdmlldyBjb252ZXJzYXRpb25zIG9uIHRoaXMgY2hhbm5lbBLZAQoLZ2V0VGltZWxpbmUSQC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkdldENvbnZlcnNhdGlvblRpbWVsaW5lSW5wdXQaOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNvbnZlcnNhdGlvblRpbWVsaW5lIk7CuBhKCAEQLyIQYWdlbnRfY2hhbm5lbF9pZCoydW5hdXRob3JpemVkIHRvIHZpZXcgY29udmVyc2F0aW9ucyBvbiB0aGlzIGNoYW5uZWwaBKD/Ky9iBnByb3RvMw", [file_ai_stigmer_agentic_agentchannel_v1_conversation_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CjthaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2NvbnZlcnNhdGlvbl9xdWVyeS5wcm90bxIiYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MTL0BgoiQ2hhbm5lbENvbnZlcnNhdGlvblF1ZXJ5Q29udHJvbGxlchKZAQoRbGlzdENvbnZlcnNhdGlvbnMSQS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkxpc3RDaGFubmVsQ29udmVyc2F0aW9uc0lucHV0GjsuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsQ29udmVyc2F0aW9uTGlzdCIE0LgYARLbAQoPZ2V0Q29udmVyc2F0aW9uEj8uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5HZXRDaGFubmVsQ29udmVyc2F0aW9uSW5wdXQaNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxDb252ZXJzYXRpb24iTsK4GEoIARAvIhBhZ2VudF9jaGFubmVsX2lkKjJ1bmF1dGhvcml6ZWQgdG8gdmlldyBjb252ZXJzYXRpb25zIG9uIHRoaXMgY2hhbm5lbBLZAQoLZ2V0VGltZWxpbmUSQC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkdldENvbnZlcnNhdGlvblRpbWVsaW5lSW5wdXQaOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNvbnZlcnNhdGlvblRpbWVsaW5lIk7CuBhKCAEQLyIQYWdlbnRfY2hhbm5lbF9pZCoydW5hdXRob3JpemVkIHRvIHZpZXcgY29udmVyc2F0aW9ucyBvbiB0aGlzIGNoYW5uZWwS8QEKE2dldE1lZGlhRG93bmxvYWRVcmwSSC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkdldENvbnZlcnNhdGlvbk1lZGlhRG93bmxvYWRVcmxJbnB1dBpALmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ29udmVyc2F0aW9uTWVkaWFEb3dubG9hZFVybCJOwrgYSggBEC8iEGFnZW50X2NoYW5uZWxfaWQqMnVuYXV0aG9yaXplZCB0byB2aWV3IGNvbnZlcnNhdGlvbnMgb24gdGhpcyBjaGFubmVsGgSg/ysvYgZwcm90bzM", [file_ai_stigmer_agentic_agentchannel_v1_conversation_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * ChannelConversationQueryController serves the console's conversation
@@ -110,6 +110,33 @@ export const ChannelConversationQueryController: GenService<{
     methodKind: "unary";
     input: typeof GetConversationTimelineInputSchema;
     output: typeof ConversationTimelineSchema;
+  },
+  /**
+   * Mint a short-lived download URL for one inbound timeline item's
+   * media file (an image or document the customer sent).
+   *
+   * Answers NOT_FOUND when the item does not exist in this conversation
+   * or carries no ingested media (a text item, or media the platform
+   * declined to ingest).
+   *
+   * @internal
+   * whatsapp-media DD-001 D4: addressed by (channel, conversation,
+   * item_id) so the server resolves the storage key from its own row —
+   * the wire never carries blob capabilities, and authorization is
+   * declarative on the channel exactly like getTimeline (the channel is
+   * the trust boundary, DD-003 D-a). Deliberately stricter than the
+   * attachments-blob posture (authentication-only, ULID-as-capability)
+   * that the runner's download path rides: this is the human-facing
+   * read surface and law-firm client documents travel this pipeline.
+   * OSS answers NOT_FOUND unconditionally (cloud-only runtime, the
+   * getConversation posture).
+   *
+   * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.getMediaDownloadUrl
+   */
+  getMediaDownloadUrl: {
+    methodKind: "unary";
+    input: typeof GetConversationMediaDownloadUrlInputSchema;
+    output: typeof ConversationMediaDownloadUrlSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_query, 0);

@@ -231,6 +231,43 @@ message ConversationTimelineItem {
   // receipt_detail and never after it: a client handed prose first will
   // pattern-match the prose, which is the coupling this pair prevents.
   int32 receipt_error_code = 12;
+
+  // The media file carried by an inbound item, when the platform
+  // ingested one (an image or document the customer sent). Unset on
+  // text items, on outbound items, and on inbound media the platform
+  // declined to ingest (disallowed type, over the size cap) — those
+  // keep the bare provider_message_type placeholder.
+  //
+  // @internal
+  // whatsapp-media DD-001 D4: descriptive facts only — the storage key
+  // deliberately never rides the wire. Clients fetch bytes through
+  // getMediaDownloadUrl addressed by (channel, conversation, item_id),
+  // and the server resolves the key from its own row, so the read path
+  // is conversation-viewer-scoped by construction and blob capabilities
+  // never leave the server.
+  ConversationMediaRef media = 13;
+}
+
+// ConversationMediaRef describes a media file attached to an inbound
+// timeline item — enough for a client to render a chip (name, kind,
+// size) and decide whether to fetch the bytes.
+//
+// @internal
+// whatsapp-media DD-001 D4. Deliberately NOT the agentexecution
+// Attachment shape: that message carries transport facts (storage_key,
+// mount_path) for the sandbox, while this one is a display reference —
+// sharing a message would couple the console's read surface to the
+// runner's transport contract.
+message ConversationMediaRef {
+  // Original filename as received from the provider (documents), or the
+  // platform-synthesized name (camera images arrive nameless).
+  string filename = 1;
+
+  // MIME type as verified at ingest (sniffed, not merely declared).
+  string content_type = 2;
+
+  // File size in bytes as stored.
+  int64 size_bytes = 3;
 }
 
 // Input for listing an organization's channel conversations.
@@ -335,6 +372,38 @@ message ConversationTimeline {
 
   // Cursor for the next (older) page. Empty when no more items exist.
   string next_page_token = 2;
+}
+
+// Input for minting a short-lived download URL for one timeline item's
+// media file.
+message GetConversationMediaDownloadUrlInput {
+  // AgentChannel the conversation belongs to.
+  string agent_channel_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 128
+  ];
+
+  // Conversation key within the channel (WhatsApp: the customer's wa_id).
+  string conversation_key = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 128
+  ];
+
+  // The timeline item whose media to fetch (its item_id, e.g. "wa:<wamid>").
+  string item_id = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 256
+  ];
+}
+
+// ConversationMediaDownloadUrl carries a presigned, time-limited URL for
+// one media file.
+message ConversationMediaDownloadUrl {
+  // Presigned HTTPS URL. Fetch promptly; it expires.
+  string url = 1;
+
+  // When the URL stops working.
+  google.protobuf.Timestamp expires_at = 2;
 }
 
 // Input for the conversation control commands (takeOver, handBack,

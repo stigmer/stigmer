@@ -121,6 +121,12 @@ class AgentChannelClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def get_media_download_url(self, input: conversation_io_pb2.GetConversationMediaDownloadUrlInput) -> conversation_io_pb2.ConversationMediaDownloadUrl:
+        try:
+            return self._channelConversationQuery.getMediaDownloadUrl(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def send_message(self, input: message_io_pb2.SendChannelMessageInput) -> message_io_pb2.SendChannelMessageOutput:
         try:
             return self._channelMessageCommand.sendMessage(input)

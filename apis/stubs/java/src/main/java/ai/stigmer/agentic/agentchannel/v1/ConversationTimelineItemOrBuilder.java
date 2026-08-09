@@ -298,4 +298,67 @@ public interface ConversationTimelineItemOrBuilder extends
    * @return The receiptErrorCode.
    */
   int getReceiptErrorCode();
+
+  /**
+   * <pre>
+   * The media file carried by an inbound item, when the platform
+   * ingested one (an image or document the customer sent). Unset on
+   * text items, on outbound items, and on inbound media the platform
+   * declined to ingest (disallowed type, over the size cap) — those
+   * keep the bare provider_message_type placeholder.
+   *
+   * &#64;internal
+   * whatsapp-media DD-001 D4: descriptive facts only — the storage key
+   * deliberately never rides the wire. Clients fetch bytes through
+   * getMediaDownloadUrl addressed by (channel, conversation, item_id),
+   * and the server resolves the key from its own row, so the read path
+   * is conversation-viewer-scoped by construction and blob capabilities
+   * never leave the server.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
+   * @return Whether the media field is set.
+   */
+  boolean hasMedia();
+  /**
+   * <pre>
+   * The media file carried by an inbound item, when the platform
+   * ingested one (an image or document the customer sent). Unset on
+   * text items, on outbound items, and on inbound media the platform
+   * declined to ingest (disallowed type, over the size cap) — those
+   * keep the bare provider_message_type placeholder.
+   *
+   * &#64;internal
+   * whatsapp-media DD-001 D4: descriptive facts only — the storage key
+   * deliberately never rides the wire. Clients fetch bytes through
+   * getMediaDownloadUrl addressed by (channel, conversation, item_id),
+   * and the server resolves the key from its own row, so the read path
+   * is conversation-viewer-scoped by construction and blob capabilities
+   * never leave the server.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
+   * @return The media.
+   */
+  ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef getMedia();
+  /**
+   * <pre>
+   * The media file carried by an inbound item, when the platform
+   * ingested one (an image or document the customer sent). Unset on
+   * text items, on outbound items, and on inbound media the platform
+   * declined to ingest (disallowed type, over the size cap) — those
+   * keep the bare provider_message_type placeholder.
+   *
+   * &#64;internal
+   * whatsapp-media DD-001 D4: descriptive facts only — the storage key
+   * deliberately never rides the wire. Clients fetch bytes through
+   * getMediaDownloadUrl addressed by (channel, conversation, item_id),
+   * and the server resolves the key from its own row, so the read path
+   * is conversation-viewer-scoped by construction and blob capabilities
+   * never leave the server.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
+   */
+  ai.stigmer.agentic.agentchannel.v1.ConversationMediaRefOrBuilder getMediaOrBuilder();
 }

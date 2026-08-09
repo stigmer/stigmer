@@ -21,7 +21,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/conversation_io.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_conversation_io: GenFile = /*@__PURE__*/
-  fileDesc("CjhhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2NvbnZlcnNhdGlvbl9pby5wcm90bxIiYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MSL+AwoTQ2hhbm5lbENvbnZlcnNhdGlvbhIYChBhZ2VudF9jaGFubmVsX2lkGAEgASgJEhgKEGNvbnZlcnNhdGlvbl9rZXkYAiABKAkSCwoDb3JnGAMgASgJEkgKB2NvbnRyb2wYBCABKA4yNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNvbnZlcnNhdGlvbkNvbnRyb2wSFQoNY29udHJvbGxlZF9ieRgFIAEoCRI2ChJjb250cm9sX2NoYW5nZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhcKD25lZWRzX2F0dGVudGlvbhgHIAEoCBIYChBhdHRlbnRpb25fcmVhc29uGAggASgJEjgKFGF0dGVudGlvbl9jaGFuZ2VkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIUCgxkaXNwbGF5X25hbWUYCiABKAkSPAoYbGFzdF9jdXN0b21lcl9tZXNzYWdlX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI0ChBsYXN0X2FjdGl2aXR5X2F0GAwgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIWCg5hd2FpdGluZ19yZXBseRgNIAEoCCLIBAoYQ29udmVyc2F0aW9uVGltZWxpbmVJdGVtEg8KB2l0ZW1faWQYASABKAkSQgoEbGFuZRgCIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ29udmVyc2F0aW9uTGFuZRJKCgZhdXRob3IYAyABKA4yOi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNvbnZlcnNhdGlvbkl0ZW1BdXRob3ISEwoLYXV0aG9yZWRfYnkYBCABKAkSDAoEdGV4dBgFIAEoCRIdChVwcm92aWRlcl9tZXNzYWdlX3R5cGUYBiABKAkSJgoCYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wElIKD2RlbGl2ZXJ5X3N0YXR1cxgIIAEoDjI5LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbERlbGl2ZXJ5U3RhdHVzEk4KDXJlY2VpcHRfc3RhdGUYCSABKA4yNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxSZWNlaXB0U3RhdGUSSQoGb3JpZ2luGAogASgOMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsT3V0Ym91bmRPcmlnaW4SFgoOcmVjZWlwdF9kZXRhaWwYCyABKAkSGgoScmVjZWlwdF9lcnJvcl9jb2RlGAwgASgFIuMBCh1MaXN0Q2hhbm5lbENvbnZlcnNhdGlvbnNJbnB1dBIWCgNvcmcYASABKAlCCbpIBnIEEAEYPxIiChBhZ2VudF9jaGFubmVsX2lkGAIgASgJQgi6SAVyAxiAARIzCglwYWdlX2luZm8YAyABKAsyIC5haS5zdGlnbWVyLmNvbW1vbnMucnBjLlBhZ2VJbmZvElEKBmZpbHRlchgEIAEoDjJBLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbENvbnZlcnNhdGlvbkxpc3RGaWx0ZXIidgoXQ2hhbm5lbENvbnZlcnNhdGlvbkxpc3QSEwoLdG90YWxfY291bnQYASABKAUSRgoFaXRlbXMYAiADKAsyNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxDb252ZXJzYXRpb24iaQobR2V0Q2hhbm5lbENvbnZlcnNhdGlvbklucHV0EiQKEGFnZW50X2NoYW5uZWxfaWQYASABKAlCCrpIB3IFEAEYgAESJAoQY29udmVyc2F0aW9uX2tleRgCIAEoCUIKukgHcgUQARiAASKRAQocR2V0Q29udmVyc2F0aW9uVGltZWxpbmVJbnB1dBIkChBhZ2VudF9jaGFubmVsX2lkGAEgASgJQgq6SAdyBRABGIABEiQKEGNvbnZlcnNhdGlvbl9rZXkYAiABKAlCCrpIB3IFEAEYgAESEQoJcGFnZV9zaXplGAMgASgFEhIKCnBhZ2VfdG9rZW4YBCABKAkifAoUQ29udmVyc2F0aW9uVGltZWxpbmUSSwoFaXRlbXMYASADKAsyPC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNvbnZlcnNhdGlvblRpbWVsaW5lSXRlbRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiZgoYQ29udmVyc2F0aW9uQ29udHJvbElucHV0EiQKEGFnZW50X2NoYW5uZWxfaWQYASABKAlCCrpIB3IFEAEYgAESJAoQY29udmVyc2F0aW9uX2tleRgCIAEoCUIKukgHcgUQARiAASK7AQoYUmVwbHlUb0NvbnZlcnNhdGlvbklucHV0EiQKEGFnZW50X2NoYW5uZWxfaWQYASABKAlCCrpIB3IFEAEYgAESJAoQY29udmVyc2F0aW9uX2tleRgCIAEoCUIKukgHcgUQARiAARJTCgdwYXlsb2FkGAMgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsT3V0Ym91bmRQYXlsb2FkQga6SAPIAQEiNwoZRXNjYWxhdGVDb252ZXJzYXRpb25JbnB1dBIaCgZyZWFzb24YASABKAlCCrpIB3IFEAEYgAgqYQoTQ29udmVyc2F0aW9uQ29udHJvbBIkCiBjb252ZXJzYXRpb25fY29udHJvbF91bnNwZWNpZmllZBAAEhEKDWNvbnRyb2xfYWdlbnQQARIRCg1jb250cm9sX2h1bWFuEAIqWQoQQ29udmVyc2F0aW9uTGFuZRIhCh1jb252ZXJzYXRpb25fbGFuZV91bnNwZWNpZmllZBAAEg8KC2xhbmVfcHVibGljEAESEQoNbGFuZV9pbnRlcm5hbBACKpMBChZDb252ZXJzYXRpb25JdGVtQXV0aG9yEigKJGNvbnZlcnNhdGlvbl9pdGVtX2F1dGhvcl91bnNwZWNpZmllZBAAEhMKD2F1dGhvcl9jdXN0b21lchABEhAKDGF1dGhvcl9hZ2VudBACEhMKD2F1dGhvcl90ZWFtbWF0ZRADEhMKD2F1dGhvcl9wbGF0Zm9ybRAEKmkKHUNoYW5uZWxDb252ZXJzYXRpb25MaXN0RmlsdGVyEjAKLGNoYW5uZWxfY29udmVyc2F0aW9uX2xpc3RfZmlsdGVyX3Vuc3BlY2lmaWVkEAASFgoSZmlsdGVyX3dhbnRzX2h1bWFuEAFiBnByb3RvMw", [file_ai_stigmer_agentic_agentchannel_v1_delivery, file_ai_stigmer_agentic_agentchannel_v1_message_io, file_ai_stigmer_agentic_agentchannel_v1_outbound, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CjhhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2NvbnZlcnNhdGlvbl9pby5wcm90bxIiYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MSL+AwoTQ2hhbm5lbENvbnZlcnNhdGlvbhIYChBhZ2VudF9jaGFubmVsX2lkGAEgASgJEhgKEGNvbnZlcnNhdGlvbl9rZXkYAiABKAkSCwoDb3JnGAMgASgJEkgKB2NvbnRyb2wYBCABKA4yNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNvbnZlcnNhdGlvbkNvbnRyb2wSFQoNY29udHJvbGxlZF9ieRgFIAEoCRI2ChJjb250cm9sX2NoYW5nZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhcKD25lZWRzX2F0dGVudGlvbhgHIAEoCBIYChBhdHRlbnRpb25fcmVhc29uGAggASgJEjgKFGF0dGVudGlvbl9jaGFuZ2VkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIUCgxkaXNwbGF5X25hbWUYCiABKAkSPAoYbGFzdF9jdXN0b21lcl9tZXNzYWdlX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI0ChBsYXN0X2FjdGl2aXR5X2F0GAwgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIWCg5hd2FpdGluZ19yZXBseRgNIAEoCCKRBQoYQ29udmVyc2F0aW9uVGltZWxpbmVJdGVtEg8KB2l0ZW1faWQYASABKAkSQgoEbGFuZRgCIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ29udmVyc2F0aW9uTGFuZRJKCgZhdXRob3IYAyABKA4yOi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNvbnZlcnNhdGlvbkl0ZW1BdXRob3ISEwoLYXV0aG9yZWRfYnkYBCABKAkSDAoEdGV4dBgFIAEoCRIdChVwcm92aWRlcl9tZXNzYWdlX3R5cGUYBiABKAkSJgoCYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wElIKD2RlbGl2ZXJ5X3N0YXR1cxgIIAEoDjI5LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbERlbGl2ZXJ5U3RhdHVzEk4KDXJlY2VpcHRfc3RhdGUYCSABKA4yNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxSZWNlaXB0U3RhdGUSSQoGb3JpZ2luGAogASgOMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsT3V0Ym91bmRPcmlnaW4SFgoOcmVjZWlwdF9kZXRhaWwYCyABKAkSGgoScmVjZWlwdF9lcnJvcl9jb2RlGAwgASgFEkcKBW1lZGlhGA0gASgLMjguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5Db252ZXJzYXRpb25NZWRpYVJlZiJSChRDb252ZXJzYXRpb25NZWRpYVJlZhIQCghmaWxlbmFtZRgBIAEoCRIUCgxjb250ZW50X3R5cGUYAiABKAkSEgoKc2l6ZV9ieXRlcxgDIAEoAyLjAQodTGlzdENoYW5uZWxDb252ZXJzYXRpb25zSW5wdXQSFgoDb3JnGAEgASgJQgm6SAZyBBABGD8SIgoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCUIIukgFcgMYgAESMwoJcGFnZV9pbmZvGAMgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxJRCgZmaWx0ZXIYBCABKA4yQS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxDb252ZXJzYXRpb25MaXN0RmlsdGVyInYKF0NoYW5uZWxDb252ZXJzYXRpb25MaXN0EhMKC3RvdGFsX2NvdW50GAEgASgFEkYKBWl0ZW1zGAIgAygLMjcuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsQ29udmVyc2F0aW9uImkKG0dldENoYW5uZWxDb252ZXJzYXRpb25JbnB1dBIkChBhZ2VudF9jaGFubmVsX2lkGAEgASgJQgq6SAdyBRABGIABEiQKEGNvbnZlcnNhdGlvbl9rZXkYAiABKAlCCrpIB3IFEAEYgAEikQEKHEdldENvbnZlcnNhdGlvblRpbWVsaW5lSW5wdXQSJAoQYWdlbnRfY2hhbm5lbF9pZBgBIAEoCUIKukgHcgUQARiAARIkChBjb252ZXJzYXRpb25fa2V5GAIgASgJQgq6SAdyBRABGIABEhEKCXBhZ2Vfc2l6ZRgDIAEoBRISCgpwYWdlX3Rva2VuGAQgASgJInwKFENvbnZlcnNhdGlvblRpbWVsaW5lEksKBWl0ZW1zGAEgAygLMjwuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5Db252ZXJzYXRpb25UaW1lbGluZUl0ZW0SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIo8BCiRHZXRDb252ZXJzYXRpb25NZWRpYURvd25sb2FkVXJsSW5wdXQSJAoQYWdlbnRfY2hhbm5lbF9pZBgBIAEoCUIKukgHcgUQARiAARIkChBjb252ZXJzYXRpb25fa2V5GAIgASgJQgq6SAdyBRABGIABEhsKB2l0ZW1faWQYAyABKAlCCrpIB3IFEAEYgAIiWwocQ29udmVyc2F0aW9uTWVkaWFEb3dubG9hZFVybBILCgN1cmwYASABKAkSLgoKZXhwaXJlc19hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiZgoYQ29udmVyc2F0aW9uQ29udHJvbElucHV0EiQKEGFnZW50X2NoYW5uZWxfaWQYASABKAlCCrpIB3IFEAEYgAESJAoQY29udmVyc2F0aW9uX2tleRgCIAEoCUIKukgHcgUQARiAASK7AQoYUmVwbHlUb0NvbnZlcnNhdGlvbklucHV0EiQKEGFnZW50X2NoYW5uZWxfaWQYASABKAlCCrpIB3IFEAEYgAESJAoQY29udmVyc2F0aW9uX2tleRgCIAEoCUIKukgHcgUQARiAARJTCgdwYXlsb2FkGAMgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsT3V0Ym91bmRQYXlsb2FkQga6SAPIAQEiNwoZRXNjYWxhdGVDb252ZXJzYXRpb25JbnB1dBIaCgZyZWFzb24YASABKAlCCrpIB3IFEAEYgAgqYQoTQ29udmVyc2F0aW9uQ29udHJvbBIkCiBjb252ZXJzYXRpb25fY29udHJvbF91bnNwZWNpZmllZBAAEhEKDWNvbnRyb2xfYWdlbnQQARIRCg1jb250cm9sX2h1bWFuEAIqWQoQQ29udmVyc2F0aW9uTGFuZRIhCh1jb252ZXJzYXRpb25fbGFuZV91bnNwZWNpZmllZBAAEg8KC2xhbmVfcHVibGljEAESEQoNbGFuZV9pbnRlcm5hbBACKpMBChZDb252ZXJzYXRpb25JdGVtQXV0aG9yEigKJGNvbnZlcnNhdGlvbl9pdGVtX2F1dGhvcl91bnNwZWNpZmllZBAAEhMKD2F1dGhvcl9jdXN0b21lchABEhAKDGF1dGhvcl9hZ2VudBACEhMKD2F1dGhvcl90ZWFtbWF0ZRADEhMKD2F1dGhvcl9wbGF0Zm9ybRAEKmkKHUNoYW5uZWxDb252ZXJzYXRpb25MaXN0RmlsdGVyEjAKLGNoYW5uZWxfY29udmVyc2F0aW9uX2xpc3RfZmlsdGVyX3Vuc3BlY2lmaWVkEAASFgoSZmlsdGVyX3dhbnRzX2h1bWFuEAFiBnByb3RvMw", [file_ai_stigmer_agentic_agentchannel_v1_delivery, file_ai_stigmer_agentic_agentchannel_v1_message_io, file_ai_stigmer_agentic_agentchannel_v1_outbound, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * ChannelConversation is the durable identity and participation state of
@@ -299,6 +299,25 @@ export type ConversationTimelineItem = Message<"ai.stigmer.agentic.agentchannel.
    * @generated from field: int32 receipt_error_code = 12;
    */
   receiptErrorCode: number;
+
+  /**
+   * The media file carried by an inbound item, when the platform
+   * ingested one (an image or document the customer sent). Unset on
+   * text items, on outbound items, and on inbound media the platform
+   * declined to ingest (disallowed type, over the size cap) — those
+   * keep the bare provider_message_type placeholder.
+   *
+   * @internal
+   * whatsapp-media DD-001 D4: descriptive facts only — the storage key
+   * deliberately never rides the wire. Clients fetch bytes through
+   * getMediaDownloadUrl addressed by (channel, conversation, item_id),
+   * and the server resolves the key from its own row, so the read path
+   * is conversation-viewer-scoped by construction and blob capabilities
+   * never leave the server.
+   *
+   * @generated from field: ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13;
+   */
+  media?: ConversationMediaRef;
 };
 
 /**
@@ -307,6 +326,51 @@ export type ConversationTimelineItem = Message<"ai.stigmer.agentic.agentchannel.
  */
 export const ConversationTimelineItemSchema: GenMessage<ConversationTimelineItem> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 1);
+
+/**
+ * ConversationMediaRef describes a media file attached to an inbound
+ * timeline item — enough for a client to render a chip (name, kind,
+ * size) and decide whether to fetch the bytes.
+ *
+ * @internal
+ * whatsapp-media DD-001 D4. Deliberately NOT the agentexecution
+ * Attachment shape: that message carries transport facts (storage_key,
+ * mount_path) for the sandbox, while this one is a display reference —
+ * sharing a message would couple the console's read surface to the
+ * runner's transport contract.
+ *
+ * @generated from message ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef
+ */
+export type ConversationMediaRef = Message<"ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef"> & {
+  /**
+   * Original filename as received from the provider (documents), or the
+   * platform-synthesized name (camera images arrive nameless).
+   *
+   * @generated from field: string filename = 1;
+   */
+  filename: string;
+
+  /**
+   * MIME type as verified at ingest (sniffed, not merely declared).
+   *
+   * @generated from field: string content_type = 2;
+   */
+  contentType: string;
+
+  /**
+   * File size in bytes as stored.
+   *
+   * @generated from field: int64 size_bytes = 3;
+   */
+  sizeBytes: bigint;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef.
+ * Use `create(ConversationMediaRefSchema)` to create a new message.
+ */
+export const ConversationMediaRefSchema: GenMessage<ConversationMediaRef> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 2);
 
 /**
  * Input for listing an organization's channel conversations.
@@ -349,7 +413,7 @@ export type ListChannelConversationsInput = Message<"ai.stigmer.agentic.agentcha
  * Use `create(ListChannelConversationsInputSchema)` to create a new message.
  */
 export const ListChannelConversationsInputSchema: GenMessage<ListChannelConversationsInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 2);
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 3);
 
 /**
  * ChannelConversationList contains a page of channel conversations,
@@ -378,7 +442,7 @@ export type ChannelConversationList = Message<"ai.stigmer.agentic.agentchannel.v
  * Use `create(ChannelConversationListSchema)` to create a new message.
  */
 export const ChannelConversationListSchema: GenMessage<ChannelConversationList> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 3);
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 4);
 
 /**
  * Input for reading one conversation's identity and participation state.
@@ -406,7 +470,7 @@ export type GetChannelConversationInput = Message<"ai.stigmer.agentic.agentchann
  * Use `create(GetChannelConversationInputSchema)` to create a new message.
  */
 export const GetChannelConversationInputSchema: GenMessage<GetChannelConversationInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 4);
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 5);
 
 /**
  * Input for reading one conversation's timeline.
@@ -448,7 +512,7 @@ export type GetConversationTimelineInput = Message<"ai.stigmer.agentic.agentchan
  * Use `create(GetConversationTimelineInputSchema)` to create a new message.
  */
 export const GetConversationTimelineInputSchema: GenMessage<GetConversationTimelineInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 5);
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 6);
 
 /**
  * ConversationTimeline contains one page of a conversation's timeline,
@@ -485,7 +549,72 @@ export type ConversationTimeline = Message<"ai.stigmer.agentic.agentchannel.v1.C
  * Use `create(ConversationTimelineSchema)` to create a new message.
  */
 export const ConversationTimelineSchema: GenMessage<ConversationTimeline> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 6);
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 7);
+
+/**
+ * Input for minting a short-lived download URL for one timeline item's
+ * media file.
+ *
+ * @generated from message ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput
+ */
+export type GetConversationMediaDownloadUrlInput = Message<"ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput"> & {
+  /**
+   * AgentChannel the conversation belongs to.
+   *
+   * @generated from field: string agent_channel_id = 1;
+   */
+  agentChannelId: string;
+
+  /**
+   * Conversation key within the channel (WhatsApp: the customer's wa_id).
+   *
+   * @generated from field: string conversation_key = 2;
+   */
+  conversationKey: string;
+
+  /**
+   * The timeline item whose media to fetch (its item_id, e.g. "wa:<wamid>").
+   *
+   * @generated from field: string item_id = 3;
+   */
+  itemId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput.
+ * Use `create(GetConversationMediaDownloadUrlInputSchema)` to create a new message.
+ */
+export const GetConversationMediaDownloadUrlInputSchema: GenMessage<GetConversationMediaDownloadUrlInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 8);
+
+/**
+ * ConversationMediaDownloadUrl carries a presigned, time-limited URL for
+ * one media file.
+ *
+ * @generated from message ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl
+ */
+export type ConversationMediaDownloadUrl = Message<"ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl"> & {
+  /**
+   * Presigned HTTPS URL. Fetch promptly; it expires.
+   *
+   * @generated from field: string url = 1;
+   */
+  url: string;
+
+  /**
+   * When the URL stops working.
+   *
+   * @generated from field: google.protobuf.Timestamp expires_at = 2;
+   */
+  expiresAt?: Timestamp;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl.
+ * Use `create(ConversationMediaDownloadUrlSchema)` to create a new message.
+ */
+export const ConversationMediaDownloadUrlSchema: GenMessage<ConversationMediaDownloadUrl> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 9);
 
 /**
  * Input for the conversation control commands (takeOver, handBack,
@@ -514,7 +643,7 @@ export type ConversationControlInput = Message<"ai.stigmer.agentic.agentchannel.
  * Use `create(ConversationControlInputSchema)` to create a new message.
  */
 export const ConversationControlInputSchema: GenMessage<ConversationControlInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 7);
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 10);
 
 /**
  * Input for replying to a conversation as the business.
@@ -558,7 +687,7 @@ export type ReplyToConversationInput = Message<"ai.stigmer.agentic.agentchannel.
  * Use `create(ReplyToConversationInputSchema)` to create a new message.
  */
 export const ReplyToConversationInputSchema: GenMessage<ReplyToConversationInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 8);
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 11);
 
 /**
  * Input for flagging a conversation for human attention.
@@ -580,7 +709,7 @@ export type EscalateConversationInput = Message<"ai.stigmer.agentic.agentchannel
  * Use `create(EscalateConversationInputSchema)` to create a new message.
  */
 export const EscalateConversationInputSchema: GenMessage<EscalateConversationInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 9);
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 12);
 
 /**
  * ConversationControl names who may speak to the customer on a

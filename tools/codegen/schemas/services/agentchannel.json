@@ -133,6 +133,14 @@
           "outputType": "ConversationTimeline",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ConversationTimeline",
           "description": "Get one conversation's timeline, newest first, cursor-paged.\n\n The timeline contains customer-visible items only: inbound customer\n messages (including non-text kinds the platform cannot render),\n delivered agent replies, and operator or platform sends. Execution\n internals never appear.\n\n @internal\n channel-conversations DD-004: stitched on read from the webhook\n event store, the delivery store (via the same last-AI-message\n extraction the delivery posted — never execution transcripts), and\n the outbound ledger; internal-lane events join as the fourth source\n in T03. Authorization is declarative on the channel: conversations\n carry no per-conversation FGA tuples (DD-003 D-a) — the channel is\n the trust boundary."
+        },
+        {
+          "name": "GetMediaDownloadUrl",
+          "inputType": "GetConversationMediaDownloadUrlInput",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput",
+          "outputType": "ConversationMediaDownloadUrl",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl",
+          "description": "Mint a short-lived download URL for one inbound timeline item's\n media file (an image or document the customer sent).\n\n Answers NOT_FOUND when the item does not exist in this conversation\n or carries no ingested media (a text item, or media the platform\n declined to ingest).\n\n @internal\n whatsapp-media DD-001 D4: addressed by (channel, conversation,\n item_id) so the server resolves the storage key from its own row —\n the wire never carries blob capabilities, and authorization is\n declarative on the channel exactly like getTimeline (the channel is\n the trust boundary, DD-003 D-a). Deliberately stricter than the\n attachments-blob posture (authentication-only, ULID-as-capability)\n that the runner's download path rides: this is the human-facing\n read surface and law-firm client documents travel this pipeline.\n OSS answers NOT_FOUND unconditionally (cloud-only runtime, the\n getConversation posture)."
         }
       ]
     },
@@ -838,6 +846,84 @@
             "kind": "string"
           },
           "description": "Cursor for the next (older) page. Empty when no more items exist.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetConversationMediaDownloadUrlInput",
+      "description": "Input for minting a short-lived download URL for one timeline item's\n media file.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
+      "fields": [
+        {
+          "name": "AgentChannelId",
+          "jsonName": "agentChannelId",
+          "protoField": "agent_channel_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "AgentChannel the conversation belongs to.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "ConversationKey",
+          "jsonName": "conversationKey",
+          "protoField": "conversation_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Conversation key within the channel (WhatsApp: the customer's wa_id).",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "ItemId",
+          "jsonName": "itemId",
+          "protoField": "item_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The timeline item whose media to fetch (its item_id, e.g. \"wa:\u003cwamid\u003e\").",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      ]
+    },
+    {
+      "name": "ConversationMediaDownloadUrl",
+      "description": "ConversationMediaDownloadUrl carries a presigned, time-limited URL for\n one media file.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
+      "fields": [
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "protoField": "url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Presigned HTTPS URL. Fetch promptly; it expires.",
+          "required": false
+        },
+        {
+          "name": "ExpiresAt",
+          "jsonName": "expiresAt",
+          "protoField": "expires_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the URL stops working.",
           "required": false
         }
       ]

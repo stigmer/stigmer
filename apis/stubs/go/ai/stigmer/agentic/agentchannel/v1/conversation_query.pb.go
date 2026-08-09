@@ -26,30 +26,35 @@ var File_ai_stigmer_agentic_agentchannel_v1_conversation_query_proto protoreflec
 
 const file_ai_stigmer_agentic_agentchannel_v1_conversation_query_proto_rawDesc = "" +
 	"\n" +
-	";ai/stigmer/agentic/agentchannel/v1/conversation_query.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a8ai/stigmer/agentic/agentchannel/v1/conversation_io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x80\x05\n" +
+	";ai/stigmer/agentic/agentchannel/v1/conversation_query.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a8ai/stigmer/agentic/agentchannel/v1/conversation_io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xf4\x06\n" +
 	"\"ChannelConversationQueryController\x12\x99\x01\n" +
 	"\x11listConversations\x12A.ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput\x1a;.ai.stigmer.agentic.agentchannel.v1.ChannelConversationList\"\x04и\x18\x01\x12\xdb\x01\n" +
 	"\x0fgetConversation\x12?.ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput\x1a7.ai.stigmer.agentic.agentchannel.v1.ChannelConversation\"N¸\x18J\b\x01\x10/\"\x10agent_channel_id*2unauthorized to view conversations on this channel\x12\xd9\x01\n" +
-	"\vgetTimeline\x12@.ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput\x1a8.ai.stigmer.agentic.agentchannel.v1.ConversationTimeline\"N¸\x18J\b\x01\x10/\"\x10agent_channel_id*2unauthorized to view conversations on this channel\x1a\x04\xa0\xff+/B\xc9\x02\n" +
+	"\vgetTimeline\x12@.ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput\x1a8.ai.stigmer.agentic.agentchannel.v1.ConversationTimeline\"N¸\x18J\b\x01\x10/\"\x10agent_channel_id*2unauthorized to view conversations on this channel\x12\xf1\x01\n" +
+	"\x13getMediaDownloadUrl\x12H.ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput\x1a@.ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl\"N¸\x18J\b\x01\x10/\"\x10agent_channel_id*2unauthorized to view conversations on this channel\x1a\x04\xa0\xff+/B\xc9\x02\n" +
 	"&com.ai.stigmer.agentic.agentchannel.v1B\x16ConversationQueryProtoP\x01ZZgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_agentchannel_v1_conversation_query_proto_goTypes = []any{
-	(*ListChannelConversationsInput)(nil), // 0: ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput
-	(*GetChannelConversationInput)(nil),   // 1: ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput
-	(*GetConversationTimelineInput)(nil),  // 2: ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput
-	(*ChannelConversationList)(nil),       // 3: ai.stigmer.agentic.agentchannel.v1.ChannelConversationList
-	(*ChannelConversation)(nil),           // 4: ai.stigmer.agentic.agentchannel.v1.ChannelConversation
-	(*ConversationTimeline)(nil),          // 5: ai.stigmer.agentic.agentchannel.v1.ConversationTimeline
+	(*ListChannelConversationsInput)(nil),        // 0: ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput
+	(*GetChannelConversationInput)(nil),          // 1: ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput
+	(*GetConversationTimelineInput)(nil),         // 2: ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput
+	(*GetConversationMediaDownloadUrlInput)(nil), // 3: ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput
+	(*ChannelConversationList)(nil),              // 4: ai.stigmer.agentic.agentchannel.v1.ChannelConversationList
+	(*ChannelConversation)(nil),                  // 5: ai.stigmer.agentic.agentchannel.v1.ChannelConversation
+	(*ConversationTimeline)(nil),                 // 6: ai.stigmer.agentic.agentchannel.v1.ConversationTimeline
+	(*ConversationMediaDownloadUrl)(nil),         // 7: ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl
 }
 var file_ai_stigmer_agentic_agentchannel_v1_conversation_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.listConversations:input_type -> ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput
 	1, // 1: ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.getConversation:input_type -> ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput
 	2, // 2: ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.getTimeline:input_type -> ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput
-	3, // 3: ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.listConversations:output_type -> ai.stigmer.agentic.agentchannel.v1.ChannelConversationList
-	4, // 4: ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.getConversation:output_type -> ai.stigmer.agentic.agentchannel.v1.ChannelConversation
-	5, // 5: ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.getTimeline:output_type -> ai.stigmer.agentic.agentchannel.v1.ConversationTimeline
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	3, // 3: ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.getMediaDownloadUrl:input_type -> ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput
+	4, // 4: ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.listConversations:output_type -> ai.stigmer.agentic.agentchannel.v1.ChannelConversationList
+	5, // 5: ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.getConversation:output_type -> ai.stigmer.agentic.agentchannel.v1.ChannelConversation
+	6, // 6: ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.getTimeline:output_type -> ai.stigmer.agentic.agentchannel.v1.ConversationTimeline
+	7, // 7: ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.getMediaDownloadUrl:output_type -> ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

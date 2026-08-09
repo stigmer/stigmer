@@ -8,7 +8,7 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { AgentChannelSchema, type AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
 import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_command_pb";
-import { ReplyToConversationInputSchema, ConversationControlInputSchema, ChannelConversationSchema, EscalateConversationInputSchema, ListChannelConversationsInputSchema, ChannelConversationListSchema, GetChannelConversationInputSchema, GetConversationTimelineInputSchema, ConversationTimelineSchema, type ReplyToConversationInput, type ConversationControlInput, type ChannelConversation, type EscalateConversationInput, type ListChannelConversationsInput, type ChannelConversationList, type GetChannelConversationInput, type GetConversationTimelineInput, type ConversationTimeline } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+import { ReplyToConversationInputSchema, ConversationControlInputSchema, ChannelConversationSchema, EscalateConversationInputSchema, ListChannelConversationsInputSchema, ChannelConversationListSchema, GetChannelConversationInputSchema, GetConversationTimelineInputSchema, ConversationTimelineSchema, GetConversationMediaDownloadUrlInputSchema, ConversationMediaDownloadUrlSchema, type ReplyToConversationInput, type ConversationControlInput, type ChannelConversation, type EscalateConversationInput, type ListChannelConversationsInput, type ChannelConversationList, type GetChannelConversationInput, type GetConversationTimelineInput, type ConversationTimeline, type GetConversationMediaDownloadUrlInput, type ConversationMediaDownloadUrl } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
 import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_query_pb";
 import { AgentChannelIdSchema, InitiateChannelInstallInputSchema, InitiateChannelInstallOutputSchema, CompleteChannelInstallInputSchema, GetAgentChannelsByAgentRequestSchema, AgentChannelListSchema, ListAgentChannelsRequestSchema, type InitiateChannelInstallInput, type InitiateChannelInstallOutput, type CompleteChannelInstallInput, type GetAgentChannelsByAgentRequest, type AgentChannelList, type ListAgentChannelsRequest } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
 import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_command_pb";
@@ -122,6 +122,12 @@ export class AgentChannelClient {
   async getTimeline(input: GetConversationTimelineInput): Promise<ConversationTimeline> {
     try {
       return await this.channelConversationQuery.getTimeline(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getMediaDownloadUrl(input: GetConversationMediaDownloadUrlInput): Promise<ConversationMediaDownloadUrl> {
+    try {
+      return await this.channelConversationQuery.getMediaDownloadUrl(input);
     } catch (e) { throw wrapError(e); }
   }
 

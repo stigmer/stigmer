@@ -103,6 +103,11 @@ func (a *AgentChannelClient) GetTimeline(ctx context.Context, input *agentchanne
 	return resp, wrapErr(err)
 }
 
+func (a *AgentChannelClient) GetMediaDownloadUrl(ctx context.Context, input *agentchannelv1.GetConversationMediaDownloadUrlInput) (*agentchannelv1.ConversationMediaDownloadUrl, error) {
+	resp, err := a.channelConversationQuery.GetMediaDownloadUrl(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (a *AgentChannelClient) SendMessage(ctx context.Context, input *agentchannelv1.SendChannelMessageInput) (*agentchannelv1.SendChannelMessageOutput, error) {
 	resp, err := a.channelMessageCommand.SendMessage(ctx, input)
 	return resp, wrapErr(err)

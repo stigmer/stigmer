@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ChannelConversationQueryController_ListConversations_FullMethodName = "/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/listConversations"
-	ChannelConversationQueryController_GetConversation_FullMethodName   = "/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getConversation"
-	ChannelConversationQueryController_GetTimeline_FullMethodName       = "/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getTimeline"
+	ChannelConversationQueryController_ListConversations_FullMethodName   = "/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/listConversations"
+	ChannelConversationQueryController_GetConversation_FullMethodName     = "/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getConversation"
+	ChannelConversationQueryController_GetTimeline_FullMethodName         = "/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getTimeline"
+	ChannelConversationQueryController_GetMediaDownloadUrl_FullMethodName = "/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getMediaDownloadUrl"
 )
 
 // ChannelConversationQueryControllerClient is the client API for ChannelConversationQueryController service.
@@ -96,6 +97,25 @@ type ChannelConversationQueryControllerClient interface {
 	// carry no per-conversation FGA tuples (DD-003 D-a) — the channel is
 	// the trust boundary.
 	GetTimeline(ctx context.Context, in *GetConversationTimelineInput, opts ...grpc.CallOption) (*ConversationTimeline, error)
+	// Mint a short-lived download URL for one inbound timeline item's
+	// media file (an image or document the customer sent).
+	//
+	// Answers NOT_FOUND when the item does not exist in this conversation
+	// or carries no ingested media (a text item, or media the platform
+	// declined to ingest).
+	//
+	// @internal
+	// whatsapp-media DD-001 D4: addressed by (channel, conversation,
+	// item_id) so the server resolves the storage key from its own row —
+	// the wire never carries blob capabilities, and authorization is
+	// declarative on the channel exactly like getTimeline (the channel is
+	// the trust boundary, DD-003 D-a). Deliberately stricter than the
+	// attachments-blob posture (authentication-only, ULID-as-capability)
+	// that the runner's download path rides: this is the human-facing
+	// read surface and law-firm client documents travel this pipeline.
+	// OSS answers NOT_FOUND unconditionally (cloud-only runtime, the
+	// getConversation posture).
+	GetMediaDownloadUrl(ctx context.Context, in *GetConversationMediaDownloadUrlInput, opts ...grpc.CallOption) (*ConversationMediaDownloadUrl, error)
 }
 
 type channelConversationQueryControllerClient struct {
@@ -130,6 +150,16 @@ func (c *channelConversationQueryControllerClient) GetTimeline(ctx context.Conte
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ConversationTimeline)
 	err := c.cc.Invoke(ctx, ChannelConversationQueryController_GetTimeline_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *channelConversationQueryControllerClient) GetMediaDownloadUrl(ctx context.Context, in *GetConversationMediaDownloadUrlInput, opts ...grpc.CallOption) (*ConversationMediaDownloadUrl, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConversationMediaDownloadUrl)
+	err := c.cc.Invoke(ctx, ChannelConversationQueryController_GetMediaDownloadUrl_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -208,6 +238,25 @@ type ChannelConversationQueryControllerServer interface {
 	// carry no per-conversation FGA tuples (DD-003 D-a) — the channel is
 	// the trust boundary.
 	GetTimeline(context.Context, *GetConversationTimelineInput) (*ConversationTimeline, error)
+	// Mint a short-lived download URL for one inbound timeline item's
+	// media file (an image or document the customer sent).
+	//
+	// Answers NOT_FOUND when the item does not exist in this conversation
+	// or carries no ingested media (a text item, or media the platform
+	// declined to ingest).
+	//
+	// @internal
+	// whatsapp-media DD-001 D4: addressed by (channel, conversation,
+	// item_id) so the server resolves the storage key from its own row —
+	// the wire never carries blob capabilities, and authorization is
+	// declarative on the channel exactly like getTimeline (the channel is
+	// the trust boundary, DD-003 D-a). Deliberately stricter than the
+	// attachments-blob posture (authentication-only, ULID-as-capability)
+	// that the runner's download path rides: this is the human-facing
+	// read surface and law-firm client documents travel this pipeline.
+	// OSS answers NOT_FOUND unconditionally (cloud-only runtime, the
+	// getConversation posture).
+	GetMediaDownloadUrl(context.Context, *GetConversationMediaDownloadUrlInput) (*ConversationMediaDownloadUrl, error)
 }
 
 // UnimplementedChannelConversationQueryControllerServer should be embedded to have
@@ -225,6 +274,9 @@ func (UnimplementedChannelConversationQueryControllerServer) GetConversation(con
 }
 func (UnimplementedChannelConversationQueryControllerServer) GetTimeline(context.Context, *GetConversationTimelineInput) (*ConversationTimeline, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTimeline not implemented")
+}
+func (UnimplementedChannelConversationQueryControllerServer) GetMediaDownloadUrl(context.Context, *GetConversationMediaDownloadUrlInput) (*ConversationMediaDownloadUrl, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMediaDownloadUrl not implemented")
 }
 func (UnimplementedChannelConversationQueryControllerServer) testEmbeddedByValue() {}
 
@@ -300,6 +352,24 @@ func _ChannelConversationQueryController_GetTimeline_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChannelConversationQueryController_GetMediaDownloadUrl_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetConversationMediaDownloadUrlInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChannelConversationQueryControllerServer).GetMediaDownloadUrl(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChannelConversationQueryController_GetMediaDownloadUrl_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChannelConversationQueryControllerServer).GetMediaDownloadUrl(ctx, req.(*GetConversationMediaDownloadUrlInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChannelConversationQueryController_ServiceDesc is the grpc.ServiceDesc for ChannelConversationQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -318,6 +388,10 @@ var ChannelConversationQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getTimeline",
 			Handler:    _ChannelConversationQueryController_GetTimeline_Handler,
+		},
+		{
+			MethodName: "getMediaDownloadUrl",
+			Handler:    _ChannelConversationQueryController_GetMediaDownloadUrl_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

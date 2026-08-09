@@ -16,10 +16,12 @@ import ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryControllerGrpc;
 import ai.stigmer.agentic.agentchannel.v1.ChannelTemplates;
 import ai.stigmer.agentic.agentchannel.v1.CompleteChannelInstallInput;
 import ai.stigmer.agentic.agentchannel.v1.ConversationControlInput;
+import ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl;
 import ai.stigmer.agentic.agentchannel.v1.ConversationTimeline;
 import ai.stigmer.agentic.agentchannel.v1.EscalateConversationInput;
 import ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest;
 import ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput;
+import ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput;
 import ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput;
 import ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallInput;
 import ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput;
@@ -134,6 +136,12 @@ public final class AgentChannelClient {
     public ConversationTimeline getTimeline(GetConversationTimelineInput input) {
         try {
             return channelConversationQuery.getTimeline(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ConversationMediaDownloadUrl getMediaDownloadUrl(GetConversationMediaDownloadUrlInput input) {
+        try {
+            return channelConversationQuery.getMediaDownloadUrl(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

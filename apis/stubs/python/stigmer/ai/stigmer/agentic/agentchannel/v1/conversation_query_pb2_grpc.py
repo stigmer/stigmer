@@ -42,6 +42,11 @@ class ChannelConversationQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.GetConversationTimelineInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ConversationTimeline.FromString,
                 _registered_method=True)
+        self.getMediaDownloadUrl = channel.unary_unary(
+                '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getMediaDownloadUrl',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.GetConversationMediaDownloadUrlInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ConversationMediaDownloadUrl.FromString,
+                _registered_method=True)
 
 
 class ChannelConversationQueryControllerServicer(object):
@@ -129,6 +134,30 @@ class ChannelConversationQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getMediaDownloadUrl(self, request, context):
+        """Mint a short-lived download URL for one inbound timeline item's
+        media file (an image or document the customer sent).
+
+        Answers NOT_FOUND when the item does not exist in this conversation
+        or carries no ingested media (a text item, or media the platform
+        declined to ingest).
+
+        @internal
+        whatsapp-media DD-001 D4: addressed by (channel, conversation,
+        item_id) so the server resolves the storage key from its own row —
+        the wire never carries blob capabilities, and authorization is
+        declarative on the channel exactly like getTimeline (the channel is
+        the trust boundary, DD-003 D-a). Deliberately stricter than the
+        attachments-blob posture (authentication-only, ULID-as-capability)
+        that the runner's download path rides: this is the human-facing
+        read surface and law-firm client documents travel this pipeline.
+        OSS answers NOT_FOUND unconditionally (cloud-only runtime, the
+        getConversation posture).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ChannelConversationQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -146,6 +175,11 @@ def add_ChannelConversationQueryControllerServicer_to_server(servicer, server):
                     servicer.getTimeline,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.GetConversationTimelineInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ConversationTimeline.SerializeToString,
+            ),
+            'getMediaDownloadUrl': grpc.unary_unary_rpc_method_handler(
+                    servicer.getMediaDownloadUrl,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.GetConversationMediaDownloadUrlInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ConversationMediaDownloadUrl.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -242,6 +276,33 @@ class ChannelConversationQueryController(object):
             '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getTimeline',
             ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.GetConversationTimelineInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ConversationTimeline.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getMediaDownloadUrl(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getMediaDownloadUrl',
+            ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.GetConversationMediaDownloadUrlInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ConversationMediaDownloadUrl.FromString,
             options,
             channel_credentials,
             insecure,

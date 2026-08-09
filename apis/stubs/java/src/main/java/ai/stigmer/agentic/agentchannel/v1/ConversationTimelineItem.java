@@ -547,6 +547,80 @@ private static final long serialVersionUID = 0L;
     return receiptErrorCode_;
   }
 
+  public static final int MEDIA_FIELD_NUMBER = 13;
+  private ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media_;
+  /**
+   * <pre>
+   * The media file carried by an inbound item, when the platform
+   * ingested one (an image or document the customer sent). Unset on
+   * text items, on outbound items, and on inbound media the platform
+   * declined to ingest (disallowed type, over the size cap) — those
+   * keep the bare provider_message_type placeholder.
+   *
+   * &#64;internal
+   * whatsapp-media DD-001 D4: descriptive facts only — the storage key
+   * deliberately never rides the wire. Clients fetch bytes through
+   * getMediaDownloadUrl addressed by (channel, conversation, item_id),
+   * and the server resolves the key from its own row, so the read path
+   * is conversation-viewer-scoped by construction and blob capabilities
+   * never leave the server.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
+   * @return Whether the media field is set.
+   */
+  @java.lang.Override
+  public boolean hasMedia() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * The media file carried by an inbound item, when the platform
+   * ingested one (an image or document the customer sent). Unset on
+   * text items, on outbound items, and on inbound media the platform
+   * declined to ingest (disallowed type, over the size cap) — those
+   * keep the bare provider_message_type placeholder.
+   *
+   * &#64;internal
+   * whatsapp-media DD-001 D4: descriptive facts only — the storage key
+   * deliberately never rides the wire. Clients fetch bytes through
+   * getMediaDownloadUrl addressed by (channel, conversation, item_id),
+   * and the server resolves the key from its own row, so the read path
+   * is conversation-viewer-scoped by construction and blob capabilities
+   * never leave the server.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
+   * @return The media.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef getMedia() {
+    return media_ == null ? ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef.getDefaultInstance() : media_;
+  }
+  /**
+   * <pre>
+   * The media file carried by an inbound item, when the platform
+   * ingested one (an image or document the customer sent). Unset on
+   * text items, on outbound items, and on inbound media the platform
+   * declined to ingest (disallowed type, over the size cap) — those
+   * keep the bare provider_message_type placeholder.
+   *
+   * &#64;internal
+   * whatsapp-media DD-001 D4: descriptive facts only — the storage key
+   * deliberately never rides the wire. Clients fetch bytes through
+   * getMediaDownloadUrl addressed by (channel, conversation, item_id),
+   * and the server resolves the key from its own row, so the read path
+   * is conversation-viewer-scoped by construction and blob capabilities
+   * never leave the server.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentchannel.v1.ConversationMediaRefOrBuilder getMediaOrBuilder() {
+    return media_ == null ? ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef.getDefaultInstance() : media_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -596,6 +670,9 @@ private static final long serialVersionUID = 0L;
     }
     if (receiptErrorCode_ != 0) {
       output.writeInt32(12, receiptErrorCode_);
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(13, getMedia());
     }
     getUnknownFields().writeTo(output);
   }
@@ -649,6 +726,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(12, receiptErrorCode_);
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(13, getMedia());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -686,6 +767,11 @@ private static final long serialVersionUID = 0L;
         .equals(other.getReceiptDetail())) return false;
     if (getReceiptErrorCode()
         != other.getReceiptErrorCode()) return false;
+    if (hasMedia() != other.hasMedia()) return false;
+    if (hasMedia()) {
+      if (!getMedia()
+          .equals(other.getMedia())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -723,6 +809,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getReceiptDetail().hashCode();
     hash = (37 * hash) + RECEIPT_ERROR_CODE_FIELD_NUMBER;
     hash = (53 * hash) + getReceiptErrorCode();
+    if (hasMedia()) {
+      hash = (37 * hash) + MEDIA_FIELD_NUMBER;
+      hash = (53 * hash) + getMedia().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -867,6 +957,7 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetAtFieldBuilder();
+        internalGetMediaFieldBuilder();
       }
     }
     @java.lang.Override
@@ -889,6 +980,11 @@ private static final long serialVersionUID = 0L;
       origin_ = 0;
       receiptDetail_ = "";
       receiptErrorCode_ = 0;
+      media_ = null;
+      if (mediaBuilder_ != null) {
+        mediaBuilder_.dispose();
+        mediaBuilder_ = null;
+      }
       return this;
     }
 
@@ -962,6 +1058,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000800) != 0)) {
         result.receiptErrorCode_ = receiptErrorCode_;
       }
+      if (((from_bitField0_ & 0x00001000) != 0)) {
+        result.media_ = mediaBuilder_ == null
+            ? media_
+            : mediaBuilder_.build();
+        to_bitField0_ |= 0x00000002;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1022,6 +1124,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getReceiptErrorCode() != 0) {
         setReceiptErrorCode(other.getReceiptErrorCode());
+      }
+      if (other.hasMedia()) {
+        mergeMedia(other.getMedia());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1111,6 +1216,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000800;
               break;
             } // case 96
+            case 106: {
+              input.readMessage(
+                  internalGetMediaFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00001000;
+              break;
+            } // case 106
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2293,6 +2405,271 @@ private static final long serialVersionUID = 0L;
       receiptErrorCode_ = 0;
       onChanged();
       return this;
+    }
+
+    private ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef, ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef.Builder, ai.stigmer.agentic.agentchannel.v1.ConversationMediaRefOrBuilder> mediaBuilder_;
+    /**
+     * <pre>
+     * The media file carried by an inbound item, when the platform
+     * ingested one (an image or document the customer sent). Unset on
+     * text items, on outbound items, and on inbound media the platform
+     * declined to ingest (disallowed type, over the size cap) — those
+     * keep the bare provider_message_type placeholder.
+     *
+     * &#64;internal
+     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
+     * deliberately never rides the wire. Clients fetch bytes through
+     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
+     * and the server resolves the key from its own row, so the read path
+     * is conversation-viewer-scoped by construction and blob capabilities
+     * never leave the server.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
+     * @return Whether the media field is set.
+     */
+    public boolean hasMedia() {
+      return ((bitField0_ & 0x00001000) != 0);
+    }
+    /**
+     * <pre>
+     * The media file carried by an inbound item, when the platform
+     * ingested one (an image or document the customer sent). Unset on
+     * text items, on outbound items, and on inbound media the platform
+     * declined to ingest (disallowed type, over the size cap) — those
+     * keep the bare provider_message_type placeholder.
+     *
+     * &#64;internal
+     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
+     * deliberately never rides the wire. Clients fetch bytes through
+     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
+     * and the server resolves the key from its own row, so the read path
+     * is conversation-viewer-scoped by construction and blob capabilities
+     * never leave the server.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
+     * @return The media.
+     */
+    public ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef getMedia() {
+      if (mediaBuilder_ == null) {
+        return media_ == null ? ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef.getDefaultInstance() : media_;
+      } else {
+        return mediaBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * The media file carried by an inbound item, when the platform
+     * ingested one (an image or document the customer sent). Unset on
+     * text items, on outbound items, and on inbound media the platform
+     * declined to ingest (disallowed type, over the size cap) — those
+     * keep the bare provider_message_type placeholder.
+     *
+     * &#64;internal
+     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
+     * deliberately never rides the wire. Clients fetch bytes through
+     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
+     * and the server resolves the key from its own row, so the read path
+     * is conversation-viewer-scoped by construction and blob capabilities
+     * never leave the server.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
+     */
+    public Builder setMedia(ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef value) {
+      if (mediaBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        media_ = value;
+      } else {
+        mediaBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The media file carried by an inbound item, when the platform
+     * ingested one (an image or document the customer sent). Unset on
+     * text items, on outbound items, and on inbound media the platform
+     * declined to ingest (disallowed type, over the size cap) — those
+     * keep the bare provider_message_type placeholder.
+     *
+     * &#64;internal
+     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
+     * deliberately never rides the wire. Clients fetch bytes through
+     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
+     * and the server resolves the key from its own row, so the read path
+     * is conversation-viewer-scoped by construction and blob capabilities
+     * never leave the server.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
+     */
+    public Builder setMedia(
+        ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef.Builder builderForValue) {
+      if (mediaBuilder_ == null) {
+        media_ = builderForValue.build();
+      } else {
+        mediaBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The media file carried by an inbound item, when the platform
+     * ingested one (an image or document the customer sent). Unset on
+     * text items, on outbound items, and on inbound media the platform
+     * declined to ingest (disallowed type, over the size cap) — those
+     * keep the bare provider_message_type placeholder.
+     *
+     * &#64;internal
+     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
+     * deliberately never rides the wire. Clients fetch bytes through
+     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
+     * and the server resolves the key from its own row, so the read path
+     * is conversation-viewer-scoped by construction and blob capabilities
+     * never leave the server.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
+     */
+    public Builder mergeMedia(ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef value) {
+      if (mediaBuilder_ == null) {
+        if (((bitField0_ & 0x00001000) != 0) &&
+          media_ != null &&
+          media_ != ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef.getDefaultInstance()) {
+          getMediaBuilder().mergeFrom(value);
+        } else {
+          media_ = value;
+        }
+      } else {
+        mediaBuilder_.mergeFrom(value);
+      }
+      if (media_ != null) {
+        bitField0_ |= 0x00001000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The media file carried by an inbound item, when the platform
+     * ingested one (an image or document the customer sent). Unset on
+     * text items, on outbound items, and on inbound media the platform
+     * declined to ingest (disallowed type, over the size cap) — those
+     * keep the bare provider_message_type placeholder.
+     *
+     * &#64;internal
+     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
+     * deliberately never rides the wire. Clients fetch bytes through
+     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
+     * and the server resolves the key from its own row, so the read path
+     * is conversation-viewer-scoped by construction and blob capabilities
+     * never leave the server.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
+     */
+    public Builder clearMedia() {
+      bitField0_ = (bitField0_ & ~0x00001000);
+      media_ = null;
+      if (mediaBuilder_ != null) {
+        mediaBuilder_.dispose();
+        mediaBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The media file carried by an inbound item, when the platform
+     * ingested one (an image or document the customer sent). Unset on
+     * text items, on outbound items, and on inbound media the platform
+     * declined to ingest (disallowed type, over the size cap) — those
+     * keep the bare provider_message_type placeholder.
+     *
+     * &#64;internal
+     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
+     * deliberately never rides the wire. Clients fetch bytes through
+     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
+     * and the server resolves the key from its own row, so the read path
+     * is conversation-viewer-scoped by construction and blob capabilities
+     * never leave the server.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
+     */
+    public ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef.Builder getMediaBuilder() {
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return internalGetMediaFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The media file carried by an inbound item, when the platform
+     * ingested one (an image or document the customer sent). Unset on
+     * text items, on outbound items, and on inbound media the platform
+     * declined to ingest (disallowed type, over the size cap) — those
+     * keep the bare provider_message_type placeholder.
+     *
+     * &#64;internal
+     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
+     * deliberately never rides the wire. Clients fetch bytes through
+     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
+     * and the server resolves the key from its own row, so the read path
+     * is conversation-viewer-scoped by construction and blob capabilities
+     * never leave the server.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
+     */
+    public ai.stigmer.agentic.agentchannel.v1.ConversationMediaRefOrBuilder getMediaOrBuilder() {
+      if (mediaBuilder_ != null) {
+        return mediaBuilder_.getMessageOrBuilder();
+      } else {
+        return media_ == null ?
+            ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef.getDefaultInstance() : media_;
+      }
+    }
+    /**
+     * <pre>
+     * The media file carried by an inbound item, when the platform
+     * ingested one (an image or document the customer sent). Unset on
+     * text items, on outbound items, and on inbound media the platform
+     * declined to ingest (disallowed type, over the size cap) — those
+     * keep the bare provider_message_type placeholder.
+     *
+     * &#64;internal
+     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
+     * deliberately never rides the wire. Clients fetch bytes through
+     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
+     * and the server resolves the key from its own row, so the read path
+     * is conversation-viewer-scoped by construction and blob capabilities
+     * never leave the server.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef, ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef.Builder, ai.stigmer.agentic.agentchannel.v1.ConversationMediaRefOrBuilder> 
+        internalGetMediaFieldBuilder() {
+      if (mediaBuilder_ == null) {
+        mediaBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef, ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef.Builder, ai.stigmer.agentic.agentchannel.v1.ConversationMediaRefOrBuilder>(
+                getMedia(),
+                getParentForChildren(),
+                isClean());
+        media_ = null;
+      }
+      return mediaBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem)
