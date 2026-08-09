@@ -645,7 +645,19 @@ message ContextManagementConfig {
 message Attachment {
   // Original filename for display and default mount path derivation.
   // Example: "config.yaml", "input-data.zip"
-  string filename = 1 [(buf.validate.field).string.min_len = 1];
+  //
+  // Must be a bare filename: no path separators and no `.`/`..` traversal
+  // segments. The filename is interpolated into the storage key and, on the
+  // local backend, into an on-disk path, so path structure here is a
+  // directory-traversal vector.
+  string filename = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).cel = {
+      id: "attachment.filename.no_path"
+      message: "filename must be a bare filename without path separators or traversal segments"
+      expression: "!this.contains('/') && !this.contains('\\\\') && this != '.' && this != '..'"
+    }
+  ];
 
   // Reference to pre-uploaded file in artifact store (required).
   // Obtained by calling uploadAttachment RPC before creating the execution.

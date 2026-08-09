@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mime"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -45,6 +46,14 @@ func (c *AgentExecutionController) UploadAttachment(ctx context.Context, req *ag
 	// Validate request fields (buf validate handles min_len and required)
 	if req.Filename == "" {
 		return nil, status.Error(codes.InvalidArgument, "filename is required")
+	}
+	// The filename is interpolated into the storage key and, downstream, into a
+	// filesystem path. Reject anything that could smuggle path structure so a
+	// crafted name can never escape the artifact root. This mirrors the proto's
+	// buf.validate constraint; keeping it here means a bypassed constraint still
+	// fails closed at the service boundary.
+	if err := validateAttachmentFilename(req.Filename); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 	if len(req.Content) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "content is required")
@@ -97,4 +106,22 @@ func (c *AgentExecutionController) UploadAttachment(ctx context.Context, req *ag
 	return &agentexecutionv1.UploadAttachmentResponse{
 		StorageKey: storageKey,
 	}, nil
+}
+
+// validateAttachmentFilename enforces that a filename is a single bare path
+// component: no directory separators (either flavor), no `.`/`..` traversal
+// segments, and no NUL byte. The filename becomes part of the storage key and,
+// on the local backend, part of an on-disk path — so a name carrying path
+// structure is a directory-traversal vector, not a display quirk.
+func validateAttachmentFilename(name string) error {
+	if strings.ContainsAny(name, `/\`) {
+		return fmt.Errorf("filename %q must not contain path separators; send a bare filename such as \"report.pdf\"", name)
+	}
+	if strings.ContainsRune(name, 0) {
+		return fmt.Errorf("filename must not contain NUL bytes")
+	}
+	if name == "." || name == ".." {
+		return fmt.Errorf("filename %q must be a bare filename, not a traversal segment", name)
+	}
+	return nil
 }

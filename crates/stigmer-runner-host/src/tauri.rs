@@ -77,6 +77,10 @@ pub struct RunnerConfigInput {
     pub workspace_root_dir: Option<String>,
     #[serde(default)]
     pub proxy_endpoint: Option<String>,
+    /// Local artifact store directory for OSS/local mode. See
+    /// `RunnerConfig::local_artifact_path`.
+    #[serde(default)]
+    pub local_artifact_path: Option<String>,
     /// JS `Record<string, string>` of additional env vars for the runner. Host-owned
     /// keys are rejected at `start_runner` (see `RunnerConfig::extra_env`).
     #[serde(default)]
@@ -103,6 +107,7 @@ impl RunnerConfigInput {
             openai_api_key: self.openai_api_key,
             workspace_root_dir: Some(workspace_root_dir),
             proxy_endpoint: self.proxy_endpoint,
+            local_artifact_path: self.local_artifact_path,
             extra_env: self.extra_env,
         })
     }

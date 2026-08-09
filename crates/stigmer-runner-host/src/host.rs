@@ -437,6 +437,7 @@ const RESERVED_ENV_KEYS: &[&str] = &[
     "OPENAI_API_KEY",
     "WORKSPACE_ROOT_DIR",
     "STIGMER_PROXY_ENDPOINT",
+    "LOCAL_ARTIFACT_PATH",
     "NODE_TLS_REJECT_UNAUTHORIZED",
 ];
 
@@ -479,6 +480,12 @@ fn build_env(config: &RunnerConfig) -> Vec<(String, String)> {
     }
     if let Some(dir) = &config.workspace_root_dir {
         env.push(("WORKSPACE_ROOT_DIR".to_string(), dir.clone()));
+    }
+    // Local (OSS) mode: point the runner at the same artifact directory the
+    // stigmer-server uses, so a storage-key artifact resolves across the two
+    // processes (#285). Omitted lets the runner use its aligned default.
+    if let Some(dir) = &config.local_artifact_path {
+        env.push(("LOCAL_ARTIFACT_PATH".to_string(), dir.clone()));
     }
     if let Some(proxy) = &config.proxy_endpoint {
         env.push(("STIGMER_PROXY_ENDPOINT".to_string(), proxy.clone()));
@@ -671,6 +678,7 @@ mod tests {
             openai_api_key: None,
             workspace_root_dir: None,
             proxy_endpoint: None,
+            local_artifact_path: None,
             extra_env: std::collections::HashMap::new(),
         }
     }
@@ -799,6 +807,7 @@ mod tests {
             workspace_root_dir: Some("/tmp/ws".to_string()),
             // https so the derived NODE_TLS_REJECT_UNAUTHORIZED is emitted too.
             proxy_endpoint: Some("https://proxy.example".to_string()),
+            local_artifact_path: Some("/tmp/artifacts".to_string()),
             extra_env: std::collections::HashMap::new(),
         };
 

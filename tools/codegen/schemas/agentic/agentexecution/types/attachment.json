@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Original filename for display and default mount path derivation.\n Example: \"config.yaml\", \"input-data.zip\"",
+      "description": "Original filename for display and default mount path derivation.\n Example: \"config.yaml\", \"input-data.zip\"\n\n Must be a bare filename: no path separators and no `.`/`..` traversal\n segments. The filename is interpolated into the storage key and, on the\n local backend, into an on-disk path, so path structure here is a\n directory-traversal vector.",
       "required": false,
       "validation": {
         "minLength": 1

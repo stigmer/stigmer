@@ -20,6 +20,9 @@ go_library(
 
 go_test(
     name = "storage_test",
-    srcs = ["disposition_test.go"],
+    srcs = [
+        "disposition_test.go",
+        "local_storage_test.go",
+    ],
     embed = [":storage"],
 )

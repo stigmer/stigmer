@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { join } from "node:path";
 import { RUNNER_READY_MARKER, RUNNER_TASK_QUEUE } from "../constants.js";
 import type { DaemonConfig } from "./env.js";
 import { buildComponents, buildRunnerEnv, buildServerEnv } from "./components.js";
@@ -75,6 +76,24 @@ describe("buildRunnerEnv", () => {
     const runnerEnv = buildRunnerEnv(config, {});
     expect(runnerEnv.STIGMER_TASK_QUEUE).toBe(serverEnv.TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE);
     expect(runnerEnv.STIGMER_TASK_QUEUE).toBe(serverEnv.TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE);
+  });
+
+  // #285 regression guard: the server's artifact base and the runner's artifact
+  // path must be the SAME directory, or a storage-key attachment the server
+  // wrote fails to resolve when the runner reads it back. Both must be defined
+  // (a naive `runnerEnv.X === serverEnv.Y` would pass vacuously on
+  // undefined === undefined) and equal to the ~/.stigmer/data/artifacts root.
+  it("pins the runner's artifact path to the server's artifact base", () => {
+    const serverEnv = buildServerEnv(config, {});
+    const runnerEnv = buildRunnerEnv(config, {});
+    const expected = join(config.dataDir, "artifacts");
+
+    expect(serverEnv.ARTIFACT_LOCAL_BASE_PATH).toBe(expected);
+    expect(runnerEnv.LOCAL_ARTIFACT_PATH).toBe(expected);
+    expect(runnerEnv.LOCAL_ARTIFACT_PATH).toBe(serverEnv.ARTIFACT_LOCAL_BASE_PATH);
+    expect(runnerEnv.ARTIFACT_STORAGE_TYPE).toBe("local");
+    // Serve URL pinned to the server's artifact HTTP port (GRPC_PORT + 1).
+    expect(runnerEnv.LOCAL_ARTIFACT_SERVE_URL).toBe("http://localhost:7235");
   });
 });
 

@@ -758,7 +758,11 @@ func Run() error {
 	// This serves artifact files so the CLI (and other clients) can download them
 	// via a simple HTTP GET using the URLs returned by GetArtifactDownloadUrl.
 	if cfg.ArtifactStorage.Type == "local" {
-		artifactDir := filepath.Join(cfg.ArtifactStorage.LocalBasePath, "artifacts")
+		// The base path IS the artifact root (#285): serve it directly so
+		// GET /<key> maps to <base>/<key>, the exact bytes LocalStorage wrote
+		// and the exact path the runner reads.
+		artifactDir := cfg.ArtifactStorage.LocalBasePath
+		warnOnLegacyArtifactLayout(artifactDir)
 		mux := http.NewServeMux()
 		mux.Handle("/", artifactDownloadHandler(http.FileServer(http.Dir(artifactDir))))
 		addr := fmt.Sprintf("127.0.0.1:%d", cfg.ArtifactHTTPPort)
@@ -782,6 +786,35 @@ func Run() error {
 	log.Info().Msg("Stigmer Server stopped")
 
 	return nil
+}
+
+// warnOnLegacyArtifactLayout surfaces a one-line migration hint when a store
+// from the pre-#285 layout is detected. Before #285 the base path was a PARENT
+// and artifacts lived at <base>/artifacts/<key>; the base path is now the root
+// itself. Default installs are unaffected (the on-disk location is unchanged),
+// but an operator who set ARTIFACT_LOCAL_BASE_PATH to a custom value keeps old
+// artifacts one level too deep after upgrading.
+//
+// The check keys off two subpaths that only the OLD layout produces —
+// <base>/artifacts/attachments and the doubled <base>/artifacts/artifacts. The
+// new layout stores attachments at <base>/attachments/... and execution
+// artifacts at <base>/artifacts/<execution-id>/..., so neither of those two
+// exact directory names is ever created by a healthy new-layout install: the
+// warning cannot false-positive.
+func warnOnLegacyArtifactLayout(base string) {
+	for _, sub := range []string{"attachments", "artifacts"} {
+		legacy := filepath.Join(base, "artifacts", sub)
+		if info, err := os.Stat(legacy); err == nil && info.IsDir() {
+			log.Warn().
+				Str("legacy_dir", filepath.Join(base, "artifacts")).
+				Str("artifact_root", base).
+				Msg("Detected artifacts under a pre-#285 layout at <base>/artifacts/*. " +
+					"The artifact root is now <base> itself. Move <base>/artifacts/* up into " +
+					"<base> (or set ARTIFACT_LOCAL_BASE_PATH to the old <base>/artifacts) so " +
+					"existing artifacts remain reachable.")
+			return
+		}
+	}
 }
 
 // artifactDownloadHandler wraps the local artifact file server so a request

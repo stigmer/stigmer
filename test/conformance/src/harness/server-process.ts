@@ -20,6 +20,14 @@ const LOG_TAIL_BYTES = 8_000;
 export interface RunningServer {
   readonly baseUrl: string;
   readonly port: number;
+  // The local artifact store root (the server's ARTIFACT_LOCAL_BASE_PATH). The
+  // runner must be pointed at this exact directory so a storage-key artifact the
+  // server writes resolves when the runner reads it back (#285).
+  readonly artifactBaseDir: string;
+  // Base URL of the server's artifact HTTP file server, for the runner's
+  // LOCAL_ARTIFACT_SERVE_URL (the runner's own reads go straight to disk, but
+  // the blob download path resolves through this).
+  readonly artifactServeUrl: string;
   // Last ~8KB of combined stdout/stderr, surfaced in failures for diagnosis.
   logTail(): string;
   stop(): Promise<void>;
@@ -45,8 +53,13 @@ export async function spawnServer(
   opts: SpawnServerOptions = {},
 ): Promise<RunningServer> {
   const port = await getFreePort();
+  const artifactHttpPort = await getFreePort();
   const temporalHostPort = opts.temporalHostPort ?? `127.0.0.1:${await getFreePort()}`;
   const stateDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-"));
+  // The base path IS the artifact root (#285); mirror the production
+  // ~/.stigmer/data/artifacts shape. The runner is pointed at this same dir.
+  const artifactBaseDir = join(stateDir, "data", "artifacts");
+  const artifactServeUrl = `http://127.0.0.1:${artifactHttpPort}`;
 
   const child = spawn(binaryPath, [], {
     stdio: ["ignore", "pipe", "pipe"],
@@ -55,7 +68,12 @@ export async function spawnServer(
       GRPC_PORT: String(port),
       DB_PATH: join(stateDir, "stigmer.db"),
       STORAGE_PATH: join(stateDir, "storage"),
-      ARTIFACT_LOCAL_BASE_PATH: join(stateDir, "data"),
+      ARTIFACT_STORAGE_TYPE: "local",
+      ARTIFACT_LOCAL_BASE_PATH: artifactBaseDir,
+      // Pin the artifact HTTP port to a free port we own so the runner's serve
+      // URL is deterministic (the server default is GRPC_PORT+1, which we do not
+      // control here).
+      ARTIFACT_HTTP_PORT: String(artifactHttpPort),
       TEMPORAL_HOST_PORT: temporalHostPort,
       ENV: "local",
       LOG_LEVEL: "warn",
@@ -92,6 +110,8 @@ export async function spawnServer(
   return {
     baseUrl: `http://127.0.0.1:${port}`,
     port,
+    artifactBaseDir,
+    artifactServeUrl,
     logTail: () => logTail,
     stop,
   };

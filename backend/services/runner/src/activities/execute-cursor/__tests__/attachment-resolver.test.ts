@@ -158,4 +158,38 @@ describe("resolveAttachments", () => {
       ),
     ).rejects.toThrow(AttachmentResolutionError);
   });
+
+  it("contains a traversal filename to the inputs dir instead of escaping it", async () => {
+    // A hostile filename must not steer the write outside `.stigmer/inputs/`.
+    // The resolver takes the basename, so the file lands beside the others.
+    const { storage } = makeInMemoryArtifactStorage();
+    await storage.upload("attachments/01ABC/x", Buffer.from("contained"), "text/plain");
+
+    const result = await resolveAttachments(
+      [makeAttachment({ filename: "../../evil.md", storageKey: "attachments/01ABC/x" })],
+      options({ storage }),
+    );
+
+    expect(result).toEqual([
+      { filename: "evil.md", relativePath: ".stigmer/inputs/evil.md" },
+    ]);
+    expect(readFileSync(join(platformDir, "inputs", "evil.md"), "utf-8")).toBe("contained");
+    // Nothing escaped two levels up (where `../../evil.md` would have landed).
+    expect(() => readFileSync(join(platformDir, "..", "..", "evil.md"))).toThrow();
+  });
+
+  it("contains a traversal filename on the localPath fast path too", async () => {
+    const srcPath = join(workspaceDir, "src.txt");
+    writeFileSync(srcPath, "local-contained");
+
+    const result = await resolveAttachments(
+      [makeAttachment({ filename: "../../../evil.txt", storageKey: "", localPath: srcPath })],
+      options(),
+    );
+
+    expect(result).toEqual([
+      { filename: "evil.txt", relativePath: ".stigmer/inputs/evil.txt" },
+    ]);
+    expect(readFileSync(join(platformDir, "inputs", "evil.txt"), "utf-8")).toBe("local-contained");
+  });
 });

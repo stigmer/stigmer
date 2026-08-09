@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtemp, rm, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { tmpdir, homedir } from "node:os";
 import {
   LocalArtifactStorage,
   ProxyArtifactStorage,
@@ -98,6 +98,63 @@ describe("LocalArtifactStorage", () => {
     await s.upload(key, Buffer.from("served-from-disk"));
     const got = await s.download(key);
     expect(got.toString()).toBe("served-from-disk");
+  });
+});
+
+// ── LocalArtifactStorage path containment ────────────────────────────
+
+describe("LocalArtifactStorage path containment", () => {
+  let tempDir: string;
+  let storage: LocalArtifactStorage;
+
+  // Keys that clean to a location outside the storage root. `join(base, key)`
+  // silently resolves `..` segments, so without a containment check these would
+  // read or write outside the store — the runner-side mirror of the Go finding.
+  const escapingKeys = [
+    "../escape.txt",
+    "../../escape.txt",
+    "attachments/x/../../../../escape.txt",
+    "a/b/../../../escape.txt",
+  ];
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "artifact-contain-"));
+    storage = new LocalArtifactStorage(tempDir, "http://localhost:7235");
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  it("refuses to upload a key that escapes the storage root", async () => {
+    for (const key of escapingKeys) {
+      await expect(storage.upload(key, Buffer.from("owned"))).rejects.toThrow(
+        /outside the artifact storage root/,
+      );
+    }
+  });
+
+  it("refuses to download a key that escapes the storage root", async () => {
+    for (const key of escapingKeys) {
+      await expect(storage.download(key)).rejects.toThrow(
+        /outside the artifact storage root/,
+      );
+    }
+  });
+
+  it("refuses exists() for a key that escapes the storage root", async () => {
+    for (const key of escapingKeys) {
+      await expect(storage.exists(key)).rejects.toThrow(
+        /outside the artifact storage root/,
+      );
+    }
+  });
+
+  it("still allows keys with `..` segments that stay inside the root", async () => {
+    // Containment rejects escapes, not the mere presence of a `..` segment.
+    const key = "attachments/x/../y/plan.md";
+    await storage.upload(key, Buffer.from("ok"));
+    expect((await storage.download(key)).toString()).toBe("ok");
   });
 });
 
@@ -479,6 +536,24 @@ describe("loadArtifactStorageConfig", () => {
       stigmerToken: "tok",
     });
     expect(cfg.type).toBe("proxy");
+  });
+
+  // #285: the local default must be the SAME directory the stigmer-server
+  // writes to (~/.stigmer/data/artifacts), not the container-era
+  // /var/stigmer/artifacts. Asserting the resolved path — not just the type —
+  // is the guard that would have caught the original drift.
+  it("defaults localPath to the shared ~/.stigmer/data/artifacts root and serveUrl to :7235", () => {
+    const cfg = loadArtifactStorageConfig(baseConfig);
+    expect(cfg.localPath).toBe(join(homedir(), ".stigmer", "data", "artifacts"));
+    expect(cfg.localServeUrl).toBe("http://localhost:7235");
+  });
+
+  it("respects explicit LOCAL_ARTIFACT_PATH and LOCAL_ARTIFACT_SERVE_URL", () => {
+    process.env.LOCAL_ARTIFACT_PATH = "/custom/artifacts";
+    process.env.LOCAL_ARTIFACT_SERVE_URL = "http://localhost:9999";
+    const cfg = loadArtifactStorageConfig(baseConfig);
+    expect(cfg.localPath).toBe("/custom/artifacts");
+    expect(cfg.localServeUrl).toBe("http://localhost:9999");
   });
 });
 

@@ -131,21 +131,25 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "n\030\001 \001(\010R\024disableSummarization\022A\n\030custom_" +
       "trigger_threshold\030\002 \001(\005B\007\272H\004\032\002(\000R\026custom" +
       "TriggerThreshold\0229\n\024custom_target_tokens" +
-      "\030\003 \001(\005B\007\272H\004\032\002(\000R\022customTargetTokens\"\326\001\n\n" +
-      "Attachment\022#\n\010filename\030\001 \001(\tB\007\272H\004r\002\020\001R\010f" +
-      "ilename\022(\n\013storage_key\030\002 \001(\tB\007\272H\004r\002\020\001R\ns" +
-      "torageKey\022\035\n\nmount_path\030\003 \001(\tR\tmountPath" +
-      "\022!\n\014content_type\030\004 \001(\tR\013contentType\022\030\n\007e" +
-      "xtract\030\005 \001(\010R\007extract\022\035\n\nlocal_path\030\006 \001(" +
-      "\tR\tlocalPath\"h\n\023ConversationCatchup\022\026\n\006d" +
-      "igest\030\001 \001(\tR\006digest\0229\n\nwindow_end\030\002 \001(\0132" +
-      "\032.google.protobuf.TimestampR\twindowEndB\300" +
-      "\001B\tSpecProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agent" +
-      "ic.Agentexecution.V1\312\002$Ai\\Stigmer\\Agenti" +
-      "c\\Agentexecution\\V1\342\0020Ai\\Stigmer\\Agentic" +
-      "\\Agentexecution\\V1\\GPBMetadata\352\002(Ai::Sti" +
-      "gmer::Agentic::Agentexecution::V1b\006proto" +
-      "3"
+      "\030\003 \001(\005B\007\272H\004\032\002(\000R\022customTargetTokens\"\226\003\n\n" +
+      "Attachment\022\342\001\n\010filename\030\001 \001(\tB\305\001\272H\301\001r\002\020\001" +
+      "\272\001\271\001\n\033attachment.filename.no_path\022Nfilen" +
+      "ame must be a bare filename without path" +
+      " separators or traversal segments\032J!this" +
+      ".contains(\'/\') && !this.contains(\'\\\\\') &" +
+      "& this != \'.\' && this != \'..\'R\010filename\022" +
+      "(\n\013storage_key\030\002 \001(\tB\007\272H\004r\002\020\001R\nstorageKe" +
+      "y\022\035\n\nmount_path\030\003 \001(\tR\tmountPath\022!\n\014cont" +
+      "ent_type\030\004 \001(\tR\013contentType\022\030\n\007extract\030\005" +
+      " \001(\010R\007extract\022\035\n\nlocal_path\030\006 \001(\tR\tlocal" +
+      "Path\"h\n\023ConversationCatchup\022\026\n\006digest\030\001 " +
+      "\001(\tR\006digest\0229\n\nwindow_end\030\002 \001(\0132\032.google" +
+      ".protobuf.TimestampR\twindowEndB\300\001B\tSpecP" +
+      "rotoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.Agent" +
+      "execution.V1\312\002$Ai\\Stigmer\\Agentic\\Agente" +
+      "xecution\\V1\342\0020Ai\\Stigmer\\Agentic\\Agentex" +
+      "ecution\\V1\\GPBMetadata\352\002(Ai::Stigmer::Ag" +
+      "entic::Agentexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

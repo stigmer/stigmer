@@ -56,6 +56,12 @@ export interface RunnerOptions {
   backendEndpoint: string;
   // Optional hermetic LLM wiring; present only for agent-execution runs.
   proxy?: RunnerProxyOptions;
+  // The server's artifact root + serve URL. When provided (with a proxy), the
+  // runner shares the server's local store so a storage-key attachment the
+  // server wrote resolves here (#285). Omitted → a throwaway store, which is
+  // fine for runs that never resolve a cross-process artifact.
+  artifactDir?: string;
+  artifactServeUrl?: string;
 }
 
 export interface RunningRunner {
@@ -66,7 +72,14 @@ export interface RunningRunner {
 
 export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
   const workspaceDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-runner-"));
-  const artifactDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-artifacts-"));
+  // Share the server's artifact store when given (#285); otherwise mint a
+  // throwaway one. Only a dir we minted here is ours to remove on stop — the
+  // server owns and cleans its own.
+  const ownedArtifactDir =
+    opts.artifactDir === undefined
+      ? await mkdtemp(join(tmpdir(), "stigmer-conformance-artifacts-"))
+      : undefined;
+  const artifactDir = opts.artifactDir ?? ownedArtifactDir!;
 
   const child = spawn(process.execPath, [opts.entryPath], {
     cwd: runnerDir(),
@@ -95,6 +108,11 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
             STIGMER_TOKEN: opts.proxy.token,
             ARTIFACT_STORAGE_TYPE: "local",
             LOCAL_ARTIFACT_PATH: artifactDir,
+            // Point blob downloads at the server's artifact file server when we
+            // know it; the runner's own reads go straight to disk regardless.
+            ...(opts.artifactServeUrl !== undefined
+              ? { LOCAL_ARTIFACT_SERVE_URL: opts.artifactServeUrl }
+              : {}),
             STIGMER_CHECKPOINTER_TYPE: "memory",
           }
         : {}),
@@ -122,7 +140,10 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
       child.kill("SIGTERM");
     }
     await rm(workspaceDir, { recursive: true, force: true });
-    await rm(artifactDir, { recursive: true, force: true });
+    // Only remove a store we minted; a server-shared dir is the server's to clean.
+    if (ownedArtifactDir !== undefined) {
+      await rm(ownedArtifactDir, { recursive: true, force: true });
+    }
   };
 
   try {

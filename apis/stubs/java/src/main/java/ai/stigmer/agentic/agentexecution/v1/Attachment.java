@@ -85,6 +85,11 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Original filename for display and default mount path derivation.
    * Example: "config.yaml", "input-data.zip"
+   *
+   * Must be a bare filename: no path separators and no `.`/`..` traversal
+   * segments. The filename is interpolated into the storage key and, on the
+   * local backend, into an on-disk path, so path structure here is a
+   * directory-traversal vector.
    * </pre>
    *
    * <code>string filename = 1 [json_name = "filename", (.buf.validate.field) = { ... }</code>
@@ -107,6 +112,11 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Original filename for display and default mount path derivation.
    * Example: "config.yaml", "input-data.zip"
+   *
+   * Must be a bare filename: no path separators and no `.`/`..` traversal
+   * segments. The filename is interpolated into the storage key and, on the
+   * local backend, into an on-disk path, so path structure here is a
+   * directory-traversal vector.
    * </pre>
    *
    * <code>string filename = 1 [json_name = "filename", (.buf.validate.field) = { ... }</code>
@@ -810,6 +820,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Original filename for display and default mount path derivation.
      * Example: "config.yaml", "input-data.zip"
+     *
+     * Must be a bare filename: no path separators and no `.`/`..` traversal
+     * segments. The filename is interpolated into the storage key and, on the
+     * local backend, into an on-disk path, so path structure here is a
+     * directory-traversal vector.
      * </pre>
      *
      * <code>string filename = 1 [json_name = "filename", (.buf.validate.field) = { ... }</code>
@@ -831,6 +846,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Original filename for display and default mount path derivation.
      * Example: "config.yaml", "input-data.zip"
+     *
+     * Must be a bare filename: no path separators and no `.`/`..` traversal
+     * segments. The filename is interpolated into the storage key and, on the
+     * local backend, into an on-disk path, so path structure here is a
+     * directory-traversal vector.
      * </pre>
      *
      * <code>string filename = 1 [json_name = "filename", (.buf.validate.field) = { ... }</code>
@@ -853,6 +873,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Original filename for display and default mount path derivation.
      * Example: "config.yaml", "input-data.zip"
+     *
+     * Must be a bare filename: no path separators and no `.`/`..` traversal
+     * segments. The filename is interpolated into the storage key and, on the
+     * local backend, into an on-disk path, so path structure here is a
+     * directory-traversal vector.
      * </pre>
      *
      * <code>string filename = 1 [json_name = "filename", (.buf.validate.field) = { ... }</code>
@@ -871,6 +896,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Original filename for display and default mount path derivation.
      * Example: "config.yaml", "input-data.zip"
+     *
+     * Must be a bare filename: no path separators and no `.`/`..` traversal
+     * segments. The filename is interpolated into the storage key and, on the
+     * local backend, into an on-disk path, so path structure here is a
+     * directory-traversal vector.
      * </pre>
      *
      * <code>string filename = 1 [json_name = "filename", (.buf.validate.field) = { ... }</code>
@@ -886,6 +916,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Original filename for display and default mount path derivation.
      * Example: "config.yaml", "input-data.zip"
+     *
+     * Must be a bare filename: no path separators and no `.`/`..` traversal
+     * segments. The filename is interpolated into the storage key and, on the
+     * local backend, into an on-disk path, so path structure here is a
+     * directory-traversal vector.
      * </pre>
      *
      * <code>string filename = 1 [json_name = "filename", (.buf.validate.field) = { ... }</code>

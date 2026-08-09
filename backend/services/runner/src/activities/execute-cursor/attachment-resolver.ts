@@ -109,7 +109,7 @@ async function resolveAttachment(
 ): Promise<ResolvedAttachment> {
   // Local-mode fast path: the file is already on this machine's disk.
   if (options.mode === "local" && attachment.localPath) {
-    const filename = attachment.filename || basename(attachment.localPath);
+    const filename = safeInputName(attachment.filename || attachment.localPath);
     try {
       await copyFile(attachment.localPath, join(inputsDir, filename));
     } catch (err) {
@@ -140,7 +140,7 @@ async function resolveAttachment(
     );
   }
 
-  const filename = attachment.filename || basename(attachment.storageKey);
+  const filename = safeInputName(attachment.filename || attachment.storageKey);
   let content: Buffer;
   try {
     content = await options.storage.download(attachment.storageKey);
@@ -157,4 +157,23 @@ async function resolveAttachment(
     filename,
     relativePath: join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, filename),
   };
+}
+
+/**
+ * Reduce a caller-influenced name to a single, safe path component for writing
+ * under the inputs dir. The name (an attachment's original filename, or a
+ * storage key's tail) is untrusted — a value like `../../evil.md` would steer
+ * the write outside `.stigmer/inputs/`. Taking the basename strips any path
+ * structure; the residual `.`/`..`/empty cases (which basename does not strip)
+ * are rejected loudly so the write target is always a real file inside inputs.
+ */
+function safeInputName(raw: string): string {
+  const name = basename(raw);
+  if (name === "" || name === "." || name === "..") {
+    throw new AttachmentResolutionError(
+      raw,
+      `'${raw}' does not yield a usable filename for materialization`,
+    );
+  }
+  return name;
 }

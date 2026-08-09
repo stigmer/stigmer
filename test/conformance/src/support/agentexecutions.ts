@@ -13,7 +13,7 @@ import type { MessageInitShape } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import type { AttachmentSchema, ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { McpToolFixture } from "../harness/mcp-server";
@@ -47,6 +47,9 @@ export interface AgentExecutionOptions {
   // Execution-time overrides (spec.execution_config) — model pin, service
   // tier, interaction mode. Left unset by default (the runner picks defaults).
   executionConfig?: MessageInitShape<typeof ExecutionConfigSchema>;
+  // Input attachments (spec.attachments). Each carries a storage_key from
+  // uploadAttachment; the runner materializes them under .stigmer/inputs/.
+  attachments?: MessageInitShape<typeof AttachmentSchema>[];
 }
 
 // A complete, valid AgentExecution create request. execution_config is left unset
@@ -65,6 +68,7 @@ export function makeAgentExecution(opts: AgentExecutionOptions): MessageInitShap
       ...(opts.autoApproveAll !== undefined ? { autoApproveAll: opts.autoApproveAll } : {}),
       ...(opts.runtimeEnv !== undefined ? { runtimeEnv: makeExecutionValues(opts.runtimeEnv) } : {}),
       ...(opts.executionConfig !== undefined ? { executionConfig: opts.executionConfig } : {}),
+      ...(opts.attachments !== undefined ? { attachments: opts.attachments } : {}),
     },
   };
 }

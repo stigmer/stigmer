@@ -552,6 +552,28 @@ describe("injectAttachments", () => {
     })).rejects.toThrow(/missing storageKey/);
   });
 
+  it("rejects a caller-supplied mountPath that escapes the workspace root", async () => {
+    // `resolveMountPath` only stripped leading slashes, so `..` segments on a
+    // non-`.stigmer/` mount path reached the unchecked join(rootDir, path).
+    const storage = makeMockStorage();
+    storage.download.mockResolvedValue(Buffer.from("owned"));
+    const backend = mockWorkspaceBackend();
+
+    const escapes = ["../../escape.txt", "../etc/evil", "foo/../../bar"];
+    for (const mountPath of escapes) {
+      await expect(injectAttachments({
+        backend,
+        attachments: [makeAttachment({
+          filename: "data.txt",
+          storageKey: "attachments/xyz/data.txt",
+          mountPath,
+        })],
+        storage,
+        isLocalMode: false,
+      })).rejects.toThrow(/mount path .* escapes the workspace root|traversal/i);
+    }
+  });
+
   it("preserves binary content via writeFileBuffer", async () => {
     const binaryContent = Buffer.from([0x00, 0x01, 0xFF, 0xFE, 0x89, 0x50, 0x4E, 0x47]);
     const localFile = join(tempDir, "image.png");

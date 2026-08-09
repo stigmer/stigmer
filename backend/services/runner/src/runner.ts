@@ -282,6 +282,25 @@ export async function createStigmerRunner(
       `Mode: ${config.mode} | ` +
       `Max concurrency: ${config.maxConcurrentActivities}`,
   );
+  // Surface the resolved artifact store at boot so a path/type misconfiguration
+  // (the #285 class of failure) is visible immediately instead of only when an
+  // attachment or offload read fails minutes into an execution.
+  try {
+    const { loadArtifactStorageConfig } = await import(
+      "./shared/artifact-storage.js"
+    );
+    const artifactCfg = loadArtifactStorageConfig(config);
+    console.log(
+      `[runner] Artifact store: type=${artifactCfg.type}` +
+        (artifactCfg.type === "local"
+          ? ` | root=${artifactCfg.localPath}`
+          : ` | proxy=${artifactCfg.proxyEndpoint ?? "(unset)"}`),
+    );
+  } catch (err) {
+    console.warn(
+      `[runner] Artifact store: could not resolve config for boot log: ${err}`,
+    );
+  }
 
   const payloadCodec = await createPayloadCodec(config);
 

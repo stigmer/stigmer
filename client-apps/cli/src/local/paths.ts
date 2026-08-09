@@ -26,6 +26,21 @@ export function workspaceDir(home: string = homedir()): string {
   return join(dataDir(home), "workspace");
 }
 
+/** Subdirectory name of the local artifact store under the data dir. */
+export const ARTIFACTS_SUBDIR = "artifacts";
+
+/**
+ * Local artifact store root (~/.stigmer/data/artifacts). This one directory is
+ * shared by both local processes: the stigmer-server writes to it (as its
+ * ARTIFACT_LOCAL_BASE_PATH) and the runner reads from it (as its
+ * LOCAL_ARTIFACT_PATH). Owning the path here — beside logDir() and
+ * workspaceDir() — is what keeps the two env vars from drifting apart, the
+ * regression behind stigmer/stigmer#285.
+ */
+export function artifactDir(home: string = homedir()): string {
+  return join(dataDir(home), ARTIFACTS_SUBDIR);
+}
+
 /** Downloaded-binary directory for Temporal + stigmer-server (~/.stigmer/bin). */
 export function binDir(home: string = homedir()): string {
   return join(configDir(home), "bin");

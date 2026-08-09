@@ -94,6 +94,7 @@ AgentChannel agentChannel = client.agentChannels().get("ach_01j5q3k7m8r2s4tnz2hf
 | [`getByAgent`](#getbyagent) | Get all channels of a specific agent. |
 | [`getByReference`](#getbyreference) | Get an agent channel by its organization-scoped reference (org/slug). |
 | [`getConversation`](#getconversation) | Get one conversation's identity and participation state. |
+| [`getMediaDownloadUrl`](#getmediadownloadurl) | Mint a short-lived download URL for one inbound timeline item's media file (an image or document the customer sent). |
 | [`getTimeline`](#gettimeline) | Get one conversation's timeline, newest first, cursor-paged. |
 | [`list`](#list) | List agent channels with optional label filtering. |
 | [`listConversations`](#listconversations) | List an organization's channel conversations, newest activity first. |
@@ -291,6 +292,55 @@ ChannelConversation channelConversation = client.agentChannels().getConversation
 **Parameters**: [`GetChannelConversationInput`](#getchannelconversationinput)
 
 **Returns**: [`ChannelConversation`](#channelconversation)
+
+### getMediaDownloadUrl
+
+Mint a short-lived download URL for one inbound timeline item's media file (an image or document the customer sent).
+
+Answers NOT_FOUND when the item does not exist in this conversation or carries no ingested media (a text item, or media the platform declined to ingest).
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const conversationMediaDownloadUrl = await stigmer.agentChannel.getMediaDownloadUrl({
+  agentChannelId: "...",
+  conversationKey: "...",
+  itemId: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+conversationMediaDownloadUrl, err := client.AgentChannel.GetMediaDownloadUrl(ctx, &stigmer.GetConversationMediaDownloadUrlInput{
+  AgentChannelId:  "...",
+  ConversationKey: "...",
+  ItemId:          "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+conversation_media_download_url = client.agent_channels.get_media_download_url(GetConversationMediaDownloadUrlInput(
+    agent_channel_id="...",
+    conversation_key="...",
+    item_id="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ConversationMediaDownloadUrl conversationMediaDownloadUrl = client.agentChannels().getMediaDownloadUrl(GetConversationMediaDownloadUrlInput.builder()
+    .agentChannelId("...")
+    .conversationKey("...")
+    .itemId("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetConversationMediaDownloadUrlInput`](#getconversationmediadownloadurlinput)
+
+**Returns**: [`ConversationMediaDownloadUrl`](#conversationmediadownloadurl)
 
 ### getTimeline
 
@@ -1416,6 +1466,29 @@ ConversationTimeline contains one page of a conversation's timeline, newest firs
   type={{
     items: { type: "ConversationTimelineItemInput[]", description: "Timeline items in the current page, newest first." },
     nextPageToken: { type: "string", description: "Cursor for the next (older) page." },
+  }}
+/>
+
+### GetConversationMediaDownloadUrlInput
+
+Input for minting a short-lived download URL for one timeline item's media file.
+
+<TypeTable
+  type={{
+    agentChannelId: { type: "string", description: "AgentChannel the conversation belongs to." },
+    conversationKey: { type: "string", description: "Conversation key within the channel (WhatsApp: the customer's wa_id)." },
+    itemId: { type: "string", description: "The timeline item whose media to fetch (its item_id, e.g. \"wa:<wamid>\")." },
+  }}
+/>
+
+### ConversationMediaDownloadUrl
+
+ConversationMediaDownloadUrl carries a presigned, time-limited URL for one media file.
+
+<TypeTable
+  type={{
+    url: { type: "string", description: "Presigned HTTPS URL." },
+    expiresAt: { type: "string", description: "When the URL stops working." },
   }}
 />
 
