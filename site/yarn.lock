@@ -2629,10 +2629,10 @@ __metadata:
 
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=e72a0c&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=8e3eb1&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:2.12.0"
-  checksum: 10c0/4876df0d9be8faf48fd73c641c39ed1ffe20144254b69ae494bbbc9543e4337407f42d223a446ad19170f04afe07058f12cec9a2790443acd5d5bd442ec48a3c
+  checksum: 10c0/6b832bb768e26b78010fe7c2533b89f8c520658d72e8fafd218d58f0ce87199e6445b0d61ad6d91732b6e037078457a41a977aacefa20c4b0e0a43c96c968da0
   languageName: node
   linkType: hard
 
