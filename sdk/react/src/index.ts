@@ -463,21 +463,31 @@ export type {
 export type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 export { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
-// Attachment — file upload behavior hook and styled chip list
+// Attachment — file upload behavior hook, styled chip list, clipboard paste,
+// and vision-resolution image preparation
 export {
   useAttachments,
   AttachmentChipList,
   MAX_ATTACHMENT_BYTES,
+  MAX_VISION_LONG_EDGE_PX,
+  MAX_VISION_PIXELS,
   detectContentType,
+  exceedsVisionResolution,
+  extractClipboardFiles,
+  fitToVisionResolution,
   formatFileSize,
+  prepareImageForVision,
+  uniquifyFilename,
   validateAttachmentSize,
 } from "./attachment/index.js";
 export type {
   AttachmentPhase,
   AttachmentEntry,
+  ClipboardFilesSource,
   UseAttachmentsOptions,
   UseAttachmentsReturn,
   AttachmentChipListProps,
+  VisionFitSize,
 } from "./attachment/index.js";
 
 // File Reference — workspace file-reference behavior hook and styled chip list

@@ -75,6 +75,62 @@ test.describe("Agent execution via session", () => {
     await expect(userMsg).toContainText("Say exactly: world");
   });
 
+  test("pasted screenshot uploads for real and rides the follow-up message", async ({
+    page,
+    testAgent,
+  }) => {
+    await startNewSession(page, "Say exactly: ready");
+    await assertNoErrorBoundary(page);
+    await waitForExecutionPhase(page, "Completed", { timeout: 90_000 });
+    await assertComposerEnabled(page);
+
+    const form = getSessionComposer(page);
+    const textarea = form.locator("textarea");
+
+    // Synthetic ClipboardEvent with a real (decodable) 1x1 PNG named the way
+    // browsers name clipboard screenshots — OS-clipboard automation is not
+    // portable across CI runners, and the synthetic event exercises the
+    // exact same React paste handler.
+    await textarea.click();
+    await textarea.evaluate((el) => {
+      const base64 =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+      const file = new File([bytes], "image.png", { type: "image/png" });
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      el.dispatchEvent(
+        new ClipboardEvent("paste", {
+          clipboardData: dataTransfer,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+
+    // The chip appears with a synthesized name and the REAL upload against
+    // the real server completes (no "uploading", no "upload failed").
+    const chip = form
+      .getByRole("list", { name: "Attached files" })
+      .getByRole("listitem");
+    await expect(chip).toBeVisible({ timeout: 10_000 });
+    await expect(chip).toHaveAttribute("aria-label", /^pasted-image-\d{6}-\d+\.png/);
+    await expect(chip).not.toHaveAttribute("aria-label", /uploading/, {
+      timeout: 15_000,
+    });
+    await expect(chip).not.toHaveAttribute("aria-label", /upload failed/);
+
+    // Send — the message dispatches with the attachment and the chip clears.
+    await textarea.fill("Say exactly: got the image");
+    await page.getByRole("button", { name: "Send message" }).click();
+
+    await expect(getUserMessages(page).last()).toContainText(
+      "Say exactly: got the image",
+      { timeout: 10_000 },
+    );
+    await expect(chip).toHaveCount(0);
+  });
+
   test("follow-up message creates new execution", async ({
     page,
     testAgent,

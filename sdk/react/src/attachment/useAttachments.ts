@@ -9,6 +9,7 @@ import { toError } from "../internal/toError.js";
 import {
   detectContentType,
   formatFileSize,
+  uniquifyFilename,
   validateAttachmentSize,
 } from "./attachment-utils.js";
 
@@ -166,6 +167,14 @@ export function useAttachments(
   const [entries, setEntries] = useState<AttachmentEntry[]>([]);
   const abortControllers = useRef<Map<string, AbortController>>(new Map());
 
+  // Latest-entries mirror so `addFiles` can uniquify filenames against
+  // current entries without depending on `entries` (which would give the
+  // callback a new identity every upload-phase change). Re-assigned each
+  // render to reconcile removals, and synchronously inside `addFiles` so
+  // two adds in one tick still see each other's names.
+  const entriesRef = useRef<readonly AttachmentEntry[]>(entries);
+  entriesRef.current = entries;
+
   const uploadFile = useCallback(
     async (id: string, file: File, contentType: string) => {
       const controller = new AbortController();
@@ -215,13 +224,27 @@ export function useAttachments(
     (files: FileList | File[]) => {
       const fileArray = Array.from(files);
       const validEntries: AttachmentEntry[] = [];
+      const takenNames = new Set(entriesRef.current.map((e) => e.file.name));
 
-      for (const file of fileArray) {
-        const sizeError = validateAttachmentSize(file);
+      for (const rawFile of fileArray) {
+        const sizeError = validateAttachmentSize(rawFile);
         if (sizeError) {
           options?.onValidationError?.(sizeError);
           continue;
         }
+
+        // Duplicate names within a turn break the execution downstream
+        // (see uniquifyFilename) — rename before the bytes ever upload,
+        // so the chip, the upload, and the mounted file all agree.
+        const uniqueName = uniquifyFilename(rawFile.name, takenNames);
+        takenNames.add(uniqueName);
+        const file =
+          uniqueName === rawFile.name
+            ? rawFile
+            : new File([rawFile], uniqueName, {
+                type: rawFile.type,
+                lastModified: rawFile.lastModified,
+              });
 
         const id = generateId();
         const contentType = detectContentType(file);
@@ -239,6 +262,7 @@ export function useAttachments(
       }
 
       if (validEntries.length > 0) {
+        entriesRef.current = [...entriesRef.current, ...validEntries];
         setEntries((prev) => [...prev, ...validEntries]);
       }
     },

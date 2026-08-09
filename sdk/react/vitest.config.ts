@@ -3,11 +3,18 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     include: ["src/**/*.test.{ts,tsx}"],
-    // The `*.a11y.test.tsx` and `*.layout.test.tsx` suites run in a real
-    // browser (contrast/layout rules that happy-dom cannot evaluate) via
+    // The `*.a11y.test.tsx`, `*.layout.test.tsx`, and `*.browser.test.ts(x)`
+    // suites run in a real browser (contrast/layout rules and pixel APIs —
+    // canvas 2D, createImageBitmap — that happy-dom cannot evaluate) via
     // `vitest.a11y.config.ts`. Exclude them here so the fast, browser-free
     // default suite never tries to load them.
-    exclude: ["**/node_modules/**", "**/*.a11y.test.tsx", "**/*.layout.test.tsx"],
+    exclude: [
+      "**/node_modules/**",
+      "**/*.a11y.test.tsx",
+      "**/*.layout.test.tsx",
+      "**/*.browser.test.ts",
+      "**/*.browser.test.tsx",
+    ],
     environment: "happy-dom",
     // Never let happy-dom follow a navigation over the real network. An
     // anchor click with target="_blank" (the browser-download flows) becomes

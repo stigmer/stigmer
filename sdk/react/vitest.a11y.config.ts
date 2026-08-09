@@ -1,9 +1,9 @@
 import { defineConfig } from "vitest/config";
 
 /**
- * Browser-mode test config: suites that need REAL layout and paint.
+ * Browser-mode test config: suites that need REAL layout, paint, or pixels.
  *
- * Two kinds of tests live here, both dishonest anywhere but a real browser:
+ * Three kinds of tests live here, all dishonest anywhere but a real browser:
  *
  * - `*.a11y.test.tsx` — accessibility audits (DD-22). The Session 18
  *   workspace-panel a11y hardening (tree `aria-level`, search `role="status"`
@@ -14,8 +14,12 @@ import { defineConfig } from "vitest/config";
  * - `*.layout.test.tsx` — layout-contract regressions (e.g. the provider
  *   container's sizing contract, #260/DD-019), which require a real layout
  *   engine to resolve computed box sizes.
+ * - `*.browser.test.ts(x)` — pixel work (canvas 2D, createImageBitmap,
+ *   toBlob encoders — e.g. the attachment vision preparation). happy-dom
+ *   returns `null` from `getContext("2d")` and has no `createImageBitmap`,
+ *   so these paths can only be proven against a real rendering engine.
  *
- * Both run in a real Chromium via Vitest's Playwright browser provider.
+ * All run in a real Chromium via Vitest's Playwright browser provider.
  *
  * Kept as a SEPARATE config (not a `projects` entry) on purpose:
  * - the fast, 2,689-test happy-dom suite (`vitest.config.ts`, `npm test`) and
@@ -27,7 +31,12 @@ import { defineConfig } from "vitest/config";
  */
 export default defineConfig({
   test: {
-    include: ["src/**/*.a11y.test.tsx", "src/**/*.layout.test.tsx"],
+    include: [
+      "src/**/*.a11y.test.tsx",
+      "src/**/*.layout.test.tsx",
+      "src/**/*.browser.test.ts",
+      "src/**/*.browser.test.tsx",
+    ],
     // One file at a time: these tests measure REAL layout, paint, rAF
     // timing, and (since the F-18 tooltip suite) real pointer movement.
     // Parallel files in one headless Chromium contend for the same

@@ -112,3 +112,30 @@ export function validateAttachmentSize(file: File): string | null {
   }
   return null;
 }
+
+/**
+ * Returns `name` unchanged when it is not in `taken`, otherwise the first
+ * free `stem-2.ext`, `stem-3.ext`, … variant.
+ *
+ * Duplicate filenames within one turn are not a cosmetic problem:
+ * attachments materialize at `.stigmer/inputs/{filename}`, where the
+ * deep-agent harness fails the whole execution on a mount-path collision
+ * and the Cursor harness silently overwrites the earlier file. A visible
+ * rename on the attachment chip is strictly better than either outcome.
+ */
+export function uniquifyFilename(
+  name: string,
+  taken: ReadonlySet<string>,
+): string {
+  if (!taken.has(name)) return name;
+
+  const dotIndex = name.lastIndexOf(".");
+  // A leading dot (".env") is a hidden-file prefix, not an extension.
+  const stem = dotIndex > 0 ? name.slice(0, dotIndex) : name;
+  const ext = dotIndex > 0 ? name.slice(dotIndex) : "";
+
+  for (let n = 2; ; n++) {
+    const candidate = `${stem}-${n}${ext}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+}

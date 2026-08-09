@@ -147,7 +147,7 @@ Props for [`SessionComposer`](#sessioncomposer).
     className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultModelId: { type: "string", description: "Initial model ID for the model selector." },
     disabled: { type: "boolean", description: "Disables the entire composer (e.g., while an execution streams)." },
-    enableAttachments: { type: "boolean", description: "Enable file attachment support in the composer.  When `true`, renders an attach button in the toolbar and enables drag-and-drop file upload on the textarea. Attachments are uploaded immediately via `agentExecution.uploadAttachment()` and included in `context.attachments` on submit." },
+    enableAttachments: { type: "boolean", description: "Enable file attachment support in the composer.  When `true`, renders an attach button in the toolbar and enables drag-and-drop file upload plus clipboard paste on the textarea — pasting a screenshot attaches it exactly like a picked file, with a generated `pasted-image-*` filename. Attachments are uploaded immediately via `agentExecution.uploadAttachment()` and included in `context.attachments` on submit." },
     enableFileReferences: { type: "boolean", description: "Enable workspace file-reference support via drag-to-reference.  When `true`, dragging a file from the workspace tree into the composer creates a file-reference chip (no upload). Referenced paths are included in `context.workspaceFileRefs` on submit." },
     enableGitHub: { type: "boolean", description: "Show the GitHub Repo source button." },
     enableLocal: { type: "boolean", description: "Show the Local Folder source button." },

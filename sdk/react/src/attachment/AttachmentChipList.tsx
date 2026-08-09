@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { AttachmentEntry } from "./useAttachments.js";
 import { formatFileSize } from "./attachment-utils.js";
@@ -103,7 +104,12 @@ function AttachmentChip({
     >
       {isUploading && <ChipSpinner />}
       {isError && <ErrorDot />}
-      {!isUploading && !isError && <FileIcon />}
+      {!isUploading && !isError &&
+        (entry.contentType.startsWith("image/") ? (
+          <ChipThumbnail file={entry.file} />
+        ) : (
+          <FileIcon />
+        ))}
 
       <span className="truncate">{entry.file.name}</span>
 
@@ -133,6 +139,44 @@ function AttachmentChip({
         <XIcon />
       </button>
     </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Image thumbnail — a #284 ask: a pasted screenshot's chip shows the image,
+// not a generic file glyph
+// ---------------------------------------------------------------------------
+
+/**
+ * Tiny preview of an image attachment, driven by an object URL over the
+ * locally-held `File` (no fetch — the bytes are already in memory).
+ *
+ * The URL is created in an effect, not a memo: StrictMode double-invokes
+ * memos and would leak the first URL without a revoke. The effect cleanup
+ * revokes on removal, unmount, and file change. Until the effect runs (or
+ * if it never gets a URL) the generic icon renders instead.
+ *
+ * `aria-hidden`: the chip's own `aria-label` already names the file; a
+ * 16px thumbnail adds nothing for screen readers.
+ */
+function ChipThumbnail({ file }: { readonly file: File }) {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    setUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  if (!url) return <FileIcon />;
+
+  return (
+    <img
+      src={url}
+      alt=""
+      aria-hidden="true"
+      className="h-4 w-4 shrink-0 rounded-sm object-cover"
+    />
   );
 }
 

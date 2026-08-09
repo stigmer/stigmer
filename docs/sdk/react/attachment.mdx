@@ -170,6 +170,18 @@ Lifecycle phase of a single attachment managed by [`useAttachments`](#useattachm
 - `error` — upload failed, `error` describes the failure
 
 
+### ClipboardFilesSource
+
+Structural source for [`extractClipboardFiles`](#extractclipboardfiles): both the native
+`ClipboardEvent` and React's synthetic clipboard event satisfy it.
+
+<TypeTable
+  type={{
+    clipboardData: { type: "{ files: FileList } | null", description: "", required: true },
+  }}
+/>
+
+
 ### detectContentType
 
 Detects the MIME content type for a file.
@@ -181,6 +193,64 @@ CLI's `detectContentType` function. Returns
 
 ```tsx
 function detectContentType(file: File): string
+```
+
+
+### exceedsVisionResolution
+
+True when an image of these dimensions would be downscaled by the
+provider — i.e. when resizing it ourselves loses nothing.
+
+```tsx
+function exceedsVisionResolution(width: number, height: number): boolean
+```
+
+
+### extractClipboardFiles
+
+Extracts files from a paste event, giving clipboard images that carry the
+browser's generic `image.png` name a unique, human-readable one
+(`pasted-image-<HHMMSS>-<n>.<ext>`).
+
+Unique names are load-bearing, not cosmetic: attachments mount at
+`.stigmer/inputs/{filename}`, and two same-named attachments either fail
+the execution (deep-agent harness) or silently overwrite each other
+(Cursor harness). Files with real names (pasted from a file manager) are
+returned unchanged.
+
+Returns an empty array for a text-only paste — callers use that to let
+the default text insertion proceed untouched.
+
+Must be called synchronously from the paste event handler. Call
+`event.preventDefault()` in the same tick when the result is non-empty;
+the returned `File` objects remain valid afterwards.
+
+```tsx
+function extractClipboardFiles(event: ClipboardFilesSource): File[]
+```
+
+```tsx
+function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+  const files = extractClipboardFiles(e);
+  if (files.length === 0) return; // plain text paste — leave it alone
+  e.preventDefault();
+  attachments.addFiles(files);
+}
+```
+
+
+### fitToVisionResolution
+
+The largest size that fits both vision limits while preserving aspect
+ratio. Never upscales: dimensions already within the limits come back
+unchanged. Mirrors Anthropic's published "max API fit" computation.
+
+Degenerate inputs (zero, negative, or non-finite dimensions) come back
+unchanged — the caller's decode has already failed or will fail, and this
+module never turns a bad input into a crash.
+
+```tsx
+function fitToVisionResolution(width: number, height: number): VisionFitSize
 ```
 
 
@@ -205,6 +275,58 @@ Matches the CLI's `maxAttachmentSize` and the gRPC server's
 upload to avoid wasting bandwidth on requests that will fail.
 
 
+### MAX_VISION_LONG_EDGE_PX
+
+Maximum long-edge length, mirroring Anthropic's standard-tier limit.
+
+
+### MAX_VISION_PIXELS
+
+Maximum total pixels, mirroring Anthropic's standard-tier visual-token
+ceiling (1568 tokens ≈ 1.15 megapixels). For nearly all photos and
+screenshots this — not the edge limit — is the binding constraint: a
+1920×1080 screenshot fits the edge limit but still resizes to 1456×819.
+
+
+### prepareImageForVision
+
+Bounds a pasted image to the resolution vision providers actually
+process, re-encoding to a format both harnesses can display inline.
+
+- PNG and JPEG within the resolution limits pass through byte-identical
+  (also guards edit-and-resubmit flows against generation loss).
+- GIF within the limits passes through untouched — re-encoding would
+  silently flatten an animation the agent also receives as a file.
+- Oversized images resize to [`fitToVisionResolution`](#fittovisionresolution); other formats
+  (WebP, TIFF, BMP…) re-encode even when small, for harness visibility.
+- Output format: JPEG stays JPEG; everything else prefers PNG (crisp UI
+  text), switching to JPEG only for photographic content — detected by
+  PNG byte density, where PNG can exceed the runner's inline byte cap.
+
+Never throws; every failure path returns the original file (see module
+doc). Non-image files are returned unchanged.
+
+```tsx
+function prepareImageForVision(file: File): Promise<File>
+```
+
+
+### uniquifyFilename
+
+Returns `name` unchanged when it is not in `taken`, otherwise the first
+free `stem-2.ext`, `stem-3.ext`, … variant.
+
+Duplicate filenames within one turn are not a cosmetic problem:
+attachments materialize at `.stigmer/inputs/{filename}`, where the
+deep-agent harness fails the whole execution on a mount-path collision
+and the Cursor harness silently overwrites the earlier file. A visible
+rename on the attachment chip is strictly better than either outcome.
+
+```tsx
+function uniquifyFilename(name: string, taken: ReadonlySet<string>): string
+```
+
+
 ### UseAttachmentsOptions
 
 Options for [`useAttachments`](#useattachments).
@@ -226,4 +348,16 @@ file exceeds [`MAX_ATTACHMENT_BYTES`](#max_attachment_bytes).
 ```tsx
 function validateAttachmentSize(file: File): string | null
 ```
+
+
+### VisionFitSize
+
+Integer pixel dimensions produced by [`fitToVisionResolution`](#fittovisionresolution).
+
+<TypeTable
+  type={{
+    height: { type: "number", description: "", required: true },
+    width: { type: "number", description: "", required: true },
+  }}
+/>
 

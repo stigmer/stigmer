@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
+import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, type AttachmentInput, type EnvVarInput, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { useComposer } from "./useComposer.js";
@@ -25,6 +25,8 @@ import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import { useAttachments } from "../attachment/useAttachments.js";
 import { AttachmentChipList } from "../attachment/AttachmentChipList.js";
+import { extractClipboardFiles } from "../attachment/clipboard.js";
+import { prepareImageForVision } from "../attachment/prepare-image.js";
 import { useFileReferences } from "../file-reference/useFileReferences.js";
 import { FileReferenceChipList } from "../file-reference/FileReferenceChipList.js";
 import { FILE_REF_MIME } from "../internal/file-tree/index.js";
@@ -42,6 +44,7 @@ import {
   SkillIcon,
   SecretsIcon,
   AlertTriangleIcon,
+  ChipSpinner,
   ResolveSpinner,
   XIcon,
 } from "./icons.js";
@@ -439,7 +442,9 @@ export interface SessionComposerProps {
    * Enable file attachment support in the composer.
    *
    * When `true`, renders an attach button in the toolbar and enables
-   * drag-and-drop file upload on the textarea. Attachments are uploaded
+   * drag-and-drop file upload plus clipboard paste on the textarea —
+   * pasting a screenshot attaches it exactly like a picked file, with
+   * a generated `pasted-image-*` filename. Attachments are uploaded
    * immediately via `agentExecution.uploadAttachment()` and included
    * in `context.attachments` on submit.
    *
@@ -792,6 +797,34 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       }
     },
     [enableAttachments, enableFileReferences, isDisabled, attachments, fileRefs],
+  );
+
+  // Clipboard paste — the Cursor-grade "screenshot straight into the chat"
+  // gesture (#284). Scoped to the textarea, never the document: a global
+  // clipboard listener would hijack paste for the host application.
+  const handlePaste = useCallback(
+    (e: ClipboardEvent<HTMLTextAreaElement>) => {
+      if (!enableAttachments || isDisabled) return;
+
+      // Must stay synchronous through preventDefault: clipboard file
+      // handles are only reliable during event dispatch (see clipboard.ts).
+      const files = extractClipboardFiles(e);
+      if (files.length === 0) return;
+
+      // Files replace the default insert — a copied image usually carries
+      // an HTML/text flavor that would paste as junk markup. A text-only
+      // paste never reaches this point and proceeds untouched.
+      e.preventDefault();
+
+      // Pasted images (and only pasted — see prepare-image.ts) are bounded
+      // to provider resolution before upload. prepareImageForVision never
+      // throws; every failure path yields the original file.
+      const addFiles = attachments.addFiles;
+      void Promise.all(files.map(prepareImageForVision)).then((prepared) => {
+        addFiles(prepared);
+      });
+    },
+    [enableAttachments, isDisabled, attachments.addFiles],
   );
 
   // ---------------------------------------------------------------------------
@@ -1191,7 +1224,23 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // ---------------------------------------------------------------------------
 
   const mcpBlocked = showMcp && !mcpSetup.allReady;
-  const canSend = composer.canSubmit && !mcpBlocked;
+  // Send waits for in-flight uploads: toAttachmentInputs() carries only
+  // "ready" entries, so a send racing an upload would silently drop the
+  // file the user just pasted — the worst failure for "what's wrong in
+  // this screenshot?". Errored entries never gate (their chip offers
+  // retry/remove); only the uploading phase blocks.
+  const uploadsBlocked = enableAttachments && attachments.isUploading;
+  const canSend = composer.canSubmit && !mcpBlocked && !uploadsBlocked;
+
+  // True when the upload gate is the OPERATIVE blocker — the message would
+  // send right now if uploads were done. Drives the attempt-triggered wait
+  // notice so it never claims "waiting for attachments" when the real
+  // blocker is an empty message or MCP setup.
+  const uploadWaitOperative = composer.canSubmit && !mcpBlocked && uploadsBlocked;
+  const [showUploadWaitNotice, setShowUploadWaitNotice] = useState(false);
+  useEffect(() => {
+    if (!uploadsBlocked) setShowUploadWaitNotice(false);
+  }, [uploadsBlocked]);
 
   const handleTextareaKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -1205,11 +1254,15 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       }
       if (!canSend && e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
+        // Disclose the block only on an actual send attempt: a sub-second
+        // picker upload should never flash UI, and the per-chip spinner
+        // already covers passive awareness.
+        if (uploadWaitOperative) setShowUploadWaitNotice(true);
         return;
       }
       composer.textareaProps.onKeyDown(e);
     },
-    [canSend, composer.textareaProps, isEditing, onCancelEdit],
+    [canSend, uploadWaitOperative, composer.textareaProps, isEditing, onCancelEdit],
   );
 
   const workspaceCount = workspace?.entries.length ?? 0;
@@ -1487,6 +1540,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           <textarea
             {...composer.textareaProps}
             onKeyDown={handleTextareaKeyDown}
+            onPaste={handlePaste}
             placeholder={placeholder}
             rows={initialRows}
             autoFocus={autoFocus}
@@ -1534,6 +1588,21 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             )}
           </div>
         ) : null}
+
+        {/* Zone 2.6: Upload-wait notice — shown only after an attempted send
+            while attachments are still uploading (attempt-triggered; see
+            uploadWaitOperative). Muted status styling, not warning: waiting
+            is progress, not a problem. role="status" announces the row to
+            screen readers when it appears. */}
+        {showUploadWaitNotice && (
+          <div
+            role="status"
+            className="mx-3 mb-2 flex items-center gap-2 rounded-md bg-muted px-2.5 py-1.5 text-xs text-muted-foreground"
+          >
+            <ChipSpinner />
+            <span>Waiting for attachments to finish uploading…</span>
+          </div>
+        )}
 
         {/* Zone 2.7: Agent setup warning */}
         {showAgent &&
