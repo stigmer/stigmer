@@ -103,6 +103,7 @@ go_test(
         "update_status_concurrency_test.go",
         "update_status_guard_test.go",
         "update_status_transcript_test.go",
+        "upload_attachment_test.go",
         "usage_aggregation_test.go",
         "validate_service_tier_test.go",
     ],

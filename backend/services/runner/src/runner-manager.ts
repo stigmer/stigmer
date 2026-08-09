@@ -332,6 +332,25 @@ export async function createStigmerRunnerManager(
 
   const activities = await createAllActivities(config);
   markBoot("activities_imported");
+  // Surface the resolved artifact store at boot (see runner.ts for rationale):
+  // a path/type misconfiguration is the #285 failure class, and it should be
+  // visible here rather than only when a read fails mid-execution.
+  try {
+    const { loadArtifactStorageConfig } = await import(
+      "./shared/artifact-storage.js"
+    );
+    const artifactCfg = loadArtifactStorageConfig(config);
+    console.log(
+      `[runner-manager] Artifact store: type=${artifactCfg.type}` +
+        (artifactCfg.type === "local"
+          ? ` | root=${artifactCfg.localPath}`
+          : ` | proxy=${artifactCfg.proxyEndpoint ?? "(unset)"}`),
+    );
+  } catch (err) {
+    console.warn(
+      `[runner-manager] Artifact store: could not resolve config for boot log: ${err}`,
+    );
+  }
   const payloadCodec = await createPayloadCodec(config);
 
   const connection = await NativeConnection.connect({

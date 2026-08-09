@@ -168,7 +168,14 @@ export async function startBackendStack(opts: {
   fs.mkdirSync(path.join(tempDir, "storage"), { recursive: true });
   fs.mkdirSync(path.join(tempDir, "data"), { recursive: true });
   fs.mkdirSync(path.join(tempDir, "workspace"), { recursive: true });
-  fs.mkdirSync(path.join(tempDir, "artifacts"), { recursive: true });
+
+  // One artifact root, shared by server and runner (#285): the base path IS the
+  // root, so both processes point at this exact directory. A dedicated artifact
+  // HTTP port makes the runner's serve URL deterministic instead of relying on
+  // apiPort defaulting to 7234 (GRPC_PORT + 1).
+  const artifactDir = path.join(tempDir, "data", "artifacts");
+  fs.mkdirSync(artifactDir, { recursive: true });
+  const artifactHttpPort = await getFreePort();
 
   console.log(`[e2e] Starting backend stack (temp: ${tempDir})`);
 
@@ -200,7 +207,8 @@ export async function startBackendStack(opts: {
     DB_PATH: path.join(tempDir, "stigmer.db"),
     STORAGE_PATH: path.join(tempDir, "storage"),
     ARTIFACT_STORAGE_TYPE: "local",
-    ARTIFACT_LOCAL_BASE_PATH: path.join(tempDir, "data"),
+    ARTIFACT_LOCAL_BASE_PATH: artifactDir,
+    ARTIFACT_HTTP_PORT: String(artifactHttpPort),
     ENV: "local",
     LOG_LEVEL: "info",
     TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE: "stigmer_runner",
@@ -257,7 +265,10 @@ export async function startBackendStack(opts: {
           // mode, the checkpointer to http. Pin both to local/memory. The
           // interrupt/resume approval gate needs a checkpointer (memory is fine).
           ARTIFACT_STORAGE_TYPE: "local",
-          LOCAL_ARTIFACT_PATH: path.join(tempDir, "artifacts"),
+          // Same directory the server writes to, and the server's artifact file
+          // server for blob downloads (#285).
+          LOCAL_ARTIFACT_PATH: artifactDir,
+          LOCAL_ARTIFACT_SERVE_URL: `http://127.0.0.1:${artifactHttpPort}`,
           STIGMER_CHECKPOINTER_TYPE: "memory",
           // Avoid a boot-time MCP backfill network call (hermetic test detail).
           SKIP_MCP_CONNECT_BACKFILL: "true",

@@ -37,6 +37,7 @@
 //!     openai_api_key: None,
 //!     workspace_root_dir: None,
 //!     proxy_endpoint: Some("https://api.stigmer.ai".into()),
+//!     local_artifact_path: None, // OSS/local mode only; ignored with a proxy
 //!     extra_env: Default::default(),
 //! })
 //! .await?;

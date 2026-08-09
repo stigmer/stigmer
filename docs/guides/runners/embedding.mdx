@@ -319,6 +319,9 @@ host.start(RunnerConfig {
     openai_api_key: None,
     workspace_root_dir: None,
     proxy_endpoint: Some("https://api.stigmer.ai".into()),
+    // OSS/local mode only (no proxy): the artifact dir shared with the local
+    // stigmer-server. Ignored here since a proxy is set.
+    local_artifact_path: None,
     // Additional env for the runner (e.g. LOG_LEVEL). Keys the host composes
     // itself, including the credential vars above, are reserved and rejected.
     extra_env: Default::default(),

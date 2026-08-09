@@ -313,18 +313,51 @@ function resolveMountPath(attachment: Attachment): string {
         "mountPath resolves to an empty path after removing leading slashes",
       );
     }
+    // A caller-supplied mount path is untrusted. Stripping leading slashes does
+    // not stop `..` segments from climbing out of the workspace root on the
+    // non-`.stigmer/` branch (the `.stigmer/`-routed branch is already guarded
+    // by LocalWorkspaceBackend.resolvePath). Reject any path that normalizes to
+    // an escape before it reaches the backend write.
+    if (escapesRoot(cleaned)) {
+      throw new AttachmentInjectionError(
+        attachment.filename,
+        `mount path '${attachment.mountPath}' escapes the workspace root`,
+      );
+    }
     return cleaned;
   }
 
-  const filename = attachment.filename || deriveFilename(attachment.storageKey);
-  if (!filename) {
+  const rawName = attachment.filename || deriveFilename(attachment.storageKey);
+  if (!rawName) {
     throw new AttachmentInjectionError(
       "(unknown)",
       "attachment has neither filename nor storageKey — cannot determine mount path",
     );
   }
 
+  // The filename is untrusted; reduce it to a single path component so it lands
+  // directly under the inputs prefix rather than steering the write elsewhere.
+  const filename = posix.basename(rawName);
+  if (filename === "" || filename === "." || filename === "..") {
+    throw new AttachmentInjectionError(
+      rawName,
+      `filename '${rawName}' does not yield a usable name for materialization`,
+    );
+  }
+
   return `${DEFAULT_INPUTS_PREFIX}/${filename}`;
+}
+
+// escapesRoot reports whether a workspace-relative mount path would climb out
+// of the workspace root once normalized. Mount paths are forward-slash,
+// workspace-relative strings, so posix normalization is the correct semantics.
+function escapesRoot(relPath: string): boolean {
+  const normalized = posix.normalize(relPath);
+  return (
+    normalized === ".." ||
+    normalized.startsWith("../") ||
+    posix.isAbsolute(normalized)
+  );
 }
 
 function deriveFilename(storageKey: string): string {

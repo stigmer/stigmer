@@ -56,7 +56,7 @@ go build -o stigmer-server cmd/server/main.go
 ```
 
 Default configuration:
-- **Port**: 8080
+- **Port**: 7234
 - **Database**: `~/.stigmer/stigmer.db`
 - **Log Level**: INFO
 
@@ -64,11 +64,15 @@ Default configuration:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `GRPC_PORT` | gRPC server port | 8080 |
+| `GRPC_PORT` | gRPC server port | 7234 |
 | `DB_PATH` | SQLite database path | `~/.stigmer/stigmer.db` |
+| `STORAGE_PATH` | Skill artifact storage directory | `~/.stigmer/storage` |
 | `LOG_LEVEL` | Logging level (debug, info, warn, error) | info |
 | `ENV` | Environment (local, dev, prod) | local |
 | `STIGMER_OAUTH_REDIRECT_URI` | Frontend OAuth callback URL for MCP server auth (e.g. `http://localhost:8234/auth/oauth/callback`). When empty, OAuth Connect is disabled. | _(empty)_ |
+| `ARTIFACT_STORAGE_TYPE` | Artifact backend: `local` (filesystem) or `r2` (S3-compatible object storage). | local |
+| `ARTIFACT_LOCAL_BASE_PATH` | Root of the local artifact store. A key `K` is stored at `<base>/<K>` (no implicit `artifacts` segment). **In local mode the runner's `LOCAL_ARTIFACT_PATH` must equal this**, or artifacts written by the server will not resolve in the runner (stigmer/stigmer#285). | `~/.stigmer/data/artifacts` |
+| `ARTIFACT_HTTP_PORT` | Port of the HTTP file server that serves local artifacts (used only when `ARTIFACT_STORAGE_TYPE=local`). | `GRPC_PORT + 1` (7235) |
 
 ## Controllers
 

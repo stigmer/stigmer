@@ -17,7 +17,8 @@
  */
 
 import { mkdir, writeFile, readFile, access, rm } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
+import { homedir } from "node:os";
 import type { Config } from "../config.js";
 
 // ── Interface ────────────────────────────────────────────────────────
@@ -53,7 +54,7 @@ export class LocalArtifactStorage implements ArtifactStorage {
   }
 
   async upload(key: string, content: Buffer, _contentType?: string): Promise<string> {
-    const filePath = join(this.basePath, key);
+    const filePath = this.resolveWithinRoot(key);
     await mkdir(dirname(filePath), { recursive: true });
     await writeFile(filePath, content);
     return key;
@@ -67,21 +68,50 @@ export class LocalArtifactStorage implements ArtifactStorage {
     // Direct disk read — the exact inverse of `upload`. The runner wrote these
     // bytes to `basePath`, so it reads them back without a self-HTTP round-trip
     // and without depending on the serve URL being set or reachable.
+    const filePath = this.resolveWithinRoot(key);
     try {
-      return await readFile(join(this.basePath, key));
+      return await readFile(filePath);
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
-      throw new Error(`Artifact not found for key '${key}': ${reason}`);
+      // A miss here in local mode almost always means the runner and the
+      // stigmer-server disagree on the artifact directory. Name the fix inline
+      // so a stock-install operator does not have to reverse-engineer it (#285).
+      throw new Error(
+        `Artifact not found for key '${key}' under local artifact root '${this.basePath}': ${reason}. ` +
+        `In local mode LOCAL_ARTIFACT_PATH must equal the stigmer-server's ARTIFACT_LOCAL_BASE_PATH ` +
+        `(default '~/.stigmer/data/artifacts').`,
+      );
     }
   }
 
   async exists(key: string): Promise<boolean> {
+    const filePath = this.resolveWithinRoot(key);
     try {
-      await access(join(this.basePath, key));
+      await access(filePath);
       return true;
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Map a storage key to an absolute path and guarantee it stays inside
+   * `basePath`. Storage keys embed a caller-influenced attachment filename, and
+   * `join` *cleans* `..` rather than rejecting it — so without this guard a
+   * crafted key escapes the store and reads or writes arbitrary paths. Mirrors
+   * the Go `LocalStorage` containment check so both implementations of the one
+   * storage contract behave identically. Escapes throw; they never return a
+   * usable path.
+   */
+  private resolveWithinRoot(key: string): string {
+    const root = resolve(this.basePath);
+    const full = resolve(this.basePath, key);
+    if (full !== root && !full.startsWith(root + sep)) {
+      throw new Error(
+        `storage key '${key}' resolves outside the artifact storage root`,
+      );
+    }
+    return full;
   }
 }
 
@@ -240,6 +270,21 @@ export interface ArtifactStorageConfig {
   readonly proxyAuthToken: ProxyAuthTokenSource | null;
 }
 
+/**
+ * The default local artifact root, `~/.stigmer/data/artifacts`. This must be
+ * the SAME directory the stigmer-server writes to (its ARTIFACT_LOCAL_BASE_PATH
+ * default) so a storage-key artifact the server wrote resolves when the runner
+ * reads it back (#285). The old default (`/var/stigmer/artifacts`) pointed at an
+ * unrelated, non-writable tree on a stock host, silently disabling the store.
+ * Mirrors the Go server's defensive fallback when the home dir is unresolved.
+ */
+function defaultLocalArtifactPath(): string {
+  const home = homedir();
+  return home
+    ? join(home, ".stigmer", "data", "artifacts")
+    : join(".", "artifacts");
+}
+
 export function loadArtifactStorageConfig(config: Config): ArtifactStorageConfig {
   // Storage follows transport, not execution location: if a proxy endpoint is
   // configured, push artifacts through it (the proxy brokers R2). This holds for
@@ -254,7 +299,7 @@ export function loadArtifactStorageConfig(config: Config): ArtifactStorageConfig
 
   return {
     type,
-    localPath: process.env.LOCAL_ARTIFACT_PATH ?? "/var/stigmer/artifacts",
+    localPath: process.env.LOCAL_ARTIFACT_PATH ?? defaultLocalArtifactPath(),
     localServeUrl: process.env.LOCAL_ARTIFACT_SERVE_URL ?? "http://localhost:7235",
     proxyEndpoint: type === "proxy" ? (config.proxyEndpoint ?? null) : null,
     // Prefer the live ref: renewal rotates the token in place and uploads
@@ -355,8 +400,10 @@ export async function resolveUsableArtifactStorage(
   if (cfg.type === "local" && !(await isLocalPathWritable(cfg.localPath))) {
     console.warn(
       `[artifact-storage] local path not writable — file capture degrades to the ` +
-      `deny-gate and tool-output offload is disabled: execution=${ctx.executionId}, ` +
-      `path=${cfg.localPath}`,
+      `deny-gate, tool-output offload is disabled, and storage-backed attachments ` +
+      `will fail: execution=${ctx.executionId}, path=${cfg.localPath}. ` +
+      `Set LOCAL_ARTIFACT_PATH to a writable directory that equals the stigmer-server's ` +
+      `ARTIFACT_LOCAL_BASE_PATH (default '~/.stigmer/data/artifacts').`,
     );
     return undefined;
   }

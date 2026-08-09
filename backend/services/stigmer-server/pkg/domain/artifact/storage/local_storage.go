@@ -6,11 +6,16 @@ import (
 	neturl "net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
 // LocalStorage implements ArtifactStorage using the local filesystem.
-// Artifacts are stored in: <basePath>/artifacts/<key>
+//
+// The configured base path IS the artifact root: a key K is stored at
+// <basePath>/<K>, with no implicit "artifacts" segment. This makes the base
+// path the exact directory the agent-runner reads via LOCAL_ARTIFACT_PATH, so
+// the server and the runner share one store by construction (#285).
 type LocalStorage struct {
 	basePath string
 	serveURL string // Base URL for generating download URLs
@@ -18,21 +23,23 @@ type LocalStorage struct {
 
 // NewLocalStorage creates a new local filesystem storage backend.
 func NewLocalStorage(basePath, serveURL string) (*LocalStorage, error) {
-	// Ensure artifacts directory exists
-	artifactsDir := filepath.Join(basePath, "artifacts")
-	if err := os.MkdirAll(artifactsDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create artifacts directory: %w", err)
-	}
-
-	return &LocalStorage{
+	s := &LocalStorage{
 		basePath: basePath,
 		serveURL: serveURL,
-	}, nil
+	}
+	// Ensure artifacts directory exists
+	if err := os.MkdirAll(s.root(), 0755); err != nil {
+		return nil, fmt.Errorf("failed to create artifacts directory: %w", err)
+	}
+	return s, nil
 }
 
 // Upload saves the artifact to local filesystem.
 func (s *LocalStorage) Upload(ctx context.Context, key string, data []byte, contentType string) error {
-	filePath := s.getFilePath(key)
+	filePath, err := s.resolveWithinRoot(key)
+	if err != nil {
+		return err
+	}
 
 	// Ensure parent directory exists
 	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
@@ -49,7 +56,10 @@ func (s *LocalStorage) Upload(ctx context.Context, key string, data []byte, cont
 
 // Download retrieves the artifact from local filesystem.
 func (s *LocalStorage) Download(ctx context.Context, key string) ([]byte, error) {
-	filePath := s.getFilePath(key)
+	filePath, err := s.resolveWithinRoot(key)
+	if err != nil {
+		return nil, err
+	}
 
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -86,10 +96,12 @@ func (s *LocalStorage) GetSignedURL(ctx context.Context, key string, expiresIn t
 
 // Delete removes the artifact from filesystem.
 func (s *LocalStorage) Delete(ctx context.Context, key string) error {
-	filePath := s.getFilePath(key)
+	filePath, err := s.resolveWithinRoot(key)
+	if err != nil {
+		return err
+	}
 
-	err := os.Remove(filePath)
-	if err != nil && !os.IsNotExist(err) {
+	if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to delete artifact: %w", err)
 	}
 
@@ -101,9 +113,12 @@ func (s *LocalStorage) Delete(ctx context.Context, key string) error {
 
 // Exists checks if the artifact file exists.
 func (s *LocalStorage) Exists(ctx context.Context, key string) (bool, error) {
-	filePath := s.getFilePath(key)
+	filePath, err := s.resolveWithinRoot(key)
+	if err != nil {
+		return false, err
+	}
 
-	_, err := os.Stat(filePath)
+	_, err = os.Stat(filePath)
 	if err == nil {
 		return true, nil
 	}
@@ -115,7 +130,7 @@ func (s *LocalStorage) Exists(ctx context.Context, key string) (bool, error) {
 
 // Health checks local filesystem accessibility.
 func (s *LocalStorage) Health(ctx context.Context) error {
-	artifactsDir := filepath.Join(s.basePath, "artifacts")
+	artifactsDir := s.root()
 
 	// Check if directory exists and is writable
 	info, err := os.Stat(artifactsDir)
@@ -139,17 +154,47 @@ func (s *LocalStorage) Health(ctx context.Context) error {
 	return nil
 }
 
-// getFilePath returns the full filesystem path for a storage key.
-func (s *LocalStorage) getFilePath(key string) string {
-	return filepath.Join(s.basePath, "artifacts", key)
+// root is the single directory every artifact key resolves under. The base path
+// is the root itself (#285): keeping it in one place means the key→path mapping,
+// the health probe, and the cleanup floor can never disagree about where the
+// store lives.
+func (s *LocalStorage) root() string {
+	return s.basePath
 }
 
-// cleanupEmptyDirs removes empty parent directories up to the artifacts root.
-func (s *LocalStorage) cleanupEmptyDirs(dir string) {
-	artifactsRoot := filepath.Join(s.basePath, "artifacts")
+// resolveWithinRoot maps a storage key to an absolute filesystem path and
+// guarantees the result stays inside the artifact root. Storage keys carry
+// caller-influenced segments (an attachment's original filename rides in the
+// key), and `filepath.Join` *cleans* `..` rather than rejecting it — so without
+// this guard a crafted key escapes the store and reads or writes arbitrary
+// paths. Any key that resolves outside the root is refused with a descriptive,
+// non-path error; the caller never receives a usable path for an escape.
+func (s *LocalStorage) resolveWithinRoot(key string) (string, error) {
+	root := s.root()
+	full := filepath.Join(root, key)
+	if !isWithin(root, full) {
+		return "", fmt.Errorf("storage key %q resolves outside the artifact storage root", key)
+	}
+	return full, nil
+}
 
-	// Don't delete the artifacts root directory
-	if dir == artifactsRoot || !filepath.HasPrefix(dir, artifactsRoot) {
+// isWithin reports whether `path` is `root` itself or a descendant of it. It
+// compares cleaned paths with a trailing separator so a sibling whose name
+// merely shares a prefix (e.g. `/a/bc` vs `/a/b`) is correctly excluded — the
+// bug the deprecated, lexical `filepath.HasPrefix` would have introduced.
+func isWithin(root, path string) bool {
+	root = filepath.Clean(root)
+	path = filepath.Clean(path)
+	return path == root || strings.HasPrefix(path, root+string(os.PathSeparator))
+}
+
+// cleanupEmptyDirs removes empty parent directories up to (but not including)
+// the artifacts root.
+func (s *LocalStorage) cleanupEmptyDirs(dir string) {
+	root := s.root()
+
+	// Never climb above or delete the artifacts root itself.
+	if !isWithin(root, dir) || filepath.Clean(dir) == filepath.Clean(root) {
 		return
 	}
 

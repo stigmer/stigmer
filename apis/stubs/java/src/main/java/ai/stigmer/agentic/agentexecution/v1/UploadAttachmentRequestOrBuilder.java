@@ -15,11 +15,14 @@ public interface UploadAttachmentRequestOrBuilder extends
    * Original filename of the attachment.
    *
    * Used in the storage path and for display purposes.
-   * Should not contain path separators or special characters.
+   * Must be a bare filename with no path separators and no `.`/`..` traversal
+   * segments — it is interpolated into the storage key and, on the local
+   * backend, into an on-disk path.
    *
    * Examples: "dataset.csv", "config.json", "report.pdf"
    *
-   * Validation: Required, minimum 1 character
+   * Validation: Required, minimum 1 character, no path separators or traversal
+   * segments
    * </pre>
    *
    * <code>string filename = 1 [json_name = "filename", (.buf.validate.field) = { ... }</code>
@@ -31,11 +34,14 @@ public interface UploadAttachmentRequestOrBuilder extends
    * Original filename of the attachment.
    *
    * Used in the storage path and for display purposes.
-   * Should not contain path separators or special characters.
+   * Must be a bare filename with no path separators and no `.`/`..` traversal
+   * segments — it is interpolated into the storage key and, on the local
+   * backend, into an on-disk path.
    *
    * Examples: "dataset.csv", "config.json", "report.pdf"
    *
-   * Validation: Required, minimum 1 character
+   * Validation: Required, minimum 1 character, no path separators or traversal
+   * segments
    * </pre>
    *
    * <code>string filename = 1 [json_name = "filename", (.buf.validate.field) = { ... }</code>

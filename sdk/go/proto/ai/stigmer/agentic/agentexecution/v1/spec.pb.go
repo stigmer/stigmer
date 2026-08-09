@@ -836,6 +836,11 @@ type Attachment struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Original filename for display and default mount path derivation.
 	// Example: "config.yaml", "input-data.zip"
+	//
+	// Must be a bare filename: no path separators and no `.`/`..` traversal
+	// segments. The filename is interpolated into the storage key and, on the
+	// local backend, into an on-disk path, so path structure here is a
+	// directory-traversal vector.
 	Filename string `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`
 	// Reference to pre-uploaded file in artifact store (required).
 	// Obtained by calling uploadAttachment RPC before creating the execution.
@@ -1066,10 +1071,11 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x17ContextManagementConfig\x123\n" +
 	"\x15disable_summarization\x18\x01 \x01(\bR\x14disableSummarization\x12A\n" +
 	"\x18custom_trigger_threshold\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x16customTriggerThreshold\x129\n" +
-	"\x14custom_target_tokens\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x12customTargetTokens\"\xd6\x01\n" +
+	"\x14custom_target_tokens\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x12customTargetTokens\"\x96\x03\n" +
 	"\n" +
-	"Attachment\x12#\n" +
-	"\bfilename\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bfilename\x12(\n" +
+	"Attachment\x12\xe2\x01\n" +
+	"\bfilename\x18\x01 \x01(\tB\xc5\x01\xbaH\xc1\x01\xba\x01\xb9\x01\n" +
+	"\x1battachment.filename.no_path\x12Nfilename must be a bare filename without path separators or traversal segments\x1aJ!this.contains('/') && !this.contains('\\\\') && this != '.' && this != '..'r\x02\x10\x01R\bfilename\x12(\n" +
 	"\vstorage_key\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"storageKey\x12\x1d\n" +
 	"\n" +

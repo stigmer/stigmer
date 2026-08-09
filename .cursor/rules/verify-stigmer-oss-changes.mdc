@@ -26,6 +26,7 @@ Use this mapping to decide which targets to run. A file matching **any** row tri
 | `sdk/typescript/src/**` | `npm run typecheck -w @stigmer/sdk` | SDK TypeScript type check |
 | `sdk/react/src/**` | `npm run lint -w @stigmer/react && npm run typecheck -w @stigmer/react` | React SDK lint + type check |
 | `sdk/ink/src/**` | `npm run typecheck -w @stigmer/ink` | Ink SDK type check |
+| `backend/services/runner/src/**` | `cd backend/services/runner && npm run typecheck && npm test` | Runner (`@stigmer/runner`) type check + Vitest unit tests. Not a root npm workspace, so run from the package dir (mirrors `make test-runner`). |
 | `client-apps/web/src/**` | `npm run lint -w client-apps/web` | Web console lint (includes theme token rules) |
 | `client-apps/desktop/src/**`, `client-apps/desktop/src-tauri/**` | `make verify-desktop` | Desktop lint + typecheck + cargo check |
 | `crates/stigmer-runner-host/**` | `cd crates/stigmer-runner-host && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo build && cargo test` (mirrors `ci.crate`) | Rust fmt + clippy + build + test |

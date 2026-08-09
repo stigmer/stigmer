@@ -1347,11 +1347,14 @@ type UploadAttachmentRequest struct {
 	// Original filename of the attachment.
 	//
 	// Used in the storage path and for display purposes.
-	// Should not contain path separators or special characters.
+	// Must be a bare filename with no path separators and no `.`/`..` traversal
+	// segments — it is interpolated into the storage key and, on the local
+	// backend, into an on-disk path.
 	//
 	// Examples: "dataset.csv", "config.json", "report.pdf"
 	//
-	// Validation: Required, minimum 1 character
+	// Validation: Required, minimum 1 character, no path separators or traversal
+	// segments
 	Filename string `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`
 	// Binary content of the file.
 	//
@@ -3343,9 +3346,10 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\"4\n" +
 	"\x19ResumeAgentExecutionInput\x12\x17\n" +
-	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"\x83\x01\n" +
-	"\x17UploadAttachmentRequest\x12#\n" +
-	"\bfilename\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bfilename\x12 \n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"\xca\x02\n" +
+	"\x17UploadAttachmentRequest\x12\xe9\x01\n" +
+	"\bfilename\x18\x01 \x01(\tB\xcc\x01\xbaH\xc8\x01\xba\x01\xc0\x01\n" +
+	"\"upload_attachment.filename.no_path\x12Nfilename must be a bare filename without path separators or traversal segments\x1aJ!this.contains('/') && !this.contains('\\\\') && this != '.' && this != '..'r\x02\x10\x01R\bfilename\x12 \n" +
 	"\acontent\x18\x02 \x01(\fB\x06\xbaH\x03\xc8\x01\x01R\acontent\x12!\n" +
 	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\";\n" +
 	"\x18UploadAttachmentResponse\x12\x1f\n" +

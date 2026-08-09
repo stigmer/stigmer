@@ -170,8 +170,8 @@ All configuration is environment-driven. Names and defaults below are verified a
 | Variable | Applies to | Required | Default | Purpose |
 |----------|-----------|----------|---------|---------|
 | `ARTIFACT_STORAGE_TYPE` | All | No | `proxy` if `STIGMER_PROXY_ENDPOINT` is set, else `local` | Selects the artifact backend: `local` (filesystem, served by the Stigmer backend) or `proxy` (presigned URLs via the proxy). An explicit value always wins. Storage follows transport, not execution location. |
-| `LOCAL_ARTIFACT_PATH` | Local storage | No | `/var/stigmer/artifacts` | Filesystem path for the local artifact backend. |
-| `LOCAL_ARTIFACT_SERVE_URL` | Local storage | No | `http://localhost:7235` | Base URL the local backend uses to construct artifact download URLs. |
+| `LOCAL_ARTIFACT_PATH` | Local storage | No | `~/.stigmer/data/artifacts` | Filesystem root of the local artifact store. **Must equal the stigmer-server's `ARTIFACT_LOCAL_BASE_PATH`** — in local mode the server writes an artifact to `<ARTIFACT_LOCAL_BASE_PATH>/<key>` and the runner reads it from `<LOCAL_ARTIFACT_PATH>/<key>`, so a mismatch makes every storage-key attachment and offload fail to resolve. The defaults align out of the box; the CLI local daemon sets both explicitly. |
+| `LOCAL_ARTIFACT_SERVE_URL` | Local storage | No | `http://localhost:7235` | Base URL of the server's artifact HTTP file server (its `ARTIFACT_HTTP_PORT`, default `GRPC_PORT + 1`). Used for blob downloads; the runner's own read-back goes straight to disk. |
 
 ### Claim-check (large Temporal payloads)
 

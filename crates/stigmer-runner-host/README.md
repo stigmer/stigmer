@@ -30,6 +30,10 @@ host.start(RunnerConfig {
     openai_api_key: None,
     workspace_root_dir: None,
     proxy_endpoint: None,
+    // OSS/local mode: point at the same artifact dir the stigmer-server uses
+    // (its ARTIFACT_LOCAL_BASE_PATH). None uses the aligned default
+    // ~/.stigmer/data/artifacts. Ignored when proxy_endpoint is set.
+    local_artifact_path: None,
     extra_env: Default::default(),
 })
 .await?;

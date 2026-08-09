@@ -33,6 +33,14 @@ pub struct RunnerConfig {
     // default (e.g. a desktop's ~/.stigmer path) is host policy and lives in the binding.
     pub workspace_root_dir: Option<String>,
     pub proxy_endpoint: Option<String>,
+    /// Local artifact store directory for OSS/local mode (no `proxy_endpoint`). When the
+    /// runner reads and writes artifacts on the local filesystem, this must be the SAME
+    /// directory the stigmer-server uses (its `ARTIFACT_LOCAL_BASE_PATH`), or
+    /// storage-backed attachments and tool-output offloads fail to resolve
+    /// (stigmer/stigmer#285). `None` lets the runner fall back to its default
+    /// (`~/.stigmer/data/artifacts`), which already matches the server's default.
+    #[serde(default)]
+    pub local_artifact_path: Option<String>,
     /// Additional env vars for the spawned runner (e.g. `LOG_LEVEL`, or
     /// `STIGMER_RUNNER_HITL_SECRET` for a HITL fingerprint key stable across replicas).
     /// Keys the host owns (everything `build_env` emits) and the provider keys above are

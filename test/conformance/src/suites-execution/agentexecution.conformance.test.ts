@@ -40,10 +40,13 @@
 // - recover happy path (needs a genuinely FAILED execution);
 // - usage reports, artifact download/content, subscribe streaming, sub-agents.
 import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFile } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { create } from "@bufbuild/protobuf";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -637,4 +640,68 @@ describe("AgentExecution conformance — one-call session bootstrap (session_spe
   // (suites/agentexecution.conformance.test.ts): they need no engine, and only
   // src/suites/** runs against the cloud edition — moving them there is what
   // gates cloud on the shared validation contract. Do not re-add them here.
+});
+
+// The cross-process artifact contract (stigmer/stigmer#285). Nothing else in the
+// suite exercises it: the server writes an uploaded attachment to its local
+// store, and the runner — a separate process — must read it back from the SAME
+// directory. Before the fix the two disagreed on the path and this failed; the
+// harness now points both at one root (see server-process.ts / runner-process.ts).
+describe("AgentExecution conformance — attachments (#285)", () => {
+  it("resolves a storage-key attachment (no local_path) the server wrote to the shared local store", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentId = await provisionAgent(org, uniqueName("agent-attach"));
+
+    // Upload through the server; it lands in the server's local artifact store.
+    const filename = "readme-285.txt";
+    const content = Buffer.from(`shared-store proof ${Date.now()}`);
+    const uploaded = await clients.agentExecutionCommand.uploadAttachment(
+      create(UploadAttachmentRequestSchema, {
+        filename,
+        content,
+        contentType: "text/plain",
+      }),
+    );
+    expect(uploaded.storageKey).toMatch(/^attachments\/.+\/readme-285\.txt$/);
+
+    // A storage-key attachment with NO local_path — the branch that forces the
+    // runner to read from artifact storage rather than the CLI's local fast path.
+    mock.enqueue(anthropicText("Got your file."));
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({
+        org,
+        name: uniqueName("aex-attach"),
+        agentId,
+        message: "Here is a file.",
+        attachments: [{ filename, storageKey: uploaded.storageKey }],
+      }),
+    );
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: execution.metadata!.id }));
+
+    // Attachment injection is fail-hard, so reaching COMPLETED is itself proof
+    // that the runner resolved the storage-key attachment from the shared store.
+    const final = await awaitTerminal(clients, execution.metadata!.id);
+    expect(
+      final.status?.phase,
+      `expected COMPLETED; error: ${final.status?.error || "(none)"}`,
+    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+
+    // And the materialized bytes match end to end. The runner writes attachments
+    // to the session platform dir under its HOME (which it inherits from this
+    // process) and never deletes the session tree, so we can read it directly.
+    const sessionId = final.spec?.sessionId;
+    expect(sessionId, "execution should carry a session id").toBeTruthy();
+    const home = process.env.HOME || process.env.USERPROFILE || homedir();
+    const materialized = join(
+      home,
+      ".stigmer",
+      "sessions",
+      sessionId!,
+      "platform",
+      "inputs",
+      filename,
+    );
+    const got = await readFile(materialized);
+    expect(Buffer.compare(got, content)).toBe(0);
+  });
 });

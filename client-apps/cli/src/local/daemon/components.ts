@@ -9,6 +9,7 @@
 
 import { dirname, join } from "node:path";
 import { RUNNER_TASK_QUEUE, RUNNER_READY_MARKER, SERVER_PID_FILE, RUNNER_PID_FILE, SERVER_PORT, TEMPORAL_NAMESPACE } from "../constants.js";
+import { ARTIFACTS_SUBDIR } from "../paths.js";
 import { waitForTcp } from "../net/tcp.js";
 import type { DaemonConfig } from "./env.js";
 import type { ComponentSpec, ReadinessGate } from "./types.js";
@@ -31,6 +32,10 @@ export function buildServerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = p
     TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE: RUNNER_TASK_QUEUE,
     DB_PATH: join(configDir, "stigmer.db"),
     STORAGE_PATH: join(configDir, "storage"),
+    // The artifact root the runner also reads (#285). Set explicitly rather
+    // than relying on the server's compiled default so the shared-store contract
+    // is visible and enforceable here, next to the runner's LOCAL_ARTIFACT_PATH.
+    ARTIFACT_LOCAL_BASE_PATH: join(config.dataDir, ARTIFACTS_SUBDIR),
   };
 }
 
@@ -49,6 +54,12 @@ export function buildRunnerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = p
     WORKSPACE_ROOT_DIR: join(config.dataDir, "workspace"),
     STIGMER_TASK_QUEUE: RUNNER_TASK_QUEUE,
     LOG_LEVEL: base.LOG_LEVEL ?? "info",
+    // Read artifacts from the exact directory the server writes to (#285), and
+    // pin the serve URL to the server's artifact HTTP port (GRPC_PORT + 1)
+    // rather than leaving two independent defaults to agree by luck.
+    ARTIFACT_STORAGE_TYPE: "local",
+    LOCAL_ARTIFACT_PATH: join(config.dataDir, ARTIFACTS_SUBDIR),
+    LOCAL_ARTIFACT_SERVE_URL: `http://localhost:${SERVER_PORT + 1}`,
   };
   if (config.cursorApiKey !== undefined) env.CURSOR_API_KEY = config.cursorApiKey;
   // Explicit set (after the base spread) so the launcher-resolved key wins over any
