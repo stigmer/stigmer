@@ -118,11 +118,23 @@ export function anthropicToolUses(
   };
 }
 
+// One LLM call as the provider would have received it: the request path and
+// the parsed JSON body (the Anthropic `messages` payload). Captured so a test
+// can assert on what the runner actually SENT — e.g. that an image attachment
+// arrived as a base64 image block — not just on what came back.
+export interface CapturedLlmRequest {
+  path: string;
+  body: unknown;
+}
+
 export class MockLlmProxy {
   private server: Server | undefined;
   // FIFO of pending turns; a request claims the head synchronously on arrival.
   private readonly queue: QueuedResponse[] = [];
   private consumedCount = 0;
+  // Every LLM request body this proxy has received, in arrival order. Cleared
+  // by reset() at the afterEach boundary like the queue.
+  private readonly captured: CapturedLlmRequest[] = [];
   // In-flight held responses, keyed by an abort callback. releaseHolds() invokes
   // each to unblock a delayed response early (independent of a socket close).
   private readonly activeHolds = new Set<() => void>();
@@ -198,13 +210,22 @@ export class MockLlmProxy {
     this.activeHolds.clear();
   }
 
-  // Drop any unconsumed turns, zero the consumed counter, and re-arm holds. Call
-  // in afterEach so a prior test's leftovers can't leak into the next one.
+  // Drop any unconsumed turns, zero the consumed counter, clear captured
+  // requests, and re-arm holds. Call in afterEach so a prior test's leftovers
+  // can't leak into the next one.
   reset(): void {
     this.queue.length = 0;
     this.consumedCount = 0;
+    this.captured.length = 0;
     this.releaseHolds();
     this.draining = false;
+  }
+
+  // The provider-bound request bodies received so far (arrival order). This is
+  // the only observation point in the repo for "what did the model actually
+  // receive over the wire" — live provider calls are out of conformance scope.
+  requests(): readonly CapturedLlmRequest[] {
+    return this.captured;
   }
 
   // Holds the response for `ms`, resolving early (returning true) if the client
@@ -266,7 +287,20 @@ export class MockLlmProxy {
       return;
     }
 
-    const streaming = await isStreamingRequest(req);
+    // Read the body once: it is both the streaming discriminator and the
+    // captured request a test can assert on.
+    const raw = await readBody(req);
+    let parsedBody: unknown;
+    try {
+      parsedBody = raw.length > 0 ? JSON.parse(raw) : undefined;
+    } catch {
+      parsedBody = raw;
+    }
+    this.captured.push({ path, body: parsedBody });
+    const streaming =
+      typeof parsedBody === "object" &&
+      parsedBody !== null &&
+      (parsedBody as { stream?: unknown }).stream === true;
 
     // Claim the head turn synchronously so concurrent or retried calls can't race
     // for the same entry; an empty queue is a test-authoring error, surfaced as 500.
@@ -307,21 +341,6 @@ export class MockLlmProxy {
     } else {
       writeJson(res, 200, next.body);
     }
-  }
-}
-
-// Resolves true if the request body opts into streaming (the LangChain SDK
-// default). Non-streaming callers get a plain JSON body instead of SSE.
-async function isStreamingRequest(req: IncomingMessage): Promise<boolean> {
-  const raw = await readBody(req);
-  if (raw.length === 0) {
-    return false;
-  }
-  try {
-    const parsed = JSON.parse(raw) as { stream?: unknown };
-    return parsed.stream === true;
-  } catch {
-    return false;
   }
 }
 

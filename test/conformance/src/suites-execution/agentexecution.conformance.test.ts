@@ -704,4 +704,85 @@ describe("AgentExecution conformance — attachments (#285)", () => {
     const got = await readFile(materialized);
     expect(Buffer.compare(got, content)).toBe(0);
   });
+
+  // The T04 vision contract, proven at the provider boundary: an image
+  // attachment must reach the model as an inline image block, not just as a
+  // file on disk. This is the offline substitute for a live vision probe — the
+  // captured request is byte-for-byte what Anthropic would have received
+  // (@langchain/anthropic converts the runner's image_url data-URL block into
+  // the native base64 source block on the wire).
+  it("delivers an image attachment to the provider as an inline base64 image block (vision, T04)", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentId = await provisionAgent(org, uniqueName("agent-vision"));
+
+    // A real (sniffable) PNG: correct magic bytes, arbitrary payload.
+    const filename = "photo-vision.png";
+    const pngBytes = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.alloc(120, 0xab),
+    ]);
+    const uploaded = await clients.agentExecutionCommand.uploadAttachment(
+      create(UploadAttachmentRequestSchema, {
+        filename,
+        content: pngBytes,
+        contentType: "image/png",
+      }),
+    );
+
+    mock.enqueue(anthropicText("I can see the image."));
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({
+        org,
+        name: uniqueName("aex-vision"),
+        agentId,
+        message: "What is in this image?",
+        attachments: [{ filename, storageKey: uploaded.storageKey }],
+      }),
+    );
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: execution.metadata!.id }));
+
+    const final = await awaitTerminal(clients, execution.metadata!.id);
+    expect(
+      final.status?.phase,
+      `expected COMPLETED; error: ${final.status?.error || "(none)"}`,
+    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+
+    // The provider-bound payload: find the user message carrying block content.
+    interface AnthropicWireBlock {
+      type: string;
+      text?: string;
+      source?: { type?: string; media_type?: string; data?: string };
+    }
+    interface AnthropicWireMessage {
+      role: string;
+      content: string | AnthropicWireBlock[];
+    }
+    const llmBodies = mock
+      .requests()
+      .map((r) => r.body as { messages?: AnthropicWireMessage[] } | undefined);
+    const userBlockMessages = llmBodies
+      .flatMap((b) => b?.messages ?? [])
+      .filter((m) => m.role === "user" && Array.isArray(m.content));
+    expect(
+      userBlockMessages.length,
+      "the LLM request should carry a block-content user message",
+    ).toBeGreaterThan(0);
+
+    const blocks = userBlockMessages[0].content as AnthropicWireBlock[];
+    // The ordinal filename label precedes the image (pixel-to-filename
+    // association), and the image arrives as Anthropic's native base64 block
+    // carrying the EXACT uploaded bytes with the sniffed media type.
+    expect(blocks).toEqual([
+      { type: "text", text: `Image 1: ${filename}` },
+      {
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: "image/png",
+          data: pngBytes.toString("base64"),
+        },
+      },
+      expect.objectContaining({ type: "text", text: "What is in this image?" }),
+    ]);
+  });
 });
