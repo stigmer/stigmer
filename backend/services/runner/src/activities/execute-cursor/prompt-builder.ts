@@ -32,6 +32,10 @@ import {
   type SenderIdentity,
 } from "../../shared/sender-identity.js";
 import { formatSessionContextText } from "../../shared/session-context.js";
+import {
+  visionDisclosureLines,
+  type NotViewableEntry,
+} from "../../shared/attachment-vision.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import {
   buildImplementPlanDirective,
@@ -56,6 +60,17 @@ export interface SkillMetadata {
   path: string;
 }
 
+/**
+ * Vision facts about this turn's attachments, rendered inside the
+ * input-files section: which images the model can see inline (in send
+ * order) and which degraded to the file-pointer story. Derived per turn
+ * from the resolved attachments — never carried across turns.
+ */
+export interface VisionPromptInfo {
+  inlineFilenames: string[];
+  notViewable: NotViewableEntry[];
+}
+
 export interface EnhancedPromptOptions {
   instructions: string;
   userMessage: string;
@@ -76,6 +91,8 @@ export interface EnhancedPromptOptions {
   workspaceDirs: string[];
   workspaceFileRefs: string[];
   attachmentPaths: string[];
+  /** Inline/degraded image facts for the input-files section (T04 vision). */
+  vision?: VisionPromptInfo;
   interactionMode?: InteractionMode;
   /**
    * The execution is a Build-from-plan turn (spec.execution_config
@@ -179,7 +196,7 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
   }
 
   if (options.attachmentPaths.length > 0) {
-    sections.push(formatInputFiles(options.attachmentPaths));
+    sections.push(formatInputFiles(options.attachmentPaths, options.vision));
   }
 
   if (options.workspaceFileRefs.length > 0) {
@@ -462,12 +479,20 @@ export function formatWorkspaceContext(dirs: string[]): string {
   ].join("\n");
 }
 
-export function formatInputFiles(paths: string[]): string {
+export function formatInputFiles(paths: string[], vision?: VisionPromptInfo): string {
   const entries = paths.map((p) => `- \`${p}\``);
+  // The vision lines (shared wording, attachment-vision.ts) tell the model
+  // which of these files it can already SEE inline versus which degraded to
+  // path-only — without them an agent silently ignores a photo the user
+  // believes it can see.
+  const disclosure = vision
+    ? visionDisclosureLines(vision.inlineFilenames, vision.notViewable)
+    : [];
   return [
     "<input_files>",
     "The following files have been provided as inputs. Read them when relevant to the task:",
     ...entries,
+    ...disclosure,
     "</input_files>",
   ].join("\n");
 }

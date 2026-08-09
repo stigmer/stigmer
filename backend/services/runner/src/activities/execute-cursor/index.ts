@@ -35,7 +35,7 @@ import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agent
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionControlSignal, ExecutionPhase, FileChangeSetStatus, InteractionMode, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { Run, ConversationTurn } from "@cursor/sdk";
+import type { Run, ConversationTurn, SDKUserMessage } from "@cursor/sdk";
 
 import type { Config } from "../../config.js";
 import { StigmerClient } from "../../client/stigmer-client.js";
@@ -58,6 +58,12 @@ import { readSessionContext } from "../../shared/session-context.js";
 import { withholdSecretContentFromMessages } from "../../shared/tool-row.js";
 import { StallTimeoutError, formatStallFailure } from "../../shared/stall-watchdog.js";
 import { resolveUsableArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
+import {
+  CURSOR_VISION_PROFILE,
+  VisionBudget,
+  toCursorImages,
+  type NotViewableEntry,
+} from "../../shared/attachment-vision.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
 import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
@@ -84,7 +90,7 @@ import { buildCursorSubAgentDefinitions } from "./subagent-config.js";
 import { resolveSkills } from "./skill-resolver.js";
 import { removeStigmerSymlink } from "../../shared/workspace/stigmer-link.js";
 import { resolveAttachments } from "./attachment-resolver.js";
-import { buildEnhancedPrompt, buildReinvocationPrompt, formatConversationCatchupSection, formatInteractionModePrefix, formatImplementPlanSection } from "./prompt-builder.js";
+import { buildEnhancedPrompt, buildReinvocationPrompt, formatConversationCatchupSection, formatInputFiles, formatInteractionModePrefix, formatImplementPlanSection } from "./prompt-builder.js";
 import { installHitlGate, removeHitlGate } from "./workspace-setup.js";
 import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
 import {
@@ -761,14 +767,38 @@ async function executeCursorInner(
 
     // Phase 5b: Resolve attachments (fail-hard — explicit user inputs; see
     // attachment-resolver.ts). Downloads by storage key through the same
-    // artifactStorage resolved for status offload above.
+    // artifactStorage resolved for status offload above. The vision budget
+    // rides along so image attachments are selected for inline delivery while
+    // their bytes are already in hand (attachment-vision.ts owns all policy).
+    const visionBudget = new VisionBudget(CURSOR_VISION_PROFILE);
     const attachmentResults = await resolveAttachments(spec.attachments, {
       sessionId,
       primaryWorkspaceDir,
       mode: config.mode,
       storage: artifactStorage,
+      visionBudget,
     });
     const attachmentPaths = attachmentResults.map((a) => a.relativePath);
+    // Vision facts, derived once from the single resolution result: the
+    // images the model will see inline (in attachment order) and the ones
+    // that degraded to path-only, disclosed in the prompt.
+    const visionImages = attachmentResults.flatMap((a) => (a.vision ? [a.vision] : []));
+    const visionNotViewable: NotViewableEntry[] = attachmentResults.flatMap((a) =>
+      a.visionDegraded ? [{ path: a.relativePath, reason: a.visionDegraded }] : [],
+    );
+    const visionPromptInfo = visionImages.length > 0 || visionNotViewable.length > 0
+      ? {
+          inlineFilenames: visionImages.map((v) => v.filename),
+          notViewable: visionNotViewable,
+        }
+      : undefined;
+    if (visionPromptInfo) {
+      console.log(
+        `[attachment-vision] execution=${executionId} inline=${visionImages.length} ` +
+        `(${visionImages.reduce((n, v) => n + v.byteSize, 0)} bytes) ` +
+        `degraded=${JSON.stringify(visionNotViewable.map((d) => `${d.path}:${d.reason}`))}`,
+      );
+    }
     setupTiming.mark("resolve_attachments");
 
     // Phase 5b3: Exact-apply approved whole-file writes (HITL "what you approve
@@ -1094,6 +1124,7 @@ async function executeCursorInner(
       workspaceDirs: blueprint.workspaceDirs,
       workspaceFileRefs: spec.workspaceFileRefs ?? [],
       attachmentPaths,
+      vision: visionPromptInfo,
       pendingApprovals: adjudicatedApprovals,
       appliedToolCallIds,
       interactionMode,
@@ -1110,6 +1141,20 @@ async function executeCursorInner(
       const schemaStr = JSON.stringify(structuredOutputSchema, null, 2);
       effectivePrompt += `\n\n---\nCRITICAL OUTPUT REQUIREMENT:\nYour final response MUST be a single valid JSON object (no markdown, no commentary, no code fences) that matches this schema:\n${schemaStr}\n\nRespond with ONLY the JSON object. Nothing else.`;
     }
+
+    // Phase 10a1: The turn's vision payload. The invariant is "images
+    // accompany the user's turn message — where the message goes, they go":
+    // every send that delivers this turn's message carries them (the primary
+    // send and both fresh-agent recovery retries, whose empty conversations
+    // genuinely need the re-send), while a HITL re-invocation — whose prompt
+    // carries no user message and whose resumed agent already holds the
+    // images in its native conversation — carries none. Computed ONCE here so
+    // all send sites agree by construction.
+    const turnImages = isHitlReinvocation(approvalDecisions)
+      ? []
+      : toCursorImages(visionImages);
+    const toSendMessage = (sendPrompt: string): string | SDKUserMessage =>
+      turnImages.length > 0 ? { text: sendPrompt, images: turnImages } : sendPrompt;
 
     // Phase 10a2: Log Stigmer preamble size for context trimming diagnostics
     const promptChars = effectivePrompt.length;
@@ -1225,7 +1270,7 @@ async function executeCursorInner(
     // The stall watchdog is armed inside consumeCursorTurnStream (it needs the
     // run to cancel), stored on turnState.stallWatchdog so this shared onDelta can
     // reset it and the activity's finally can stop it as a backstop.
-    const run = await resolution.agent.send(effectivePrompt, {
+    const run = await resolution.agent.send(toSendMessage(effectivePrompt), {
       onDelta: (event) => {
         if (!turnFirstEventEmitted) {
           turnFirstEventEmitted = true;
@@ -1596,7 +1641,10 @@ async function executeCursorInner(
       // poisoned-handle path leaked the fresh agent — it closed the stale one.)
       resolution = { ...resolution, agent: freshAgent, agentId: freshAgent.agentId, isNew: true };
       turnState.streamErrorMessage = undefined;
-      const retryRun = await freshAgent.send(retryPrompt, {
+      // The retry carries the turn's images too (same toSendMessage): the
+      // fresh agent's conversation is empty, so skipping them here would
+      // silently lose the user's photo on a recovered turn.
+      const retryRun = await freshAgent.send(toSendMessage(retryPrompt), {
         onDelta: makeCursorTurnOnDelta(onDeltaDeps),
       });
       await consumeCursorTurnStream(retryRun, streamDeps);
@@ -1735,6 +1783,7 @@ async function executeCursorInner(
             workspaceDirs: blueprint.workspaceDirs,
             workspaceFileRefs: spec.workspaceFileRefs ?? [],
             attachmentPaths,
+            vision: visionPromptInfo,
             pendingApprovals: adjudicatedApprovals,
             interactionMode,
             // buildFromPlan was silently dropped here until T03 Sitting 3 —
@@ -2310,6 +2359,12 @@ export interface BuildPromptInput {
   workspaceDirs: string[];
   workspaceFileRefs: string[];
   attachmentPaths: string[];
+  /**
+   * Vision facts for the input-files section (T04): which attachments the
+   * model sees inline and which degraded to path-only. PER-TURN like the
+   * catchup — it rides both the enhanced prompt and a resumed turn's prefix.
+   */
+  vision?: import("./prompt-builder.js").VisionPromptInfo;
   pendingApprovals: import("@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb").PendingApproval[];
   /**
    * Approved whole-file writes the runner already applied itself (exact-apply).
@@ -2372,6 +2427,20 @@ export interface BuildPromptInput {
  * 3. first execution / fresh   -> buildEnhancedPrompt (full instructions +
  *    agent after resume failure   skills; no prior conversation to inherit)
  */
+/**
+ * Whether this activity invocation is a HITL re-invocation — the turn resumes
+ * an agent purely to convey approval decisions, carrying NO user message.
+ * The single discriminator for everything that must ride with the user's
+ * message and nothing else: the reinvocation prompt shape (below) and the
+ * vision payload (images accompany the message; a resumed agent already holds
+ * them in its native conversation).
+ */
+export function isHitlReinvocation(
+  approvalDecisions: Map<string, ApprovalAction> | undefined,
+): approvalDecisions is Map<string, ApprovalAction> {
+  return approvalDecisions !== undefined && approvalDecisions.size > 0;
+}
+
 export function buildPrompt(input: BuildPromptInput): string {
   const {
     resolution,
@@ -2388,12 +2457,10 @@ export function buildPrompt(input: BuildPromptInput): string {
     conversationCatchup,
   } = input;
 
-  const isHitlReinvocation = approvalDecisions !== undefined && approvalDecisions.size > 0;
-
   // HITL reinvocation: the agent is resumed, so its native context carries the
   // prior conversation; the reinvocation prompt conveys the approval decisions
   // (and which approved writes the runner already exact-applied).
-  if (isHitlReinvocation) {
+  if (isHitlReinvocation(approvalDecisions)) {
     return buildReinvocationPrompt(
       input.pendingApprovals,
       approvalDecisions,
@@ -2407,15 +2474,21 @@ export function buildPrompt(input: BuildPromptInput): string {
   // session's first turn: the interaction-mode prefix (a follow-up can switch
   // Agent→Plan mid-session, and for Cursor the prompt is the only plan-mode
   // enforcement), the implement-plan directive (the build turn is usually a
-  // follow-up on a resumed agent), and the conversation catchup (handback
-  // ALWAYS lands mid-session on a resumed agent — this prefix is the property
-  // the metadata lane structurally cannot deliver, cloud DD-006). Catchup
-  // last: it is context, and context sits closest to the task (the enhanced
-  // prompt's own ordering doctrine).
+  // follow-up on a resumed agent), THIS turn's attachments (spec.attachments
+  // is per-execution — a file sent on a follow-up turn materializes for this
+  // turn and would otherwise never be announced at all), and the conversation
+  // catchup (handback ALWAYS lands mid-session on a resumed agent — this
+  // prefix is the property the metadata lane structurally cannot deliver,
+  // cloud DD-006). Catchup last: it is context, and context sits closest to
+  // the task (the enhanced prompt's own ordering doctrine); the input files
+  // precede it because they are this turn's payload, not background.
   if (resolution.reason === "resumed_successfully") {
     const prefixes = [
       formatInteractionModePrefix(interactionMode),
       formatImplementPlanSection(buildFromPlan, attachmentPaths),
+      attachmentPaths.length > 0
+        ? formatInputFiles(attachmentPaths, input.vision)
+        : undefined,
       conversationCatchup !== undefined
         ? formatConversationCatchupSection(conversationCatchup)
         : undefined,
@@ -2438,6 +2511,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     workspaceDirs,
     workspaceFileRefs,
     attachmentPaths,
+    vision: input.vision,
     interactionMode,
     buildFromPlan,
     contextBridge: input.contextBridge,

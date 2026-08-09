@@ -29,10 +29,17 @@
  * the execution with an actionable error.
  */
 
-import { mkdir, copyFile, writeFile } from "node:fs/promises";
+import { mkdir, copyFile, readFile, stat, writeFile } from "node:fs/promises";
 import { join, basename } from "node:path";
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
+import {
+  isVisionCandidate,
+  type VisionBudget,
+  type VisionDegradedReason,
+  type VisionImage,
+  type VisionOutcome,
+} from "../../shared/attachment-vision.js";
 import { getPlatformDir } from "../../shared/workspace/platform-dir.js";
 import { ensureStigmerSymlink, STIGMER_LOCAL_STATE_DIR } from "../../shared/workspace/stigmer-link.js";
 
@@ -42,6 +49,15 @@ export interface ResolvedAttachment {
   filename: string;
   /** Workspace-relative path the agent reads (`.stigmer/inputs/{filename}`). */
   relativePath: string;
+  /** Present when the attachment was accepted into the turn's vision payload. */
+  vision?: VisionImage;
+  /**
+   * Present when the attachment was plausibly an image but could not ride
+   * inline (see {@link VisionDegradedReason}) — disclosed in the prompt so the
+   * agent never silently ignores a photo the user believes it can see.
+   * Attachments that were never image-shaped carry neither field.
+   */
+  visionDegraded?: VisionDegradedReason;
 }
 
 export interface AttachmentResolverOptions {
@@ -54,6 +70,12 @@ export interface AttachmentResolverOptions {
    * then fails with an actionable error rather than a silent skip.
    */
   storage: ArtifactStorage | undefined;
+  /**
+   * The turn's vision selector (attachment-vision.ts owns all policy).
+   * `undefined` disables inline image delivery; file materialization is
+   * identical either way — vision is strictly additive.
+   */
+  visionBudget?: VisionBudget;
 }
 
 export class AttachmentResolutionError extends Error {
@@ -110,8 +132,9 @@ async function resolveAttachment(
   // Local-mode fast path: the file is already on this machine's disk.
   if (options.mode === "local" && attachment.localPath) {
     const filename = safeInputName(attachment.filename || attachment.localPath);
+    let vision: VisionOutcome | undefined;
     try {
-      await copyFile(attachment.localPath, join(inputsDir, filename));
+      vision = await materializeLocalFile(attachment, filename, inputsDir, options.visionBudget);
     } catch (err) {
       throw new AttachmentResolutionError(
         attachment.filename,
@@ -122,6 +145,7 @@ async function resolveAttachment(
     return {
       filename,
       relativePath: join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, filename),
+      ...visionOutcomeFields(vision),
     };
   }
 
@@ -153,10 +177,53 @@ async function resolveAttachment(
   }
   await writeFile(join(inputsDir, filename), content);
 
+  // The bytes are already in hand for the file write — offer them to the
+  // vision budget before they go out of scope (the sniff decides eligibility;
+  // no pre-filter needed on this branch).
+  const vision = options.visionBudget?.offer(filename, attachment.contentType, content);
+
   return {
     filename,
     relativePath: join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, filename),
+    ...visionOutcomeFields(vision),
   };
+}
+
+/**
+ * Materialize a local-path attachment, reading the bytes only when they are
+ * plausibly a vision candidate within the per-image cap — a 25 MB PDF (or an
+ * oversized image, detected by stat) keeps the plain `copyFile` and never
+ * enters memory. Returns the vision outcome, or `undefined` when vision is
+ * disabled or the file is not a candidate.
+ */
+async function materializeLocalFile(
+  attachment: Attachment,
+  filename: string,
+  inputsDir: string,
+  visionBudget: VisionBudget | undefined,
+): Promise<VisionOutcome | undefined> {
+  const dest = join(inputsDir, filename);
+  if (!visionBudget || !isVisionCandidate(attachment.contentType, filename)) {
+    await copyFile(attachment.localPath, dest);
+    return undefined;
+  }
+  const info = await stat(attachment.localPath);
+  if (visionBudget.exceedsImageCap(info.size)) {
+    await copyFile(attachment.localPath, dest);
+    return visionBudget.offerOversized();
+  }
+  const content = await readFile(attachment.localPath);
+  await writeFile(dest, content);
+  return visionBudget.offer(filename, attachment.contentType, content);
+}
+
+function visionOutcomeFields(
+  outcome: VisionOutcome | undefined,
+): Pick<ResolvedAttachment, "vision" | "visionDegraded"> {
+  if (outcome === undefined || outcome.kind === "skipped") return {};
+  return outcome.kind === "accepted"
+    ? { vision: outcome.image }
+    : { visionDegraded: outcome.reason };
 }
 
 /**

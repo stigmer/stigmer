@@ -16,6 +16,7 @@ import { tmpdir } from "node:os";
 import { resolveAttachments, AttachmentResolutionError } from "../attachment-resolver.js";
 import { getPlatformDir } from "../../../shared/workspace/platform-dir.js";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
+import { CURSOR_VISION_PROFILE, VisionBudget } from "../../../shared/attachment-vision.js";
 
 function makeAttachment(overrides: Partial<{
   filename: string;
@@ -191,5 +192,149 @@ describe("resolveAttachments", () => {
       { filename: "evil.txt", relativePath: ".stigmer/inputs/evil.txt" },
     ]);
     expect(readFileSync(join(platformDir, "inputs", "evil.txt"), "utf-8")).toBe("local-contained");
+  });
+
+  // ── Vision selection (T04) ────────────────────────────────────────────────
+  // Vision is strictly additive: every case below also asserts the file
+  // materialized exactly as it would without a budget.
+
+  const PNG_BYTES = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    Buffer.alloc(56, 0xab),
+  ]);
+  const WEBP_BYTES = Buffer.concat([
+    Buffer.from("RIFF", "ascii"),
+    Buffer.from([0x24, 0x00, 0x00, 0x00]),
+    Buffer.from("WEBP", "ascii"),
+    Buffer.alloc(52, 0xcd),
+  ]);
+
+  describe("vision selection during resolution", () => {
+    it("accepts a storage-key PNG into the vision payload and still writes the file", async () => {
+      const { storage } = makeInMemoryArtifactStorage();
+      await storage.upload("attachments/01ABC/photo.png", PNG_BYTES, "image/png");
+
+      const [resolved] = await resolveAttachments(
+        [makeAttachment({ filename: "photo.png", storageKey: "attachments/01ABC/photo.png", contentType: "image/png" })],
+        options({ storage, visionBudget: new VisionBudget(CURSOR_VISION_PROFILE) }),
+      );
+
+      expect(resolved.vision).toMatchObject({
+        filename: "photo.png",
+        mimeType: "image/png",
+        byteSize: PNG_BYTES.length,
+      });
+      expect(Buffer.from(resolved.vision!.base64, "base64").equals(PNG_BYTES)).toBe(true);
+      expect(resolved.visionDegraded).toBeUndefined();
+      expect(readFileSync(join(platformDir, "inputs", "photo.png")).equals(PNG_BYTES)).toBe(true);
+    });
+
+    it("carries no vision fields for a non-image attachment (normal file story, no disclosure)", async () => {
+      const { storage } = makeInMemoryArtifactStorage();
+      await storage.upload("attachments/01ABC/doc.pdf", Buffer.from("%PDF-1.7"), "application/pdf");
+
+      const [resolved] = await resolveAttachments(
+        [makeAttachment({ filename: "doc.pdf", storageKey: "attachments/01ABC/doc.pdf", contentType: "application/pdf" })],
+        options({ storage, visionBudget: new VisionBudget(CURSOR_VISION_PROFILE) }),
+      );
+
+      expect(resolved.vision).toBeUndefined();
+      expect(resolved.visionDegraded).toBeUndefined();
+    });
+
+    it("degrades a declared image whose bytes are not one (type_mismatch), file intact", async () => {
+      const { storage } = makeInMemoryArtifactStorage();
+      await storage.upload("attachments/01ABC/photo.jpg", Buffer.from("actually HEIC"), "image/jpeg");
+
+      const [resolved] = await resolveAttachments(
+        [makeAttachment({ filename: "photo.jpg", storageKey: "attachments/01ABC/photo.jpg", contentType: "image/jpeg" })],
+        options({ storage, visionBudget: new VisionBudget(CURSOR_VISION_PROFILE) }),
+      );
+
+      expect(resolved.vision).toBeUndefined();
+      expect(resolved.visionDegraded).toBe("type_mismatch");
+      expect(readFileSync(join(platformDir, "inputs", "photo.jpg"), "utf-8")).toBe("actually HEIC");
+    });
+
+    it("degrades WebP on the Cursor profile (unsupported_format)", async () => {
+      const { storage } = makeInMemoryArtifactStorage();
+      await storage.upload("attachments/01ABC/sticker.webp", WEBP_BYTES, "image/webp");
+
+      const [resolved] = await resolveAttachments(
+        [makeAttachment({ filename: "sticker.webp", storageKey: "attachments/01ABC/sticker.webp", contentType: "image/webp" })],
+        options({ storage, visionBudget: new VisionBudget(CURSOR_VISION_PROFILE) }),
+      );
+
+      expect(resolved.visionDegraded).toBe("unsupported_format");
+    });
+
+    it("accepts a localPath PNG in local mode (the read-instead-of-copy branch)", async () => {
+      const srcPath = join(workspaceDir, "shot.png");
+      writeFileSync(srcPath, PNG_BYTES);
+
+      const [resolved] = await resolveAttachments(
+        [makeAttachment({ filename: "shot.png", storageKey: "", localPath: srcPath, contentType: "image/png" })],
+        options({ visionBudget: new VisionBudget(CURSOR_VISION_PROFILE) }),
+      );
+
+      expect(resolved.vision?.mimeType).toBe("image/png");
+      expect(readFileSync(join(platformDir, "inputs", "shot.png")).equals(PNG_BYTES)).toBe(true);
+    });
+
+    it("degrades an oversized localPath image via stat WITHOUT reading it, file copied intact", async () => {
+      const srcPath = join(workspaceDir, "big.png");
+      writeFileSync(srcPath, PNG_BYTES);
+
+      const [resolved] = await resolveAttachments(
+        [makeAttachment({ filename: "big.png", storageKey: "", localPath: srcPath, contentType: "image/png" })],
+        options({
+          visionBudget: new VisionBudget(CURSOR_VISION_PROFILE, {
+            maxImageBytes: PNG_BYTES.length - 1,
+          }),
+        }),
+      );
+
+      expect(resolved.vision).toBeUndefined();
+      expect(resolved.visionDegraded).toBe("too_large");
+      expect(readFileSync(join(platformDir, "inputs", "big.png")).equals(PNG_BYTES)).toBe(true);
+    });
+
+    it("keeps the plain copyFile for a localPath non-candidate even when a budget is present", async () => {
+      const srcPath = join(workspaceDir, "notes.txt");
+      writeFileSync(srcPath, "plain text");
+
+      const [resolved] = await resolveAttachments(
+        [makeAttachment({ filename: "notes.txt", storageKey: "", localPath: srcPath, contentType: "text/plain" })],
+        options({ visionBudget: new VisionBudget(CURSOR_VISION_PROFILE) }),
+      );
+
+      expect(resolved.vision).toBeUndefined();
+      expect(resolved.visionDegraded).toBeUndefined();
+      expect(readFileSync(join(platformDir, "inputs", "notes.txt"), "utf-8")).toBe("plain text");
+    });
+
+    it("selects greedily in attachment order when the total budget cuts off", async () => {
+      const { storage } = makeInMemoryArtifactStorage();
+      await storage.upload("attachments/01A/a.png", PNG_BYTES, "image/png");
+      await storage.upload("attachments/01B/b.png", PNG_BYTES, "image/png");
+
+      const results = await resolveAttachments(
+        [
+          makeAttachment({ filename: "a.png", storageKey: "attachments/01A/a.png", contentType: "image/png" }),
+          makeAttachment({ filename: "b.png", storageKey: "attachments/01B/b.png", contentType: "image/png" }),
+        ],
+        options({
+          storage,
+          visionBudget: new VisionBudget(CURSOR_VISION_PROFILE, {
+            maxImageBytes: PNG_BYTES.length,
+            maxTotalBytes: PNG_BYTES.length,
+          }),
+        }),
+      );
+
+      expect(results[0].vision).toBeDefined();
+      expect(results[1].vision).toBeUndefined();
+      expect(results[1].visionDegraded).toBe("budget_exhausted");
+    });
   });
 });

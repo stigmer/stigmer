@@ -71,7 +71,7 @@
     "@bufbuild/protobuf": "2.12.0",
     "@connectrpc/connect": "^2.0.0",
     "@connectrpc/connect-node": "^2.0.0",
-    "@cursor/sdk": "^1.0.11",
+    "@cursor/sdk": "^1.0.13",
     "@langchain/anthropic": "^1.4.0",
     "@langchain/core": "^1.1.47",
     "@langchain/langgraph": "^1.3.0",
