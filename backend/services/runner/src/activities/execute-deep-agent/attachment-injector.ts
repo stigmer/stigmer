@@ -20,6 +20,11 @@ import { basename, posix } from "node:path";
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
+import type {
+  VisionBudget,
+  VisionDegradedReason,
+  VisionImage,
+} from "../../shared/attachment-vision.js";
 
 // ── Constants ────────────────────────────────────────────────────────
 
@@ -36,6 +41,15 @@ export interface InjectedFile {
   readonly filename: string;
   readonly path: string;
   readonly sizeBytes: number;
+  /** Present when the attachment was accepted into the turn's vision payload. */
+  readonly vision?: VisionImage;
+  /**
+   * Present when the attachment was plausibly an image but could not ride
+   * inline (see {@link VisionDegradedReason}) — disclosed in the system prompt
+   * so the agent never silently ignores a photo the user believes it can see.
+   * Attachments that were never image-shaped carry neither field.
+   */
+  readonly visionDegraded?: VisionDegradedReason;
 }
 
 export interface InjectAttachmentsOptions {
@@ -50,6 +64,13 @@ export interface InjectAttachmentsOptions {
    */
   readonly storage: ArtifactStorage | undefined;
   readonly isLocalMode: boolean;
+  /**
+   * The turn's vision selector (attachment-vision.ts owns all policy).
+   * `undefined` disables inline image delivery; file materialization is
+   * identical either way — vision is strictly additive. Archives (`extract`)
+   * are never offered: an image inside a ZIP has no attachment-level bytes.
+   */
+  readonly visionBudget?: VisionBudget;
 }
 
 export interface ZipEntryInfo {
@@ -240,7 +261,7 @@ export function validateZipForExtraction(
  * On any failure, throws AttachmentInjectionError with an actionable message.
  */
 export async function injectAttachments(opts: InjectAttachmentsOptions): Promise<InjectedFile[]> {
-  const { backend, attachments, storage, isLocalMode } = opts;
+  const { backend, attachments, storage, isLocalMode, visionBudget } = opts;
 
   if (attachments.length === 0) return [];
 
@@ -262,10 +283,17 @@ export async function injectAttachments(opts: InjectAttachmentsOptions): Promise
       injectedFiles.push(...extracted);
     } else {
       await backend.writeFileBuffer(mountPath, content);
+      const filename = attachment.filename || basename(mountPath);
+      // The bytes are already in hand for the workspace write — offer them to
+      // the vision budget before they go out of scope (the sniff decides
+      // eligibility; the budget owns every size/count rule).
+      const vision = visionBudget?.offer(filename, attachment.contentType, content);
       injectedFiles.push({
-        filename: attachment.filename || basename(mountPath),
+        filename,
         path: mountPath,
         sizeBytes: content.length,
+        ...(vision?.kind === "accepted" ? { vision: vision.image } : {}),
+        ...(vision?.kind === "degraded" ? { visionDegraded: vision.reason } : {}),
       });
     }
   }

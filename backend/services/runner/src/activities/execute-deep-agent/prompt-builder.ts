@@ -17,6 +17,10 @@ import {
   type SenderIdentity,
 } from "../../shared/sender-identity.js";
 import { formatSessionContextText } from "../../shared/session-context.js";
+import {
+  visionDisclosureLines,
+  type NotViewableEntry,
+} from "../../shared/attachment-vision.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import {
   buildImplementPlanDirective,
@@ -109,6 +113,12 @@ export interface PromptBuilderInput {
   workspaceRoot: string;
   injectedFiles: InjectedFile[];
   /**
+   * Vision facts about this turn's attachments (T04): which images the model
+   * sees inline in the user message and which degraded to path-only.
+   * Rendered inside the Input Files section.
+   */
+  vision?: VisionPromptInfo;
+  /**
    * The execution's interaction mode. PLAN appends the shared plan-mode
    * directive so the model knows the turn's deliverable is a plan document.
    * Tool-level write enforcement is separate (see setup.ts permissions) —
@@ -159,6 +169,17 @@ export interface InjectedFile {
 }
 
 /**
+ * Which images ride the user message inline (in send order) and which
+ * degraded to the file-pointer story — the shared vision wording
+ * (attachment-vision.ts) keeps this prompt and the Cursor harness's
+ * input-files section telling the agent the same thing.
+ */
+export interface VisionPromptInfo {
+  inlineFilenames: string[];
+  notViewable: NotViewableEntry[];
+}
+
+/**
  * Assemble the full system prompt from base instructions and contextual
  * sections. Pure function with no I/O.
  */
@@ -196,7 +217,7 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
   }
 
   if (input.injectedFiles.length > 0) {
-    prompt += buildInjectedFilesSection(input.injectedFiles);
+    prompt += buildInjectedFilesSection(input.injectedFiles, input.vision);
   }
 
   if (input.senderIdentity) {
@@ -374,7 +395,10 @@ function buildReferencedFilesSection(
   return section;
 }
 
-function buildInjectedFilesSection(files: InjectedFile[]): string {
+function buildInjectedFilesSection(
+  files: InjectedFile[],
+  vision?: VisionPromptInfo,
+): string {
   let section = "\n\n## Input Files\n\n";
   section +=
     "The following files have been provided as read-only reference " +
@@ -388,6 +412,17 @@ function buildInjectedFilesSection(files: InjectedFile[]): string {
   for (const f of files) {
     const sizeInfo = f.size != null ? ` (${f.size} bytes)` : "";
     section += `- \`${f.path}\`${sizeInfo}\n`;
+  }
+
+  // The vision lines (shared wording, attachment-vision.ts) tell the model
+  // which of these files it can already SEE inline in the user message versus
+  // which degraded to path-only — without them an agent silently ignores a
+  // photo the user believes it can see.
+  if (vision) {
+    const lines = visionDisclosureLines(vision.inlineFilenames, vision.notViewable);
+    if (lines.length > 0) {
+      section += "\n" + lines.join("\n") + "\n";
+    }
   }
 
   return section;

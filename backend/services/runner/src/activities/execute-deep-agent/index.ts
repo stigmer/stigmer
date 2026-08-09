@@ -161,12 +161,11 @@ export function createDeepAgentActivities(config: Config) {
           unattended: setup.unattended,
         });
 
-        const resume = resolveResumeInput(
-          setup.execution,
-          graphState,
-          setup.execution.spec!.message,
-        );
+        const resume = resolveResumeInput(setup.execution, graphState);
 
+        // Not an approval resume -> setup.langgraphInput, the single
+        // construction site of the turn's user message (string or multimodal
+        // content blocks when the turn carries inline images).
         const effectiveInput = resume.isResumeFromApproval
           ? resume.graphInput
           : setup.langgraphInput;

@@ -70,23 +70,23 @@ function makeGraphState(
 }
 
 describe("resolveResumeInput", () => {
-  it("returns fresh input when no interrupts exist", () => {
+  it("reports not-a-resume when no interrupts exist (caller falls back to setup.langgraphInput)", () => {
     const execution = makeExecution([]);
     const state: GraphStateSnapshot = { values: {}, tasks: [] };
 
-    const result = resolveResumeInput(execution, state, "hello");
+    const result = resolveResumeInput(execution, state);
 
     expect(result.isResumeFromApproval).toBe(false);
-    expect(result.graphInput).toEqual({
-      messages: [{ role: "user", content: "hello" }],
-    });
+    // No graphInput on this branch — the turn's user message has exactly ONE
+    // construction site (setup.langgraphInput), never a second copy here.
+    expect("graphInput" in result).toBe(false);
   });
 
-  it("returns fresh input when interrupts exist but no decisions", () => {
+  it("reports not-a-resume when interrupts exist but no decisions", () => {
     const execution = makeExecution([]);
     const state = makeGraphState([{ taskId: "task-1", toolCallId: "call-1" }]);
 
-    const result = resolveResumeInput(execution, state, "hello");
+    const result = resolveResumeInput(execution, state);
 
     expect(result.isResumeFromApproval).toBe(false);
   });
@@ -100,9 +100,9 @@ describe("resolveResumeInput", () => {
 
     const state = makeGraphState([{ taskId: "task-1", toolCallId: "call-1" }]);
 
-    const result = resolveResumeInput(execution, state, "hello");
+    const result = resolveResumeInput(execution, state);
 
-    expect(result.isResumeFromApproval).toBe(true);
+    if (!result.isResumeFromApproval) throw new Error("expected an approval resume");
     expect(result.graphInput).toBeInstanceOf(Command);
   });
 
@@ -115,13 +115,13 @@ describe("resolveResumeInput", () => {
 
     const state = makeGraphState([{ taskId: "task-1", toolCallId: "call-1" }]);
 
-    const result = resolveResumeInput(execution, state, "hello");
+    const result = resolveResumeInput(execution, state);
 
     // REJECT resumes the gate like any other decision — the gate returns a
     // denial ToolMessage and the run continues. There is no execution-level
     // "rejection" flag any more; the terminal tool status is set by
     // reconcileNonExecutingDecisions.
-    expect(result.isResumeFromApproval).toBe(true);
+    if (!result.isResumeFromApproval) throw new Error("expected an approval resume");
     expect(result.graphInput).toBeInstanceOf(Command);
   });
 
@@ -144,7 +144,7 @@ describe("resolveResumeInput", () => {
       { taskId: "task-2", toolCallId: "call-2" },
     ]);
 
-    const result = resolveResumeInput(execution, state, "hello");
+    const result = resolveResumeInput(execution, state);
 
     expect(result.isResumeFromApproval).toBe(true);
   });
@@ -160,7 +160,7 @@ describe("resolveResumeInput", () => {
       { taskId: "task-1", toolCallId: "call-1", hasResume: true },
     ]);
 
-    const result = resolveResumeInput(execution, state, "hello");
+    const result = resolveResumeInput(execution, state);
 
     expect(result.isResumeFromApproval).toBe(false);
   });

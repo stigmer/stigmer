@@ -99,6 +99,12 @@ import {
 } from "../../shared/skill-writer.js";
 import { filterSkills, SKILL_COUNT_THRESHOLD } from "../../shared/skill-relevance.js";
 import { injectAttachments } from "./attachment-injector.js";
+import {
+  DEEP_AGENT_VISION_PROFILE,
+  VisionBudget,
+  toLangChainImageBlocks,
+  type NotViewableEntry,
+} from "../../shared/attachment-vision.js";
 import { transformAndCompileSubagents } from "./subagent-transformer.js";
 import {
   resolveRecursionLimit,
@@ -508,14 +514,39 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       timing.mark("resolve_skills");
     }
 
-    // Step 7c: Inject attachments
+    // Step 7c: Inject attachments. The vision budget rides along so image
+    // attachments are selected for inline delivery while their bytes are
+    // already in hand (attachment-vision.ts owns all policy).
     const attachments = execution.spec!.attachments || [];
+    const visionBudget = new VisionBudget(DEEP_AGENT_VISION_PROFILE);
     const injectedFiles = await injectAttachments({
       backend: workspaceBackend,
       attachments,
       storage: artifactStorage,
       isLocalMode: config.mode === "local",
+      visionBudget,
     });
+    // Vision facts, derived once from the single injection result: the images
+    // the model will see inline (in attachment order) and the ones that
+    // degraded to path-only, disclosed in the system prompt's Input Files
+    // section.
+    const visionImages = injectedFiles.flatMap((f) => (f.vision ? [f.vision] : []));
+    const visionNotViewable: NotViewableEntry[] = injectedFiles.flatMap((f) =>
+      f.visionDegraded ? [{ path: f.path, reason: f.visionDegraded }] : [],
+    );
+    const visionPromptInfo = visionImages.length > 0 || visionNotViewable.length > 0
+      ? {
+          inlineFilenames: visionImages.map((v) => v.filename),
+          notViewable: visionNotViewable,
+        }
+      : undefined;
+    if (visionPromptInfo) {
+      console.log(
+        `[attachment-vision] execution=${executionId} inline=${visionImages.length} ` +
+        `(${visionImages.reduce((n, v) => n + v.byteSize, 0)} bytes) ` +
+        `degraded=${JSON.stringify(visionNotViewable.map((d) => `${d.path}:${d.reason}`))}`,
+      );
+    }
     timing.mark("inject_attachments");
 
     // Step 8: Build enhanced system prompt
@@ -535,6 +566,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       workspaceFileRefs: execution.spec!.workspaceFileRefs || [],
       workspaceRoot: workspaceBackend.rootDir,
       injectedFiles,
+      vision: visionPromptInfo,
       interactionMode: execution.spec!.executionConfig?.interactionMode,
       buildFromPlan: execution.spec!.executionConfig?.buildFromPlan,
       contextBridge: readContextBridge(session.spec!.metadata),
@@ -784,8 +816,24 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     if (outputSchema) {
       userMessage += `\n\n---\nIMPORTANT: When your analysis is complete, provide your findings as structured output matching the required schema. The system will capture your structured response automatically.`;
     }
+    // With inline images the user message becomes a multimodal content-block
+    // array — image blocks (with filename labels) FIRST, the composed text
+    // last, per Anthropic's images-before-text guidance. Without images the
+    // content stays a plain string, byte-identical to the pre-vision shape.
+    // The LangGraph messages reducer coerces either form into a HumanMessage
+    // untouched (verified against the installed @langchain/langgraph).
     const langgraphInput = {
-      messages: [{ role: "user", content: userMessage }],
+      messages: [
+        {
+          role: "user",
+          content: visionImages.length > 0
+            ? [
+                ...toLangChainImageBlocks(visionImages),
+                { type: "text", text: userMessage },
+              ]
+            : userMessage,
+        },
+      ],
     };
 
     const langgraphConfig: Record<string, unknown> = {

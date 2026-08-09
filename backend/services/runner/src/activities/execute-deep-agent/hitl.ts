@@ -37,10 +37,15 @@ const ACTION_MAP: ReadonlyMap<ApprovalAction, string> = new Map([
   [ApprovalAction.REJECT, "reject"],
 ]);
 
-export interface ResumeResult {
-  readonly graphInput: Command | Record<string, unknown>;
-  readonly isResumeFromApproval: boolean;
-}
+/**
+ * Either a genuine approval resume carrying the `Command(resume)` payload, or
+ * not one — in which case the caller uses `setup.langgraphInput` (the single
+ * construction site of the turn's user message; this module deliberately does
+ * NOT build a second copy that could drift from it).
+ */
+export type ResumeResult =
+  | { readonly isResumeFromApproval: true; readonly graphInput: Command }
+  | { readonly isResumeFromApproval: false };
 
 export interface GraphStateSnapshot {
   readonly values: Record<string, unknown>;
@@ -71,8 +76,8 @@ export interface InterruptValue {
  * Resolve the resume input for a reinvocation after approval.
  *
  * Returns a `Command(resume=...)` if there are pending interrupts with
- * matching approval decisions, or a fresh user message input if this is
- * not a resume scenario.
+ * matching approval decisions; otherwise reports "not a resume" and the
+ * caller falls back to `setup.langgraphInput`.
  *
  * The graph checkpoint snapshot is read once by the caller and passed in: the
  * same snapshot also decides whether status must be seeded from the persisted
@@ -82,22 +87,15 @@ export interface InterruptValue {
 export function resolveResumeInput(
   execution: AgentExecution,
   graphState: GraphStateSnapshot,
-  userMessage: string,
 ): ResumeResult {
   const pendingInterrupts = extractPendingInterrupts(graphState);
   if (pendingInterrupts.length === 0) {
-    return {
-      graphInput: { messages: [{ role: "user", content: userMessage }] },
-      isResumeFromApproval: false,
-    };
+    return { isResumeFromApproval: false };
   }
 
   const decisions = extractApprovalDecisions(execution);
   if (decisions.size === 0) {
-    return {
-      graphInput: { messages: [{ role: "user", content: userMessage }] },
-      isResumeFromApproval: false,
-    };
+    return { isResumeFromApproval: false };
   }
 
   const resumeDict: Record<string, { action: string; comment?: string }> = {};
@@ -117,10 +115,7 @@ export function resolveResumeInput(
   }
 
   if (Object.keys(resumeDict).length === 0) {
-    return {
-      graphInput: { messages: [{ role: "user", content: userMessage }] },
-      isResumeFromApproval: false,
-    };
+    return { isResumeFromApproval: false };
   }
 
   console.log(

@@ -15,6 +15,10 @@ import {
 } from "../attachment-injector.js";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
+import {
+  DEEP_AGENT_VISION_PROFILE,
+  VisionBudget,
+} from "../../../shared/attachment-vision.js";
 
 // ── ZIP Construction Helpers ─────────────────────────────────────────
 
@@ -725,5 +729,164 @@ describe("injectAttachments", () => {
       storage,
       isLocalMode: true,
     })).rejects.toThrow(AttachmentValidationError);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// Vision selection during injection (T04)
+// ═══════════════════════════════════════════════════════════════════════
+// Vision is strictly additive: every case also asserts the file was written
+// exactly as it would be without a budget.
+
+describe("injectAttachments — vision selection", () => {
+  const PNG_BYTES = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    Buffer.alloc(56, 0xab),
+  ]);
+  const WEBP_BYTES = Buffer.concat([
+    Buffer.from("RIFF", "ascii"),
+    Buffer.from([0x24, 0x00, 0x00, 0x00]),
+    Buffer.from("WEBP", "ascii"),
+    Buffer.alloc(52, 0xcd),
+  ]);
+
+  it("accepts a PNG into the vision payload (deep-agent profile) and still writes the file", async () => {
+    const backend = mockWorkspaceBackend();
+    const storage = makeMockStorage();
+    await storage.upload("attachments/abc/photo.png", PNG_BYTES);
+
+    const [injected] = await injectAttachments({
+      backend,
+      attachments: [makeAttachment({
+        filename: "photo.png",
+        storageKey: "attachments/abc/photo.png",
+        contentType: "image/png",
+      })],
+      storage,
+      isLocalMode: false,
+      visionBudget: new VisionBudget(DEEP_AGENT_VISION_PROFILE),
+    });
+
+    expect(injected.vision).toMatchObject({
+      filename: "photo.png",
+      mimeType: "image/png",
+      byteSize: PNG_BYTES.length,
+    });
+    expect(Buffer.from(injected.vision!.base64, "base64").equals(PNG_BYTES)).toBe(true);
+    expect(backend.writeFileBuffer).toHaveBeenCalledWith(".stigmer/inputs/photo.png", PNG_BYTES);
+  });
+
+  it("accepts WebP on the deep-agent profile (unlike the Cursor harness)", async () => {
+    const backend = mockWorkspaceBackend();
+    const storage = makeMockStorage();
+    await storage.upload("attachments/abc/pic.webp", WEBP_BYTES);
+
+    const [injected] = await injectAttachments({
+      backend,
+      attachments: [makeAttachment({
+        filename: "pic.webp",
+        storageKey: "attachments/abc/pic.webp",
+        contentType: "image/webp",
+      })],
+      storage,
+      isLocalMode: false,
+      visionBudget: new VisionBudget(DEEP_AGENT_VISION_PROFILE),
+    });
+
+    expect(injected.vision?.mimeType).toBe("image/webp");
+  });
+
+  it("carries no vision fields for a non-image attachment", async () => {
+    const backend = mockWorkspaceBackend();
+    const storage = makeMockStorage();
+    await storage.upload("attachments/abc/doc.pdf", Buffer.from("%PDF-1.7"));
+
+    const [injected] = await injectAttachments({
+      backend,
+      attachments: [makeAttachment({
+        filename: "doc.pdf",
+        storageKey: "attachments/abc/doc.pdf",
+        contentType: "application/pdf",
+      })],
+      storage,
+      isLocalMode: false,
+      visionBudget: new VisionBudget(DEEP_AGENT_VISION_PROFILE),
+    });
+
+    expect(injected.vision).toBeUndefined();
+    expect(injected.visionDegraded).toBeUndefined();
+  });
+
+  it("degrades a declared image whose bytes are not one (type_mismatch)", async () => {
+    const backend = mockWorkspaceBackend();
+    const storage = makeMockStorage();
+    await storage.upload("attachments/abc/photo.jpg", Buffer.from("actually HEIC"));
+
+    const [injected] = await injectAttachments({
+      backend,
+      attachments: [makeAttachment({
+        filename: "photo.jpg",
+        storageKey: "attachments/abc/photo.jpg",
+        contentType: "image/jpeg",
+      })],
+      storage,
+      isLocalMode: false,
+      visionBudget: new VisionBudget(DEEP_AGENT_VISION_PROFILE),
+    });
+
+    expect(injected.vision).toBeUndefined();
+    expect(injected.visionDegraded).toBe("type_mismatch");
+  });
+
+  it("never offers an extract archive to the budget — extracted files carry no vision fields", async () => {
+    // A PNG inside a ZIP has no attachment-level bytes; the archive rides the
+    // normal extraction story with no vision involvement or disclosure.
+    const zip = makeZip({ "inner.png": PNG_BYTES });
+    const backend = mockWorkspaceBackend();
+    const storage = makeMockStorage();
+    await storage.upload("attachments/abc/bundle.zip", zip);
+
+    const injected = await injectAttachments({
+      backend,
+      attachments: [makeAttachment({
+        filename: "bundle.zip",
+        storageKey: "attachments/abc/bundle.zip",
+        extract: true,
+      })],
+      storage,
+      isLocalMode: false,
+      visionBudget: new VisionBudget(DEEP_AGENT_VISION_PROFILE),
+    });
+
+    expect(injected.length).toBeGreaterThan(0);
+    for (const file of injected) {
+      expect(file.vision).toBeUndefined();
+      expect(file.visionDegraded).toBeUndefined();
+    }
+  });
+
+  it("degrades over the total budget in attachment order (budget_exhausted)", async () => {
+    const backend = mockWorkspaceBackend();
+    const storage = makeMockStorage();
+    await storage.upload("attachments/a/a.png", PNG_BYTES);
+    await storage.upload("attachments/b/b.png", PNG_BYTES);
+
+    const injected = await injectAttachments({
+      backend,
+      attachments: [
+        makeAttachment({ filename: "a.png", storageKey: "attachments/a/a.png", contentType: "image/png" }),
+        makeAttachment({ filename: "b.png", storageKey: "attachments/b/b.png", contentType: "image/png" }),
+      ],
+      storage,
+      isLocalMode: false,
+      visionBudget: new VisionBudget(DEEP_AGENT_VISION_PROFILE, {
+        maxImageBytes: PNG_BYTES.length,
+        maxTotalBytes: PNG_BYTES.length,
+      }),
+    });
+
+    expect(injected[0].vision).toBeDefined();
+    expect(injected[1].vision).toBeUndefined();
+    expect(injected[1].visionDegraded).toBe("budget_exhausted");
   });
 });
