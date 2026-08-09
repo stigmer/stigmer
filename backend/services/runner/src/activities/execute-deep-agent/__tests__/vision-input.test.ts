@@ -30,6 +30,7 @@ import {
   DEEP_AGENT_VISION_PROFILE,
   VisionBudget,
   toLangChainImageBlocks,
+  type LangChainContentBlock,
   type VisionImage,
 } from "../../../shared/attachment-vision.js";
 
@@ -90,7 +91,14 @@ describe("deep-agent vision input through the real graph", () => {
     await rm(root, { recursive: true, force: true });
   });
 
-  async function invokeGraphWith(content: unknown): Promise<BaseMessage[][]> {
+  /**
+   * `content` is exactly what setup.ts puts on the user message: a plain
+   * string, or the content-block array built by toLangChainImageBlocks plus
+   * the composed text block.
+   */
+  async function invokeGraphWith(
+    content: string | LangChainContentBlock[],
+  ): Promise<BaseMessage[][]> {
     const captured: BaseMessage[][] = [];
     const script: ScriptSelector = () => ({ toolCalls: [], done: "seen" });
 
@@ -114,7 +122,7 @@ describe("deep-agent vision input through the real graph", () => {
 
   it("delivers image_url blocks (labels first, text last) to the model byte-identically", async () => {
     const image = makeVisionImage("photo.png");
-    const content = [
+    const content: LangChainContentBlock[] = [
       ...toLangChainImageBlocks([image]),
       { type: "text", text: "what is in this image?" },
     ];
