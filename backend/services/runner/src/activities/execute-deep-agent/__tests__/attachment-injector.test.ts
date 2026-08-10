@@ -776,6 +776,28 @@ describe("injectAttachments — vision selection", () => {
     expect(backend.writeFileBuffer).toHaveBeenCalledWith(".stigmer/inputs/photo.png", PNG_BYTES);
   });
 
+  it("degrades an image with model_no_vision on a blind model, file written intact", async () => {
+    const backend = mockWorkspaceBackend();
+    const storage = makeMockStorage();
+    await storage.upload("attachments/abc/photo.png", PNG_BYTES);
+
+    const [injected] = await injectAttachments({
+      backend,
+      attachments: [makeAttachment({
+        filename: "photo.png",
+        storageKey: "attachments/abc/photo.png",
+        contentType: "image/png",
+      })],
+      storage,
+      isLocalMode: false,
+      visionBudget: new VisionBudget(DEEP_AGENT_VISION_PROFILE, { modelVision: false }),
+    });
+
+    expect(injected.vision).toBeUndefined();
+    expect(injected.visionDegraded).toBe("model_no_vision");
+    expect(backend.writeFileBuffer).toHaveBeenCalledWith(".stigmer/inputs/photo.png", PNG_BYTES);
+  });
+
   it("accepts WebP on the deep-agent profile (unlike the Cursor harness)", async () => {
     const backend = mockWorkspaceBackend();
     const storage = makeMockStorage();

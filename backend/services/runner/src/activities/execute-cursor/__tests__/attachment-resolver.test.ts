@@ -313,6 +313,45 @@ describe("resolveAttachments", () => {
       expect(readFileSync(join(platformDir, "inputs", "notes.txt"), "utf-8")).toBe("plain text");
     });
 
+    it("degrades a storage-key image with model_no_vision on a blind model, file intact", async () => {
+      const { storage } = makeInMemoryArtifactStorage();
+      await storage.upload("attachments/01ABC/photo.png", PNG_BYTES, "image/png");
+
+      const [resolved] = await resolveAttachments(
+        [makeAttachment({ filename: "photo.png", storageKey: "attachments/01ABC/photo.png", contentType: "image/png" })],
+        options({
+          storage,
+          visionBudget: new VisionBudget(CURSOR_VISION_PROFILE, { modelVision: false }),
+        }),
+      );
+
+      expect(resolved.vision).toBeUndefined();
+      expect(resolved.visionDegraded).toBe("model_no_vision");
+      expect(readFileSync(join(platformDir, "inputs", "photo.png")).equals(PNG_BYTES)).toBe(true);
+    });
+
+    it("reports model_no_vision (never too_large) for an oversized localPath image on a blind model", async () => {
+      // The blind check must pre-empt the stat-based oversize fast path:
+      // too_large's "resend smaller" advice would be wrong for a model that
+      // cannot see any image.
+      const srcPath = join(workspaceDir, "big.png");
+      writeFileSync(srcPath, PNG_BYTES);
+
+      const [resolved] = await resolveAttachments(
+        [makeAttachment({ filename: "big.png", storageKey: "", localPath: srcPath, contentType: "image/png" })],
+        options({
+          visionBudget: new VisionBudget(CURSOR_VISION_PROFILE, {
+            maxImageBytes: PNG_BYTES.length - 1,
+            modelVision: false,
+          }),
+        }),
+      );
+
+      expect(resolved.vision).toBeUndefined();
+      expect(resolved.visionDegraded).toBe("model_no_vision");
+      expect(readFileSync(join(platformDir, "inputs", "big.png")).equals(PNG_BYTES)).toBe(true);
+    });
+
     it("selects greedily in attachment order when the total budget cuts off", async () => {
       const { storage } = makeInMemoryArtifactStorage();
       await storage.upload("attachments/01A/a.png", PNG_BYTES, "image/png");

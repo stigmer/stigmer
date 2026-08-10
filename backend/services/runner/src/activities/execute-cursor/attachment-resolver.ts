@@ -207,6 +207,13 @@ async function materializeLocalFile(
     await copyFile(attachment.localPath, dest);
     return undefined;
   }
+  // Blind-model check BEFORE the size check: a blind model's oversized image
+  // must report the honest model_no_vision reason, never too_large's "resend
+  // smaller" advice — and an in-cap image needn't be read at all.
+  if (visionBudget.modelCannotSee()) {
+    await copyFile(attachment.localPath, dest);
+    return visionBudget.offerBlind();
+  }
   const info = await stat(attachment.localPath);
   if (visionBudget.exceedsImageCap(info.size)) {
     await copyFile(attachment.localPath, dest);

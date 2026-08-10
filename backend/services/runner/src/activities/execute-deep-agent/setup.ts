@@ -73,7 +73,7 @@ import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
 import { getModelPricing, ensureLoaded as ensurePricingLoaded } from "../../shared/model-pricing.js";
-import { getDefaultModel } from "../../shared/model-registry.js";
+import { getDefaultModel, getModelVisionCapability } from "../../shared/model-registry.js";
 import { buildChatModel } from "../../shared/model-client.js";
 import {
   loadArtifactStorageConfig,
@@ -516,9 +516,16 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
 
     // Step 7c: Inject attachments. The vision budget rides along so image
     // attachments are selected for inline delivery while their bytes are
-    // already in hand (attachment-vision.ts owns all policy).
+    // already in hand (attachment-vision.ts owns all policy). The budget
+    // also carries the root model's registry vision capability — the root
+    // model is the only one that ever receives inline image blocks
+    // (sub-agents get a fresh task description, summarization reuses this
+    // same model instance) — so a model flagged `vision: false` degrades
+    // images honestly instead of shipping a payload its provider rejects.
     const attachments = execution.spec!.attachments || [];
-    const visionBudget = new VisionBudget(DEEP_AGENT_VISION_PROFILE);
+    const visionBudget = new VisionBudget(DEEP_AGENT_VISION_PROFILE, {
+      modelVision: await getModelVisionCapability(modelName),
+    });
     const injectedFiles = await injectAttachments({
       backend: workspaceBackend,
       attachments,

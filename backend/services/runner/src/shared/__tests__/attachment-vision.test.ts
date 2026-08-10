@@ -143,6 +143,71 @@ describe("VisionBudget.offer — eligibility", () => {
   });
 });
 
+describe("VisionBudget — model vision capability gate", () => {
+  const blind = () => new VisionBudget(DEEP_AGENT_VISION_PROFILE, { modelVision: false });
+
+  it("degrades every recognizable image with model_no_vision when the model is flagged blind", () => {
+    expect(blind().offer("photo.png", "image/png", imageBytes("png"))).toEqual({
+      kind: "degraded",
+      reason: "model_no_vision",
+    });
+    // Sniff-authoritative acceptance is gated too: real image bytes with a
+    // non-image declared type are still image-shaped.
+    expect(blind().offer("blob.bin", "application/octet-stream", imageBytes("jpeg"))).toEqual({
+      kind: "degraded",
+      reason: "model_no_vision",
+    });
+  });
+
+  it("reports model_no_vision (not type_mismatch) for declared-but-unsniffable images", () => {
+    // A HEIC renamed .jpg on a blind model: "unreadable format" would invite
+    // a re-encode that cannot help — blindness is the whole story.
+    expect(blind().offer("photo.jpg", "image/jpeg", Buffer.from("not an image"))).toEqual({
+      kind: "degraded",
+      reason: "model_no_vision",
+    });
+  });
+
+  it("gates before format and size rules so their resend advice never leaks", () => {
+    const cursorBlind = new VisionBudget(CURSOR_VISION_PROFILE, {
+      maxImageBytes: 100,
+      modelVision: false,
+    });
+    // WebP on the Cursor profile would be unsupported_format; oversized would
+    // be too_large. Blindness pre-empts both.
+    expect(cursorBlind.offer("sticker.webp", "image/webp", imageBytes("webp"))).toEqual({
+      kind: "degraded",
+      reason: "model_no_vision",
+    });
+    expect(cursorBlind.offer("big.png", "image/png", imageBytes("png", 101))).toEqual({
+      kind: "degraded",
+      reason: "model_no_vision",
+    });
+  });
+
+  it("still skips non-image input silently on a blind model", () => {
+    expect(blind().offer("doc.pdf", "application/pdf", Buffer.from("%PDF-1.7"))).toEqual({
+      kind: "skipped",
+    });
+  });
+
+  it("treats explicit true and unknown identically: fail-open", () => {
+    const sighted = new VisionBudget(DEEP_AGENT_VISION_PROFILE, { modelVision: true });
+    const unknown = new VisionBudget(DEEP_AGENT_VISION_PROFILE, { modelVision: undefined });
+    expect(sighted.offer("a.png", "image/png", imageBytes("png")).kind).toBe("accepted");
+    expect(unknown.offer("a.png", "image/png", imageBytes("png")).kind).toBe("accepted");
+  });
+
+  it("modelCannotSee + offerBlind settle a candidate without reading bytes", () => {
+    const budget = blind();
+    expect(budget.modelCannotSee()).toBe(true);
+    expect(budget.offerBlind()).toEqual({ kind: "degraded", reason: "model_no_vision" });
+
+    const sighted = new VisionBudget(DEEP_AGENT_VISION_PROFILE);
+    expect(sighted.modelCannotSee()).toBe(false);
+  });
+});
+
 describe("VisionBudget — size and count budgets", () => {
   it("accepts exactly at the per-image cap and degrades one byte over it", () => {
     const budget = new VisionBudget(DEEP_AGENT_VISION_PROFILE, {
@@ -315,6 +380,38 @@ describe("visionDisclosureLines", () => {
     expect(lines[1]).toContain("ask the user to resend");
     // No inline images -> no untrusted-content line to anchor.
     expect(lines).toHaveLength(2);
+  });
+
+  it("gives blind-model entries honest advice instead of the resend suggestion", () => {
+    const lines = visionDisclosureLines(
+      [],
+      [
+        { path: ".stigmer/inputs/a.png", reason: "model_no_vision" },
+        { path: ".stigmer/inputs/b.jpg", reason: "model_no_vision" },
+      ],
+    );
+    expect(lines[0]).toBe(
+      "NOT VIEWABLE INLINE: `.stigmer/inputs/a.png` (model cannot view images), " +
+        "`.stigmer/inputs/b.jpg` (model cannot view images).",
+    );
+    expect(lines[1]).toContain("does not support image input");
+    expect(lines[1]).toContain("no resend will help");
+    // The resend-smaller suggestion must never appear for a blind model.
+    expect(lines.join("\n")).not.toContain("resend it as a smaller PNG or JPEG");
+    expect(lines).toHaveLength(2);
+  });
+
+  it("keeps both advice lines, each scoped to its reasons, when reasons mix", () => {
+    const lines = visionDisclosureLines(
+      [],
+      [
+        { path: ".stigmer/inputs/big.png", reason: "too_large" },
+        { path: ".stigmer/inputs/a.png", reason: "model_no_vision" },
+      ],
+    );
+    expect(lines[1]).toContain("ask the user to resend");
+    expect(lines[2]).toContain("no resend will help");
+    expect(lines).toHaveLength(3);
   });
 
   it("returns nothing when there is nothing to disclose", () => {

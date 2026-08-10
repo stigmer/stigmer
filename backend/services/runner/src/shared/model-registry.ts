@@ -1,10 +1,13 @@
 /**
- * Model registry — provider lookup and economy-tier model derivation.
+ * Model registry — provider lookup, economy-tier model derivation, and
+ * model capability resolution.
  *
  * Fetches the model registry from the runner's control plane (see
  * registry-endpoint.ts for endpoint resolution — same endpoint as
  * model-pricing-data.ts) and uses `costTier` + `harness` fields to
- * dynamically resolve economy-tier models for extraction/summarization.
+ * dynamically resolve economy-tier models for extraction/summarization,
+ * plus `capabilities` catalog metadata for per-model capability lookups
+ * (getModelVisionCapability).
  */
 
 import { resolveModelRegistryUrl, buildRegistryHeaders } from "./registry-endpoint.js";
@@ -22,6 +25,14 @@ interface RegistryModel {
   costTier: string;
   harness: string;
   featured: boolean;
+  /**
+   * Tri-state vision capability from the registry's `capabilities` block.
+   * The registry serializes `capabilities` only for models whose capabilities
+   * have actually been assessed, so `undefined` means "never assessed" —
+   * deliberately distinct from an explicit `false` ("assessed as blind").
+   * Consumers gate only on the explicit `false` (see attachment-vision.ts).
+   */
+  visionCapability?: boolean;
 }
 
 let cache: { models: readonly RegistryModel[]; expiresAt: number } | null = null;
@@ -41,7 +52,18 @@ function parseRegistry(json: unknown): RegistryModel[] {
       costTier: (m.costTier as string) ?? "standard",
       harness: (m.harness as string) ?? "native",
       featured: !!m.featured,
+      visionCapability: parseVisionCapability(m.capabilities),
     }));
+}
+
+/**
+ * Extract `capabilities.vision` preserving the tri-state: a missing or
+ * malformed `capabilities` block stays `undefined` (never coerced to false).
+ */
+function parseVisionCapability(capabilities: unknown): boolean | undefined {
+  if (!capabilities || typeof capabilities !== "object") return undefined;
+  const vision = (capabilities as Record<string, unknown>).vision;
+  return typeof vision === "boolean" ? vision : undefined;
 }
 
 async function fetchRegistry(): Promise<readonly RegistryModel[]> {
@@ -209,6 +231,32 @@ export async function resolveToApiModelId(registryId: string): Promise<string> {
   if (!entry) return registryId;
 
   return entry.apiModelId ?? registryId;
+}
+
+/**
+ * Look up a model's vision capability from the registry's `capabilities`
+ * catalog metadata. Returns the tri-state the vision policy expects
+ * (attachment-vision.ts): `false` only when the registry explicitly says the
+ * model cannot see images; `undefined` whenever the answer is unknown —
+ * capability never assessed, model not in the registry, registry
+ * unreachable, or no concrete model name (the Cursor harness's ""/"default"
+ * Auto pool). Callers gate on the explicit `false` only, so every unknown
+ * degrades to today's behavior instead of blocking images.
+ *
+ * Matches by registry `id` OR `apiModelId`: getDefaultModel() hands the
+ * deep-agent harness the provider API id, while executionConfig.modelName
+ * carries the registry id, so both forms arrive here.
+ */
+export async function getModelVisionCapability(
+  modelName: string,
+): Promise<boolean | undefined> {
+  if (!modelName || modelName === "default") return undefined;
+
+  const registry = await getRegistry();
+  const entry = registry.find(
+    (m) => m.id === modelName || m.apiModelId === modelName,
+  );
+  return entry?.visionCapability;
 }
 
 /** Exposed for testing — resets the in-memory cache. */

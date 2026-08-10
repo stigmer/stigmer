@@ -3,6 +3,7 @@ import {
   getSummarizationModel,
   getEconomyModel,
   getDefaultModel,
+  getModelVisionCapability,
   resolveToApiModelId,
   _resetRegistryCache,
 } from "../model-registry.js";
@@ -253,6 +254,75 @@ describe("resolveToApiModelId", () => {
   });
 });
 
+describe("getModelVisionCapability", () => {
+  beforeEach(() => {
+    _resetRegistryCache();
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    _resetRegistryCache();
+  });
+
+  it("returns the explicit vision flag when the capabilities block is present", async () => {
+    mockRegistryResponse([
+      { id: "claude-sonnet-4.6", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { vision: true, toolUse: true } },
+      { id: "llama3.1", provider: "ollama", costTier: "economy", harness: "native", capabilities: { vision: false, toolUse: true } },
+    ]);
+
+    expect(await getModelVisionCapability("claude-sonnet-4.6")).toBe(true);
+    _resetRegistryCache();
+    mockRegistryResponse([
+      { id: "llama3.1", provider: "ollama", costTier: "economy", harness: "native", capabilities: { vision: false } },
+    ]);
+    expect(await getModelVisionCapability("llama3.1")).toBe(false);
+  });
+
+  it("returns undefined when the capabilities block is absent (never assessed ≠ blind)", async () => {
+    // The cursor-harness convention today: pricing + UI fields, no
+    // capabilities block. Must stay undefined, never coerce to false.
+    mockRegistryResponse([
+      { id: "composer-2.5", provider: "cursor", costTier: "economy", harness: "cursor" },
+    ]);
+
+    expect(await getModelVisionCapability("composer-2.5")).toBeUndefined();
+  });
+
+  it("matches by apiModelId as well as registry id", async () => {
+    // getDefaultModel() hands the deep-agent harness the provider API id, so
+    // both identifier forms must resolve to the same capability.
+    mockRegistryResponse([
+      { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { vision: true } },
+    ]);
+
+    expect(await getModelVisionCapability("claude-sonnet-4-6")).toBe(true);
+  });
+
+  it("returns undefined for unknown names, the empty string, and the Auto pool", async () => {
+    mockRegistryResponse([
+      { id: "claude-sonnet-4.6", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { vision: true } },
+    ]);
+
+    expect(await getModelVisionCapability("never-heard-of-it")).toBeUndefined();
+    expect(await getModelVisionCapability("")).toBeUndefined();
+    expect(await getModelVisionCapability("default")).toBeUndefined();
+  });
+
+  it("returns undefined when the registry fetch fails (fail-open)", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("network error"));
+
+    expect(await getModelVisionCapability("claude-sonnet-4.6")).toBeUndefined();
+  });
+
+  it("treats a malformed capabilities value as undefined", async () => {
+    mockRegistryResponse([
+      { id: "weird-model", provider: "anthropic", costTier: "standard", harness: "native", capabilities: "yes" as unknown as { vision?: boolean } },
+    ]);
+
+    expect(await getModelVisionCapability("weird-model")).toBeUndefined();
+  });
+});
+
 interface MockModel {
   id: string;
   apiModelId?: string;
@@ -260,6 +330,7 @@ interface MockModel {
   costTier: string;
   harness: string;
   featured?: boolean;
+  capabilities?: { vision?: boolean; toolUse?: boolean };
 }
 
 function mockRegistryResponse(models: MockModel[]) {

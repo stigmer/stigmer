@@ -16,6 +16,14 @@
  * authoritative. A declared image whose bytes are not a recognizable image
  * degrades to the file-pointer story instead of shipping a mislabeled payload.
  *
+ * Model capability gate: eligibility also consults the execution model's
+ * vision capability, sourced from the model registry's `capabilities.vision`
+ * flag (model-registry.ts, `getModelVisionCapability`) and passed in at
+ * budget construction. The gate fails OPEN on unknown — only an explicit
+ * `vision: false` degrades — because most registry entries have never been
+ * capability-assessed, and blocking images on missing data would regress
+ * behavior that works today (issue #370 has the full evidence trail).
+ *
  * Degradation is always non-fatal and always disclosed: an image the model
  * cannot see is announced in the prompt (see {@link visionDisclosureLines}) so
  * the agent can tell the user instead of silently ignoring a photo the user
@@ -83,7 +91,14 @@ export type VisionDegradedReason =
   /** A real image type the current harness cannot display (e.g. WebP on Cursor). */
   | "unsupported_format"
   /** Declared as an image but the bytes are not a recognizable image (HEIC named .jpg, corrupt file). */
-  | "type_mismatch";
+  | "type_mismatch"
+  /**
+   * The model registry explicitly flags the execution's model as unable to
+   * see images (`capabilities.vision: false`). Unlike every other reason,
+   * this one is not resend-fixable — no smaller or re-encoded image can help
+   * — so the disclosure gives it its own honest wording.
+   */
+  | "model_no_vision";
 
 export type VisionOutcome =
   | { readonly kind: "accepted"; readonly image: VisionImage }
@@ -187,23 +202,49 @@ export class VisionBudget {
   private readonly maxImageBytes: number;
   private readonly maxTotalBytes: number;
   private readonly maxImages: number;
+  /**
+   * Tri-state model capability from the registry (model-registry.ts,
+   * `getModelVisionCapability`). Only an explicit `false` gates: `undefined`
+   * means the capability was never assessed (or the registry was
+   * unreachable, or the model is the Cursor "default" Auto pool), and the
+   * policy fails OPEN on unknown — degrading every image because a flag is
+   * missing would regress behavior that works today.
+   */
+  private readonly modelVision?: boolean;
   private totalBytes = 0;
   private imageCount = 0;
 
   constructor(
     profile: VisionProfile,
-    limits?: { maxImageBytes?: number; maxTotalBytes?: number; maxImages?: number },
+    options?: {
+      maxImageBytes?: number;
+      maxTotalBytes?: number;
+      maxImages?: number;
+      modelVision?: boolean;
+    },
   ) {
     this.profile = profile;
-    this.maxImageBytes = limits?.maxImageBytes ?? MAX_VISION_IMAGE_BYTES;
-    this.maxTotalBytes = limits?.maxTotalBytes ?? MAX_VISION_TOTAL_BYTES;
-    this.maxImages = limits?.maxImages ?? MAX_VISION_IMAGES;
+    this.maxImageBytes = options?.maxImageBytes ?? MAX_VISION_IMAGE_BYTES;
+    this.maxTotalBytes = options?.maxTotalBytes ?? MAX_VISION_TOTAL_BYTES;
+    this.maxImages = options?.maxImages ?? MAX_VISION_IMAGES;
+    this.modelVision = options?.modelVision;
   }
 
   /** Evaluate one attachment's bytes against every eligibility and budget rule. */
   offer(filename: string, declaredType: string, bytes: Buffer): VisionOutcome {
     const sniffed = sniffImageMime(bytes);
     const declaredIsImage = declaredType.toLowerCase().startsWith("image/");
+
+    // The blind-model gate comes before every other rule: for a model that
+    // cannot see images, format/size/budget reasons would be irrelevant and
+    // their "resend smaller" advice actively misleading. Anything
+    // image-shaped (recognizable bytes OR a declared image type) is
+    // disclosed; everything else stays on the silent file story.
+    if (this.modelVision === false) {
+      return sniffed !== undefined || declaredIsImage
+        ? { kind: "degraded", reason: "model_no_vision" }
+        : { kind: "skipped" };
+    }
 
     if (sniffed === undefined) {
       // Declared an image but isn't one we can recognize — the user plausibly
@@ -249,6 +290,28 @@ export class VisionBudget {
    */
   offerOversized(): VisionOutcome {
     return { kind: "degraded", reason: "too_large" };
+  }
+
+  /**
+   * True when the model is explicitly flagged as unable to see images, so no
+   * candidate can ever be accepted. Callers on a no-read path (the Cursor
+   * local-file fast branch) check this BEFORE stat/size logic — a blind
+   * model's oversized image must report {@link offerBlind}'s honest reason,
+   * never `too_large`'s "resend smaller" advice — then record the outcome
+   * via {@link offerBlind}, mirroring the exceedsImageCap/offerOversized
+   * pattern.
+   */
+  modelCannotSee(): boolean {
+    return this.modelVision === false;
+  }
+
+  /**
+   * Record a vision candidate the caller chose not to read because
+   * {@link modelCannotSee} was true — the model's blindness alone settles
+   * the outcome.
+   */
+  offerBlind(): VisionOutcome {
+    return { kind: "degraded", reason: "model_no_vision" };
   }
 }
 
@@ -331,6 +394,8 @@ function reasonLabel(reason: VisionDegradedReason): string {
       return "unsupported format";
     case "type_mismatch":
       return "unreadable image format";
+    case "model_no_vision":
+      return "model cannot view images";
   }
 }
 
@@ -358,10 +423,28 @@ export function visionDisclosureLines(
       .map((e) => `\`${e.path}\` (${reasonLabel(e.reason)})`)
       .join(", ");
     lines.push(`NOT VIEWABLE INLINE: ${entries}.`);
-    lines.push(
-      "You cannot see these files; if you need one, ask the user to resend it " +
-        "as a smaller PNG or JPEG.",
-    );
+    // The advice must match the reason. Resending helps only when the image
+    // itself was the problem; for a blind model that advice would send the
+    // user on a pointless resize-and-resend errand, so that arm gets its own
+    // honest wording. (In practice a blind model degrades EVERY image, so
+    // the two lines rarely co-occur — but the wording stays reason-accurate
+    // either way.)
+    const resendFixable = notViewable.filter((e) => e.reason !== "model_no_vision");
+    const modelBlind = notViewable.filter((e) => e.reason === "model_no_vision");
+    if (resendFixable.length > 0) {
+      lines.push(
+        "You cannot see these files; if you need one, ask the user to resend it " +
+          "as a smaller PNG or JPEG.",
+      );
+    }
+    if (modelBlind.length > 0) {
+      lines.push(
+        "The current model does not support image input, so no resend will " +
+          "help. The files are saved on disk at the paths above; if the user " +
+          "needs an image understood, suggest switching to a vision-capable " +
+          "model.",
+      );
+    }
   }
   if (inlineFilenames.length > 0) {
     lines.push(

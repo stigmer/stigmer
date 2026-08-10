@@ -64,6 +64,7 @@ import {
   toCursorImages,
   type NotViewableEntry,
 } from "../../shared/attachment-vision.js";
+import { getModelVisionCapability } from "../../shared/model-registry.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
 import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
@@ -770,7 +771,13 @@ async function executeCursorInner(
     // artifactStorage resolved for status offload above. The vision budget
     // rides along so image attachments are selected for inline delivery while
     // their bytes are already in hand (attachment-vision.ts owns all policy).
-    const visionBudget = new VisionBudget(CURSOR_VISION_PROFILE);
+    // The budget also carries the requested model's registry vision
+    // capability, looked up from the raw executionConfig name — full model
+    // validation (Phase 6) isn't needed for this, and ""/"default" (the Auto
+    // pool) resolves to unknown, which the policy treats as sighted.
+    const visionBudget = new VisionBudget(CURSOR_VISION_PROFILE, {
+      modelVision: await getModelVisionCapability(spec.executionConfig?.modelName ?? ""),
+    });
     const attachmentResults = await resolveAttachments(spec.attachments, {
       sessionId,
       primaryWorkspaceDir,
