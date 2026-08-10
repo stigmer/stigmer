@@ -13,6 +13,10 @@ import {
   unwrapEnclosingMarkdownFence,
 } from "../internal/markdown-components.js";
 import { InteractionModeBadge } from "./InteractionModeBadge.js";
+import {
+  MessageAttachments,
+  type MessageAttachmentView,
+} from "./MessageAttachments.js";
 import { PlanDocumentMessage } from "./PlanDocumentMessage.js";
 import { useRenderTracer } from "../internal/dev/index.js";
 
@@ -48,6 +52,23 @@ export interface MessageEntryProps {
    * non-human messages.
    */
   readonly interactionMode?: InteractionMode;
+  /**
+   * The turn's submitted attachments, stamped by the thread builder on
+   * `MESSAGE_HUMAN` bubbles from the execution's `spec.attachments` (or the
+   * pending submit context). Renders as a {@link MessageAttachments} row
+   * above the prose. Ignored for non-human messages.
+   *
+   * A `MessageEntry` slot override that delegates to the built-in inherits
+   * attachment rendering; one that ignores this prop renders text only.
+   */
+  readonly attachments?: readonly MessageAttachmentView[];
+  /**
+   * The execution the attachments belong to — enables their byte-backed
+   * affordances (image previews, document downloads) via presigned URLs.
+   * Absent on the optimistic pending bubble, where attachments render as
+   * inert chips until the real execution record replaces it.
+   */
+  readonly executionId?: string;
 }
 
 /**
@@ -80,6 +101,8 @@ export const MessageEntry = memo(function MessageEntry({
   onEdit,
   isPlanDocument,
   interactionMode,
+  attachments,
+  executionId,
 }: MessageEntryProps) {
   useRenderTracer("MessageEntry", {
     messageType: message.type,
@@ -95,6 +118,8 @@ export const MessageEntry = memo(function MessageEntry({
           className={className}
           onEdit={onEdit}
           interactionMode={interactionMode}
+          attachments={attachments}
+          executionId={executionId}
         />
       );
     case MessageType.MESSAGE_AI:
@@ -132,11 +157,15 @@ function HumanMessage({
   className,
   onEdit,
   interactionMode,
+  attachments,
+  executionId,
 }: {
   content: string;
   className?: string;
   onEdit?: () => void;
   interactionMode?: InteractionMode;
+  attachments?: readonly MessageAttachmentView[];
+  executionId?: string;
 }) {
   return (
     <div
@@ -151,6 +180,15 @@ function HumanMessage({
           ordinary Agent turns carry no extra chrome. */}
       {interactionMode !== undefined && (
         <InteractionModeBadge mode={interactionMode} className="mb-1.5" />
+      )}
+      {/* The evidence a file rode with this turn (#372) — above the prose,
+          mirroring the composer's chips-above-input layout. */}
+      {attachments && attachments.length > 0 && (
+        <MessageAttachments
+          attachments={attachments}
+          executionId={executionId}
+          className="mb-2"
+        />
       )}
       <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
       {onEdit && (

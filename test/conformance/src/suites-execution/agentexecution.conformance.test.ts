@@ -705,6 +705,59 @@ describe("AgentExecution conformance — attachments (#285)", () => {
     expect(Buffer.compare(got, content)).toBe(0);
   });
 
+  // The thread-rendering seam (stigmer/stigmer#372): a submitted attachment's
+  // storage key must presign via getArtifactDownloadUrl so the message thread
+  // can show the turn's files after the composer's local handles are gone.
+  // Attachment keys carry no execution id, so ownership is the execution's
+  // spec.attachments referencing the key verbatim — and ONLY that: a key the
+  // spec never referenced is rejected even when syntactically valid.
+  it("presigns a spec-referenced attachment key and rejects a foreign one (#372)", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentId = await provisionAgent(org, uniqueName("agent-presign"));
+
+    const filename = "evidence-372.txt";
+    const uploaded = await clients.agentExecutionCommand.uploadAttachment(
+      create(UploadAttachmentRequestSchema, {
+        filename,
+        content: Buffer.from("presign proof"),
+        contentType: "text/plain",
+      }),
+    );
+
+    mock.enqueue(anthropicText("Received."));
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({
+        org,
+        name: uniqueName("aex-presign"),
+        agentId,
+        message: "Here is a file.",
+        attachments: [{ filename, storageKey: uploaded.storageKey }],
+      }),
+    );
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: execution.metadata!.id }));
+
+    // The spec-referenced key presigns — no need to wait for the run.
+    const presigned = await clients.agentExecutionQuery.getArtifactDownloadUrl({
+      executionId: execution.metadata!.id,
+      storageKey: uploaded.storageKey,
+    });
+    expect(presigned.downloadUrl, "attachment key should presign").toBeTruthy();
+
+    // A foreign attachment key (valid shape, never referenced) is rejected.
+    await expectGrpcCode(
+      () =>
+        clients.agentExecutionQuery.getArtifactDownloadUrl({
+          executionId: execution.metadata!.id,
+          storageKey: "attachments/01JXFOREIGNULIDULIDULIDULX/other.txt",
+        }),
+      Code.InvalidArgument,
+      "presign foreign attachment key",
+    );
+
+    // Leave the background run settled so teardown is quiet.
+    await awaitTerminal(clients, execution.metadata!.id);
+  });
+
   // The T04 vision contract, proven at the provider boundary: an image
   // attachment must reach the model as an inline image block, not just as a
   // file on disk. This is the offline substitute for a live vision probe — the

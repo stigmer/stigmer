@@ -6,6 +6,7 @@ import type { AttachmentEntry } from "./useAttachments.js";
 import { formatFileSize } from "./attachment-utils.js";
 import { useObjectUrl } from "./useObjectUrl.js";
 import { AttachmentImageLightbox } from "./AttachmentImageLightbox.js";
+import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
 
 /** Props for {@link AttachmentChipList}. */
 export interface AttachmentChipListProps {
@@ -315,17 +316,6 @@ function FileAttachmentChip({
 // ---------------------------------------------------------------------------
 // Shared chip actions
 // ---------------------------------------------------------------------------
-
-/**
- * Neutralizes the UA's default `<button>` styling (buttonface background,
- * padding, default cursor). The SDK's scoped preflight in `styles.css`
- * resets only borders/box-sizing; in the console and desktop app the host's
- * global Tailwind preflight covers the rest, but a preflight-less host
- * (docs tours, third-party embeds) would otherwise render every chip button
- * as a gray UA box. Font is NOT reset here — callers that render text set
- * `[font:inherit]` or explicit text utilities themselves.
- */
-const UNSTYLED_BUTTON = "cursor-pointer bg-transparent p-0";
 
 function RetryButton({
   filename,

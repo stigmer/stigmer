@@ -260,6 +260,68 @@ describe("useSessionConversation", () => {
     expect(result.current.pendingUserMessage).toBe("Hello agent");
   });
 
+  it("sendFollowUp carries the submit's attachments as pendingAttachments, cleared with the first snapshot", async () => {
+    methods.listBySession.mockResolvedValue({ entries: [] });
+    const newExec = makeExecution("new-exec", ExecutionPhase.EXECUTION_PENDING);
+    newExec.metadata!.id = "new-exec";
+    methods.executionCreate.mockResolvedValue(newExec);
+
+    const newStream = createControllableStream<AgentExecution>();
+    methods.subscribe.mockReturnValue(newStream.generator);
+
+    const attachments = [
+      { filename: "sketch.png", storageKey: "attachments/01AAA/sketch.png", contentType: "image/png" },
+    ];
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.sendFollowUp("Here is a sketch", { attachments });
+    });
+
+    // The optimistic turn carries BOTH facets — text and files (#372).
+    expect(result.current.pendingUserMessage).toBe("Here is a sketch");
+    expect(result.current.pendingAttachments).toBe(attachments);
+
+    act(() => {
+      newStream.push(
+        makeExecution("new-exec", ExecutionPhase.EXECUTION_IN_PROGRESS),
+      );
+    });
+
+    // Both clear together once the real execution record takes over.
+    await waitFor(() => {
+      expect(result.current.pendingUserMessage).toBeNull();
+      expect(result.current.pendingAttachments).toBeNull();
+    });
+  });
+
+  it("keeps pendingAttachments when the send fails (the chips are what Retry re-sends)", async () => {
+    methods.listBySession.mockResolvedValue({ entries: [] });
+    methods.executionCreate.mockRejectedValue(new Error("create boom"));
+
+    const attachments = [
+      { filename: "notes.txt", storageKey: "attachments/01BBB/notes.txt", contentType: "text/plain" },
+    ];
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.sendFollowUp("keep my files", { attachments });
+    });
+
+    expect(result.current.sendError?.message).toBe("create boom");
+    expect(result.current.pendingAttachments).toBe(attachments);
+  });
+
   it("sendFollowUp creates execution via the SDK", async () => {
     methods.listBySession.mockResolvedValue({ entries: [] });
     const newExec = makeExecution("new-exec", ExecutionPhase.EXECUTION_PENDING);

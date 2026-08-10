@@ -213,6 +213,14 @@ export interface UseSessionConversationReturn {
    * {@link sendError} to render the turn as failed with a retry control.
    */
   readonly pendingUserMessage: string | null;
+  /**
+   * The attachments submitted with {@link pendingUserMessage}, so the
+   * optimistic bubble shows the turn's files, not just its text
+   * (stigmer/stigmer#372). Set and cleared in lockstep with the message —
+   * including retention on a failed send, where the chips are the evidence
+   * of what Retry will re-send. Wire to `MessageThread.pendingAttachments`.
+   */
+  readonly pendingAttachments: readonly AttachmentInput[] | null;
 
   /** Current workspace entries from the session spec. Empty array when session is not loaded. */
   readonly workspaceEntries: readonly ProtoWorkspaceEntry[];
@@ -439,6 +447,12 @@ export function useSessionConversation(
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(
     null,
   );
+  // The pending message's attachments, kept in lockstep with the text: one
+  // pending turn, two facets. Held separately (not an object) so existing
+  // pendingUserMessage consumers keep their string contract.
+  const [pendingAttachments, setPendingAttachments] = useState<
+    readonly AttachmentInput[] | null
+  >(null);
   // Dedicated send-failure state, distinct from the create hook's internal
   // error so it can also cover the session.update() path. The last send's
   // arguments are captured for an exact retry.
@@ -507,8 +521,9 @@ export function useSessionConversation(
   useEffect(() => {
     if (!stream.execution) return;
     if (pendingUserMessage) setPendingUserMessage(null);
+    if (pendingAttachments) setPendingAttachments(null);
     if (sendError) setSendError(null);
-  }, [pendingUserMessage, sendError, stream.execution]);
+  }, [pendingUserMessage, pendingAttachments, sendError, stream.execution]);
 
   // Refetch executions when stream reaches a terminal phase so the
   // fetched list reflects the completed status and listActiveId clears.
@@ -620,6 +635,7 @@ export function useSessionConversation(
       // renders the failed-with-retry bubble instead of vanishing.
       if (!options?.buildFromPlan) {
         setPendingUserMessage(message);
+        setPendingAttachments(options?.attachments ?? null);
       }
 
       try {
@@ -666,8 +682,10 @@ export function useSessionConversation(
         // pendingUserMessage) so the turn renders as failed-with-retry instead
         // of vanishing. Covers both the update() and create() paths. For a
         // build turn this is the FIRST time the message is set — failure is
-        // the one case where its label must become visible.
+        // the one case where its label must become visible. The attachments
+        // ride along: the failed bubble's chips are what Retry will re-send.
         setPendingUserMessage(message);
+        setPendingAttachments(options?.attachments ?? null);
         setSendError(toError(err));
         if (process.env.NODE_ENV !== "production") {
           console.error("[useSessionConversation] sendFollowUp failed:", err);
@@ -753,6 +771,7 @@ export function useSessionConversation(
     retryLastSend,
 
     pendingUserMessage,
+    pendingAttachments,
 
     workspaceEntries,
     mcpServerUsages,

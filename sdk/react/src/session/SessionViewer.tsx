@@ -795,6 +795,7 @@ const ConversationColumn = memo(function ConversationColumn({
         executions={conv.completedExecutions}
         activeStreamExecution={conv.activeStreamExecution}
         pendingUserMessage={conv.pendingUserMessage}
+        pendingAttachments={conv.pendingAttachments}
         pendingMessageFailed={!!conv.sendError && !!conv.pendingUserMessage}
         // Observers get a pure transcript: every interaction affordance
         // (retry, approvals, edit, build-from-plan) is opt-in via its

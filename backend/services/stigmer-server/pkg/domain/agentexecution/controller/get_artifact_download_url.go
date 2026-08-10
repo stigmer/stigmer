@@ -40,14 +40,22 @@ const DefaultArtifactURLExpiration = 7 * 24 * time.Hour // 7 days
 // ## Security
 //
 // The storage_key is validated to ensure it belongs to the specified execution.
-// Storage keys must start with "artifacts/{execution_id}/" to prevent path
-// traversal attacks where a user could request URLs for other executions'
-// artifacts.
+// Two key forms are accepted:
+//
+//   - "artifacts/{execution_id}/..." — outputs published by the execution
+//   - a key listed verbatim in the execution's spec.attachments — inputs the
+//     user submitted with the turn (keys are "attachments/{ulid}/{filename}",
+//     ULID-unique per upload, so membership cannot reference another
+//     execution's files)
+//
+// Any other key is rejected to prevent path traversal attacks where a user
+// could request URLs for other executions' files.
 //
 // ## Use Cases
 //
 // - CLI downloading agent-created files
 // - Web UI providing download links for artifacts
+// - Web UI rendering submitted attachments in the message thread
 // - Refreshing expired download URLs
 func (c *AgentExecutionController) GetArtifactDownloadUrl(ctx context.Context, req *agentexecutionv1.GetArtifactDownloadUrlRequest) (*agentexecutionv1.GetArtifactDownloadUrlResponse, error) {
 	// Check artifact storage is configured
@@ -64,19 +72,9 @@ func (c *AgentExecutionController) GetArtifactDownloadUrl(ctx context.Context, r
 		return nil, status.Error(codes.InvalidArgument, "storage_key is required")
 	}
 
-	// Security check: Validate storage_key belongs to this execution
-	// Storage keys for artifacts must be in format: artifacts/{execution_id}/{filename}
-	expectedPrefix := "artifacts/" + req.ExecutionId + "/"
-	if !strings.HasPrefix(req.StorageKey, expectedPrefix) {
-		log.Warn().
-			Str("execution_id", req.ExecutionId).
-			Str("storage_key", req.StorageKey).
-			Str("expected_prefix", expectedPrefix).
-			Msg("Storage key does not belong to execution - potential path traversal attempt")
-		return nil, status.Error(codes.InvalidArgument, "storage_key does not belong to this execution")
-	}
-
-	// Verify the execution exists (authorization is already handled by interceptor)
+	// Load the execution before the key check: the attachment arm below needs
+	// spec.attachments, and this doubles as the existence check.
+	// (Authorization is already handled by the interceptor.)
 	execution := &agentexecutionv1.AgentExecution{}
 	err := c.store.GetResource(ctx, apiresourcekind.ApiResourceKind_agent_execution, req.ExecutionId, execution)
 	if err != nil {
@@ -85,6 +83,19 @@ func (c *AgentExecutionController) GetArtifactDownloadUrl(ctx context.Context, r
 			Str("execution_id", req.ExecutionId).
 			Msg("Failed to load execution for artifact download")
 		return nil, status.Errorf(codes.NotFound, "execution not found: %s", req.ExecutionId)
+	}
+
+	// Security check: Validate storage_key belongs to this execution — either
+	// an artifact the execution produced (artifacts/{execution_id}/...) or an
+	// attachment the execution's spec references verbatim.
+	expectedPrefix := "artifacts/" + req.ExecutionId + "/"
+	if !strings.HasPrefix(req.StorageKey, expectedPrefix) && !isSpecAttachmentKey(execution, req.StorageKey) {
+		log.Warn().
+			Str("execution_id", req.ExecutionId).
+			Str("storage_key", req.StorageKey).
+			Str("expected_prefix", expectedPrefix).
+			Msg("Storage key does not belong to execution - potential path traversal attempt")
+		return nil, status.Error(codes.InvalidArgument, "storage_key does not belong to this execution")
 	}
 
 	// Generate presigned URL
@@ -128,4 +139,18 @@ func (c *AgentExecutionController) GetArtifactDownloadUrl(ctx context.Context, r
 		DownloadUrl: downloadURL,
 		ExpiresAt:   expiresAt.Format(time.RFC3339),
 	}, nil
+}
+
+// isSpecAttachmentKey reports whether storageKey appears verbatim in the
+// execution's spec.attachments. This is the ownership proof for submitted
+// inputs: attachment keys ("attachments/{ulid}/{filename}") carry no execution
+// id, so — unlike artifacts — ownership is established by the execution record
+// referencing the key, not by the key's shape.
+func isSpecAttachmentKey(execution *agentexecutionv1.AgentExecution, storageKey string) bool {
+	for _, attachment := range execution.GetSpec().GetAttachments() {
+		if attachment.GetStorageKey() == storageKey {
+			return true
+		}
+	}
+	return false
 }

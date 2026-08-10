@@ -22,6 +22,7 @@ import { displayFileChangeSets } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { isTerminalPhase } from "./execution-phases.js";
 import { MessageEntry, type MessageEntryProps } from "./MessageEntry.js";
+import type { MessageAttachmentView } from "./MessageAttachments.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { SubAgentSection } from "./SubAgentSection.js";
 import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge.js";
@@ -124,6 +125,16 @@ export interface MessageThreadProps {
    * first snapshot.
    */
   readonly pendingUserMessage?: string | null;
+  /**
+   * Attachments submitted with the pending user message, rendered as chips
+   * on the optimistic bubble so the files never vanish between submit and
+   * the stream's first snapshot (stigmer/stigmer#372). Supply
+   * {@link useSessionConversation}'s `pendingAttachments`; clear together
+   * with {@link pendingUserMessage}. Chips are inert on the pending bubble
+   * (no execution record yet); previews and downloads light up the moment
+   * the real turn replaces it.
+   */
+  readonly pendingAttachments?: readonly MessageAttachmentView[] | null;
   /**
    * Marks the pending user message as failed-to-send. The optimistic
    * bubble renders an inline "Couldn't send — Retry" affordance instead
@@ -339,7 +350,7 @@ export function threadContentColumnClass(
  * part of the public API.
  */
 export type ThreadItem =
-  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode }
+  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode; readonly attachments?: readonly MessageAttachmentView[]; readonly executionId?: string }
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentExecutions: readonly SubAgentExecution[]; readonly key: string }
   | { readonly kind: "sub-agent"; readonly subAgentExecution: SubAgentExecution; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
@@ -557,6 +568,7 @@ export function buildThreadItems(
   editableActiveTurn = false,
   includeFileReviewRecords = false,
   collapseStreamingPlan = false,
+  pendingAttachments?: readonly MessageAttachmentView[] | null,
 ): ThreadItem[] {
   const items: ThreadItem[] = [];
   // Tool-call ids that render as an inline-approval-capable ToolCallItem (a
@@ -717,6 +729,12 @@ export function buildThreadItems(
         pendingUserMessage != null &&
         specMessage === pendingUserMessage;
 
+      // The turn's submitted files (spec.attachments, by reference — the spec
+      // never mutates and structural sharing keeps the ref stable, so the
+      // memoized bubble skips re-renders). The execution id rides along for
+      // the presigned-URL affordances; the `_e${ei}` synthetic fallback is
+      // display-only and must never be presigned against.
+      const specAttachments = exec.spec?.attachments;
       items.push({
         kind: "message",
         message: syntheticHumanMsg,
@@ -727,6 +745,11 @@ export function buildThreadItems(
         // The turn's mode marks the prompt bubble (a "Plan" pill on Plan
         // turns) so the transcript reads unambiguously after mode switches.
         interactionMode: exec.spec?.executionConfig?.interactionMode,
+        attachments:
+          specAttachments && specAttachments.length > 0
+            ? specAttachments
+            : undefined,
+        executionId: exec.metadata?.id,
       });
     }
 
@@ -1023,6 +1046,14 @@ export function buildThreadItems(
         // sending state — the two are mutually exclusive.
         isPending: !pendingMessageFailed,
         isFailed: pendingMessageFailed,
+        // The submit context's attachments: evidence the files rode with the
+        // turn, kept on failure so retry shows what will be re-sent. No
+        // executionId yet — chips render inert until the real turn (same
+        // bridge key) replaces this bubble and brings the presign seam.
+        attachments:
+          pendingAttachments && pendingAttachments.length > 0
+            ? pendingAttachments
+            : undefined,
       });
     }
   }
@@ -1057,6 +1088,7 @@ export function MessageThread({
   executions,
   activeStreamExecution,
   pendingUserMessage,
+  pendingAttachments,
   pendingMessageFailed = false,
   onRetrySend,
   onRetryExecution,
@@ -1089,8 +1121,8 @@ export function MessageThread({
   // the plan streaming inline, where it remains readable (DD-011).
   const collapseStreamingPlan = onOpenPlan != null;
   const items = useMemo(
-    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan),
-    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan],
+    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingAttachments),
+    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingAttachments],
   );
 
   useKeyStability(items);
@@ -1413,6 +1445,7 @@ export function ThreadItemRenderer({
         return (
           <FailedUserMessage
             message={item.message}
+            attachments={item.attachments}
             onRetry={onRetrySend}
             MessageEntryComponent={Entry}
           />
@@ -1424,6 +1457,8 @@ export function ThreadItemRenderer({
           className={item.isPending ? "opacity-70" : undefined}
           isPlanDocument={item.isPlanDocument}
           interactionMode={item.interactionMode}
+          attachments={item.attachments}
+          executionId={item.executionId}
           onEdit={
             item.isEditable && onEditMessage
               ? () => onEditMessage(item.message.content)
@@ -1555,16 +1590,21 @@ export function ThreadItemRenderer({
  */
 function FailedUserMessage({
   message,
+  attachments,
   onRetry,
   MessageEntryComponent,
 }: {
   message: AgentMessage;
+  attachments?: readonly MessageAttachmentView[];
   onRetry?: () => void;
   MessageEntryComponent: ComponentType<MessageEntryProps>;
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <MessageEntryComponent message={message} />
+      {/* Attachments stay visible on the failed bubble — the one turn where
+          the user most needs evidence of what they tried to send (and what
+          Retry will re-send). No executionId: the send never created one. */}
+      <MessageEntryComponent message={message} attachments={attachments} />
       <div
         role="alert"
         className="mx-4 flex items-center gap-2 text-xs text-destructive"

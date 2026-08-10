@@ -60,7 +60,7 @@ AgentExecution agentExecution = client.agentExecutions().get("aex_01j5q3k7m8r2s4
 | [`get`](#get) | Get a single agent execution by ID. | |
 | [`getAgentUsageReport`](#getagentusagereport) | Get a usage report for an agent. | |
 | [`getArtifactContent`](#getartifactcontent) | Read the raw content of an execution artifact. | |
-| [`getArtifactDownloadUrl`](#getartifactdownloadurl) | Get a presigned download URL for an execution artifact. | |
+| [`getArtifactDownloadUrl`](#getartifactdownloadurl) | Get a presigned download URL for an execution artifact or attachment. | |
 | [`getExecutionSummary`](#getexecutionsummary) | Get aggregated execution statistics for an organization's agent executions. | |
 | [`getExecutionUsageReport`](#getexecutionusagereport) | Get a usage report for a single execution. | |
 | [`getOrgUsageReport`](#getorgusagereport) | Get a usage report for an organization. | |
@@ -230,9 +230,9 @@ GetArtifactContentResponse getArtifactContentResponse = client.agentExecutions()
 
 ### getArtifactDownloadUrl
 
-Get a presigned download URL for an execution artifact.
+Get a presigned download URL for an execution artifact or attachment.
 
-Returns a time-limited URL for downloading an artifact published by an agent during execution. The URL can be used with a simple HTTP GET request without authentication.
+Returns a time-limited URL for downloading an artifact published by an agent during execution, or an attachment submitted with the execution. The URL can be used with a simple HTTP GET request without authentication.
 
 <SDKTabs>
 <Tab value="TypeScript">

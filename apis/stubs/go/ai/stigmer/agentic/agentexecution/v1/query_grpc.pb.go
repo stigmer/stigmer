@@ -53,24 +53,33 @@ type AgentExecutionQueryControllerClient interface {
 	// @internal
 	// Authorization is handled by the FJ model via proto configuration.
 	Subscribe(ctx context.Context, in *AgentExecutionId, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentExecution], error)
-	// Get a presigned download URL for an execution artifact.
+	// Get a presigned download URL for an execution artifact or attachment.
 	//
 	// Returns a time-limited URL for downloading an artifact published by
-	// an agent during execution. The URL can be used with a simple HTTP GET
-	// request without authentication.
+	// an agent during execution, or an attachment submitted with the
+	// execution. The URL can be used with a simple HTTP GET request without
+	// authentication.
 	//
 	// @internal
 	//
 	// ## Authorization
 	//
 	// Requires can_view permission on the execution. This ensures users can
-	// only download artifacts from executions they have access to.
+	// only download files from executions they have access to.
 	//
 	// ## Security
 	//
 	// The storage_key is validated to ensure it belongs to the specified
-	// execution. Keys must start with "artifacts/{execution_id}/" to prevent
-	// path traversal attacks.
+	// execution. Two key forms are accepted:
+	//
+	//   - "artifacts/{execution_id}/..." — outputs published by the execution;
+	//     the embedded execution id is the ownership proof
+	//   - a key listed verbatim in the execution's spec.attachments — inputs
+	//     submitted with the turn ("attachments/{ulid}/{filename}", ULID-unique
+	//     per upload); ownership is the spec reference, since the key carries
+	//     no execution id
+	//
+	// Any other key is rejected to prevent path traversal attacks.
 	//
 	// ## URL Expiration
 	//
@@ -81,12 +90,13 @@ type AgentExecutionQueryControllerClient interface {
 	//
 	// - CLI downloading agent-created files
 	// - Web UI providing download links for artifacts
+	// - Web UI rendering submitted attachments in the message thread
 	// - Refreshing expired download URLs
 	//
 	// ## Example Flow
 	//
 	// 1. Get execution via AgentExecutionQueryController.get
-	// 2. Find artifact in status.artifacts[]
+	// 2. Find artifact in status.artifacts[] (or attachment in spec.attachments[])
 	// 3. Call getArtifactDownloadUrl with execution_id and storage_key
 	// 4. Use returned download_url for HTTP GET
 	//
@@ -322,24 +332,33 @@ type AgentExecutionQueryControllerServer interface {
 	// @internal
 	// Authorization is handled by the FJ model via proto configuration.
 	Subscribe(*AgentExecutionId, grpc.ServerStreamingServer[AgentExecution]) error
-	// Get a presigned download URL for an execution artifact.
+	// Get a presigned download URL for an execution artifact or attachment.
 	//
 	// Returns a time-limited URL for downloading an artifact published by
-	// an agent during execution. The URL can be used with a simple HTTP GET
-	// request without authentication.
+	// an agent during execution, or an attachment submitted with the
+	// execution. The URL can be used with a simple HTTP GET request without
+	// authentication.
 	//
 	// @internal
 	//
 	// ## Authorization
 	//
 	// Requires can_view permission on the execution. This ensures users can
-	// only download artifacts from executions they have access to.
+	// only download files from executions they have access to.
 	//
 	// ## Security
 	//
 	// The storage_key is validated to ensure it belongs to the specified
-	// execution. Keys must start with "artifacts/{execution_id}/" to prevent
-	// path traversal attacks.
+	// execution. Two key forms are accepted:
+	//
+	//   - "artifacts/{execution_id}/..." — outputs published by the execution;
+	//     the embedded execution id is the ownership proof
+	//   - a key listed verbatim in the execution's spec.attachments — inputs
+	//     submitted with the turn ("attachments/{ulid}/{filename}", ULID-unique
+	//     per upload); ownership is the spec reference, since the key carries
+	//     no execution id
+	//
+	// Any other key is rejected to prevent path traversal attacks.
 	//
 	// ## URL Expiration
 	//
@@ -350,12 +369,13 @@ type AgentExecutionQueryControllerServer interface {
 	//
 	// - CLI downloading agent-created files
 	// - Web UI providing download links for artifacts
+	// - Web UI rendering submitted attachments in the message thread
 	// - Refreshing expired download URLs
 	//
 	// ## Example Flow
 	//
 	// 1. Get execution via AgentExecutionQueryController.get
-	// 2. Find artifact in status.artifacts[]
+	// 2. Find artifact in status.artifacts[] (or attachment in spec.attachments[])
 	// 3. Call getArtifactDownloadUrl with execution_id and storage_key
 	// 4. Use returned download_url for HTTP GET
 	//

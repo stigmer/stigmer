@@ -220,8 +220,8 @@ stigmer agent execution get-artifact-url aex_abc123 \
 
 | Field | Type | Description |
 |---|---|---|
-| `execution_id` | `string` | ID of the execution that produced the artifact. |
-| `storage_key` | `string` | Storage key from `ExecutionArtifact.storage_key`. Must start with `"artifacts/{execution_id}/"`. |
+| `execution_id` | `string` | ID of the execution that produced the artifact (or received the attachment). |
+| `storage_key` | `string` | Storage key from `ExecutionArtifact.storage_key` or `Attachment.storage_key`. |
 
 **Response:**
 
@@ -230,7 +230,7 @@ stigmer agent execution get-artifact-url aex_abc123 \
 | `download_url` | `string` | Fresh pre-signed URL valid for HTTP GET without authentication. |
 | `expires_at` | `string` | ISO 8601 timestamp when the new URL expires. |
 
-**Security:** The `storage_key` is validated to start with `"artifacts/{execution_id}/"`. This prevents path traversal — users cannot request download URLs for other executions' artifacts.
+**Security:** The `storage_key` must belong to the specified execution. Two key forms are accepted: an artifact key starting with `"artifacts/{execution_id}/"` (the embedded execution id is the ownership proof), or a key listed verbatim in the execution's `spec.attachments` (attachment keys are `"attachments/{ulid}/{filename}"` and carry no execution id, so ownership is the spec reference). Anything else is rejected — users cannot request download URLs for other executions' files. The attachment arm is what lets clients render submitted attachments in the message thread after the composer's local file handles are gone.
 
 **Authorization:** Requires `can_view` permission on the execution.
 

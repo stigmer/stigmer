@@ -60,6 +60,29 @@ func TestAgentExecution_Attachment_Upload(t *testing.T) {
 				},
 			)
 
+			// The submitted attachment's storage key must presign via
+			// getArtifactDownloadUrl — the seam the message thread uses to
+			// render submitted files (stigmer/stigmer#372). Attachment keys
+			// carry no execution id, so ownership is the execution's
+			// spec.attachments referencing the key verbatim.
+			urlResp, err := clients.AgentExecutionQuery.GetArtifactDownloadUrl(ctx,
+				&agentexecv1.GetArtifactDownloadUrlRequest{
+					ExecutionId: exec.GetMetadata().GetId(),
+					StorageKey:  uploadResp.GetStorageKey(),
+				})
+			require.NoError(t, err, "presigning a spec-referenced attachment key should succeed")
+			require.NotEmpty(t, urlResp.GetDownloadUrl(),
+				"presign response should carry a download URL for attachment key %s", uploadResp.GetStorageKey())
+
+			// A syntactically valid attachment key the execution never
+			// referenced must be rejected — membership is per-execution.
+			_, err = clients.AgentExecutionQuery.GetArtifactDownloadUrl(ctx,
+				&agentexecv1.GetArtifactDownloadUrlRequest{
+					ExecutionId: exec.GetMetadata().GetId(),
+					StorageKey:  "attachments/01JXFOREIGNULIDULIDULIDULX/other.txt",
+				})
+			require.Error(t, err, "presigning an attachment key absent from spec.attachments must fail")
+
 			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
 			result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
 				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
