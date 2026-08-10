@@ -91,11 +91,12 @@ function CustomComposer() {
 ### AttachmentChipList
 
 Renders a horizontal list of attachment chips: image attachments as
-preview cards with a recognizable miniature (visible from the moment
-of paste, through upload, and on error — stigmer/stigmer#371), other
-files as compact chips. Every chip shows filename, size, upload
-status, and remove/retry actions; clicking an image chip opens the
-full image.
+preview-only thumbnail tiles (the image IS the chip — no filename
+text; visible from the moment of paste, through upload, and on error
+— stigmer/stigmer#371, #372), other files as compact filename chips.
+Filename, size, and upload status stay available on every chip via
+the tooltip and the accessible label; clicking an image tile opens
+the full image.
 
 Designed to sit between the context chips and toolbar in
 [`SessionComposer`](/docs/sdk/react/composer#sessioncomposer), but usable standalone by platform builders
