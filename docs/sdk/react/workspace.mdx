@@ -621,6 +621,17 @@ this return their first [`MAX_WORKSPACE_FILE_READ_BYTES`](#max_workspace_file_re
 with `truncated: true`; `size` still reports the full file size.
 
 
+### MAX_WORKSPACE_IMAGE_READ_BYTES
+
+Byte ceiling for delivering a workspace *image* in full (stigmer/stigmer#379).
+
+Deliberately larger than [`MAX_WORKSPACE_FILE_READ_BYTES`](#max_workspace_file_read_bytes): text
+degrades gracefully when truncated, an image does not — a partial PNG is
+useless, so readers deliver image bytes whole or not at all. 10 MiB matches
+the GitHub reader's existing blob-fetch ceiling; the desktop native reader
+mirrors it as `MAX_IMAGE_READ_BYTES` in `src-tauri/src/workspace.rs`.
+
+
 ### SurfaceRailView
 
 A host-injected rail view: an icon in the activity rail whose content
@@ -850,10 +861,12 @@ Decoded content (plus metadata) for a single workspace file.
 
 `text` is `null` whenever the bytes are not displayable as UTF-8 — either
 binary (`isBinary`) or an undecodable byte sequence (`encoding: "unknown"`).
-The renderer uses `isBinary`/`text === null` for its fallback state.
+The renderer uses `isBinary`/`text === null` for its fallback state, except
+when `bytes` carries a renderable image.
 
 <TypeTable
   type={{
+    bytes: { type: "Uint8Array<ArrayBufferLike>", description: "The complete raw bytes, populated **only** for binary files that are renderable images (workspaceImageMimeType) within MAX_WORKSPACE_IMAGE_READ_BYTES — never a channel for arbitrary binaries, and never partial (a truncated image cannot render). Optional and additive: readers that predate it remain valid, and the viewer falls back to the binary notice when it is absent (stigmer/stigmer#379)." },
     encoding: { type: "\"unknown\" | \"none\" | \"utf-8\" | \"base64\"", description: "How the backend delivered the bytes. `\"none\"` is GitHub's >1 MB signal.", required: true },
     isBinary: { type: "boolean", description: "Whether the bytes were detected as binary (NUL-byte heuristic).", required: true },
     size: { type: "number", description: "Full file size in bytes — independent of truncation.", required: true },
@@ -949,4 +962,17 @@ Matches (and per-entry status) for one workspace entry.
     truncated: { type: "boolean", description: "`true` when this entry's listing was truncated (repository too large).", required: true },
   }}
 />
+
+
+### workspaceImageMimeType
+
+MIME type for a workspace path the viewer can render as an inline image,
+or `null` for everything else. The single policy point shared by readers
+(deciding whether to attach `WorkspaceFileContent.bytes`) and the
+viewer (deciding whether to render an image arm) — extension-based, since
+workspace reads have no server-provided content type.
+
+```tsx
+function workspaceImageMimeType(path: string): string | null
+```
 
