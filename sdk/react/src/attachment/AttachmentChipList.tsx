@@ -31,11 +31,12 @@ export interface AttachmentChipListProps {
 
 /**
  * Renders a horizontal list of attachment chips: image attachments as
- * preview cards with a recognizable miniature (visible from the moment
- * of paste, through upload, and on error — stigmer/stigmer#371), other
- * files as compact chips. Every chip shows filename, size, upload
- * status, and remove/retry actions; clicking an image chip opens the
- * full image.
+ * preview-only thumbnail tiles (the image IS the chip — no filename
+ * text; visible from the moment of paste, through upload, and on error
+ * — stigmer/stigmer#371, #372), other files as compact filename chips.
+ * Filename, size, and upload status stay available on every chip via
+ * the tooltip and the accessible label; clicking an image tile opens
+ * the full image.
  *
  * Designed to sit between the context chips and toolbar in
  * {@link SessionComposer}, but usable standalone by platform builders
@@ -78,8 +79,11 @@ export function AttachmentChipList({
 
   return (
     <>
+      {/* items-center is load-bearing: image tiles (h-14) and file chips
+          (~h-6) share this row, and flexbox's default stretch alignment
+          would balloon the file chips to tile height. */}
       <div
-        className={cn("flex flex-wrap gap-1.5", className)}
+        className={cn("flex flex-wrap items-center gap-1.5", className)}
         role="list"
         aria-label="Attached files"
       >
@@ -155,15 +159,25 @@ function chipAriaLabel(entry: AttachmentEntry): string {
 }
 
 // ---------------------------------------------------------------------------
-// Image chip — a preview card, not a glyph row (#371)
+// Image chip — a preview-only thumbnail tile (#371, #372)
 // ---------------------------------------------------------------------------
 
 /**
- * The Cursor-grade image chip: a 44px miniature you can actually
- * recognize, alive through every upload phase (the spinner overlays the
- * image during upload, never replaces it — the bytes are local, so the
- * preview never waits on the network), with the chip body as one large
- * click target that opens the full image.
+ * The preview-only image tile: the thumbnail IS the chip. No filename
+ * text, no size caption — the image is its own identity (the grammar
+ * users know from Cursor/ChatGPT attachment tiles), while filename,
+ * size, and upload status stay one hover away in the tooltip and are
+ * always in the accessible label.
+ *
+ * The tile is alive through every upload phase (the spinner overlays
+ * the image during upload, never replaces it — the bytes are local, so
+ * the preview never waits on the network) and is one large click
+ * target that opens the full image. Remove is an always-visible corner
+ * badge — never hover-revealed, so it exists on touch devices and is
+ * discoverable without a pointer.
+ *
+ * On upload error the tile stays loud: destructive ring, dimmed image,
+ * and a centered Retry pill — failure never hides behind hover.
  *
  * If the file claims `image/*` but the browser can't decode it (corrupt,
  * zero-byte), the chip degrades to the compact file-chip treatment — a
@@ -200,22 +214,18 @@ function ImageAttachmentChip({
   const isUploading = entry.phase === "uploading";
 
   return (
+    // The remove badge and retry pill are SIBLINGS of the preview button,
+    // absolutely positioned over it — buttons cannot nest inside buttons.
     <span
       role="listitem"
       aria-label={chipAriaLabel(entry)}
       title={entry.file.name}
-      className={cn(
-        "inline-flex max-w-[240px] items-center gap-1 rounded-md p-1 pr-1.5 text-xs",
-        isError
-          ? "border border-destructive/30 bg-destructive-subtle text-destructive"
-          : "bg-muted-subtle text-foreground",
-      )}
+      className="relative inline-flex"
     >
-      {/* The whole miniature + name block is the preview target — a larger,
-          honest click area than the image alone. Preview stays enabled while
+      {/* The whole tile is the preview target. Preview stays enabled while
           `disabled` (that prop gates the mutating remove/retry actions) and
           in every phase: the object URL wraps in-memory bytes, no fetch.
-          UNSTYLED_BUTTON is load-bearing: without it the chip body shows the
+          UNSTYLED_BUTTON is load-bearing: without it the tile shows the
           UA's default button box in preflight-less hosts (see the constant). */}
       <button
         type="button"
@@ -223,46 +233,66 @@ function ImageAttachmentChip({
         aria-label={`Preview ${entry.file.name}`}
         className={cn(
           UNSTYLED_BUTTON,
-          "flex min-w-0 items-center gap-1.5 rounded-sm text-inherit [font:inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "relative block h-14 w-14 overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          isError && "ring-1 ring-destructive",
         )}
       >
-        <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded">
-          {url ? (
-            <img
-              src={url}
-              alt=""
-              aria-hidden="true"
-              onError={() => setLoadFailed(true)}
-              className={cn(
-                "h-full w-full object-cover",
-                isUploading && "opacity-50",
-              )}
-            />
-          ) : (
-            // One-frame placeholder until the object-URL effect runs; same
-            // footprint as the image, so no layout shift.
-            <span
-              className="block h-full w-full animate-pulse bg-muted"
-              aria-hidden="true"
-            />
-          )}
-          {isUploading && (
-            <span className="absolute inset-0 flex items-center justify-center">
-              <ChipSpinner />
-            </span>
-          )}
-        </span>
-
-        <span className="flex min-w-0 flex-col items-start text-left">
-          <span className="w-full truncate">{entry.file.name}</span>
-          <span className="text-[0.6rem] tabular-nums text-muted-foreground">
-            {formatFileSize(entry.file.size)}
+        {url ? (
+          <img
+            src={url}
+            alt=""
+            aria-hidden="true"
+            onError={() => setLoadFailed(true)}
+            className={cn(
+              "h-full w-full object-cover",
+              (isUploading || isError) && "opacity-50",
+            )}
+          />
+        ) : (
+          // One-frame placeholder until the object-URL effect runs; same
+          // footprint as the image, so no layout shift.
+          <span
+            className="block h-full w-full animate-pulse bg-muted"
+            aria-hidden="true"
+          />
+        )}
+        {isUploading && (
+          <span className="absolute inset-0 flex items-center justify-center">
+            <ChipSpinner size={16} />
           </span>
-        </span>
+        )}
       </button>
 
-      {isError && <RetryButton filename={entry.file.name} onRetry={onRetry} disabled={disabled} />}
-      <RemoveButton filename={entry.file.name} onRemove={onRemove} disabled={disabled} />
+      {isError && (
+        <button
+          type="button"
+          onClick={onRetry}
+          disabled={disabled}
+          aria-label={`Retry uploading ${entry.file.name}`}
+          className={cn(
+            UNSTYLED_BUTTON,
+            "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-destructive px-1.5 py-0.5 text-[0.6rem] font-medium leading-none text-destructive-foreground shadow-sm [font-family:inherit] hover:bg-destructive-hover disabled:pointer-events-none",
+          )}
+        >
+          Retry
+        </button>
+      )}
+
+      <button
+        type="button"
+        onClick={onRemove}
+        disabled={disabled}
+        aria-label={`Remove ${entry.file.name}`}
+        className={cn(
+          UNSTYLED_BUTTON,
+          // The established corner-badge geometry (ContextPopover,
+          // ComposerToolbar). Solid bg + border keep it legible over any
+          // image without opacity-modified tokens (Dont-Do #4).
+          "absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm hover:text-destructive disabled:pointer-events-none",
+        )}
+      >
+        <XIcon />
+      </button>
     </span>
   );
 }
@@ -400,11 +430,11 @@ function ChipPreviewLightbox({
 // Inline SVG icons — kept minimal and consistent with SessionComposer icons
 // ---------------------------------------------------------------------------
 
-function ChipSpinner() {
+function ChipSpinner({ size = 10 }: { readonly size?: number }) {
   return (
     <svg
-      width="10"
-      height="10"
+      width={size}
+      height={size}
       viewBox="0 0 16 16"
       fill="none"
       stroke="currentColor"

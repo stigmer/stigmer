@@ -101,6 +101,31 @@ describe("AttachmentChipList — image miniature", () => {
     expect(container.querySelector("svg.animate-spin")).toBeTruthy();
   });
 
+  it("renders image chips preview-only: no visible filename or size text", async () => {
+    const { container } = renderChips([entry()]);
+
+    await waitFor(() => expect(chipImage(container)).toBeTruthy());
+
+    // The tile is the chip — the name lives in the tooltip and accessible
+    // label, never as a text node (file chips, by contrast, keep theirs).
+    expect(screen.queryByText("shot.png")).toBeNull();
+    const tile = screen.getByRole("listitem", { name: /^shot\.png/ });
+    expect(tile.getAttribute("title")).toBe("shot.png");
+    // Remove is an always-visible corner badge, not hover-revealed.
+    expect(screen.getByRole("button", { name: "Remove shot.png" })).toBeTruthy();
+  });
+
+  it("keeps visible filename and size text on non-image chips", () => {
+    const md = entry({
+      file: new File(["# notes"], "notes.md", { type: "text/markdown" }),
+      contentType: "text/markdown",
+    });
+
+    renderChips([md]);
+
+    expect(screen.getByText("notes.md")).toBeTruthy();
+  });
+
   it("keeps the miniature visible on upload error, alongside the retry action", async () => {
     const errored = entry({
       id: "err",

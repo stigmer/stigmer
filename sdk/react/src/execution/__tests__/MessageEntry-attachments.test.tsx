@@ -122,6 +122,43 @@ describe("MessageEntry attachment rendering", () => {
     );
   });
 
+  it("renders no visible filename on image tiles — identity lives in the tooltip and accessible label", () => {
+    urlState = { url: "https://r2.example/presigned/screenshot", error: null };
+
+    render(
+      <MessageEntry
+        message={humanMessage("See the screenshot.")}
+        attachments={[imageAttachment]}
+        executionId="exec-1"
+      />,
+    );
+
+    // The tile is preview-only: no "screenshot.png" text node anywhere…
+    expect(screen.queryByText("screenshot.png")).toBeNull();
+    // …but the name stays reachable — tooltip on the listitem, aria on both.
+    const tile = screen.getByRole("listitem", { name: "screenshot.png" });
+    expect(tile.getAttribute("title")).toBe("screenshot.png");
+    expect(
+      screen.getByRole("button", { name: "Preview screenshot.png" }),
+    ).toBeTruthy();
+  });
+
+  it("pulses the image tile only while the presigned URL is being minted", () => {
+    urlState = { url: null, error: null };
+
+    const { container } = render(
+      <MessageEntry
+        message={humanMessage("See the screenshot.")}
+        attachments={[imageAttachment]}
+        executionId="exec-1"
+      />,
+    );
+
+    // Mint in flight: pulse placeholder, no image yet.
+    expect(container.querySelector(".animate-pulse")).toBeTruthy();
+    expect(container.querySelector("img")).toBeNull();
+  });
+
   it("renders inert chips on the pending bubble (no executionId): no preview, no download", () => {
     const { container } = render(
       <MessageEntry
@@ -130,13 +167,17 @@ describe("MessageEntry attachment rendering", () => {
       />,
     );
 
-    // Both files are visible as evidence…
+    // Both files are present as evidence — the image as a glyph tile
+    // (named via aria/tooltip), the document as a filename chip…
     expect(screen.getByRole("list", { name: "Submitted attachments" })).toBeTruthy();
-    expect(screen.getByText("screenshot.png")).toBeTruthy();
+    expect(screen.getByRole("listitem", { name: "screenshot.png" })).toBeTruthy();
     expect(screen.getByText("notes.txt")).toBeTruthy();
     // …but no byte-backed affordances exist yet.
     expect(container.querySelector("img")).toBeNull();
     expect(screen.queryByRole("button", { name: /Preview|Download/ })).toBeNull();
+    // The tile is STATIC — a pulse would promise bytes that a failed send
+    // (the other no-executionId bubble) never delivers.
+    expect(container.querySelector(".animate-pulse")).toBeNull();
   });
 
   it("degrades an image chip to the document treatment when the URL cannot be minted", () => {

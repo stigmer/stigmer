@@ -31,8 +31,9 @@ export interface MessageAttachmentsProps {
   /**
    * The execution the attachments were submitted to. Enables the byte-backed
    * affordances — image previews (presigned URL) and document downloads.
-   * Omit for the optimistic pending bubble (no execution record yet): every
-   * attachment renders as an inert chip until the real turn replaces it.
+   * Omit for the optimistic pending bubble (no execution record yet) and the
+   * failed-send bubble (no record ever): images render as inert glyph tiles
+   * and documents as inert chips until a real turn brings the presign seam.
    */
   readonly executionId?: string;
   /** Additional CSS class names for the row container. */
@@ -43,15 +44,17 @@ export interface MessageAttachmentsProps {
  * The attachment row on a human turn: the durable evidence of what files were
  * sent with the message (stigmer/stigmer#372).
  *
- * Image attachments render as preview chips — a recognizable miniature plus
- * the filename, click-to-open in the shared {@link AttachmentImageLightbox} —
- * and documents as compact click-to-download chips. Both follow the composer
- * chip grammar ({@link AttachmentChipList}) so a file looks the same before
- * and after send, but this is deliberately a separate component: the composer
- * chip is interactive and upload-phase-bound over a local `File`, while this
- * row is read-only over the execution record, with bytes resolved on demand
- * from the stable storage key via presigned URLs (the `OutputRefImage`
- * pattern — the local `File` is gone after submit).
+ * Image attachments render as preview-only thumbnail tiles — the image IS the
+ * chip, no filename text (the name stays in the tooltip, the accessible
+ * label, and the lightbox header), click-to-open in the shared
+ * {@link AttachmentImageLightbox} — and documents as compact click-to-download
+ * filename chips. Both follow the composer chip grammar
+ * ({@link AttachmentChipList}) so a file looks the same before and after
+ * send, but this is deliberately a separate component: the composer chip is
+ * interactive and upload-phase-bound over a local `File`, while this row is
+ * read-only over the execution record, with bytes resolved on demand from
+ * the stable storage key via presigned URLs (the `OutputRefImage` pattern —
+ * the local `File` is gone after submit).
  *
  * Purely presentational plus on-demand URL minting — no required wiring.
  * All visual properties flow through `--stgm-*` tokens.
@@ -76,22 +79,37 @@ export function MessageAttachments({
 
   return (
     <>
+      {/* items-center is load-bearing: image tiles (h-14) and document chips
+          (~h-6) share this row, and flexbox's default stretch alignment
+          would balloon the document chips to tile height. */}
       <div
-        className={cn("flex flex-wrap gap-1.5", className)}
+        className={cn("flex flex-wrap items-center gap-1.5", className)}
         role="list"
         aria-label="Submitted attachments"
       >
         {attachments.map((attachment, i) => {
           const isImage = attachment.contentType?.startsWith("image/") ?? false;
           const key = attachment.storageKey ?? `${displayName(attachment)}-${i}`;
-          return isImage && executionId && attachment.storageKey ? (
-            <ImagePreviewChip
-              key={key}
-              attachment={attachment}
-              executionId={executionId}
-              onPreview={() => setPreviewKey(attachment.storageKey!)}
-            />
-          ) : (
+          if (isImage && executionId && attachment.storageKey) {
+            return (
+              <ImagePreviewChip
+                key={key}
+                attachment={attachment}
+                executionId={executionId}
+                onPreview={() => setPreviewKey(attachment.storageKey!)}
+              />
+            );
+          }
+          if (isImage && !executionId) {
+            // No execution record — the optimistic pending bubble or a
+            // failed send. The tile keeps the image grammar but stays
+            // STATIC (a glyph, not a pulse): a failed send never gets an
+            // executionId, so a pulse here would be a permanent false
+            // "loading" signal. On the pending bubble the real turn lands
+            // under the same bridge key and brings the presign seam.
+            return <ImageGlyphTile key={key} name={displayName(attachment)} />;
+          }
+          return (
             <DocumentChip
               key={key}
               attachment={attachment}
@@ -123,14 +141,16 @@ function displayName(attachment: MessageAttachmentView): string {
 }
 
 // ---------------------------------------------------------------------------
-// Image attachment — a preview chip mirroring the composer's miniature
+// Image attachment — a preview-only tile mirroring the composer's grammar
 // ---------------------------------------------------------------------------
 
 /**
- * Recognizable miniature + filename, minted from the stable storage key at
- * view time. If the URL can't be resolved (revoked storage, transient API
- * failure), the chip degrades to the document treatment — a generic icon with
- * the download affordance — never a broken-image glyph.
+ * The preview-only image tile: the thumbnail IS the chip, minted from the
+ * stable storage key at view time — no filename text (the name stays in the
+ * tooltip, the accessible label, and the lightbox header). If the URL can't
+ * be resolved (revoked storage, transient API failure), the chip degrades to
+ * the document treatment — a generic icon with the download affordance —
+ * never a broken-image glyph.
  */
 function ImagePreviewChip({
   attachment,
@@ -152,43 +172,56 @@ function ImagePreviewChip({
   }
 
   return (
-    <span
-      role="listitem"
-      aria-label={name}
-      title={name}
-      className="inline-flex max-w-[240px] items-center gap-1 rounded-md bg-muted-subtle p-1 pr-1.5 text-xs text-foreground"
-    >
-      {/* UNSTYLED_BUTTON is load-bearing: without it the chip body shows the
-          UA's default button box in preflight-less hosts (see the constant). */}
+    <span role="listitem" aria-label={name} title={name} className="inline-flex">
+      {/* The whole tile is the preview target. UNSTYLED_BUTTON is
+          load-bearing: without it the tile shows the UA's default button
+          box in preflight-less hosts (see the constant). */}
       <button
         type="button"
         onClick={onPreview}
         aria-label={`Preview ${name}`}
         className={cn(
           UNSTYLED_BUTTON,
-          "flex min-w-0 items-center gap-1.5 rounded-sm text-inherit [font:inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "relative block h-14 w-14 overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         )}
       >
-        <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded">
-          {url ? (
-            <img
-              src={url}
-              alt=""
-              aria-hidden="true"
-              loading="lazy"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            // Pulse placeholder while the presigned URL is minted; same
-            // footprint as the image, so no layout shift.
-            <span
-              className="block h-full w-full animate-pulse bg-muted"
-              aria-hidden="true"
-            />
-          )}
-        </span>
-        <span className="min-w-0 truncate">{name}</span>
+        {url ? (
+          <img
+            src={url}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          // Pulse placeholder while the presigned URL is minted — pulse
+          // means work is genuinely in flight (contrast ImageGlyphTile).
+          // Same footprint as the image, so no layout shift.
+          <span
+            className="block h-full w-full animate-pulse bg-muted"
+            aria-hidden="true"
+          />
+        )}
       </button>
+    </span>
+  );
+}
+
+/**
+ * The inert image tile for a turn with no execution record yet (optimistic
+ * pending bubble) or ever (failed send). Keeps the image grammar — same
+ * footprint as {@link ImagePreviewChip} — but shows a STATIC glyph, not a
+ * pulse: a pulse promises bytes that, on a failed send, will never arrive.
+ */
+function ImageGlyphTile({ name }: { readonly name: string }) {
+  return (
+    <span
+      role="listitem"
+      aria-label={name}
+      title={name}
+      className="inline-flex h-14 w-14 items-center justify-center rounded-md bg-muted-subtle"
+    >
+      <ImageGlyph />
     </span>
   );
 }
@@ -281,6 +314,28 @@ function AttachmentPreviewLightbox({
       open
       onClose={onClose}
     />
+  );
+}
+
+/** Generic picture glyph for the inert {@link ImageGlyphTile}. */
+function ImageGlyph() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0 text-muted-foreground"
+      aria-hidden="true"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <path d="M21 15l-5-5L5 21" />
+    </svg>
   );
 }
 
