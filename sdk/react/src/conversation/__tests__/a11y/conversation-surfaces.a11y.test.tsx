@@ -9,9 +9,11 @@
 // states including the filtered one — each in light + dark against the
 // shipped stylesheet.
 
-import { describe, it, afterEach, vi } from "vitest";
+import { describe, it, afterEach, expect, vi } from "vitest";
+import { waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
+import type { Stigmer } from "@stigmer/sdk";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import {
   ChannelConversationListFilter,
@@ -23,6 +25,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
 import { ChannelDeliveryStatus } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/delivery_pb";
 import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/outbound_pb";
+import { StigmerContext } from "../../../context.js";
 import { ConversationComposer } from "../../ConversationComposer.js";
 import { ConversationListPane } from "../../ConversationListPane.js";
 import { ConversationTimelineView } from "../../ConversationTimelineView.js";
@@ -125,6 +128,49 @@ const timelineItems = [
   }),
 ];
 
+// Inbound-media fixtures (stigmer/stigmer#367): a captioned photo and a
+// document. Media rendering needs the conversation address AND a client
+// that answers getMediaDownloadUrl — the inner provider below overrides
+// the harness stub with one minting a data-URI image, so the audit sees
+// the loaded thumbnail, not just the pulse placeholder.
+const mediaTimelineItems = [
+  create(ConversationTimelineItemSchema, {
+    itemId: "wa:7",
+    lane: ConversationLane.lane_public,
+    author: ConversationItemAuthor.author_customer,
+    providerMessageType: "image",
+    text: "here's the leak under the sink",
+    media: {
+      filename: "kitchen-leak.jpg",
+      contentType: "image/jpeg",
+      sizeBytes: BigInt(204800),
+    },
+    at: timestampFromDate(new Date("2026-08-07T09:04:00Z")),
+  }),
+  create(ConversationTimelineItemSchema, {
+    itemId: "wa:8",
+    lane: ConversationLane.lane_public,
+    author: ConversationItemAuthor.author_customer,
+    providerMessageType: "document",
+    media: {
+      filename: "lease-agreement.pdf",
+      contentType: "application/pdf",
+      sizeBytes: BigInt(1048576),
+    },
+    at: timestampFromDate(new Date("2026-08-07T09:05:00Z")),
+  }),
+];
+
+// A 1×1 transparent PNG — enough for a real <img> load in the browser.
+const ONE_PX_PNG =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+
+const mediaClient = {
+  agentChannel: {
+    getMediaDownloadUrl: () => Promise.resolve({ url: ONE_PX_PNG }),
+  },
+} as unknown as Stigmer;
+
 const listBaseProps = {
   isLoading: false,
   error: null,
@@ -205,6 +251,26 @@ describe("Conversation surfaces a11y", () => {
       mode,
     );
     await auditA11y(container, `conversation timeline · ${mode}`);
+  });
+
+  it.each(COLOR_MODES)("timeline with inbound media: thumbnail and document chip (%s)", async (mode) => {
+    const container = renderAudited(
+      <StigmerContext.Provider value={mediaClient}>
+        <ConversationTimelineView
+          {...timelineBaseProps}
+          agentChannelId="ach_wa"
+          conversationKey="15550001111"
+          items={mediaTimelineItems}
+          hasOlder={false}
+          provider="whatsapp"
+        />
+      </StigmerContext.Provider>,
+      mode,
+    );
+    // Audit the LOADED thumbnail (the interactive state operators use),
+    // not just the pulse placeholder the first frame shows.
+    await waitFor(() => expect(container.querySelector("img")).toBeTruthy());
+    await auditA11y(container, `conversation timeline media · ${mode}`);
   });
 
   it.each(COLOR_MODES)("composer with the closed-window advisory (%s)", async (mode) => {

@@ -40,6 +40,12 @@ export type {
   UseConversationTimelineReturn,
 } from "./useConversationTimeline.js";
 
+export { useConversationMediaUrl } from "./useConversationMediaUrl.js";
+export type {
+  UseConversationMediaUrlOptions,
+  UseConversationMediaUrlReturn,
+} from "./useConversationMediaUrl.js";
+
 export { useConversationParticipation } from "./useConversationParticipation.js";
 export type {
   ConversationCommand,

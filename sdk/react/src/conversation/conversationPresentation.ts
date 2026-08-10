@@ -108,9 +108,16 @@ export function receiptOf(item: ConversationTimelineItem): ReceiptKind | null {
 
 /**
  * Placeholder copy for inbound items whose body the platform cannot
- * render (`text` empty, `provider_message_type` names the kind). Media
- * retrieval is a named non-goal of this surface — the placeholder tells
- * staff something arrived and what shape it was.
+ * render (`text` empty, `provider_message_type` names the kind) — the
+ * placeholder tells staff something arrived and what shape it was.
+ *
+ * Since stigmer/stigmer#367 this is the FALLBACK arm of the media
+ * treatment, not the whole of it: items carrying ingested `media`
+ * render the real thing (thumbnail or document chip) when the timeline
+ * view holds the conversation address. The placeholder still covers
+ * media the platform declined to ingest (disallowed type, over the size
+ * cap — `media` unset by design) and renders without an address, where
+ * the bytes are unreachable.
  *
  * Returns `null` when the item needs no placeholder (it has text, or it
  * is not a provider-typed inbound item — e.g. an attention-clear event,

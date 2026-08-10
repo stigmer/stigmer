@@ -1258,6 +1258,26 @@ func TestChannelConversationController_CloudOnlyPosture(t *testing.T) {
 		}
 	})
 
+	t.Run("getMediaDownloadUrl answers NOT_FOUND with the cloud's uniform-miss copy", func(t *testing.T) {
+		_, err := cc.GetMediaDownloadUrl(channelCtx(),
+			&agentchannelv1.GetConversationMediaDownloadUrlInput{
+				AgentChannelId:  "ach-123",
+				ConversationKey: "15551234567",
+				ItemId:          "wa:wamid.abc123",
+			})
+		if status.Code(err) != codes.NotFound {
+			t.Fatalf("expected NOT_FOUND (this edition never ingests channel media), got %s (%v)",
+				status.Code(err), err)
+		}
+		// Byte-identical with the cloud handler's uniform miss — the copy
+		// that covers every cause the same way so a prober cannot learn
+		// which items exist. A client switching editions must not need to
+		// change its error handling.
+		if got := status.Convert(err).Message(); got != "no downloadable media at this timeline item" {
+			t.Errorf("not-found copy must match the cloud uniform miss, got %q", got)
+		}
+	})
+
 	t.Run("every command refuses with FAILED_PRECONDITION and the documented copy", func(t *testing.T) {
 		commands := []struct {
 			name string
@@ -1325,6 +1345,14 @@ func TestChannelConversationController_CloudOnlyPosture(t *testing.T) {
 			{"getConversation without conversation key", func() error {
 				_, err := cc.GetConversation(channelCtx(),
 					&agentchannelv1.GetChannelConversationInput{AgentChannelId: "ach-123"})
+				return err
+			}},
+			{"getMediaDownloadUrl without item id", func() error {
+				_, err := cc.GetMediaDownloadUrl(channelCtx(),
+					&agentchannelv1.GetConversationMediaDownloadUrlInput{
+						AgentChannelId:  "ach-123",
+						ConversationKey: "15551234567",
+					})
 				return err
 			}},
 			{"takeOver without channel id", func() error {

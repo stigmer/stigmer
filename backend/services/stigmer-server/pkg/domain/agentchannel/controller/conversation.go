@@ -5,6 +5,8 @@ import (
 
 	agentchannelv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentchannel/v1"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // conversationParticipationUnavailableMessage is the documented OSS
@@ -82,6 +84,24 @@ func (c *ChannelConversationController) GetTimeline(
 		return nil, grpclib.InvalidArgumentError("%v", err)
 	}
 	return &agentchannelv1.ConversationTimeline{}, nil
+}
+
+// GetMediaDownloadUrl answers NOT_FOUND unconditionally — the
+// getConversation posture (see the type comment): this edition never
+// ingests channel media, so "no downloadable media at this timeline
+// item" is the truthful answer for every address, with no local
+// probing. The message is byte-identical with the cloud handler's
+// uniform miss (which covers every cause the same way so a prober
+// cannot learn which items exist) — raw status.Error because
+// grpclib.NotFoundError's "%s not found: %s" shape cannot say it.
+func (c *ChannelConversationController) GetMediaDownloadUrl(
+	ctx context.Context,
+	input *agentchannelv1.GetConversationMediaDownloadUrlInput,
+) (*agentchannelv1.ConversationMediaDownloadUrl, error) {
+	if err := grpclib.SharedValidator().Validate(input); err != nil {
+		return nil, grpclib.InvalidArgumentError("%v", err)
+	}
+	return nil, status.Error(codes.NotFound, "no downloadable media at this timeline item")
 }
 
 // Reply refuses with FAILED_PRECONDITION — staff replies ride the

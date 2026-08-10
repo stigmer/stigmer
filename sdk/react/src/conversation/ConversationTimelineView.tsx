@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "../internal/tooltip.js";
 import { useAutoScroll } from "../internal/useAutoScroll.js";
+import { ConversationMediaAttachment } from "./ConversationMediaAttachment.js";
 import {
   authorKindOf,
   inboundPlaceholderOf,
@@ -30,6 +31,23 @@ import {
 export interface ConversationTimelineViewProps {
   /** Timeline items in chronological order (from `useConversationTimeline`). */
   readonly items: readonly ConversationTimelineItem[];
+  /**
+   * AgentChannel the conversation belongs to. Together with
+   * `conversationKey`, this is the opt-in for media rendering: items
+   * carrying `media` render an inline thumbnail or document chip whose
+   * bytes are fetched via `getMediaDownloadUrl` — which is addressed by
+   * (channel, conversation, item), so the view cannot fetch media
+   * without the address.
+   *
+   * When either identity prop is absent, media items keep the typed
+   * placeholder ("Photo", "Document") — and, load-bearing for
+   * provider-less hosts (documentation fixtures, visual tests): nothing
+   * that needs a `StigmerProvider` mounts, so the view stays purely
+   * presentational exactly as before these props existed.
+   */
+  readonly agentChannelId?: string;
+  /** Conversation key within the channel (see `agentChannelId`). */
+  readonly conversationKey?: string;
   /** `true` only during the first load. */
   readonly isLoading: boolean;
   /** Error from the timeline read, or `null`. */
@@ -71,6 +89,8 @@ export interface ConversationTimelineViewProps {
  */
 export function ConversationTimelineView({
   items,
+  agentChannelId,
+  conversationKey,
   isLoading,
   error,
   hasOlder,
@@ -146,7 +166,12 @@ export function ConversationTimelineView({
                   </div>
                   <ul className="space-y-1.5">
                     {day.items.map((item) => (
-                      <TimelineItemRow key={item.itemId} item={item} />
+                      <TimelineItemRow
+                        key={item.itemId}
+                        item={item}
+                        agentChannelId={agentChannelId}
+                        conversationKey={conversationKey}
+                      />
                     ))}
                   </ul>
                 </div>
@@ -170,8 +195,12 @@ const BUSINESS_CAPTION: Record<Exclude<ConversationAuthorKind, "customer">, stri
 
 const TimelineItemRow = memo(function TimelineItemRow({
   item,
+  agentChannelId,
+  conversationKey,
 }: {
   readonly item: ConversationTimelineItem;
+  readonly agentChannelId?: string;
+  readonly conversationKey?: string;
 }) {
   if (isInternalItem(item)) {
     return <InternalEventRow item={item} />;
@@ -179,7 +208,17 @@ const TimelineItemRow = memo(function TimelineItemRow({
 
   const author = authorKindOf(item);
   const isCustomer = author === "customer";
-  const body = item.text || inboundPlaceholderOf(item);
+
+  // Ingested media renders as the real thing — an inline thumbnail or
+  // document chip — ONLY when the view holds the conversation address
+  // (getMediaDownloadUrl's addressing; see the identity props' contract).
+  // Without the address, and on media the platform declined to ingest,
+  // the typed placeholder keeps telling staff what arrived.
+  const mediaAddress =
+    item.media !== undefined && agentChannelId && conversationKey
+      ? { agentChannelId, conversationKey, itemId: item.itemId }
+      : null;
+  const body = item.text || (mediaAddress !== null ? "" : inboundPlaceholderOf(item));
 
   // DD-014 D-c (amended at the Sitting 2 gate, R-1): the provider's
   // failure explanation is decision-bearing — window closed vs bad
@@ -211,14 +250,25 @@ const TimelineItemRow = memo(function TimelineItemRow({
             {BUSINESS_CAPTION[author]}
           </p>
         )}
-        <p
-          className={cn(
-            "whitespace-pre-wrap break-words text-sm text-foreground",
-            !item.text && "italic text-muted-foreground",
-          )}
-        >
-          {body || "Message content unavailable"}
-        </p>
+        {mediaAddress !== null && item.media !== undefined && (
+          <ConversationMediaAttachment
+            media={item.media}
+            address={mediaAddress}
+            className={item.text ? "mb-1.5" : undefined}
+          />
+        )}
+        {/* A media item without a caption is complete as its media —
+            no body, and no "unavailable" apology under the thumbnail. */}
+        {(body || mediaAddress === null) && (
+          <p
+            className={cn(
+              "whitespace-pre-wrap break-words text-sm text-foreground",
+              !item.text && "italic text-muted-foreground",
+            )}
+          >
+            {body || "Message content unavailable"}
+          </p>
+        )}
         {receiptExplanation !== null && (
           <p className="mt-1 break-words text-xs text-destructive">
             {receiptExplanation}

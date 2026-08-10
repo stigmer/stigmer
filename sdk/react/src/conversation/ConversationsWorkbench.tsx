@@ -354,6 +354,8 @@ export function ConversationsWorkbench({
 
           <ConversationTimelineView
             items={timeline.items}
+            agentChannelId={selected.agentChannelId}
+            conversationKey={selected.conversationKey}
             isLoading={timeline.isLoading}
             error={timeline.error}
             hasOlder={timeline.hasOlder}

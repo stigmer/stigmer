@@ -117,6 +117,61 @@ function useConversationList(options: UseConversationListOptions): UseConversati
 />
 
 
+### useConversationMediaUrl
+
+Data hook that resolves a **fresh** presigned download URL for one
+timeline item's ingested media (an image or document the customer sent)
+via `stigmer.agentChannel.getMediaDownloadUrl()`.
+
+Addressed by `(channel, conversation, item_id)` — never a storage key:
+the server resolves the blob from its own row, so the read path stays
+conversation-viewer-scoped by construction and blob capabilities never
+ride the wire (whatsapp-media DD-001 D4). The URL expires (about an
+hour); minting at view time keeps it always valid, the
+`useArtifactDownloadUrl` rationale.
+
+The URL is cached cross-mount by the item's full address (DD-014), so
+the 5s timeline poll's re-renders and a lightbox opened from a
+thumbnail reuse the minted URL instead of re-hitting the API.
+
+Pass empty strings (or `enabled: false`) to skip fetching — the
+conversation surface's established skip convention.
+
+**Signature**
+
+```tsx
+function useConversationMediaUrl(agentChannelId: string, conversationKey: string, itemId: string, options?: UseConversationMediaUrlOptions): UseConversationMediaUrlReturn
+```
+
+<TypeTable
+  type={{
+    agentChannelId: { type: "string", description: "AgentChannel the conversation belongs to, or `\"\"` to skip.", required: true },
+    conversationKey: { type: "string", description: "Conversation key within the channel, or `\"\"` to skip.", required: true },
+    itemId: { type: "string", description: "The timeline item whose media to fetch (e.g. `\"wa:<wamid>\"`), or `\"\"` to skip.", required: true },
+    options: { type: "UseConversationMediaUrlOptions", description: "Optional gating (`enabled`)." },
+  }}
+/>
+
+**Returns** — `UseConversationMediaUrlReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the URL request is in-flight (first load)." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight." },
+    refetch: { type: "() => void", description: "Re-fetch the URL (e.g. to mint a fresh one after the previous expired)." },
+    url: { type: "string | null", description: "A freshly minted presigned download URL for the timeline item's media, or `null` when: - Fetching is skipped (`enabled` is `false`, or any address part is empty) - The request is in-flight - The request failed (including the server's uniform NOT_FOUND for   items without ingested media)" },
+  }}
+/>
+
+```tsx
+// Render an inbound photo with an always-fresh URL.
+const { url, isLoading } = useConversationMediaUrl(channelId, key, item.itemId);
+if (isLoading) return <Skeleton />;
+return url ? <img src={url} alt={item.media?.filename} /> : null;
+```
+
+
 ### useConversationParticipation
 
 Behavior hook for the participation commands on one conversation
@@ -410,7 +465,9 @@ Presentational — pair with `useConversationTimeline`, or compose via
 
 <TypeTable
   type={{
+    agentChannelId: { type: "string", description: "AgentChannel the conversation belongs to. Together with `conversationKey`, this is the opt-in for media rendering: items carrying `media` render an inline thumbnail or document chip whose bytes are fetched via `getMediaDownloadUrl` — which is addressed by (channel, conversation, item), so the view cannot fetch media without the address.  When either identity prop is absent, media items keep the typed placeholder (\"Photo\", \"Document\") — and, load-bearing for provider-less hosts (documentation fixtures, visual tests): nothing that needs a `StigmerProvider` mounts, so the view stays purely presentational exactly as before these props existed." },
     className: { type: "string", description: "Additional classes for the view container." },
+    conversationKey: { type: "string", description: "Conversation key within the channel (see `agentChannelId`)." },
     error: { type: "Error | null", description: "Error from the timeline read, or `null`.", required: true },
     hasOlder: { type: "boolean", description: "`true` while older history exists beyond what is loaded.", required: true },
     isLoading: { type: "boolean", description: "`true` only during the first load.", required: true },
@@ -567,9 +624,16 @@ function conversationLabelOf(conversation: ChannelConversation, provider: Channe
 ### inboundPlaceholderOf
 
 Placeholder copy for inbound items whose body the platform cannot
-render (`text` empty, `provider_message_type` names the kind). Media
-retrieval is a named non-goal of this surface — the placeholder tells
-staff something arrived and what shape it was.
+render (`text` empty, `provider_message_type` names the kind) — the
+placeholder tells staff something arrived and what shape it was.
+
+Since stigmer/stigmer#367 this is the FALLBACK arm of the media
+treatment, not the whole of it: items carrying ingested `media`
+render the real thing (thumbnail or document chip) when the timeline
+view holds the conversation address. The placeholder still covers
+media the platform declined to ingest (disallowed type, over the size
+cap — `media` unset by design) and renders without an address, where
+the bytes are unreachable.
 
 Returns `null` when the item needs no placeholder (it has text, or it
 is not a provider-typed inbound item — e.g. an attention-clear event,
@@ -673,6 +737,17 @@ Options for [`useConversationList`](#useconversationlist).
     org: { type: "string | null", description: "Organization whose conversations to list. `null` skips fetching.", required: true },
     pageSize: { type: "number", description: "Page size for the head page and each loadMore page. Default 50." },
     refetchIntervalMs: { type: "number | false", description: "Poll interval in milliseconds; `false` disables polling. Defaults to CONVERSATION_LIST_POLL_INTERVAL_MS. Only the head page polls — loaded older pages refresh on the next full identity change." },
+  }}
+/>
+
+
+### UseConversationMediaUrlOptions
+
+Options for [`useConversationMediaUrl`](#useconversationmediaurl).
+
+<TypeTable
+  type={{
+    enabled: { type: "boolean", description: "Gate the request. When `false`, the hook stays idle and returns `null` — use this to defer minting a URL until it is actually needed. Defaults to `true`." },
   }}
 />
 
