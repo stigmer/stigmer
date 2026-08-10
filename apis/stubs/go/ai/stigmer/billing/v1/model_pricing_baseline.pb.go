@@ -337,13 +337,44 @@ func (x *SummarizationConfig) GetMaxSummaryTokens() int32 {
 }
 
 // ModelCapabilities flags what a model supports. Catalog metadata.
+//
+// Presence is tri-state at the block level: an absent block means the
+// model's capabilities were never assessed, and consumers must treat that
+// as "unknown" — never as all-false. A present block is populated
+// all-or-nothing (every flag assessed together), because proto3 bools
+// carry no per-field presence: a partially filled block would silently
+// encode its unassessed flags as false.
 type ModelCapabilities struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	ToolUse          bool                   `protobuf:"varint,1,opt,name=tool_use,json=toolUse,proto3" json:"tool_use,omitempty"`
-	Vision           bool                   `protobuf:"varint,2,opt,name=vision,proto3" json:"vision,omitempty"`
-	Streaming        bool                   `protobuf:"varint,3,opt,name=streaming,proto3" json:"streaming,omitempty"`
-	Thinking         bool                   `protobuf:"varint,4,opt,name=thinking,proto3" json:"thinking,omitempty"`
-	AdaptiveThinking bool                   `protobuf:"varint,5,opt,name=adaptive_thinking,json=adaptiveThinking,proto3" json:"adaptive_thinking,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Whether the model accepts tool / function-calling requests.
+	ToolUse bool `protobuf:"varint,1,opt,name=tool_use,json=toolUse,proto3" json:"tool_use,omitempty"`
+	// Whether image input delivered to this model produces genuine visual
+	// understanding.
+	//
+	// The meaning is harness-scoped. For native-harness entries this is the
+	// provider-documented capability of the model itself. For cursor-harness
+	// entries it encodes "images work through this model on the Cursor
+	// path": Cursor's serving stack hands vision off to a multimodal model
+	// server-side, so a model that is text-only by its own documentation
+	// (composer-2.5) still sees images when dispatched via Cursor.
+	//
+	// @internal
+	// Cursor-path values are established empirically — a nonce-bearing image
+	// probe per model (production executions, 2026-08-10; evidence table on
+	// stigmer-cloud#281, methodology from the whatsapp-media project's T06
+	// probe) — because Cursor's own docs under-report: the server-side
+	// vision hand-off is undocumented behavior. If Cursor changes that
+	// behavior, re-probe; do not re-read the docs. The OSS runner's vision
+	// gate (attachment-vision.ts, stigmer#370) fails open — it degrades
+	// image delivery only on an explicit false.
+	Vision bool `protobuf:"varint,2,opt,name=vision,proto3" json:"vision,omitempty"`
+	// Whether the model streams incremental output tokens.
+	Streaming bool `protobuf:"varint,3,opt,name=streaming,proto3" json:"streaming,omitempty"`
+	// Whether the model supports extended thinking / reasoning traces.
+	Thinking bool `protobuf:"varint,4,opt,name=thinking,proto3" json:"thinking,omitempty"`
+	// Whether thinking depth adapts to the request instead of a fixed
+	// budget (e.g. Anthropic adaptive thinking).
+	AdaptiveThinking bool `protobuf:"varint,5,opt,name=adaptive_thinking,json=adaptiveThinking,proto3" json:"adaptive_thinking,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }

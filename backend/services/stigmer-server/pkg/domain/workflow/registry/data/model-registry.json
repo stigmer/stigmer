@@ -16,7 +16,14 @@
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "cursor_pricing_page",
       "sourceNote" : "Requires data retention approval for Teams/Enterprise and Privacy Mode users; guardrail-tripping requests auto-route to Claude Opus.",
-      "effectiveAt" : "2026-07-18T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:38.730248823Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "claude-haiku-4-5",
@@ -34,7 +41,14 @@
       "cacheReadPricePerMillion" : 0.1,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "anthropic_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:39.053421014Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "claude-opus-4-5",
@@ -52,7 +66,14 @@
       "cacheReadPricePerMillion" : 0.5,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "anthropic_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:39.385079706Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "claude-opus-4-6",
@@ -70,7 +91,14 @@
       "cacheReadPricePerMillion" : 0.5,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "anthropic_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:39.783252886Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     },
     "pricingVariants" : {
       "fast" : {
@@ -80,7 +108,7 @@
         "cacheReadPricePerMillion" : 3.0,
         "source" : "cursor_pricing_page",
         "sourceNote" : "\"Claude 4.6 Opus (Fast mode)\" row on https://cursor.com/docs/models-and-pricing; Cursor Token Rate inherited from base entry.",
-        "effectiveAt" : "2026-06-04T00:00:00Z"
+        "effectiveAt" : "2026-08-10T11:35:39.783252886Z"
       }
     }
   }, {
@@ -99,7 +127,14 @@
       "cacheReadPricePerMillion" : 0.5,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "anthropic_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:40.112778800Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     },
     "pricingVariants" : {
       "fast" : {
@@ -109,7 +144,7 @@
         "cacheReadPricePerMillion" : 3.0,
         "source" : "cursor_pricing_page",
         "sourceNote" : "\"Claude Opus 4.7 (fast mode)\" row on https://cursor.com/docs/models-and-pricing; Cursor Token Rate inherited from base entry.",
-        "effectiveAt" : "2026-06-04T00:00:00Z"
+        "effectiveAt" : "2026-08-10T11:35:40.112778800Z"
       }
     }
   }, {
@@ -128,7 +163,14 @@
       "cacheReadPricePerMillion" : 0.5,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "anthropic_api",
-      "effectiveAt" : "2026-06-02T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:44.824045791Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     },
     "pricingVariants" : {
       "fast" : {
@@ -139,7 +181,7 @@
         "wireIds" : [ "claude-opus-4-8-fast" ],
         "source" : "derived_from_notes",
         "sourceNote" : "Pricing-page note: \"Fast mode is 3x lower per-token pricing than Opus 4.7 fast mode\" — derived as Opus 4.7 fast (30/150/37.5/3) ÷ 3; wire id claude-opus-4-8-fast named in the same note. Confirmed 2026-07-20 against the live pricing page: the ÷3 derivation independently equals 2x the Opus 4.8 base rates — two derivations agree.",
-        "effectiveAt" : "2026-07-20T00:00:00Z"
+        "effectiveAt" : "2026-08-10T11:35:44.824045791Z"
       }
     }
   }, {
@@ -158,7 +200,14 @@
       "cacheReadPricePerMillion" : 0.3,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "anthropic_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:48.280683635Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "claude-sonnet-4-5",
@@ -176,7 +225,14 @@
       "cacheReadPricePerMillion" : 0.3,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "anthropic_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:48.681788708Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "claude-sonnet-4-6",
@@ -194,7 +250,14 @@
       "cacheReadPricePerMillion" : 0.3,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "anthropic_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:48.993380457Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "claude-sonnet-5",
@@ -213,7 +276,14 @@
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "cursor_pricing_page",
       "sourceNote" : "Standard rates. Cursor runs a launch promotion ($2/M input, $10/M output) through 2026-08-31; registry keeps the standard post-promo rate since entries carry no effective-dating.",
-      "effectiveAt" : "2026-07-18T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:49.313873518Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "composer-1.5",
@@ -264,7 +334,14 @@
       "cacheWritePricePerMillion" : 0.0,
       "cacheReadPricePerMillion" : 0.2,
       "source" : "cursor_pricing_page",
-      "effectiveAt" : "2026-08-08T06:20:21.585257619Z"
+      "effectiveAt" : "2026-08-10T11:35:49.628561906Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : false,
+      "adaptiveThinking" : false
     },
     "pricingVariants" : {
       "fast" : {
@@ -275,7 +352,7 @@
         "wireIds" : [ "composer-2.5-fast" ],
         "source" : "cursor_composer_2_5_docs",
         "sourceNote" : "Fast (product default) input/output published at https://cursor.com/docs/models/cursor-composer-2-5; cache rates not published. Cache read 0.5 is ledger-derived: exact zero-residual fit across 7 pinned conversations, 2026-08-01..07 window (workflow billing-provider-reconciliation-cursor-2026-08-08T00:00:00Z; the prior inferred 0.2 under-billed ~18%). Consistent with the Composer 2 precedent, whose fast cache-read (0.35) also differed from standard (0.20).",
-        "effectiveAt" : "2026-08-08T06:20:21.585257619Z"
+        "effectiveAt" : "2026-08-10T11:35:49.628561906Z"
       }
     }
   }, {
@@ -293,7 +370,14 @@
       "cacheWritePricePerMillion" : 1.25,
       "cacheReadPricePerMillion" : 0.25,
       "source" : "cursor_pricing_page",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:50.005206995Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : false,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "grok-4.5",
@@ -311,7 +395,14 @@
       "cacheReadPricePerMillion" : 0.5,
       "source" : "cursor_pricing_page",
       "sourceNote" : "First-party models pool (Auto/Composer/Grok 4.5) — exempt from Cursor Token Rate. Wire names arrive prefixed (e.g. cursor-grok-4.5-high-fast); CursorModelNormalizer strips the cursor- prefix and the effort/speed suffix.",
-      "effectiveAt" : "2026-07-18T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:55.912592268Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     },
     "pricingVariants" : {
       "fast" : {
@@ -321,7 +412,7 @@
         "cacheReadPricePerMillion" : 0.5,
         "source" : "cursor_grok_4_5_docs",
         "sourceNote" : "Fast variant input/output published at https://cursor.com/docs/models/grok-4-5; cache rates not published, inferred = standard Grok 4.5 cache (write 0, read 0.5).",
-        "effectiveAt" : "2026-07-18T00:00:00Z"
+        "effectiveAt" : "2026-08-10T11:35:55.912592268Z"
       }
     }
   }, {
@@ -340,7 +431,14 @@
       "cacheReadPricePerMillion" : 0.03,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "google_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:50.320159333Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : false,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "gemini-3-flash",
@@ -358,7 +456,14 @@
       "cacheReadPricePerMillion" : 0.05,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "google_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:50.630923452Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : false,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "gemini-3.1-pro",
@@ -376,7 +481,14 @@
       "cacheReadPricePerMillion" : 0.2,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "google_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:50.968793019Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : false,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "gemini-3.5-flash",
@@ -394,7 +506,14 @@
       "cacheReadPricePerMillion" : 0.15,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "google_api",
-      "effectiveAt" : "2026-06-02T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:51.346253374Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : false,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "kimi-k2.5",
@@ -430,7 +549,14 @@
       "cacheReadPricePerMillion" : 0.19,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "cursor_pricing_page",
-      "effectiveAt" : "2026-07-18T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:56.318563440Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : false,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "gpt-5-mini",
@@ -448,7 +574,14 @@
       "cacheReadPricePerMillion" : 0.025,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "openai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:52.017027801Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : false,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "gpt-5.1",
@@ -466,7 +599,14 @@
       "cacheReadPricePerMillion" : 0.125,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "openai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:52.432083565Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "gpt-5.1-codex-max",
@@ -520,7 +660,14 @@
       "cacheReadPricePerMillion" : 0.175,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "openai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:52.887364170Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "gpt-5.2-codex",
@@ -556,7 +703,14 @@
       "cacheReadPricePerMillion" : 0.175,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "openai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:53.224531830Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "gpt-5.4",
@@ -574,7 +728,14 @@
       "cacheReadPricePerMillion" : 0.25,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "openai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:53.557590495Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     },
     "pricingVariants" : {
       "fast" : {
@@ -584,7 +745,7 @@
         "cacheReadPricePerMillion" : 0.5,
         "source" : "derived_from_notes",
         "sourceNote" : "Pricing-page note: \"Fast mode is 15% faster with 2x pricing\" — derived as 2x all standard buckets. Confirmed 2026-07-20 against the live pricing page: the explicit GPT-5 Fast row is exactly 2x the GPT-5 base on every bucket, corroborating the 2x-all-buckets reading; cache-write stays 0 matching the base row's dash.",
-        "effectiveAt" : "2026-07-20T00:00:00Z"
+        "effectiveAt" : "2026-08-10T11:35:53.557590495Z"
       }
     }
   }, {
@@ -603,7 +764,14 @@
       "cacheReadPricePerMillion" : 0.075,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "openai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:53.934950395Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "gpt-5.4-nano",
@@ -621,7 +789,14 @@
       "cacheReadPricePerMillion" : 0.02,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "openai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:54.267481392Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "gpt-5.5",
@@ -639,7 +814,14 @@
       "cacheReadPricePerMillion" : 0.5,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "openai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:54.574318204Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "gpt-5.6-luna",
@@ -658,7 +840,14 @@
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "cursor_pricing_page",
       "sourceNote" : "Cache writes billed at 1.25x uncached input per pricing-page note.",
-      "effectiveAt" : "2026-07-18T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:54.978425335Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     },
     "pricingVariants" : {
       "fast" : {
@@ -668,7 +857,7 @@
         "cacheReadPricePerMillion" : 0.2,
         "source" : "derived_from_notes",
         "sourceNote" : "Pricing-page note: \"Fast mode is available at 2x pricing\" — derived as 2x all standard buckets. Confirmed 2026-07-20 against the live pricing page: the explicit GPT-5 Fast row is exactly 2x the GPT-5 base on every bucket, corroborating the 2x-all-buckets reading.",
-        "effectiveAt" : "2026-07-20T00:00:00Z"
+        "effectiveAt" : "2026-08-10T11:35:54.978425335Z"
       }
     }
   }, {
@@ -688,7 +877,14 @@
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "cursor_pricing_page",
       "sourceNote" : "Cache writes billed at 1.25x uncached input per pricing-page note.",
-      "effectiveAt" : "2026-07-18T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:55.296717014Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     },
     "pricingVariants" : {
       "fast" : {
@@ -698,7 +894,7 @@
         "cacheReadPricePerMillion" : 1.0,
         "source" : "derived_from_notes",
         "sourceNote" : "Pricing-page note: \"Fast mode is available at 2x pricing\" — derived as 2x all standard buckets. Confirmed 2026-07-20 against the live pricing page: the explicit GPT-5 Fast row is exactly 2x the GPT-5 base on every bucket, corroborating the 2x-all-buckets reading.",
-        "effectiveAt" : "2026-07-20T00:00:00Z"
+        "effectiveAt" : "2026-08-10T11:35:55.296717014Z"
       }
     }
   }, {
@@ -718,7 +914,14 @@
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "cursor_pricing_page",
       "sourceNote" : "Cache writes billed at 1.25x uncached input per pricing-page note.",
-      "effectiveAt" : "2026-07-18T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:55.601106637Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     },
     "pricingVariants" : {
       "fast" : {
@@ -728,7 +931,7 @@
         "cacheReadPricePerMillion" : 0.5,
         "source" : "derived_from_notes",
         "sourceNote" : "Pricing-page note: \"Fast mode is available at 2x pricing\" — derived as 2x all standard buckets. Confirmed 2026-07-20 against the live pricing page: the explicit GPT-5 Fast row is exactly 2x the GPT-5 base on every bucket, corroborating the 2x-all-buckets reading.",
-        "effectiveAt" : "2026-07-20T00:00:00Z"
+        "effectiveAt" : "2026-08-10T11:35:55.601106637Z"
       }
     }
   }, {
@@ -801,7 +1004,14 @@
       "cacheReadPricePerMillion" : 0.26,
       "cursorTokenRatePerMillion" : 0.25,
       "source" : "cursor_pricing_page",
-      "effectiveAt" : "2026-07-18T00:00:00Z"
+      "effectiveAt" : "2026-08-10T11:35:51.660449974Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "claude-fable-5",

@@ -11,30 +11,69 @@ public interface ModelCapabilitiesOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Whether the model accepts tool / function-calling requests.
+   * </pre>
+   *
    * <code>bool tool_use = 1 [json_name = "toolUse"];</code>
    * @return The toolUse.
    */
   boolean getToolUse();
 
   /**
+   * <pre>
+   * Whether image input delivered to this model produces genuine visual
+   * understanding.
+   *
+   * The meaning is harness-scoped. For native-harness entries this is the
+   * provider-documented capability of the model itself. For cursor-harness
+   * entries it encodes "images work through this model on the Cursor
+   * path": Cursor's serving stack hands vision off to a multimodal model
+   * server-side, so a model that is text-only by its own documentation
+   * (composer-2.5) still sees images when dispatched via Cursor.
+   *
+   * &#64;internal
+   * Cursor-path values are established empirically — a nonce-bearing image
+   * probe per model (production executions, 2026-08-10; evidence table on
+   * stigmer-cloud#281, methodology from the whatsapp-media project's T06
+   * probe) — because Cursor's own docs under-report: the server-side
+   * vision hand-off is undocumented behavior. If Cursor changes that
+   * behavior, re-probe; do not re-read the docs. The OSS runner's vision
+   * gate (attachment-vision.ts, stigmer#370) fails open — it degrades
+   * image delivery only on an explicit false.
+   * </pre>
+   *
    * <code>bool vision = 2 [json_name = "vision"];</code>
    * @return The vision.
    */
   boolean getVision();
 
   /**
+   * <pre>
+   * Whether the model streams incremental output tokens.
+   * </pre>
+   *
    * <code>bool streaming = 3 [json_name = "streaming"];</code>
    * @return The streaming.
    */
   boolean getStreaming();
 
   /**
+   * <pre>
+   * Whether the model supports extended thinking / reasoning traces.
+   * </pre>
+   *
    * <code>bool thinking = 4 [json_name = "thinking"];</code>
    * @return The thinking.
    */
   boolean getThinking();
 
   /**
+   * <pre>
+   * Whether thinking depth adapts to the request instead of a fixed
+   * budget (e.g. Anthropic adaptive thinking).
+   * </pre>
+   *
    * <code>bool adaptive_thinking = 5 [json_name = "adaptiveThinking"];</code>
    * @return The adaptiveThinking.
    */

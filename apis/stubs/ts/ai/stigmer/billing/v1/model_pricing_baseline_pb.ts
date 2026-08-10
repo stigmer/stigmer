@@ -170,30 +170,66 @@ export const SummarizationConfigSchema: GenMessage<SummarizationConfig> = /*@__P
 /**
  * ModelCapabilities flags what a model supports. Catalog metadata.
  *
+ * Presence is tri-state at the block level: an absent block means the
+ * model's capabilities were never assessed, and consumers must treat that
+ * as "unknown" — never as all-false. A present block is populated
+ * all-or-nothing (every flag assessed together), because proto3 bools
+ * carry no per-field presence: a partially filled block would silently
+ * encode its unassessed flags as false.
+ *
  * @generated from message ai.stigmer.billing.v1.ModelCapabilities
  */
 export type ModelCapabilities = Message<"ai.stigmer.billing.v1.ModelCapabilities"> & {
   /**
+   * Whether the model accepts tool / function-calling requests.
+   *
    * @generated from field: bool tool_use = 1;
    */
   toolUse: boolean;
 
   /**
+   * Whether image input delivered to this model produces genuine visual
+   * understanding.
+   *
+   * The meaning is harness-scoped. For native-harness entries this is the
+   * provider-documented capability of the model itself. For cursor-harness
+   * entries it encodes "images work through this model on the Cursor
+   * path": Cursor's serving stack hands vision off to a multimodal model
+   * server-side, so a model that is text-only by its own documentation
+   * (composer-2.5) still sees images when dispatched via Cursor.
+   *
+   * @internal
+   * Cursor-path values are established empirically — a nonce-bearing image
+   * probe per model (production executions, 2026-08-10; evidence table on
+   * stigmer-cloud#281, methodology from the whatsapp-media project's T06
+   * probe) — because Cursor's own docs under-report: the server-side
+   * vision hand-off is undocumented behavior. If Cursor changes that
+   * behavior, re-probe; do not re-read the docs. The OSS runner's vision
+   * gate (attachment-vision.ts, stigmer#370) fails open — it degrades
+   * image delivery only on an explicit false.
+   *
    * @generated from field: bool vision = 2;
    */
   vision: boolean;
 
   /**
+   * Whether the model streams incremental output tokens.
+   *
    * @generated from field: bool streaming = 3;
    */
   streaming: boolean;
 
   /**
+   * Whether the model supports extended thinking / reasoning traces.
+   *
    * @generated from field: bool thinking = 4;
    */
   thinking: boolean;
 
   /**
+   * Whether thinking depth adapts to the request instead of a fixed
+   * budget (e.g. Anthropic adaptive thinking).
+   *
    * @generated from field: bool adaptive_thinking = 5;
    */
   adaptiveThinking: boolean;

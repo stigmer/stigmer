@@ -8,6 +8,13 @@ package ai.stigmer.billing.v1;
 /**
  * <pre>
  * ModelCapabilities flags what a model supports. Catalog metadata.
+ *
+ * Presence is tri-state at the block level: an absent block means the
+ * model's capabilities were never assessed, and consumers must treat that
+ * as "unknown" — never as all-false. A present block is populated
+ * all-or-nothing (every flag assessed together), because proto3 bools
+ * carry no per-field presence: a partially filled block would silently
+ * encode its unassessed flags as false.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.ModelCapabilities}
@@ -55,6 +62,10 @@ private static final long serialVersionUID = 0L;
   public static final int TOOL_USE_FIELD_NUMBER = 1;
   private boolean toolUse_ = false;
   /**
+   * <pre>
+   * Whether the model accepts tool / function-calling requests.
+   * </pre>
+   *
    * <code>bool tool_use = 1 [json_name = "toolUse"];</code>
    * @return The toolUse.
    */
@@ -66,6 +77,28 @@ private static final long serialVersionUID = 0L;
   public static final int VISION_FIELD_NUMBER = 2;
   private boolean vision_ = false;
   /**
+   * <pre>
+   * Whether image input delivered to this model produces genuine visual
+   * understanding.
+   *
+   * The meaning is harness-scoped. For native-harness entries this is the
+   * provider-documented capability of the model itself. For cursor-harness
+   * entries it encodes "images work through this model on the Cursor
+   * path": Cursor's serving stack hands vision off to a multimodal model
+   * server-side, so a model that is text-only by its own documentation
+   * (composer-2.5) still sees images when dispatched via Cursor.
+   *
+   * &#64;internal
+   * Cursor-path values are established empirically — a nonce-bearing image
+   * probe per model (production executions, 2026-08-10; evidence table on
+   * stigmer-cloud#281, methodology from the whatsapp-media project's T06
+   * probe) — because Cursor's own docs under-report: the server-side
+   * vision hand-off is undocumented behavior. If Cursor changes that
+   * behavior, re-probe; do not re-read the docs. The OSS runner's vision
+   * gate (attachment-vision.ts, stigmer#370) fails open — it degrades
+   * image delivery only on an explicit false.
+   * </pre>
+   *
    * <code>bool vision = 2 [json_name = "vision"];</code>
    * @return The vision.
    */
@@ -77,6 +110,10 @@ private static final long serialVersionUID = 0L;
   public static final int STREAMING_FIELD_NUMBER = 3;
   private boolean streaming_ = false;
   /**
+   * <pre>
+   * Whether the model streams incremental output tokens.
+   * </pre>
+   *
    * <code>bool streaming = 3 [json_name = "streaming"];</code>
    * @return The streaming.
    */
@@ -88,6 +125,10 @@ private static final long serialVersionUID = 0L;
   public static final int THINKING_FIELD_NUMBER = 4;
   private boolean thinking_ = false;
   /**
+   * <pre>
+   * Whether the model supports extended thinking / reasoning traces.
+   * </pre>
+   *
    * <code>bool thinking = 4 [json_name = "thinking"];</code>
    * @return The thinking.
    */
@@ -99,6 +140,11 @@ private static final long serialVersionUID = 0L;
   public static final int ADAPTIVE_THINKING_FIELD_NUMBER = 5;
   private boolean adaptiveThinking_ = false;
   /**
+   * <pre>
+   * Whether thinking depth adapts to the request instead of a fixed
+   * budget (e.g. Anthropic adaptive thinking).
+   * </pre>
+   *
    * <code>bool adaptive_thinking = 5 [json_name = "adaptiveThinking"];</code>
    * @return The adaptiveThinking.
    */
@@ -316,6 +362,13 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ModelCapabilities flags what a model supports. Catalog metadata.
+   *
+   * Presence is tri-state at the block level: an absent block means the
+   * model's capabilities were never assessed, and consumers must treat that
+   * as "unknown" — never as all-false. A present block is populated
+   * all-or-nothing (every flag assessed together), because proto3 bools
+   * carry no per-field presence: a partially filled block would silently
+   * encode its unassessed flags as false.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.ModelCapabilities}
@@ -503,6 +556,10 @@ private static final long serialVersionUID = 0L;
 
     private boolean toolUse_ ;
     /**
+     * <pre>
+     * Whether the model accepts tool / function-calling requests.
+     * </pre>
+     *
      * <code>bool tool_use = 1 [json_name = "toolUse"];</code>
      * @return The toolUse.
      */
@@ -511,6 +568,10 @@ private static final long serialVersionUID = 0L;
       return toolUse_;
     }
     /**
+     * <pre>
+     * Whether the model accepts tool / function-calling requests.
+     * </pre>
+     *
      * <code>bool tool_use = 1 [json_name = "toolUse"];</code>
      * @param value The toolUse to set.
      * @return This builder for chaining.
@@ -523,6 +584,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Whether the model accepts tool / function-calling requests.
+     * </pre>
+     *
      * <code>bool tool_use = 1 [json_name = "toolUse"];</code>
      * @return This builder for chaining.
      */
@@ -535,6 +600,28 @@ private static final long serialVersionUID = 0L;
 
     private boolean vision_ ;
     /**
+     * <pre>
+     * Whether image input delivered to this model produces genuine visual
+     * understanding.
+     *
+     * The meaning is harness-scoped. For native-harness entries this is the
+     * provider-documented capability of the model itself. For cursor-harness
+     * entries it encodes "images work through this model on the Cursor
+     * path": Cursor's serving stack hands vision off to a multimodal model
+     * server-side, so a model that is text-only by its own documentation
+     * (composer-2.5) still sees images when dispatched via Cursor.
+     *
+     * &#64;internal
+     * Cursor-path values are established empirically — a nonce-bearing image
+     * probe per model (production executions, 2026-08-10; evidence table on
+     * stigmer-cloud#281, methodology from the whatsapp-media project's T06
+     * probe) — because Cursor's own docs under-report: the server-side
+     * vision hand-off is undocumented behavior. If Cursor changes that
+     * behavior, re-probe; do not re-read the docs. The OSS runner's vision
+     * gate (attachment-vision.ts, stigmer#370) fails open — it degrades
+     * image delivery only on an explicit false.
+     * </pre>
+     *
      * <code>bool vision = 2 [json_name = "vision"];</code>
      * @return The vision.
      */
@@ -543,6 +630,28 @@ private static final long serialVersionUID = 0L;
       return vision_;
     }
     /**
+     * <pre>
+     * Whether image input delivered to this model produces genuine visual
+     * understanding.
+     *
+     * The meaning is harness-scoped. For native-harness entries this is the
+     * provider-documented capability of the model itself. For cursor-harness
+     * entries it encodes "images work through this model on the Cursor
+     * path": Cursor's serving stack hands vision off to a multimodal model
+     * server-side, so a model that is text-only by its own documentation
+     * (composer-2.5) still sees images when dispatched via Cursor.
+     *
+     * &#64;internal
+     * Cursor-path values are established empirically — a nonce-bearing image
+     * probe per model (production executions, 2026-08-10; evidence table on
+     * stigmer-cloud#281, methodology from the whatsapp-media project's T06
+     * probe) — because Cursor's own docs under-report: the server-side
+     * vision hand-off is undocumented behavior. If Cursor changes that
+     * behavior, re-probe; do not re-read the docs. The OSS runner's vision
+     * gate (attachment-vision.ts, stigmer#370) fails open — it degrades
+     * image delivery only on an explicit false.
+     * </pre>
+     *
      * <code>bool vision = 2 [json_name = "vision"];</code>
      * @param value The vision to set.
      * @return This builder for chaining.
@@ -555,6 +664,28 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Whether image input delivered to this model produces genuine visual
+     * understanding.
+     *
+     * The meaning is harness-scoped. For native-harness entries this is the
+     * provider-documented capability of the model itself. For cursor-harness
+     * entries it encodes "images work through this model on the Cursor
+     * path": Cursor's serving stack hands vision off to a multimodal model
+     * server-side, so a model that is text-only by its own documentation
+     * (composer-2.5) still sees images when dispatched via Cursor.
+     *
+     * &#64;internal
+     * Cursor-path values are established empirically — a nonce-bearing image
+     * probe per model (production executions, 2026-08-10; evidence table on
+     * stigmer-cloud#281, methodology from the whatsapp-media project's T06
+     * probe) — because Cursor's own docs under-report: the server-side
+     * vision hand-off is undocumented behavior. If Cursor changes that
+     * behavior, re-probe; do not re-read the docs. The OSS runner's vision
+     * gate (attachment-vision.ts, stigmer#370) fails open — it degrades
+     * image delivery only on an explicit false.
+     * </pre>
+     *
      * <code>bool vision = 2 [json_name = "vision"];</code>
      * @return This builder for chaining.
      */
@@ -567,6 +698,10 @@ private static final long serialVersionUID = 0L;
 
     private boolean streaming_ ;
     /**
+     * <pre>
+     * Whether the model streams incremental output tokens.
+     * </pre>
+     *
      * <code>bool streaming = 3 [json_name = "streaming"];</code>
      * @return The streaming.
      */
@@ -575,6 +710,10 @@ private static final long serialVersionUID = 0L;
       return streaming_;
     }
     /**
+     * <pre>
+     * Whether the model streams incremental output tokens.
+     * </pre>
+     *
      * <code>bool streaming = 3 [json_name = "streaming"];</code>
      * @param value The streaming to set.
      * @return This builder for chaining.
@@ -587,6 +726,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Whether the model streams incremental output tokens.
+     * </pre>
+     *
      * <code>bool streaming = 3 [json_name = "streaming"];</code>
      * @return This builder for chaining.
      */
@@ -599,6 +742,10 @@ private static final long serialVersionUID = 0L;
 
     private boolean thinking_ ;
     /**
+     * <pre>
+     * Whether the model supports extended thinking / reasoning traces.
+     * </pre>
+     *
      * <code>bool thinking = 4 [json_name = "thinking"];</code>
      * @return The thinking.
      */
@@ -607,6 +754,10 @@ private static final long serialVersionUID = 0L;
       return thinking_;
     }
     /**
+     * <pre>
+     * Whether the model supports extended thinking / reasoning traces.
+     * </pre>
+     *
      * <code>bool thinking = 4 [json_name = "thinking"];</code>
      * @param value The thinking to set.
      * @return This builder for chaining.
@@ -619,6 +770,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Whether the model supports extended thinking / reasoning traces.
+     * </pre>
+     *
      * <code>bool thinking = 4 [json_name = "thinking"];</code>
      * @return This builder for chaining.
      */
@@ -631,6 +786,11 @@ private static final long serialVersionUID = 0L;
 
     private boolean adaptiveThinking_ ;
     /**
+     * <pre>
+     * Whether thinking depth adapts to the request instead of a fixed
+     * budget (e.g. Anthropic adaptive thinking).
+     * </pre>
+     *
      * <code>bool adaptive_thinking = 5 [json_name = "adaptiveThinking"];</code>
      * @return The adaptiveThinking.
      */
@@ -639,6 +799,11 @@ private static final long serialVersionUID = 0L;
       return adaptiveThinking_;
     }
     /**
+     * <pre>
+     * Whether thinking depth adapts to the request instead of a fixed
+     * budget (e.g. Anthropic adaptive thinking).
+     * </pre>
+     *
      * <code>bool adaptive_thinking = 5 [json_name = "adaptiveThinking"];</code>
      * @param value The adaptiveThinking to set.
      * @return This builder for chaining.
@@ -651,6 +816,11 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Whether thinking depth adapts to the request instead of a fixed
+     * budget (e.g. Anthropic adaptive thinking).
+     * </pre>
+     *
      * <code>bool adaptive_thinking = 5 [json_name = "adaptiveThinking"];</code>
      * @return This builder for chaining.
      */
