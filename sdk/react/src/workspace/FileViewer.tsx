@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent,
@@ -15,15 +16,19 @@ import {
   FileChangeCaptureLevel,
   FileChangeType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AttachmentImageLightbox } from "../attachment/AttachmentImageLightbox.js";
+import { useObjectUrl } from "../attachment/useObjectUrl.js";
 import { ArtifactContentRenderer } from "../execution/ArtifactContentRenderer.js";
 import { FileChangeDiff } from "../execution/FileChangesView.js";
 import { useFileChangeContent } from "../execution/useFileChangeContent.js";
+import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
 import type { RevealTarget } from "../internal/useRevealLine.js";
 import type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";
 import { useWorkspaceFileContent } from "./useWorkspaceFileContent.js";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 import {
   WorkspaceFileNotFoundError,
+  workspaceImageMimeType,
   type WorkspaceFileReader,
 } from "./WorkspaceFileReader.js";
 
@@ -431,6 +436,23 @@ function FileViewerBody({
     return <MessageState>Content not available for preview.</MessageState>;
   }
 
+  // A binary that is a renderable image, delivered whole by the reader,
+  // shows the picture instead of the binary notice (stigmer/stigmer#379).
+  // The MIME gate re-derives from the path: bytes without a recognized image
+  // extension still fall through to the notice.
+  const imageMime = workspaceImageMimeType(basename);
+  if (content.bytes && imageMime) {
+    return (
+      <ImageFileContent
+        bytes={content.bytes}
+        mime={imageMime}
+        basename={basename}
+        size={content.size}
+        change={change}
+      />
+    );
+  }
+
   if (content.isBinary) {
     return (
       <MessageState>
@@ -464,6 +486,93 @@ function FileViewerBody({
         fileName={basename}
         isTruncated={content.truncated}
         reveal={reveal}
+      />
+    </>
+  );
+}
+
+/**
+ * Inline image rendering for a workspace file whose reader delivered whole
+ * image bytes (stigmer/stigmer#379). The bytes become an object URL for the
+ * component's lifetime; clicking the image opens the shared
+ * {@link AttachmentImageLightbox} at full size — the same viewer attachment
+ * chips and conversation media use, so pictures behave identically across
+ * surfaces. If the browser cannot decode the bytes (a corrupt file behind an
+ * image extension), the component degrades to the binary notice — never a
+ * broken-image glyph.
+ */
+function ImageFileContent({
+  bytes,
+  mime,
+  basename,
+  size,
+  change,
+}: {
+  readonly bytes: Uint8Array;
+  readonly mime: string;
+  readonly basename: string;
+  readonly size: number;
+  readonly change?: FileChange;
+}) {
+  // Memo (not effect) is correct for the Blob — it holds no OS resource; the
+  // object URL over it is effect-managed inside useObjectUrl.
+  const blob = useMemo(() => new Blob([bytes as BlobPart], { type: mime }), [bytes, mime]);
+  const url = useObjectUrl(blob);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  if (loadFailed) {
+    return (
+      <MessageState>
+        Binary file — not shown{size ? ` (${formatBytes(size)})` : ""}.
+      </MessageState>
+    );
+  }
+
+  return (
+    <>
+      {change && (
+        <p className="border-b border-border-muted px-4 py-1.5 text-[0.65rem] text-muted-foreground">
+          Live — may differ from the reviewed change.
+        </p>
+      )}
+      <div className="flex flex-col items-center gap-2 p-4">
+        {url ? (
+          // UNSTYLED_BUTTON is load-bearing: without it the button shows the
+          // UA's default box in preflight-less hosts (see the constant).
+          <button
+            type="button"
+            onClick={() => setLightboxOpen(true)}
+            aria-label={`Preview ${basename} at full size`}
+            className={cn(
+              UNSTYLED_BUTTON,
+              "max-w-full rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            )}
+          >
+            <img
+              src={url}
+              alt={basename}
+              onError={() => setLoadFailed(true)}
+              className="max-h-[70vh] max-w-full rounded-md border border-border object-contain"
+            />
+          </button>
+        ) : (
+          // One-frame placeholder until the object-URL effect runs.
+          <div
+            className="h-48 w-72 max-w-full animate-pulse rounded-md bg-muted"
+            aria-hidden="true"
+          />
+        )}
+        <p className="text-[0.65rem] tabular-nums text-muted-foreground">
+          {mime}
+          {size ? ` · ${formatBytes(size)}` : ""}
+        </p>
+      </div>
+      <AttachmentImageLightbox
+        src={url}
+        filename={basename}
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
       />
     </>
   );

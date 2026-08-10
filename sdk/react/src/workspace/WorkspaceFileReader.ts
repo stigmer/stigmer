@@ -13,11 +13,56 @@ import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 export const MAX_WORKSPACE_FILE_READ_BYTES = 1_048_576; // 1 MiB
 
 /**
+ * Byte ceiling for delivering a workspace *image* in full (stigmer/stigmer#379).
+ *
+ * Deliberately larger than {@link MAX_WORKSPACE_FILE_READ_BYTES}: text
+ * degrades gracefully when truncated, an image does not — a partial PNG is
+ * useless, so readers deliver image bytes whole or not at all. 10 MiB matches
+ * the GitHub reader's existing blob-fetch ceiling; the desktop native reader
+ * mirrors it as `MAX_IMAGE_READ_BYTES` in `src-tauri/src/workspace.rs`.
+ */
+export const MAX_WORKSPACE_IMAGE_READ_BYTES = 10 * 1024 * 1024; // 10 MiB
+
+/**
+ * Raster image formats the viewer renders inline, keyed by file extension.
+ *
+ * SVG is deliberately absent: it decodes as UTF-8 and flows through the text
+ * path, where a workspace browser wants it — it is source to inspect, not a
+ * picture (matching editor convention). The desktop native reader mirrors
+ * this list as `IMAGE_EXTENSIONS` in `src-tauri/src/workspace.rs`.
+ */
+const IMAGE_MIME_BY_EXTENSION: Readonly<Record<string, string>> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  avif: "image/avif",
+  bmp: "image/bmp",
+  ico: "image/x-icon",
+};
+
+/**
+ * MIME type for a workspace path the viewer can render as an inline image,
+ * or `null` for everything else. The single policy point shared by readers
+ * (deciding whether to attach {@link WorkspaceFileContent.bytes}) and the
+ * viewer (deciding whether to render an image arm) — extension-based, since
+ * workspace reads have no server-provided content type.
+ */
+export function workspaceImageMimeType(path: string): string | null {
+  const dot = path.lastIndexOf(".");
+  if (dot === -1) return null;
+  const ext = path.slice(dot + 1).toLowerCase();
+  return IMAGE_MIME_BY_EXTENSION[ext] ?? null;
+}
+
+/**
  * Decoded content (plus metadata) for a single workspace file.
  *
  * `text` is `null` whenever the bytes are not displayable as UTF-8 — either
  * binary (`isBinary`) or an undecodable byte sequence (`encoding: "unknown"`).
- * The renderer uses `isBinary`/`text === null` for its fallback state.
+ * The renderer uses `isBinary`/`text === null` for its fallback state, except
+ * when `bytes` carries a renderable image.
  */
 export interface WorkspaceFileContent {
   /** Decoded UTF-8 text, or `null` when binary or undecodable. */
@@ -30,6 +75,15 @@ export interface WorkspaceFileContent {
   readonly encoding: "utf-8" | "base64" | "none" | "unknown";
   /** `true` when `text` holds only the first {@link MAX_WORKSPACE_FILE_READ_BYTES} bytes. */
   readonly truncated?: boolean;
+  /**
+   * The complete raw bytes, populated **only** for binary files that are
+   * renderable images ({@link workspaceImageMimeType}) within
+   * {@link MAX_WORKSPACE_IMAGE_READ_BYTES} — never a channel for arbitrary
+   * binaries, and never partial (a truncated image cannot render). Optional
+   * and additive: readers that predate it remain valid, and the viewer falls
+   * back to the binary notice when it is absent (stigmer/stigmer#379).
+   */
+  readonly bytes?: Uint8Array;
 }
 
 /**

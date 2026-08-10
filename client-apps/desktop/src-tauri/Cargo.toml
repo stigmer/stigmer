@@ -31,6 +31,9 @@ grep-searcher = "0.1"
 grep-regex = "0.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Workspace image reads ship their bytes base64-encoded through the Tauri
+# invoke JSON boundary (stigmer/stigmer#379).
+base64 = "0.22"
 tokio = { version = "1", features = ["io-util", "process", "sync"] }
 url = "2"
 # Embedded-runner IPC driver, vendored in-repo. The `tauri` feature provides the

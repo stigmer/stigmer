@@ -159,6 +159,104 @@ describe("FileViewer", () => {
     );
   });
 
+  // ---------------------------------------------------------------------
+  // Image arm (stigmer/stigmer#379) — bytes delivered whole by the reader
+  // render as a picture; every gate failure falls back to the binary notice.
+  // ---------------------------------------------------------------------
+
+  const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
+
+  function imageContent(): WorkspaceFileContent {
+    return {
+      text: null,
+      isBinary: true,
+      size: PNG_BYTES.length,
+      encoding: "base64",
+      bytes: PNG_BYTES,
+    };
+  }
+
+  it("renders an image from delivered bytes instead of the binary notice", async () => {
+    render(
+      <FileViewer
+        selectedFile={{ entryId: "e1", path: "assets/logo.png" }}
+        entries={ENTRIES}
+        reader={readerFor(imageContent())}
+      />,
+    );
+
+    await waitFor(() => {
+      const img = document.querySelector("img");
+      expect(img).toBeTruthy();
+      expect(img!.getAttribute("src")).toContain("blob:");
+      expect(img!.getAttribute("alt")).toBe("logo.png");
+    });
+    expect(screen.queryByText(/Binary file/i)).toBeNull();
+    // The click-to-open affordance is present and named.
+    expect(
+      screen.getByRole("button", { name: "Preview logo.png at full size" }),
+    ).toBeTruthy();
+  });
+
+  it("opens the shared lightbox at full size when the image is clicked", async () => {
+    // happy-dom does not implement the native dialog show/close methods.
+    HTMLDialogElement.prototype.showModal = function showModal() {
+      this.open = true;
+    };
+    HTMLDialogElement.prototype.close = function close() {
+      this.open = false;
+    };
+
+    render(
+      <FileViewer
+        selectedFile={{ entryId: "e1", path: "assets/logo.png" }}
+        entries={ENTRIES}
+        reader={readerFor(imageContent())}
+      />,
+    );
+
+    await waitFor(() => expect(document.querySelector("img")).toBeTruthy());
+    fireEvent.click(
+      screen.getByRole("button", { name: "Preview logo.png at full size" }),
+    );
+
+    const dialog = document.querySelector("dialog");
+    expect(dialog).toBeTruthy();
+    expect(dialog!.getAttribute("aria-label")).toBe("Preview logo.png");
+  });
+
+  it("keeps the binary notice when bytes arrive for a non-image path", async () => {
+    // The viewer re-derives the MIME gate from the path: bytes on something
+    // without a recognized image extension never render as a picture.
+    render(
+      <FileViewer
+        selectedFile={{ entryId: "e1", path: "data.bin" }}
+        entries={ENTRIES}
+        reader={readerFor(imageContent())}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText(/Binary file/i)).toBeTruthy());
+    expect(document.querySelector("img")).toBeNull();
+  });
+
+  it("degrades to the binary notice when the browser cannot decode the bytes", async () => {
+    render(
+      <FileViewer
+        selectedFile={{ entryId: "e1", path: "assets/logo.png" }}
+        entries={ENTRIES}
+        reader={readerFor(imageContent())}
+      />,
+    );
+
+    await waitFor(() => expect(document.querySelector("img")).toBeTruthy());
+    fireEvent.error(document.querySelector("img")!);
+
+    // Never a broken-image glyph — the honest binary state instead.
+    await waitFor(() => expect(screen.getByText(/Binary file/i)).toBeTruthy());
+    expect(document.querySelector("img")).toBeNull();
+  });
+
   it("shows the error state with a working Retry", async () => {
     let attempt = 0;
     const reader: WorkspaceFileReader = vi.fn(async () => {

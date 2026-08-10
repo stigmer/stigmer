@@ -76,6 +76,25 @@ describe("useNativeWorkspaceFileReader", () => {
     expect(content).toBe(SAMPLE_CONTENT);
   });
 
+  it("decodes imageBase64 from Rust into contract bytes (stigmer/stigmer#379)", async () => {
+    const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00]);
+    mockedInvoke.mockResolvedValue({
+      text: null,
+      isBinary: true,
+      size: pngBytes.length,
+      encoding: "base64",
+      truncated: false,
+      imageBase64: btoa(String.fromCharCode(...pngBytes)),
+    });
+
+    const { result } = renderHook(() => useNativeWorkspaceFileReader());
+    const content = await result.current(makeLocalEntry(), "assets/logo.png");
+
+    expect(content?.bytes).toEqual(pngBytes);
+    // The transport field never leaks into the contract shape.
+    expect(content && "imageBase64" in content).toBe(false);
+  });
+
   it("propagates errors from invoke (real failure, not null)", async () => {
     mockedInvoke.mockRejectedValue(new Error("File not found: gone.ts"));
 

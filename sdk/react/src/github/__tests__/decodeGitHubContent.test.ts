@@ -5,7 +5,10 @@ import {
   bytesToText,
   normalizeGitHubContent,
 } from "../decodeGitHubContent";
-import { MAX_WORKSPACE_FILE_READ_BYTES } from "../../workspace/WorkspaceFileReader";
+import {
+  MAX_WORKSPACE_FILE_READ_BYTES,
+  MAX_WORKSPACE_IMAGE_READ_BYTES,
+} from "../../workspace/WorkspaceFileReader";
 
 function utf8(s: string): Uint8Array {
   return new TextEncoder().encode(s);
@@ -98,5 +101,43 @@ describe("normalizeGitHubContent", () => {
     const result = normalizeGitHubContent(bytes, bytes.length);
     expect(result.truncated).toBeUndefined();
     expect(result.text).toHaveLength(MAX_WORKSPACE_FILE_READ_BYTES);
+  });
+
+  // -------------------------------------------------------------------
+  // Whole-image delivery (stigmer/stigmer#379)
+  // -------------------------------------------------------------------
+
+  it("delivers whole image bytes when the binary file has an image MIME", () => {
+    const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00]);
+    const result = normalizeGitHubContent(bytes, bytes.length, "image/png");
+
+    expect(result.isBinary).toBe(true);
+    expect(result.encoding).toBe("base64");
+    expect(result.bytes).toBe(bytes);
+  });
+
+  it("withholds bytes from binary content without an image MIME", () => {
+    const result = normalizeGitHubContent(new Uint8Array([0x00, 0x01]), 2, null);
+    expect(result.isBinary).toBe(true);
+    expect(result.bytes).toBeUndefined();
+  });
+
+  it("withholds bytes from an image beyond the whole-image ceiling", () => {
+    // All-zero bytes trip the NUL sniff; one byte over the ceiling means the
+    // image cannot be delivered whole, so no bytes ride along.
+    const oversized = new Uint8Array(MAX_WORKSPACE_IMAGE_READ_BYTES + 1);
+    const result = normalizeGitHubContent(oversized, oversized.length, "image/png");
+
+    expect(result.isBinary).toBe(true);
+    expect(result.bytes).toBeUndefined();
+  });
+
+  it("keeps a text file that merely claims an image extension on the text path", () => {
+    const bytes = utf8("not really a png");
+    const result = normalizeGitHubContent(bytes, bytes.length, "image/png");
+
+    expect(result.text).toBe("not really a png");
+    expect(result.isBinary).toBe(false);
+    expect(result.bytes).toBeUndefined();
   });
 });

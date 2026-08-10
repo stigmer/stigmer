@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
 import {
   WorkspaceFileNotFoundError,
+  workspaceImageMimeType,
   type WorkspaceFileContent,
   type WorkspaceFileReader,
 } from "../workspace/WorkspaceFileReader.js";
@@ -116,12 +117,16 @@ export function useGitHubFileReader(
 
       const file = data as GitHubContentsFile;
       if (file.encoding === "base64") {
-        return normalizeGitHubContent(base64ToBytes(file.content), file.size);
+        return normalizeGitHubContent(
+          base64ToBytes(file.content),
+          file.size,
+          workspaceImageMimeType(path),
+        );
       }
 
       // encoding: "none" is GitHub's signal that the file exceeds the Contents
       // API's ~1 MB cap; the bytes live only behind the Blob API.
-      return readViaBlob(parsed, file, token);
+      return readViaBlob(parsed, file, path, token);
     },
     [token],
   );
@@ -138,6 +143,7 @@ export function useGitHubFileReader(
 async function readViaBlob(
   parsed: { owner: string; repo: string },
   file: GitHubContentsFile,
+  path: string,
   token: string,
 ): Promise<WorkspaceFileContent> {
   // Above the ceiling we never download — GitHub already told us the size, so
@@ -161,5 +167,9 @@ async function readViaBlob(
   }
 
   const blob: GitHubBlob = await resp.json();
-  return normalizeGitHubContent(base64ToBytes(blob.content), blob.size);
+  return normalizeGitHubContent(
+    base64ToBytes(blob.content),
+    blob.size,
+    workspaceImageMimeType(path),
+  );
 }

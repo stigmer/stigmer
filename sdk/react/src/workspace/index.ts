@@ -9,7 +9,9 @@ export type {
 } from "./WorkspaceFileLister.js";
 export {
   MAX_WORKSPACE_FILE_READ_BYTES,
+  MAX_WORKSPACE_IMAGE_READ_BYTES,
   WorkspaceFileNotFoundError,
+  workspaceImageMimeType,
 } from "./WorkspaceFileReader.js";
 export type {
   WorkspaceFileContent,

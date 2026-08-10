@@ -4,6 +4,7 @@
 
 import {
   MAX_WORKSPACE_FILE_READ_BYTES,
+  MAX_WORKSPACE_IMAGE_READ_BYTES,
   type WorkspaceFileContent,
 } from "../workspace/WorkspaceFileReader.js";
 
@@ -51,17 +52,33 @@ export function bytesToText(bytes: Uint8Array): string | null {
  * Turn decoded bytes into a {@link WorkspaceFileContent}, applying binary
  * detection and the shared 1 MB display cap.
  *
- * @param bytes    the full decoded bytes as delivered by GitHub
- * @param fullSize the file's true size in bytes (GitHub's `size` field), which
- *                 may exceed `bytes.length` when the caller has already capped
- *                 the download — reported verbatim as `size`.
+ * @param bytes     the full decoded bytes as delivered by GitHub
+ * @param fullSize  the file's true size in bytes (GitHub's `size` field), which
+ *                  may exceed `bytes.length` when the caller has already capped
+ *                  the download — reported verbatim as `size`.
+ * @param imageMime the file's image MIME type per `workspaceImageMimeType`, or
+ *                  `null`. When set and the bytes are binary, the *complete*
+ *                  bytes ride along for the viewer's image arm
+ *                  (stigmer/stigmer#379) — GitHub always delivers whole files
+ *                  on this path, so the bytes in hand ARE the image.
  */
 export function normalizeGitHubContent(
   bytes: Uint8Array,
   fullSize: number,
+  imageMime: string | null = null,
 ): WorkspaceFileContent {
   if (detectBinary(bytes)) {
-    return { text: null, isBinary: true, size: fullSize, encoding: "base64" };
+    // Gate on the binary sniff, not extension alone: a text file that merely
+    // *claims* .png keeps rendering as text below, exactly as before.
+    const deliverImage =
+      imageMime !== null && bytes.length <= MAX_WORKSPACE_IMAGE_READ_BYTES;
+    return {
+      text: null,
+      isBinary: true,
+      size: fullSize,
+      encoding: "base64",
+      ...(deliverImage ? { bytes } : {}),
+    };
   }
 
   // Decode the full buffer, then cap the resulting *string* — capping the bytes

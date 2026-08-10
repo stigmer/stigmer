@@ -16,6 +16,25 @@ const MAX_READ_BYTES: usize = 1_048_576; // 1 MiB
 /// Only the head is scanned for a NUL byte (git's text/binary heuristic).
 const BINARY_SNIFF_BYTES: usize = 8000;
 
+/// Byte ceiling for delivering a workspace *image* whole
+/// (stigmer/stigmer#379). Must stay in sync with
+/// `MAX_WORKSPACE_IMAGE_READ_BYTES` on the TS side (`WorkspaceFileReader.ts`).
+/// Deliberately larger than `MAX_READ_BYTES`: text degrades gracefully when
+/// truncated, an image does not — images are delivered whole or not at all.
+const MAX_IMAGE_READ_BYTES: usize = 10 * 1024 * 1024; // 10 MiB
+
+/// Raster formats the viewer renders inline. Must stay in sync with
+/// `IMAGE_MIME_BY_EXTENSION` in `WorkspaceFileReader.ts` (SVG deliberately
+/// absent on both sides — it decodes as UTF-8 and flows through the text path).
+const IMAGE_EXTENSIONS: [&str; 8] = ["png", "jpg", "jpeg", "gif", "webp", "avif", "bmp", "ico"];
+
+/// Whether the path's extension names a raster format the viewer can render.
+fn is_image_path(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| IMAGE_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()))
+}
+
 /// Per-file content-search match cap. A single noisy file cannot flood the
 /// results; hitting it flags the result set `truncated`.
 const MAX_MATCHES_PER_FILE: usize = 50;
@@ -350,10 +369,16 @@ pub struct ReadResult {
     is_binary: bool,
     /// Full file size in bytes — independent of truncation.
     size: u64,
-    /// `"utf-8"` when decoded; `"unknown"` for binary or undecodable bytes
-    /// (disambiguated by `is_binary`).
+    /// `"utf-8"` when decoded; `"base64"` when `image_base64` is set;
+    /// `"unknown"` for other binary or undecodable bytes (disambiguated by
+    /// `is_binary`).
     encoding: String,
     truncated: bool,
+    /// Base64 of the *complete* bytes when the file is a renderable image
+    /// within [`MAX_IMAGE_READ_BYTES`] (stigmer/stigmer#379) — never partial.
+    /// The TS shim decodes this into `WorkspaceFileContent.bytes`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    image_base64: Option<String>,
 }
 
 /// Reads a single file under `root`, capped at [`MAX_READ_BYTES`].
@@ -395,22 +420,34 @@ fn read_file(root: &Path, relative: &str) -> Result<ReadResult, String> {
     }
     let size = meta.len();
 
-    // Read at most MAX+1 bytes so truncation is detectable without loading a
-    // multi-gigabyte file into memory.
+    // Read at most cap+1 bytes so truncation is detectable without loading a
+    // multi-gigabyte file into memory. Image-suffixed paths get the larger
+    // image cap: their bytes are only useful whole (stigmer/stigmer#379).
+    let is_image = is_image_path(rel);
+    let read_cap = if is_image { MAX_IMAGE_READ_BYTES } else { MAX_READ_BYTES };
     let file = std::fs::File::open(&target).map_err(|e| format!("Cannot open {relative}: {e}"))?;
     let mut bytes = Vec::new();
-    file.take((MAX_READ_BYTES + 1) as u64)
+    file.take((read_cap + 1) as u64)
         .read_to_end(&mut bytes)
         .map_err(|e| format!("Cannot read {relative}: {e}"))?;
 
     let is_binary = bytes.iter().take(BINARY_SNIFF_BYTES).any(|&b| b == 0);
     if is_binary {
+        // Gate on the binary sniff AND the extension, mirroring the GitHub
+        // reader: a text file merely named .png keeps its text path below,
+        // and an over-cap image falls back to the plain binary notice
+        // (whole-or-not-at-all — a truncated image cannot render).
+        let image_base64 = (is_image && bytes.len() <= MAX_IMAGE_READ_BYTES).then(|| {
+            use base64::{engine::general_purpose::STANDARD, Engine as _};
+            STANDARD.encode(&bytes)
+        });
         return Ok(ReadResult {
             text: None,
             is_binary: true,
             size,
-            encoding: "unknown".into(),
+            encoding: if image_base64.is_some() { "base64" } else { "unknown" }.into(),
             truncated: false,
+            image_base64,
         });
     }
 
@@ -435,6 +472,7 @@ fn read_file(root: &Path, relative: &str) -> Result<ReadResult, String> {
         is_binary: false,
         size,
         truncated,
+        image_base64: None,
     })
 }
 
@@ -609,6 +647,72 @@ mod tests {
         assert!(result.is_binary);
         assert!(result.text.is_none());
         assert_eq!(result.size, 3);
+    }
+
+    #[test]
+    fn delivers_an_image_whole_and_base64_encoded() {
+        let dir = tempfile::tempdir().unwrap();
+        let png_bytes = [0x89u8, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00];
+        fs::write(dir.path().join("logo.png"), png_bytes).unwrap();
+
+        let result = read_file(dir.path(), "logo.png").unwrap();
+
+        assert!(result.is_binary);
+        assert_eq!(result.encoding, "base64");
+        use base64::{engine::general_purpose::STANDARD, Engine as _};
+        let decoded = STANDARD.decode(result.image_base64.unwrap()).unwrap();
+        assert_eq!(decoded, png_bytes);
+    }
+
+    #[test]
+    fn image_extension_check_is_case_insensitive() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("SHOT.PNG"), [0x89u8, 0x50, 0x00]).unwrap();
+
+        let result = read_file(dir.path(), "SHOT.PNG").unwrap();
+        assert!(result.image_base64.is_some());
+    }
+
+    #[test]
+    fn withholds_bytes_from_binary_without_an_image_extension() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("blob.bin"), [0x48, 0x00, 0x49]).unwrap();
+
+        let result = read_file(dir.path(), "blob.bin").unwrap();
+
+        assert!(result.is_binary);
+        assert_eq!(result.encoding, "unknown");
+        assert!(result.image_base64.is_none());
+    }
+
+    #[test]
+    fn withholds_bytes_from_an_image_beyond_the_whole_image_ceiling() {
+        let dir = tempfile::tempdir().unwrap();
+        // All-zero bytes trip the NUL sniff; one byte over the ceiling means
+        // the image cannot be delivered whole (whole-or-not-at-all).
+        fs::write(
+            dir.path().join("huge.png"),
+            vec![0u8; MAX_IMAGE_READ_BYTES + 1],
+        )
+        .unwrap();
+
+        let result = read_file(dir.path(), "huge.png").unwrap();
+
+        assert!(result.is_binary);
+        assert!(result.image_base64.is_none());
+        assert_eq!(result.size, (MAX_IMAGE_READ_BYTES + 1) as u64);
+    }
+
+    #[test]
+    fn keeps_a_text_file_claiming_an_image_extension_on_the_text_path() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("fake.png"), "not really a png").unwrap();
+
+        let result = read_file(dir.path(), "fake.png").unwrap();
+
+        assert!(!result.is_binary);
+        assert_eq!(result.text.as_deref(), Some("not really a png"));
+        assert!(result.image_base64.is_none());
     }
 
     #[test]
