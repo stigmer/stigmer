@@ -47,8 +47,11 @@ func BuildTestMcpServer(outputDir string) (string, error) {
 }
 
 // CreateStdioMcpServer creates an McpServer resource pointing to the test
-// stdio binary. The server is auto-deleted on test cleanup.
-func CreateStdioMcpServer(t *testing.T, ctx context.Context, clients *Clients, binaryPath string) *mcpserverv1.McpServer {
+// stdio binary, passing any extra args (e.g. "--env-report", path) to the
+// subprocess. No spec.env is declared, so the resource also models the
+// zero-declaration shape the env-isolation guard exercises. The server is
+// auto-deleted on test cleanup.
+func CreateStdioMcpServer(t *testing.T, ctx context.Context, clients *Clients, binaryPath string, args ...string) *mcpserverv1.McpServer {
 	t.Helper()
 
 	name := "test-mcp-" + uuid.New().String()[:8]
@@ -64,6 +67,7 @@ func CreateStdioMcpServer(t *testing.T, ctx context.Context, clients *Clients, b
 			ServerType: &mcpserverv1.McpServerSpec_Stdio{
 				Stdio: &mcpserverv1.StdioServerConfig{
 					Command: binaryPath,
+					Args:    args,
 				},
 			},
 		},

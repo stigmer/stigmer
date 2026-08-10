@@ -71,21 +71,20 @@ spec:
 
 ### Credential Injection for Stdio
 
-Environment variables are the standard mechanism for injecting credentials into stdio servers. Declare them in `env_spec` — the agent runner will populate them from the AgentInstance's environment before starting the process:
+Environment variables are the standard mechanism for injecting credentials into stdio servers. Declare them in the spec's `env` map — the agent runner will populate them from the AgentInstance's environment before starting the process:
 
 ```yaml
 spec:
   stdio:
     command: npx
     args: ["-y", "@modelcontextprotocol/server-github"]
-  env_spec:
-    data:
-      GITHUB_TOKEN:
-        description: "GitHub personal access token with repo scope"
-        is_secret: true
+  env:
+    GITHUB_TOKEN:
+      description: "GitHub personal access token with repo scope"
+      is_secret: true
 ```
 
-The subprocess inherits the full environment including all resolved variables. The MCP server process reads `GITHUB_TOKEN` from its environment exactly as it would if run locally.
+The subprocess receives exactly the declared variables plus a minimal base environment (`PATH`, `HOME`, and similar) — never the runner's own process environment, which carries runner-internal credentials. The MCP server process reads `GITHUB_TOKEN` from its environment exactly as it would if run locally; anything else the server needs must be declared the same way.
 
 ---
 

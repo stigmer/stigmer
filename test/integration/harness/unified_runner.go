@@ -692,6 +692,14 @@ func buildUnifiedRunnerEnv(cfg UnifiedRunnerConfig, mode, taskQueue string) []st
 		fmt.Sprintf("STIGMER_SERVER_ADDRESS=%s", cfg.StigmerServiceAddress),
 
 		"SKIP_MCP_CONNECT_BACKFILL=true",
+
+		// Sentinels for the stdio env-isolation guard (oss#256): the runner
+		// process carries these, and mcp_stdio_env_isolation_test.go asserts
+		// that a stdio MCP subprocess does NOT. STIGMER_RUNNER_HITL_SECRET is
+		// the real credential name (a stable value is a supported runner
+		// config); the second is a neutral canary nothing else reads.
+		"STIGMER_RUNNER_HITL_SECRET=integration-hitl-fingerprint-key",
+		"STIGMER_TEST_LEAK_SENTINEL=leak-canary",
 	)
 
 	if mode == "manager" {

@@ -1,9 +1,16 @@
 // mcp-test-server is a deterministic MCP server for integration tests.
-// It communicates over stdio using JSON-RPC 2.0 and exposes four tools:
+// It communicates over stdio using JSON-RPC 2.0 and exposes five tools:
 //   - echo: returns its input unchanged
 //   - add: sums two numbers
 //   - fail: always returns an error
 //   - slow: sleeps for the given duration then returns "done"
+//   - crash: exits immediately
+//
+// Flags:
+//   --env-report <path>: at startup, write the NAMES of this process's
+//     environment variables to <path>, one per line, sorted. Used by the
+//     stdio env-isolation guard (oss#256) to assert what the spawning
+//     runner passed into the subprocess.
 package main
 
 import (
@@ -11,6 +18,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 	"time"
 )
 
@@ -130,6 +139,12 @@ var tools = []toolInfo{
 }
 
 func main() {
+	if path := envReportPath(os.Args[1:]); path != "" {
+		if err := writeEnvReport(path); err != nil {
+			fmt.Fprintf(os.Stderr, "mcp-test-server: env report: %v\n", err)
+		}
+	}
+
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Buffer(make([]byte, 0, 1024*1024), 1024*1024)
 
@@ -227,6 +242,32 @@ func handleToolCall(id any, params *callToolParams) {
 	default:
 		writeError(id, -32602, "Unknown tool: "+params.Name)
 	}
+}
+
+// envReportPath extracts the --env-report flag value from args, if present.
+func envReportPath(args []string) string {
+	for i, arg := range args {
+		if arg == "--env-report" && i+1 < len(args) {
+			return args[i+1]
+		}
+	}
+	return ""
+}
+
+// writeEnvReport writes the NAMES of this process's environment variables to
+// path, one per line, sorted. Names only, never values: the report is read by
+// tests asserting env isolation and must stay safe to surface in CI logs even
+// when the parent process holds real credentials.
+func writeEnvReport(path string) error {
+	environ := os.Environ()
+	keys := make([]string, 0, len(environ))
+	for _, entry := range environ {
+		if i := strings.IndexByte(entry, '='); i > 0 {
+			keys = append(keys, entry[:i])
+		}
+	}
+	sort.Strings(keys)
+	return os.WriteFile(path, []byte(strings.Join(keys, "\n")+"\n"), 0o644)
 }
 
 func writeResult(id any, result any) {

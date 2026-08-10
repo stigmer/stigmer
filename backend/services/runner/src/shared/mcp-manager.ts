@@ -10,9 +10,22 @@
  * resolution time by shared/mcp-transport-guard.ts — servers reaching
  * this manager have already passed it.
  *
+ * Stdio env contract (oss#256): a subprocess receives exactly the
+ * variables declared in the server's spec.env (resolved upstream by
+ * filterEnvToDeclaredKeys) plus the MCP SDK's minimal base environment
+ * (HOME, LOGNAME, PATH, SHELL, TERM, USER — getDefaultEnvironment in
+ * @modelcontextprotocol/sdk, merged under whatever we pass). The
+ * runner's own process env is never passed: it carries runner-internal
+ * credentials (STIGMER_TOKEN, STIGMER_RUNNER_HITL_SECRET,
+ * CURSOR_API_KEY, LLM provider keys) that no third-party MCP subprocess
+ * may see. A declared-empty env and an undeclared env are deliberately
+ * equivalent — both yield the SDK base environment.
+ *
  * The Cursor execution path does NOT use this manager — it passes MCP
  * configs directly to the Cursor SDK via toCursorMcpConfig(). This
- * manager is exclusively for LangGraph-based deep agent executions.
+ * manager serves LangGraph-based deep agent executions, and discovery
+ * (activities/discover-mcp-server.ts) builds its spawn config through
+ * toMcpClientConfig too.
  */
 
 import { MultiServerMCPClient } from "@langchain/mcp-adapters";
@@ -32,11 +45,18 @@ export function toMcpClientConfig(
   for (const server of servers) {
     if (server.connectionType === "stdio") {
       if (!server.command) continue;
+      if (!server.env || Object.keys(server.env).length === 0) {
+        console.log(
+          `[MCP] Server '${server.slug}' declares no env — its subprocess ` +
+          `starts with the minimal base environment only. Declare variables ` +
+          `in the McpServer's spec.env to pass them.`,
+        );
+      }
       config[server.slug] = {
         transport: "stdio",
         command: server.command,
         args: server.args ?? [],
-        env: server.env ?? processEnvAsStrings(),
+        env: server.env,
         cwd: server.cwd,
       };
     } else if (server.connectionType === "http" || server.connectionType === "sse") {
@@ -90,24 +110,4 @@ export async function connectMcpServers(
   );
 
   return { client, tools, serverToolMap };
-}
-
-/**
- * Snapshot of process.env as a string-only record (no undefined values).
- * Used as a fallback when an MCP server has no declared env — the
- * subprocess inherits the runner's full environment, matching standard
- * Unix child-process behavior.
- *
- * Without this, @modelcontextprotocol/sdk only passes a restricted
- * whitelist (HOME, PATH, USER, etc.) which drops platform variables
- * like STIGMER_SERVER_ADDRESS.
- */
-function processEnvAsStrings(): Record<string, string> {
-  const env: Record<string, string> = {};
-  for (const [key, value] of Object.entries(process.env)) {
-    if (value !== undefined) {
-      env[key] = value;
-    }
-  }
-  return env;
 }
