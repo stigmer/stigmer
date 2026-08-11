@@ -28,8 +28,10 @@ import {
   resolveAnthropicBackend,
   checkVertexPrerequisites,
   checkBedrockPrerequisites,
+  checkFoundryPrerequisites,
   toVertexModelId,
   toBedrockModelId,
+  toFoundryDeploymentName,
 } from "./llm-backend.js";
 import { resolveToApiModelId } from "./model-registry.js";
 
@@ -107,7 +109,9 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
   // runner factory still fail at dispatch with the catalog message instead
   // of mid-request. Credentials are read natively by each SDK from its
   // standard conventions (GCP: CLOUD_ML_REGION + ADC; AWS: AWS_REGION +
-  // the credential chain / AWS_BEARER_TOKEN_BEDROCK).
+  // the credential chain / AWS_BEARER_TOKEN_BEDROCK; Foundry:
+  // ANTHROPIC_FOUNDRY_API_KEY, or the Azure credential chain when no key
+  // is set).
   let backendCreateClient: ((options: { maxRetries?: number }) => unknown) | undefined;
   let wireModelId = apiModelId;
   let maxTokens = opts.maxTokens;
@@ -137,6 +141,39 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
       // Pinned by the canonical-parity test in bedrock-adapter.test.ts.
       maxTokens = new ChatAnthropic({ model: apiModelId, apiKey: "max-tokens-probe" }).maxTokens;
     }
+  } else if (anthropicBackend === "foundry") {
+    const prereq = checkFoundryPrerequisites();
+    if (prereq !== null) throw new Error(prereq);
+    const { AnthropicFoundry } = await import("@anthropic-ai/foundry-sdk");
+    // Auth is an explicit either/or (the Foundry constructor throws when
+    // given both a key and a token provider): ANTHROPIC_FOUNDRY_API_KEY if
+    // present, otherwise keyless Microsoft Entra ID through the Azure
+    // credential chain (env service principal -> workload identity ->
+    // managed identity -> az CLI) — the Azure analogue of Vertex ADC and
+    // the AWS chain, resolved at request time. The provider is built once
+    // here (getBearerTokenProvider caches tokens until near-expiry) and
+    // shared by both cached clients; the SDK still consults it per request,
+    // so refreshed tokens flow without reconstruction (pinned by
+    // foundry-seam.test.ts). Endpoint (resource or base URL) and the key
+    // are read natively by the SDK from its own env vars.
+    let azureADTokenProvider: (() => Promise<string>) | undefined;
+    if (!process.env.ANTHROPIC_FOUNDRY_API_KEY?.trim()) {
+      const { DefaultAzureCredential, getBearerTokenProvider } = await import("@azure/identity");
+      azureADTokenProvider = getBearerTokenProvider(
+        new DefaultAzureCredential(),
+        "https://ai.azure.com/.default",
+      );
+    }
+    backendCreateClient = (options) =>
+      new AnthropicFoundry({
+        maxRetries: options.maxRetries,
+        ...(azureADTokenProvider ? { azureADTokenProvider } : {}),
+      });
+    // Unlike the vertex/bedrock ids, the deployment name needs no maxTokens
+    // handling: stripping the snapshot date preserves LangChain's per-model
+    // default (probed 2026-08-11 across the full catalog; pinned by the
+    // parity test in foundry-adapter.test.ts).
+    wireModelId = toFoundryDeploymentName(apiModelId);
   }
 
   const baseUrl = opts.proxyEndpoint

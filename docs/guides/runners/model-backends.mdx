@@ -2,26 +2,34 @@
 title: Run models in your own cloud
 description:
   Serve a provider's models from your own cloud account instead of the
-  provider's public API. Configure the GCP Vertex AI or AWS Bedrock backend for
-  Claude models with two environment variables on the runner.
+  provider's public API. Configure the GCP Vertex AI, AWS Bedrock, or Microsoft
+  Foundry (Azure) backend for Claude models with two environment variables on
+  the runner.
 ---
 
 By default, a runner in direct mode calls each model provider's public API —
 api.anthropic.com for Claude, api.openai.com for GPT. A **backend** changes
-where those models are served. Point the runner at your own GCP project or AWS
-account and every Claude call runs inside your cloud account's compliance
-boundary: your region, your contracts, your audit trail. Nothing else changes —
-Agents, model names, usage reporting, and the console all behave exactly as
-before.
+where those models are served. Point the runner at your own GCP project, AWS
+account, or Azure subscription and every Claude call runs inside your cloud
+account's compliance boundary: your region, your contracts, your audit trail.
+Nothing else changes — Agents, model names, usage reporting, and the console all
+behave exactly as before.
 
 Backends are a deployment decision, set through environment variables on the
 runner. Agents stay portable: the same Agent runs unchanged on a laptop against
-the public API and on a production runner against Vertex AI or Bedrock.
+the public API and on a production runner against Vertex AI, Bedrock, or
+Foundry.
 
-| Provider  | Backends                                     |
-| --------- | -------------------------------------------- |
-| Anthropic | `public` (default), `vertex`, `bedrock`      |
-| OpenAI    | `public` (default) — Azure OpenAI is planned |
+| Provider  | Backends                                           |
+| --------- | -------------------------------------------------- |
+| Anthropic | `public` (default), `vertex`, `bedrock`, `foundry` |
+| OpenAI    | `public` (default)                                 |
+
+Backend values name the serving _service_, not the cloud — `foundry` is
+[Microsoft Foundry](https://learn.microsoft.com/en-us/azure/ai-foundry/), the
+Azure service that hosts Claude. Azure OpenAI (a different Azure service, for
+GPT models) becomes relevant if OpenAI models join the native model catalog,
+which today is Claude-only.
 
 <Callout type="info">
   Backends apply to runners in **direct mode** — runners you operate with your
@@ -171,7 +179,84 @@ CloudWatch under Bedrock metrics.
   these, it will say so rather than degrade silently.
 </Callout>
 
-## How model names map to Vertex and Bedrock
+## Serve Claude from Azure (Microsoft Foundry)
+
+<Steps>
+<Step>
+
+## Create a Foundry resource and deploy the Claude models
+
+In the [Foundry portal](https://ai.azure.com/), create a Foundry resource, then
+deploy each Claude model you plan to use from the model catalog (on the first
+deployment you accept the Azure Marketplace terms for Anthropic models). Keep
+the default deployment names — they match the model ids — unless you have a
+reason not to; custom names work too (see the mapping section below).
+
+Each deployment chooses a **hosting option**: _Hosted on Azure_ keeps inference
+inside Azure (fewer models, currently no structured outputs or server-side tools
+— Stigmer's native harness uses neither natively, so executions are unaffected),
+while _Hosted on Anthropic infrastructure_ offers the full Claude catalog served
+by Anthropic under your Azure billing. Pick per deployment based on your
+residency requirements.
+
+</Step>
+<Step>
+
+## Give the runner an Azure credential
+
+Foundry accepts either of these; the runner picks the API key when it is set and
+Microsoft Entra ID otherwise:
+
+- **An API key** — set `ANTHROPIC_FOUNDRY_API_KEY` (find it on the deployment's
+  **Details** tab in the Foundry portal).
+- **Microsoft Entra ID** (recommended — no keys to manage) — give the runner an
+  Azure identity through the standard credential chain: workload identity or
+  managed identity in Azure, service-principal environment variables, or
+  `az login` for local testing. Grant the identity the **Foundry User** (or
+  **Cognitive Services User**) RBAC role on the resource. Some models —
+  currently the Mythos research previews — accept Entra ID only.
+
+</Step>
+<Step>
+
+## Configure and start the runner
+
+Two variables select the backend and the resource. Anthropic API keys are not
+needed — authentication is Azure's:
+
+```bash
+# Stigmer-owned decision: which backend serves Anthropic models.
+export STIGMER_ANTHROPIC_BACKEND=foundry
+
+# Standard Foundry convention, read natively by the Foundry SDK. Use the
+# resource name, or ANTHROPIC_FOUNDRY_BASE_URL for a full endpoint override —
+# exactly one of the two.
+export ANTHROPIC_FOUNDRY_RESOURCE=my-foundry-resource
+
+# API-key auth; omit to authenticate with Microsoft Entra ID instead.
+export ANTHROPIC_FOUNDRY_API_KEY=...
+
+stigmer up
+```
+
+The runner validates this configuration at startup. If the backend value is
+wrong or no resource is configured, it refuses to start and prints exactly what
+to fix — a misconfigured deployment never accepts work it cannot serve.
+
+</Step>
+<Step>
+
+## Verify with a Session
+
+Run any Agent that uses a Claude model. Usage and cost reporting key on the same
+model names as before — you can confirm the traffic is reaching your
+subscription in the Foundry portal under the deployment's metrics, and the spend
+on your Azure bill (Foundry meters Claude through the Azure Marketplace).
+
+</Step>
+</Steps>
+
+## How model names map to Vertex, Bedrock, and Foundry
 
 You never configure backend model ids for the common case. The runner translates
 each canonical model id on the wire — usage metrics and pricing always report
@@ -183,6 +268,9 @@ the canonical id:
   `anthropic.claude-sonnet-4-5-20250929-v1:0`, prefixed with
   `STIGMER_BEDROCK_INFERENCE_PREFIX` when set (e.g.
   `us.anthropic.claude-sonnet-4-5-20250929-v1:0`).
+- **Foundry**: routes by _deployment name_, and default deployment names are the
+  dateless model ids — `claude-sonnet-4-5-20250929` becomes `claude-sonnet-4-5`;
+  dateless ids pass through unchanged.
 
 When a Bedrock id can't be derived this way (AWS occasionally versions ids on
 its own schedule), map that model explicitly — the map wins over the derivation
@@ -195,20 +283,31 @@ export STIGMER_BEDROCK_MODEL_MAP="claude-sonnet-4-6=us.anthropic.claude-sonnet-4
 Entries are comma-separated `canonical=bedrockId` pairs; the id side accepts
 anything Bedrock accepts, including inference-profile ARNs.
 
+Foundry has the same escape hatch for custom deployment names — map the
+canonical id to whatever you named the deployment in the portal:
+
+```bash
+export STIGMER_FOUNDRY_DEPLOYMENT_MAP="claude-sonnet-4-6=my-sonnet-deployment"
+```
+
 ## Troubleshooting
 
 Every failure names the variable or permission to fix. The common ones:
 
-| Symptom                                          | Fix                                                                                                   |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| Runner refuses to start, names `CLOUD_ML_REGION` | Set the region (e.g. `asia-south1`, or `global`).                                                     |
-| Runner refuses to start, names `AWS_REGION`      | Set the region explicitly (e.g. `ap-south-1`) — the runner never assumes `us-east-1`.                 |
-| "could not acquire Google credentials"           | Set `GOOGLE_APPLICATION_CREDENTIALS`, or run on a GCP identity (workload identity / metadata server). |
-| "could not acquire AWS credentials"              | Provide the AWS chain (environment keys, IAM role / IRSA) or set `AWS_BEARER_TOKEN_BEDROCK`.          |
-| HTTP 403 from Vertex AI                          | Grant the runner's identity the **Vertex AI User** role in the target project.                        |
-| HTTP 403 from Bedrock                            | Enable the model under **Model access** in the Bedrock console, and grant `bedrock:InvokeModel`.      |
-| "requires an inference profile"                  | Set `STIGMER_BEDROCK_INFERENCE_PREFIX` to your geography (`us`, `eu`, `global`, …).                   |
-| Model not found (HTTP 404)                       | Enable the model for your project/account, and confirm it is available in your configured region.     |
+| Symptom                                                     | Fix                                                                                                                     |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Runner refuses to start, names `CLOUD_ML_REGION`            | Set the region (e.g. `asia-south1`, or `global`).                                                                       |
+| Runner refuses to start, names `AWS_REGION`                 | Set the region explicitly (e.g. `ap-south-1`) — the runner never assumes `us-east-1`.                                   |
+| Runner refuses to start, names `ANTHROPIC_FOUNDRY_RESOURCE` | Set the Foundry resource name (or `ANTHROPIC_FOUNDRY_BASE_URL` — exactly one of the two).                               |
+| "could not acquire Google credentials"                      | Set `GOOGLE_APPLICATION_CREDENTIALS`, or run on a GCP identity (workload identity / metadata server).                   |
+| "could not acquire AWS credentials"                         | Provide the AWS chain (environment keys, IAM role / IRSA) or set `AWS_BEARER_TOKEN_BEDROCK`.                            |
+| "could not acquire a Microsoft Entra ID token"              | Give the runner an Azure identity (workload / managed identity, service principal), or set `ANTHROPIC_FOUNDRY_API_KEY`. |
+| HTTP 403 from Vertex AI                                     | Grant the runner's identity the **Vertex AI User** role in the target project.                                          |
+| HTTP 403 from Bedrock                                       | Enable the model under **Model access** in the Bedrock console, and grant `bedrock:InvokeModel`.                        |
+| HTTP 403 from Foundry                                       | Grant the runner's Azure identity the **Foundry User** RBAC role on the Foundry resource.                               |
+| "requires an inference profile"                             | Set `STIGMER_BEDROCK_INFERENCE_PREFIX` to your geography (`us`, `eu`, `global`, …).                                     |
+| Model not found (HTTP 404)                                  | Enable the model for your project/account, and confirm it is available in your configured region.                       |
+| Deployment not found on Foundry (HTTP 404)                  | Deploy the model in the Foundry portal, or map its custom deployment name in `STIGMER_FOUNDRY_DEPLOYMENT_MAP`.          |
 
 ## What's next
 

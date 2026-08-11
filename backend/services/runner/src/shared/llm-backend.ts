@@ -1,7 +1,7 @@
 /**
  * LLM provider-backend utilities — pure routing helpers for serving a
  * provider's models through an alternative cloud backend (GCP Vertex AI,
- * AWS Bedrock, and later Azure OpenAI) instead of the provider's public API.
+ * AWS Bedrock, Microsoft Foundry) instead of the provider's public API.
  *
  * Layering mirrors `llm-proxy.ts`: this module is pure string/config
  * utilities with no LangChain or SDK dependency. Consumers: the runner
@@ -27,13 +27,17 @@ export const OPENAI_BACKEND_ENV = "STIGMER_OPENAI_BACKEND";
 export const BACKEND_DOC_URL = "https://docs.stigmer.ai/guides/runners/model-backends";
 
 /**
- * Backends implemented in this build. The design vocabulary also reserves
- * `azure` (OpenAI); until that adapter lands, selecting it is a distinct
- * "recognized but not implemented" failure — never a silent fallback to
- * the public API, which would quietly route traffic outside the compliance
- * boundary the operator asked for.
+ * Backends implemented in this build. Anthropic's values name the serving
+ * SERVICE, not the cloud (`foundry` is Microsoft Foundry, the Azure
+ * service that hosts Claude — "azure" would collide with the unrelated
+ * Azure OpenAI service). The design vocabulary also reserves `azure`
+ * (OpenAI); until that adapter lands — contingent on OpenAI models
+ * entering the native catalog — selecting it is a distinct "recognized
+ * but not implemented" failure, never a silent fallback to the public
+ * API, which would quietly route traffic outside the compliance boundary
+ * the operator asked for.
  */
-export type AnthropicBackend = "public" | "vertex" | "bedrock";
+export type AnthropicBackend = "public" | "vertex" | "bedrock" | "foundry";
 export type OpenAiBackend = "public";
 
 /**
@@ -87,7 +91,7 @@ export function parseAnthropicBackend(
   return parseBackend(
     ANTHROPIC_BACKEND_ENV,
     env[ANTHROPIC_BACKEND_ENV],
-    ["public", "vertex", "bedrock"],
+    ["public", "vertex", "bedrock", "foundry"],
     PLANNED_ANTHROPIC,
   );
 }
@@ -183,39 +187,134 @@ export function checkBedrockPrerequisites(
   return null;
 }
 
+type ModelMapParseResult =
+  | { readonly ok: true; readonly map: ReadonlyMap<string, string> }
+  | { readonly ok: false; readonly message: string };
+
 /**
- * Parse `STIGMER_BEDROCK_MODEL_MAP`: comma-separated `canonical=bedrockId`
- * pairs, e.g. "claude-sonnet-4-6=us.anthropic.claude-sonnet-4-6-v1:0".
- * Unset or blank parses to an empty map (the deterministic rule serves
- * every model). The message is the single copy of the malformed-map text;
+ * Shared parser for the per-backend override maps: comma-separated
+ * `canonical=target` pairs. Unset or blank parses to an empty map (the
+ * backend's deterministic rule serves every model). Each env var keeps its
+ * own single copy of the malformed-entry text through `form`/`example` —
  * preflight and translation surface the same string.
  */
-export function parseBedrockModelMap(
-  env: NodeJS.ProcessEnv = process.env,
-): { readonly ok: true; readonly map: ReadonlyMap<string, string> } | { readonly ok: false; readonly message: string } {
-  const raw = env[BEDROCK_MODEL_MAP_ENV]?.trim();
+function parseModelMap(
+  envVar: string,
+  raw: string | undefined,
+  form: string,
+  example: string,
+): ModelMapParseResult {
+  const trimmed = raw?.trim();
   const map = new Map<string, string>();
-  if (!raw) return { ok: true, map };
+  if (!trimmed) return { ok: true, map };
 
-  for (const entry of raw.split(",")) {
+  for (const entry of trimmed.split(",")) {
     const pair = entry.trim();
     if (pair === "") continue;
     const eq = pair.indexOf("=");
     const canonical = eq === -1 ? "" : pair.slice(0, eq).trim();
-    const bedrockId = eq === -1 ? "" : pair.slice(eq + 1).trim();
-    if (!canonical || !bedrockId) {
+    const target = eq === -1 ? "" : pair.slice(eq + 1).trim();
+    if (!canonical || !target) {
       return {
         ok: false,
         message:
-          `${BEDROCK_MODEL_MAP_ENV} entry "${pair}" is not of the form ` +
-          `canonical=bedrockId (e.g. "claude-sonnet-4-6=` +
-          `us.anthropic.claude-sonnet-4-6-v1:0"). Entries are ` +
-          `comma-separated. See ${BACKEND_DOC_URL}.`,
+          `${envVar} entry "${pair}" is not of the form ${form} ` +
+          `(e.g. "${example}"). Entries are comma-separated. ` +
+          `See ${BACKEND_DOC_URL}.`,
       };
     }
-    map.set(canonical, bedrockId);
+    map.set(canonical, target);
   }
   return { ok: true, map };
+}
+
+/**
+ * Parse `STIGMER_BEDROCK_MODEL_MAP`: comma-separated `canonical=bedrockId`
+ * pairs, e.g. "claude-sonnet-4-6=us.anthropic.claude-sonnet-4-6-v1:0".
+ */
+export function parseBedrockModelMap(
+  env: NodeJS.ProcessEnv = process.env,
+): ModelMapParseResult {
+  return parseModelMap(
+    BEDROCK_MODEL_MAP_ENV,
+    env[BEDROCK_MODEL_MAP_ENV],
+    "canonical=bedrockId",
+    "claude-sonnet-4-6=us.anthropic.claude-sonnet-4-6-v1:0",
+  );
+}
+
+// ─── Microsoft Foundry (Azure) ───────────────────────────────────────────────
+
+/**
+ * Operator override map: canonical id -> Foundry deployment name, consulted
+ * first. Named DEPLOYMENT_MAP, not MODEL_MAP, because the target is Azure's
+ * term of art — the operator-chosen deployment name, not another model id.
+ */
+export const FOUNDRY_DEPLOYMENT_MAP_ENV = "STIGMER_FOUNDRY_DEPLOYMENT_MAP";
+/** The Foundry resource name (SDK-native; builds the endpoint host). */
+export const FOUNDRY_RESOURCE_ENV = "ANTHROPIC_FOUNDRY_RESOURCE";
+/** Full endpoint override (SDK-native; mutually exclusive with resource). */
+export const FOUNDRY_BASE_URL_ENV = "ANTHROPIC_FOUNDRY_BASE_URL";
+
+/**
+ * Parse `STIGMER_FOUNDRY_DEPLOYMENT_MAP`: comma-separated
+ * `canonical=deploymentName` pairs, e.g.
+ * "claude-sonnet-4-6=my-sonnet-deployment".
+ */
+export function parseFoundryDeploymentMap(
+  env: NodeJS.ProcessEnv = process.env,
+): ModelMapParseResult {
+  return parseModelMap(
+    FOUNDRY_DEPLOYMENT_MAP_ENV,
+    env[FOUNDRY_DEPLOYMENT_MAP_ENV],
+    "canonical=deploymentName",
+    "claude-sonnet-4-6=my-sonnet-deployment",
+  );
+}
+
+/**
+ * Static prerequisite check for the foundry backend, or null when satisfied.
+ *
+ * The endpoint is the ONE hard requirement checkable without I/O: the
+ * Foundry SDK's constructor throws without exactly one of the resource
+ * name or a full base URL, so both halves of its contract (missing AND
+ * both-set) are refused here at boot with catalog messages instead of at
+ * the first model call. Credentials are deliberately NOT checked —
+ * ANTHROPIC_FOUNDRY_API_KEY is optional by design (without it the adapter
+ * authenticates through Microsoft Entra ID via the Azure credential chain,
+ * which resolves at request time exactly like Vertex ADC and the AWS
+ * chain), so requiring it would reject correctly-configured keyless
+ * deployments. Runtime credential failures get actionable classification
+ * in `model-error.ts` instead.
+ *
+ * A malformed STIGMER_FOUNDRY_DEPLOYMENT_MAP is also fatal here: it is
+ * deployment-static, and finding out at the first model call would fail
+ * executions a boot check could have refused.
+ */
+export function checkFoundryPrerequisites(
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
+  const resource = env[FOUNDRY_RESOURCE_ENV]?.trim();
+  const baseUrl = env[FOUNDRY_BASE_URL_ENV]?.trim();
+  if (!resource && !baseUrl) {
+    return (
+      `The foundry backend requires ${FOUNDRY_RESOURCE_ENV} (your Microsoft ` +
+      `Foundry resource name, e.g. "my-foundry-resource") or ` +
+      `${FOUNDRY_BASE_URL_ENV} (the full endpoint, e.g. ` +
+      `"https://my-foundry-resource.services.ai.azure.com/anthropic/"). ` +
+      `See ${BACKEND_DOC_URL}.`
+    );
+  }
+  if (resource && baseUrl) {
+    return (
+      `${FOUNDRY_RESOURCE_ENV} and ${FOUNDRY_BASE_URL_ENV} are mutually ` +
+      `exclusive — the base URL is derived from the resource name. Set ` +
+      `exactly one. See ${BACKEND_DOC_URL}.`
+    );
+  }
+  const map = parseFoundryDeploymentMap(env);
+  if (!map.ok) return map.message;
+  return null;
 }
 
 /**
@@ -262,8 +361,8 @@ export function checkDirectCredentials(
   return (
     `ANTHROPIC_API_KEY is not set, no model backend is configured, and no ` +
     `proxy is configured. Set the API key, configure a backend (e.g. ` +
-    `${ANTHROPIC_BACKEND_ENV}=vertex or bedrock), or connect to a Stigmer ` +
-    `Cloud deployment. See ${BACKEND_DOC_URL}.`
+    `${ANTHROPIC_BACKEND_ENV}=vertex, bedrock, or foundry), or connect to ` +
+    `a Stigmer Cloud deployment. See ${BACKEND_DOC_URL}.`
   );
 }
 
@@ -318,6 +417,9 @@ export function preflightLlmBackends(
     if (prereq !== null) errors.push(prereq);
   } else if (anthropic.backend === "bedrock") {
     const prereq = checkBedrockPrerequisites(env);
+    if (prereq !== null) errors.push(prereq);
+  } else if (anthropic.backend === "foundry") {
+    const prereq = checkFoundryPrerequisites(env);
     if (prereq !== null) errors.push(prereq);
   }
   const openai = parseOpenAiBackend(env);
@@ -401,4 +503,42 @@ export function toBedrockModelId(
   const prefix = env[BEDROCK_INFERENCE_PREFIX_ENV]?.trim().replace(/\.$/, "");
   const derived = `anthropic.${apiModelId}-v1:0`;
   return prefix ? `${prefix}.${derived}` : derived;
+}
+
+/**
+ * Translate a canonical Anthropic API model id into a Microsoft Foundry
+ * deployment name, in two layers (approved design, T05):
+ *
+ * 1. `STIGMER_FOUNDRY_DEPLOYMENT_MAP` override, consulted first: Foundry
+ *    routes by DEPLOYMENT NAME, and the portal lets operators name
+ *    deployments anything ("my-sonnet-deployment"). This is the escape
+ *    hatch for those custom names.
+ * 2. Deterministic rule: strip a trailing `-YYYYMMDD` snapshot date —
+ *    Foundry's DEFAULT deployment names are the dateless Claude ids
+ *    (claude-sonnet-4-5-20250929 -> claude-sonnet-4-5; dateless ids pass
+ *    through unchanged). Verified against Anthropic's published Foundry
+ *    model table: every native-catalog id maps onto a real default
+ *    deployment name. Note this is the INVERSE of toVertexModelId, which
+ *    keeps the date and reseparates it with `@`.
+ *
+ * Like the other translations, the result is wire detail only: it rides in
+ * the request body's `model` field (Foundry keeps it in the body — see
+ * foundry-seam.test.ts — unlike Vertex/Bedrock, which move it into the URL
+ * path) and must never escape the adapter into usage metrics or pricing,
+ * which key on the canonical id (the canonical-id invariant).
+ *
+ * Throws the catalog message on a malformed map — defense in depth for
+ * paths that construct models without the factories; a normally-booted
+ * runner already refused to start in `checkFoundryPrerequisites`.
+ */
+export function toFoundryDeploymentName(
+  apiModelId: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const parsed = parseFoundryDeploymentMap(env);
+  if (!parsed.ok) throw new Error(parsed.message);
+  const mapped = parsed.map.get(apiModelId);
+  if (mapped !== undefined) return mapped;
+
+  return apiModelId.replace(TRAILING_SNAPSHOT_DATE, "");
 }

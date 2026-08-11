@@ -30,6 +30,8 @@ import {
   parseAnthropicBackend,
   BACKEND_DOC_URL,
   BEDROCK_INFERENCE_PREFIX_ENV,
+  FOUNDRY_DEPLOYMENT_MAP_ENV,
+  FOUNDRY_RESOURCE_ENV,
   type AnthropicBackend,
 } from "./llm-backend.js";
 
@@ -139,6 +141,21 @@ export function classifyModelCallError(
         `The bedrock backend could not acquire AWS credentials for ${modelLabel(ctx)}. ` +
         `Provide credentials through the standard AWS chain (environment keys, an IAM ` +
         `role / IRSA, config files) or set AWS_BEARER_TOKEN_BEDROCK. See ${BACKEND_DOC_URL}. ` +
+        `Underlying error: ${message}`,
+    };
+  }
+  if (backend === "foundry" && isFoundryCredentialMessage(message)) {
+    // Only the keyless Entra path can land here: API-key failures arrive
+    // as HTTP 401s (status arm below), while a failing token provider
+    // throws statusless from inside the Foundry SDK's authHeaders.
+    return {
+      code: "LLM_BACKEND_CREDENTIALS",
+      retryable: false,
+      message:
+        `The foundry backend could not acquire a Microsoft Entra ID token for ${modelLabel(ctx)}. ` +
+        `Give the runner an Azure identity the credential chain can resolve (workload ` +
+        `identity / managed identity, service-principal env vars, or az login), or set ` +
+        `ANTHROPIC_FOUNDRY_API_KEY to use API-key auth instead. See ${BACKEND_DOC_URL}. ` +
         `Underlying error: ${message}`,
     };
   }
@@ -253,6 +270,11 @@ function classifyByStatus(
             ? `AWS rejected this Bedrock call (authentication, HTTP 401) for ${context}. ` +
               `The credentials are expired or invalid — check the runner's AWS identity ` +
               `(environment keys, IAM role / IRSA) or AWS_BEARER_TOKEN_BEDROCK. See ${BACKEND_DOC_URL}.`
+          : backend === "foundry"
+            ? `Azure rejected this Microsoft Foundry call (authentication, HTTP 401) for ${context}. ` +
+              `The credential is expired or not valid for this Foundry resource — check ` +
+              `ANTHROPIC_FOUNDRY_API_KEY (find it on the deployment's Details tab) or the ` +
+              `runner's Azure identity. See ${BACKEND_DOC_URL}.`
             : `Authentication failed for ${context}. Check that your API key is valid and not expired.`,
       };
     case 403:
@@ -274,6 +296,10 @@ function classifyByStatus(
               `under "Model access" in the Bedrock console (Anthropic models require a ` +
               `use-case submission), and grant the runner's identity bedrock:InvokeModel ` +
               `for the model and its inference profile. See ${BACKEND_DOC_URL}.`
+          : backend === "foundry"
+            ? `Microsoft Foundry denied this call (HTTP 403) for ${context}. Grant the ` +
+              `runner's Azure identity the "Foundry User" (or "Cognitive Services User") ` +
+              `RBAC role on the Foundry resource. See ${BACKEND_DOC_URL}.`
             : `Access denied for ${context}. Verify that your API key has permission to use this model.`,
       };
     case 404:
@@ -291,6 +317,16 @@ function classifyByStatus(
               `${describeBedrockRegion()} — availability varies by region — and that the ` +
               `resolved Bedrock id is right for your deployment (STIGMER_BEDROCK_MODEL_MAP ` +
               `overrides, ${BEDROCK_INFERENCE_PREFIX_ENV} for inference profiles). See ${BACKEND_DOC_URL}.`
+          : backend === "foundry"
+            // The most common Foundry setup mistake: Foundry routes by
+            // DEPLOYMENT NAME, and deployments are created one by one in
+            // the portal — a model with no deployment (or a custom name)
+            // 404s even though the model itself exists on Foundry.
+            ? `Model deployment not found on Microsoft Foundry: ${context}. Foundry routes ` +
+              `by deployment name — confirm a deployment for this model exists in ` +
+              `${describeFoundryResource()} (default deployment names are the dateless ` +
+              `model ids), or map it to your custom deployment name in ` +
+              `${FOUNDRY_DEPLOYMENT_MAP_ENV}. See ${BACKEND_DOC_URL}.`
             : `Model not found: ${context}. Verify the model name is correct and available in your account.`,
       };
     case 400:
@@ -411,6 +447,19 @@ function isBedrockInferenceProfileMessage(message: string): boolean {
   return message.toLowerCase().includes("on-demand throughput isn't supported");
 }
 
+/**
+ * Entra ID token-acquisition prose, matched against the raw message.
+ * Narrow by design (mirrors the Google/AWS matchers), and narrower than it
+ * looks: the Foundry SDK wraps EVERY token-provider failure — whatever
+ * @azure/identity's credential chain threw — in this one prefix before
+ * rethrowing (pinned by foundry-seam.test.ts), so a single phrase covers
+ * the whole family. A miss falls through to status classification — never
+ * worse than the raw error.
+ */
+function isFoundryCredentialMessage(message: string): boolean {
+  return message.toLowerCase().includes("failed to get token from azureadtokenprovider");
+}
+
 /** "region {value}" when CLOUD_ML_REGION is set, else a pointer to the var. */
 function describeVertexRegion(): string {
   const region = process.env.CLOUD_ML_REGION?.trim();
@@ -421,6 +470,12 @@ function describeVertexRegion(): string {
 function describeBedrockRegion(): string {
   const region = process.env.AWS_REGION?.trim();
   return region ? `region "${region}"` : "your AWS_REGION";
+}
+
+/** `resource "{value}"` when the resource var is set, else a generic label. */
+function describeFoundryResource(): string {
+  const resource = process.env[FOUNDRY_RESOURCE_ENV]?.trim();
+  return resource ? `resource "${resource}"` : "your Foundry resource";
 }
 
 /**

@@ -70,18 +70,19 @@ fi
 #
 # The tree deliberately carries TWO versions of @anthropic-ai/sdk:
 #   - @langchain/anthropic -> ^0.95.x  (hoisted; serves the public-API path)
-#   - @anthropic-ai/vertex-sdk AND @anthropic-ai/bedrock-sdk -> >=0.115
-#     (nested, deduped onto one version; serve only the backend clients
-#     constructed via ChatAnthropic's createClient factory)
+#   - @anthropic-ai/vertex-sdk, @anthropic-ai/bedrock-sdk, AND
+#     @anthropic-ai/foundry-sdk -> >=0.115 (nested, deduped onto one
+#     version; serve only the backend clients constructed via
+#     ChatAnthropic's createClient factory)
 # The versions never exchange class instances (LangChain consumes stream
 # events structurally and classifies errors by HTTP status, not instanceof),
-# and the vertex-seam/bedrock-seam characterization tests pin the
-# cross-version combinations in CI.
+# and the vertex-seam/bedrock-seam/foundry-seam characterization tests pin
+# the cross-version combinations in CI.
 #
 # Collapse condition: when the LangChain stack bump lands (@langchain/core
 # 1.2.x + @langchain/anthropic 1.5.x, which pins @anthropic-ai/sdk ^0.115),
 # npm dedupes to a single copy — tighten this check to single-copy then.
-# Any dependent other than these three, or a third distinct version, is
+# Any dependent other than these four, or a third distinct version, is
 # drift and fails the check.
 
 echo ""
@@ -89,7 +90,7 @@ ANTHROPIC_SDK_REPORT=$(npm ls @anthropic-ai/sdk --all --json 2>/dev/null \
   | node -e "
     const json = require('fs').readFileSync('/dev/stdin', 'utf8');
     const tree = JSON.parse(json);
-    const ALLOWED_PARENTS = new Set(['@langchain/anthropic', '@anthropic-ai/vertex-sdk', '@anthropic-ai/bedrock-sdk']);
+    const ALLOWED_PARENTS = new Set(['@langchain/anthropic', '@anthropic-ai/vertex-sdk', '@anthropic-ai/bedrock-sdk', '@anthropic-ai/foundry-sdk']);
     const found = new Map(); // parent -> Set<version>
     function walk(node, parentName) {
       if (!node || !node.dependencies) return;
@@ -124,14 +125,15 @@ echo "$ANTHROPIC_SDK_REPORT" | grep -v '^PASS$' | grep -v '^FAIL:' || true
 if echo "$ANTHROPIC_SDK_REPORT" | grep -q '^FAIL:'; then
   echo ""
   echo "FAIL: @anthropic-ai/sdk copy check: $(echo "$ANTHROPIC_SDK_REPORT" | grep '^FAIL:' | sed 's/^FAIL://')"
-  echo "Only @langchain/anthropic (0.95.x), @anthropic-ai/vertex-sdk (>=0.115),"
-  echo "and @anthropic-ai/bedrock-sdk (>=0.115) may pull @anthropic-ai/sdk. See"
-  echo "the comment above this check for the rationale and collapse condition."
+  echo "Only @langchain/anthropic (0.95.x) and the backend SDKs (>=0.115):"
+  echo "@anthropic-ai/vertex-sdk, @anthropic-ai/bedrock-sdk, and"
+  echo "@anthropic-ai/foundry-sdk may pull @anthropic-ai/sdk. See the comment"
+  echo "above this check for the rationale and collapse condition."
   exit 1
 fi
 
 if echo "$ANTHROPIC_SDK_REPORT" | grep -q '^PASS$'; then
-  echo "OK: @anthropic-ai/sdk copies match the known langchain + vertex/bedrock-sdk set"
+  echo "OK: @anthropic-ai/sdk copies match the known langchain + backend-sdk set"
 else
   echo "WARN: Could not determine @anthropic-ai/sdk copies (is npm ci done?)"
 fi
