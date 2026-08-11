@@ -70,6 +70,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/domain/workflow/registry",
         "//backend/services/stigmer-server/pkg/domain/workflow/validation",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/controller",
+        "//backend/services/stigmer-server/pkg/domain/workflowexecution/dedupe",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows",

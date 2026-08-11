@@ -957,8 +957,9 @@ export type SendSignalInput = Message<"ai.stigmer.agentic.workflowexecution.v1.S
    * Optional idempotency key for deduplication of signal delivery.
    *
    * @internal
-   * When provided, duplicate signals with the same key (within the 24-hour TTL window)
-   * return the cached response instead of re-delivering the signal.
+   * When provided, a duplicate signal with the same key (within the 24-hour
+   * TTL window) is rejected with ALREADY_EXISTS instead of being re-delivered;
+   * nothing is cached or replayed. Both editions enforce this identically.
    * Keys are scoped to the organization to prevent cross-org collisions.
    *
    * @since Gap B2 (Event Dedupe)

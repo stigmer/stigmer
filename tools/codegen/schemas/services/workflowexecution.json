@@ -575,7 +575,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Optional idempotency key for deduplication of signal delivery.\n\n @internal\n When provided, duplicate signals with the same key (within the 24-hour TTL window)\n return the cached response instead of re-delivering the signal.\n Keys are scoped to the organization to prevent cross-org collisions.\n\n @since Gap B2 (Event Dedupe)",
+          "description": "Optional idempotency key for deduplication of signal delivery.\n\n @internal\n When provided, a duplicate signal with the same key (within the 24-hour\n TTL window) is rejected with ALREADY_EXISTS instead of being re-delivered;\n nothing is cached or replayed. Both editions enforce this identically.\n Keys are scoped to the organization to prevent cross-org collisions.\n\n @since Gap B2 (Event Dedupe)",
           "required": false
         }
       ]

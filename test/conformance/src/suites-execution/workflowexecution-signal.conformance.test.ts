@@ -25,25 +25,35 @@
 // - A signal whose signal_name matches the listen task's signal id unblocks the
 //   gate; the listen task and the downstream task complete and the execution
 //   reaches EXECUTION_COMPLETED. The optional payload is accepted.
+// - idempotency_key dedupe: a duplicate key (org-scoped, 24h TTL) is rejected
+//   with ALREADY_EXISTS; a distinct key delivers normally. Both editions
+//   enforce this through equivalent DedupeClaimStep pipelines. This was the
+//   DD-013 "documented, not fixed" gap — the OSS server never called
+//   SetSignalDedupeStore, so dedupe degraded to a no-op; #309 wired the store
+//   and this suite asserts the contract ungated. (The cloud conformance run
+//   does not include this file today — its environment boots no TS runner —
+//   so in CI the pin executes against local-go-execution; it becomes a live
+//   cross-edition pin automatically if the cloud lane gains a runner.)
+//
+// Dedupe test shape: the duplicate is sent while the execution is still
+// IN_PROGRESS at the listen gate, using a signal name the gate does NOT match.
+// The orchestrator's relaySignal handler forwards any name to the child, where
+// an unhandled signal just buffers — the RPC succeeds and the run stays
+// gated, so the duplicate deterministically reaches DedupeClaimStep instead of
+// bouncing off ValidateSignalable after the run completes. The matching gate
+// signal then rides a DIFFERENT key, proving distinct keys pass.
 //
 // Already covered in the main WorkflowExecution suite (not re-asserted here):
 // - sendSignal with empty execution_id -> InvalidArgument; missing execution ->
 //   NotFound. The terminal-phase FailedPrecondition is covered by the lifecycle
 //   negatives (only PENDING/IN_PROGRESS are signalable).
-//
-// NOT asserted (capability gap, see the Session-13 checkpoint / DD-013): the
-// idempotency_key ALREADY_EXISTS dedupe contract. The SQLite dedupe store exists
-// and is unit-tested, but the OSS server never wires it into the controller
-// (SetSignalDedupeStore is defined and never called), so DedupeClaimStep
-// gracefully degrades to a no-op and a duplicate key is silently re-delivered
-// rather than rejected. Asserting ALREADY_EXISTS here would fail against the Go
-// server; the contract belongs to an edition that wires the dedupe store, gated
-// like the other half-built features (DD-012 child-approval forwarding).
+import { Code } from "@connectrpc/connect";
 import {
   ExecutionPhase,
   WorkflowTaskStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { uniqueName } from "../support/naming";
@@ -118,5 +128,55 @@ describe("WorkflowExecution sendSignal — happy path", () => {
     expect(taskByName(final, LISTEN_AFTER_TASK_NAME)?.status, "the downstream task runs after the gate resolves").toBe(
       WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED,
     );
+  });
+});
+
+describe("WorkflowExecution sendSignal — idempotency_key dedupe", () => {
+  it("rejects a duplicate idempotency_key with ALREADY_EXISTS while a distinct key delivers", async () => {
+    const { org } = await target.provisionTenancy();
+    const workflowId = await provisionListenWorkflow(org);
+
+    const execution = await clients.workflowExecutionCommand.create(
+      makeWorkflowExecution({ org, name: uniqueName("wfx-dedupe"), workflowId }),
+    );
+    const executionId = execution.metadata!.id;
+    fixtures.defer(() => clients.workflowExecutionCommand.delete({ value: executionId }));
+
+    // Wait for the listen task to hold the run IN_PROGRESS (poll, don't sleep).
+    await awaitTaskStatus(clients, executionId, LISTEN_TASK_NAME, WorkflowTaskStatus.WORKFLOW_TASK_IN_PROGRESS);
+
+    // First delivery with a key: a name the gate does not match, so the child
+    // buffers it and the run stays gated (see the header for why this shape).
+    const bufferedSignal = "conformance-dedupe-buffered";
+    await clients.workflowExecutionCommand.sendSignal({
+      executionId,
+      signalName: bufferedSignal,
+      idempotencyKey: "dedupe-evt-1",
+    });
+
+    // Same key again: the claim step rejects it before any re-delivery.
+    await expectGrpcCode(
+      () =>
+        clients.workflowExecutionCommand.sendSignal({
+          executionId,
+          signalName: bufferedSignal,
+          idempotencyKey: "dedupe-evt-1",
+        }),
+      Code.AlreadyExists,
+      "duplicate idempotency_key",
+    );
+
+    // A distinct key passes: the matching gate signal completes the run.
+    await clients.workflowExecutionCommand.sendSignal({
+      executionId,
+      signalName: SIGNAL_NAME,
+      idempotencyKey: "dedupe-evt-2",
+    });
+
+    const final = await awaitTerminal(clients, executionId);
+    expect(
+      final.status?.phase,
+      `the run signaled under a distinct key should COMPLETE; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
+    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
   });
 });

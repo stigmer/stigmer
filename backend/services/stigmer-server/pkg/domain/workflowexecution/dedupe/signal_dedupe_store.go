@@ -16,6 +16,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -374,23 +375,8 @@ func isUniqueConstraintError(err error) bool {
 	}
 	// SQLite unique constraint error message
 	errStr := err.Error()
-	return contains(errStr, "UNIQUE constraint failed") ||
-		contains(errStr, "duplicate key")
-}
-
-// contains checks if s contains substr (case-insensitive would need strings.Contains).
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
-		(len(s) > 0 && containsImpl(s, substr)))
-}
-
-func containsImpl(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
+	return strings.Contains(errStr, "UNIQUE constraint failed") ||
+		strings.Contains(errStr, "duplicate key")
 }
 
 // =============================================================================

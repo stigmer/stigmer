@@ -351,7 +351,7 @@ func (s *SendSignalToWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) e
 // =============================================================================
 
 // DedupeClaimStep attempts to claim an idempotency key before signal delivery.
-// If the key was already used, returns early with the cached execution.
+// If the key was already used, rejects the request with ALREADY_EXISTS.
 // If no idempotency_key is provided, skips deduplication (backward compatible).
 //
 // @since Gap B2 (Event Dedupe)
@@ -432,10 +432,10 @@ func (s *DedupeClaimStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 			Str("idempotency_key", idempotencyKey).
 			Str("original_execution_id", result.Record.ExecutionID).
 			Str("original_status", string(result.Record.Status)).
-			Msg("Duplicate signal detected - returning cached response")
+			Msg("Duplicate signal detected - rejecting with ALREADY_EXISTS")
 
-		// For duplicate, we return an error indicating the signal was already delivered
-		// The signal was already delivered, so this is idempotent behavior
+		// Duplicates are rejected with ALREADY_EXISTS — nothing is cached or
+		// replayed. Same contract as the cloud edition's DedupeClaimStep.
 		return grpclib.AlreadyExistsError(
 			"signal_with_idempotency_key",
 			idempotencyKey,
