@@ -72,7 +72,7 @@
           "kind": "string"
         }
       },
-      "description": "Default tools to enable from this MCP server.\n Empty list means all tools are enabled by default.\n\n @internal\n Tool names must match exactly what the MCP server reports via tools/list.\n Only names from discovered_capabilities.tools are valid here.\n Do NOT include names from discovered_capabilities.resource_templates —\n resource templates are read-only data endpoints, not callable tools.\n Including a resource template name here causes a fatal runtime error.",
+      "description": "Default tools to enable from this MCP server.\n Empty list means all tools are enabled by default.\n Applies whenever an agent's McpServerUsage.enabled_tools is empty.\n\n @internal\n Tool names must match exactly what the MCP server reports via tools/list.\n Only names from discovered_capabilities.tools are valid here.\n Do NOT include names from discovered_capabilities.resource_templates —\n resource templates are read-only data endpoints, not callable tools.\n A name the server does not expose (including a resource template name)\n is warned and ignored at execution: the runner enforces the INTERSECTION\n with the server's live toolset, so a stale or mistyped entry narrows the\n toolset but never widens it or fails the run. Enforcement is per harness\n — see McpServerUsage.enabled_tools in agent/v1/spec.proto.",
       "required": false
     },
     {

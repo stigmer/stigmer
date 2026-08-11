@@ -20,6 +20,13 @@ import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { CloudRepo } from "./session-lifecycle.js";
+import { mergeMcpServerUsages } from "../../shared/mcp-resolver.js";
+
+// Both harnesses must merge agent + session usages identically (session wins
+// per slug — the usage whose enabled_tools the enforcement honors), so the
+// merge lives in shared/mcp-resolver.ts. Re-exported here for its historical
+// home alongside mergeSkillRefs.
+export { mergeMcpServerUsages } from "../../shared/mcp-resolver.js";
 
 /**
  * Path segments that identify runner-internal directories. Any workspace dir
@@ -129,33 +136,6 @@ export function resolveCloudRepos(workspaceEntries: WorkspaceEntry[]): CloudRepo
 // ---------------------------------------------------------------------------
 // MCP and skill merging
 // ---------------------------------------------------------------------------
-
-/**
- * Merge MCP server usages from agent (base) and session (overlay).
- *
- * Replicates session_context_merge.py::merge_mcp_server_usages():
- * - Agent-level usages are the base set
- * - Session-level usages extend or override by mcp_server_ref.slug
- * - If both reference the same slug, session-level takes precedence
- */
-export function mergeMcpServerUsages(
-  agentUsages: McpServerUsage[],
-  sessionUsages: McpServerUsage[],
-): McpServerUsage[] {
-  const bySlug = new Map<string, McpServerUsage>();
-
-  for (const usage of agentUsages) {
-    const slug = usage.mcpServerRef?.slug;
-    if (slug) bySlug.set(slug, usage);
-  }
-
-  for (const usage of sessionUsages) {
-    const slug = usage.mcpServerRef?.slug;
-    if (slug) bySlug.set(slug, usage);
-  }
-
-  return [...bySlug.values()];
-}
 
 /**
  * Merge skill refs from agent and session.

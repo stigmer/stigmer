@@ -32,6 +32,8 @@
  *   - "secret"        — DD-26 secret hard-block: the agent continues, no pause.
  *   - "capture-error" — CAS staging failed, write kept on the deny-gate.
  *   - "fail-closed"   — approval state file missing, everything gated denies.
+ *   - "disabled"      — enabled_tools manifest exclusion (issue #350): the
+ *                       agent continues, no pause, permanent for the run.
  * Only approval-kind records carry the captured tool_input: a secret write's
  * content must never be persisted (DD-26), a capture-error's content is
  * UNCLASSIFIED (the staging error means secret classification may never have
@@ -84,8 +86,16 @@
  * set, allow the rest" — matching the native harness and avoiding denial of
  * auto-approved MCP tools (which are absent from mcpToolPolicies):
  * 0. Scope guard: not the runner's own agent → allow (never touch the ledger)
- * 1. Missing state file → deny (fail-closed); autoApproveAll (the pre-armed
- *    spec.auto_approve_all global bypass) → allow
+ * 1. Missing state file → deny (fail-closed)
+ * 1a. beforeMCPExecution event → tool excluded by the server's
+ *     mcpServerEnabledTools allow-list → record kind "disabled", deny.
+ *     Deliberately BEFORE autoApproveAll and the grant checks: enabled_tools
+ *     is a capability manifest, not an approval gate (issue #350) — no bypass
+ *     may resurrect a disabled tool, and no human may be offered "approve" on
+ *     one. Server-scoped via the payload's mcp_server_name; an absent slug in
+ *     the map means unrestricted.
+ * 1b. autoApproveAll (the pre-armed spec.auto_approve_all global bypass) →
+ *     allow
  * 2. beforeMCPExecution event → MCP tool present in mcpToolPolicies
  *    (require-approval):
  *    a. name token in approvedGrantTokens → allow (reinvocation grant)
@@ -155,6 +165,23 @@ const SECRET_BLOCKED_AGENT_MESSAGE =
   "hooks. Do not retry this write or attempt a workaround; the write will not be " +
   "applied. Continue with the rest of the task.";
 
+// Shown to the model when an MCP tool call is denied because the agent's
+// enabled_tools manifest excludes the tool (issue #350). Like
+// SECRET_BLOCKED_AGENT_MESSAGE this must NOT promise a resume — the exclusion
+// is permanent for the run and mode-independent (it is a capability manifest,
+// not an approval, so nothing can be granted). Same embedding constraint
+// (single-quoted bash echo of a JSON object): no double quotes, apostrophes,
+// or backslashes.
+const DISABLED_TOOL_AGENT_MESSAGE =
+  "This tool is not enabled for this agent: the MCP server exposes it, but the " +
+  "agent manifest (enabled_tools) excludes it. This is the platform capability " +
+  "manifest working as intended — it is not an error and not a Cursor " +
+  "misconfiguration, so never tell the user to change Cursor settings or enable " +
+  "hooks. Do not retry this tool or attempt a workaround; it will stay " +
+  "unavailable for this entire run. Use a different tool or adapt your plan, " +
+  "and if the task cannot proceed without it, tell the user plainly what was " +
+  "unavailable.";
+
 /**
  * Build the bash `case` arms that map an incoming hook `tool_name` to its
  * canonical approval category. Generated from approval-policy.ts so the hook and
@@ -209,14 +236,17 @@ function buildContentDigestScript(): string {
  * Build the inline Node.js identity extractor embedded in the hook script.
  *
  * Parses the hook's stdin JSON properly (the bash fallback's grep truncates
- * string values at the first escaped quote) and emits SEVEN lines: tool_name,
+ * string values at the first escaped quote) and emits NINE lines: tool_name,
  * canonical category, coarse identity token, MCP name-token, hook_event_name
  * (the event discriminator: `preToolUse` for built-ins, `beforeMCPExecution`
  * for MCP), base64(JSON(tool_input)) — the authoritative pre-execution args the
- * runner overlays onto the gated tool call for the approval preview — and the
+ * runner overlays onto the gated tool call for the approval preview — the
  * CONTENT token (base64(category \n salient \n contentDigest), empty when the
- * tool has no edit content). The token encodings must stay byte-identical to
- * grantToken()/contentToken() in approval-state.ts.
+ * tool has no edit content), base64(salient), and mcp_server_name (the MCP
+ * server slug the beforeMCPExecution payload carries; empty for built-ins) —
+ * the server scope for the enabled_tools manifest arm. The token encodings
+ * must stay byte-identical to grantToken()/contentToken() in
+ * approval-state.ts.
  *
  * Authored as a single-quoted bash string, so the JS must not contain single
  * quotes. The category map, salient field list, and edit/content field lists are
@@ -247,6 +277,7 @@ function buildNodeIdentityScript(): string {
     // is "" for a non-edit tool, in which case the content token (line 7) is "".
     buildContentDigestScript(),
     `const ev=typeof t.hook_event_name==="string"?t.hook_event_name:"";`,
+    `const srv=typeof t.mcp_server_name==="string"?t.mcp_server_name:"";`,
     // Line 6 is base64(JSON(tool_input)): the AUTHORITATIVE pre-execution args
     // the runner overlays onto the gated tool call so the approval card can show
     // the proposed change before the user approves. Base64 keeps the bash side
@@ -255,8 +286,10 @@ function buildNodeIdentityScript(): string {
     // grant the runner authorizes for a file edit. Line 8 is base64(salient) —
     // the raw resource value (file path / command) capture mode needs to run
     // `git check-ignore` on a file path; base64 keeps newlines/quotes out of the
-    // line-oriented bash parse.
-    `process.stdout.write(name+"\\n"+cat+"\\n"+b(cat+"\\n"+s)+"\\n"+b(name+"\\n")+"\\n"+ev+"\\n"+b(JSON.stringify(a))+"\\n"+(dig?b(cat+"\\n"+s+"\\n"+dig):"")+"\\n"+b(s));`,
+    // line-oriented bash parse. Line 9 is mcp_server_name — the server scope
+    // the enabled_tools manifest arm matches against mcpServerEnabledTools
+    // (a bare slug, never quoted/escaped, so it rides as a plain line).
+    `process.stdout.write(name+"\\n"+cat+"\\n"+b(cat+"\\n"+s)+"\\n"+b(name+"\\n")+"\\n"+ev+"\\n"+b(JSON.stringify(a))+"\\n"+(dig?b(cat+"\\n"+s+"\\n"+dig):"")+"\\n"+b(s)+"\\n"+srv);`,
   ].join("");
 }
 
@@ -279,7 +312,8 @@ function buildNodeIdentityScript(): string {
  *
  * From the pointer the script reads the current turn's approval-state file (the
  * single source of truth for the dynamic inputs: autoApproveAll, leasedCategories,
- * mcpToolPolicies, approvedGrantTokens), denial ledger, and runner PID. The
+ * mcpToolPolicies, mcpServerEnabledTools, approvedGrantTokens), denial ledger,
+ * and runner PID. The
  * static policy (which built-ins are gated, their categories, the salient arg
  * fields) is baked at generation time from approval-policy.ts.
  *
@@ -440,6 +474,9 @@ if [ -n "$IDENTITY" ]; then
   # Raw salient (base64) — the file path / command. Capture mode decodes it to
   # run git check-ignore on a file path.
   SALIENT=$(printf '%s\\n' "$IDENTITY" | sed -n 8p | base64 -d 2>/dev/null || true)
+  # MCP server slug (beforeMCPExecution payloads only; empty for built-ins) —
+  # the server scope for the enabled_tools manifest arm.
+  MCP_SERVER=$(printf '%s\\n' "$IDENTITY" | sed -n 9p)
 else
   # Fallback when the Node binary cannot run: grep/cut extraction. Best-effort
   # only — '"field":"[^"]*"' truncates at the first JSON-escaped quote, so the
@@ -449,6 +486,10 @@ else
   # would otherwise abort the script and emit no decision.
   TOOL_NAME=$(echo "$INPUT" | grep -o '"tool_name":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
   HOOK_EVENT=$(echo "$INPUT" | grep -o '"hook_event_name":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
+  # Server slugs are plain identifiers (no JSON-escaped quotes), so the grep
+  # fallback extracts mcp_server_name reliably — the manifest arm keeps its
+  # full precision even without the Node binary.
+  MCP_SERVER=$(echo "$INPUT" | grep -o '"mcp_server_name":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
   SALIENT=""
   for field in ${salientFields}; do
     v=$(echo "$INPUT" | grep -o "\\"$field\\":\\"[^\\"]*\\"" | head -1 | cut -d'"' -f4 || true)
@@ -588,7 +629,30 @@ if [ "$CAPTURE_IGNORED" = "true" ] && [ "$CATEGORY" = "write" ] && [ -n "$SALIEN
   fi
 fi
 
-# --- 1. Auto-approve all ---
+# --- 1a. MCP capability manifest: enabled_tools (issue #350) ---
+# Runs BEFORE the auto-approve-all shortcut and every grant check because
+# enabled_tools is a capability manifest, not an approval gate: no bypass may
+# resurrect a disabled tool and no human may be offered approval on one.
+# mcpServerEnabledTools holds ONLY restricted servers (an absent slug means
+# unrestricted, so this arm is inert for the common case). Matching is
+# server-scoped via the payload's mcp_server_name — equal tool names on
+# different servers cannot cross-grant — and the quoted-name membership check
+# is exact, never a substring match. Kind "disabled": attributable,
+# non-pausing (the model adapts, same consumer semantics as "secret"), and
+# permanent for the run.
+if [ "$HOOK_EVENT" = "beforeMCPExecution" ] && [ -n "$MCP_SERVER" ] && [ -n "$TOOL_NAME" ]; then
+  ENABLED_MAP=$(echo "$STATE" | grep -o '"mcpServerEnabledTools":{[^}]*}' | head -1 || true)
+  if [ -n "$ENABLED_MAP" ]; then
+    SERVER_ENABLED=$(echo "$ENABLED_MAP" | grep -o "\\"$MCP_SERVER\\":\\[[^]]*\\]" | head -1 || true)
+    if [ -n "$SERVER_ENABLED" ] && ! echo "$SERVER_ENABLED" | grep -qF "\\"$TOOL_NAME\\""; then
+      record_denial "$MCP_TOKEN" "disabled"
+      echo '{"permission":"deny","agent_message":"${DISABLED_TOOL_AGENT_MESSAGE}","user_message":"Tool not enabled for this agent: '"$TOOL_NAME"'"}'
+      exit 0
+    fi
+  fi
+fi
+
+# --- 1b. Auto-approve all ---
 if echo "$STATE" | grep -q '"autoApproveAll":true'; then
   echo '{"permission":"allow"}'
   exit 0

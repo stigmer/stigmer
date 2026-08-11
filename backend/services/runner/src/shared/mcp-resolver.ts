@@ -26,6 +26,7 @@ import {
   filterEnvToDeclaredKeys,
   PlaceholderResolutionError,
 } from "./placeholder-resolver.js";
+import { effectiveEnabledTools } from "./mcp-enabled-tools.js";
 
 /**
  * Harness-agnostic intermediate representation of a resolved MCP server.
@@ -45,6 +46,15 @@ export interface ResolvedMcpServer {
   toolApprovals: ToolApprovalPolicy[];
   pinnedToolApprovals: ToolApprovalPolicy[];
   discoveredCapabilitiesEmpty: boolean;
+  /**
+   * The EFFECTIVE tool allow-list for this server (issue #350): the usage's
+   * enabled_tools, falling back to the server's default_enabled_tools when
+   * the usage's list is empty (see shared/mcp-enabled-tools.ts). Absent when
+   * unrestricted — which keeps synthesized attachment servers (built without
+   * a usage) and the discovery path unfiltered by construction. Enforced at
+   * connect time by connectMcpServers (shared/mcp-manager.ts).
+   */
+  enabledTools?: string[];
 }
 
 export interface McpResolutionResult {
@@ -78,7 +88,7 @@ export async function resolveMcpServers(
         envVars,
         ref.slug,
       );
-      const server = mcpServerToResolved(mcpServer, ref.slug, serverEnv);
+      const server = mcpServerToResolved(mcpServer, ref.slug, serverEnv, usage.enabledTools);
       if (server) {
         assertTransportAllowed(server.slug, server.connectionType, transportPosture);
         resolved.push(server);
@@ -108,6 +118,7 @@ export function mcpServerToResolved(
   server: McpServer,
   slug: string,
   envVars: Record<string, string>,
+  usageEnabledTools?: readonly string[],
 ): ResolvedMcpServer | null {
   const spec = server.spec;
   if (!spec) return null;
@@ -123,6 +134,10 @@ export function mcpServerToResolved(
     toolApprovals,
     pinnedToolApprovals,
     discoveredCapabilitiesEmpty,
+    // Callers without a usage (the discovery activity) pass nothing, so the
+    // default_enabled_tools fallback still applies but a per-agent
+    // restriction cannot: discovery must see the server's full toolset.
+    enabledTools: effectiveEnabledTools(usageEnabledTools, spec.defaultEnabledTools),
   };
 
   switch (spec.serverType.case) {
@@ -168,6 +183,39 @@ export function extractMcpServerSlugs(usages: McpServerUsage[]): string[] {
   return usages
     .map((u) => u.mcpServerRef?.slug)
     .filter((s): s is string => !!s);
+}
+
+/**
+ * Merge MCP server usages from agent (base) and session (overlay).
+ *
+ * Replicates session_context_merge.py::merge_mcp_server_usages():
+ * - Agent-level usages are the base set
+ * - Session-level usages extend or override by mcp_server_ref.slug
+ * - If both reference the same slug, session-level takes precedence —
+ *   the WHOLE usage, including enabled_tools and approval overrides
+ *
+ * Shared by both harnesses (blueprint-resolver.ts for Cursor,
+ * execute-deep-agent/setup.ts for the native harness) so a duplicate slug
+ * resolves identically everywhere: exactly one usage per server, whose
+ * enabled_tools is the one the enforcement filter honors.
+ */
+export function mergeMcpServerUsages(
+  agentUsages: McpServerUsage[],
+  sessionUsages: McpServerUsage[],
+): McpServerUsage[] {
+  const bySlug = new Map<string, McpServerUsage>();
+
+  for (const usage of agentUsages) {
+    const slug = usage.mcpServerRef?.slug;
+    if (slug) bySlug.set(slug, usage);
+  }
+
+  for (const usage of sessionUsages) {
+    const slug = usage.mcpServerRef?.slug;
+    if (slug) bySlug.set(slug, usage);
+  }
+
+  return [...bySlug.values()];
 }
 
 export { PlaceholderResolutionError } from "./placeholder-resolver.js";

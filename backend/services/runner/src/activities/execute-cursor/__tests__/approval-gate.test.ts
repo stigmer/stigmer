@@ -219,6 +219,20 @@ describe("buildApprovalState", () => {
     expect((state as unknown as Record<string, unknown>).builtInGatedList).toBeUndefined();
   });
 
+  it("carries the enabled_tools manifest (issue #350) and defaults it to empty", () => {
+    // Default: no restriction — the hook's disabled arm is inert.
+    const bare = buildApprovalState(mcpPolicies, false, new Set());
+    expect(bare.mcpServerEnabledTools).toEqual({});
+
+    // Restricted servers ride through verbatim for the hook's server-scoped
+    // membership check.
+    const restricted = buildApprovalState(
+      mcpPolicies, false, new Set(), undefined, false, false, true, false,
+      { planton: ["get_cloud_resource"] },
+    );
+    expect(restricted.mcpServerEnabledTools).toEqual({ planton: ["get_cloud_resource"] });
+  });
+
   it("emits the CONTENT token when a grant carries a content digest", () => {
     const grants = [{ toolName: "edit", mcpServerSlug: "", key: "write", salient: "/x/gated.txt", contentDigest: "deadbeef", sourceToolCallId: "consent-1" }];
     const state = buildApprovalState(mcpPolicies, false, new Set(), grants);

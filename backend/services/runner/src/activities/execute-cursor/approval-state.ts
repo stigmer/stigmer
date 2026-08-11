@@ -13,6 +13,7 @@
  *   "mcpToolPolicies": {
  *     "apply_cloud_resource": { "requiresApproval": true, "message": "..." }
  *   },
+ *   "mcpServerEnabledTools": { "planton": ["get_cloud_resource"] },
  *   "approvedGrants": [{ "toolName": "edit", "mcpServerSlug": "", "key": "write", "salient": "a.txt", "contentDigest": "<sha256>" }],
  *   "approvedGrantTokens": ["<base64(key\nsalient[\ncontentDigest])>"]
  * }
@@ -174,6 +175,21 @@ export interface ApprovalStateFile {
    */
   leasedCategories: string[];
   mcpToolPolicies: Record<string, McpToolPolicyEntry>;
+  /**
+   * Per-server effective enabled_tools allow-lists (issue #350), keyed by
+   * MCP server slug — ONLY restricted servers appear (an absent slug means
+   * unrestricted, so the common case stays an empty object). The Cursor SDK
+   * config cannot hide a server's tools, so the hook enforces the manifest
+   * instead: on beforeMCPExecution it matches the payload's mcp_server_name
+   * against this map and denies a non-listed tool with the non-pausing,
+   * permanent "disabled" kind — BEFORE autoApproveAll and grants, because
+   * enabled_tools is a capability manifest, not an approval gate (no bypass
+   * may resurrect a disabled tool, and no human may be offered "approve" on
+   * one). Unlike mcpToolPolicies (name-keyed, server-blind), this map is
+   * server-scoped: the hook payload carries the server identity, so equal
+   * tool names on different servers cannot cross-grant.
+   */
+  mcpServerEnabledTools: Record<string, string[]>;
   approvedGrants: ApprovalGrant[];
   approvedGrantTokens: string[];
   /**
@@ -381,6 +397,8 @@ function parseArgs(argsPreview: string): Record<string, unknown> | undefined {
  * - leasedCategories: built-in categories with a run-lifetime lease
  * - mcpToolPolicies: per-tool policy for MCP tools requiring approval (leased
  *   servers are already absent — dropped upstream by mergeApprovalPolicies)
+ * - mcpServerEnabledTools: per-server enabled_tools allow-lists (issue #350,
+ *   restricted servers only) for the hook's permanent "disabled" arm
  * - approvedGrants / approvedGrantTokens: tools approved in the current HITL
  *   cycle, allowed through on reinvocation
  *
@@ -396,6 +414,7 @@ export function buildApprovalState(
   captureIgnored = false,
   gitWorkspace = true,
   unattendedSkip = false,
+  mcpServerEnabledTools: Record<string, string[]> = {},
 ): ApprovalStateFile {
   const approvedGrants = grants ?? [];
 
@@ -411,6 +430,7 @@ export function buildApprovalState(
     autoApproveAll: globalBypass,
     leasedCategories: [...leasedCategories],
     mcpToolPolicies,
+    mcpServerEnabledTools,
     approvedGrants,
     // The hook matches a tool call's PRIMARY token (content when it can compute a
     // digest from tool_input, else coarse). A content-identified grant authorizes
@@ -474,18 +494,27 @@ const DENIAL_LEDGER_FILE = "denials.jsonl";
  *                     classification may never have run).
  * - `fail-closed`   — the approval state file was missing, so everything gated
  *                     denied. A turn-level "the gate itself was broken" fact.
+ * - `disabled`      — the agent's enabled_tools manifest excludes this MCP
+ *                     tool (issue #350). Permanent for the run and
+ *                     mode-independent: NOT an approval (a human must never be
+ *                     offered "approve" on a manifest-disabled tool), so it is
+ *                     non-pausing and the model adapts — the same consumer
+ *                     semantics as `secret`.
  *
  * An unknown kind string is preserved as-is: it is treated as non-pausing (an
  * unknown deny must never manufacture an approval) but still attributes the
  * blocked call to our own hook.
  */
-export type DenialKind = "approval" | "unattended" | "secret" | "capture-error" | "fail-closed";
+export type DenialKind = "approval" | "unattended" | "secret" | "capture-error" | "fail-closed" | "disabled";
 
 /** The one kind that pauses the run for user approval. */
 export const APPROVAL_DENIAL_KIND: DenialKind = "approval";
 
 /** The unattended-mode resolution kind (non-pausing; stamped SKIPPED). */
 export const UNATTENDED_DENIAL_KIND: DenialKind = "unattended";
+
+/** The enabled_tools manifest denial kind (non-pausing, permanent; issue #350). */
+export const DISABLED_DENIAL_KIND: DenialKind = "disabled";
 
 /**
  * One denial recorded by the preToolUse hook. `token` is the call's identity in

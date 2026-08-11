@@ -33,7 +33,7 @@ import {
 } from "../../shared/caller-identity.js";
 import { readSessionContext } from "../../shared/session-context.js";
 import { connectMcpServers, type McpConnectionResult } from "../../shared/mcp-manager.js";
-import { resolveMcpServers } from "../../shared/mcp-resolver.js";
+import { mergeMcpServerUsages, resolveMcpServers } from "../../shared/mcp-resolver.js";
 import { resolveMcpTransportPosture } from "../../shared/mcp-transport-guard.js";
 import { backfillMcpServersIfNeeded } from "../../shared/connect-backfill.js";
 import {
@@ -348,11 +348,14 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         : async () => true,
     });
 
-    // Step 7: Resolve and connect MCP servers
-    const mcpServerUsages = [
-      ...(agent.spec!.mcpServerUsages || []),
-      ...(session.spec!.mcpServerUsages || []),
-    ];
+    // Step 7: Resolve and connect MCP servers. Session-wins-per-slug merge
+    // (the Cursor harness's blueprint semantics, shared so a duplicate slug
+    // resolves identically in both harnesses — one usage per server, whose
+    // enabled_tools is the one the connect-time filter honors).
+    const mcpServerUsages = mergeMcpServerUsages(
+      agent.spec!.mcpServerUsages || [],
+      session.spec!.mcpServerUsages || [],
+    );
     const datastoreUsages = agent.spec!.datastoreUsages || [];
 
     // The synthesized attachments' credential story (DD-006 D4): the

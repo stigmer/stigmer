@@ -29,7 +29,7 @@
           "kind": "string"
         }
       },
-      "description": "Tools to enable from this MCP server for this agent.\n Empty list uses the McpServer's default_enabled_tools.\n Sub-agents can only restrict this set further, not expand it.\n\n @internal\n Tool names must match exactly what the MCP server reports via tools/list.\n Only names from discovered_capabilities.tools are valid here.\n Do NOT include names from discovered_capabilities.resource_templates —\n resource templates are read-only data endpoints, not callable tools.\n Including a resource template name here causes a fatal runtime error.",
+      "description": "Tools to enable from this MCP server for this agent.\n Empty list uses the McpServer's default_enabled_tools.\n Sub-agents can only restrict this set further, not expand it.\n\n @internal\n Tool names must match exactly what the MCP server reports via tools/list.\n Only names from discovered_capabilities.tools are valid here.\n Do NOT include names from discovered_capabilities.resource_templates —\n resource templates are read-only data endpoints, not callable tools.\n A name the server does not expose (including a resource template name)\n is warned and ignored at execution: the runner enforces the INTERSECTION\n with the server's live toolset, so a stale or mistyped entry narrows the\n toolset but never widens it or fails the run.\n\n Enforcement: the native (deep-agent) harness filters the discovered\n toolset before it reaches the model; the Cursor harness cannot hide a\n server's tools (its SDK config has no allow-list field), so its HITL\n hook permanently denies calls to non-enabled tools instead — the model\n may still see the tool listed, but every call is refused.",
       "required": false
     },
     {

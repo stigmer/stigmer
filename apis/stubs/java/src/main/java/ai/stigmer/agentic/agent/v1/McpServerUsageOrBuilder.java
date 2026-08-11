@@ -48,7 +48,16 @@ public interface McpServerUsageOrBuilder extends
    * Only names from discovered_capabilities.tools are valid here.
    * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
-   * Including a resource template name here causes a fatal runtime error.
+   * A name the server does not expose (including a resource template name)
+   * is warned and ignored at execution: the runner enforces the INTERSECTION
+   * with the server's live toolset, so a stale or mistyped entry narrows the
+   * toolset but never widens it or fails the run.
+   *
+   * Enforcement: the native (deep-agent) harness filters the discovered
+   * toolset before it reaches the model; the Cursor harness cannot hide a
+   * server's tools (its SDK config has no allow-list field), so its HITL
+   * hook permanently denies calls to non-enabled tools instead — the model
+   * may still see the tool listed, but every call is refused.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -67,7 +76,16 @@ public interface McpServerUsageOrBuilder extends
    * Only names from discovered_capabilities.tools are valid here.
    * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
-   * Including a resource template name here causes a fatal runtime error.
+   * A name the server does not expose (including a resource template name)
+   * is warned and ignored at execution: the runner enforces the INTERSECTION
+   * with the server's live toolset, so a stale or mistyped entry narrows the
+   * toolset but never widens it or fails the run.
+   *
+   * Enforcement: the native (deep-agent) harness filters the discovered
+   * toolset before it reaches the model; the Cursor harness cannot hide a
+   * server's tools (its SDK config has no allow-list field), so its HITL
+   * hook permanently denies calls to non-enabled tools instead — the model
+   * may still see the tool listed, but every call is refused.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -85,7 +103,16 @@ public interface McpServerUsageOrBuilder extends
    * Only names from discovered_capabilities.tools are valid here.
    * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
-   * Including a resource template name here causes a fatal runtime error.
+   * A name the server does not expose (including a resource template name)
+   * is warned and ignored at execution: the runner enforces the INTERSECTION
+   * with the server's live toolset, so a stale or mistyped entry narrows the
+   * toolset but never widens it or fails the run.
+   *
+   * Enforcement: the native (deep-agent) harness filters the discovered
+   * toolset before it reaches the model; the Cursor harness cannot hide a
+   * server's tools (its SDK config has no allow-list field), so its HITL
+   * hook permanently denies calls to non-enabled tools instead — the model
+   * may still see the tool listed, but every call is refused.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -104,7 +131,16 @@ public interface McpServerUsageOrBuilder extends
    * Only names from discovered_capabilities.tools are valid here.
    * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
-   * Including a resource template name here causes a fatal runtime error.
+   * A name the server does not expose (including a resource template name)
+   * is warned and ignored at execution: the runner enforces the INTERSECTION
+   * with the server's live toolset, so a stale or mistyped entry narrows the
+   * toolset but never widens it or fails the run.
+   *
+   * Enforcement: the native (deep-agent) harness filters the discovered
+   * toolset before it reaches the model; the Cursor harness cannot hide a
+   * server's tools (its SDK config has no allow-list field), so its HITL
+   * hook permanently denies calls to non-enabled tools instead — the model
+   * may still see the tool listed, but every call is refused.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>

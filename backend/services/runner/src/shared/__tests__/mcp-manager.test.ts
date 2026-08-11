@@ -1,7 +1,23 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import type { Connection } from "@langchain/mcp-adapters";
-import { toMcpClientConfig } from "../mcp-manager.js";
+import { connectMcpServers, toMcpClientConfig } from "../mcp-manager.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
+
+// The adapter client is mocked ONLY for the connectMcpServers tests below
+// (initializeConnections returns the canned per-server tool map); the
+// toMcpClientConfig suites are pure and never construct it.
+const mockMcpClient = vi.hoisted(() => ({
+  toolMap: {} as Record<string, { name: string }[]>,
+}));
+
+vi.mock("@langchain/mcp-adapters", () => ({
+  MultiServerMCPClient: class {
+    async initializeConnections() {
+      return mockMcpClient.toolMap;
+    }
+    async close() {}
+  },
+}));
 
 function makeServer(overrides: Partial<ResolvedMcpServer>): ResolvedMcpServer {
   return {
@@ -165,5 +181,70 @@ describe("toMcpClientConfig — stdio env isolation (oss#256)", () => {
     ]);
 
     expect(stdioEnv(config, "empty")).toEqual({});
+  });
+});
+
+describe("connectMcpServers — enabled_tools enforcement (issue #350)", () => {
+  const tool = (name: string) => ({ name }) as any;
+
+  beforeEach(() => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockMcpClient.toolMap = {};
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("filters a restricted server's discovered tools down to the allow-list, in BOTH the flat list and the per-server map", async () => {
+    mockMcpClient.toolMap = { planton: [tool("get"), tool("apply"), tool("destroy")] };
+
+    const result = await connectMcpServers([
+      makeServer({ slug: "planton", command: "npx", enabledTools: ["get"] }),
+    ]);
+
+    // Both result shapes must narrow together: `tools` feeds the model and
+    // the built-in general-purpose sub-agent, `serverToolMap` feeds the
+    // approval gate's toolServerMap and the sub-agent McpAccess subset check.
+    expect(result.tools.map((t) => t.name)).toEqual(["get"]);
+    expect(result.serverToolMap.planton.map((t) => t.name)).toEqual(["get"]);
+  });
+
+  it("leaves an unrestricted server (enabledTools absent — e.g. a synthesized attachment) untouched", async () => {
+    mockMcpClient.toolMap = { open: [tool("a"), tool("b")] };
+
+    const result = await connectMcpServers([
+      makeServer({ slug: "open", command: "npx" }),
+    ]);
+
+    expect(result.tools.map((t) => t.name)).toEqual(["a", "b"]);
+  });
+
+  it("restricts per server: one restricted server never narrows its unrestricted sibling", async () => {
+    mockMcpClient.toolMap = {
+      restricted: [tool("get"), tool("apply")],
+      open: [tool("get"), tool("apply")],
+    };
+
+    const result = await connectMcpServers([
+      makeServer({ slug: "restricted", command: "npx", enabledTools: ["get"] }),
+      makeServer({ slug: "open", command: "npx" }),
+    ]);
+
+    expect(result.serverToolMap.restricted.map((t) => t.name)).toEqual(["get"]);
+    expect(result.serverToolMap.open.map((t) => t.name)).toEqual(["get", "apply"]);
+  });
+
+  it("warns and intersects an allow-list naming a tool the server does not expose", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockMcpClient.toolMap = { planton: [tool("get")] };
+
+    const result = await connectMcpServers([
+      makeServer({ slug: "planton", command: "npx", enabledTools: ["get", "ghost"] }),
+    ]);
+
+    expect(result.tools.map((t) => t.name)).toEqual(["get"]);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("ghost"));
   });
 });
