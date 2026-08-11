@@ -85,7 +85,9 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # PROBE (throwaway, do not merge): pin the exact Node that broke main on 2026-08-11
+          # to reproduce the happy-dom menu-mount failure for issue #323.
+          node-version: 22.23.2
           cache: npm
 
       - name: Enable Corepack
@@ -120,7 +122,9 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # PROBE (throwaway, do not merge): pin the exact Node that broke main on 2026-08-11
+          # to reproduce the happy-dom menu-mount failure for issue #323.
+          node-version: 22.23.2
           cache: npm
 
       - name: Enable Corepack
@@ -153,7 +157,9 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # PROBE (throwaway, do not merge): pin the exact Node that broke main on 2026-08-11
+          # to reproduce the happy-dom menu-mount failure for issue #323.
+          node-version: 22.23.2
           cache: npm
 
       - name: Enable Corepack
@@ -179,7 +185,9 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # PROBE (throwaway, do not merge): pin the exact Node that broke main on 2026-08-11
+          # to reproduce the happy-dom menu-mount failure for issue #323.
+          node-version: 22.23.2
           cache: npm
 
       - name: Enable Corepack
@@ -204,7 +212,9 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # PROBE (throwaway, do not merge): pin the exact Node that broke main on 2026-08-11
+          # to reproduce the happy-dom menu-mount failure for issue #323.
+          node-version: 22.23.2
           cache: npm
 
       - name: Enable Corepack
