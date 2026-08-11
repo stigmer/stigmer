@@ -18,8 +18,9 @@ import (
 // 3. CheckDuplicate - Verify no duplicate exists (slug-level)
 // 4. EnforcePersonalEnvUniqueness - At most one personal env per org
 // 5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
-// 6. Persist - Save environment to repository
-// 7. IndexSearch - Update search index
+// 6. PreserveRedactedSecrets - Reject secret sentinels (redaction marker, enc:v<N>: prefix)
+// 7. Persist - Save environment to repository
+// 8. IndexSearch - Update search index
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)
@@ -48,7 +49,8 @@ func (c *EnvironmentController) buildCreatePipeline() *pipeline.Pipeline[*enviro
 		AddStep(steps.NewCheckDuplicateStep[*environmentv1.Environment](c.store)).                                 // 3. Check duplicate
 		AddStep(domainSteps.NewEnforcePersonalUniquenessStep(c.store)).                                            // 4. At most one personal env per org
 		AddStep(steps.NewBuildNewStateStep[*environmentv1.Environment]()).                                         // 5. Build new state
-		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).                                        // 6. Persist environment
-		AddStep(steps.NewIndexSearchStep[*environmentv1.Environment](c.store, &extractor.EnvironmentExtractor{})). // 7. Update search index
+		AddStep(domainSteps.NewPreserveRedactedSecretsStep()).                                                     // 6. Reject secret sentinels (no existing resource: marker and enc: prefix both refused)
+		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).                                        // 7. Persist environment
+		AddStep(steps.NewIndexSearchStep[*environmentv1.Environment](c.store, &extractor.EnvironmentExtractor{})). // 8. Update search index
 		Build()
 }

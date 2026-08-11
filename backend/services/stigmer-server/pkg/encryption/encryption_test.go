@@ -142,7 +142,11 @@ func TestIsEncrypted(t *testing.T) {
 		{EncryptedPrefix + "base64data", true},
 		{"enc:v1:SGVsbG8gV29ybGQ=", true},
 		{"plaintext", false},
-		{"enc:v2:future-version", false}, // Different version
+		// Family-wide on purpose (oss#395): an unmatched future version
+		// would be treated as plaintext and fail OPEN at every dispatch
+		// site — returned verbatim on read, passed through on encrypt.
+		{"enc:v2:future-version", true},
+		{"enc:v99:whatever", true},
 		{"", false},
 		{"enc:", false},
 		{"enc:v1", false},
@@ -155,6 +159,44 @@ func TestIsEncrypted(t *testing.T) {
 				t.Errorf("IsEncrypted(%q) = %v, want %v", tt.value, result, tt.expected)
 			}
 		})
+	}
+}
+
+func TestIsCiphertextShaped(t *testing.T) {
+	tests := []struct {
+		value    string
+		expected bool
+	}{
+		{"enc:v1:SGVsbG8=", true},
+		{"enc:v2:anything", true},
+		{"enc:v99:anything", true},
+		{"plaintext", false},
+		{"", false},
+		{"enc:v:missing-number", false},
+		{"enc:vX:not-a-number", false},
+		{" enc:v1:leading-space", false},        // prefix must be anchored
+		{"my secret enc:v1: mid-string", false}, // not a prefix
+		{"ENC:V1:upper", false},                 // the sentinel is lowercase
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.value, func(t *testing.T) {
+			if got := IsCiphertextShaped(tt.value); got != tt.expected {
+				t.Errorf("IsCiphertextShaped(%q) = %v, want %v", tt.value, got, tt.expected)
+			}
+		})
+	}
+}
+
+// A stored value in an unknown enc:v<N>: version must fail decrypt loudly
+// (ErrInvalidCiphertext), never be returned verbatim as if it were
+// plaintext — the fail-closed half of the family-wide IsEncrypted.
+func TestDecryptUnknownVersionFailsLoudly(t *testing.T) {
+	svc, _ := NewSecretService(testKey)
+
+	_, err := svc.Decrypt("enc:v2:c29tZS1mdXR1cmUtZm9ybWF0")
+	if err == nil {
+		t.Fatal("decrypting an unknown-version value must fail, not pass through")
 	}
 }
 

@@ -91,7 +91,10 @@ func (s *ManagedEnvironmentService) DeleteManagedEnvironment(
 }
 
 // UpdateSecrets writes secret variables into a managed environment.
-// Values are passed as plaintext — the environment pipeline encrypts them.
+// Values must be plaintext (never enc:v<N>:-prefixed — the environment
+// pipeline rejects ciphertext-shaped input, oss#395) and are stored as
+// passed: the OSS environment pipeline does not encrypt at write time
+// (at-rest encryption for environment values is tracked separately).
 func (s *ManagedEnvironmentService) UpdateSecrets(
 	ctx context.Context,
 	environmentID string,

@@ -235,6 +235,51 @@ func TestChannelAppController_CreateRefusesRedactionMarker(t *testing.T) {
 	}
 }
 
+// TestChannelAppController_RefusesCiphertextShapedSecrets pins the oss#395
+// boundary on the shared resolveSecret helper: a client-supplied enc:v<N>:
+// value must be refused with INVALID_ARGUMENT on create and update alike.
+// One field per arm suffices — every provider secret funnels through the
+// same helper, and TestRedactAndEncryptCoverEveryProviderArm keeps the arm
+// coverage honest.
+func TestChannelAppController_RefusesCiphertextShapedSecrets(t *testing.T) {
+	h := newTestHarness(t)
+
+	t.Run("slack create", func(t *testing.T) {
+		app := newSlackApp("Acme Slack App", "acme")
+		app.GetSpec().GetSlack().ClientSecret = "enc:v1:Zm9yZ2VkLWNpcGhlcnRleHQ="
+
+		if _, err := h.controller.Create(appCtx(), app); status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected InvalidArgument for ciphertext-shaped client_secret, got %v", err)
+		}
+	})
+
+	t.Run("whatsapp create", func(t *testing.T) {
+		app := newWhatsAppApp("Acme WhatsApp App", "acme")
+		app.GetSpec().GetWhatsapp().AccessToken = "enc:v2:ZnV0dXJlLXZlcnNpb24="
+
+		if _, err := h.controller.Create(appCtx(), app); status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected InvalidArgument for ciphertext-shaped access_token, got %v", err)
+		}
+	})
+
+	t.Run("slack update", func(t *testing.T) {
+		created, err := h.controller.Create(appCtx(), newSlackApp("Acme Update App", "acme"))
+		if err != nil {
+			t.Fatalf("create failed: %v", err)
+		}
+
+		update := newSlackApp("Acme Update App", "acme")
+		update.Metadata.Id = created.GetMetadata().GetId()
+		update.Metadata.Slug = created.GetMetadata().GetSlug()
+		update.GetSpec().GetSlack().ClientSecret = RedactedMarker
+		update.GetSpec().GetSlack().SigningSecret = "enc:v1:Zm9yZ2VkLWNpcGhlcnRleHQ="
+
+		if _, err := h.controller.Update(appCtx(), update); status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected InvalidArgument for ciphertext-shaped signing_secret on update, got %v", err)
+		}
+	})
+}
+
 func TestChannelAppController_UpdateMarkerPreservesPerField(t *testing.T) {
 	h := newTestHarness(t)
 

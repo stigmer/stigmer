@@ -25,7 +25,13 @@ const RedactedMarker = "***REDACTED***"
 //   - If the client sends RedactedMarker, copies the existing encrypted
 //     value from the loaded resource (ExistingResourceKey).
 //   - If the client sends a new plaintext value, encrypts it.
-//   - If the value is already encrypted, leaves it unchanged.
+//
+// On both, a ciphertext-shaped (enc:v<N>:) value is rejected (oss#395): the
+// prefix is server-reserved, clients only ever see redacted secrets, so a
+// prefixed request value is either forged ciphertext or an attempt to pin
+// the row to a format of the client's choosing. The marker arm must stay
+// FIRST — it restores stored ciphertext, which is legitimate and returns
+// before this check.
 //
 // The isCreate flag controls which mode is active.
 type encryptClientSecretStep struct {
@@ -70,8 +76,13 @@ func (s *encryptClientSecretStep) Execute(ctx *pipeline.RequestContext[*oauthapp
 		return s.preserveExistingSecret(ctx, app)
 	}
 
-	if s.secretService.IsEncrypted(clientSecret) {
-		return nil
+	// Unconditional (not gated on IsEnabled): the prefix is server-reserved
+	// regardless of key state — a keyless deployment that later gains a key
+	// must not wake up holding smuggled "ciphertext".
+	if encryption.IsCiphertextShaped(clientSecret) {
+		return grpclib.InvalidArgumentError(
+			"client_secret must be plaintext — values carrying the 'enc:' " +
+				"encryption prefix are not accepted from clients")
 	}
 
 	if !s.secretService.IsEnabled() {

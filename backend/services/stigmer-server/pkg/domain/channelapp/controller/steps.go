@@ -34,6 +34,9 @@ const RedactedMarker = "***REDACTED***"
 //   - Update with the marker: preserves the existing encrypted value from
 //     the loaded resource. Independence matters: one request may rotate
 //     one secret while keeping the other.
+//   - A ciphertext-shaped (enc:v<N>:) value is refused on both create and
+//     update (oss#395): the prefix is server-reserved and clients only
+//     ever see redacted secrets.
 type encryptChannelAppSecretsStep struct {
 	secretService *encryption.SecretService
 	isCreate      bool
@@ -128,6 +131,10 @@ func (s *encryptChannelAppSecretsStep) encryptWhatsApp(
 }
 
 // resolveSecret computes the storage-ready value for one secret field.
+//
+// Arm order is load-bearing: the marker arm restores STORED ciphertext and
+// returns before the ciphertext-shape rejection, which therefore only ever
+// sees raw client input (oss#395).
 func (s *encryptChannelAppSecretsStep) resolveSecret(
 	ctx *pipeline.RequestContext[*channelappv1.ChannelApp],
 	fieldName string,
@@ -142,8 +149,12 @@ func (s *encryptChannelAppSecretsStep) resolveSecret(
 		return s.preserveExistingSecret(ctx, fieldName, readExisting)
 	}
 
-	if s.secretService.IsEncrypted(requestValue) {
-		return requestValue, nil
+	// Unconditional (not gated on IsEnabled): the enc:v<N>: prefix is
+	// server-reserved regardless of key state.
+	if encryption.IsCiphertextShaped(requestValue) {
+		return "", grpclib.InvalidArgumentError(
+			"%s must be plaintext — values carrying the 'enc:' "+
+				"encryption prefix are not accepted from clients", fieldName)
 	}
 
 	if !s.secretService.IsEnabled() {
