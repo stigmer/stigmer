@@ -13,6 +13,9 @@
  * Pinned here:
  * - the factory forwards LangChain's `maxRetries: 0` to the client (a
  *   factory that drops it nests SDK retries inside LangChain's own loop),
+ * - the factory forwards the request timeout (clientOptions.timeout ->
+ *   factory options -> SDK constructor; how STIGMER_LLM_REQUEST_TIMEOUT_MS
+ *   bounds this backend),
  * - construction and invocation succeed with NO ANTHROPIC_API_KEY (Vertex
  *   auth is Google's, and ChatAnthropic waives the key when createClient
  *   is provided),
@@ -25,7 +28,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HumanMessage, AIMessage } from "@langchain/core/messages";
 
 const { vertexCtorArgs, createRequests } = vi.hoisted(() => ({
-  vertexCtorArgs: [] as Array<{ maxRetries?: number }>,
+  vertexCtorArgs: [] as Array<{ maxRetries?: number; timeout?: number }>,
   createRequests: [] as Array<Record<string, unknown>>,
 }));
 
@@ -48,7 +51,7 @@ vi.mock("@anthropic-ai/vertex-sdk", () => ({
       },
     };
 
-    constructor(opts: { maxRetries?: number }) {
+    constructor(opts: { maxRetries?: number; timeout?: number }) {
       vertexCtorArgs.push(opts);
       this.maxRetries = opts.maxRetries;
     }
@@ -132,6 +135,22 @@ describe("buildChatModel vertex adapter", () => {
       const vertexModel = new ChatAnthropic({ model: toVertexModelId(canonical), apiKey: "probe" });
       expect(vertexModel.maxTokens, canonical).toBe(publicModel.maxTokens);
     }
+  });
+
+  it("forwards the request timeout to the SDK client (STIGMER_LLM_REQUEST_TIMEOUT_MS path)", async () => {
+    // The timeout rides clientOptions -> factory options -> SDK constructor.
+    // A factory that drops it silently unbounds the operator's timeout on
+    // this backend (the regression T06 repaired for the public path).
+    const { model } = await buildChatModel({
+      modelName: "claude-sonnet-4-6",
+      maxTokens: 256,
+      timeoutMs: 5000,
+    });
+    await model.invoke([new HumanMessage("hi")]);
+
+    expect(vertexCtorArgs).toHaveLength(1);
+    expect(vertexCtorArgs[0].timeout).toBe(5000);
+    expect(vertexCtorArgs[0].maxRetries).toBe(0);
   });
 
   it("constructs and invokes with no ANTHROPIC_API_KEY anywhere in the environment", async () => {

@@ -100,11 +100,14 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
   // ChatAnthropic once per cached client (batch + streaming), so the class
   // is captured here, in async context.
   //
-  // Each factory MUST honor options.maxRetries: LangChain owns retrying and
-  // hands the factory maxRetries: 0 — a factory that drops it nests the
-  // SDK's default 2 retries inside LangChain's retry loop, multiplying
-  // every transient failure. Pinned by vertex-seam.test.ts and
-  // bedrock-seam.test.ts. Prerequisites are re-checked here (not only in
+  // Each factory MUST honor options.maxRetries and options.timeout:
+  // LangChain owns retrying and hands the factory maxRetries: 0 — a factory
+  // that drops it nests the SDK's default 2 retries inside LangChain's
+  // retry loop, multiplying every transient failure — and `timeout` arrives
+  // through the same options object (ChatAnthropic spreads clientOptions
+  // into it), so a factory that drops it silently unbounds
+  // STIGMER_LLM_REQUEST_TIMEOUT_MS on that backend. Pinned by the seam
+  // tests. Prerequisites are re-checked here (not only in
   // the factories' preflight) so paths that construct models without a
   // runner factory still fail at dispatch with the catalog message instead
   // of mid-request. Credentials are read natively by each SDK from its
@@ -112,7 +115,9 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
   // the credential chain / AWS_BEARER_TOKEN_BEDROCK; Foundry:
   // ANTHROPIC_FOUNDRY_API_KEY, or the Azure credential chain when no key
   // is set).
-  let backendCreateClient: ((options: { maxRetries?: number }) => unknown) | undefined;
+  let backendCreateClient:
+    | ((options: { maxRetries?: number; timeout?: number }) => unknown)
+    | undefined;
   let wireModelId = apiModelId;
   let maxTokens = opts.maxTokens;
   if (anthropicBackend === "vertex") {
@@ -120,14 +125,14 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     if (prereq !== null) throw new Error(prereq);
     const { AnthropicVertex } = await import("@anthropic-ai/vertex-sdk");
     backendCreateClient = (options) =>
-      new AnthropicVertex({ maxRetries: options.maxRetries });
+      new AnthropicVertex({ maxRetries: options.maxRetries, timeout: options.timeout });
     wireModelId = toVertexModelId(apiModelId);
   } else if (anthropicBackend === "bedrock") {
     const prereq = checkBedrockPrerequisites();
     if (prereq !== null) throw new Error(prereq);
     const { AnthropicBedrock } = await import("@anthropic-ai/bedrock-sdk");
     backendCreateClient = (options) =>
-      new AnthropicBedrock({ maxRetries: options.maxRetries });
+      new AnthropicBedrock({ maxRetries: options.maxRetries, timeout: options.timeout });
     wireModelId = toBedrockModelId(apiModelId);
     if (maxTokens === undefined) {
       // LangChain's per-model maxTokens table prefix-matches the model
@@ -167,6 +172,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     backendCreateClient = (options) =>
       new AnthropicFoundry({
         maxRetries: options.maxRetries,
+        timeout: options.timeout,
         ...(azureADTokenProvider ? { azureADTokenProvider } : {}),
       });
     // Unlike the vertex/bedrock ids, the deployment name needs no maxTokens
@@ -195,8 +201,28 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     temperature: opts.temperature ?? 0,
     apiKey,
     ...(maxTokens ? { maxTokens } : {}),
-    ...(opts.timeoutMs ? { maxRetries: opts.maxRetries ?? 0, timeout: opts.timeoutMs } : {}),
+    ...(opts.timeoutMs ? { maxRetries: opts.maxRetries ?? 0 } : {}),
   };
+
+  // The request timeout lives in a different slot per wrapper: ChatOpenAI
+  // reads `timeout` as a constructor field, but ChatAnthropic ignores it
+  // there — its slot is `clientOptions.timeout`, which the wrapper spreads
+  // into the createClient factory options and (on the default factory) the
+  // SDK constructor. This split is what makes STIGMER_LLM_REQUEST_TIMEOUT_MS
+  // bound every path; putting `timeout` in the shared constructor spread is
+  // the exact regression that made it inert for Anthropic (T02 finding 2).
+  // The `maxRetries` half above stays constructor-level for both wrappers:
+  // that is LangChain's own retry knob, distinct from the SDK-level
+  // maxRetries the factories receive.
+  const anthropicClientOptions = {
+    ...(opts.timeoutMs ? { timeout: opts.timeoutMs } : {}),
+    ...(baseUrl ? { baseURL: baseUrl } : {}),
+    ...(headers ? { defaultHeaders: headers } : {}),
+  };
+  const anthropicClientOptionsField =
+    Object.keys(anthropicClientOptions).length > 0
+      ? { clientOptions: anthropicClientOptions }
+      : {};
 
   // The two SDKs name the transport-override block differently (OpenAI:
   // `configuration`, Anthropic: `clientOptions`) — encapsulating that here is
@@ -205,6 +231,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     ? new ChatOpenAI({
         model: apiModelId,
         ...common,
+        ...(opts.timeoutMs ? { timeout: opts.timeoutMs } : {}),
         ...(baseUrl || headers
           ? {
               configuration: {
@@ -219,22 +246,18 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
         // client moves it from the JSON body into its URL path. The waiver
         // in ChatAnthropic (an API key is not required when createClient is
         // provided) is what lets this construct with no ANTHROPIC_API_KEY.
+        // (Backend mode never has a proxy — see the precedence rule above —
+        // so the clientOptions here carry at most the timeout.)
         new ChatAnthropic({
           model: wireModelId,
           ...common,
+          ...anthropicClientOptionsField,
           createClient: backendCreateClient,
         })
       : new ChatAnthropic({
           model: apiModelId,
           ...common,
-          ...(baseUrl || headers
-            ? {
-                clientOptions: {
-                  ...(baseUrl ? { baseURL: baseUrl } : {}),
-                  ...(headers ? { defaultHeaders: headers } : {}),
-                },
-              }
-            : {}),
+          ...anthropicClientOptionsField,
         });
 
   return { model, provider, apiModelId };
