@@ -210,6 +210,26 @@ func (c *McpServerController) initiateDCR(
 		"scope",
 	)
 
+	// Some providers accept DCR for any redirect URI but enforce a
+	// redirect-host allowlist at the authorization endpoint; without this
+	// pre-flight the rejection would surface only as a vendor error page
+	// inside the popup, which never redirects back (stigmer/stigmer#235).
+	// Fail-open by contract: only a definite rejection blocks initiate.
+	if rejection, probeErr := oauth.PreflightAuthorize(ctx, authURL); probeErr != nil {
+		log.Debug().Err(probeErr).
+			Str("mcp_server_id", mcpServer.GetMetadata().GetId()).
+			Msg("authorize pre-flight probe inconclusive; proceeding")
+	} else if rejection != nil {
+		log.Warn().
+			Int("status_code", rejection.StatusCode).
+			Str("mcp_server_id", mcpServer.GetMetadata().GetId()).
+			Str("body_snippet", rejection.BodySnippet).
+			Msg("authorization endpoint rejected the sign-in request pre-flight")
+		return nil, grpclib.FailedPreconditionError(
+			"%s", dcrRejectionMessage(mcpServer.GetMetadata().GetName(), c.oauthRedirectURI, rejection),
+		)
+	}
+
 	return &initiateResult{
 		authorizationURL: authURL,
 		providerName:     mcpServer.GetMetadata().GetName(),
@@ -319,6 +339,31 @@ func buildAuthorizationURL(
 		separator = "&"
 	}
 	return authEndpoint + separator + params.Encode()
+}
+
+// dcrRejectionMessage renders the user-facing copy for a pre-flight
+// authorize rejection (see oauth.PreflightAuthorize). The wording is hedged
+// — a 400 can in principle have other causes — but leads with the
+// redirect-host allowlist because it is the only cause observed in the wild
+// (Canva, stigmer/stigmer#235), and it names this deployment's callback host
+// so self-hosted operators can act on it. Surfaces which render initiate
+// errors pass this text through verbatim (getUserMessage in @stigmer/sdk),
+// so it must stand on its own for an end user.
+func dcrRejectionMessage(providerName, redirectURI string, rejection *oauth.AuthorizeRejection) string {
+	callbackHost := redirectURI
+	if parsed, err := url.Parse(redirectURI); err == nil && parsed.Host != "" {
+		callbackHost = parsed.Host
+	}
+	msg := fmt.Sprintf(
+		"%s rejected the sign-in request before showing a login page (HTTP %d). "+
+			"The most common cause is a redirect-host allowlist: this deployment's OAuth callback host (%s) "+
+			"is not on the provider's approved list. Self-hosted deployments with a localhost callback are typically unaffected.",
+		providerName, rejection.StatusCode, callbackHost,
+	)
+	if rejection.VendorDetail != "" {
+		msg += " Provider detail: " + rejection.VendorDetail
+	}
+	return msg
 }
 
 func generateState() (string, error) {

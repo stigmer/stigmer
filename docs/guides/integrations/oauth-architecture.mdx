@@ -148,7 +148,16 @@ When you click **Sign in to connect**, the backend performs three steps:
 
 1. **Initiate** — Generates an authorization URL with a PKCE challenge, state
    parameter, and the scopes from the OAuthApp. For DCR servers, this step also
-   discovers the authorization server and registers a client.
+   discovers the authorization server and registers a client, then probes the
+   built authorization URL server-side before returning it. Some vendors accept
+   any redirect URI at registration but enforce a redirect-host allowlist at
+   the authorization endpoint (Canva, for example, requires public callback
+   hosts to be approved through its MCP waitlist). Without the probe, that
+   rejection would only ever appear as a vendor error page inside the popup —
+   the flow would never learn it failed. A definite rejection (HTTP 400) fails
+   the initiate with an explanation of the deployment's callback host; any
+   other response proceeds normally, so an unreachable or bot-protected
+   authorization endpoint never blocks a working sign-in.
 2. **Authorize** — You approve the request in the vendor's authorization page.
    The vendor redirects back with an authorization code.
 3. **Complete** — The backend exchanges the code for tokens using the PKCE

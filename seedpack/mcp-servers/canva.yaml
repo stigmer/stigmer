@@ -22,7 +22,14 @@ spec:
   env:
     CANVA_ACCESS_TOKEN:
       is_secret: true
-      description: "Canva OAuth access token"
+      description: "Canva OAuth access token, obtained automatically via Connect. Canva's hosted MCP endpoint requires OAuth 2.1 (PKCE) and has no manual token path."
   auth:
     target_env_var: "CANVA_ACCESS_TOKEN"
     token_lifetime_hint: "1h"
+    # Canva's hosted endpoint has no manually-obtainable token (verified
+    # 2026-08-11: a dummy bearer gets a 401 OAuth challenge), so the connect
+    # UI hides manual token entry. NOTE: Canva enforces a redirect-host
+    # allowlist at the authorization endpoint — localhost callbacks work,
+    # public callback hosts must be approved via Canva's MCP waitlist
+    # (stigmer/stigmer#235). The DCR pre-flight surfaces this honestly.
+    oauth_only: true
