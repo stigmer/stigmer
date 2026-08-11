@@ -521,7 +521,12 @@ func (c *McpServerController) executeConnectWorkflow(
 
 		switch {
 		case errors.As(err, &appErr):
-			return nil, status.Error(codes.Internal,
+			// FAILED_PRECONDITION, not INTERNAL (issue #239): an application
+			// error from the connect workflow means the TARGET server (or its
+			// credentials/config) refused the connect — the runner's message is
+			// crafted for the user, and clients render FAILED_PRECONDITION
+			// messages verbatim while (correctly) hiding INTERNAL detail.
+			return nil, status.Error(codes.FailedPrecondition,
 				buildConnectFailureMessage(mcpServer, appErr.Message()))
 		case errors.As(err, &timeoutErr):
 			return nil, status.Errorf(codes.DeadlineExceeded,

@@ -34,12 +34,17 @@ const openSessions = new Set<ServerHttp2Session>();
 
 let connectCalls: ConnectInput[] = [];
 let grantConnected = false;
+// Delay before the mock Connect RPC answers; lets the --timeout tests
+// simulate a long-running server-side connect. The timer is unref'd so a
+// still-pending delayed response can never hold the test process open.
+let connectDelayMs = 0;
 // The server returned by getByReference; mutated per test for auth scenarios.
 let servedSpec: ReturnType<typeof create<typeof McpServerSchema>>;
 
 beforeEach(() => {
   connectCalls = [];
   grantConnected = false;
+  connectDelayMs = 0;
   servedSpec = create(McpServerSchema, {
     metadata: { id: "mcp_1", name: "github", slug: "github", org: "acme" },
     spec: {
@@ -72,8 +77,11 @@ beforeAll(async () => {
       // Mirror the backend's protovalidate rule (org min_len=1): reject an empty
       // org so a regression that drops org fails loudly here instead of silently
       // passing (the mock adapter does not run protovalidate on its own).
-      connect: (req) => {
+      connect: async (req) => {
         if (req.org === "") throw new ConnectError("org – value length must be at least 1 characters", Code.InvalidArgument);
+        if (connectDelayMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, connectDelayMs).unref());
+        }
         connectCalls.push(req);
         return updatedServer;
       },
@@ -117,6 +125,42 @@ describe("connect push path", () => {
 
     expect(result.updated?.metadata?.id).toBe("mcp_1");
     expect(result.capabilities?.tools.map((t) => t.name)).toEqual(["search_issues"]);
+  });
+});
+
+describe("--timeout bounds the server-side connect (issue #239)", () => {
+  it("stops waiting with actionable guidance when pushTimeoutMs elapses", async () => {
+    connectDelayMs = 5_000;
+    await expect(
+      connectMcpServer(client, {
+        reference: "github",
+        org: "acme",
+        timeoutMs: 30_000,
+        pushTimeoutMs: 150,
+        dryRun: false,
+        envOverrides: ["GITHUB_TOKEN=ghp-x"],
+        backendType: "cloud",
+        interactive: false,
+      }),
+    ).rejects.toThrow(/Stopped waiting for the connect of MCP server 'github' after 0\.15s/);
+  });
+
+  it("does not bound the wait when pushTimeoutMs is unset (default --timeout)", async () => {
+    // The flag's 30s default is sized for --dry-run local discovery; a real
+    // connect legitimately outlives it, so only an explicit --timeout bounds
+    // the push. 200ms of server delay stands in for "longer than the bound
+    // would have been".
+    connectDelayMs = 200;
+    const result = await connectMcpServer(client, {
+      reference: "github",
+      org: "acme",
+      timeoutMs: 100,
+      dryRun: false,
+      envOverrides: ["GITHUB_TOKEN=ghp-x"],
+      backendType: "cloud",
+      interactive: false,
+    });
+    expect(result.updated?.metadata?.id).toBe("mcp_1");
   });
 });
 

@@ -10,6 +10,14 @@ vi.mock("../../idle-watchdog.js", () => ({
   activityFinished: vi.fn(),
 }));
 
+// The factory starts a Temporal heartbeat loop; outside an activity context
+// its ticks would throw, so replace it with a stop-spy and assert the
+// start/stop contract instead.
+const mockHeartbeatStop = vi.fn();
+vi.mock("../../shared/heartbeat.js", () => ({
+  startHeartbeat: vi.fn(() => ({ stop: mockHeartbeatStop, cancelled: false, workerShutdown: false })),
+}));
+
 const mockInitializeConnections = vi.fn();
 const mockGetClient = vi.fn();
 const mockClose = vi.fn().mockResolvedValue(undefined);
@@ -600,6 +608,122 @@ describe("DiscoverMcpServer activity", () => {
       expect(result.newToolsFingerprint).toBe("");
     });
 
+    it("fails closed when the EC read errors and the server requires credentials", async () => {
+      // Issue #239: limping ahead with an empty env either died later as an
+      // opaque PlaceholderResolutionError or dialed the endpoint with a
+      // garbage credential and wedged in the 4xx → SSE-fallback limbo. The
+      // failure must name the root cause: credential delivery.
+      const { discoverMcpServer, CredentialResolutionError } = await import("../discover-mcp-server.js");
+
+      const spec = makeHttpSpec("https://mcp.monday.com/mcp");
+      spec.env = { MONDAY_ACCESS_TOKEN: { isSecret: true } };
+      const mockClient = makeMockStigmerClient({
+        mcpServer: makeMcpServer({ metadata: { slug: "monday" }, spec }),
+      });
+      mockClient.getExecutionContextByExecutionId = vi
+        .fn()
+        .mockRejectedValue(new Error("PERMISSION_DENIED: not scope-bound"));
+
+      await expect(
+        discoverMcpServer(
+          { mcpServerId: "mcp-monday", executionContextId: "ctx-1" },
+          { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden" },
+        ),
+      ).rejects.toThrow(CredentialResolutionError);
+      expect(mockInitializeConnections).not.toHaveBeenCalled();
+    });
+
+    it("keeps the lenient path when the EC read errors but no env is declared", async () => {
+      const { discoverMcpServer } = await import("../discover-mcp-server.js");
+
+      const mockClient = makeMockStigmerClient({
+        mcpServer: makeMcpServer({
+          metadata: { slug: "no-env" },
+          spec: makeHttpSpec("https://mcp.example.com"),
+        }),
+      });
+      mockClient.getExecutionContextByExecutionId = vi
+        .fn()
+        .mockRejectedValue(new Error("transient"));
+
+      mockInitializeConnections.mockResolvedValue({});
+      mockGetClient.mockResolvedValue(makeMockMcpClient({ tools: [] }));
+
+      const result = await discoverMcpServer(
+        { mcpServerId: "mcp-lenient", executionContextId: "ctx-2" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden" },
+      );
+      expect(result.tools).toEqual([]);
+    });
+
+    it("keeps the lenient path when all declared env vars are optional", async () => {
+      // Caller-identity-style servers declare only optional keys; discovery
+      // legitimately proceeds without an EC for them (the injections below
+      // resolveEnvVarsForDiscovery supply the values).
+      const { discoverMcpServer } = await import("../discover-mcp-server.js");
+
+      const spec = makeHttpSpec("https://mcp.example.com");
+      spec.env = { STIGMER_CALLER_IDENTITY_KIND: { optional: true } };
+      const mockClient = makeMockStigmerClient({
+        mcpServer: makeMcpServer({ metadata: { slug: "optional-only" }, spec }),
+      });
+      mockClient.getExecutionContextByExecutionId = vi
+        .fn()
+        .mockRejectedValue(new Error("transient"));
+
+      mockInitializeConnections.mockResolvedValue({});
+      mockGetClient.mockResolvedValue(makeMockMcpClient({ tools: [] }));
+
+      const result = await discoverMcpServer(
+        { mcpServerId: "mcp-optional", executionContextId: "ctx-3" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden" },
+      );
+      expect(result.tools).toEqual([]);
+    });
+
+    it("fails closed when the EC is empty and the server requires credentials", async () => {
+      const { discoverMcpServer, CredentialResolutionError } = await import("../discover-mcp-server.js");
+
+      const spec = makeHttpSpec("https://mcp.monday.com/mcp");
+      spec.env = { MONDAY_ACCESS_TOKEN: { isSecret: true } };
+      const mockClient = makeMockStigmerClient({
+        mcpServer: makeMcpServer({ metadata: { slug: "monday" }, spec }),
+        executionContext: { spec: { data: {} } },
+      });
+
+      const promise = discoverMcpServer(
+        { mcpServerId: "mcp-monday", executionContextId: "ctx-4" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden" },
+      );
+      await expect(promise).rejects.toThrow(CredentialResolutionError);
+      await expect(promise).rejects.toThrow(/delivered no credentials/);
+      expect(mockInitializeConnections).not.toHaveBeenCalled();
+    });
+
+    it("fails closed when a delivered credential is the redaction sentinel", async () => {
+      // A redacted value means the server-side decrypt gate refused this
+      // runner's credential class/scope — dialing with the literal sentinel
+      // can only produce a misleading 401 (the issue-#239 M2 mechanism).
+      const { discoverMcpServer, CredentialResolutionError } = await import("../discover-mcp-server.js");
+
+      const spec = makeHttpSpec("https://mcp.monday.com/mcp");
+      spec.env = { MONDAY_ACCESS_TOKEN: { isSecret: true } };
+      const mockClient = makeMockStigmerClient({
+        mcpServer: makeMcpServer({ metadata: { slug: "monday" }, spec }),
+        executionContext: {
+          spec: { data: { MONDAY_ACCESS_TOKEN: { value: "***REDACTED***", isSecret: true } } },
+        },
+      });
+
+      const promise = discoverMcpServer(
+        { mcpServerId: "mcp-monday", executionContextId: "ctx-5" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden" },
+      );
+      await expect(promise).rejects.toThrow(CredentialResolutionError);
+      await expect(promise).rejects.toThrow(/MONDAY_ACCESS_TOKEN.*delivered redacted|delivered redacted.*MONDAY_ACCESS_TOKEN/s);
+      expect(mockInitializeConnections).not.toHaveBeenCalled();
+    });
+
     it("closes MCP client even when discovery fails", async () => {
       const { discoverMcpServer } = await import("../discover-mcp-server.js");
 
@@ -617,6 +741,82 @@ describe("DiscoverMcpServer activity", () => {
       ).rejects.toThrow("Connection refused");
 
       expect(mockClose).toHaveBeenCalled();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Transport-aware init bounds (issue #239)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe("transport-aware init bounds", () => {
+    it("bounds HTTP endpoints at 30s and stdio at 270s", async () => {
+      // HTTP has no cold-start excuse: a healthy endpoint completes the MCP
+      // handshake in seconds, so a short bound converts the silent-SSE hang
+      // into a fast actionable failure. 30s (not more) keeps the error
+      // reachable under the OSS server's 45s connect-workflow deadline.
+      // stdio keeps the cold-start allowance (issue #243).
+      const { initTimeoutMsFor } = await import("../discover-mcp-server.js");
+      expect(initTimeoutMsFor("http")).toBe(30_000);
+      expect(initTimeoutMsFor("sse")).toBe(30_000);
+      expect(initTimeoutMsFor("stdio")).toBe(270_000);
+    });
+
+    it("names the endpoint URL in the HTTP timeout message", async () => {
+      const { initTimeoutMessageFor } = await import("../discover-mcp-server.js");
+      const message = initTimeoutMessageFor("monday", {
+        slug: "monday",
+        connectionType: "http",
+        url: "https://mcp.monday.com/mcp",
+        toolApprovals: [],
+        pinnedToolApprovals: [],
+        discoveredCapabilitiesEmpty: true,
+      });
+      expect(message).toContain("https://mcp.monday.com/mcp");
+      expect(message).toContain("30s");
+      expect(message).toContain("SSE fallback");
+    });
+
+    it("names the command in the stdio timeout message", async () => {
+      const { initTimeoutMessageFor } = await import("../discover-mcp-server.js");
+      const message = initTimeoutMessageFor("filesystem", {
+        slug: "filesystem",
+        connectionType: "stdio",
+        command: "npx",
+        toolApprovals: [],
+        pinnedToolApprovals: [],
+        discoveredCapabilitiesEmpty: true,
+      });
+      expect(message).toContain("npx");
+      expect(message).toContain("270s");
+      expect(message).toContain("cold start");
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Heartbeat contract (issue #239)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe("heartbeat contract", () => {
+    it("starts a heartbeat for the activity and stops it on completion", async () => {
+      // The connect workflow proxies this activity with a 60s heartbeatTimeout.
+      // Without a heartbeat loop, any discovery slower than 60s was killed by
+      // Temporal with an opaque heartbeat timeout — never reaching the
+      // actionable init-timeout errors (issues #239/#243).
+      const { createDiscoverMcpServerActivities } = await import("../discover-mcp-server.js");
+      const { startHeartbeat } = await import("../../shared/heartbeat.js");
+
+      vi.mocked(startHeartbeat).mockClear();
+      mockHeartbeatStop.mockClear();
+
+      const { DiscoverMcpServerCapabilities } = createDiscoverMcpServerActivities(makeConfig());
+      try {
+        await DiscoverMcpServerCapabilities({ mcpServerId: "test" });
+      } catch {
+        // Expected — no real backend behind the factory's own client.
+      }
+
+      expect(startHeartbeat).toHaveBeenCalledTimes(1);
+      expect(mockHeartbeatStop).toHaveBeenCalledTimes(1);
     });
   });
 

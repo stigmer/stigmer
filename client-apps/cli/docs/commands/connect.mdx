@@ -96,13 +96,18 @@ the Stigmer backend.
 stigmer connect mcp-server stigmer/mcp-server-stigmer
 ```
 
-### Handle slow-starting servers
+### Bound the wait
 
 ```bash
-stigmer connect mcp-server my-server --timeout 60s
+stigmer connect mcp-server my-server --timeout 90
 ```
 
-Increase the timeout for servers that take longer to initialize.
+The value is a number of seconds. `--timeout` always bounds `--dry-run`'s
+local discovery; for a real connect it bounds the wait only when set
+explicitly — the connect keeps running server-side and persists its result,
+so a timeout here means "stop waiting", not "the connect failed". Without an
+explicit `--timeout`, a real connect waits for the server to finish (sandbox
+start, discovery, and tool classification can take a few minutes).
 
 {/* AUTO_GLOBAL_FLAGS */}
 

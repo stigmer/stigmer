@@ -16,7 +16,7 @@ import type { DiscoveredCapabilities } from "@stigmer/protos/ai/stigmer/agentic/
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import type { BackendType } from "../../config/config.js";
-import { UsageError } from "../../errors/index.js";
+import { CliExitError, ExitCode, UsageError } from "../../errors/index.js";
 import { defaultRegistry } from "../../registry/index.js";
 import { PlaceholderResolutionError } from "../mcp/placeholder-resolver.js";
 import { buildRuntimeEnv } from "../mcp/runtime-env.js";
@@ -27,6 +27,15 @@ export interface ConnectOptions {
   readonly reference: string;
   readonly org: string;
   readonly timeoutMs: number;
+  /**
+   * Bound the wait on the server-side connect RPC. Unset by default: a real
+   * connect legitimately takes minutes (sandbox boot + discovery + tool
+   * classification), so only an EXPLICIT --timeout bounds it — the flag's
+   * 30s default is sized for --dry-run's local discovery and would fail
+   * healthy connects. The bound is soft (the CLI stops waiting; the backend
+   * finishes the connect on its own).
+   */
+  readonly pushTimeoutMs?: number;
   readonly dryRun: boolean;
   readonly envOverrides: readonly string[];
   /** Backend type, for resolving the OAuth web-console URL. */
@@ -66,14 +75,51 @@ export async function connectMcpServer(client: Stigmer, opts: ConnectOptions): P
 
   await ensureOAuthSatisfied(client, server, opts);
 
-  const updated = await client.mcpServer.connect(
+  const push = client.mcpServer.connect(
     create(ConnectInputSchema, {
       mcpServerId: server.metadata?.id ?? "",
       org: opts.org,
       runtimeEnv: buildRuntimeEnv(server, opts.envOverrides),
     }),
   );
+  const updated = opts.pushTimeoutMs === undefined
+    ? await push
+    : await boundedPush(push, opts.pushTimeoutMs, server);
   return { server, capabilities: updated.status?.discoveredCapabilities, updated };
+}
+
+// Soft timeout on the server-side connect (the client/client.ts idiom): races
+// the RPC against a timer without cancelling it — the backend's connect
+// workflow keeps running and persists its result on its own, so the message
+// says exactly that instead of implying the connect failed.
+async function boundedPush<T>(push: Promise<T>, timeoutMs: number, server: McpServer): Promise<T> {
+  const slug = server.metadata?.slug ?? server.metadata?.id ?? "the server";
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () =>
+        reject(
+          new CliExitError(
+            `Stopped waiting for the connect of MCP server '${slug}' after ${timeoutMs / 1000}s (--timeout)`,
+            ExitCode.Connection,
+            [
+              "The server-side connect is still running and will persist its result if it succeeds.",
+              `Check the outcome with: stigmer get mcp-server ${slug}`,
+              "Re-run without --timeout to wait for completion.",
+            ],
+          ),
+        ),
+      timeoutMs,
+    );
+  });
+  // The losing push may settle after the CLI has started exiting; swallow its
+  // late rejection so it cannot surface as an unhandled-rejection crash.
+  void push.catch(() => {});
+  try {
+    return await Promise.race([push, timeout]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
 }
 
 // Resolve a reference (id, org/slug, or bare slug) to an McpServer. Mirrors Go's
