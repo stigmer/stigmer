@@ -49,6 +49,7 @@ go_test(
         "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/libs/go/store",
         "//backend/libs/go/store/sqlite",
+        "//backend/services/stigmer-server/pkg/domain/environment/controller/steps",
         "//backend/services/stigmer-server/pkg/encryption",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",

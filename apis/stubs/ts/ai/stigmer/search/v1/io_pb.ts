@@ -44,12 +44,12 @@ export type SearchRequest = Message<"ai.stigmer.search.v1.SearchRequest"> & {
    *
    * Behavior:
    * - Empty: Search all searchable kinds (discover mode)
-   *   Searchable kinds: agent, skill, mcp_server, workflow
    * - Single kind: Search only that resource type
    * - Multiple kinds: Search specified types
    *
-   * @internal
-   * Invalid kinds are silently ignored (allows forward compatibility).
+   * The searchable set is edition-defined (the cloud and open-source servers
+   * each publish their own); kinds outside it are silently ignored
+   * (allows forward compatibility).
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1;
    */

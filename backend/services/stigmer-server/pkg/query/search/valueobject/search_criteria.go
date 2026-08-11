@@ -26,10 +26,16 @@ const (
 //
 // Must stay in step with the extractor registry (pkg/query/search/extractor):
 // a kind indexed on write but absent here is silently unqueryable — the
-// datastore Library list and the CLI's search-backed `list environment`
-// depend on their entries. agent_channel and channel_app are deliberately
-// absent (not_search_indexed by design; the CLI lists them via their
-// dedicated query RPCs).
+// datastore Library list, the CLI's search-backed `list environment`, and
+// the React SDK's useSessionSearch hook depend on their entries.
+// agent_channel and channel_app are deliberately absent (not_search_indexed
+// by design; the CLI lists them via their dedicated query RPCs).
+//
+// TestSearchableKinds_CoverSearchIndexedProtoKinds pins this map against the
+// proto kind registry's not_search_indexed annotation: adding an extractor
+// for a new kind without deciding its entry here fails the suite instead of
+// shipping a silently-empty read path (the defect environment, project, and
+// session each shipped with).
 var SearchableKinds = map[apiresourcekind.ApiResourceKind]bool{
 	apiresourcekind.ApiResourceKind_agent:       true,
 	apiresourcekind.ApiResourceKind_skill:       true,
@@ -38,6 +44,7 @@ var SearchableKinds = map[apiresourcekind.ApiResourceKind]bool{
 	apiresourcekind.ApiResourceKind_project:     true,
 	apiresourcekind.ApiResourceKind_datastore:   true,
 	apiresourcekind.ApiResourceKind_environment: true,
+	apiresourcekind.ApiResourceKind_session:     true,
 }
 
 // SearchCriteria is an immutable value object encapsulating all search parameters.
@@ -48,9 +55,9 @@ var SearchableKinds = map[apiresourcekind.ApiResourceKind]bool{
 //   - Search mode: Query provided with specific kind(s), sorted by relevance
 //   - Discover mode: Query provided with no kinds (searches all), sorted by relevance
 //
-// Only searchable resource kinds (agent, skill, mcp_server, workflow,
-// project, datastore, environment) are accepted. Other kinds are silently
-// filtered out for forward compatibility.
+// Only kinds present in SearchableKinds are accepted (that map is the
+// single source of truth — enumerating it here rotted twice). Other kinds
+// are silently filtered out for forward compatibility.
 type SearchCriteria struct {
 	kinds          []apiresourcekind.ApiResourceKind
 	query          string

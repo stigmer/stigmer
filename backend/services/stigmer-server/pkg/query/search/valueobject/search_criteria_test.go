@@ -74,8 +74,12 @@ func TestNewSearchCriteria_QueryAtMaxLength(t *testing.T) {
 func TestNewSearchCriteria_FiltersNonSearchableKinds(t *testing.T) {
 	kinds := []apiresourcekind.ApiResourceKind{
 		apiresourcekind.ApiResourceKind_agent,
-		apiresourcekind.ApiResourceKind_session,         // Not searchable
-		apiresourcekind.ApiResourceKind_agent_execution, // Not searchable
+		// session is searchable: the React SDK's useSessionSearch hook lists
+		// sessions through the SearchService (kinds=[session], list mode) and
+		// silently rendered empty while this filter dropped the kind
+		// (stigmer/stigmer#310 — the same defect class as environment/project).
+		apiresourcekind.ApiResourceKind_session,
+		apiresourcekind.ApiResourceKind_agent_execution, // Not searchable (read-side decision pending)
 		apiresourcekind.ApiResourceKind_skill,
 		// environment and project are searchable: the CLI's search-backed
 		// `list environment` / `list project` depend on them passing this
@@ -96,9 +100,9 @@ func TestNewSearchCriteria_FiltersNonSearchableKinds(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Should only contain agent, skill, environment, and project
-	if len(criteria.Kinds()) != 4 {
-		t.Errorf("expected 4 kinds after filtering, got %d", len(criteria.Kinds()))
+	// Should only contain agent, session, skill, environment, and project
+	if len(criteria.Kinds()) != 5 {
+		t.Errorf("expected 5 kinds after filtering, got %d", len(criteria.Kinds()))
 	}
 
 	kindsMap := make(map[apiresourcekind.ApiResourceKind]bool)
@@ -117,6 +121,12 @@ func TestNewSearchCriteria_FiltersNonSearchableKinds(t *testing.T) {
 	}
 	if !kindsMap[apiresourcekind.ApiResourceKind_project] {
 		t.Error("expected project kind to be present (search-backed list depends on it)")
+	}
+	if !kindsMap[apiresourcekind.ApiResourceKind_session] {
+		t.Error("expected session kind to be present (useSessionSearch depends on it)")
+	}
+	if kindsMap[apiresourcekind.ApiResourceKind_agent_execution] {
+		t.Error("expected agent_execution to be filtered out (read-side decision pending)")
 	}
 	if kindsMap[apiresourcekind.ApiResourceKind_agent_channel] {
 		t.Error("expected agent_channel to be filtered out (not_search_indexed by design)")

@@ -45,13 +45,13 @@ type SearchRequest struct {
 	// Resource kinds to search.
 	//
 	// Behavior:
-	//   - Empty: Search all searchable kinds (discover mode)
-	//     Searchable kinds: agent, skill, mcp_server, workflow
-	//   - Single kind: Search only that resource type
-	//   - Multiple kinds: Search specified types
+	// - Empty: Search all searchable kinds (discover mode)
+	// - Single kind: Search only that resource type
+	// - Multiple kinds: Search specified types
 	//
-	// @internal
-	// Invalid kinds are silently ignored (allows forward compatibility).
+	// The searchable set is edition-defined (the cloud and open-source servers
+	// each publish their own); kinds outside it are silently ignored
+	// (allows forward compatibility).
 	Kinds []apiresourcekind.ApiResourceKind `protobuf:"varint,1,rep,packed,name=kinds,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind" json:"kinds,omitempty"`
 	// Text query for full-text search.
 	//
