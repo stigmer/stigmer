@@ -53,10 +53,15 @@ const EPOCH = new Date(0);
  * recent sessions and workflow executions in a single call.
  *
  * The server handles:
- * - FGA authorization filtering (or org-scoped fast path)
+ * - Per-resource authorization filtering (hosted edition: FGA `can_view`
+ *   enumeration — every listed entry is openable by the caller; the org
+ *   only narrows the authorized set, never widens it)
  * - Cross-collection merge-sort by `statusAudit.updatedAt`
  * - Fallback to `specAudit.createdAt` for documents without status updates
  * - Pagination / trimming to the requested page size
+ *
+ * The OSS server does not implement this RPC yet (stigmer#461): against a
+ * pure OSS backend the fetch rejects and `error` is surfaced to the caller.
  */
 export function useRecentActivity(
   options?: UseRecentActivityOptions,

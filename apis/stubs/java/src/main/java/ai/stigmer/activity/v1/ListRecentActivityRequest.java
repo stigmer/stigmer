@@ -75,14 +75,18 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Organization slug to scope the query.
    *
-   * When provided, the handler attempts an org-scoped fast path: if the
-   * caller is a member of this organization, it queries MongoDB directly
-   * with `metadata.org = org` instead of enumerating per-resource FGA
-   * tuples. This turns an O(n) FGA reverse-index scan into a single
-   * membership check + indexed MongoDB query.
+   * When provided, results are narrowed to resources in this organization.
+   * The org NEVER widens visibility: per-resource read authority is always
+   * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
+   * and the org filter only intersects that authorized set. Both recents
+   * kinds are private by default — sessions are personal resources and
+   * workflow executions opt in to org observability per instance — so org
+   * membership alone must never substitute for the per-resource check. An
+   * earlier "org member = query by org directly" fast path leaked session
+   * titles to every org member (stigmer-cloud#258).
    *
-   * When empty, falls back to per-resource FGA enumeration (slower but
-   * works regardless of org context).
+   * When empty, results span every organization the caller has resource
+   * access in.
    * </pre>
    *
    * <code>string org = 2 [json_name = "org"];</code>
@@ -105,14 +109,18 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Organization slug to scope the query.
    *
-   * When provided, the handler attempts an org-scoped fast path: if the
-   * caller is a member of this organization, it queries MongoDB directly
-   * with `metadata.org = org` instead of enumerating per-resource FGA
-   * tuples. This turns an O(n) FGA reverse-index scan into a single
-   * membership check + indexed MongoDB query.
+   * When provided, results are narrowed to resources in this organization.
+   * The org NEVER widens visibility: per-resource read authority is always
+   * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
+   * and the org filter only intersects that authorized set. Both recents
+   * kinds are private by default — sessions are personal resources and
+   * workflow executions opt in to org observability per instance — so org
+   * membership alone must never substitute for the per-resource check. An
+   * earlier "org member = query by org directly" fast path leaked session
+   * titles to every org member (stigmer-cloud#258).
    *
-   * When empty, falls back to per-resource FGA enumeration (slower but
-   * works regardless of org context).
+   * When empty, results span every organization the caller has resource
+   * access in.
    * </pre>
    *
    * <code>string org = 2 [json_name = "org"];</code>
@@ -503,14 +511,18 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Organization slug to scope the query.
      *
-     * When provided, the handler attempts an org-scoped fast path: if the
-     * caller is a member of this organization, it queries MongoDB directly
-     * with `metadata.org = org` instead of enumerating per-resource FGA
-     * tuples. This turns an O(n) FGA reverse-index scan into a single
-     * membership check + indexed MongoDB query.
+     * When provided, results are narrowed to resources in this organization.
+     * The org NEVER widens visibility: per-resource read authority is always
+     * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
+     * and the org filter only intersects that authorized set. Both recents
+     * kinds are private by default — sessions are personal resources and
+     * workflow executions opt in to org observability per instance — so org
+     * membership alone must never substitute for the per-resource check. An
+     * earlier "org member = query by org directly" fast path leaked session
+     * titles to every org member (stigmer-cloud#258).
      *
-     * When empty, falls back to per-resource FGA enumeration (slower but
-     * works regardless of org context).
+     * When empty, results span every organization the caller has resource
+     * access in.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org"];</code>
@@ -532,14 +544,18 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Organization slug to scope the query.
      *
-     * When provided, the handler attempts an org-scoped fast path: if the
-     * caller is a member of this organization, it queries MongoDB directly
-     * with `metadata.org = org` instead of enumerating per-resource FGA
-     * tuples. This turns an O(n) FGA reverse-index scan into a single
-     * membership check + indexed MongoDB query.
+     * When provided, results are narrowed to resources in this organization.
+     * The org NEVER widens visibility: per-resource read authority is always
+     * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
+     * and the org filter only intersects that authorized set. Both recents
+     * kinds are private by default — sessions are personal resources and
+     * workflow executions opt in to org observability per instance — so org
+     * membership alone must never substitute for the per-resource check. An
+     * earlier "org member = query by org directly" fast path leaked session
+     * titles to every org member (stigmer-cloud#258).
      *
-     * When empty, falls back to per-resource FGA enumeration (slower but
-     * works regardless of org context).
+     * When empty, results span every organization the caller has resource
+     * access in.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org"];</code>
@@ -562,14 +578,18 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Organization slug to scope the query.
      *
-     * When provided, the handler attempts an org-scoped fast path: if the
-     * caller is a member of this organization, it queries MongoDB directly
-     * with `metadata.org = org` instead of enumerating per-resource FGA
-     * tuples. This turns an O(n) FGA reverse-index scan into a single
-     * membership check + indexed MongoDB query.
+     * When provided, results are narrowed to resources in this organization.
+     * The org NEVER widens visibility: per-resource read authority is always
+     * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
+     * and the org filter only intersects that authorized set. Both recents
+     * kinds are private by default — sessions are personal resources and
+     * workflow executions opt in to org observability per instance — so org
+     * membership alone must never substitute for the per-resource check. An
+     * earlier "org member = query by org directly" fast path leaked session
+     * titles to every org member (stigmer-cloud#258).
      *
-     * When empty, falls back to per-resource FGA enumeration (slower but
-     * works regardless of org context).
+     * When empty, results span every organization the caller has resource
+     * access in.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org"];</code>
@@ -588,14 +608,18 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Organization slug to scope the query.
      *
-     * When provided, the handler attempts an org-scoped fast path: if the
-     * caller is a member of this organization, it queries MongoDB directly
-     * with `metadata.org = org` instead of enumerating per-resource FGA
-     * tuples. This turns an O(n) FGA reverse-index scan into a single
-     * membership check + indexed MongoDB query.
+     * When provided, results are narrowed to resources in this organization.
+     * The org NEVER widens visibility: per-resource read authority is always
+     * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
+     * and the org filter only intersects that authorized set. Both recents
+     * kinds are private by default — sessions are personal resources and
+     * workflow executions opt in to org observability per instance — so org
+     * membership alone must never substitute for the per-resource check. An
+     * earlier "org member = query by org directly" fast path leaked session
+     * titles to every org member (stigmer-cloud#258).
      *
-     * When empty, falls back to per-resource FGA enumeration (slower but
-     * works regardless of org context).
+     * When empty, results span every organization the caller has resource
+     * access in.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org"];</code>
@@ -611,14 +635,18 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Organization slug to scope the query.
      *
-     * When provided, the handler attempts an org-scoped fast path: if the
-     * caller is a member of this organization, it queries MongoDB directly
-     * with `metadata.org = org` instead of enumerating per-resource FGA
-     * tuples. This turns an O(n) FGA reverse-index scan into a single
-     * membership check + indexed MongoDB query.
+     * When provided, results are narrowed to resources in this organization.
+     * The org NEVER widens visibility: per-resource read authority is always
+     * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
+     * and the org filter only intersects that authorized set. Both recents
+     * kinds are private by default — sessions are personal resources and
+     * workflow executions opt in to org observability per instance — so org
+     * membership alone must never substitute for the per-resource check. An
+     * earlier "org member = query by org directly" fast path leaked session
+     * titles to every org member (stigmer-cloud#258).
      *
-     * When empty, falls back to per-resource FGA enumeration (slower but
-     * works regardless of org context).
+     * When empty, results span every organization the caller has resource
+     * access in.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org"];</code>

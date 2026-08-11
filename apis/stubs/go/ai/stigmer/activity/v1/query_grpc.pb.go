@@ -42,11 +42,16 @@ type ActivityQueryControllerClient interface {
 	// List recent activity across sessions and workflow executions.
 	//
 	// Returns a merged, time-sorted list of the caller's most recent
-	// sessions and workflow executions. Authorization filtering is applied
-	// server-side via FGA (cloud) or returned unfiltered (OSS).
+	// sessions and workflow executions. On the hosted edition, per-resource
+	// authorization filtering is applied server-side (FGA `can_view`
+	// enumeration for both kinds — the same permission the per-kind `get`
+	// RPCs enforce, so every listed entry is openable by construction). The
+	// OSS server does not currently implement this RPC (stigmer#461).
 	//
 	// @internal
-	// Authorization is handled in-handler via FGA-filtered queries.
+	// Authorization is handled in-handler: the FGA id enumeration is the only
+	// gate (hence is_skip_authorization); the request's org merely narrows
+	// the authorized set.
 	ListRecentActivity(ctx context.Context, in *ListRecentActivityRequest, opts ...grpc.CallOption) (*ListRecentActivityResponse, error)
 }
 
@@ -88,11 +93,16 @@ type ActivityQueryControllerServer interface {
 	// List recent activity across sessions and workflow executions.
 	//
 	// Returns a merged, time-sorted list of the caller's most recent
-	// sessions and workflow executions. Authorization filtering is applied
-	// server-side via FGA (cloud) or returned unfiltered (OSS).
+	// sessions and workflow executions. On the hosted edition, per-resource
+	// authorization filtering is applied server-side (FGA `can_view`
+	// enumeration for both kinds — the same permission the per-kind `get`
+	// RPCs enforce, so every listed entry is openable by construction). The
+	// OSS server does not currently implement this RPC (stigmer#461).
 	//
 	// @internal
-	// Authorization is handled in-handler via FGA-filtered queries.
+	// Authorization is handled in-handler: the FGA id enumeration is the only
+	// gate (hence is_skip_authorization); the request's org merely narrows
+	// the authorized set.
 	ListRecentActivity(context.Context, *ListRecentActivityRequest) (*ListRecentActivityResponse, error)
 }
 
