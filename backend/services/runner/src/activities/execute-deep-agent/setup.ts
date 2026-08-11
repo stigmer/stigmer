@@ -37,7 +37,9 @@ import { mergeMcpServerUsages, resolveMcpServers } from "../../shared/mcp-resolv
 import { resolveMcpTransportPosture } from "../../shared/mcp-transport-guard.js";
 import { backfillMcpServersIfNeeded } from "../../shared/connect-backfill.js";
 import {
+  DATASTORE_ATTACHMENT_SLUG,
   formatDatastoresSection,
+  missingRecordTools,
   synthesizeDatastoreAttachment,
 } from "../../shared/datastore-attachment.js";
 import {
@@ -127,6 +129,16 @@ export interface SetupResult {
   readonly session: Session;
   readonly workspaceBackend: WorkspaceBackend;
   readonly mcpConnection: McpConnectionResult | null;
+  /**
+   * Record tools declared via datastore_usages but absent from the connected
+   * stigmer-records roster this turn (issue #325). Empty = healthy (also when
+   * the agent uses no datastores). Non-empty selects the degraded prompt
+   * section in Step 8, and the activity surfaces it to operators as a
+   * MESSAGE_SYSTEM row — the vision-facts pattern: setup computes the honest
+   * struct, the caller discloses. Recomputed every turn, so a healed outage
+   * stops disclosing on the next turn.
+   */
+  readonly datastoreToolsMissing: readonly string[];
   readonly mergedEnvVars: Record<string, string>;
   readonly secretKeys: ReadonlySet<string>;
   readonly modelName: string;
@@ -573,6 +585,28 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     }
     timing.mark("inject_attachments");
 
+    // Reconcile the declared datastores against the record tools actually
+    // connected (issue #325): the records roster always serves all five
+    // tools, so any absence means the store is degraded, and the prompt
+    // must say so instead of promising tools the agent does not have. The
+    // connected roster is post-connect truth — when usages exist, MCP
+    // connect always ran above (a thrown connect already failed the run).
+    const datastoreToolsMissing = datastoreUsages.length > 0 && mcpConnection
+      ? missingRecordTools(
+          (mcpConnection.serverToolMap[DATASTORE_ATTACHMENT_SLUG] ?? [])
+            .map((t) => t.name),
+        )
+      : [];
+    if (datastoreToolsMissing.length > 0) {
+      console.warn(
+        `[setup] Datastore record tools degraded: declared ` +
+        `${datastoreUsages.length} datastore usage(s) but the ` +
+        `'${DATASTORE_ATTACHMENT_SLUG}' roster is missing ` +
+        `[${datastoreToolsMissing.join(", ")}] — the prompt discloses the ` +
+        `outage instead of the available-datastores section.`,
+      );
+    }
+
     // Step 8: Build enhanced system prompt
     const systemPrompt = buildEnhancedSystemPrompt({
       instructions,
@@ -580,7 +614,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       containerRoot: workspaceBackend.rootDir,
       skillsPromptSection,
       datastoresPromptSection: datastoreUsages.length > 0
-        ? formatDatastoresSection(datastoreUsages)
+        ? formatDatastoresSection(datastoreUsages, datastoreToolsMissing)
         : undefined,
       // "" (nothing sendable) threads as undefined: the tool alone still
       // serves text sends inside a 24-hour window (DD-006 D6).
@@ -894,6 +928,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       session,
       workspaceBackend,
       mcpConnection,
+      datastoreToolsMissing,
       mergedEnvVars: envResult.mergedEnvVars,
       secretKeys: envResult.secretKeys,
       modelName,

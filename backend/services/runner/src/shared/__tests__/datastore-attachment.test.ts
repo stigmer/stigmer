@@ -13,7 +13,10 @@ import { mergeApprovalPolicies, type ActiveLeases } from "../approval-policy.js"
 import { needsBackfill } from "../connect-backfill.js";
 import {
   DATASTORE_ATTACHMENT_SLUG,
+  EXPECTED_RECORD_TOOLS,
+  formatDatastoreDegradationNotice,
   formatDatastoresSection,
+  missingRecordTools,
   synthesizeDatastoreAttachment,
 } from "../datastore-attachment.js";
 import { injectSynthesizedAttachment } from "../synthesized-attachment.js";
@@ -183,6 +186,45 @@ describe("injectSynthesizedAttachment (the shared injection path)", () => {
   });
 });
 
+describe("EXPECTED_RECORD_TOOLS", () => {
+  it("pins the records-roster contract: exactly the five tools the mcp-server registers", () => {
+    // Drift pin (issue #325): the reconciliation treats ANY of these as
+    // mandatory because mcp-server/src/domains/records/tools.ts registers
+    // all five unconditionally for the agent audience. If a record tool is
+    // ever added, removed, or renamed there, this pin forces the reviewer
+    // to update the roster contract deliberately in both places.
+    expect([...EXPECTED_RECORD_TOOLS]).toEqual([
+      "describe_datastore",
+      "find_records",
+      "insert_record",
+      "update_record",
+      "delete_record",
+    ]);
+  });
+});
+
+describe("missingRecordTools", () => {
+  it("returns empty when all five record tools are connected", () => {
+    expect(missingRecordTools([...EXPECTED_RECORD_TOOLS])).toEqual([]);
+  });
+
+  it("returns every expected tool when the roster is empty", () => {
+    expect(missingRecordTools([])).toEqual([...EXPECTED_RECORD_TOOLS]);
+  });
+
+  it("returns only the absent tools on a partial roster", () => {
+    expect(
+      missingRecordTools(["describe_datastore", "find_records", "insert_record"]),
+    ).toEqual(["update_record", "delete_record"]);
+  });
+
+  it("ignores extraneous tool names", () => {
+    expect(
+      missingRecordTools([...EXPECTED_RECORD_TOOLS, "some_other_tool"]),
+    ).toEqual([]);
+  });
+});
+
 describe("formatDatastoresSection", () => {
   it("names the attached datastores and points at describe_datastore first", () => {
     const section = formatDatastoresSection([usage("clinic"), usage("inventory")]);
@@ -191,5 +233,61 @@ describe("formatDatastoresSection", () => {
     expect(section).toContain("- inventory");
     expect(section).toContain("describe_datastore");
     expect(section).toContain("</available_datastores>");
+  });
+
+  it("carries the standing failure-disclosure instruction in the healthy section", () => {
+    // The only mechanism covering tools that connected but fail at call
+    // time (the WhatsApp-pilot outage shape), and the Cursor harness's
+    // entire coverage — that harness can never observe the live roster.
+    const section = formatDatastoresSection([usage("clinic")]);
+    expect(section).toContain("the datastore is unreachable");
+    expect(section).toContain("do not answer from memory");
+  });
+
+  it("advertises exactly the expected record tools (no hand-written drift)", () => {
+    const section = formatDatastoresSection([usage("clinic")]);
+    for (const tool of EXPECTED_RECORD_TOOLS) {
+      expect(section).toContain(tool);
+    }
+  });
+
+  it("renders the degraded section instead when record tools are missing", () => {
+    const section = formatDatastoresSection(
+      [usage("clinic")],
+      ["find_records", "insert_record"],
+    );
+    // Must NOT promise tools the agent does not have — the issue's core
+    // complaint (oss#325).
+    expect(section).not.toContain("<available_datastores>");
+    expect(section).toContain("<unavailable_datastores>");
+    expect(section).toContain("find_records, insert_record.");
+    expect(section).toContain("- clinic");
+    expect(section).toContain("cannot be reached right now");
+    expect(section).toContain("Never answer");
+    expect(section).toContain("</unavailable_datastores>");
+  });
+
+  it("renders healthy when the missing list is empty (negative control)", () => {
+    const section = formatDatastoresSection([usage("clinic")], []);
+    expect(section).toContain("<available_datastores>");
+    expect(section).not.toContain("<unavailable_datastores>");
+  });
+});
+
+describe("formatDatastoreDegradationNotice", () => {
+  it("states declared count, connected fraction, and the missing tools", () => {
+    const notice = formatDatastoreDegradationNotice(2, [
+      "update_record",
+      "delete_record",
+    ]);
+    expect(notice).toContain("declared 2 datastore(s)");
+    expect(notice).toContain("3/5 record tools connected");
+    expect(notice).toContain("missing: update_record, delete_record");
+    expect(notice).toContain("instructed to disclose");
+  });
+
+  it("reads 0/5 on a fully absent roster", () => {
+    const notice = formatDatastoreDegradationNotice(1, [...EXPECTED_RECORD_TOOLS]);
+    expect(notice).toContain("0/5 record tools connected");
   });
 });

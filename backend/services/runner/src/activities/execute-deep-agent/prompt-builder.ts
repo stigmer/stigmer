@@ -100,8 +100,11 @@ export interface PromptBuilderInput {
   containerRoot: string;
   skillsPromptSection: string;
   /**
-   * The `<available_datastores>` section (shared/datastore-attachment.ts
-   * formatDatastoresSection); empty when the agent uses no datastores.
+   * The datastores section (shared/datastore-attachment.ts
+   * formatDatastoresSection): `<available_datastores>` when the connected
+   * record-tool roster is complete, `<unavailable_datastores>` when setup's
+   * reconciliation found record tools missing (issue #325). Empty when the
+   * agent uses no datastores.
    */
   datastoresPromptSection?: string;
   /**

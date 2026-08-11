@@ -90,7 +90,10 @@ export interface EnhancedPromptOptions {
   /**
    * Datastores attached via `datastore_usages` — rendered as the
    * `<available_datastores>` section (DD-005 SD-5, skills precedent)
-   * pointing the model at the synthesized record tools.
+   * pointing the model at the synthesized record tools. Always the healthy
+   * rendering here: the Cursor SDK connects MCP itself, so this harness can
+   * never observe the live roster — the section's standing
+   * failure-disclosure instruction is its whole coverage (issue #325).
    */
   datastoreUsages?: DatastoreUsage[];
   /**
