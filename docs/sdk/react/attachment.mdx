@@ -322,11 +322,14 @@ function prepareImageForVision(file: File): Promise<File>
 Returns `name` unchanged when it is not in `taken`, otherwise the first
 free `stem-2.ext`, `stem-3.ext`, … variant.
 
-Duplicate filenames within one turn are not a cosmetic problem:
-attachments materialize at `.stigmer/inputs/{filename}`, where the
-deep-agent harness fails the whole execution on a mount-path collision
-and the Cursor harness silently overwrites the earlier file. A visible
-rename on the attachment chip is strictly better than either outcome.
+Attachments materialize at `.stigmer/inputs/{filename}`, so duplicate
+names within one turn contend for one path. The runner resolves that with
+this same rename (backend/services/runner/src/shared/attachment-naming.ts,
+a byte-for-byte twin kept in sync by hand — the packages share no
+dependency), disclosed to the agent in the prompt. Renaming client-side
+as well keeps the chip, the uploaded bytes, and the mounted file all
+agreeing on one visible name — strictly better UX than a server-side
+rename the user only discovers in the transcript.
 
 ```tsx
 function uniquifyFilename(name: string, taken: ReadonlySet<string>): string
