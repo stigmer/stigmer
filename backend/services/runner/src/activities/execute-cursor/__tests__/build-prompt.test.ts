@@ -47,7 +47,7 @@ function input(overrides: Partial<BuildPromptInput>): BuildPromptInput {
     subAgents: [],
     workspaceDirs: ["/tmp/ws"],
     workspaceFileRefs: [],
-    attachmentPaths: [],
+    attachments: [],
     pendingApprovals: [],
     ...overrides,
   };
@@ -269,12 +269,29 @@ describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)"
 
   it("announces this turn's attachments to a resumed agent (per-execution value, never inherited)", () => {
     const prompt = buildPrompt(
-      input({ ...RESUMED, attachmentPaths: [".stigmer/inputs/lease.pdf"] }),
+      input({ ...RESUMED, attachments: [{ path: ".stigmer/inputs/lease.pdf" }] }),
     );
     expect(prompt).toContain("<input_files>");
     expect(prompt).toContain("`.stigmer/inputs/lease.pdf`");
     // The user message stays last — the section is a prefix.
     expect(prompt.endsWith(USER_MESSAGE)).toBe(true);
+  });
+
+  it("discloses a duplicate-renamed attachment's original name (issue #364)", () => {
+    const prompt = buildPrompt(
+      input({
+        ...RESUMED,
+        attachments: [
+          { path: ".stigmer/inputs/report.pdf" },
+          { path: ".stigmer/inputs/report-2.pdf", renamedFrom: "report.pdf" },
+        ],
+      }),
+    );
+    expect(prompt).toContain(
+      "- `.stigmer/inputs/report-2.pdf` (renamed from duplicate 'report.pdf')",
+    );
+    // The first file keeps a clean entry — no disclosure noise.
+    expect(prompt).toContain("- `.stigmer/inputs/report.pdf`\n");
   });
 
   it("keeps a resumed turn WITHOUT attachments byte-identical to the raw message (regression guard)", () => {
@@ -286,7 +303,7 @@ describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)"
     const prompt = buildPrompt(
       input({
         ...RESUMED,
-        attachmentPaths: [".stigmer/inputs/photo.jpg"],
+        attachments: [{ path: ".stigmer/inputs/photo.jpg" }],
         conversationCatchup: "User also said hello on the channel.",
       }),
     );
@@ -300,7 +317,7 @@ describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)"
     const prompt = buildPrompt(
       input({
         ...RESUMED,
-        attachmentPaths: [".stigmer/inputs/a.jpg", ".stigmer/inputs/big.png"],
+        attachments: [{ path: ".stigmer/inputs/a.jpg" }, { path: ".stigmer/inputs/big.png" }],
         vision: {
           inlineFilenames: ["a.jpg"],
           notViewable: [{ path: ".stigmer/inputs/big.png", reason: "too_large" }],
@@ -316,7 +333,7 @@ describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)"
     const prompt = buildPrompt(
       input({
         resolution: resolution("local", "created_first_execution"),
-        attachmentPaths: [".stigmer/inputs/a.jpg"],
+        attachments: [{ path: ".stigmer/inputs/a.jpg" }],
         vision: { inlineFilenames: ["a.jpg"], notViewable: [] },
       }),
     );
@@ -336,7 +353,7 @@ describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)"
             message: "Write file: gated.txt",
           }),
         ],
-        attachmentPaths: [".stigmer/inputs/photo.jpg"],
+        attachments: [{ path: ".stigmer/inputs/photo.jpg" }],
         vision: { inlineFilenames: ["photo.jpg"], notViewable: [] },
       }),
     );
@@ -543,7 +560,10 @@ describe("formatImplementPlanSection", () => {
   const PLAN_PATH = ".stigmer/inputs/plan.md";
 
   it("wraps the attached-plan directive when the plan is among the attachments", () => {
-    const section = formatImplementPlanSection(true, [PLAN_PATH, ".stigmer/inputs/data.csv"]);
+    const section = formatImplementPlanSection(true, [
+      { path: PLAN_PATH },
+      { path: ".stigmer/inputs/data.csv" },
+    ]);
 
     expect(section).toBeDefined();
     expect(section!.startsWith("<implement_plan>")).toBe(true);
@@ -553,7 +573,9 @@ describe("formatImplementPlanSection", () => {
   });
 
   it("falls back to the conversation-plan directive when no plan attachment resolved", () => {
-    const section = formatImplementPlanSection(true, [".stigmer/inputs/data.csv"]);
+    const section = formatImplementPlanSection(true, [
+      { path: ".stigmer/inputs/data.csv" },
+    ]);
 
     expect(section).toBeDefined();
     expect(section).not.toContain("plan.md");
@@ -561,12 +583,12 @@ describe("formatImplementPlanSection", () => {
   });
 
   it("returns undefined for an ordinary (non-build) execution", () => {
-    expect(formatImplementPlanSection(false, [PLAN_PATH])).toBeUndefined();
-    expect(formatImplementPlanSection(undefined, [PLAN_PATH])).toBeUndefined();
+    expect(formatImplementPlanSection(false, [{ path: PLAN_PATH }])).toBeUndefined();
+    expect(formatImplementPlanSection(undefined, [{ path: PLAN_PATH }])).toBeUndefined();
   });
 
   it("carries the plan-derived progress-tracking instruction (Tier 3)", () => {
-    const section = formatImplementPlanSection(true, [PLAN_PATH]);
+    const section = formatImplementPlanSection(true, [{ path: PLAN_PATH }]);
 
     expect(section).toContain("to-do list");
     expect(section).toContain("break the plan into");
@@ -577,7 +599,7 @@ describe("formatImplementPlanSection", () => {
       input({
         resolution: resolution("local", "created_first_execution"),
         buildFromPlan: true,
-        attachmentPaths: [PLAN_PATH],
+        attachments: [{ path: PLAN_PATH }],
       }),
     );
 
@@ -593,7 +615,7 @@ describe("formatImplementPlanSection", () => {
       input({
         resolution: resolution("local", "resumed_successfully"),
         buildFromPlan: true,
-        attachmentPaths: [PLAN_PATH],
+        attachments: [{ path: PLAN_PATH }],
       }),
     );
 
@@ -611,7 +633,7 @@ describe("formatImplementPlanSection", () => {
       input({
         resolution: resolution("local", "resumed_successfully"),
         buildFromPlan: false,
-        attachmentPaths: [PLAN_PATH],
+        attachments: [{ path: PLAN_PATH }],
       }),
     );
 

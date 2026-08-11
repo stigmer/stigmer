@@ -26,6 +26,7 @@ import {
   buildImplementPlanDirective,
   findApprovedPlanPath,
 } from "../../shared/implement-plan-prompt.js";
+import type { InjectedFile } from "./attachment-injector.js";
 
 const RESPONSE_RULES = `
 
@@ -162,11 +163,10 @@ export interface PromptBuilderInput {
   sessionContext?: string;
 }
 
-export interface InjectedFile {
-  filename: string;
-  path: string;
-  size?: number | null;
-}
+// The prompt renders the injector's own result type — a local structural twin
+// once lived here and silently dropped the size field (`size` vs `sizeBytes`),
+// so the "(N bytes)" annotation never rendered. One type, one truth.
+export type { InjectedFile } from "./attachment-injector.js";
 
 /**
  * Which images ride the user message inline (in send order) and which
@@ -396,7 +396,7 @@ function buildReferencedFilesSection(
 }
 
 function buildInjectedFilesSection(
-  files: InjectedFile[],
+  files: readonly InjectedFile[],
   vision?: VisionPromptInfo,
 ): string {
   let section = "\n\n## Input Files\n\n";
@@ -410,8 +410,15 @@ function buildInjectedFilesSection(
     "Do NOT modify or delete these files.\n\n";
 
   for (const f of files) {
-    const sizeInfo = f.size != null ? ` (${f.size} bytes)` : "";
-    section += `- \`${f.path}\`${sizeInfo}\n`;
+    const sizeInfo = ` (${f.sizeBytes} bytes)`;
+    // A duplicate-renamed file (attachment-naming.ts) discloses its original
+    // name so the agent can connect "the two report.pdfs" in the user's
+    // message to distinct files on disk.
+    const renameInfo =
+      f.renamedFrom !== undefined
+        ? ` (renamed from duplicate '${f.renamedFrom}')`
+        : "";
+    section += `- \`${f.path}\`${sizeInfo}${renameInfo}\n`;
   }
 
   // The vision lines (shared wording, attachment-vision.ts) tell the model

@@ -798,7 +798,10 @@ async function executeCursorInner(
       storage: artifactStorage,
       visionBudget,
     });
-    const attachmentPaths = attachmentResults.map((a) => a.relativePath);
+    const attachmentEntries = attachmentResults.map((a) => ({
+      path: a.relativePath,
+      ...(a.renamedFrom !== undefined ? { renamedFrom: a.renamedFrom } : {}),
+    }));
     // Vision facts, derived once from the single resolution result: the
     // images the model will see inline (in attachment order) and the ones
     // that degraded to path-only, disclosed in the prompt.
@@ -1148,7 +1151,7 @@ async function executeCursorInner(
       subAgents: blueprint.subAgents,
       workspaceDirs: blueprint.workspaceDirs,
       workspaceFileRefs: spec.workspaceFileRefs ?? [],
-      attachmentPaths,
+      attachments: attachmentEntries,
       vision: visionPromptInfo,
       pendingApprovals: adjudicatedApprovals,
       appliedToolCallIds,
@@ -1806,7 +1809,7 @@ async function executeCursorInner(
             subAgents: blueprint.subAgents,
             workspaceDirs: blueprint.workspaceDirs,
             workspaceFileRefs: spec.workspaceFileRefs ?? [],
-            attachmentPaths,
+            attachments: attachmentEntries,
             vision: visionPromptInfo,
             pendingApprovals: adjudicatedApprovals,
             interactionMode,
@@ -2342,7 +2345,11 @@ export interface BuildPromptInput {
   subAgents: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent[];
   workspaceDirs: string[];
   workspaceFileRefs: string[];
-  attachmentPaths: string[];
+  /**
+   * This turn's resolved attachments for the `<input_files>` section —
+   * final paths plus duplicate-rename disclosure (attachment-resolver.ts).
+   */
+  attachments: import("./prompt-builder.js").AttachmentPromptEntry[];
   /**
    * Vision facts for the input-files section (T04): which attachments the
    * model sees inline and which degraded to path-only. PER-TURN like the
@@ -2435,7 +2442,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     subAgents,
     workspaceDirs,
     workspaceFileRefs,
-    attachmentPaths,
+    attachments,
     interactionMode,
     buildFromPlan,
     conversationCatchup,
@@ -2469,9 +2476,9 @@ export function buildPrompt(input: BuildPromptInput): string {
   if (resolution.reason === "resumed_successfully") {
     const prefixes = [
       formatInteractionModePrefix(interactionMode),
-      formatImplementPlanSection(buildFromPlan, attachmentPaths),
-      attachmentPaths.length > 0
-        ? formatInputFiles(attachmentPaths, input.vision)
+      formatImplementPlanSection(buildFromPlan, attachments),
+      attachments.length > 0
+        ? formatInputFiles(attachments, input.vision)
         : undefined,
       conversationCatchup !== undefined
         ? formatConversationCatchupSection(conversationCatchup)
@@ -2494,7 +2501,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     subAgents,
     workspaceDirs,
     workspaceFileRefs,
-    attachmentPaths,
+    attachments,
     vision: input.vision,
     interactionMode,
     buildFromPlan,

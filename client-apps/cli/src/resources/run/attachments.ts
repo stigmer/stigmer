@@ -55,6 +55,7 @@ export async function processAttachments(
   const workspaceFileRefs: string[] = [];
   if (paths.length === 0) return { attachments, workspaceFileRefs };
 
+  const takenDirNames = new Set<string>();
   for (const path of paths) {
     const rel = matchWorkspaceRoot(path, workspaceRoots);
     if (rel !== null) {
@@ -62,7 +63,7 @@ export async function processAttachments(
       workspaceFileRefs.push(rel);
       continue;
     }
-    attachments.push(await processFile(uploader, path, progress));
+    attachments.push(await processFile(uploader, path, takenDirNames, progress));
   }
 
   return { attachments, workspaceFileRefs };
@@ -90,7 +91,12 @@ function matchWorkspaceRoot(path: string, roots: readonly string[]): string | nu
 
 // Stat the path, then upload a file or zip+upload a directory. Mirrors Go's
 // processFile.
-async function processFile(uploader: AttachmentUploader, path: string, progress?: ProgressSink): Promise<Attachment> {
+async function processFile(
+  uploader: AttachmentUploader,
+  path: string,
+  takenDirNames: Set<string>,
+  progress?: ProgressSink,
+): Promise<Attachment> {
   let stat: ReturnType<typeof statSync>;
   try {
     stat = statSync(path);
@@ -100,7 +106,7 @@ async function processFile(uploader: AttachmentUploader, path: string, progress?
     throw new UsageError(`failed to stat attachment "${path}": ${e.message}`);
   }
 
-  if (stat.isDirectory()) return processDirectory(uploader, path, progress);
+  if (stat.isDirectory()) return processDirectory(uploader, path, takenDirNames, progress);
 
   const absPath = resolve(path);
   const filename = basenameOf(path);
@@ -113,9 +119,29 @@ async function processFile(uploader: AttachmentUploader, path: string, progress?
 
 // Zip a directory (extract=true so the runner unpacks it at mount_path) and
 // upload it as one archive. Mirrors Go's processDirectory.
-async function processDirectory(uploader: AttachmentUploader, path: string, progress?: ProgressSink): Promise<Attachment> {
+async function processDirectory(
+  uploader: AttachmentUploader,
+  path: string,
+  takenDirNames: Set<string>,
+  progress?: ProgressSink,
+): Promise<Attachment> {
   const absPath = resolve(path);
-  const dirname = basenameOf(absPath);
+  // Two same-named directories (`--attach a/data --attach b/data`) would
+  // derive the SAME explicit mount path, which the runner rejects as a user
+  // contradiction (attachment-injector.ts resolveMountPaths). The CLI derives
+  // these names mechanically from basenames, so it owns the rename — the same
+  // principle as the React composer's client-side uniquify (sdk/react
+  // attachment-utils.ts). Duplicate FILE attachments need no CLI handling:
+  // they carry no mountPath, so the runner renames them itself.
+  const requestedName = basenameOf(absPath);
+  const dirname = uniquifyDirName(requestedName, takenDirNames);
+  takenDirNames.add(dirname);
+  if (dirname !== requestedName) {
+    progress?.(
+      `Attaching second '${requestedName}/' as '${dirname}/' (a directory ` +
+        `named '${requestedName}' is already attached)`,
+    );
+  }
 
   const { bytes, fileCount, originalSize } = zipDirectory(absPath, progress);
   const zipSize = bytes.byteLength;
@@ -246,6 +272,19 @@ function formatFileSize(bytes: number): string {
   if (bytes >= MB) return `${(bytes / MB).toFixed(1)} MB`;
   if (bytes >= KB) return `${(bytes / KB).toFixed(1)} KB`;
   return `${bytes} B`;
+}
+
+// Returns `name` unchanged when free, otherwise the first free `name-2`,
+// `name-3`, … variant. Deliberately extension-blind — directory names have no
+// extension semantics ("reports.2024" becomes "reports.2024-2", not
+// "reports-2.2024"), unlike the filename uniquify in the runner and React SDK
+// (shared/attachment-naming.ts / attachment-utils.ts) this mirrors.
+function uniquifyDirName(name: string, taken: ReadonlySet<string>): string {
+  if (!taken.has(name)) return name;
+  for (let n = 2; ; n++) {
+    const candidate = `${name}-${n}`;
+    if (!taken.has(candidate)) return candidate;
+  }
 }
 
 // path.basename, but resilient to trailing slashes (matches Go filepath.Base

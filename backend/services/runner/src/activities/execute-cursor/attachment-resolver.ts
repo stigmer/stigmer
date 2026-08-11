@@ -22,6 +22,13 @@
  * directives are built from the RESOLVED paths, so prompt and filesystem can
  * never disagree.
  *
+ * Duplicate filenames are renamed, never overwritten (issue #364): because
+ * placement keys purely on the filename, two attachments with the same name
+ * contend for one path — the later one takes the platform's `stem-2.ext`
+ * rename (shared/attachment-naming.ts, same semantics as the deep-agent
+ * injector and the React composer) and the rename is disclosed in the
+ * prompt's `<input_files>` section via {@link ResolvedAttachment.renamedFrom}.
+ *
  * Error model: fail-hard, matching the native harness's attachment injector.
  * Attachments are explicit user inputs — an execution that silently runs
  * without one produces silently incorrect results (the "plan file wasn't
@@ -33,6 +40,7 @@ import { mkdir, copyFile, readFile, stat, writeFile } from "node:fs/promises";
 import { join, basename } from "node:path";
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
+import { allocateUniqueName } from "../../shared/attachment-naming.js";
 import {
   isVisionCandidate,
   type VisionBudget,
@@ -46,9 +54,16 @@ import { ensureStigmerSymlink, STIGMER_LOCAL_STATE_DIR } from "../../shared/work
 const INPUTS_SUBDIR = "inputs";
 
 export interface ResolvedAttachment {
+  /** The final on-disk basename — after any duplicate rename. */
   filename: string;
   /** Workspace-relative path the agent reads (`.stigmer/inputs/{filename}`). */
   relativePath: string;
+  /**
+   * The attachment's original filename, present only when a duplicate name
+   * was renamed (shared/attachment-naming.ts) — rendered as disclosure in
+   * the prompt's `<input_files>` section.
+   */
+  renamedFrom?: string;
   /** Present when the attachment was accepted into the turn's vision payload. */
   vision?: VisionImage;
   /**
@@ -111,9 +126,13 @@ export async function resolveAttachments(
   // it, but only when the agent has skills).
   await ensureStigmerSymlink(options.primaryWorkspaceDir, platformDir);
 
+  // Placement keys purely on the filename, so this set is the whole
+  // collision domain — sequential resolution means each attachment sees
+  // every name claimed before it (see module doc on duplicate handling).
+  const takenNames = new Set<string>();
   const results: ResolvedAttachment[] = [];
   for (const attachment of attachments) {
-    results.push(await resolveAttachment(attachment, inputsDir, options));
+    results.push(await resolveAttachment(attachment, inputsDir, takenNames, options));
   }
 
   console.log(
@@ -127,11 +146,15 @@ export async function resolveAttachments(
 async function resolveAttachment(
   attachment: Attachment,
   inputsDir: string,
+  takenNames: Set<string>,
   options: AttachmentResolverOptions,
 ): Promise<ResolvedAttachment> {
   // Local-mode fast path: the file is already on this machine's disk.
   if (options.mode === "local" && attachment.localPath) {
-    const filename = safeInputName(attachment.filename || attachment.localPath);
+    const { name: filename, renamedFrom } = allocateUniqueName(
+      safeInputName(attachment.filename || attachment.localPath),
+      takenNames,
+    );
     let vision: VisionOutcome | undefined;
     try {
       vision = await materializeLocalFile(attachment, filename, inputsDir, options.visionBudget);
@@ -145,6 +168,7 @@ async function resolveAttachment(
     return {
       filename,
       relativePath: join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, filename),
+      ...(renamedFrom !== undefined ? { renamedFrom } : {}),
       ...visionOutcomeFields(vision),
     };
   }
@@ -164,7 +188,10 @@ async function resolveAttachment(
     );
   }
 
-  const filename = safeInputName(attachment.filename || attachment.storageKey);
+  const { name: filename, renamedFrom } = allocateUniqueName(
+    safeInputName(attachment.filename || attachment.storageKey),
+    takenNames,
+  );
   let content: Buffer;
   try {
     content = await options.storage.download(attachment.storageKey);
@@ -185,6 +212,7 @@ async function resolveAttachment(
   return {
     filename,
     relativePath: join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, filename),
+    ...(renamedFrom !== undefined ? { renamedFrom } : {}),
     ...visionOutcomeFields(vision),
   };
 }
