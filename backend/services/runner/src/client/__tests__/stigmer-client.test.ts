@@ -320,22 +320,22 @@ describe("StigmerClient", () => {
       expect(spy).not.toHaveBeenCalled();
     });
 
-    it("falls back (undefined) when the server mints no token", async () => {
+    it("throws when the server mints no token — the bootstrap credential no longer decrypts (stigmer-cloud#218)", async () => {
       const client = clientWithRunnerCredential(fakeTokenOfType("embedded_runner"));
       vi.spyOn(client, "getRunnerScopedToken").mockResolvedValue(undefined);
 
-      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" });
-
-      expect(token).toBeUndefined();
+      await expect(
+        client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" }),
+      ).rejects.toThrow(/minted no scoped runner token for agent execution aex_1/);
     });
 
-    it("falls back (undefined) when the exchange fails, instead of failing the execution", async () => {
+    it("throws when the exchange fails, naming the scope and preserving the cause", async () => {
       const client = clientWithRunnerCredential(fakeTokenOfType("embedded_runner"));
       vi.spyOn(client, "getRunnerScopedToken").mockRejectedValue(new Error("boom"));
 
-      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" });
-
-      expect(token).toBeUndefined();
+      await expect(
+        client.acquireScopedRunnerToken({ workflowExecutionId: "wfx_1" }),
+      ).rejects.toThrow(/exchange failed for workflow execution wfx_1: boom/);
     });
   });
 

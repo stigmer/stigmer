@@ -107,7 +107,7 @@ ExecutionContexts are owner-scoped: the create pipeline writes an FGA owner tupl
 | `delete` | execution-engine internal | Called when execution completes or is cancelled. |
 | `get` | `can_view` on the ExecutionContext | Secret values redacted. |
 | `getByReference` | `can_view` on the ExecutionContext | Secret values redacted. |
-| `getByExecutionId` | `can_view` on the ExecutionContext | Primary runner lookup. Secret values decrypted **only** for runner-class credentials (`token_type` of `sandbox`, `workflow_sandbox`, `connect_sandbox`, or `embedded_runner`); redacted for every other caller, same as `get`. |
+| `getByExecutionId` | `can_view` on the ExecutionContext | Primary runner lookup. Secret values decrypted **only** for scope-bound runner credentials (`token_type` of `sandbox`, `workflow_sandbox`, or `connect_sandbox` whose scope claim binds the token to this execution); the unscoped `embedded_runner` bootstrap credential is refused — desktop runners exchange it for a scoped token via `getRunnerScopedToken` first. Redacted for every other caller, same as `get`. |
 
 ### Why Credential Class, Not a Permission?
 

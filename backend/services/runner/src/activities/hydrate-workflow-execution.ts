@@ -267,7 +267,9 @@ async function fetchAndFlattenEnv(
 ): Promise<Record<string, unknown>> {
   // A desktop runner exchanges its bootstrap credential for a token scoped to
   // this workflow execution, so cloud's decrypt gate binds the read (#156).
-  // No-op for cloud sandbox and OSS runners.
+  // No-op for cloud sandbox and OSS runners. A failed exchange throws and
+  // fails the activity: the bootstrap credential no longer decrypts
+  // (stigmer-cloud#218), so proceeding would hydrate redacted placeholders.
   const scopedToken = await client.acquireScopedRunnerToken({
     workflowExecutionId: executionId,
   });

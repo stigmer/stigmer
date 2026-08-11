@@ -62,12 +62,14 @@ type ExecutionContextQueryControllerClient interface {
 	// Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
 	//
 	// Secret handling (cloud): the decrypt path is gated by caller credential
-	// class, not by FGA — runners authenticate as the user who owns the
-	// execution, so permissions cannot tell them apart. Callers presenting a
-	// platform-minted runner token (token_type of sandbox, workflow_sandbox,
-	// connect_sandbox, or embedded_runner) receive decrypted secret values;
-	// every other caller (user JWT, SDK, console) receives the same redaction
-	// as get/getByReference.
+	// class AND scope, not by FGA — runners authenticate as the user who owns
+	// the execution, so permissions cannot tell them apart. Callers presenting
+	// a platform-minted runner token (token_type of sandbox, workflow_sandbox,
+	// or connect_sandbox) whose scope claim binds it to this very execution
+	// receive decrypted secret values. The unscoped embedded_runner bootstrap
+	// credential is refused; desktop runners exchange it for a scoped token
+	// via getRunnerScopedToken before reading. Every other caller (user JWT,
+	// SDK, console) receives the same redaction as get/getByReference.
 	GetByExecutionId(ctx context.Context, in *ExecutionContextExecutionIdInput, opts ...grpc.CallOption) (*ExecutionContext, error)
 }
 
@@ -146,12 +148,14 @@ type ExecutionContextQueryControllerServer interface {
 	// Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
 	//
 	// Secret handling (cloud): the decrypt path is gated by caller credential
-	// class, not by FGA — runners authenticate as the user who owns the
-	// execution, so permissions cannot tell them apart. Callers presenting a
-	// platform-minted runner token (token_type of sandbox, workflow_sandbox,
-	// connect_sandbox, or embedded_runner) receive decrypted secret values;
-	// every other caller (user JWT, SDK, console) receives the same redaction
-	// as get/getByReference.
+	// class AND scope, not by FGA — runners authenticate as the user who owns
+	// the execution, so permissions cannot tell them apart. Callers presenting
+	// a platform-minted runner token (token_type of sandbox, workflow_sandbox,
+	// or connect_sandbox) whose scope claim binds it to this very execution
+	// receive decrypted secret values. The unscoped embedded_runner bootstrap
+	// credential is refused; desktop runners exchange it for a scoped token
+	// via getRunnerScopedToken before reading. Every other caller (user JWT,
+	// SDK, console) receives the same redaction as get/getByReference.
 	GetByExecutionId(context.Context, *ExecutionContextExecutionIdInput) (*ExecutionContext, error)
 }
 
