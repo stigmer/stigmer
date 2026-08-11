@@ -19,6 +19,7 @@ const (
 	listVersionsDefaultPageSize = 50
 	listVersionsMaxPageSize     = 100
 	listVersionsWorkflowIDKey   = "listVersionsWorkflowId"
+	listVersionsHeadHashKey     = "listVersionsHeadHash"
 )
 
 // ListVersions returns the version history for a workflow, identified by org and slug.
@@ -73,6 +74,11 @@ func (s *resolveWorkflowBySlugStep) Execute(ctx *pipeline.RequestContext[*workfl
 	}
 
 	ctx.Set(listVersionsWorkflowIDKey, wf.Metadata.Id)
+	// The live head's hash decides is_current downstream. Under repoint
+	// semantics (a rollback apply re-activates an archived version,
+	// stigmer/stigmer#341) the current version need not be the
+	// newest-archived row, so recency cannot stand in for currency.
+	ctx.Set(listVersionsHeadHashKey, wf.GetStatus().GetVersionHash())
 	return nil
 }
 
@@ -98,14 +104,24 @@ func (s *loadAndMapWorkflowVersionsStep) Execute(ctx *pipeline.RequestContext[*w
 		return grpclib.InternalError(err, "failed to load workflow version history")
 	}
 
+	// is_current = the entry whose hash matches the live head, not the newest
+	// row: a rollback apply repoints the head at an older archived version
+	// without inserting a new row (stigmer/stigmer#341), so recency and
+	// currency legitimately diverge. Legacy data may hold duplicate-hash rows
+	// (predating the repoint semantics); marking only the first match keeps
+	// exactly-one-current true for them too.
+	headHash, _ := ctx.Get(listVersionsHeadHashKey).(string)
+	currentMarked := false
 	entries := make([]*workflowv1.WorkflowVersionEntry, 0, len(records))
-	for i, rec := range records {
+	for _, rec := range records {
 		var wf workflowv1.Workflow
 		if err := proto.Unmarshal(rec.Data, &wf); err != nil {
 			continue
 		}
+		isCurrent := !currentMarked && headHash != "" && wf.GetStatus().GetVersionHash() == headHash
+		currentMarked = currentMarked || isCurrent
 		// Tag comes from the audit column (source of truth), not the snapshot.
-		entries = append(entries, mapWorkflowToVersionEntry(&wf, i == 0, rec.Tag))
+		entries = append(entries, mapWorkflowToVersionEntry(&wf, isCurrent, rec.Tag))
 	}
 
 	// Pagination

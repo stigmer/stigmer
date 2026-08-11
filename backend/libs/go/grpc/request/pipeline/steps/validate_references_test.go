@@ -51,9 +51,6 @@ func (m *mockStore) FindByField(_ context.Context, _ apiresourcekind.ApiResource
 func (m *mockStore) FindAllByField(_ context.Context, _ apiresourcekind.ApiResourceKind, _ string, _ string) ([][]byte, error) {
 	return nil, nil
 }
-func (m *mockStore) FindByLabel(_ context.Context, _ apiresourcekind.ApiResourceKind, _, _ string, _ proto.Message) error {
-	return store.ErrNotFound
-}
 func (m *mockStore) FindAllByLabel(_ context.Context, _ apiresourcekind.ApiResourceKind, _, _ string, _ proto.Message) ([][]byte, error) {
 	return nil, nil
 }

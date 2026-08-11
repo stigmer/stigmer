@@ -25,17 +25,29 @@ func NewSessionClient(conn grpc.ClientConnInterface) *SessionClient {
 }
 
 func (s *SessionClient) Apply(ctx context.Context, input *SessionInput) (*sessionv1.Session, error) {
-	resp, err := s.command.Apply(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := s.command.Apply(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (s *SessionClient) Create(ctx context.Context, input *SessionInput) (*sessionv1.Session, error) {
-	resp, err := s.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := s.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (s *SessionClient) Update(ctx context.Context, input *SessionInput) (*sessionv1.Session, error) {
-	resp, err := s.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := s.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -89,7 +101,7 @@ type SessionInput struct {
 	ExecutionTarget       sessionv1.ExecutionTarget
 }
 
-func (i *SessionInput) toProto() *sessionv1.Session {
+func (i *SessionInput) toProto() (*sessionv1.Session, error) {
 	resource := &sessionv1.Session{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Session",
@@ -107,11 +119,19 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 	resource.Spec.HarnessStateId = i.HarnessStateId
 	resource.Spec.HarnessStateIdHistory = i.HarnessStateIdHistory
 	resource.Spec.Metadata = i.Metadata
-	for _, item := range i.WorkspaceEntries {
-		resource.Spec.WorkspaceEntries = append(resource.Spec.WorkspaceEntries, item.toProto())
+	for idx, item := range i.WorkspaceEntries {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("WorkspaceEntries", idx, err)
+		}
+		resource.Spec.WorkspaceEntries = append(resource.Spec.WorkspaceEntries, v)
 	}
-	for _, item := range i.McpServerUsages {
-		resource.Spec.McpServerUsages = append(resource.Spec.McpServerUsages, item.toProto())
+	for idx, item := range i.McpServerUsages {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("McpServerUsages", idx, err)
+		}
+		resource.Spec.McpServerUsages = append(resource.Spec.McpServerUsages, v)
 	}
 	for _, r := range i.SkillRefs {
 		ref := r.toProto()
@@ -121,7 +141,7 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 	resource.Spec.Harness = i.Harness
 	resource.Spec.CursorMode = i.CursorMode
 	resource.Spec.ExecutionTarget = i.ExecutionTarget
-	return resource
+	return resource, nil
 }
 
 // SessionInputFromProto creates a SessionInput from a proto Session resource.

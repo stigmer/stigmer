@@ -25,17 +25,29 @@ func NewEnvironmentClient(conn grpc.ClientConnInterface) *EnvironmentClient {
 }
 
 func (e *EnvironmentClient) Apply(ctx context.Context, input *EnvironmentInput) (*environmentv1.Environment, error) {
-	resp, err := e.command.Apply(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := e.command.Apply(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (e *EnvironmentClient) Create(ctx context.Context, input *EnvironmentInput) (*environmentv1.Environment, error) {
-	resp, err := e.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := e.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (e *EnvironmentClient) Update(ctx context.Context, input *EnvironmentInput) (*environmentv1.Environment, error) {
-	resp, err := e.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := e.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -95,7 +107,7 @@ type EnvironmentInput struct {
 	Data        map[string]EnvVarInput
 }
 
-func (i *EnvironmentInput) toProto() *environmentv1.Environment {
+func (i *EnvironmentInput) toProto() (*environmentv1.Environment, error) {
 	resource := &environmentv1.Environment{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Environment",
@@ -115,7 +127,7 @@ func (i *EnvironmentInput) toProto() *environmentv1.Environment {
 			resource.Spec.Data[k] = &environmentv1.EnvironmentValue{Value: v.Value, IsSecret: v.IsSecret, Description: v.Description}
 		}
 	}
-	return resource
+	return resource, nil
 }
 
 // EnvironmentInputFromProto creates a EnvironmentInput from a proto Environment resource.

@@ -903,56 +903,9 @@ func (s *Store) FindAllByField(ctx context.Context, kind apiresourcekind.ApiReso
 // Label-Based Queries
 // =============================================================================
 
-// FindByLabel retrieves a single resource matching a metadata label key-value pair.
+// FindAllByLabel retrieves all resources matching a metadata label key-value pair.
 // All API resources have metadata.labels (map<string, string>); this method uses
 // proto reflection to access the map without needing the concrete message type.
-//
-// Returns store.ErrNotFound if no resource matches.
-func (s *Store) FindByLabel(ctx context.Context, kind apiresourcekind.ApiResourceKind, labelKey, labelValue string, msg proto.Message) error {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	if s.db == nil {
-		return fmt.Errorf("store is closed")
-	}
-
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT data FROM resources WHERE kind = ?`,
-		kind.String())
-	if err != nil {
-		return fmt.Errorf("query resources: %w", err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var data []byte
-		if err := rows.Scan(&data); err != nil {
-			return fmt.Errorf("scan row: %w", err)
-		}
-
-		testMsg := proto.Clone(msg)
-		proto.Reset(testMsg)
-
-		if err := proto.Unmarshal(data, testMsg); err != nil {
-			continue
-		}
-
-		if extractLabelValue(testMsg, labelKey) == labelValue {
-			if err := proto.Unmarshal(data, msg); err != nil {
-				return fmt.Errorf("unmarshal proto: %w", err)
-			}
-			return nil
-		}
-	}
-
-	if err := rows.Err(); err != nil {
-		return fmt.Errorf("iterate rows: %w", err)
-	}
-
-	return fmt.Errorf("%w: %s with label %s=%s", store.ErrNotFound, kind.String(), labelKey, labelValue)
-}
-
-// FindAllByLabel retrieves all resources matching a metadata label key-value pair.
 // Returns an empty slice (not nil) if no resources match.
 func (s *Store) FindAllByLabel(ctx context.Context, kind apiresourcekind.ApiResourceKind, labelKey, labelValue string, templateMsg proto.Message) ([][]byte, error) {
 	s.mu.RLock()

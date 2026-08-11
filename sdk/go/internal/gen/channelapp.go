@@ -25,17 +25,29 @@ func NewChannelAppClient(conn grpc.ClientConnInterface) *ChannelAppClient {
 }
 
 func (c *ChannelAppClient) Apply(ctx context.Context, input *ChannelAppInput) (*channelappv1.ChannelApp, error) {
-	resp, err := c.command.Apply(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := c.command.Apply(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (c *ChannelAppClient) Create(ctx context.Context, input *ChannelAppInput) (*channelappv1.ChannelApp, error) {
-	resp, err := c.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := c.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (c *ChannelAppClient) Update(ctx context.Context, input *ChannelAppInput) (*channelappv1.ChannelApp, error) {
-	resp, err := c.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := c.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -90,7 +102,7 @@ type WhatsAppChannelAppConfigInput struct {
 	VerifyToken string
 }
 
-func (i *ChannelAppInput) toProto() *channelappv1.ChannelApp {
+func (i *ChannelAppInput) toProto() (*channelappv1.ChannelApp, error) {
 	resource := &channelappv1.ChannelApp{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "ChannelApp",
@@ -118,7 +130,7 @@ func (i *ChannelAppInput) toProto() *channelappv1.ChannelApp {
 		m.VerifyToken = i.Whatsapp.VerifyToken
 		resource.Spec.ProviderConfig = &channelappv1.ChannelAppSpec_Whatsapp{Whatsapp: m}
 	}
-	return resource
+	return resource, nil
 }
 
 // ChannelAppInputFromProto creates a ChannelAppInput from a proto ChannelApp resource.

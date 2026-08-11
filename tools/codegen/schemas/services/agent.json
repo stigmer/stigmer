@@ -77,7 +77,7 @@
           "inputFullType": "ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Get the platform default agent.\n\n Returns the default agent for the platform, including\n status.default_instance_id for creating a session. Use this\n to start a conversation without selecting an agent first.\n\n Returns NOT_FOUND if no default agent is configured.\n\n @internal\n Resolves the agent labeled stigmer.ai/default-agent: \"true\" with\n visibility_public. Custom authorization in handler."
+          "description": "Get the platform default agent.\n\n Returns the default agent for the platform, including\n status.default_instance_id for creating a session. Use this\n to start a conversation without selecting an agent first.\n\n Returns NOT_FOUND if no default agent is configured.\n\n @internal\n Resolves the agent labeled stigmer.ai/default-agent: \"true\" with\n visibility_public. Custom authorization in handler.\n\n Resolution is deterministic (stigmer/stigmer#356): only public labeled\n agents are candidates, and with multiple candidates — a reachable state,\n since safe label rotation applies the new default before retiring the\n old — the one with the lowest metadata.id (the incumbent) wins. The\n default changes only when the incumbent's label is explicitly removed,\n never as a side effect of another agent gaining the label."
         }
       ]
     }
@@ -216,7 +216,7 @@
     },
     {
       "name": "GetDefaultAgentRequest",
-      "description": "GetDefaultAgentRequest is the input for retrieving the platform default agent.\n\n @internal\n The handler resolves the default agent globally (by label stigmer.ai/default-agent: \"true\"\n with visibility_public), but the org is needed for authorization scoping.",
+      "description": "GetDefaultAgentRequest is the input for retrieving the platform default agent.\n\n @internal\n The handler resolves the default agent globally (by label stigmer.ai/default-agent: \"true\"\n with visibility_public), but the org is needed for authorization scoping.\n Resolution is deliberately NOT scoped to this org: the default agent is a\n platform-level singleton seeded in the system org and served to callers of\n every org (see the getDefault rpc docs for the determinism contract).",
       "protoType": "ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest",
       "protoFile": "apis/ai/stigmer/agentic/agent/v1/io.proto",
       "fields": [

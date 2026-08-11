@@ -27,17 +27,29 @@ func NewScheduleClient(conn grpc.ClientConnInterface) *ScheduleClient {
 }
 
 func (s *ScheduleClient) Apply(ctx context.Context, input *ScheduleInput) (*schedulev1.Schedule, error) {
-	resp, err := s.command.Apply(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := s.command.Apply(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (s *ScheduleClient) Create(ctx context.Context, input *ScheduleInput) (*schedulev1.Schedule, error) {
-	resp, err := s.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := s.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (s *ScheduleClient) Update(ctx context.Context, input *ScheduleInput) (*schedulev1.Schedule, error) {
-	resp, err := s.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := s.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -105,7 +117,7 @@ type AgentInvocationInput struct {
 	RunConfig        *RunConfigInput
 }
 
-func (i *ScheduleInput) toProto() *schedulev1.Schedule {
+func (i *ScheduleInput) toProto() (*schedulev1.Schedule, error) {
 	resource := &schedulev1.Schedule{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Schedule",
@@ -130,8 +142,12 @@ func (i *ScheduleInput) toProto() *schedulev1.Schedule {
 		}
 		m.Message = i.Agent.Message
 		m.Harness = i.Agent.Harness
-		for _, item := range i.Agent.WorkspaceEntries {
-			m.WorkspaceEntries = append(m.WorkspaceEntries, item.toProto())
+		for idx, item := range i.Agent.WorkspaceEntries {
+			v, err := item.toProto()
+			if err != nil {
+				return nil, indexErr("Agent.WorkspaceEntries", idx, err)
+			}
+			m.WorkspaceEntries = append(m.WorkspaceEntries, v)
 		}
 		for _, r := range i.Agent.EnvironmentRefs {
 			ref := r.toProto()
@@ -139,11 +155,15 @@ func (i *ScheduleInput) toProto() *schedulev1.Schedule {
 			m.EnvironmentRefs = append(m.EnvironmentRefs, ref)
 		}
 		if i.Agent.RunConfig != nil {
-			m.RunConfig = i.Agent.RunConfig.toProto()
+			v, err := i.Agent.RunConfig.toProto()
+			if err != nil {
+				return nil, fieldErr("Agent.RunConfig", err)
+			}
+			m.RunConfig = v
 		}
 		resource.Spec.Target = &schedulev1.ScheduleSpec_Agent{Agent: m}
 	}
-	return resource
+	return resource, nil
 }
 
 // ScheduleInputFromProto creates a ScheduleInput from a proto Schedule resource.

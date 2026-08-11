@@ -25,17 +25,29 @@ func NewProjectClient(conn grpc.ClientConnInterface) *ProjectClient {
 }
 
 func (p *ProjectClient) Apply(ctx context.Context, input *ProjectInput) (*projectv1.Project, error) {
-	resp, err := p.command.Apply(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := p.command.Apply(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (p *ProjectClient) Create(ctx context.Context, input *ProjectInput) (*projectv1.Project, error) {
-	resp, err := p.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := p.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (p *ProjectClient) Update(ctx context.Context, input *ProjectInput) (*projectv1.Project, error) {
-	resp, err := p.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := p.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -67,7 +79,7 @@ type ProjectInput struct {
 	Members     []ResourceRef
 }
 
-func (i *ProjectInput) toProto() *projectv1.Project {
+func (i *ProjectInput) toProto() (*projectv1.Project, error) {
 	resource := &projectv1.Project{
 		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
@@ -85,7 +97,7 @@ func (i *ProjectInput) toProto() *projectv1.Project {
 	for _, r := range i.Members {
 		resource.Spec.Members = append(resource.Spec.Members, r.toProto())
 	}
-	return resource
+	return resource, nil
 }
 
 // ProjectInputFromProto creates a ProjectInput from a proto Project resource.

@@ -27,7 +27,11 @@ func NewInvitationClient(conn grpc.ClientConnInterface) *InvitationClient {
 }
 
 func (i *InvitationClient) Create(ctx context.Context, input *InvitationInput) (*invitationv1.Invitation, error) {
-	resp, err := i.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := i.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -69,7 +73,7 @@ type InvitationInput struct {
 	Label          string
 }
 
-func (i *InvitationInput) toProto() *invitationv1.Invitation {
+func (i *InvitationInput) toProto() (*invitationv1.Invitation, error) {
 	resource := &invitationv1.Invitation{
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "Invitation",
@@ -85,12 +89,14 @@ func (i *InvitationInput) toProto() *invitationv1.Invitation {
 	resource.Spec.Role = i.Role
 	resource.Spec.MaxRedemptions = i.MaxRedemptions
 	if i.ExpiresAt != "" {
-		if t, err := time.Parse(time.RFC3339, i.ExpiresAt); err == nil {
-			resource.Spec.ExpiresAt = timestamppb.New(t)
+		t, err := time.Parse(time.RFC3339, i.ExpiresAt)
+		if err != nil {
+			return nil, fieldErr("ExpiresAt", err)
 		}
+		resource.Spec.ExpiresAt = timestamppb.New(t)
 	}
 	resource.Spec.Label = i.Label
-	return resource
+	return resource, nil
 }
 
 // InvitationInputFromProto creates a InvitationInput from a proto Invitation resource.

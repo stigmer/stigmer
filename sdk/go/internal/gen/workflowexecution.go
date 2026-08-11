@@ -27,12 +27,20 @@ func NewWorkflowExecutionClient(conn grpc.ClientConnInterface) *WorkflowExecutio
 }
 
 func (w *WorkflowExecutionClient) Create(ctx context.Context, input *WorkflowExecutionInput) (*workflowexecutionv1.WorkflowExecution, error) {
-	resp, err := w.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := w.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (w *WorkflowExecutionClient) Update(ctx context.Context, input *WorkflowExecutionInput) (*workflowexecutionv1.WorkflowExecution, error) {
-	resp, err := w.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := w.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -185,7 +193,7 @@ type WorkflowExecutionInput struct {
 	ExecutionTarget    sessionv1.ExecutionTarget
 }
 
-func (i *WorkflowExecutionInput) toProto() *workflowexecutionv1.WorkflowExecution {
+func (i *WorkflowExecutionInput) toProto() (*workflowexecutionv1.WorkflowExecution, error) {
 	resource := &workflowexecutionv1.WorkflowExecution{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "WorkflowExecution",
@@ -210,7 +218,7 @@ func (i *WorkflowExecutionInput) toProto() *workflowexecutionv1.WorkflowExecutio
 	}
 	resource.Spec.CallbackToken = i.CallbackToken
 	resource.Spec.ExecutionTarget = i.ExecutionTarget
-	return resource
+	return resource, nil
 }
 
 // WorkflowExecutionInputFromProto creates a WorkflowExecutionInput from a proto WorkflowExecution resource.

@@ -25,17 +25,29 @@ func NewWorkflowInstanceClient(conn grpc.ClientConnInterface) *WorkflowInstanceC
 }
 
 func (w *WorkflowInstanceClient) Apply(ctx context.Context, input *WorkflowInstanceInput) (*workflowinstancev1.WorkflowInstance, error) {
-	resp, err := w.command.Apply(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := w.command.Apply(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (w *WorkflowInstanceClient) Create(ctx context.Context, input *WorkflowInstanceInput) (*workflowinstancev1.WorkflowInstance, error) {
-	resp, err := w.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := w.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (w *WorkflowInstanceClient) Update(ctx context.Context, input *WorkflowInstanceInput) (*workflowinstancev1.WorkflowInstance, error) {
-	resp, err := w.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := w.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -83,7 +95,7 @@ type WorkflowInstanceInput struct {
 	ExecutionVisibility workflowinstancev1.WorkflowExecutionVisibility
 }
 
-func (i *WorkflowInstanceInput) toProto() *workflowinstancev1.WorkflowInstance {
+func (i *WorkflowInstanceInput) toProto() (*workflowinstancev1.WorkflowInstance, error) {
 	resource := &workflowinstancev1.WorkflowInstance{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "WorkflowInstance",
@@ -104,7 +116,7 @@ func (i *WorkflowInstanceInput) toProto() *workflowinstancev1.WorkflowInstance {
 		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, ref)
 	}
 	resource.Spec.ExecutionVisibility = i.ExecutionVisibility
-	return resource
+	return resource, nil
 }
 
 // WorkflowInstanceInputFromProto creates a WorkflowInstanceInput from a proto WorkflowInstance resource.

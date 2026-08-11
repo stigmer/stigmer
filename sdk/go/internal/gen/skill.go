@@ -104,7 +104,7 @@ type SkillInput struct {
 	Description    string
 }
 
-func (i *SkillInput) toProto() *skillv1.Skill {
+func (i *SkillInput) toProto() (*skillv1.Skill, error) {
 	resource := &skillv1.Skill{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Skill",
@@ -125,7 +125,7 @@ func (i *SkillInput) toProto() *skillv1.Skill {
 	resource.Spec.SkillMd = i.SkillMd
 	resource.Spec.Tag = i.Tag
 	resource.Spec.Description = i.Description
-	return resource
+	return resource, nil
 }
 
 // SkillInputFromProto creates a SkillInput from a proto Skill resource.

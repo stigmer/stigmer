@@ -78,7 +78,7 @@ type RetentionPolicyInput struct {
 	TtlDays int32
 }
 
-func (i *ArtifactInput) toProto() *artifactv1.Artifact {
+func (i *ArtifactInput) toProto() (*artifactv1.Artifact, error) {
 	resource := &artifactv1.Artifact{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Artifact",
@@ -94,26 +94,34 @@ func (i *ArtifactInput) toProto() *artifactv1.Artifact {
 	resource.Spec.ContentType = i.ContentType
 	resource.Spec.DisplayName = i.DisplayName
 	if i.Source != nil {
-		resource.Spec.Source = i.Source.toProto()
+		v, err := i.Source.toProto()
+		if err != nil {
+			return nil, fieldErr("Source", err)
+		}
+		resource.Spec.Source = v
 	}
 	if i.Retention != nil {
-		resource.Spec.Retention = i.Retention.toProto()
+		v, err := i.Retention.toProto()
+		if err != nil {
+			return nil, fieldErr("Retention", err)
+		}
+		resource.Spec.Retention = v
 	}
-	return resource
+	return resource, nil
 }
 
-func (i *ArtifactSourceInput) toProto() *artifactv1.ArtifactSource {
+func (i *ArtifactSourceInput) toProto() (*artifactv1.ArtifactSource, error) {
 	return &artifactv1.ArtifactSource{
 		WorkflowExecutionId: i.WorkflowExecutionId,
 		AgentExecutionId:    i.AgentExecutionId,
 		TaskName:            i.TaskName,
-	}
+	}, nil
 }
 
-func (i *RetentionPolicyInput) toProto() *artifactv1.RetentionPolicy {
+func (i *RetentionPolicyInput) toProto() (*artifactv1.RetentionPolicy, error) {
 	return &artifactv1.RetentionPolicy{
 		TtlDays: i.TtlDays,
-	}
+	}, nil
 }
 
 // ArtifactInputFromProto creates a ArtifactInput from a proto Artifact resource.
