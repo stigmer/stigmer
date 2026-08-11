@@ -144,6 +144,10 @@ jobs:
           path: test/integration/.test-output-canary/
           retention-days: 30
           if-no-files-found: ignore
+          # The output dir is dot-prefixed and upload-artifact@v4 excludes
+          # hidden paths by default — without this the artifact is silently
+          # empty (found on the lane's first real run, #323).
+          include-hidden-files: true
 
       - name: Publish canary test report
         if: always() && hashFiles('test/integration/.test-output-canary/junit.xml') != ''
