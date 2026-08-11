@@ -32,6 +32,7 @@ import {
 } from "../../shared/workspace/stigmer-link.js";
 import type { ToolOutputOffloadContext } from "../../shared/status-offload.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
+import { formatDatastoreDegradationNotice } from "../../shared/datastore-attachment.js";
 import { classifyTool } from "../../shared/tool-kind.js";
 import {
   POLICY_ENGINE_VERSION,
@@ -151,6 +152,25 @@ export function createDeepAgentActivities(config: Config) {
         const initialStatus = shouldSeedFromPersistedTranscript(setup.execution)
           ? seedStatusFromExecution(setup.execution)
           : create(AgentExecutionStatusSchema, {});
+
+        // Datastore degradation disclosure, operator half (issue #325): the
+        // prompt already tells the agent to disclose the outage; this makes
+        // it visible on the execution record without reading a transcript.
+        // Appended to initialStatus BEFORE streaming (not via a status
+        // builder): both the v2 and v3 stream paths construct their own
+        // builder around this same proto and only ever append messages, so
+        // this row survives whichever path runs and rides every persist.
+        if (setup.datastoreToolsMissing.length > 0) {
+          initialStatus.messages.push(create(AgentMessageSchema, {
+            type: MessageType.MESSAGE_SYSTEM,
+            content: formatDatastoreDegradationNotice(
+              setup.agent.spec?.datastoreUsages?.length ?? 0,
+              setup.datastoreToolsMissing,
+            ),
+            timestamp: utcTimestamp(),
+          }));
+        }
+
         const statusBuilder = new StatusBuilder(executionId, initialStatus);
 
         statusBuilder.setApprovalProvider({

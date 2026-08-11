@@ -103,6 +103,10 @@ describe("buildPrompt", () => {
     expect(prompt).toContain("<available_datastores>");
     expect(prompt).toContain("- clinic");
     expect(prompt).toContain("describe_datastore");
+    // The standing failure-disclosure instruction (issue #325) is this
+    // harness's ONLY outage coverage: the Cursor SDK connects MCP itself,
+    // so the runner can never reconcile the live roster here.
+    expect(prompt).toContain("do not answer from memory");
   });
 
   it("omits the datastores section when the agent uses no datastores", () => {
