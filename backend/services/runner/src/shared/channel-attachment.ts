@@ -128,6 +128,7 @@ export function synthesizeChannelAttachment(
     slug: CHANNEL_ATTACHMENT_SLUG,
     toolApprovals: [],
     pinnedToolApprovals: [],
+    toolApprovalOverrides: [],
     discoveredCapabilitiesEmpty: false,
   };
 

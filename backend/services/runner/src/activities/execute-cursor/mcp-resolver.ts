@@ -14,7 +14,7 @@
  * same pipeline as the Python agent-runner's config_transformer.py.
  */
 
-import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { McpServerUsage, ToolApprovalOverride } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import type { StigmerClient } from "../../client/stigmer-client.js";
@@ -81,6 +81,19 @@ export interface ResolvedMcpServer {
    * with the non-pausing "disabled" kind (see hook-script.ts).
    */
   enabledTools?: string[];
+  /**
+   * Layer-3 per-agent approval overrides from the usage that resolved this
+   * server (issue #349): riding the resolved server is what SCOPES an
+   * override to its own server — a flat cross-server list is how an
+   * override once leaked onto (or silently un-gated) a same-named tool on
+   * another server. Deliberately REQUIRED, not optional: empty means "no
+   * overrides", and every construction site — including the shared
+   * resolver this one mirrors and the synthesized attachments, which have
+   * no usage and therefore no layer 3 — must say so explicitly, so a
+   * forgotten mirror cannot compile. Consumed by mergeApprovalPolicies
+   * (shared/approval-policy.ts).
+   */
+  toolApprovalOverrides: ToolApprovalOverride[];
 }
 
 /**
@@ -126,7 +139,13 @@ export async function resolveMcpServers(
         envVars,
         ref.slug,
       );
-      const server = mcpServerToResolved(mcpServer, ref.slug, serverEnv, usage.enabledTools);
+      const server = mcpServerToResolved(
+        mcpServer,
+        ref.slug,
+        serverEnv,
+        usage.enabledTools,
+        usage.toolApprovalOverrides ?? [],
+      );
       if (server) {
         assertTransportAllowed(server.slug, server.connectionType, transportPosture);
         resolved.push(server);
@@ -164,6 +183,7 @@ function mcpServerToResolved(
   slug: string,
   envVars: Record<string, string>,
   usageEnabledTools?: readonly string[],
+  usageToolApprovalOverrides: ToolApprovalOverride[] = [],
 ): ResolvedMcpServer | null {
   const spec = server.spec;
   if (!spec) return null;
@@ -180,6 +200,7 @@ function mcpServerToResolved(
     pinnedToolApprovals,
     discoveredCapabilitiesEmpty,
     enabledTools: effectiveEnabledTools(usageEnabledTools, spec.defaultEnabledTools),
+    toolApprovalOverrides: usageToolApprovalOverrides,
   };
 
   switch (spec.serverType.case) {

@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { resolveMcpServers } from "../mcp-resolver.js";
 
-function makeUsage(slug: string, enabledTools: string[] = []) {
+function makeUsage(
+  slug: string,
+  enabledTools: string[] = [],
+  toolApprovalOverrides: Array<{ toolName: string; requiresApproval: boolean }> = [],
+) {
   return {
     mcpServerRef: { slug, org: "test-org", kind: 0 },
     enabledTools,
-    toolApprovalOverrides: [],
+    toolApprovalOverrides,
   } as any;
 }
 
@@ -84,5 +88,38 @@ describe("resolveMcpServers (cursor) — enabled_tools threading (issue #350)", 
       url: "https://mcp.example.com/mcp",
       headers: undefined,
     });
+  });
+});
+
+describe("resolveMcpServers (cursor) — tool_approval_overrides threading (issue #349)", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  it("carries the usage's overrides on its own resolved server only", async () => {
+    // Riding the server is the scoping mechanism: an override can no longer
+    // reach a same-named tool on another server, because it never exists
+    // anywhere but its own server's object.
+    const client = clientReturning({
+      github: httpMcpServer("github"),
+      slack: httpMcpServer("slack"),
+    });
+
+    const result = await resolveMcpServers(
+      client,
+      [
+        makeUsage("github", [], [{ toolName: "delete_item", requiresApproval: false }]),
+        makeUsage("slack"),
+      ],
+      {},
+      "stdio-forbidden",
+    );
+
+    const bySlug = new Map(result.resolvedServers.map((s) => [s.slug, s]));
+    expect(bySlug.get("github")!.toolApprovalOverrides).toEqual([
+      { toolName: "delete_item", requiresApproval: false },
+    ]);
+    expect(bySlug.get("slack")!.toolApprovalOverrides).toEqual([]);
   });
 });

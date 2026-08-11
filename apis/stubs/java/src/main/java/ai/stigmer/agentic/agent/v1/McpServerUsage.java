@@ -234,6 +234,9 @@ private static final long serialVersionUID = 0L;
    * Override approval requirements for specific tools.
    * Takes precedence over McpServerSpec.pinned_tool_approvals and
    * McpServerStatus.tool_approvals.
+   * Scoped to THIS usage's server: an override applies only to tools of
+   * the McpServer referenced by mcp_server_ref — a same-named tool on
+   * another server is unaffected.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -247,6 +250,9 @@ private static final long serialVersionUID = 0L;
    * Override approval requirements for specific tools.
    * Takes precedence over McpServerSpec.pinned_tool_approvals and
    * McpServerStatus.tool_approvals.
+   * Scoped to THIS usage's server: an override applies only to tools of
+   * the McpServer referenced by mcp_server_ref — a same-named tool on
+   * another server is unaffected.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -261,6 +267,9 @@ private static final long serialVersionUID = 0L;
    * Override approval requirements for specific tools.
    * Takes precedence over McpServerSpec.pinned_tool_approvals and
    * McpServerStatus.tool_approvals.
+   * Scoped to THIS usage's server: an override applies only to tools of
+   * the McpServer referenced by mcp_server_ref — a same-named tool on
+   * another server is unaffected.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -274,6 +283,9 @@ private static final long serialVersionUID = 0L;
    * Override approval requirements for specific tools.
    * Takes precedence over McpServerSpec.pinned_tool_approvals and
    * McpServerStatus.tool_approvals.
+   * Scoped to THIS usage's server: an override applies only to tools of
+   * the McpServer referenced by mcp_server_ref — a same-named tool on
+   * another server is unaffected.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -287,6 +299,9 @@ private static final long serialVersionUID = 0L;
    * Override approval requirements for specific tools.
    * Takes precedence over McpServerSpec.pinned_tool_approvals and
    * McpServerStatus.tool_approvals.
+   * Scoped to THIS usage's server: an override applies only to tools of
+   * the McpServer referenced by mcp_server_ref — a same-named tool on
+   * another server is unaffected.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1222,6 +1237,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1238,6 +1256,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1254,6 +1275,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1270,6 +1294,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1293,6 +1320,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1313,6 +1343,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1335,6 +1368,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1358,6 +1394,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1378,6 +1417,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1398,6 +1440,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1419,6 +1464,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1438,6 +1486,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1457,6 +1508,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1470,6 +1524,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1486,6 +1543,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1503,6 +1563,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1516,6 +1579,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
@@ -1530,6 +1596,9 @@ private static final long serialVersionUID = 0L;
      * Override approval requirements for specific tools.
      * Takes precedence over McpServerSpec.pinned_tool_approvals and
      * McpServerStatus.tool_approvals.
+     * Scoped to THIS usage's server: an override applies only to tools of
+     * the McpServer referenced by mcp_server_ref — a same-named tool on
+     * another server is unaffected.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>

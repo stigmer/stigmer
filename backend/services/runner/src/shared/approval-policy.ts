@@ -16,7 +16,6 @@
  */
 
 import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
-import type { ToolApprovalOverride } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ApprovalAction, ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { toolApprovalCategory, type ToolApprovalCategory } from "./tool-kind.js";
@@ -321,8 +320,15 @@ export interface MergedToolPolicy {
  * Policy chain (each level overrides the previous):
  * 1. status.toolApprovals — system-generated defaults; presence = requires approval
  * 2. spec.pinnedToolApprovals — manual overrides; presence = requires approval
- * 3. agent tool_approval_overrides — explicit boolean per tool (enable OR disable)
+ * 3. usage tool_approval_overrides — explicit boolean per tool (enable OR disable)
  * 4. active leases — runtime bypass (highest priority), now scoped
+ *
+ * Layer 3 is read from {@link ResolvedMcpServer.toolApprovalOverrides} — the
+ * overrides ride each server from the usage that resolved it (issue #349), so
+ * an override is STRUCTURALLY scoped to its own server. There is deliberately
+ * no cross-server override input: a flat list applied inside this per-server
+ * loop is how an override once leaked onto — or silently un-gated — a
+ * same-named tool on another server.
  *
  * The map carries ONLY the tools that require approval — a tool's absence means
  * "auto-approved". Leases shape that absence:
@@ -341,7 +347,6 @@ export interface MergedToolPolicy {
  */
 export function mergeApprovalPolicies(
   resolvedServers: ResolvedMcpServer[],
-  agentOverrides: ToolApprovalOverride[],
   leases: ActiveLeases,
 ): Map<string, MergedToolPolicy> {
   const merged = new Map<string, MergedToolPolicy>();
@@ -382,10 +387,12 @@ export function mergeApprovalPolicies(
       });
     }
 
-    // Layer 3: per-agent overrides (explicit boolean, can enable or disable).
-    // Touching a tool here makes the per-agent layer the responsible source,
-    // whether it enables, disables, or re-messages the gate.
-    for (const override of agentOverrides) {
+    // Layer 3: this usage's overrides (explicit boolean, can enable or
+    // disable) — scoped to THIS server because they arrived on it (see the
+    // function doc). Touching a tool here makes the per-agent layer the
+    // responsible source, whether it enables, disables, or re-messages the
+    // gate.
+    for (const override of server.toolApprovalOverrides) {
       if (!override.toolName) continue;
       const existing = serverPolicies.get(override.toolName);
       if (existing) {

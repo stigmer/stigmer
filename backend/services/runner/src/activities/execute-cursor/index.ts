@@ -747,11 +747,11 @@ async function executeCursorInner(
     // them as auto-approved); the global bypass empties the map entirely.
     const leases = deriveActiveLeases(execution);
     const globalBypass = leases.global;
-    const agentOverrides = blueprint.mergedMcpServerUsages
-      .flatMap((u) => u.toolApprovalOverrides ?? []);
+    // Layer-3 overrides ride each resolved server from its merged usage —
+    // see ResolvedMcpServer.toolApprovalOverrides (issue #349) — so there
+    // is no separate override input to pass here.
     const mergedPolicies = mergeApprovalPolicies(
       mcpResolution.resolvedServers,
-      agentOverrides,
       leases,
     );
     heartbeat();

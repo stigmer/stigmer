@@ -19,7 +19,6 @@ import {
 } from "../approval-policy.js";
 import type { ToolApprovalCategory } from "../tool-kind.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
-import type { ToolApprovalOverride } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ApprovalAction, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
@@ -83,6 +82,9 @@ function makeServer(
   slug: string,
   toolApprovals: Array<{ toolName: string; message?: string }>,
   pinnedToolApprovals: Array<{ toolName: string; message?: string }> = [],
+  // Layer-3 overrides ride the server they were declared on (issue #349) —
+  // there is no cross-server override input to the merge anymore.
+  toolApprovalOverrides: Array<{ toolName: string; requiresApproval: boolean; message?: string }> = [],
 ): ResolvedMcpServer {
   return {
     slug,
@@ -95,6 +97,11 @@ function makeServer(
       toolName: a.toolName,
       message: a.message ?? "",
     })) as any[],
+    toolApprovalOverrides: toolApprovalOverrides.map(o => ({
+      toolName: o.toolName,
+      requiresApproval: o.requiresApproval,
+      message: o.message ?? "",
+    })) as any[],
     discoveredCapabilitiesEmpty: false,
   };
 }
@@ -102,7 +109,7 @@ function makeServer(
 describe("mergeApprovalPolicies", () => {
   it("returns empty map under a global lease (spec.auto_approve_all)", () => {
     const servers = [makeServer("github", [{ toolName: "push" }])];
-    const result = mergeApprovalPolicies(servers, [], leases({ global: true }));
+    const result = mergeApprovalPolicies(servers, leases({ global: true }));
     expect(result.size).toBe(0);
   });
 
@@ -111,7 +118,7 @@ describe("mergeApprovalPolicies", () => {
       makeServer("github", [{ toolName: "push" }]),
       makeServer("database", [{ toolName: "drop_table" }]),
     ];
-    const result = mergeApprovalPolicies(servers, [], leases({ servers: ["github"] }));
+    const result = mergeApprovalPolicies(servers, leases({ servers: ["github"] }));
     expect(result.has("github/push")).toBe(false);
     expect(result.has("database/drop_table")).toBe(true);
   });
@@ -122,7 +129,7 @@ describe("mergeApprovalPolicies", () => {
         { toolName: "create_issue", message: "Create issue?" },
       ]),
     ];
-    const result = mergeApprovalPolicies(servers, [], NO_LEASES);
+    const result = mergeApprovalPolicies(servers, NO_LEASES);
 
     expect(result.size).toBe(1);
     const policy = result.get("github/create_issue")!;
@@ -139,7 +146,7 @@ describe("mergeApprovalPolicies", () => {
         [{ toolName: "push", message: "pinned message" }],
       ),
     ];
-    const result = mergeApprovalPolicies(servers, [], NO_LEASES);
+    const result = mergeApprovalPolicies(servers, NO_LEASES);
 
     const policy = result.get("github/push")!;
     expect(policy.approvalMessage).toBe("pinned message");
@@ -147,34 +154,74 @@ describe("mergeApprovalPolicies", () => {
 
   it("agent overrides can disable approval", () => {
     const servers = [
-      makeServer("github", [{ toolName: "push" }]),
+      makeServer("github", [{ toolName: "push" }], [], [
+        { toolName: "push", requiresApproval: false },
+      ]),
     ];
-    const overrides: ToolApprovalOverride[] = [{
-      toolName: "push",
-      requiresApproval: false,
-      message: "",
-    }] as any[];
 
-    const result = mergeApprovalPolicies(servers, overrides, NO_LEASES);
+    const result = mergeApprovalPolicies(servers, NO_LEASES);
     expect(result.size).toBe(0);
   });
 
   it("agent overrides can add new approval requirement", () => {
-    const servers = [makeServer("github", [])];
-    const overrides: ToolApprovalOverride[] = [{
-      toolName: "delete_repo",
-      requiresApproval: true,
-      message: "Really delete?",
-    }] as any[];
+    const servers = [
+      makeServer("github", [], [], [
+        { toolName: "delete_repo", requiresApproval: true, message: "Really delete?" },
+      ]),
+    ];
 
-    const result = mergeApprovalPolicies(servers, overrides, NO_LEASES);
+    const result = mergeApprovalPolicies(servers, NO_LEASES);
     expect(result.has("github/delete_repo")).toBe(true);
+  });
+
+  describe("override scoping (issue #349 — no cross-server leak)", () => {
+    it("a disable override on one server leaves a same-named classifier-gated tool on another server gated", () => {
+      // The dangerous direction: before #349 this override silently
+      // un-gated database/delete_item too (authorization widening).
+      const servers = [
+        makeServer("github", [{ toolName: "delete_item" }], [], [
+          { toolName: "delete_item", requiresApproval: false },
+        ]),
+        makeServer("database", [{ toolName: "delete_item" }]),
+      ];
+      const result = mergeApprovalPolicies(servers, NO_LEASES);
+      expect(result.has("github/delete_item")).toBe(false);
+      const other = result.get("database/delete_item")!;
+      expect(other.requiresApproval).toBe(true);
+      expect(other.source).toBe("classifier_default");
+    });
+
+    it("an enable override on one server adds no gate for a same-named tool on another server", () => {
+      const servers = [
+        makeServer("github", [], [], [
+          { toolName: "send_message", requiresApproval: true },
+        ]),
+        makeServer("slack", []),
+      ];
+      const result = mergeApprovalPolicies(servers, NO_LEASES);
+      expect(result.has("github/send_message")).toBe(true);
+      expect(result.has("slack/send_message")).toBe(false);
+    });
+
+    it("a message override on one server does not re-message a same-named gate on another server", () => {
+      const servers = [
+        makeServer("github", [{ toolName: "push", message: "github classifier" }], [], [
+          { toolName: "push", requiresApproval: true, message: "github override" },
+        ]),
+        makeServer("gitlab", [{ toolName: "push", message: "gitlab classifier" }]),
+      ];
+      const result = mergeApprovalPolicies(servers, NO_LEASES);
+      expect(result.get("github/push")!.approvalMessage).toBe("github override");
+      const other = result.get("gitlab/push")!;
+      expect(other.approvalMessage).toBe("gitlab classifier");
+      expect(other.source).toBe("classifier_default");
+    });
   });
 
   describe("provenance (source stamping)", () => {
     it("stamps classifier_default for a layer-1 tool approval", () => {
       const servers = [makeServer("github", [{ toolName: "create_issue" }])];
-      const result = mergeApprovalPolicies(servers, [], NO_LEASES);
+      const result = mergeApprovalPolicies(servers, NO_LEASES);
       expect(result.get("github/create_issue")!.source).toBe("classifier_default");
     });
 
@@ -182,31 +229,27 @@ describe("mergeApprovalPolicies", () => {
       const servers = [
         makeServer("github", [{ toolName: "push" }], [{ toolName: "push" }]),
       ];
-      const result = mergeApprovalPolicies(servers, [], NO_LEASES);
+      const result = mergeApprovalPolicies(servers, NO_LEASES);
       expect(result.get("github/push")!.source).toBe("pinned_override");
     });
 
     it("stamps agent_override when a per-agent override adds a gate", () => {
-      const servers = [makeServer("github", [])];
-      const overrides: ToolApprovalOverride[] = [{
-        toolName: "delete_repo",
-        requiresApproval: true,
-        message: "Really delete?",
-      }] as any[];
-      const result = mergeApprovalPolicies(servers, overrides, NO_LEASES);
+      const servers = [
+        makeServer("github", [], [], [
+          { toolName: "delete_repo", requiresApproval: true, message: "Really delete?" },
+        ]),
+      ];
+      const result = mergeApprovalPolicies(servers, NO_LEASES);
       expect(result.get("github/delete_repo")!.source).toBe("agent_override");
     });
 
     it("stamps agent_override when it overrides a classifier/pinned entry", () => {
       const servers = [
-        makeServer("github", [{ toolName: "push", message: "classifier" }]),
+        makeServer("github", [{ toolName: "push", message: "classifier" }], [], [
+          { toolName: "push", requiresApproval: true, message: "agent says gate" },
+        ]),
       ];
-      const overrides: ToolApprovalOverride[] = [{
-        toolName: "push",
-        requiresApproval: true,
-        message: "agent says gate",
-      }] as any[];
-      const result = mergeApprovalPolicies(servers, overrides, NO_LEASES);
+      const result = mergeApprovalPolicies(servers, NO_LEASES);
       const policy = result.get("github/push")!;
       expect(policy.source).toBe("agent_override");
       expect(policy.approvalMessage).toBe("agent says gate");
@@ -217,7 +260,7 @@ describe("mergeApprovalPolicies", () => {
     const servers = [
       makeServer("github", [{ toolName: "" }]),
     ];
-    const result = mergeApprovalPolicies(servers, [], NO_LEASES);
+    const result = mergeApprovalPolicies(servers, NO_LEASES);
     expect(result.size).toBe(0);
   });
 
@@ -225,7 +268,7 @@ describe("mergeApprovalPolicies", () => {
     const servers = [
       makeServer("github", [{ toolName: "push" }]),
     ];
-    const result = mergeApprovalPolicies(servers, [], NO_LEASES);
+    const result = mergeApprovalPolicies(servers, NO_LEASES);
     expect(result.get("github/push")!.approvalMessage).toContain("Execute tool: push");
   });
 
@@ -234,7 +277,7 @@ describe("mergeApprovalPolicies", () => {
       makeServer("github", [{ toolName: "push" }]),
       makeServer("database", [{ toolName: "drop_table" }]),
     ];
-    const result = mergeApprovalPolicies(servers, [], NO_LEASES);
+    const result = mergeApprovalPolicies(servers, NO_LEASES);
     expect(result.size).toBe(2);
     expect(result.has("github/push")).toBe(true);
     expect(result.has("database/drop_table")).toBe(true);

@@ -22,8 +22,12 @@
  *     OSS callers resolve as the local principal (T05 R2).
  *
  * Approval-free by construction (DD-001 SD-3): empty toolApprovals +
- * pinnedToolApprovals mean mergeApprovalPolicies emits no entries for
- * this server — zero classifier involvement. `discoveredCapabilitiesEmpty`
+ * pinnedToolApprovals + toolApprovalOverrides mean mergeApprovalPolicies
+ * emits no entries for this server — zero classifier involvement, and no
+ * proto surface can target it (the attachment has no McpServerUsage, and
+ * since issue #349 an agent's overrides are scoped to their own usage's
+ * server, so a same-named override elsewhere cannot reach this one).
+ * `discoveredCapabilitiesEmpty`
  * is false and the attachment has no McpServerUsage, so the connect
  * backfill (whose destructiveHint tightener would force-gate
  * delete_record — silently skipped on channels under UNATTENDED mode)
@@ -63,6 +67,7 @@ export function synthesizeDatastoreAttachment(
     slug: DATASTORE_ATTACHMENT_SLUG,
     toolApprovals: [],
     pinnedToolApprovals: [],
+    toolApprovalOverrides: [],
     discoveredCapabilitiesEmpty: false,
   };
 

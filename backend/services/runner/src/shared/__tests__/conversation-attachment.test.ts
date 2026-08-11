@@ -126,7 +126,7 @@ describe("synthesizeConversationAttachment", () => {
     // Channel surfaces run APPROVAL_MODE_UNATTENDED, where a gated tool
     // resolves as skip-and-adapt — a gated escalation would never fire
     // (DD-008's approval-free ruling, the DD-001 SD-3 structural bypass).
-    const merged = mergeApprovalPolicies([attachment], [], noLeases);
+    const merged = mergeApprovalPolicies([attachment], noLeases);
     expect(merged.size).toBe(0);
   });
 

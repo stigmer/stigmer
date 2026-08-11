@@ -169,7 +169,7 @@ describe("synthesizeChannelAttachment", () => {
     // UNATTENDED mode, where a gated tool resolves as skip-and-adapt —
     // a gated send tool means reminders never send.
     const merged = mergeApprovalPolicies(
-      [attachment as ResolvedMcpServer], [], noLeases,
+      [attachment as ResolvedMcpServer], noLeases,
     );
     expect(merged.size).toBe(0);
   });

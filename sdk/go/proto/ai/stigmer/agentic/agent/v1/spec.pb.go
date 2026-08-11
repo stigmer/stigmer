@@ -279,6 +279,9 @@ type McpServerUsage struct {
 	// Override approval requirements for specific tools.
 	// Takes precedence over McpServerSpec.pinned_tool_approvals and
 	// McpServerStatus.tool_approvals.
+	// Scoped to THIS usage's server: an override applies only to tools of
+	// the McpServer referenced by mcp_server_ref — a same-named tool on
+	// another server is unaffected.
 	ToolApprovalOverrides []*ToolApprovalOverride `protobuf:"bytes,3,rep,name=tool_approval_overrides,json=toolApprovalOverrides,proto3" json:"tool_approval_overrides,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
@@ -467,6 +470,9 @@ func (x *McpAccess) GetEnabledTools() []string {
 // requires it. These overrides take precedence over
 // McpServerSpec.pinned_tool_approvals and McpServerStatus.tool_approvals,
 // but can be bypassed at execution time by AgentExecution.auto_approve_all.
+//
+// An override is scoped to the McpServer referenced by its parent usage:
+// it never affects a same-named tool on another server.
 //
 // @internal
 // Policy chain (lowest to highest priority):
