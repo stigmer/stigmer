@@ -350,3 +350,35 @@ describe("ExecutionContext conformance — negative paths", () => {
     );
   });
 });
+
+describe("ExecutionContext conformance — cross-org authorization", () => {
+  // A direct (external) caller may only create an ExecutionContext in an org
+  // where they hold can_create_execution_in (member or guest). This is the
+  // external half of the stigmer-cloud#297 fix: create no longer skips
+  // authorization, so an outsider can no longer plant an EC — and thus poison
+  // a runner's environment — in a victim's org. Internal execution pipelines
+  // still create ECs on the caller's behalf over the in-process transport,
+  // which this external-client suite never exercises.
+  //
+  // multiTenant-gated: single-tenant OSS has one implicit caller (no outsider
+  // to exclude) and no server-side authorization layer, so the isolation is
+  // untestable there by construction — exactly like the organization suite's
+  // outsider test.
+  it("an outsider cannot create an execution context in a foreign org (PermissionDenied)", async () => {
+    if (!target.capabilities.multiTenant) {
+      return;
+    }
+    if (target.provisionIdentity === undefined) {
+      throw new Error(`target "${target.name}" declares multiTenant but provides no provisionIdentity()`);
+    }
+
+    const { org } = await target.provisionTenancy();
+    const outsider = await target.provisionIdentity();
+
+    await expectGrpcCode(
+      () => outsider.executionContextCommand.create(makeExecutionContext({ org, name: uniqueName("ectx-outsider") })),
+      Code.PermissionDenied,
+      "outsider create in a foreign org",
+    );
+  });
+});
