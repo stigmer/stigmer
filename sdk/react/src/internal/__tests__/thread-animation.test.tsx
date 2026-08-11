@@ -87,8 +87,8 @@ describe("JumpToLatestButton", () => {
     const button = screen.getByRole("button", { name: "Jump to latest" });
     expect(button.getAttribute("aria-hidden")).toBe("false");
     expect(button.getAttribute("tabindex")).toBe("0");
-    expect(button.className).toContain("opacity-100");
-    expect(button.className).toContain("pointer-events-auto");
+    expect(button.className).toContain("stg:opacity-100");
+    expect(button.className).toContain("stg:pointer-events-auto");
   });
 
   it("renders hidden state with correct attributes", () => {
@@ -98,9 +98,9 @@ describe("JumpToLatestButton", () => {
     const button = screen.getByLabelText("Jump to latest");
     expect(button.getAttribute("aria-hidden")).toBe("true");
     expect(button.getAttribute("tabindex")).toBe("-1");
-    expect(button.className).toContain("opacity-0");
-    expect(button.className).toContain("pointer-events-none");
-    expect(button.className).toContain("translate-y-2");
+    expect(button.className).toContain("stg:opacity-0");
+    expect(button.className).toContain("stg:pointer-events-none");
+    expect(button.className).toContain("stg:translate-y-2");
   });
 
   it("calls onClick when clicked in visible state", () => {
@@ -116,6 +116,6 @@ describe("JumpToLatestButton", () => {
     render(<JumpToLatestButton onClick={onClick} visible />);
 
     const button = screen.getByRole("button", { name: "Jump to latest" });
-    expect(button.className).toContain("transition-[opacity,transform]");
+    expect(button.className).toContain("stg:transition-[opacity,transform]");
   });
 });

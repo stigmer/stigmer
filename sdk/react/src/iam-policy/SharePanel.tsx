@@ -57,13 +57,13 @@ export function SharePanel({
 }: SharePanelProps) {
   return (
     <div
-      className={cn("flex flex-col gap-4 p-4", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-4 stg:p-4", className)}
       role="region"
       aria-label="Resource access management"
     >
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">
+      <div className="stg:flex stg:items-center stg:justify-between">
+        <h3 className="stg:text-sm stg:font-semibold stg:text-foreground">
           Share access
         </h3>
         {onClose && (
@@ -72,8 +72,8 @@ export function SharePanel({
             onClick={onClose}
             aria-label="Close share panel"
             className={cn(
-              "rounded-md p-1 text-muted-foreground",
-              "hover:text-foreground hover:bg-accent-hover",
+              "stg:rounded-md stg:p-1 stg:text-muted-foreground",
+              "stg:hover:text-foreground stg:hover:bg-accent-hover",
             )}
           >
             <CloseIcon />

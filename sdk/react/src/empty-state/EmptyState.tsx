@@ -54,23 +54,23 @@ export function EmptyState({
     <div
       role={resolved.role}
       className={cn(
-        "flex flex-col items-center gap-3 py-12 text-center",
+        "stg:flex stg:flex-col stg:items-center stg:gap-3 stg:py-12 stg:text-center",
         className,
       )}
     >
-      <div className="text-muted-foreground-faint">
+      <div className="stg:text-muted-foreground-faint">
         {icon ?? resolved.defaultIcon}
       </div>
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium text-muted-foreground">
+      <div className="stg:flex stg:flex-col stg:gap-1">
+        <p className="stg:text-sm stg:font-medium stg:text-muted-foreground">
           {resolved.title}
         </p>
-        <p className="max-w-sm text-xs text-muted-foreground-subtle">
+        <p className="stg:max-w-sm stg:text-xs stg:text-muted-foreground-subtle">
           {resolved.description}
         </p>
       </div>
       {children
-        ? <div className="mt-1">{children}</div>
+        ? <div className="stg:mt-1">{children}</div>
         : action && (
           <Button
             // A retry after an error is a recovery affordance, not the
@@ -78,7 +78,7 @@ export function EmptyState({
             variant={variant === "error" ? "outline" : "primary"}
             icon={action.icon}
             onClick={action.onClick}
-            className="mt-1"
+            className="stg:mt-1"
           >
             {action.label}
           </Button>

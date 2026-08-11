@@ -46,21 +46,21 @@ export const SummarizationBadge = memo(function SummarizationBadge({
     <div
       role="group"
       aria-label="Summarization history"
-      className={cn("flex flex-col gap-1", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-1", className)}
     >
       <button
         type="button"
         onClick={toggle}
         aria-expanded={expanded}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded px-1.5 py-0.5",
-          "text-xs text-muted-foreground",
-          "hover:bg-muted/50 transition-colors",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded stg:px-1.5 stg:py-0.5",
+          "stg:text-xs stg:text-muted-foreground",
+          "stg:hover:bg-muted/50 stg:transition-colors",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
         )}
       >
         <SummarizationIcon />
-        <span className="tabular-nums">
+        <span className="stg:tabular-nums">
           {events.length}{" "}
           {events.length === 1 ? "summarization" : "summarizations"}
         </span>
@@ -71,7 +71,7 @@ export const SummarizationBadge = memo(function SummarizationBadge({
         <div
           role="list"
           aria-label="Summarization events"
-          className="flex flex-col gap-1 pl-2"
+          className="stg:flex stg:flex-col stg:gap-1 stg:pl-2"
         >
           {events.map((event, i) => (
             <EventRow key={event.timestamp || i} event={event} index={i} />
@@ -94,24 +94,24 @@ const EventRow = memo(function EventRow({
   return (
     <div
       role="listitem"
-      className="flex flex-col gap-0.5 rounded border border-border/50 px-2 py-1.5"
+      className="stg:flex stg:flex-col stg:gap-0.5 stg:rounded stg:border stg:border-border/50 stg:px-2 stg:py-1.5"
     >
-      <div className="flex items-baseline justify-between text-xs text-muted-foreground">
-        <span className="font-medium">#{index + 1}</span>
+      <div className="stg:flex stg:items-baseline stg:justify-between stg:text-xs stg:text-muted-foreground">
+        <span className="stg:font-medium">#{index + 1}</span>
         {event.timestamp && (
           <time
             dateTime={event.timestamp}
-            className="tabular-nums"
+            className="stg:tabular-nums"
           >
             {formatTime(event.timestamp)}
           </time>
         )}
       </div>
-      <div className="text-xs tabular-nums text-muted-foreground">
+      <div className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
         {formatTokenCount(event.tokensBefore)} →{" "}
         {formatTokenCount(event.tokensAfter)} tokens ({reduction}% reduction)
       </div>
-      <div className="text-xs tabular-nums text-muted-foreground">
+      <div className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
         {event.durationMs > 0 && <>{formatDurationMs(event.durationMs)}</>}
         {event.model && (
           <>
@@ -178,8 +178,8 @@ function ChevronIcon({ expanded }: { readonly expanded: boolean }) {
       strokeLinejoin="round"
       aria-hidden="true"
       className={cn(
-        "transition-transform",
-        expanded && "rotate-180",
+        "stg:transition-transform",
+        expanded && "stg:rotate-180",
       )}
     >
       <path d="M2.5 4L5 6.5L7.5 4" />

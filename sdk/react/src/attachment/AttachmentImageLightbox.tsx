@@ -87,16 +87,16 @@ export function AttachmentImageLightbox({
       onClick={handleBackdropClick}
       aria-label={`Preview ${filename}`}
       className={cn(
-        "fixed inset-0 m-auto max-h-[85vh] max-w-[85vw] rounded-lg border border-border bg-background p-0 text-foreground shadow-lg outline-none",
-        "backdrop:bg-backdrop",
+        "stg:fixed stg:inset-0 stg:m-auto stg:max-h-[85vh] stg:max-w-[85vw] stg:rounded-lg stg:border stg:border-border stg:bg-background stg:p-0 stg:text-foreground stg:shadow-lg stg:outline-none",
+        "stg:backdrop:bg-backdrop",
         className,
       )}
     >
       {open && (
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2 px-3 py-2">
+        <div className="stg:flex stg:flex-col">
+          <div className="stg:flex stg:items-center stg:gap-2 stg:px-3 stg:py-2">
             <span
-              className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground"
+              className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-xs stg:font-semibold stg:text-foreground"
               title={filename}
             >
               {filename}
@@ -105,21 +105,21 @@ export function AttachmentImageLightbox({
               type="button"
               onClick={onClose}
               aria-label="Close image preview"
-              className="shrink-0 cursor-pointer rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="stg:shrink-0 stg:cursor-pointer stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
             >
               <CloseIcon />
             </button>
           </div>
-          <div className="min-h-0 overflow-auto border-t border-border">
+          <div className="stg:min-h-0 stg:overflow-auto stg:border-t stg:border-border">
             {src ? (
               <img
                 src={src}
                 alt={filename}
-                className="block max-h-[75vh] max-w-full object-contain"
+                className="stg:block stg:max-h-[75vh] stg:max-w-full stg:object-contain"
               />
             ) : (
               <div
-                className="h-48 w-72 animate-pulse bg-muted"
+                className="stg:h-48 stg:w-72 stg:animate-pulse stg:bg-muted"
                 aria-hidden="true"
               />
             )}

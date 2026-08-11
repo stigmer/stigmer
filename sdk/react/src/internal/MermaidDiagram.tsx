@@ -121,7 +121,7 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
       <div
         role="img"
         aria-label="Mermaid diagram"
-        className="mb-3 last:mb-0 flex justify-center overflow-x-auto rounded-md border border-border bg-card p-3 [&_svg]:max-w-full"
+        className="stg:mb-3 stg:last:mb-0 stg:flex stg:justify-center stg:overflow-x-auto stg:rounded-md stg:border stg:border-border stg:bg-card stg:p-3 stg:[&_svg]:max-w-full"
         dangerouslySetInnerHTML={{ __html: state.svg }}
       />
     );
@@ -150,12 +150,12 @@ function MermaidSourceFallback({
   failureMessage: string | null;
 }) {
   return (
-    <div className="mb-3 last:mb-0">
-      <pre className="overflow-x-auto rounded-md bg-muted p-3">
-        <code className="font-mono text-xs text-foreground">{chart}</code>
+    <div className="stg:mb-3 stg:last:mb-0">
+      <pre className="stg:overflow-x-auto stg:rounded-md stg:bg-muted stg:p-3">
+        <code className="stg:font-mono stg:text-xs stg:text-foreground">{chart}</code>
       </pre>
       {failureMessage !== null && (
-        <p role="status" className="mt-1 text-xs text-muted-foreground">
+        <p role="status" className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
           Mermaid diagram failed to render; showing source. ({failureMessage})
         </p>
       )}

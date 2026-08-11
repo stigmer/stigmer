@@ -95,22 +95,22 @@ export function CreationPicker<TData>({
 
   if (view === "gallery") {
     return (
-      <div className={cn("flex flex-col gap-4", className)}>
-        <div className="flex items-center gap-2">
+      <div className={cn("stg:flex stg:flex-col stg:gap-4", className)}>
+        <div className="stg:flex stg:items-center stg:gap-2">
           <button
             type="button"
             onClick={handleBackToOptions}
             aria-label="Back to creation options"
             className={cn(
-              "inline-flex items-center justify-center rounded-md p-1.5",
-              "text-muted-foreground transition-colors",
-              "hover:bg-accent hover:text-accent-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:inline-flex stg:items-center stg:justify-center stg:rounded-md stg:p-1.5",
+              "stg:text-muted-foreground stg:transition-colors",
+              "stg:hover:bg-accent stg:hover:text-accent-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           >
             <BackArrowIcon />
           </button>
-          <h2 className="text-base font-semibold text-foreground">
+          <h2 className="stg:text-base stg:font-semibold stg:text-foreground">
             Choose a template
           </h2>
         </div>
@@ -123,17 +123,17 @@ export function CreationPicker<TData>({
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)}>
+    <div className={cn("stg:flex stg:flex-col stg:gap-6", className)}>
       <div>
-        <h2 className="text-lg font-semibold text-foreground">
+        <h2 className="stg:text-lg stg:font-semibold stg:text-foreground">
           Create a new {resourceLabel}
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">
           Choose how you'd like to get started.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="stg:grid stg:grid-cols-1 stg:gap-3 stg:sm:grid-cols-3">
         {/* Start from scratch */}
         <OptionCard
           title="Start from scratch"
@@ -194,20 +194,20 @@ function OptionCard({
       onClick={onClick}
       data-cursor-target={cursorTarget}
       className={cn(
-        "group flex flex-col items-center gap-3 rounded-lg border border-border bg-card p-6 text-center",
-        "transition-colors hover:border-primary hover:bg-accent",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "stg:group stg:flex stg:flex-col stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-6 stg:text-center",
+        "stg:transition-colors stg:hover:border-primary stg:hover:bg-accent",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
       )}
     >
-      <span className="text-muted-foreground transition-colors group-hover:text-foreground">
+      <span className="stg:text-muted-foreground stg:transition-colors stg:group-hover:text-foreground">
         {icon}
       </span>
-      <div className="flex flex-col gap-1">
-        <span className="text-sm font-medium text-foreground">{title}</span>
-        <span className="text-xs text-muted-foreground">{description}</span>
+      <div className="stg:flex stg:flex-col stg:gap-1">
+        <span className="stg:text-sm stg:font-medium stg:text-foreground">{title}</span>
+        <span className="stg:text-xs stg:text-muted-foreground">{description}</span>
       </div>
       {badge && (
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+        <span className="stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground">
           {badge}
         </span>
       )}
@@ -222,7 +222,7 @@ function OptionCard({
 function BlankPageIcon() {
   return (
     <svg
-      className="size-8"
+      className="stg:size-8"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"
@@ -241,7 +241,7 @@ function BlankPageIcon() {
 function GridIcon() {
   return (
     <svg
-      className="size-8"
+      className="stg:size-8"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"
@@ -262,7 +262,7 @@ function GridIcon() {
 function UploadIcon() {
   return (
     <svg
-      className="size-8"
+      className="stg:size-8"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"
@@ -282,7 +282,7 @@ function UploadIcon() {
 function BackArrowIcon() {
   return (
     <svg
-      className="size-4"
+      className="stg:size-4"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"

@@ -26,12 +26,12 @@ export function FileLineStats({
   if (linesAdded === 0 && linesRemoved === 0) return null;
   return (
     <span
-      className="shrink-0 text-xs tabular-nums"
+      className="stg:shrink-0 stg:text-xs stg:tabular-nums"
       aria-label={`${linesAdded} added, ${linesRemoved} removed`}
       data-cursor-target="file-review-line-stats"
     >
-      <span className="text-diff-added-fg">+{linesAdded}</span>{" "}
-      <span className="text-diff-removed-fg">-{linesRemoved}</span>
+      <span className="stg:text-diff-added-fg">+{linesAdded}</span>{" "}
+      <span className="stg:text-diff-removed-fg">-{linesRemoved}</span>
     </span>
   );
 }
@@ -42,29 +42,29 @@ const KIND_BADGE: Partial<
 > = {
   [FileChangeKind.ADD]: {
     letter: "A",
-    colorClass: "text-diff-added-fg",
+    colorClass: "stg:text-diff-added-fg",
     label: "added",
   },
   [FileChangeKind.MODIFY]: {
     letter: "M",
-    colorClass: "text-diff-hunk-header-fg",
+    colorClass: "stg:text-diff-hunk-header-fg",
     label: "modified",
   },
   [FileChangeKind.DELETE]: {
     letter: "D",
-    colorClass: "text-diff-removed-fg",
+    colorClass: "stg:text-diff-removed-fg",
     label: "deleted",
   },
   [FileChangeKind.RENAME]: {
     letter: "R",
-    colorClass: "text-diff-hunk-header-fg",
+    colorClass: "stg:text-diff-hunk-header-fg",
     label: "renamed",
   },
   // A binary change is a modification whose diff is not text; the letter stays
   // M and the binary-ness is told by the row's "Keep anyway" + reason note.
   [FileChangeKind.BINARY_CHANGE]: {
     letter: "M",
-    colorClass: "text-diff-hunk-header-fg",
+    colorClass: "stg:text-diff-hunk-header-fg",
     label: "modified (binary)",
   },
 };
@@ -80,7 +80,7 @@ export function FileKindBadge({ kind }: { kind: FileChangeKind }) {
   if (!badge) return null;
   return (
     <span
-      className={cn("shrink-0 font-mono text-[10px] font-bold", badge.colorClass)}
+      className={cn("stg:shrink-0 stg:font-mono stg:text-[10px] stg:font-bold", badge.colorClass)}
       aria-label={badge.label}
     >
       {badge.letter}

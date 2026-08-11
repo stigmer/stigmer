@@ -122,16 +122,16 @@ export function AutoRechargeCard({
   return (
     <div
       className={cn(
-        "rounded-lg border border-border bg-card px-4 py-4",
+        "stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-4 stg:py-4",
         className,
       )}
     >
-      <div className="flex items-center justify-between">
+      <div className="stg:flex stg:items-center stg:justify-between">
         <div>
-          <h3 className="text-xs font-semibold text-foreground">
+          <h3 className="stg:text-xs stg:font-semibold stg:text-foreground">
             Auto-Recharge
           </h3>
-          <p className="mt-0.5 text-[0.7rem] text-muted-foreground">
+          <p className="stg:mt-0.5 stg:text-[0.7rem] stg:text-muted-foreground">
             Automatically add credits when your balance runs low.
           </p>
         </div>
@@ -142,31 +142,31 @@ export function AutoRechargeCard({
           disabled={!canConfigure || isSubmitting}
           onClick={() => setEnabled((prev) => !prev)}
           className={cn(
-            "relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            "disabled:cursor-not-allowed disabled:opacity-50",
-            enabled ? "bg-primary" : "bg-muted",
+            "stg:relative stg:inline-flex stg:h-5 stg:w-9 stg:shrink-0 stg:rounded-full stg:transition-colors",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            "stg:disabled:cursor-not-allowed stg:disabled:opacity-50",
+            enabled ? "stg:bg-primary" : "stg:bg-muted",
           )}
         >
           <span
             className={cn(
-              "pointer-events-none block size-4 rounded-full bg-background shadow-sm ring-0 transition-transform",
-              enabled ? "translate-x-4" : "translate-x-0.5",
-              "mt-0.5",
+              "stg:pointer-events-none stg:block stg:size-4 stg:rounded-full stg:bg-background stg:shadow-sm stg:ring-0 stg:transition-transform",
+              enabled ? "stg:translate-x-4" : "stg:translate-x-0.5",
+              "stg:mt-0.5",
             )}
           />
         </button>
       </div>
 
       {!hasPaymentMethod && (
-        <p className="mt-3 text-xs text-muted-foreground">
+        <p className="stg:mt-3 stg:text-xs stg:text-muted-foreground">
           A saved payment method is required to enable auto-recharge.
           Purchase a credit pack first to save a card.
         </p>
       )}
 
       {canConfigure && (
-        <div className="mt-4 space-y-3">
+        <div className="stg:mt-4 stg:space-y-3">
           <DollarInput
             id="ar-threshold"
             label="When balance drops below"
@@ -192,29 +192,29 @@ export function AutoRechargeCard({
             placeholder="e.g. 200"
           />
 
-          <div className="flex items-center gap-3 pt-1">
+          <div className="stg:flex stg:items-center stg:gap-3 stg:pt-1">
             <button
               type="button"
               disabled={!hasChanges || isSubmitting}
               onClick={handleSave}
               className={cn(
-                "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                "bg-primary text-primary-foreground hover:bg-primary-hover",
-                "disabled:pointer-events-none disabled:opacity-50",
+                "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:transition-colors",
+                "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               )}
               aria-busy={isSubmitting}
             >
               {isSubmitting ? "Saving\u2026" : "Save"}
             </button>
             {saved && (
-              <span className="text-xs text-emerald-600 dark:text-emerald-400">
+              <span className="stg:text-xs stg:text-emerald-600 stg:dark:text-emerald-400">
                 Saved
               </span>
             )}
           </div>
 
           {error && (
-            <p className="text-xs text-destructive" role="alert">
+            <p className="stg:text-xs stg:text-destructive" role="alert">
               {getUserMessage(error)}
             </p>
           )}
@@ -245,11 +245,11 @@ function DollarInput({
 }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-xs text-muted-foreground">
+      <label htmlFor={id} className="stg:block stg:text-xs stg:text-muted-foreground">
         {label}
       </label>
-      <div className="relative mt-1">
-        <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+      <div className="stg:relative stg:mt-1">
+        <span className="stg:pointer-events-none stg:absolute stg:left-2.5 stg:top-1/2 stg:-translate-y-1/2 stg:text-xs stg:text-muted-foreground">
           $
         </span>
         <input
@@ -262,10 +262,10 @@ function DollarInput({
           disabled={disabled}
           placeholder={placeholder}
           className={cn(
-            "w-full rounded-md border border-input bg-background py-1.5 pl-6 pr-3 text-xs tabular-nums",
-            "text-foreground placeholder:text-muted-foreground-subtle",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-            "disabled:cursor-not-allowed disabled:opacity-50",
+            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:py-1.5 stg:pl-6 stg:pr-3 stg:text-xs stg:tabular-nums",
+            "stg:text-foreground stg:placeholder:text-muted-foreground-subtle",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+            "stg:disabled:cursor-not-allowed stg:disabled:opacity-50",
           )}
         />
       </div>

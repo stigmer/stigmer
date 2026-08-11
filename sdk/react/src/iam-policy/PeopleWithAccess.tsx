@@ -67,23 +67,23 @@ export function PeopleWithAccess({
   const grantGate = { kind: resourceKindString, id: resource.id };
 
   return (
-    <div className={cn("flex flex-col gap-4", className)}>
+    <div className={cn("stg:flex stg:flex-col stg:gap-4", className)}>
       {/* Access list */}
-      <div className="space-y-1">
-        <p className="text-xs text-muted-foreground">
+      <div className="stg:space-y-1">
+        <p className="stg:text-xs stg:text-muted-foreground">
           {isLoading
             ? "Loading access list..."
             : `${accessList.length} ${accessList.length === 1 ? "person" : "people"} with access`}
         </p>
 
         {fetchError && (
-          <p className="text-destructive text-[0.65rem]" role="alert">
+          <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
             {getUserMessage(fetchError)}
           </p>
         )}
 
         {!isLoading && accessList.length > 0 && (
-          <ul className="space-y-1 mt-2" aria-label="People with access">
+          <ul className="stg:space-y-1 stg:mt-2" aria-label="People with access">
             {accessList.map((entry) => (
               <AccessEntry
                 key={entry.principal?.id ?? "unknown"}
@@ -97,7 +97,7 @@ export function PeopleWithAccess({
         )}
 
         {revokeError && (
-          <p className="text-destructive text-[0.65rem]" role="alert">
+          <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
             {getUserMessage(revokeError)}
           </p>
         )}
@@ -106,7 +106,7 @@ export function PeopleWithAccess({
       {/* Grant form — only for users who can grant access. */}
       {hasGrantableRoles && (
         <PermissionGate resource={grantGate} relation="can_grant_access">
-          <div className="border-t border-border pt-3">
+          <div className="stg:border-t stg:border-border stg:pt-3">
             {showGrantForm ? (
               <GrantAccessForm
                 resourceKind={resourceKind}
@@ -125,10 +125,10 @@ export function PeopleWithAccess({
                 type="button"
                 onClick={() => setShowGrantForm(true)}
                 className={cn(
-                  "w-full rounded-md px-3 py-1.5 text-xs font-medium text-center",
-                  "border border-dashed border-border",
-                  "text-muted-foreground hover:text-foreground hover:border-foreground/30",
-                  "hover:bg-accent-hover transition-colors",
+                  "stg:w-full stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-center",
+                  "stg:border stg:border-dashed stg:border-border",
+                  "stg:text-muted-foreground stg:hover:text-foreground stg:hover:border-foreground/30",
+                  "stg:hover:bg-accent-hover stg:transition-colors",
                 )}
               >
                 + Add people
@@ -168,26 +168,26 @@ function AccessEntry({
   }, [principal?.id, primaryRole?.code, onRevoke]);
 
   return (
-    <li className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-accent-hover group">
-      <div className="flex items-center gap-2 min-w-0">
+    <li className="stg:flex stg:items-center stg:justify-between stg:gap-2 stg:rounded-md stg:px-2 stg:py-1.5 stg:hover:bg-accent-hover stg:group">
+      <div className="stg:flex stg:items-center stg:gap-2 stg:min-w-0">
         <div
-          className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[0.6rem] font-medium text-muted-foreground shrink-0"
+          className="stg:h-6 stg:w-6 stg:rounded-full stg:bg-muted stg:flex stg:items-center stg:justify-center stg:text-[0.6rem] stg:font-medium stg:text-muted-foreground stg:shrink-0"
           aria-hidden="true"
         >
           {(principal?.name?.[0] ?? principal?.email?.[0] ?? "?").toUpperCase()}
         </div>
-        <div className="min-w-0">
-          <p className="text-xs text-foreground truncate">{displayName}</p>
+        <div className="stg:min-w-0">
+          <p className="stg:text-xs stg:text-foreground stg:truncate">{displayName}</p>
           {principal?.email && principal.name && (
-            <p className="text-[0.6rem] text-muted-foreground truncate">
+            <p className="stg:text-[0.6rem] stg:text-muted-foreground stg:truncate">
               {principal.email}
             </p>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 shrink-0">
-        <span className="text-[0.6rem] text-muted-foreground capitalize">
+      <div className="stg:flex stg:items-center stg:gap-1.5 stg:shrink-0">
+        <span className="stg:text-[0.6rem] stg:text-muted-foreground stg:capitalize">
           {primaryRole?.name ?? primaryRole?.code ?? "—"}
         </span>
         <PermissionGate resource={grantGate} relation="can_grant_access">
@@ -197,10 +197,10 @@ function AccessEntry({
             disabled={isRevoking}
             aria-label={`Remove ${displayName}'s access`}
             className={cn(
-              "rounded p-0.5 text-muted-foreground opacity-0 group-hover:opacity-100",
-              "hover:text-destructive hover:bg-destructive/10",
-              "disabled:pointer-events-none disabled:opacity-50",
-              "transition-opacity",
+              "stg:rounded stg:p-0.5 stg:text-muted-foreground stg:opacity-0 stg:group-hover:opacity-100",
+              "stg:hover:text-destructive stg:hover:bg-destructive/10",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+              "stg:transition-opacity",
             )}
           >
             <RemoveIcon />

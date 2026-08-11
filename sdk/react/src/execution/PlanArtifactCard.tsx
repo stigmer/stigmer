@@ -92,26 +92,26 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
       aria-label="Plan"
       onKeyDown={handleKeyDown}
       className={cn(
-        "mx-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg",
-        "border border-border-muted bg-card px-3 py-2.5",
+        "stg:mx-4 stg:flex stg:flex-wrap stg:items-center stg:gap-x-3 stg:gap-y-2 stg:rounded-lg",
+        "stg:border stg:border-border-muted stg:bg-card stg:px-3 stg:py-2.5",
         className,
       )}
     >
       <PlanIcon />
-      <div className="min-w-0 flex-1 basis-48">
-        <div className="truncate text-sm font-medium text-foreground">
+      <div className="stg:min-w-0 stg:flex-1 stg:basis-48">
+        <div className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
           {title ?? "Plan"}
         </div>
-        <div className="text-[0.65rem] text-muted-foreground-faint">
+        <div className="stg:text-[0.65rem] stg:text-muted-foreground-faint">
           {artifact.name}
           <span aria-hidden="true"> · </span>
-          <span className="tabular-nums">
+          <span className="stg:tabular-nums">
             {formatArtifactSize(artifact.sizeBytes)}
           </span>
         </div>
       </div>
 
-      <div className="ml-auto flex flex-wrap items-center gap-x-1.5 gap-y-1.5">
+      <div className="stg:ml-auto stg:flex stg:flex-wrap stg:items-center stg:gap-x-1.5 stg:gap-y-1.5">
         {onOpenPlan ? (
           <IconAction
             label="Open plan"
@@ -145,11 +145,11 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
             disabled={disabled}
             onClick={onImplement}
             className={cn(
-              "ml-1.5 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5",
-              "text-xs font-medium transition-colors",
-              "bg-primary text-primary-foreground hover:bg-primary-hover",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:ml-1.5 stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5",
+              "stg:text-xs stg:font-medium stg:transition-colors",
+              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             <ImplementIcon />
@@ -158,7 +158,7 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
         )}
       </div>
 
-      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+      <div role="status" aria-live="polite" aria-atomic="true" className="stg:sr-only">
         {copied && "Plan copied to clipboard"}
       </div>
 
@@ -181,7 +181,7 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
 });
 
 const FOCUS_RING =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm";
+  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm";
 
 /**
  * An icon-only secondary action. The accessible name doubles as the hover
@@ -207,9 +207,9 @@ function IconAction({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex items-center rounded-md p-1.5 text-muted-foreground",
-        "transition-colors hover:bg-muted hover:text-foreground",
-        "disabled:pointer-events-none disabled:opacity-50",
+        "stg:inline-flex stg:items-center stg:rounded-md stg:p-1.5 stg:text-muted-foreground",
+        "stg:transition-colors stg:hover:bg-muted stg:hover:text-foreground",
+        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         FOCUS_RING,
       )}
     >
@@ -229,7 +229,7 @@ function PlanIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-muted-foreground-faint"
+      className="stg:shrink-0 stg:text-muted-foreground-faint"
       aria-hidden="true"
     >
       <path d="M3 4h10M3 8h7M3 12h8" />
@@ -267,7 +267,7 @@ function DownloadIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <path d="M6 1.5V8.5" />
@@ -288,7 +288,7 @@ function CopyIcon() {
       strokeWidth="1.2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <rect x="4" y="4" width="6.5" height="6.5" rx="1" />
@@ -309,7 +309,7 @@ function CheckIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-success"
+      className="stg:shrink-0 stg:text-success"
       aria-hidden="true"
     >
       <path d="M2 6.5L4.5 9L10 3" />
@@ -329,7 +329,7 @@ function EyeIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <path d="M1.5 8S4 3.5 8 3.5s6.5 4.5 6.5 4.5-2.5 4.5-6.5 4.5S1.5 8 1.5 8Z" />

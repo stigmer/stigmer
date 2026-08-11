@@ -206,7 +206,7 @@ export function AgentChannelsPanel({
 
   if (error) {
     return (
-      <div className="py-8 text-center text-sm text-destructive">
+      <div className="stg:py-8 stg:text-center stg:text-sm stg:text-destructive">
         Failed to load channels
       </div>
     );
@@ -241,7 +241,7 @@ export function AgentChannelsPanel({
           CHANNEL_PROVIDERS[0];
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("stg:space-y-3", className)}>
       {showCloudNotice && (
         <CloudFeatureNotice>
           Channel installs require Stigmer Cloud — connecting an agent to
@@ -257,21 +257,21 @@ export function AgentChannelsPanel({
         />
       ) : (
         <>
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-medium text-foreground">
+          <div className="stg:flex stg:items-center stg:justify-between stg:gap-2">
+            <h3 className="stg:text-sm stg:font-medium stg:text-foreground">
               {channels.length} {channels.length === 1 ? "channel" : "channels"}
             </h3>
             {/* One visible button per provider — deliberately not a
                 dropdown: two options are clearer side by side, and each
                 keeps its own stable cursor target (see providers.ts). */}
             {connectableProviders.length > 0 && (
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-2">
                 {connectableProviders.map((p) => (
                   <Button
                     key={p.id}
                     variant="outline"
                     size="xs"
-                    icon={<p.Icon className="size-3" />}
+                    icon={<p.Icon className="stg:size-3" />}
                     onClick={() => handleConnect(null, p)}
                     data-cursor-target={`connect-${p.id}`}
                   >
@@ -282,7 +282,7 @@ export function AgentChannelsPanel({
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="stg:space-y-2">
             {channels.map((channel) => {
               const cardProvider =
                 channelProviderOf(channel.spec?.providerConfig?.case) ??
@@ -504,30 +504,30 @@ function ChannelCard({
   );
 
   return (
-    <div className="rounded-lg border border-border p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <provider.Icon className="size-5 shrink-0 text-foreground" />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
+    <div className="stg:rounded-lg stg:border stg:border-border stg:p-4">
+      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
+        <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2.5">
+          <provider.Icon className="stg:size-5 stg:shrink-0 stg:text-foreground" />
+          <div className="stg:min-w-0">
+            <div className="stg:flex stg:items-center stg:gap-2">
               <span
-                className="truncate text-sm font-medium text-foreground"
+                className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground"
                 title={meta?.name || meta?.slug || undefined}
               >
                 {meta?.name || meta?.slug || "\u2014"}
               </span>
               <InstallStatePill state={installState} />
             </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
               {presentation.describeChannel(channel)}
             </p>
-            <p className="mt-0.5 text-xs text-muted-foreground-faint">
+            <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground-faint">
               {presentation.servingLine(servingAppName)}
             </p>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-2">
           {canEdit && installState === AgentChannelInstallState.installed && (
             <Switch
               checked={enabled}
@@ -552,7 +552,7 @@ function ChannelCard({
             <ActionMenu.Trigger
               aria-label={`Actions for ${meta?.name || meta?.slug}`}
             >
-              <MoreHorizontal className="size-4" />
+              <MoreHorizontal className="stg:size-4" />
             </ActionMenu.Trigger>
             <ActionMenu.Content>
               <ActionMenu.Item
@@ -665,7 +665,7 @@ function CardReadinessWarning({
       : `Bound environment${readiness.privateEnvironments.length > 1 ? "s" : ""} ${readiness.privateEnvironments.join(", ")} ${readiness.privateEnvironments.length > 1 ? "are" : "is"} private — share ${readiness.privateEnvironments.length > 1 ? "them" : "it"} with your organization so workspace messages can use the credentials.`;
 
   return (
-    <p className="mt-2 text-xs text-warning" role="status">
+    <p className="stg:mt-2 stg:text-xs stg:text-warning" role="status">
       {message}
       {canEdit && (
         <>
@@ -674,9 +674,9 @@ function CardReadinessWarning({
             type="button"
             onClick={onEditCredentials}
             className={cn(
-              "font-medium underline underline-offset-2",
-              "hover:text-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
+              "stg:font-medium stg:underline stg:underline-offset-2",
+              "stg:hover:text-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded",
             )}
           >
             Bind credentials
@@ -702,22 +702,22 @@ function InstallStatePill({ state }: { readonly state: AgentChannelInstallState 
   const { label, tone } = (() => {
     switch (state) {
       case AgentChannelInstallState.installed:
-        return { label: "Installed", tone: "text-success" };
+        return { label: "Installed", tone: "stg:text-success" };
       case AgentChannelInstallState.revoked:
-        return { label: "Revoked", tone: "text-destructive" };
+        return { label: "Revoked", tone: "stg:text-destructive" };
       default:
-        return { label: "Pending install", tone: "text-muted-foreground" };
+        return { label: "Pending install", tone: "stg:text-muted-foreground" };
     }
   })();
 
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 text-xs",
+        "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:text-xs",
         tone,
       )}
     >
-      <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+      <span aria-hidden="true" className="stg:size-1.5 stg:rounded-full stg:bg-current" />
       {label}
     </span>
   );
@@ -740,9 +740,9 @@ function ChannelEmptyState({
     <EmptyState
       variant="first-use"
       icon={
-        <span className="flex items-center gap-2">
+        <span className="stg:flex stg:items-center stg:gap-2">
           {CHANNEL_PROVIDERS.map((p) => (
-            <p.Icon key={p.id} className="size-10" />
+            <p.Icon key={p.id} className="stg:size-10" />
           ))}
         </span>
       }
@@ -758,12 +758,12 @@ function ChannelEmptyState({
           config does not thread through. One visible button per provider
           — see providers.ts for why this is not a dropdown. */}
       {providers.length > 0 && (
-        <span className="flex items-center gap-2">
+        <span className="stg:flex stg:items-center stg:gap-2">
           {providers.map((p) => (
             <Button
               key={p.id}
               variant="primary"
-              icon={<p.Icon className="size-3" />}
+              icon={<p.Icon className="stg:size-3" />}
               onClick={() => onConnectClick(p)}
               data-cursor-target={`connect-${p.id}`}
             >
@@ -778,9 +778,9 @@ function ChannelEmptyState({
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-2 py-4">
+    <div className="stg:space-y-2 stg:py-4">
       {[1, 2].map((i) => (
-        <div key={i} className="h-20 animate-pulse rounded-lg bg-muted-faint" />
+        <div key={i} className="stg:h-20 stg:animate-pulse stg:rounded-lg stg:bg-muted-faint" />
       ))}
     </div>
   );

@@ -107,14 +107,14 @@ export function InvitationManager({
   if (isLoading) {
     return (
       <div
-        className={cn("space-y-2", className)}
+        className={cn("stg:space-y-2", className)}
         aria-busy="true"
         aria-label="Loading invitations"
       >
         {Array.from({ length: 2 }, (_, i) => (
           <div
             key={i}
-            className="bg-muted-subtle h-14 animate-pulse rounded-lg"
+            className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg"
           />
         ))}
       </div>
@@ -123,22 +123,22 @@ export function InvitationManager({
 
   if (error) {
     return (
-      <p className={cn("text-destructive text-xs", className)} role="alert">
+      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
         {getUserMessage(error)}
       </p>
     );
   }
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("stg:space-y-3", className)}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-foreground">
+      <div className="stg:flex stg:items-center stg:justify-between">
+        <div className="stg:flex stg:items-center stg:gap-2">
+          <span className="stg:text-sm stg:font-semibold stg:text-foreground">
             Invite Links
           </span>
           {activeCount > 0 && (
-            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[0.65rem] font-medium text-muted-foreground">
+            <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
               {activeCount} active
             </span>
           )}
@@ -147,7 +147,7 @@ export function InvitationManager({
           <button
             type="button"
             onClick={() => setFlow({ phase: "creating" })}
-            className="text-primary hover:text-foreground text-xs font-medium transition-colors"
+            className="stg:text-primary stg:hover:text-foreground stg:text-xs stg:font-medium stg:transition-colors"
           >
             + Create invite link
           </button>
@@ -165,7 +165,7 @@ export function InvitationManager({
 
       {/* Create form */}
       {flow.phase === "creating" && (
-        <div className="border-border bg-card rounded-lg border p-4">
+        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
           <CreateInvitationForm
             org={org}
             onCreated={handleCreated}
@@ -176,14 +176,14 @@ export function InvitationManager({
 
       {/* Invitation list */}
       {invitations.length === 0 ? (
-        <p className="text-muted-foreground py-4 text-center text-xs">
+        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
           No invite links yet. Create one to start inviting people.
         </p>
       ) : (
         <div
           role="list"
           aria-label="Invitation links"
-          className="space-y-2"
+          className="stg:space-y-2"
         >
           {invitations.map((inv) => {
             const id = inv.metadata?.id ?? "";
@@ -261,15 +261,15 @@ function CreateInvitationForm({
   );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form onSubmit={handleSubmit} className="stg:space-y-3">
       {/* Label */}
-      <div className="space-y-1">
+      <div className="stg:space-y-1">
         <label
           htmlFor="stgm-new-invite-label"
-          className="text-xs font-medium text-foreground"
+          className="stg:text-xs stg:font-medium stg:text-foreground"
         >
           Label{" "}
-          <span className="font-normal text-muted-foreground">(optional)</span>
+          <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
         </label>
         <input
           id="stgm-new-invite-label"
@@ -281,10 +281,10 @@ function CreateInvitationForm({
           autoFocus
           maxLength={200}
           className={cn(
-            "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-            "placeholder:text-muted-foreground",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         />
       </div>
@@ -298,11 +298,11 @@ function CreateInvitationForm({
       />
 
       {/* Expiry */}
-      <fieldset className="space-y-1.5">
-        <legend className="text-xs font-medium text-foreground">
+      <fieldset className="stg:space-y-1.5">
+        <legend className="stg:text-xs stg:font-medium stg:text-foreground">
           Expires in
         </legend>
-        <div className="flex flex-wrap gap-2">
+        <div className="stg:flex stg:flex-wrap stg:gap-2">
           {EXPIRY_OPTIONS.map(({ value, label: optLabel }) => (
             <ExpiryRadio
               key={value}
@@ -317,11 +317,11 @@ function CreateInvitationForm({
       </fieldset>
 
       {/* Redemption mode */}
-      <fieldset className="space-y-1.5">
-        <legend className="text-xs font-medium text-foreground">
+      <fieldset className="stg:space-y-1.5">
+        <legend className="stg:text-xs stg:font-medium stg:text-foreground">
           Usage limit
         </legend>
-        <div className="flex flex-wrap gap-2">
+        <div className="stg:flex stg:flex-wrap stg:gap-2">
           <RedemptionRadio
             value="unlimited"
             label="Unlimited"
@@ -342,19 +342,19 @@ function CreateInvitationForm({
       </fieldset>
 
       {error && (
-        <p className="text-destructive text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
           {getUserMessage(error)}
         </p>
       )}
 
-      <div className="flex items-center gap-2">
+      <div className="stg:flex stg:items-center stg:gap-2">
         <button
           type="submit"
           disabled={!canSubmit}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-40",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
           {isCreating && <SpinnerIcon />}
@@ -366,9 +366,9 @@ function CreateInvitationForm({
           onClick={onCancel}
           disabled={isCreating}
           className={cn(
-            "rounded-md px-3 py-1.5 text-xs",
-            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs",
+            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           Cancel
@@ -433,30 +433,30 @@ function InvitationRow({
   return (
     <div
       role="listitem"
-      className="flex items-center gap-3 rounded-lg border border-border-muted px-3 py-2.5 hover:border-border transition-colors"
+      className="stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border-muted stg:px-3 stg:py-2.5 stg:hover:border-border stg:transition-colors"
     >
       {/* Icon */}
       <LinkIcon active={isActive} />
 
       {/* Label + redemption info */}
-      <div className="min-w-0 flex-1">
+      <div className="stg:min-w-0 stg:flex-1">
         <span
           className={cn(
-            "block truncate text-sm font-medium",
-            isActive ? "text-foreground" : "text-muted-foreground",
+            "stg:block stg:truncate stg:text-sm stg:font-medium",
+            isActive ? "stg:text-foreground" : "stg:text-muted-foreground",
           )}
         >
           {label}
         </span>
-        <span className="block text-xs text-muted-foreground">
+        <span className="stg:block stg:text-xs stg:text-muted-foreground">
           {formatRedemptions(redemptionCount, maxRedemptions)}
         </span>
       </div>
 
       {/* Metadata columns */}
-      <div className="hidden sm:flex shrink-0 items-center gap-3">
+      <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-3">
         {/* Role badge */}
-        <span className="inline-flex items-center rounded-md border border-border bg-muted px-2 py-0.5 text-[0.65rem] font-medium text-foreground">
+        <span className="stg:inline-flex stg:items-center stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-foreground">
           {iamRoleDisplayName(role)}
         </span>
 
@@ -465,7 +465,7 @@ function InvitationRow({
 
         {/* Expiry */}
         {expiresAt && (
-          <span className="text-xs text-muted-foreground" title={timestampDate(expiresAt).toISOString()}>
+          <span className="stg:text-xs stg:text-muted-foreground" title={timestampDate(expiresAt).toISOString()}>
             {isActive
               ? formatRelativeExpiry(timestampDate(expiresAt))
               : formatShortDate(timestampDate(expiresAt))}
@@ -474,17 +474,17 @@ function InvitationRow({
       </div>
 
       {/* Actions */}
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
         {isActive && (
           <button
             type="button"
             onClick={handleCopy}
             aria-label={copied ? "Link copied" : `Copy invite link for ${label}`}
             className={cn(
-              "shrink-0 rounded p-1 transition-colors",
+              "stg:shrink-0 stg:rounded stg:p-1 stg:transition-colors",
               copied
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
+                ? "stg:text-primary"
+                : "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
             )}
           >
             {copied ? <CheckIcon /> : <CopyIcon />}
@@ -495,7 +495,7 @@ function InvitationRow({
             type="button"
             onClick={onStartRevoke}
             aria-label={`Revoke ${label}`}
-            className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive-subtle transition-colors"
+            className="stg:shrink-0 stg:rounded stg:p-1 stg:text-muted-foreground stg:hover:text-destructive stg:hover:bg-destructive-subtle stg:transition-colors"
           >
             <RevokeIcon />
           </button>
@@ -534,29 +534,29 @@ function RevokeConfirmation({
   return (
     <div
       role="listitem"
-      className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive-subtle px-3 py-2.5"
+      className="stg:flex stg:items-center stg:justify-between stg:rounded-lg stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2.5"
     >
-      <div className="min-w-0 flex-1">
-        <p className="text-xs text-foreground">
-          Revoke <span className="font-medium">{label}</span>? The link will
+      <div className="stg:min-w-0 stg:flex-1">
+        <p className="stg:text-xs stg:text-foreground">
+          Revoke <span className="stg:font-medium">{label}</span>? The link will
           stop working immediately.
         </p>
         {error && (
-          <p className="mt-0.5 text-[0.65rem] text-destructive">
+          <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-destructive">
             {getUserMessage(error)}
           </p>
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-1.5 ml-3">
+      <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:ml-3">
         <button
           type="button"
           onClick={handleConfirm}
           disabled={isRevoking}
           className={cn(
-            "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-            "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+            "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           {isRevoking && <SpinnerIcon />}
@@ -567,9 +567,9 @@ function RevokeConfirmation({
           onClick={onCancel}
           disabled={isRevoking}
           className={cn(
-            "rounded-md px-2.5 py-1 text-xs",
-            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs",
+            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           Cancel
@@ -588,7 +588,7 @@ function StateBadge({ state }: { state: InvitationState }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-[0.6rem] font-medium",
+        "stg:inline-flex stg:items-center stg:rounded-full stg:px-2 stg:py-0.5 stg:text-[0.6rem] stg:font-medium",
         config.className,
       )}
     >
@@ -600,23 +600,23 @@ function StateBadge({ state }: { state: InvitationState }) {
 const STATE_BADGE_CONFIG: Record<InvitationState, { label: string; className: string }> = {
   [InvitationState.invitation_state_unspecified]: {
     label: "Unknown",
-    className: "bg-muted text-muted-foreground",
+    className: "stg:bg-muted stg:text-muted-foreground",
   },
   [InvitationState.active]: {
     label: "Active",
-    className: "bg-primary-subtle text-primary",
+    className: "stg:bg-primary-subtle stg:text-primary",
   },
   [InvitationState.expired]: {
     label: "Expired",
-    className: "bg-muted text-muted-foreground",
+    className: "stg:bg-muted stg:text-muted-foreground",
   },
   [InvitationState.revoked]: {
     label: "Revoked",
-    className: "bg-muted text-muted-foreground",
+    className: "stg:bg-muted stg:text-muted-foreground",
   },
   [InvitationState.fully_redeemed]: {
     label: "Fully redeemed",
-    className: "bg-muted text-muted-foreground",
+    className: "stg:bg-muted stg:text-muted-foreground",
   },
 };
 
@@ -640,11 +640,11 @@ function ExpiryRadio({
   return (
     <label
       className={cn(
-        "inline-flex cursor-pointer items-center rounded-md border px-2.5 py-1 text-xs transition-colors",
+        "stg:inline-flex stg:cursor-pointer stg:items-center stg:rounded-md stg:border stg:px-2.5 stg:py-1 stg:text-xs stg:transition-colors",
         checked
-          ? "border-primary bg-primary-subtle text-primary font-medium"
-          : "border-input bg-background text-muted-foreground hover:border-border hover:text-foreground",
-        disabled && "pointer-events-none opacity-50",
+          ? "stg:border-primary stg:bg-primary-subtle stg:text-primary stg:font-medium"
+          : "stg:border-input stg:bg-background stg:text-muted-foreground stg:hover:border-border stg:hover:text-foreground",
+        disabled && "stg:pointer-events-none stg:opacity-50",
       )}
     >
       <input
@@ -654,7 +654,7 @@ function ExpiryRadio({
         checked={checked}
         disabled={disabled}
         onChange={() => onChange(value)}
-        className="sr-only"
+        className="stg:sr-only"
       />
       {label}
     </label>
@@ -679,11 +679,11 @@ function RedemptionRadio({
   return (
     <label
       className={cn(
-        "inline-flex cursor-pointer flex-col rounded-md border px-3 py-1.5 text-xs transition-colors",
+        "stg:inline-flex stg:cursor-pointer stg:flex-col stg:rounded-md stg:border stg:px-3 stg:py-1.5 stg:text-xs stg:transition-colors",
         checked
-          ? "border-primary bg-primary-subtle text-primary font-medium"
-          : "border-input bg-background text-muted-foreground hover:border-border hover:text-foreground",
-        disabled && "pointer-events-none opacity-50",
+          ? "stg:border-primary stg:bg-primary-subtle stg:text-primary stg:font-medium"
+          : "stg:border-input stg:bg-background stg:text-muted-foreground stg:hover:border-border stg:hover:text-foreground",
+        disabled && "stg:pointer-events-none stg:opacity-50",
       )}
     >
       <input
@@ -693,10 +693,10 @@ function RedemptionRadio({
         checked={checked}
         disabled={disabled}
         onChange={() => onChange(value)}
-        className="sr-only"
+        className="stg:sr-only"
       />
       <span>{label}</span>
-      <span className="text-[0.625rem] text-muted-foreground font-normal mt-0.5">
+      <span className="stg:text-[0.625rem] stg:text-muted-foreground stg:font-normal stg:mt-0.5">
         {description}
       </span>
     </label>
@@ -757,8 +757,8 @@ function LinkIcon({ active }: { active: boolean }) {
       strokeLinejoin="round"
       aria-hidden="true"
       className={cn(
-        "shrink-0",
-        active ? "text-primary" : "text-muted-foreground",
+        "stg:shrink-0",
+        active ? "stg:text-primary" : "stg:text-muted-foreground",
       )}
     >
       <path d="M6.5 9.5a3.5 3.5 0 0 0 5 0l2-2a3.5 3.5 0 0 0-5-5l-1 1" />
@@ -833,7 +833,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

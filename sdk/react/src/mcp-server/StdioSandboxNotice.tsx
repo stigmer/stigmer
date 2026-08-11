@@ -63,12 +63,12 @@ export function StdioSandboxNotice({
     <div
       role="status"
       className={cn(
-        "bg-muted-subtle text-muted-foreground flex items-start gap-2.5 rounded-lg border border-transparent px-4 py-3",
+        "stg:bg-muted-subtle stg:text-muted-foreground stg:flex stg:items-start stg:gap-2.5 stg:rounded-lg stg:border stg:border-transparent stg:px-4 stg:py-3",
         className,
       )}
     >
-      <SandboxIcon className="mt-0.5 size-4 shrink-0" />
-      <p className="text-xs leading-relaxed">
+      <SandboxIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0" />
+      <p className="stg:text-xs stg:leading-relaxed">
         This stdio server runs only on local runners — it won&apos;t be
         available to sessions on Stigmer-managed cloud compute. Run the
         session on a local runner (desktop app or CLI) to use it, or choose

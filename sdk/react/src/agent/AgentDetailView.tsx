@@ -377,11 +377,11 @@ export function AgentDetailView({
           value={spec?.iconUrl ?? ""}
           onSave={(v) => saveField("iconUrl", v || undefined)}
           isSaving={isUpdating}
-          fallback={<AgentIcon className="size-6 text-muted-foreground" />}
+          fallback={<AgentIcon className="stg:size-6 stg:text-muted-foreground" />}
           disabled={!editable}
         />
       )
-      : spec?.iconUrl ? undefined : <AgentIcon className="size-6 text-muted-foreground" />,
+      : spec?.iconUrl ? undefined : <AgentIcon className="stg:size-6 stg:text-muted-foreground" />,
     createdAt: specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null,
     updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
   };
@@ -672,11 +672,11 @@ function AgentOverview({
   );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="stg:flex stg:flex-col stg:gap-6">
       {showDescription && (
         <Section title="Description">
           {editable ? (
-            <div className="max-h-20 overflow-y-auto p-3">
+            <div className="stg:max-h-20 stg:overflow-y-auto stg:p-3">
               <InlineEditTextarea
                 value={spec?.description || ""}
                 onSave={(v) => saveField?.("description", v || undefined) ?? Promise.resolve(false)}
@@ -687,8 +687,8 @@ function AgentOverview({
               />
             </div>
           ) : (
-            <div className="p-3">
-              <pre className="whitespace-pre-wrap break-words text-sm text-foreground font-sans">
+            <div className="stg:p-3">
+              <pre className="stg:whitespace-pre-wrap stg:break-words stg:text-sm stg:text-foreground stg:font-sans">
                 {description}
               </pre>
             </div>
@@ -699,7 +699,7 @@ function AgentOverview({
       {showInstructions && (
         <Section title="Instructions">
           {editable ? (
-            <div className="max-h-72 overflow-y-auto p-3">
+            <div className="stg:max-h-72 stg:overflow-y-auto stg:p-3">
               <InlineEditTextarea
                 value={spec?.instructions ?? ""}
                 onSave={handleInstructionsSave}
@@ -726,7 +726,7 @@ function AgentOverview({
               editing={mcpEditing}
               onEditingChange={handleMcpEditingChange}
               onItemClick={onMcpServerClick ? (ref) => onMcpServerClick({ org: ref.org, slug: ref.slug }) : undefined}
-              itemIcon={<McpServerIcon className="size-4" />}
+              itemIcon={<McpServerIcon className="stg:size-4" />}
               resourceLabel="MCP server"
               defaultOrg={agentOrg}
             />
@@ -751,7 +751,7 @@ function AgentOverview({
               editing={skillsEditing}
               onEditingChange={handleSkillsEditingChange}
               onItemClick={onSkillClick ? (ref) => onSkillClick({ org: ref.org, slug: ref.slug }) : undefined}
-              itemIcon={<SkillIcon className="size-4" />}
+              itemIcon={<SkillIcon className="stg:size-4" />}
               resourceLabel="skill"
               defaultOrg={agentOrg}
             />
@@ -776,7 +776,7 @@ function AgentOverview({
               editing={datastoresEditing}
               onEditingChange={handleDatastoresEditingChange}
               onItemClick={onDatastoreClick ? (ref) => onDatastoreClick({ org: ref.org, slug: ref.slug }) : undefined}
-              itemIcon={<DatastoreIcon className="size-4" />}
+              itemIcon={<DatastoreIcon className="stg:size-4" />}
               resourceLabel="datastore"
               defaultOrg={agentOrg}
             />
@@ -840,25 +840,25 @@ function InstructionsContent({ text }: { readonly text: string }) {
   }, [text]);
 
   return (
-    <div className="relative p-3">
+    <div className="stg:relative stg:p-3">
       <pre
         ref={contentRef}
         className={cn(
-          "whitespace-pre-wrap break-words font-mono text-sm text-foreground overflow-y-auto transition-[max-height] duration-200",
-          !expanded && "overflow-hidden",
+          "stg:whitespace-pre-wrap stg:break-words stg:font-mono stg:text-sm stg:text-foreground stg:overflow-y-auto stg:transition-[max-height] stg:duration-200",
+          !expanded && "stg:overflow-hidden",
         )}
         style={{ maxHeight: expanded ? "none" : INSTRUCTIONS_COLLAPSED_HEIGHT }}
       >
         {text}
       </pre>
       {!expanded && overflows && (
-        <div className="pointer-events-none absolute inset-x-3 bottom-10 h-8 bg-gradient-to-t from-background to-transparent" />
+        <div className="stg:pointer-events-none stg:absolute stg:inset-x-3 stg:bottom-10 stg:h-8 stg:bg-gradient-to-t stg:from-background stg:to-transparent" />
       )}
       {overflows && (
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="mt-2 text-xs font-medium text-primary transition-colors hover:text-primary-muted"
+          className="stg:mt-2 stg:text-xs stg:font-medium stg:text-primary stg:transition-colors stg:hover:text-primary-muted"
         >
           {expanded ? "Show less" : "Show more"}
         </button>
@@ -877,7 +877,7 @@ function McpUsagesContent({
   readonly onMcpServerClick?: (ref: { org: string; slug: string }) => void;
 }) {
   return (
-    <div className="flex flex-col">
+    <div className="stg:flex stg:flex-col">
       {usages.map((usage, index) => {
         const ref = usage.mcpServerRef;
         if (!ref) return null;
@@ -902,12 +902,12 @@ function McpUsagesContent({
           .join(" \u00B7 ");
 
         const row = (
-          <div className="flex items-center gap-3">
-            <McpServerIcon className="size-4 shrink-0 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">
+          <div className="stg:flex stg:items-center stg:gap-3">
+            <McpServerIcon className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" />
+            <span className="stg:text-sm stg:font-medium stg:text-foreground">
               {label}
             </span>
-            <span className="text-xs text-muted-foreground">{summary}</span>
+            <span className="stg:text-xs stg:text-muted-foreground">{summary}</span>
           </div>
         );
 
@@ -919,15 +919,15 @@ function McpUsagesContent({
               onMcpServerClick({ org: refOrg, slug: ref.slug })
             }
             className={cn(
-              "w-full rounded-md px-3 py-2 text-left transition-colors",
-              "hover:bg-accent-hover",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+              "stg:w-full stg:rounded-md stg:px-3 stg:py-2 stg:text-left stg:transition-colors",
+              "stg:hover:bg-accent-hover",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
             )}
           >
             {row}
           </button>
         ) : (
-          <div key={ref.slug || index} className="px-3 py-2">
+          <div key={ref.slug || index} className="stg:px-3 stg:py-2">
             {row}
           </div>
         );
@@ -946,7 +946,7 @@ function SkillsContent({
   readonly onSkillClick?: (ref: { org: string; slug: string }) => void;
 }) {
   return (
-    <div className="flex flex-col">
+    <div className="stg:flex stg:flex-col">
       {refs.map((ref, index) => {
         const refOrg = ref.org || defaultOrg;
         const label =
@@ -955,9 +955,9 @@ function SkillsContent({
             : ref.slug;
 
         const row = (
-          <div className="flex items-center gap-3">
-            <SkillIcon className="size-4 shrink-0 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">
+          <div className="stg:flex stg:items-center stg:gap-3">
+            <SkillIcon className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" />
+            <span className="stg:text-sm stg:font-medium stg:text-foreground">
               {label}
             </span>
           </div>
@@ -969,15 +969,15 @@ function SkillsContent({
             type="button"
             onClick={() => onSkillClick({ org: refOrg, slug: ref.slug })}
             className={cn(
-              "w-full rounded-md px-3 py-2 text-left transition-colors",
-              "hover:bg-accent-hover",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+              "stg:w-full stg:rounded-md stg:px-3 stg:py-2 stg:text-left stg:transition-colors",
+              "stg:hover:bg-accent-hover",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
             )}
           >
             {row}
           </button>
         ) : (
-          <div key={ref.slug || index} className="px-3 py-2">
+          <div key={ref.slug || index} className="stg:px-3 stg:py-2">
             {row}
           </div>
         );
@@ -996,7 +996,7 @@ function DatastoresContent({
   readonly onDatastoreClick?: (ref: { org: string; slug: string }) => void;
 }) {
   return (
-    <div className="flex flex-col">
+    <div className="stg:flex stg:flex-col">
       {usages.map((usage, index) => {
         const ref = usage.datastoreRef;
         if (!ref) return null;
@@ -1008,9 +1008,9 @@ function DatastoresContent({
             : ref.slug;
 
         const row = (
-          <div className="flex items-center gap-3">
-            <DatastoreIcon className="size-4 shrink-0 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">
+          <div className="stg:flex stg:items-center stg:gap-3">
+            <DatastoreIcon className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" />
+            <span className="stg:text-sm stg:font-medium stg:text-foreground">
               {label}
             </span>
           </div>
@@ -1022,15 +1022,15 @@ function DatastoresContent({
             type="button"
             onClick={() => onDatastoreClick({ org: refOrg, slug: ref.slug })}
             className={cn(
-              "w-full rounded-md px-3 py-2 text-left transition-colors",
-              "hover:bg-accent-hover",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+              "stg:w-full stg:rounded-md stg:px-3 stg:py-2 stg:text-left stg:transition-colors",
+              "stg:hover:bg-accent-hover",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
             )}
           >
             {row}
           </button>
         ) : (
-          <div key={ref.slug || index} className="px-3 py-2">
+          <div key={ref.slug || index} className="stg:px-3 stg:py-2">
             {row}
           </div>
         );
@@ -1122,36 +1122,36 @@ function SubAgentsSection({
 
   return (
     <Section title="Sub-Agents" count={subAgents.length} onEdit={editable ? () => setIsEditing((v) => !v) : undefined}>
-      <div className="flex flex-col">
+      <div className="stg:flex stg:flex-col">
         {subAgents.length > 0 ? (
-          <div className="flex flex-col divide-y divide-border">
+          <div className="stg:flex stg:flex-col stg:divide-y stg:divide-border">
             {subAgents.map((sa, index) => {
               const isOpen = expanded.has(index);
 
               return (
                 <div key={sa.name || index}>
-                  <div className="flex items-start gap-3 px-3 py-2.5">
+                  <div className="stg:flex stg:items-start stg:gap-3 stg:px-3 stg:py-2.5">
                     <button
                       type="button"
                       onClick={() => toggle(index)}
                       aria-expanded={isOpen}
                       className={cn(
-                        "flex flex-1 items-start gap-3 text-left",
-                        "focus-visible:outline-none",
+                        "stg:flex stg:flex-1 stg:items-start stg:gap-3 stg:text-left",
+                        "stg:focus-visible:outline-none",
                       )}
                     >
                       <ChevronRightIcon
                         className={cn(
-                          "mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform",
-                          isOpen && "rotate-90",
+                          "stg:mt-0.5 stg:size-4 stg:shrink-0 stg:text-muted-foreground stg:transition-transform",
+                          isOpen && "stg:rotate-90",
                         )}
                       />
-                      <div className="min-w-0 flex-1">
-                        <span className="text-sm font-medium text-foreground">
+                      <div className="stg:min-w-0 stg:flex-1">
+                        <span className="stg:text-sm stg:font-medium stg:text-foreground">
                           {sa.name}
                         </span>
                         {sa.description && (
-                          <p className="mt-0.5 text-xs text-muted-foreground">
+                          <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
                             {sa.description}
                           </p>
                         )}
@@ -1164,12 +1164,12 @@ function SubAgentsSection({
                         disabled={isSaving}
                         aria-label={`Remove ${sa.name}`}
                         className={cn(
-                          "mt-0.5 inline-flex size-6 items-center justify-center rounded-md text-muted-foreground",
-                          "hover:bg-destructive-subtle hover:text-destructive",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          "stg:mt-0.5 stg:inline-flex stg:size-6 stg:items-center stg:justify-center stg:rounded-md stg:text-muted-foreground",
+                          "stg:hover:bg-destructive-subtle stg:hover:text-destructive",
+                          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                         )}
                       >
-                        <XRemoveIcon className="size-3.5" />
+                        <XRemoveIcon className="stg:size-3.5" />
                       </button>
                     )}
                   </div>
@@ -1182,46 +1182,46 @@ function SubAgentsSection({
             })}
           </div>
         ) : (
-          <p className="px-3 py-3 text-xs text-muted-foreground italic">
+          <p className="stg:px-3 stg:py-3 stg:text-xs stg:text-muted-foreground stg:italic">
             No sub-agents configured
           </p>
         )}
 
         {editable && isEditing && !showAddForm && (
-          <div className="border-t border-border px-3 py-2">
+          <div className="stg:border-t stg:border-border stg:px-3 stg:py-2">
             <button
               type="button"
               onClick={() => setShowAddForm(true)}
               className={cn(
-                "inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium",
-                "border border-dashed border-border text-muted-foreground",
-                "hover:border-muted-foreground hover:text-foreground hover:bg-muted-subtle",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                "transition-colors",
+                "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
+                "stg:border stg:border-dashed stg:border-border stg:text-muted-foreground",
+                "stg:hover:border-muted-foreground stg:hover:text-foreground stg:hover:bg-muted-subtle",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                "stg:transition-colors",
               )}
             >
-              <PlusAddIcon className="size-3" />
+              <PlusAddIcon className="stg:size-3" />
               Add sub-agent
             </button>
           </div>
         )}
 
         {error && (
-          <p className="border-t border-border px-3 py-2 text-xs text-destructive" role="alert">
+          <p className="stg:border-t stg:border-border stg:px-3 stg:py-2 stg:text-xs stg:text-destructive" role="alert">
             {error}
           </p>
         )}
 
         {editable && showAddForm && (
-          <div className="border-t border-border p-3 space-y-2">
+          <div className="stg:border-t stg:border-border stg:p-3 stg:space-y-2">
             <input
               type="text"
               value={addDraft.name}
               onChange={(e) => setAddDraft((d) => ({ ...d, name: e.target.value }))}
               placeholder="Sub-agent name (required)"
               className={cn(
-                "w-full rounded-md border border-border bg-input-bg px-2 py-1.5 text-sm text-foreground",
-                "focus:outline-none focus:ring-2 focus:ring-ring",
+                "stg:w-full stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1.5 stg:text-sm stg:text-foreground",
+                "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
               )}
             />
             <input
@@ -1230,8 +1230,8 @@ function SubAgentsSection({
               onChange={(e) => setAddDraft((d) => ({ ...d, description: e.target.value }))}
               placeholder="Description (optional)"
               className={cn(
-                "w-full rounded-md border border-border bg-input-bg px-2 py-1.5 text-xs text-foreground",
-                "focus:outline-none focus:ring-2 focus:ring-ring",
+                "stg:w-full stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1.5 stg:text-xs stg:text-foreground",
+                "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
               )}
             />
             <textarea
@@ -1240,18 +1240,18 @@ function SubAgentsSection({
               placeholder="Instructions (optional)"
               rows={2}
               className={cn(
-                "w-full resize-y rounded-md border border-border bg-input-bg px-2 py-1.5 font-mono text-xs text-foreground",
-                "focus:outline-none focus:ring-2 focus:ring-ring",
+                "stg:w-full stg:resize-y stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1.5 stg:font-mono stg:text-xs stg:text-foreground",
+                "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
               )}
             />
-            <div className="flex items-center justify-end gap-1.5">
+            <div className="stg:flex stg:items-center stg:justify-end stg:gap-1.5">
               <button
                 type="button"
                 onClick={() => { setShowAddForm(false); setAddDraft({ name: "", description: "", instructions: "" }); }}
                 className={cn(
-                  "rounded-md px-2.5 py-1 text-xs font-medium",
-                  "border border-border bg-background text-foreground hover:bg-accent",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+                  "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 )}
               >
                 Cancel
@@ -1261,10 +1261,10 @@ function SubAgentsSection({
                 onClick={handleAdd}
                 disabled={!addDraft.name.trim() || isSaving}
                 className={cn(
-                  "rounded-md px-2.5 py-1 text-xs font-medium",
-                  "bg-primary text-primary-foreground hover:bg-primary-hover",
-                  "disabled:opacity-50",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+                  "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+                  "stg:disabled:opacity-50",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 )}
               >
                 Add
@@ -1283,13 +1283,13 @@ function SubAgentDetails({
   readonly subAgent: SubAgent;
 }) {
   return (
-    <div className="mb-1 ml-7 space-y-3 border-l border-border pl-4 pt-1">
+    <div className="stg:mb-1 stg:ml-7 stg:space-y-3 stg:border-l stg:border-border stg:pl-4 stg:pt-1">
       {sa.instructions && (
         <div>
-          <h4 className="mb-1 text-xs font-medium text-muted-foreground">
+          <h4 className="stg:mb-1 stg:text-xs stg:font-medium stg:text-muted-foreground">
             Instructions
           </h4>
-          <pre className="whitespace-pre-wrap break-words rounded-md bg-muted-subtle p-2 font-mono text-xs text-foreground">
+          <pre className="stg:whitespace-pre-wrap stg:break-words stg:rounded-md stg:bg-muted-subtle stg:p-2 stg:font-mono stg:text-xs stg:text-foreground">
             {sa.instructions}
           </pre>
         </div>
@@ -1297,18 +1297,18 @@ function SubAgentDetails({
 
       {sa.mcpAccess.length > 0 && (
         <div>
-          <h4 className="mb-1 text-xs font-medium text-muted-foreground">
+          <h4 className="stg:mb-1 stg:text-xs stg:font-medium stg:text-muted-foreground">
             MCP Access
           </h4>
-          <div className="space-y-1">
+          <div className="stg:space-y-1">
             {sa.mcpAccess.map((access) => (
               <div
                 key={access.mcpServer}
-                className="flex items-center gap-2 text-xs text-foreground"
+                className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground"
               >
-                <McpServerIcon className="size-3 shrink-0 text-muted-foreground" />
-                <span className="font-medium">{access.mcpServer}</span>
-                <span className="text-muted-foreground">
+                <McpServerIcon className="stg:size-3 stg:shrink-0 stg:text-muted-foreground" />
+                <span className="stg:font-medium">{access.mcpServer}</span>
+                <span className="stg:text-muted-foreground">
                   {access.enabledTools.length > 0
                     ? `${access.enabledTools.length} ${access.enabledTools.length === 1 ? "tool" : "tools"}`
                     : "all tools"}
@@ -1321,16 +1321,16 @@ function SubAgentDetails({
 
       {sa.skillRefs.length > 0 && (
         <div>
-          <h4 className="mb-1 text-xs font-medium text-muted-foreground">
+          <h4 className="stg:mb-1 stg:text-xs stg:font-medium stg:text-muted-foreground">
             Skills
           </h4>
-          <div className="space-y-1">
+          <div className="stg:space-y-1">
             {sa.skillRefs.map((ref) => (
               <div
                 key={ref.slug}
-                className="flex items-center gap-2 text-xs text-foreground"
+                className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground"
               >
-                <SkillIcon className="size-3 shrink-0 text-muted-foreground" />
+                <SkillIcon className="stg:size-3 stg:shrink-0 stg:text-muted-foreground" />
                 <span>
                   {ref.org ? `${ref.org}/${ref.slug}` : ref.slug}
                 </span>
@@ -1342,10 +1342,10 @@ function SubAgentDetails({
 
       {sa.modelOverride && (
         <div>
-          <h4 className="mb-1 text-xs font-medium text-muted-foreground">
+          <h4 className="stg:mb-1 stg:text-xs stg:font-medium stg:text-muted-foreground">
             Model Override
           </h4>
-          <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+          <span className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-xs stg:text-foreground">
             {sa.modelOverride}
           </span>
         </div>
@@ -1364,17 +1364,17 @@ function EnvContent({
   );
 
   return (
-    <div className="flex flex-col divide-y divide-border">
+    <div className="stg:flex stg:flex-col stg:divide-y stg:divide-border">
       {entries.map(([name, env]) => (
-        <div key={name} className="flex items-start gap-3 px-3 py-2">
-          <code className="shrink-0 font-mono text-sm font-medium text-foreground">
+        <div key={name} className="stg:flex stg:items-start stg:gap-3 stg:px-3 stg:py-2">
+          <code className="stg:shrink-0 stg:font-mono stg:text-sm stg:font-medium stg:text-foreground">
             {name}
           </code>
-          <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+          <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground">
             {env.isSecret ? "secret" : "config"}
           </span>
           {env.description && (
-            <span className="text-xs text-muted-foreground">
+            <span className="stg:text-xs stg:text-muted-foreground">
               {env.description}
             </span>
           )}
@@ -1395,23 +1395,23 @@ function EnvContent({
 function LoadingSkeleton({ className }: { readonly className?: string }) {
   return (
     <div
-      className={cn("flex flex-col gap-6", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-6", className)}
       aria-busy="true"
       aria-label="Loading agent details"
     >
-      <div className="flex items-start gap-3">
-        <div className="mt-1 size-6 shrink-0 animate-pulse rounded bg-muted" />
-        <div className="flex-1 space-y-2">
-          <div className="h-5 w-48 animate-pulse rounded bg-muted" />
-          <div className="h-3 w-64 animate-pulse rounded bg-muted" />
-          <div className="h-4 w-full max-w-md animate-pulse rounded bg-muted" />
+      <div className="stg:flex stg:items-start stg:gap-3">
+        <div className="stg:mt-1 stg:size-6 stg:shrink-0 stg:animate-pulse stg:rounded stg:bg-muted" />
+        <div className="stg:flex-1 stg:space-y-2">
+          <div className="stg:h-5 stg:w-48 stg:animate-pulse stg:rounded stg:bg-muted" />
+          <div className="stg:h-3 stg:w-64 stg:animate-pulse stg:rounded stg:bg-muted" />
+          <div className="stg:h-4 stg:w-full stg:max-w-md stg:animate-pulse stg:rounded stg:bg-muted" />
         </div>
       </div>
       {[40, 24, 16].map((h) => (
-        <div key={h} className="space-y-2">
-          <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+        <div key={h} className="stg:space-y-2">
+          <div className="stg:h-3 stg:w-24 stg:animate-pulse stg:rounded stg:bg-muted" />
           <div
-            className="animate-pulse rounded-lg border border-border bg-muted-faint"
+            className="stg:animate-pulse stg:rounded-lg stg:border stg:border-border stg:bg-muted-faint"
             style={{ height: `${h * 4}px` }}
           />
         </div>
@@ -1425,15 +1425,15 @@ function NotFoundState({ className }: { readonly className?: string }) {
     <div
       role="status"
       className={cn(
-        "flex flex-col items-center gap-2 py-12 text-center",
+        "stg:flex stg:flex-col stg:items-center stg:gap-2 stg:py-12 stg:text-center",
         className,
       )}
     >
-      <AgentIcon className="size-10 text-muted-foreground-faint" />
-      <p className="text-sm font-medium text-muted-foreground">
+      <AgentIcon className="stg:size-10 stg:text-muted-foreground-faint" />
+      <p className="stg:text-sm stg:font-medium stg:text-muted-foreground">
         Agent not found
       </p>
-      <p className="text-xs text-muted-foreground-subtle">
+      <p className="stg:text-xs stg:text-muted-foreground-subtle">
         This agent doesn&apos;t exist or you don&apos;t have access to it.
       </p>
     </div>

@@ -51,7 +51,7 @@ export function FileReferenceChipList({
 
   return (
     <div
-      className={cn("flex flex-wrap gap-1.5", className)}
+      className={cn("stg:flex stg:flex-wrap stg:gap-1.5", className)}
       role="list"
       aria-label="Referenced workspace files"
     >
@@ -87,15 +87,15 @@ function FileReferenceChip({
       role="listitem"
       aria-label={`Referenced file: ${path}`}
       title={path}
-      className="inline-flex max-w-[200px] items-center gap-1 rounded-md bg-muted-subtle px-2 py-0.5 text-xs text-foreground"
+      className="stg:inline-flex stg:max-w-[200px] stg:items-center stg:gap-1 stg:rounded-md stg:bg-muted-subtle stg:px-2 stg:py-0.5 stg:text-xs stg:text-foreground"
     >
       <FileRefIcon />
-      <span className="truncate">{filename}</span>
+      <span className="stg:truncate">{filename}</span>
       <button
         type="button"
         onClick={onRemove}
         disabled={disabled}
-        className="ml-0.5 shrink-0 text-muted-foreground hover:text-destructive disabled:pointer-events-none"
+        className="stg:ml-0.5 stg:shrink-0 stg:text-muted-foreground stg:hover:text-destructive stg:disabled:pointer-events-none"
         aria-label={`Remove reference to ${path}`}
       >
         <XIcon />
@@ -119,7 +119,7 @@ function FileRefIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-accent-foreground"
+      className="stg:shrink-0 stg:text-accent-foreground"
       aria-hidden="true"
     >
       <path d="M8 1H4C3.45 1 3 1.45 3 2V12C3 12.55 3.45 13 4 13H10C10.55 13 11 12.55 11 12V4L8 1Z" />

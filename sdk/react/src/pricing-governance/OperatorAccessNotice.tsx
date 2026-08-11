@@ -14,15 +14,15 @@ export function OperatorAccessNotice({ className }: { readonly className?: strin
   return (
     <div
       className={cn(
-        "rounded-lg border border-border bg-card px-4 py-6 text-center",
+        "stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-4 stg:py-6 stg:text-center",
         className,
       )}
       role="status"
     >
-      <p className="text-xs font-semibold text-foreground">
+      <p className="stg:text-xs stg:font-semibold stg:text-foreground">
         Platform operator access required
       </p>
-      <p className="mx-auto mt-1 max-w-md text-xs text-muted-foreground">
+      <p className="stg:mx-auto stg:mt-1 stg:max-w-md stg:text-xs stg:text-muted-foreground">
         Model pricing governance is a Stigmer-internal surface. It needs the
         platform operator role — organization roles do not grant it. If you
         believe you should have access, contact a platform operator.

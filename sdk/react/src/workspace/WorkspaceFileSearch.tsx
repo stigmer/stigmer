@@ -149,11 +149,11 @@ export function WorkspaceFileSearch({
             : `${flatResults.length} matching ${flatResults.length === 1 ? "file" : "files"}.`;
 
   return (
-    <div className={cn("flex h-full flex-col", className)}>
-      <div role="status" aria-live="polite" className="sr-only">
+    <div className={cn("stg:flex stg:h-full stg:flex-col", className)}>
+      <div role="status" aria-live="polite" className="stg:sr-only">
         {statusMessage}
       </div>
-      <div className="flex items-center gap-1.5 border-b border-border px-2 py-1.5">
+      <div className="stg:flex stg:items-center stg:gap-1.5 stg:border-b stg:border-border stg:px-2 stg:py-1.5">
         <SearchIcon />
         <input
           ref={inputRef}
@@ -170,9 +170,9 @@ export function WorkspaceFileSearch({
           placeholder="Search files by name…"
           disabled={isUnsupported}
           className={cn(
-            "min-w-0 flex-1 bg-transparent text-xs text-foreground",
-            "placeholder:text-muted-foreground",
-            "focus-visible:outline-none disabled:cursor-not-allowed",
+            "stg:min-w-0 stg:flex-1 stg:bg-transparent stg:text-xs stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus-visible:outline-none stg:disabled:cursor-not-allowed",
           )}
           aria-label="Search workspace files by name"
         />
@@ -183,7 +183,7 @@ export function WorkspaceFileSearch({
               setQuery("");
               inputRef.current?.focus();
             }}
-            className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+            className="stg:shrink-0 stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground"
             aria-label="Clear search"
           >
             <ClearIcon />
@@ -191,7 +191,7 @@ export function WorkspaceFileSearch({
         )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto">
         {isUnsupported ? (
           <MessageState>File search isn&rsquo;t available here.</MessageState>
         ) : trimmed.length === 0 ? (
@@ -210,7 +210,7 @@ export function WorkspaceFileSearch({
               id={listboxId}
               role="listbox"
               aria-label="Search results"
-              className="py-0.5"
+              className="stg:py-0.5"
             >
               {renderRows({
                 groups,
@@ -222,7 +222,7 @@ export function WorkspaceFileSearch({
               })}
             </ul>
             {totalMatches > flatResults.length && (
-              <p className="border-t border-border px-3 py-1.5 text-[0.65rem] text-muted-foreground">
+              <p className="stg:border-t stg:border-border stg:px-3 stg:py-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
                 Showing the first {flatResults.length} of {totalMatches} matches
                 — refine your search to narrow the list.
               </p>
@@ -331,13 +331,13 @@ function ResultRow({
       aria-current={isOpen ? "true" : undefined}
       onClick={onOpen}
       className={cn(
-        "flex cursor-pointer items-baseline gap-1.5 px-3 py-1 text-xs transition-colors",
-        isFocused && "bg-muted",
-        isOpen && "bg-muted font-medium text-foreground",
-        !isFocused && !isOpen && "hover:bg-muted",
+        "stg:flex stg:cursor-pointer stg:items-baseline stg:gap-1.5 stg:px-3 stg:py-1 stg:text-xs stg:transition-colors",
+        isFocused && "stg:bg-muted",
+        isOpen && "stg:bg-muted stg:font-medium stg:text-foreground",
+        !isFocused && !isOpen && "stg:hover:bg-muted",
       )}
     >
-      <span className="truncate text-foreground">
+      <span className="stg:truncate stg:text-foreground">
         <HighlightedPath
           text={basename}
           offset={lastSlash + 1}
@@ -346,7 +346,7 @@ function ResultRow({
         />
       </span>
       {dir && (
-        <span className="truncate text-[0.65rem] text-muted-foreground">
+        <span className="stg:truncate stg:text-[0.65rem] stg:text-muted-foreground">
           <HighlightedPath
             text={dir}
             offset={0}
@@ -383,7 +383,7 @@ function HighlightedPath({
   return (
     <>
       {text.slice(0, localStart)}
-      <span className="font-semibold text-foreground">
+      <span className="stg:font-semibold stg:text-foreground">
         {text.slice(localStart, localEnd)}
       </span>
       {text.slice(localEnd)}
@@ -395,7 +395,7 @@ function GroupHeader({ name }: { readonly name: string }) {
   return (
     <li
       role="presentation"
-      className="truncate px-3 pb-0.5 pt-2 text-[0.6rem] font-medium uppercase tracking-wide text-muted-foreground"
+      className="stg:truncate stg:px-3 stg:pb-0.5 stg:pt-2 stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wide stg:text-muted-foreground"
     >
       {name}
     </li>
@@ -413,8 +413,8 @@ function GroupNotice({
     <li
       role="presentation"
       className={cn(
-        "px-3 py-1 text-[0.65rem]",
-        isError ? "text-destructive" : "text-muted-foreground",
+        "stg:px-3 stg:py-1 stg:text-[0.65rem]",
+        isError ? "stg:text-destructive" : "stg:text-muted-foreground",
       )}
     >
       {children}
@@ -424,7 +424,7 @@ function GroupNotice({
 
 function MessageState({ children }: { readonly children: React.ReactNode }) {
   return (
-    <div className="flex h-full items-center justify-center p-8 text-center text-xs text-muted-foreground">
+    <div className="stg:flex stg:h-full stg:items-center stg:justify-center stg:p-8 stg:text-center stg:text-xs stg:text-muted-foreground">
       {children}
     </div>
   );
@@ -436,7 +436,7 @@ function MessageState({ children }: { readonly children: React.ReactNode }) {
 
 function SearchIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground" aria-hidden="true">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
       <circle cx="5.25" cy="5.25" r="3.5" />
       <path d="M7.75 7.75L10.5 10.5" />
     </svg>

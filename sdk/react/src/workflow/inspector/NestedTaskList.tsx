@@ -60,34 +60,34 @@ export const NestedTaskList = memo(function NestedTaskList({
 
   if (tasks.length === 0) {
     return (
-      <p className="text-[11px] text-[var(--stgm-muted-foreground,#737373)] italic">
+      <p className="stg:text-[11px] stg:text-[var(--stgm-muted-foreground,#737373)] stg:italic">
         {emptyLabel}
       </p>
     );
   }
 
   return (
-    <div className="flex flex-col gap-1" role="list" aria-label="Nested tasks">
+    <div className="stg:flex stg:flex-col stg:gap-1" role="list" aria-label="Nested tasks">
       {tasks.map((task, idx) => (
         <div
           key={`${task.name}-${idx}`}
           role="listitem"
           className={cn(
-            "group/task flex items-center gap-2 rounded px-2 py-1 transition-colors",
-            dashed ? "border border-dashed border-[var(--stgm-border,#e5e5e5)]" : "border border-[var(--stgm-border,#e5e5e5)]",
-            onSelect && "cursor-pointer hover:bg-[var(--stgm-accent,#f5f5f5)]",
+            "stg:group/task stg:flex stg:items-center stg:gap-2 stg:rounded stg:px-2 stg:py-1 stg:transition-colors",
+            dashed ? "stg:border stg:border-dashed stg:border-[var(--stgm-border,#e5e5e5)]" : "stg:border stg:border-[var(--stgm-border,#e5e5e5)]",
+            onSelect && "stg:cursor-pointer stg:hover:bg-[var(--stgm-accent,#f5f5f5)]",
           )}
           onClick={onSelect ? () => onSelect(idx) : undefined}
           aria-label={`${task.kind} task: ${task.name}`}
         >
           {/* Reorder controls */}
           {editable && onReorder && (
-            <div className="flex flex-col gap-0.5 opacity-0 group-hover/task:opacity-100 transition-opacity">
+            <div className="stg:flex stg:flex-col stg:gap-0.5 stg:opacity-0 stg:group-hover/task:opacity-100 stg:transition-opacity">
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); handleMoveUp(idx); }}
                 disabled={idx === 0}
-                className="text-[var(--stgm-muted-foreground,#737373)] disabled:opacity-30 hover:text-[var(--stgm-foreground,#1a1a2e)]"
+                className="stg:text-[var(--stgm-muted-foreground,#737373)] stg:disabled:opacity-30 stg:hover:text-[var(--stgm-foreground,#1a1a2e)]"
                 aria-label={`Move ${task.name} up`}
               >
                 <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
@@ -98,7 +98,7 @@ export const NestedTaskList = memo(function NestedTaskList({
                 type="button"
                 onClick={(e) => { e.stopPropagation(); handleMoveDown(idx); }}
                 disabled={idx === tasks.length - 1}
-                className="text-[var(--stgm-muted-foreground,#737373)] disabled:opacity-30 hover:text-[var(--stgm-foreground,#1a1a2e)]"
+                className="stg:text-[var(--stgm-muted-foreground,#737373)] stg:disabled:opacity-30 stg:hover:text-[var(--stgm-foreground,#1a1a2e)]"
                 aria-label={`Move ${task.name} down`}
               >
                 <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
@@ -109,10 +109,10 @@ export const NestedTaskList = memo(function NestedTaskList({
           )}
 
           {/* Task info */}
-          <span className="shrink-0 rounded bg-[var(--stgm-muted,#f5f5f5)] px-1 py-px text-[9px] font-mono text-[var(--stgm-muted-foreground,#737373)]">
+          <span className="stg:shrink-0 stg:rounded stg:bg-[var(--stgm-muted,#f5f5f5)] stg:px-1 stg:py-px stg:text-[9px] stg:font-mono stg:text-[var(--stgm-muted-foreground,#737373)]">
             {task.kind}
           </span>
-          <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--stgm-foreground,#1a1a2e)]">
+          <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-[11px] stg:text-[var(--stgm-foreground,#1a1a2e)]">
             {task.name}
           </span>
 
@@ -121,7 +121,7 @@ export const NestedTaskList = memo(function NestedTaskList({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onRemove(idx); }}
-              className="shrink-0 opacity-0 group-hover/task:opacity-100 transition-opacity text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-destructive,#ef4444)]"
+              className="stg:shrink-0 stg:opacity-0 stg:group-hover/task:opacity-100 stg:transition-opacity stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:text-[var(--stgm-destructive,#ef4444)]"
               aria-label={`Remove task ${task.name}`}
               title="Remove"
             >

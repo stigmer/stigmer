@@ -158,10 +158,10 @@ export function PricingGovernanceConsole({
 
   if (view.isLoading) {
     return (
-      <div className={cn("space-y-2", className)} aria-busy="true">
-        <div className="h-4 w-40 animate-pulse rounded bg-muted-subtle" />
+      <div className={cn("stg:space-y-2", className)} aria-busy="true">
+        <div className="stg:h-4 stg:w-40 stg:animate-pulse stg:rounded stg:bg-muted-subtle" />
         {Array.from({ length: 4 }, (_, i) => (
-          <div key={i} className="h-10 animate-pulse rounded-lg bg-muted-subtle" />
+          <div key={i} className="stg:h-10 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
         ))}
       </div>
     );
@@ -174,7 +174,7 @@ export function PricingGovernanceConsole({
       return <OperatorAccessNotice className={className} />;
     }
     return (
-      <p className={cn("text-destructive text-xs", className)} role="alert">
+      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
         {getUserMessage(view.error)}
       </p>
     );
@@ -290,11 +290,11 @@ function ModelsTab({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
+    <div className="stg:space-y-3">
+      <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
         <input
           type="search"
-          className={cn(INPUT_CLASSES, "max-w-xs")}
+          className={cn(INPUT_CLASSES, "stg:max-w-xs")}
           value={view.modelQuery}
           onChange={(e) => view.setModelQuery(e.target.value)}
           placeholder="Search models…"
@@ -305,29 +305,29 @@ function ModelsTab({
         </Button>
       </div>
 
-      <div className="rounded-lg border border-border bg-card">
+      <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card">
         {/* Presentational column guide — each row is a self-describing
             button (its full text content is its accessible name), so
             the header is a visual aid, not an ARIA table header. */}
         <div
           aria-hidden="true"
-          className="grid grid-cols-[2fr_1fr_1fr_1fr_0.7fr_1fr] gap-2 border-b border-border px-3 py-2 text-[11px] font-medium text-muted-foreground"
+          className="stg:grid stg:grid-cols-[2fr_1fr_1fr_1fr_0.7fr_1fr] stg:gap-2 stg:border-b stg:border-border stg:px-3 stg:py-2 stg:text-[11px] stg:font-medium stg:text-muted-foreground"
         >
           <span>Model</span>
           <span>Harness</span>
-          <span className="text-right">Input</span>
-          <span className="text-right">Output</span>
-          <span className="text-right">Variants</span>
-          <span className="text-right">Governance</span>
+          <span className="stg:text-right">Input</span>
+          <span className="stg:text-right">Output</span>
+          <span className="stg:text-right">Variants</span>
+          <span className="stg:text-right">Governance</span>
         </div>
         {view.models.length === 0 ? (
-          <p className="px-3 py-2 text-xs text-muted-foreground">
+          <p className="stg:px-3 stg:py-2 stg:text-xs stg:text-muted-foreground">
             {view.modelQuery.trim() !== ""
               ? `No models match "${view.modelQuery.trim()}".`
               : "The catalog is empty — has the baseline seed migration run?"}
           </p>
         ) : (
-          <ul role="list" aria-label="Models" className="m-0 list-none p-0">
+          <ul role="list" aria-label="Models" className="stg:m-0 stg:list-none stg:p-0">
             {view.models.map((row) => (
               <ModelRow key={row.key} row={row} onOpen={() => view.openDetail(row.key)} />
             ))}
@@ -356,26 +356,26 @@ function ModelRow({
   const hasOverrides = (governance?.activeOverrides.length ?? 0) > 0;
 
   return (
-    <li className="border-b border-border last:border-b-0">
+    <li className="stg:border-b stg:border-border stg:last:border-b-0">
       <button
         type="button"
         onClick={onOpen}
         className={cn(
-          "grid w-full grid-cols-[2fr_1fr_1fr_1fr_0.7fr_1fr] items-center gap-2 px-3 py-2 text-left text-xs",
-          "transition-colors hover:bg-accent",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          "stg:grid stg:w-full stg:grid-cols-[2fr_1fr_1fr_1fr_0.7fr_1fr] stg:items-center stg:gap-2 stg:px-3 stg:py-2 stg:text-left stg:text-xs",
+          "stg:transition-colors stg:hover:bg-accent",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
         )}
       >
-        <span className="min-w-0">
-          <span className="block truncate font-medium text-foreground" title={baseline.modelId}>
+        <span className="stg:min-w-0">
+          <span className="stg:block stg:truncate stg:font-medium stg:text-foreground" title={baseline.modelId}>
             {baseline.displayName || baseline.modelId}
           </span>
-          <span className="block truncate text-[11px] text-muted-foreground">
+          <span className="stg:block stg:truncate stg:text-[11px] stg:text-muted-foreground">
             {baseline.modelId}
             {baseline.featured ? " · featured" : ""}
           </span>
         </span>
-        <span className="text-muted-foreground">{baseline.harness}</span>
+        <span className="stg:text-muted-foreground">{baseline.harness}</span>
         <RateCell
           baseline={baseline.pricing?.inputPriceMicrosPerMillion ?? ZERO}
           effective={
@@ -392,17 +392,17 @@ function ModelRow({
             ZERO
           }
         />
-        <span className="text-right text-muted-foreground">
+        <span className="stg:text-right stg:text-muted-foreground">
           {variantCount > 0 ? variantCount : "—"}
         </span>
-        <span className="text-right">
+        <span className="stg:text-right">
           {governance ? (
             <GovernanceBadge
               ledgerReconcilable={governance.ledgerReconcilable}
               hasOverrides={hasOverrides}
             />
           ) : (
-            <span className="text-[10px] text-muted-foreground">—</span>
+            <span className="stg:text-[10px] stg:text-muted-foreground">—</span>
           )}
         </span>
       </button>
@@ -426,10 +426,10 @@ function SignOffsTab({
   readonly onDecide: (overrideId: string, approve: boolean) => void;
 }) {
   return (
-    <div className="space-y-3">
+    <div className="stg:space-y-3">
       <input
         type="search"
-        className={cn(INPUT_CLASSES, "max-w-xs")}
+        className={cn(INPUT_CLASSES, "stg:max-w-xs")}
         value={view.signOffQuery}
         onChange={(e) => view.setSignOffQuery(e.target.value)}
         placeholder="Search sign-offs…"
@@ -437,19 +437,19 @@ function SignOffsTab({
       />
 
       {decisionError && (
-        <p className="text-destructive text-xs" role="alert">
+        <p className="stg:text-destructive stg:text-xs" role="alert">
           {getUserMessage(decisionError)}
         </p>
       )}
 
       {view.pendingOverrides.length === 0 ? (
-        <p className="text-xs text-muted-foreground">
+        <p className="stg:text-xs stg:text-muted-foreground">
           {view.signOffQuery.trim() !== ""
             ? `No pending sign-offs match "${view.signOffQuery.trim()}".`
             : "No pricing overrides awaiting a decision."}
         </p>
       ) : (
-        <div className="space-y-2">
+        <div className="stg:space-y-2">
           {view.pendingOverrides.map((override) => (
             <PendingOverrideCard
               key={override.overrideId}

@@ -41,7 +41,7 @@ function MenuContent({
   return (
     <MenuPrimitive.Portal container={portalContainer}>
       <MenuPrimitive.Positioner
-        className="isolate z-50 outline-none"
+        className="stg:isolate stg:z-50 stg:outline-none"
         align={align}
         alignOffset={alignOffset}
         side={side}
@@ -49,11 +49,11 @@ function MenuContent({
       >
         <MenuPrimitive.Popup
           className={cn(
-            "bg-popover text-popover-foreground ring-foreground/10",
-            "data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-            "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
-            "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-            "z-50 max-h-(--available-height) w-(--anchor-width) min-w-32 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-lg p-1 shadow-md ring-1 duration-100 outline-none data-closed:overflow-hidden",
+            "stg:bg-popover stg:text-popover-foreground stg:ring-foreground/10",
+            "stg:data-[side=bottom]:slide-in-from-top-2 stg:data-[side=inline-end]:slide-in-from-left-2 stg:data-[side=inline-start]:slide-in-from-right-2 stg:data-[side=left]:slide-in-from-right-2 stg:data-[side=right]:slide-in-from-left-2 stg:data-[side=top]:slide-in-from-bottom-2",
+            "stg:data-open:animate-in stg:data-open:fade-in-0 stg:data-open:zoom-in-95",
+            "stg:data-closed:animate-out stg:data-closed:fade-out-0 stg:data-closed:zoom-out-95",
+            "stg:z-50 stg:max-h-(--available-height) stg:w-(--anchor-width) stg:min-w-32 stg:origin-(--transform-origin) stg:overflow-x-hidden stg:overflow-y-auto stg:rounded-lg stg:p-1 stg:shadow-md stg:ring-1 stg:duration-100 stg:outline-none stg:data-closed:overflow-hidden",
             className,
           )}
           {...props}
@@ -74,11 +74,11 @@ function MenuItem({
     <MenuPrimitive.Item
       data-variant={variant}
       className={cn(
-        "focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground",
-        "data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive-subtle data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:text-destructive",
-        "relative flex cursor-default items-center gap-1.5 rounded-md px-1.5 py-1 text-sm outline-hidden select-none",
-        "data-disabled:pointer-events-none data-disabled:opacity-50",
-        "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "stg:focus:bg-accent stg:focus:text-accent-foreground stg:not-data-[variant=destructive]:focus:**:text-accent-foreground",
+        "stg:data-[variant=destructive]:text-destructive stg:data-[variant=destructive]:focus:bg-destructive-subtle stg:data-[variant=destructive]:focus:text-destructive stg:data-[variant=destructive]:*:[svg]:text-destructive",
+        "stg:relative stg:flex stg:cursor-default stg:items-center stg:gap-1.5 stg:rounded-md stg:px-1.5 stg:py-1 stg:text-sm stg:outline-hidden stg:select-none",
+        "stg:data-disabled:pointer-events-none stg:data-disabled:opacity-50",
+        "stg:[&_svg]:pointer-events-none stg:[&_svg]:shrink-0 stg:[&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
@@ -98,15 +98,15 @@ function MenuRadioItem({
   return (
     <MenuPrimitive.RadioItem
       className={cn(
-        "focus:bg-accent focus:text-accent-foreground focus:**:text-accent-foreground",
-        "relative flex cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none",
-        "data-disabled:pointer-events-none data-disabled:opacity-50",
-        "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "stg:focus:bg-accent stg:focus:text-accent-foreground stg:focus:**:text-accent-foreground",
+        "stg:relative stg:flex stg:cursor-default stg:items-center stg:gap-1.5 stg:rounded-md stg:py-1 stg:pr-8 stg:pl-1.5 stg:text-sm stg:outline-hidden stg:select-none",
+        "stg:data-disabled:pointer-events-none stg:data-disabled:opacity-50",
+        "stg:[&_svg]:pointer-events-none stg:[&_svg]:shrink-0 stg:[&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
     >
-      <span className="pointer-events-none absolute right-2 flex items-center justify-center">
+      <span className="stg:pointer-events-none stg:absolute stg:right-2 stg:flex stg:items-center stg:justify-center">
         <MenuPrimitive.RadioItemIndicator>
           <CheckIcon />
         </MenuPrimitive.RadioItemIndicator>
@@ -122,7 +122,7 @@ function MenuSeparator({
 }: MenuPrimitive.Separator.Props) {
   return (
     <MenuPrimitive.Separator
-      className={cn("bg-border -mx-1 my-1 h-px", className)}
+      className={cn("stg:bg-border stg:-mx-1 stg:my-1 stg:h-px", className)}
       {...props}
     />
   );
@@ -142,7 +142,7 @@ function MenuLabel({
   return (
     <span
       className={cn(
-        "text-muted-foreground block px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider select-none",
+        "stg:text-muted-foreground stg:block stg:px-1.5 stg:py-1 stg:text-[11px] stg:font-medium stg:uppercase stg:tracking-wider stg:select-none",
         className,
       )}
       {...props}

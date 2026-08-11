@@ -84,14 +84,14 @@ function DirectoryContentView({
   const entries = artifact.entries;
 
   return (
-    <div className="p-4">
+    <div className="stg:p-4">
       {skillDetection.detected && (
-        <div className="mb-4 rounded-md bg-primary-subtle p-3">
-          <p className="text-sm font-medium text-foreground">
+        <div className="stg:mb-4 stg:rounded-md stg:bg-primary-subtle stg:p-3">
+          <p className="stg:text-sm stg:font-medium stg:text-foreground">
             {skillDetection.skillName}
           </p>
           {skillDetection.skillDescription && (
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
               {skillDetection.skillDescription}
             </p>
           )}
@@ -100,23 +100,23 @@ function DirectoryContentView({
 
       {entries.length > 0 ? (
         <div>
-          <h3 className="mb-2 text-xs font-medium text-muted-foreground">
+          <h3 className="stg:mb-2 stg:text-xs stg:font-medium stg:text-muted-foreground">
             Files ({entries.length})
           </h3>
-          <ul className="space-y-0.5" role="list">
+          <ul className="stg:space-y-0.5" role="list">
             {entries.map((entry) => (
               <li
                 key={entry}
-                className="flex items-center gap-2 rounded-sm px-2 py-1 font-mono text-xs text-foreground"
+                className="stg:flex stg:items-center stg:gap-2 stg:rounded-sm stg:px-2 stg:py-1 stg:font-mono stg:text-xs stg:text-foreground"
               >
                 <EntryIcon name={entry} />
-                <span className="min-w-0 truncate">{entry}</span>
+                <span className="stg:min-w-0 stg:truncate">{entry}</span>
               </li>
             ))}
           </ul>
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">
+        <p className="stg:text-sm stg:text-muted-foreground">
           File listing not available.
         </p>
       )}
@@ -144,7 +144,7 @@ function FileSmallIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
       aria-hidden="true"
     >
       <path d="M8 1H4C3.45 1 3 1.45 3 2V12C3 12.55 3.45 13 4 13H10C10.55 13 11 12.55 11 12V4L8 1Z" />
@@ -164,7 +164,7 @@ function FolderSmallIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
       aria-hidden="true"
     >
       <path d="M13 11C13 11.55 12.55 12 12 12H2C1.45 12 1 11.55 1 11V3C1 2.45 1.45 2 2 2H5L7 4H12C12.55 4 13 4.45 13 5V11Z" />

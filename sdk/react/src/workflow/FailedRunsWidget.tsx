@@ -38,12 +38,12 @@ export const FailedRunsWidget = memo(function FailedRunsWidget({
 }: FailedRunsWidgetProps) {
   if (isLoading) {
     return (
-      <div className={cn("space-y-2", className)} aria-busy="true">
-        <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+      <div className={cn("stg:space-y-2", className)} aria-busy="true">
+        <div className="stg:h-4 stg:w-24 stg:animate-pulse stg:rounded stg:bg-muted" />
         {Array.from({ length: 3 }, (_, i) => (
           <div
             key={i}
-            className="h-14 animate-pulse rounded-lg border border-border bg-muted/50"
+            className="stg:h-14 stg:animate-pulse stg:rounded-lg stg:border stg:border-border stg:bg-muted/50"
           />
         ))}
       </div>
@@ -51,17 +51,17 @@ export const FailedRunsWidget = memo(function FailedRunsWidget({
   }
 
   return (
-    <div className={cn("space-y-3", className)}>
-      <h3 className="text-sm font-semibold text-foreground">
+    <div className={cn("stg:space-y-3", className)}>
+      <h3 className="stg:text-sm stg:font-semibold stg:text-foreground">
         Recent Failures
       </h3>
 
       {executions.length === 0 ? (
-        <p className="py-4 text-center text-xs text-muted-foreground">
+        <p className="stg:py-4 stg:text-center stg:text-xs stg:text-muted-foreground">
           No recent failures
         </p>
       ) : (
-        <ul className="space-y-2" role="list">
+        <ul className="stg:space-y-2" role="list">
           {executions.map((exec) => {
             const id = exec.metadata?.id;
             const name =
@@ -73,18 +73,18 @@ export const FailedRunsWidget = memo(function FailedRunsWidget({
             return (
               <li
                 key={id}
-                className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5"
+                className="stg:rounded-lg stg:border stg:border-destructive/20 stg:bg-destructive/5 stg:px-3 stg:py-2.5"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">
+                <div className="stg:flex stg:items-start stg:justify-between stg:gap-2">
+                  <div className="stg:min-w-0 stg:flex-1">
+                    <p className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
                       {name}
                     </p>
-                    <p className="mt-0.5 line-clamp-1 text-xs text-destructive">
+                    <p className="stg:mt-0.5 stg:line-clamp-1 stg:text-xs stg:text-destructive">
                       {errorMsg}
                     </p>
                     {failedDate && (
-                      <p className="mt-0.5 text-xs text-muted-foreground">
+                      <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
                         {formatTimeAgo(failedDate)}
                       </p>
                     )}
@@ -93,7 +93,7 @@ export const FailedRunsWidget = memo(function FailedRunsWidget({
                     <button
                       type="button"
                       onClick={() => onViewClick(id)}
-                      className="shrink-0 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="stg:shrink-0 stg:rounded-md stg:border stg:border-border stg:bg-background stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:text-foreground stg:transition-colors stg:hover:bg-accent stg:hover:text-accent-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
                     >
                       View
                     </button>

@@ -66,9 +66,9 @@ export function RoleSelector({
   }
 
   return (
-    <fieldset className={cn("space-y-1.5", className)}>
-      <legend className="text-xs font-medium text-foreground">Role</legend>
-      <div className="flex flex-wrap gap-2">
+    <fieldset className={cn("stg:space-y-1.5", className)}>
+      <legend className="stg:text-xs stg:font-medium stg:text-foreground">Role</legend>
+      <div className="stg:flex stg:flex-wrap stg:gap-2">
         {options.map((opt) => {
           const isChecked = currentSelected === opt.role;
           return (
@@ -76,11 +76,11 @@ export function RoleSelector({
               key={opt.value}
               title={opt.description}
               className={cn(
-                "inline-flex cursor-pointer flex-col rounded-md border px-3 py-1.5 text-xs transition-colors",
+                "stg:inline-flex stg:cursor-pointer stg:flex-col stg:rounded-md stg:border stg:px-3 stg:py-1.5 stg:text-xs stg:transition-colors",
                 isChecked
-                  ? "border-primary bg-primary-subtle text-primary font-medium"
-                  : "border-input bg-background text-muted-foreground hover:border-border hover:text-foreground",
-                disabled && "pointer-events-none opacity-50",
+                  ? "stg:border-primary stg:bg-primary-subtle stg:text-primary stg:font-medium"
+                  : "stg:border-input stg:bg-background stg:text-muted-foreground stg:hover:border-border stg:hover:text-foreground",
+                disabled && "stg:pointer-events-none stg:opacity-50",
               )}
             >
               <input
@@ -90,10 +90,10 @@ export function RoleSelector({
                 checked={isChecked}
                 disabled={disabled}
                 onChange={() => handleSelect(opt.role)}
-                className="sr-only"
+                className="stg:sr-only"
               />
               <span>{opt.label}</span>
-              <span className="text-[0.625rem] text-muted-foreground font-normal mt-0.5">
+              <span className="stg:text-[0.625rem] stg:text-muted-foreground stg:font-normal stg:mt-0.5">
                 {opt.description}
               </span>
             </label>

@@ -68,44 +68,44 @@ export const WorkflowTaskList = memo(function WorkflowTaskList({
 
   if (tasks.length === 0) {
     return (
-      <div className={cn("py-8 text-center text-sm text-muted-foreground", className)}>
+      <div className={cn("stg:py-8 stg:text-center stg:text-sm stg:text-muted-foreground", className)}>
         No tasks defined
       </div>
     );
   }
 
   return (
-    <div className={cn("flex flex-col", className)}>
+    <div className={cn("stg:flex stg:flex-col", className)}>
       {tasks.map((task, idx) => {
         const kindLabel = TASK_KIND_LABELS.get(task.kind) ?? formatKindName(task.kind);
         const iconName = kindIconMap.get(kindEnumToString(task.kind));
         const isLast = idx === tasks.length - 1;
 
         return (
-          <div key={task.name} className="flex items-stretch gap-3">
+          <div key={task.name} className="stg:flex stg:items-stretch stg:gap-3">
             {/* Vertical connector line */}
-            <div className="flex w-5 flex-col items-center">
+            <div className="stg:flex stg:w-5 stg:flex-col stg:items-center">
               <div
                 className={cn(
-                  "flex size-5 shrink-0 items-center justify-center rounded-full border border-border bg-background text-[10px] font-medium text-muted-foreground",
+                  "stg:flex stg:size-5 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-border stg:bg-background stg:text-[10px] stg:font-medium stg:text-muted-foreground",
                 )}
               >
                 {idx + 1}
               </div>
               {!isLast && (
-                <div className="w-px flex-1 bg-border" />
+                <div className="stg:w-px stg:flex-1 stg:bg-border" />
               )}
             </div>
 
             {/* Task content */}
-            <div className="flex min-w-0 flex-1 items-center gap-2 pb-3 pt-0.5">
+            <div className="stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-2 stg:pb-3 stg:pt-0.5">
               {iconName && (
-                <TaskKindIcon iconName={iconName} className="size-4 shrink-0 text-muted-foreground" />
+                <TaskKindIcon iconName={iconName} className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" />
               )}
-              <span className="truncate text-sm font-medium text-foreground">
+              <span className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
                 {task.name}
               </span>
-              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground">
                 {kindLabel}
               </span>
             </div>
@@ -149,7 +149,7 @@ function TaskKindIcon({
 }) {
   return (
     <span
-      className={cn("inline-flex items-center justify-center", className)}
+      className={cn("stg:inline-flex stg:items-center stg:justify-center", className)}
       title={iconName}
       aria-hidden="true"
     >

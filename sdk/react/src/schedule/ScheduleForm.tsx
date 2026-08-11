@@ -204,11 +204,11 @@ export function ScheduleForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className={cn("max-w-2xl space-y-5", className)}
+      className={cn("stg:max-w-2xl stg:space-y-5", className)}
       aria-label="New schedule"
     >
       {/* Name */}
-      <div className="space-y-1">
+      <div className="stg:space-y-1">
         <label htmlFor="stgm-new-schedule-name" className={labelClasses}>
           Name
         </label>
@@ -226,7 +226,7 @@ export function ScheduleForm({
       </div>
 
       {/* Target agent */}
-      <div className="space-y-1">
+      <div className="stg:space-y-1">
         <span id="stgm-new-schedule-agent-label" className={labelClasses}>
           Agent to run
         </span>
@@ -235,13 +235,13 @@ export function ScheduleForm({
             disabled={isCreating}
             aria-labelledby="stgm-new-schedule-agent-label"
             className={cn(
-              "flex w-full items-center justify-between rounded-md border border-input bg-background px-2.5 py-1.5 text-left text-xs",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
-              agentRef ? "text-foreground" : "text-muted-foreground",
+              "stg:flex stg:w-full stg:items-center stg:justify-between stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-left stg:text-xs",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+              agentRef ? "stg:text-foreground" : "stg:text-muted-foreground",
             )}
           >
-            <span className="truncate">
+            <span className="stg:truncate">
               {agentRef
                 ? (agentName ?? `${agentRef.org}/${agentRef.slug}`)
                 : "Choose an agent…"}
@@ -260,13 +260,13 @@ export function ScheduleForm({
         </Popover.Root>
         <p className={hintClasses}>
           Each fire runs this agent unattended in a fresh session. Only
-          agents in <span className="font-medium">{org}</span> can be
+          agents in <span className="stg:font-medium">{org}</span> can be
           scheduled.
         </p>
       </div>
 
       {/* Message */}
-      <div className="space-y-1">
+      <div className="stg:space-y-1">
         <label htmlFor="stgm-new-schedule-message" className={labelClasses}>
           Message
         </label>
@@ -279,7 +279,7 @@ export function ScheduleForm({
           required
           rows={5}
           maxLength={MESSAGE_MAX_LEN}
-          className={cn(inputClasses, "resize-y")}
+          className={cn(inputClasses, "stg:resize-y")}
         />
         {remaining <= MESSAGE_COUNTER_THRESHOLD && (
           <p className={hintClasses}>{remaining} characters left</p>
@@ -290,10 +290,10 @@ export function ScheduleForm({
           (DD-018 D-4). Git sources only; the server refuses local
           folders at write time because no client is connected when a
           schedule fires. */}
-      <div className="space-y-1">
+      <div className="stg:space-y-1">
         <span className={labelClasses}>
           Workspace{" "}
-          <span className="font-normal text-muted-foreground">(optional)</span>
+          <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
         </span>
         <WorkspaceEditor
           workspace={workspace}
@@ -304,7 +304,7 @@ export function ScheduleForm({
         />
         <p className={hintClasses}>
           Each run clones these repositories fresh. Private repositories need
-          a <code className="font-mono">GITHUB_TOKEN</code> in one of this
+          a <code className="stg:font-mono">GITHUB_TOKEN</code> in one of this
           schedule&rsquo;s environments; public ones need nothing.
         </p>
       </div>
@@ -313,9 +313,9 @@ export function ScheduleForm({
           (DD-017 D-2). Only org-shared environments resolve for a
           schedule fire, so the picker is filtered to visibility_org —
           the same credential surface a channel binding uses. */}
-      <div className="space-y-1">
+      <div className="stg:space-y-1">
         <span id="stgm-new-schedule-env-label" className={labelClasses}>
-          Environments <span className="font-normal text-muted-foreground">(optional)</span>
+          Environments <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
         </span>
         <EnvironmentPicker
           org={org}
@@ -334,7 +334,7 @@ export function ScheduleForm({
       </div>
 
       {/* Cadence */}
-      <div className="space-y-1">
+      <div className="stg:space-y-1">
         <span className={labelClasses}>Runs</span>
         <CadenceField
           value={cadence}
@@ -347,12 +347,12 @@ export function ScheduleForm({
       {/* Engine & model — the composer's own picker (DD-018 D-5),
           replacing the free-text model box whose typos surfaced as
           fire-time failures. Nothing is pinned until a model is picked. */}
-      <div className="space-y-1">
+      <div className="stg:space-y-1">
         <span className={labelClasses}>
           Engine &amp; model{" "}
-          <span className="font-normal text-muted-foreground">(optional)</span>
+          <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
         </span>
-        <div className="flex items-center gap-2">
+        <div className="stg:flex stg:items-center stg:gap-2">
           <ModelSelector
             value={modelName}
             onValueChange={setModelName}
@@ -372,9 +372,9 @@ export function ScheduleForm({
               }}
               disabled={isCreating}
               className={cn(
-                "rounded-md px-2 py-1 text-[0.65rem] text-muted-foreground",
-                "hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                "disabled:pointer-events-none disabled:opacity-50",
+                "stg:rounded-md stg:px-2 stg:py-1 stg:text-[0.65rem] stg:text-muted-foreground",
+                "stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               )}
             >
               Reset to platform default
@@ -390,10 +390,10 @@ export function ScheduleForm({
       {/* Budget — the one run bound that matters for an unattended
           surface: nobody is watching a 3 AM fire (DD-018 D-5). Clamped
           by the platform profile; tool-round bounds stay API-only. */}
-      <div className="space-y-1">
+      <div className="stg:space-y-1">
         <label htmlFor="stgm-new-schedule-budget" className={labelClasses}>
           Budget per run (USD){" "}
-          <span className="font-normal text-muted-foreground">(optional)</span>
+          <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
         </label>
         <input
           id="stgm-new-schedule-budget"
@@ -404,7 +404,7 @@ export function ScheduleForm({
           onChange={(e) => setBudgetUsd(e.target.value)}
           placeholder="platform default"
           disabled={isCreating}
-          className={cn(inputClasses, "sm:max-w-48")}
+          className={cn(inputClasses, "stg:sm:max-w-48")}
         />
         <p className={hintClasses}>
           Each run stops when it reaches this spend. You can lower the
@@ -414,7 +414,7 @@ export function ScheduleForm({
       </div>
 
       {/* Time zone */}
-      <div className="space-y-1">
+      <div className="stg:space-y-1">
         <label htmlFor="stgm-new-schedule-tz" className={labelClasses}>
           Time zone
         </label>
@@ -427,7 +427,7 @@ export function ScheduleForm({
       </div>
 
       {/* Enabled */}
-      <div className="flex items-start gap-3">
+      <div className="stg:flex stg:items-start stg:gap-3">
         <Switch
           id="stgm-new-schedule-enabled"
           checked={enabled}
@@ -435,7 +435,7 @@ export function ScheduleForm({
           disabled={isCreating}
           aria-labelledby="stgm-new-schedule-enabled-label"
         />
-        <div className="space-y-0.5">
+        <div className="stg:space-y-0.5">
           <label
             id="stgm-new-schedule-enabled-label"
             htmlFor="stgm-new-schedule-enabled"
@@ -451,20 +451,20 @@ export function ScheduleForm({
       </div>
 
       {error && (
-        <p className="text-xs text-destructive" role="alert">
+        <p className="stg:text-xs stg:text-destructive" role="alert">
           {getUserMessage(error)}
         </p>
       )}
 
-      <div className="flex items-center gap-2">
+      <div className="stg:flex stg:items-center stg:gap-2">
         <button
           type="submit"
           disabled={!canSubmit}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-40",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
           {isCreating && <SpinnerIcon />}
@@ -477,9 +477,9 @@ export function ScheduleForm({
             onClick={onCancel}
             disabled={isCreating}
             className={cn(
-              "rounded-md px-3 py-1.5 text-sm",
-              "text-muted-foreground hover:bg-accent-hover hover:text-foreground",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm",
+              "stg:text-muted-foreground stg:hover:bg-accent-hover stg:hover:text-foreground",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             Cancel
@@ -494,8 +494,8 @@ export function ScheduleForm({
 // Private helpers
 // ---------------------------------------------------------------------------
 
-const labelClasses = "block text-xs font-medium text-foreground";
-const hintClasses = "text-[0.65rem] text-muted-foreground";
+const labelClasses = "stg:block stg:text-xs stg:font-medium stg:text-foreground";
+const hintClasses = "stg:text-[0.65rem] stg:text-muted-foreground";
 
 /**
  * Assemble a {@link RunConfigInput} from the model choice and budget, or
@@ -530,10 +530,10 @@ function buildRunConfig(
   return Object.keys(config).length > 0 ? config : undefined;
 }
 const inputClasses = cn(
-  "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-  "placeholder:text-muted-foreground",
-  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-  "disabled:pointer-events-none disabled:opacity-50",
+  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+  "stg:placeholder:text-muted-foreground",
+  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
 );
 
 function AgentPickerPopup({
@@ -555,9 +555,9 @@ function AgentPickerPopup({
       <Popover.Positioner sideOffset={4} align="start">
         <Popover.Popup
           className={cn(
-            "z-popover overflow-x-hidden overflow-y-auto rounded-lg border border-border",
-            "bg-popover p-3 text-popover-foreground shadow-md",
-            "max-h-[60vh]",
+            "stg:z-popover stg:overflow-x-hidden stg:overflow-y-auto stg:rounded-lg stg:border stg:border-border",
+            "stg:bg-popover stg:p-3 stg:text-popover-foreground stg:shadow-md",
+            "stg:max-h-[60vh]",
           )}
         >
           <AgentPicker
@@ -589,7 +589,7 @@ function ChevronIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
       aria-hidden="true"
     >
       <path d="M4 6l4 4 4-4" />
@@ -607,7 +607,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

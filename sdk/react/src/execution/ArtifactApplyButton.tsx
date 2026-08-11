@@ -41,16 +41,16 @@ export function ArtifactApplyButton({
       disabled={!canApply}
       aria-busy={isApplying}
       className={cn(
-        "rounded-md px-4 py-1.5 text-xs font-medium transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        "disabled:cursor-not-allowed",
+        "stg:rounded-md stg:px-4 stg:py-1.5 stg:text-xs stg:font-medium stg:transition-colors",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-2",
+        "stg:disabled:cursor-not-allowed",
         canApply
-          ? "bg-primary text-primary-foreground hover:bg-primary-hover"
-          : "bg-muted text-muted-foreground",
+          ? "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover"
+          : "stg:bg-muted stg:text-muted-foreground",
       )}
     >
       {isApplying ? (
-        <span className="inline-flex items-center gap-1.5">
+        <span className="stg:inline-flex stg:items-center stg:gap-1.5">
           <SpinnerIcon />
           Applying{"\u2026"}
         </span>
@@ -70,7 +70,7 @@ function SpinnerIcon() {
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
-      className="shrink-0 animate-spin"
+      className="stg:shrink-0 stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />

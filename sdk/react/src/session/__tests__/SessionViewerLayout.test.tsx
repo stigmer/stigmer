@@ -84,10 +84,10 @@ describe("SessionViewerLayout", () => {
       <SessionViewerLayout conversation={conversation()} panel={panel()} />,
     );
     const pane = screen.getByTestId("conversation").parentElement!;
-    expect(pane.className).toContain("@max-3xl/resizable-split:hidden");
+    expect(pane.className).toContain("stg:@max-3xl/resizable-split:hidden");
     // The separator hides with it, so the panel is the full narrow row.
     expect(
-      container.querySelectorAll('[class*="@max-3xl/resizable-split:hidden"]')
+      container.querySelectorAll('[class*="stg:@max-3xl/resizable-split:hidden"]')
         .length,
     ).toBe(2);
   });
@@ -101,11 +101,11 @@ describe("SessionViewerLayout", () => {
       />,
     );
     expect(
-      container.querySelector('[class*="@max-3xl/resizable-split:hidden"]'),
+      container.querySelector('[class*="stg:@max-3xl/resizable-split:hidden"]'),
     ).toBeNull();
     // No collapse to decide means no CSS container either (the containment
     // invariant documented in ResizableSplit).
-    expect(container.querySelector('[class*="@container"]')).toBeNull();
+    expect(container.querySelector('[class*="stg:@container"]')).toBeNull();
   });
 
   it("reads no localStorage without a splitStorageKey (deterministic hosts)", () => {

@@ -96,7 +96,7 @@ export const TodoCard = memo(function TodoCard({
       aria-label="Agent to-dos"
       data-cursor-target="todo-card"
       className={cn(
-        "rounded-lg border border-border-prominent overflow-hidden",
+        "stg:rounded-lg stg:border stg:border-border-prominent stg:overflow-hidden",
         className,
       )}
     >
@@ -105,26 +105,26 @@ export const TodoCard = memo(function TodoCard({
         aria-expanded={expanded}
         onClick={handleToggle}
         className={cn(
-          "flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors",
-          "hover:bg-muted-subtle",
+          "stg:flex stg:w-full stg:cursor-pointer stg:items-center stg:gap-2 stg:px-2.5 stg:py-1.5 stg:text-left stg:text-xs stg:text-muted-foreground stg:transition-colors",
+          "stg:hover:bg-muted-subtle",
           // ring-inset so the card's overflow-hidden does not clip the focus ring.
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
         )}
       >
         <span
           className={cn(
-            "shrink-0",
-            allDone ? "text-success" : "text-muted-foreground",
+            "stg:shrink-0",
+            allDone ? "stg:text-success" : "stg:text-muted-foreground",
           )}
           aria-hidden="true"
         >
           <PlanIcon />
         </span>
-        <span className="min-w-0 flex-1 truncate font-medium text-foreground">
+        <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:font-medium stg:text-foreground">
           To-dos
         </span>
         {summary && (
-          <span className="shrink-0 tabular-nums text-muted-foreground">
+          <span className="stg:shrink-0 stg:tabular-nums stg:text-muted-foreground">
             {summary}
           </span>
         )}
@@ -132,7 +132,7 @@ export const TodoCard = memo(function TodoCard({
       </button>
 
       {expanded && (
-        <div className="border-t border-border-muted px-2.5 py-2">
+        <div className="stg:border-t stg:border-border-muted stg:px-2.5 stg:py-2">
           <TodoList todos={todos} TodoRow={TodoRow} />
         </div>
       )}
@@ -191,8 +191,8 @@ function ChevronIcon({ expanded }: { expanded: boolean }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={cn(
-        "shrink-0 text-muted-foreground transition-transform duration-150",
-        expanded && "rotate-90",
+        "stg:shrink-0 stg:text-muted-foreground stg:transition-transform stg:duration-150",
+        expanded && "stg:rotate-90",
       )}
       aria-hidden="true"
     >

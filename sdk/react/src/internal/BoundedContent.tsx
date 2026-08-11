@@ -13,7 +13,7 @@ import { RevealToggle } from "./RevealToggle.js";
  * One constant so the settled edit/write diff and the HITL approval gate diff
  * are visually identical — change it here to retune both at once.
  */
-export const PREVIEW_MAX_HEIGHT = "max-h-48";
+export const PREVIEW_MAX_HEIGHT = "stg:max-h-48";
 
 /** Props for {@link BoundedContent}. */
 export interface BoundedContentProps {
@@ -75,13 +75,13 @@ export function BoundedContent({
     <div className={className}>
       <div
         ref={ref}
-        className={cn("relative overflow-hidden", clamped && maxHeightClass)}
+        className={cn("stg:relative stg:overflow-hidden", clamped && maxHeightClass)}
       >
         {children}
         {showFade && (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-background to-transparent"
+            className="stg:pointer-events-none stg:absolute stg:inset-x-0 stg:bottom-0 stg:h-8 stg:bg-gradient-to-t stg:from-background stg:to-transparent"
           />
         )}
       </div>

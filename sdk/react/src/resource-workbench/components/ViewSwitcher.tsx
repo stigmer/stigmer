@@ -38,7 +38,7 @@ export function ViewSwitcher({
     <div
       role="radiogroup"
       aria-label="View mode"
-      className={cn("inline-flex rounded-md border border-input", className)}
+      className={cn("stg:inline-flex stg:rounded-md stg:border stg:border-input", className)}
     >
       {modes.map((mode) => {
         const { label, icon: Icon } = MODE_META[mode];
@@ -52,13 +52,13 @@ export function ViewSwitcher({
             aria-label={label}
             onClick={() => onChange(mode)}
             className={cn(
-              "inline-flex items-center justify-center px-2 py-1.5 transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:z-10",
-              "first:rounded-l-[calc(var(--stgm-radius)-1px)] last:rounded-r-[calc(var(--stgm-radius)-1px)]",
-              "border-r border-input last:border-r-0",
+              "stg:inline-flex stg:items-center stg:justify-center stg:px-2 stg:py-1.5 stg:transition-colors",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:z-10",
+              "stg:first:rounded-l-[calc(var(--stgm-radius)-1px)] stg:last:rounded-r-[calc(var(--stgm-radius)-1px)]",
+              "stg:border-r stg:border-input stg:last:border-r-0",
               isActive
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
+                ? "stg:bg-accent stg:text-accent-foreground"
+                : "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
             )}
           >
             <Icon />

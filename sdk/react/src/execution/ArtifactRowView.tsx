@@ -58,35 +58,35 @@ export function ArtifactRowView({
   className,
 }: ArtifactRowViewProps) {
   return (
-    <li className={cn("group flex items-stretch", className)}>
+    <li className={cn("stg:group stg:flex stg:items-stretch", className)}>
       <button
         type="button"
         onClick={onOpen}
         onDoubleClick={onActivate}
         title={item.tooltip}
         className={cn(
-          "flex min-w-0 flex-1 items-center gap-2 px-2 py-1 text-left text-xs text-muted-foreground transition-colors",
-          "hover:bg-muted hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          "stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-2 stg:px-2 stg:py-1 stg:text-left stg:text-xs stg:text-muted-foreground stg:transition-colors",
+          "stg:hover:bg-muted stg:hover:text-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
         )}
       >
-        <span className="shrink-0 text-muted-foreground">
+        <span className="stg:shrink-0 stg:text-muted-foreground">
           {item.isDirectory ? (
             <FolderTypeIcon open={false} />
           ) : (
             <FileTypeIcon fileName={item.name} />
           )}
         </span>
-        <span className="min-w-0 flex-1 truncate text-foreground">
+        <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground">
           {item.name}
           {item.isDirectory && "/"}
           {item.subtitlePath && (
-            <span className="ml-1.5 text-[0.65rem] text-muted-foreground">
+            <span className="stg:ml-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
               {item.subtitlePath}
             </span>
           )}
         </span>
-        <span className="shrink-0 tabular-nums text-[0.65rem] text-muted-foreground-faint">
+        <span className="stg:shrink-0 stg:tabular-nums stg:text-[0.65rem] stg:text-muted-foreground-faint">
           {formatArtifactSize(item.sizeBytes)}
         </span>
       </button>
@@ -99,10 +99,10 @@ export function ArtifactRowView({
         }
         title={item.isDirectory ? "Download ZIP" : "Download"}
         className={cn(
-          "flex shrink-0 items-center px-2 text-muted-foreground opacity-0 transition-opacity",
-          "group-hover:opacity-100 focus-visible:opacity-100",
-          "hover:text-foreground disabled:opacity-50",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          "stg:flex stg:shrink-0 stg:items-center stg:px-2 stg:text-muted-foreground stg:opacity-0 stg:transition-opacity",
+          "stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
+          "stg:hover:text-foreground stg:disabled:opacity-50",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
         )}
       >
         <DownloadIcon />
@@ -126,7 +126,7 @@ function DownloadIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <path d="M6 1.5V8.5" />

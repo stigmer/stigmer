@@ -327,9 +327,9 @@ export function NewSessionViewer({
     // Do NOT reintroduce a context-driven position flip: the composer must not
     // move as context is attached (DD-16's layout-stability rationale — chrome
     // that shifts with attached context reads as instability).
-    <div className="flex h-full flex-col items-center overflow-y-auto px-4 py-6">
-      <div className="my-auto w-full max-w-2xl space-y-6">
-        <h1 className="text-center text-lg font-medium text-foreground">
+    <div className="stg:flex stg:h-full stg:flex-col stg:items-center stg:overflow-y-auto stg:px-4 stg:py-6">
+      <div className="stg:my-auto stg:w-full stg:max-w-2xl stg:space-y-6">
+        <h1 className="stg:text-center stg:text-lg stg:font-medium stg:text-foreground">
           {heading}
         </h1>
 
@@ -374,7 +374,7 @@ export function NewSessionViewer({
 
         {footerContent}
 
-        <p className="text-center text-[0.65rem] text-muted-foreground">
+        <p className="stg:text-center stg:text-[0.65rem] stg:text-muted-foreground">
           Press Enter to send, Shift+Enter for a new line
         </p>
       </div>
@@ -428,7 +428,7 @@ export function NewSessionViewer({
             onCloseEditor={panel.closeEditor}
             onCollapse={panel.closePanel}
             reveal={activeReveal}
-            className="h-full"
+            className="stg:h-full"
           />
         ) : null
       }

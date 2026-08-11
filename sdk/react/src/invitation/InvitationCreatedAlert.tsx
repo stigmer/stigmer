@@ -70,16 +70,16 @@ export function InvitationCreatedAlert({
     <div
       role="alert"
       className={cn(
-        "rounded-lg border border-primary/30 bg-primary-subtle p-4",
+        "stg:rounded-lg stg:border stg:border-primary/30 stg:bg-primary-subtle stg:p-4",
         className,
       )}
     >
-      <div className="mb-2 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-foreground">
+      <div className="stg:mb-2 stg:flex stg:items-start stg:justify-between stg:gap-3">
+        <div className="stg:min-w-0">
+          <p className="stg:text-sm stg:font-medium stg:text-foreground">
             Invite link created: {label}
           </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
             Share this link to invite people to your organization.
           </p>
         </div>
@@ -88,22 +88,22 @@ export function InvitationCreatedAlert({
           onClick={onDismiss}
           aria-label="Dismiss"
           className={cn(
-            "shrink-0 rounded p-1",
-            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-            "transition-colors",
+            "stg:shrink-0 stg:rounded stg:p-1",
+            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+            "stg:transition-colors",
           )}
         >
           <CloseIcon />
         </button>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="stg:flex stg:items-center stg:gap-2">
         <code
           id="stgm-invite-url-reveal"
           className={cn(
-            "min-w-0 flex-1 select-all truncate rounded-md",
-            "border border-input bg-background px-2.5 py-1.5",
-            "font-mono text-xs text-foreground",
+            "stg:min-w-0 stg:flex-1 stg:select-all stg:truncate stg:rounded-md",
+            "stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5",
+            "stg:font-mono stg:text-xs stg:text-foreground",
           )}
         >
           {inviteUrl}
@@ -113,9 +113,9 @@ export function InvitationCreatedAlert({
           type="button"
           onClick={handleCopy}
           className={cn(
-            "inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "transition-colors",
+            "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:transition-colors",
           )}
         >
           {copied ? <CheckIcon /> : <CopyIcon />}

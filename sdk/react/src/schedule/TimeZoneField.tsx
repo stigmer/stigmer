@@ -104,7 +104,7 @@ export function TimeZoneField({
   );
 
   return (
-    <div className="relative">
+    <div className="stg:relative">
       <input
         id={id}
         type="text"
@@ -128,10 +128,10 @@ export function TimeZoneField({
         onKeyDown={handleKeyDown}
         disabled={disabled}
         className={cn(
-          "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-          "placeholder:text-muted-foreground",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-          "disabled:pointer-events-none disabled:opacity-50",
+          "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+          "stg:placeholder:text-muted-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         )}
       />
 
@@ -142,12 +142,12 @@ export function TimeZoneField({
           role="listbox"
           aria-label="Time zones"
           className={cn(
-            "absolute z-popover mt-1 max-h-52 w-full overflow-y-auto rounded-md border border-border",
-            "bg-popover p-1 text-popover-foreground shadow-md",
+            "stg:absolute stg:z-popover stg:mt-1 stg:max-h-52 stg:w-full stg:overflow-y-auto stg:rounded-md stg:border stg:border-border",
+            "stg:bg-popover stg:p-1 stg:text-popover-foreground stg:shadow-md",
           )}
         >
           {filtered.length === 0 ? (
-            <div className="py-3 text-center text-xs text-muted-foreground">
+            <div className="stg:py-3 stg:text-center stg:text-xs stg:text-muted-foreground">
               No time zones match
             </div>
           ) : (
@@ -165,11 +165,11 @@ export function TimeZoneField({
                   select(zone);
                 }}
                 className={cn(
-                  "flex w-full items-center rounded-sm px-2 py-1.5 text-left text-xs transition-colors",
+                  "stg:flex stg:w-full stg:items-center stg:rounded-sm stg:px-2 stg:py-1.5 stg:text-left stg:text-xs stg:transition-colors",
                   idx === focusIndex
-                    ? "bg-accent text-foreground"
-                    : "text-popover-foreground hover:bg-accent-hover",
-                  zone === value && "font-medium",
+                    ? "stg:bg-accent stg:text-foreground"
+                    : "stg:text-popover-foreground stg:hover:bg-accent-hover",
+                  zone === value && "stg:font-medium",
                 )}
               >
                 {zone}

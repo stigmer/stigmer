@@ -41,16 +41,16 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 // EmptyState CTAs, ConfirmDialog actions) — collected here so surfaces
 // can stop hand-rolling drifting copies of the same button.
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: "bg-primary text-primary-foreground hover:bg-primary-hover",
-  outline: "border border-border text-foreground hover:bg-accent-hover",
-  ghost: "text-foreground hover:bg-accent-hover",
+  primary: "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+  outline: "stg:border stg:border-border stg:text-foreground stg:hover:bg-accent-hover",
+  ghost: "stg:text-foreground stg:hover:bg-accent-hover",
   destructive:
-    "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
+    "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  xs: "px-2.5 py-1 text-xs",
-  sm: "px-3 py-1.5 text-xs",
+  xs: "stg:px-2.5 stg:py-1 stg:text-xs",
+  sm: "stg:px-3 stg:py-1.5 stg:text-xs",
 };
 
 /**
@@ -87,10 +87,10 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex items-center gap-1 rounded-md font-medium transition-colors",
-        "motion-reduce:transition-none",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        "disabled:pointer-events-none disabled:opacity-50",
+        "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:font-medium stg:transition-colors",
+        "stg:motion-reduce:transition-none",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         SIZE_CLASSES[size],
         VARIANT_CLASSES[variant],
         className,

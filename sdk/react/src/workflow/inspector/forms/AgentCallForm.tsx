@@ -11,7 +11,7 @@ export interface AgentCallFormProps {
 }
 
 const inputClass =
-  "w-full rounded-md border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 py-1.5 text-xs text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]";
+  "stg:w-full stg:rounded-md stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-2 stg:py-1.5 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)] stg:placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]";
 
 /**
  * Specialized configuration form for `agent_call` tasks.
@@ -99,9 +99,9 @@ export const AgentCallForm = memo(function AgentCallForm({
   }, [config.env]);
 
   return (
-    <div className="flex flex-col gap-4 px-3 py-3">
+    <div className="stg:flex stg:flex-col stg:gap-4 stg:px-3 stg:py-3">
       {/* Agent identity */}
-      <section className="flex flex-col gap-2">
+      <section className="stg:flex stg:flex-col stg:gap-2">
         <SectionLabel>Agent</SectionLabel>
         <FieldRow label="Agent" hint='Slug or "org/slug" format' required>
           <input
@@ -115,24 +115,24 @@ export const AgentCallForm = memo(function AgentCallForm({
         </FieldRow>
 
         <FieldRow label="Harness" hint="Execution engine for this agent call">
-          <div className="flex gap-3">
-            <label className="flex items-center gap-1.5 text-xs">
+          <div className="stg:flex stg:gap-3">
+            <label className="stg:flex stg:items-center stg:gap-1.5 stg:text-xs">
               <input
                 type="radio"
                 name={`${node.id}-harness`}
                 checked={!config.harness || config.harness === "HARNESS_NATIVE" || config.harness === "native"}
                 onChange={() => handleChange("harness", undefined)}
-                className="h-3.5 w-3.5 border-[var(--stgm-border,#d4d4d8)] text-[var(--stgm-primary,#6366f1)]"
+                className="stg:h-3.5 stg:w-3.5 stg:border-[var(--stgm-border,#d4d4d8)] stg:text-[var(--stgm-primary,#6366f1)]"
               />
               Native
             </label>
-            <label className="flex items-center gap-1.5 text-xs">
+            <label className="stg:flex stg:items-center stg:gap-1.5 stg:text-xs">
               <input
                 type="radio"
                 name={`${node.id}-harness`}
                 checked={config.harness === "cursor" || config.harness === "HARNESS_CURSOR"}
                 onChange={() => handleChange("harness", "cursor")}
-                className="h-3.5 w-3.5 border-[var(--stgm-border,#d4d4d8)] text-[var(--stgm-primary,#6366f1)]"
+                className="stg:h-3.5 stg:w-3.5 stg:border-[var(--stgm-border,#d4d4d8)] stg:text-[var(--stgm-primary,#6366f1)]"
               />
               Cursor
             </label>
@@ -141,7 +141,7 @@ export const AgentCallForm = memo(function AgentCallForm({
       </section>
 
       {/* Message */}
-      <section className="flex flex-col gap-2">
+      <section className="stg:flex stg:flex-col stg:gap-2">
         <SectionLabel>Message</SectionLabel>
         <FieldRow label="Prompt" hint="Instructions sent to the agent. Supports ${ } expressions." required>
           <textarea
@@ -149,7 +149,7 @@ export const AgentCallForm = memo(function AgentCallForm({
             onChange={(e) => handleChange("message", e.target.value)}
             placeholder="Analyze this data: ${ $context.fetchData.body }"
             rows={4}
-            className={`${inputClass} resize-y font-mono border-[var(--stgm-chart-purple,#8b5cf6)]/40`}
+            className={`${inputClass} stg:resize-y stg:font-mono stg:border-[var(--stgm-chart-purple,#8b5cf6)]/40`}
             data-testid="agent-call-message-input"
           />
         </FieldRow>
@@ -157,16 +157,16 @@ export const AgentCallForm = memo(function AgentCallForm({
 
       {/* Environment */}
       {envEntries.length > 0 && (
-        <section className="flex flex-col gap-2">
+        <section className="stg:flex stg:flex-col stg:gap-2">
           <SectionLabel>Environment</SectionLabel>
-          <div className="flex flex-col gap-1.5">
+          <div className="stg:flex stg:flex-col stg:gap-1.5">
             {envEntries.map(([key, val]) => (
-              <div key={key} className="flex items-start gap-1">
+              <div key={key} className="stg:flex stg:items-start stg:gap-1">
                 <input
                   type="text"
                   value={key}
                   readOnly
-                  className={`${inputClass} w-1/3 bg-[var(--stgm-muted,#f5f5f5)]`}
+                  className={`${inputClass} stg:w-1/3 stg:bg-[var(--stgm-muted,#f5f5f5)]`}
                 />
                 <input
                   type="text"
@@ -177,7 +177,7 @@ export const AgentCallForm = memo(function AgentCallForm({
                     handleChange("env", env);
                   }}
                   placeholder="value"
-                  className={`${inputClass} flex-1`}
+                  className={`${inputClass} stg:flex-1`}
                 />
               </div>
             ))}
@@ -186,7 +186,7 @@ export const AgentCallForm = memo(function AgentCallForm({
       )}
 
       {/* Run config */}
-      <section className="flex flex-col gap-2">
+      <section className="stg:flex stg:flex-col stg:gap-2">
         <SectionLabel>Execution</SectionLabel>
         <FieldRow label="Model" hint="Override the agent's default model">
           <input
@@ -225,24 +225,24 @@ export const AgentCallForm = memo(function AgentCallForm({
       />
 
       {/* Structured output */}
-      <section className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
+      <section className="stg:flex stg:flex-col stg:gap-2">
+        <div className="stg:flex stg:items-center stg:gap-2">
           <SectionLabel>Structured output</SectionLabel>
-          <label className="flex cursor-pointer items-center gap-1.5">
+          <label className="stg:flex stg:cursor-pointer stg:items-center stg:gap-1.5">
             <input
               type="checkbox"
               checked={showOutput}
               onChange={toggleOutput}
-              className="h-3.5 w-3.5 rounded border-[var(--stgm-border,#d4d4d8)] text-[var(--stgm-primary,#6366f1)]"
+              className="stg:h-3.5 stg:w-3.5 stg:rounded stg:border-[var(--stgm-border,#d4d4d8)] stg:text-[var(--stgm-primary,#6366f1)]"
             />
-            <span className="text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+            <span className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
               {showOutput ? "Enabled" : "Disabled"}
             </span>
           </label>
         </div>
 
         {showOutput && (
-          <div className="flex flex-col gap-2">
+          <div className="stg:flex stg:flex-col stg:gap-2">
             <FieldRow label="Schema" hint="JSON Schema for the agent's structured response">
               <OutputSchemaEditor
                 value={outputContract.schema}
@@ -339,35 +339,35 @@ function WorkspaceEntriesSection({
   );
 
   return (
-    <section className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
+    <section className="stg:flex stg:flex-col stg:gap-2">
+      <div className="stg:flex stg:items-center stg:justify-between">
         <SectionLabel>Workspace</SectionLabel>
         <button
           type="button"
           onClick={() => commit([...rows, { source: { git_repo: { url: "" } } }])}
-          className="text-[10px] font-medium text-[var(--stgm-primary,#6366f1)]"
+          className="stg:text-[10px] stg:font-medium stg:text-[var(--stgm-primary,#6366f1)]"
           data-testid="agent-call-workspace-add"
         >
           + Add repository
         </button>
       </div>
       {rows.length === 0 ? (
-        <p className="text-[10px] leading-tight text-[var(--stgm-muted-foreground,#737373)]">
+        <p className="stg:text-[10px] stg:leading-tight stg:text-[var(--stgm-muted-foreground,#737373)]">
           Git repositories the agent works on. Private repos need an org-shared
           environment holding GITHUB_TOKEN bound under Environments.
         </p>
       ) : (
-        <div className="flex flex-col gap-1.5">
+        <div className="stg:flex stg:flex-col stg:gap-1.5">
           {rows.map((row, i) => {
             const gitRepo = row.source?.git_repo ?? {};
             return (
-              <div key={i} className="flex items-start gap-1">
+              <div key={i} className="stg:flex stg:items-start stg:gap-1">
                 <input
                   type="text"
                   value={gitRepo.url ?? ""}
                   onChange={(e) => updateRow(i, e.target.value, gitRepo.branch ?? "")}
                   placeholder="https://github.com/org/repo"
-                  className={`${inputClass} flex-1`}
+                  className={`${inputClass} stg:flex-1`}
                   data-testid={`agent-call-workspace-url-${i}`}
                 />
                 <input
@@ -375,14 +375,14 @@ function WorkspaceEntriesSection({
                   value={gitRepo.branch ?? ""}
                   onChange={(e) => updateRow(i, gitRepo.url ?? "", e.target.value)}
                   placeholder="branch"
-                  className={`${inputClass} w-1/4`}
+                  className={`${inputClass} stg:w-1/4`}
                   data-testid={`agent-call-workspace-branch-${i}`}
                 />
                 <button
                   type="button"
                   onClick={() => commit(rows.filter((_, j) => j !== i))}
                   aria-label={`Remove workspace entry ${i + 1}`}
-                  className="mt-1 text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-destructive,#ef4444)]"
+                  className="stg:mt-1 stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:text-[var(--stgm-destructive,#ef4444)]"
                 >
                   ×
                 </button>
@@ -448,33 +448,33 @@ function EnvironmentRefsSection({
   );
 
   return (
-    <section className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
+    <section className="stg:flex stg:flex-col stg:gap-2">
+      <div className="stg:flex stg:items-center stg:justify-between">
         <SectionLabel>Environments</SectionLabel>
         <button
           type="button"
           onClick={() => commit([...rows, { slug: "" }])}
-          className="text-[10px] font-medium text-[var(--stgm-primary,#6366f1)]"
+          className="stg:text-[10px] stg:font-medium stg:text-[var(--stgm-primary,#6366f1)]"
           data-testid="agent-call-envref-add"
         >
           + Bind environment
         </button>
       </div>
       {rows.length === 0 ? (
-        <p className="text-[10px] leading-tight text-[var(--stgm-muted-foreground,#737373)]">
+        <p className="stg:text-[10px] stg:leading-tight stg:text-[var(--stgm-muted-foreground,#737373)]">
           Environment resources whose values are provided to this call&apos;s runs
           — credentials bind here, not on the agent.
         </p>
       ) : (
-        <div className="flex flex-col gap-1.5">
+        <div className="stg:flex stg:flex-col stg:gap-1.5">
           {rows.map((row, i) => (
-            <div key={i} className="flex items-start gap-1">
+            <div key={i} className="stg:flex stg:items-start stg:gap-1">
               <input
                 type="text"
                 value={row.org ?? ""}
                 onChange={(e) => updateRow(i, "org", e.target.value)}
                 placeholder="org (optional)"
-                className={`${inputClass} w-1/3`}
+                className={`${inputClass} stg:w-1/3`}
                 data-testid={`agent-call-envref-org-${i}`}
               />
               <input
@@ -482,14 +482,14 @@ function EnvironmentRefsSection({
                 value={row.slug ?? ""}
                 onChange={(e) => updateRow(i, "slug", e.target.value)}
                 placeholder="environment slug"
-                className={`${inputClass} flex-1`}
+                className={`${inputClass} stg:flex-1`}
                 data-testid={`agent-call-envref-slug-${i}`}
               />
               <button
                 type="button"
                 onClick={() => commit(rows.filter((_, j) => j !== i))}
                 aria-label={`Remove environment reference ${i + 1}`}
-                className="mt-1 text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-destructive,#ef4444)]"
+                className="stg:mt-1 stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:text-[var(--stgm-destructive,#ef4444)]"
               >
                 ×
               </button>
@@ -537,16 +537,16 @@ function OutputSchemaEditor({
   );
 
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="stg:flex stg:flex-col stg:gap-0.5">
       <textarea
         value={localValue}
         onChange={handleChange}
         rows={5}
-        className={`${inputClass} resize-y font-mono text-[11px]`}
+        className={`${inputClass} stg:resize-y stg:font-mono stg:text-[11px]`}
         placeholder='{ "type": "object", "properties": { ... } }'
       />
       {parseError && (
-        <span className="text-[10px] text-[var(--stgm-destructive,#ef4444)]">{parseError}</span>
+        <span className="stg:text-[10px] stg:text-[var(--stgm-destructive,#ef4444)]">{parseError}</span>
       )}
     </div>
   );
@@ -558,7 +558,7 @@ function OutputSchemaEditor({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h4 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--stgm-muted-foreground,#737373)]">
+    <h4 className="stg:text-[11px] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-[var(--stgm-muted-foreground,#737373)]">
       {children}
     </h4>
   );
@@ -576,13 +576,13 @@ function FieldRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <label className="flex items-center gap-1 text-[11px] font-medium text-[var(--stgm-foreground,#1a1a2e)]">
+    <div className="stg:flex stg:flex-col stg:gap-1">
+      <label className="stg:flex stg:items-center stg:gap-1 stg:text-[11px] stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]">
         {label}
-        {required && <span className="text-[var(--stgm-destructive,#ef4444)]" aria-label="required">*</span>}
+        {required && <span className="stg:text-[var(--stgm-destructive,#ef4444)]" aria-label="required">*</span>}
       </label>
       {hint && (
-        <p className="text-[10px] leading-tight text-[var(--stgm-muted-foreground,#737373)]">{hint}</p>
+        <p className="stg:text-[10px] stg:leading-tight stg:text-[var(--stgm-muted-foreground,#737373)]">{hint}</p>
       )}
       {children}
     </div>

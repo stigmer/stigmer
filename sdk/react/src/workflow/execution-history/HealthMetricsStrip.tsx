@@ -40,15 +40,15 @@ export const HealthMetricsStrip = memo(function HealthMetricsStrip({
     return (
       <div
         className={cn(
-          "flex items-center gap-4 overflow-x-auto rounded-lg border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-4 py-2.5",
+          "stg:flex stg:items-center stg:gap-4 stg:overflow-x-auto stg:rounded-lg stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-4 stg:py-2.5",
           className,
         )}
         aria-label="Loading health metrics"
       >
         {Array.from({ length: 6 }, (_, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <div className="h-3 w-12 animate-pulse rounded bg-[var(--stgm-muted,#e5e5e5)]" />
-            <div className="h-4 w-8 animate-pulse rounded bg-[var(--stgm-muted,#e5e5e5)]" />
+          <div key={i} className="stg:flex stg:items-center stg:gap-2">
+            <div className="stg:h-3 stg:w-12 stg:animate-pulse stg:rounded stg:bg-[var(--stgm-muted,#e5e5e5)]" />
+            <div className="stg:h-4 stg:w-8 stg:animate-pulse stg:rounded stg:bg-[var(--stgm-muted,#e5e5e5)]" />
           </div>
         ))}
       </div>
@@ -63,11 +63,11 @@ export const HealthMetricsStrip = memo(function HealthMetricsStrip({
 
   const successPct = successRate >= 0 ? `${Math.round(successRate * 100)}%` : "\u2014";
   const successColor = successRate >= 0.9
-    ? "text-[var(--stgm-success,#22c55e)]"
+    ? "stg:text-[var(--stgm-success,#22c55e)]"
     : successRate >= 0.7
-      ? "text-[var(--stgm-warning,#f59e0b)]"
+      ? "stg:text-[var(--stgm-warning,#f59e0b)]"
       : successRate >= 0
-        ? "text-[var(--stgm-destructive,#ef4444)]"
+        ? "stg:text-[var(--stgm-destructive,#ef4444)]"
         : "";
 
   const avgDuration = summary.avgDuration
@@ -87,7 +87,7 @@ export const HealthMetricsStrip = memo(function HealthMetricsStrip({
       role="region"
       aria-label="Execution health metrics"
       className={cn(
-        "flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-4 py-2.5",
+        "stg:flex stg:flex-wrap stg:items-center stg:gap-x-4 stg:gap-y-1 stg:rounded-lg stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-4 stg:py-2.5",
         className,
       )}
     >
@@ -102,7 +102,7 @@ export const HealthMetricsStrip = memo(function HealthMetricsStrip({
       <Metric
         label="Active"
         value={String(activeCount)}
-        valueClassName={activeCount > 0 ? "text-[var(--stgm-primary,#6366f1)]" : ""}
+        valueClassName={activeCount > 0 ? "stg:text-[var(--stgm-primary,#6366f1)]" : ""}
         badge={activeCount > 0 ? <LiveDot /> : undefined}
       />
       <Divider />
@@ -130,11 +130,11 @@ function Metric({
   readonly badge?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-baseline gap-1.5">
-      <span className="text-[11px] font-medium text-[var(--stgm-muted-foreground,#737373)] whitespace-nowrap">
+    <div className="stg:flex stg:items-baseline stg:gap-1.5">
+      <span className="stg:text-[11px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)] stg:whitespace-nowrap">
         {label}
       </span>
-      <span className={cn("text-sm font-semibold tabular-nums text-[var(--stgm-foreground,#1a1a2e)]", valueClassName)}>
+      <span className={cn("stg:text-sm stg:font-semibold stg:tabular-nums stg:text-[var(--stgm-foreground,#1a1a2e)]", valueClassName)}>
         {value}
       </span>
       {badge}
@@ -146,16 +146,16 @@ function Divider() {
   return (
     <span
       aria-hidden="true"
-      className="h-4 w-px shrink-0 bg-[var(--stgm-border,#d4d4d8)]"
+      className="stg:h-4 stg:w-px stg:shrink-0 stg:bg-[var(--stgm-border,#d4d4d8)]"
     />
   );
 }
 
 function LiveDot() {
   return (
-    <span className="relative inline-flex h-1.5 w-1.5" aria-hidden="true">
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--stgm-primary,#6366f1)] opacity-75" />
-      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--stgm-primary,#6366f1)]" />
+    <span className="stg:relative stg:inline-flex stg:h-1.5 stg:w-1.5" aria-hidden="true">
+      <span className="stg:absolute stg:inline-flex stg:h-full stg:w-full stg:animate-ping stg:rounded-full stg:bg-[var(--stgm-primary,#6366f1)] stg:opacity-75" />
+      <span className="stg:relative stg:inline-flex stg:h-1.5 stg:w-1.5 stg:rounded-full stg:bg-[var(--stgm-primary,#6366f1)]" />
     </span>
   );
 }

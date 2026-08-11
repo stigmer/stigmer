@@ -14,7 +14,7 @@ export type VisibilityTone = VisibilityLevelOption["tone"];
 
 /** Base classes for the visibility chip (badge + selector trigger). */
 export const VISIBILITY_CHIP_CLASS =
-  "inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground";
+  "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1 stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground";
 
 // ---------------------------------------------------------------------------
 // Option row — one selectable level inside the popover (role="option") or the
@@ -88,25 +88,25 @@ export const VisibilityOptionRow = forwardRef<
       onMouseEnter={onMouseEnter}
       onKeyDown={onKeyDown}
       className={cn(
-        "flex w-full items-start gap-2 rounded-md px-2.5 py-2 text-left transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        "disabled:pointer-events-none disabled:opacity-50",
-        isHighlighted ? "bg-accent text-foreground" : "hover:bg-accent-hover",
+        "stg:flex stg:w-full stg:items-start stg:gap-2 stg:rounded-md stg:px-2.5 stg:py-2 stg:text-left stg:transition-colors",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+        isHighlighted ? "stg:bg-accent stg:text-foreground" : "stg:hover:bg-accent-hover",
       )}
     >
       <VisibilityIcon
         tone={option.tone}
-        className="mt-0.5 size-3.5 shrink-0 text-muted-foreground"
+        className="stg:mt-0.5 stg:size-3.5 stg:shrink-0 stg:text-muted-foreground"
       />
-      <span className="min-w-0 flex-1">
-        <span className="block text-xs font-medium text-foreground">
+      <span className="stg:min-w-0 stg:flex-1">
+        <span className="stg:block stg:text-xs stg:font-medium stg:text-foreground">
           {option.label}
         </span>
-        <span className="block text-[0.65rem] leading-snug text-muted-foreground">
+        <span className="stg:block stg:text-[0.65rem] stg:leading-snug stg:text-muted-foreground">
           {option.description}
         </span>
       </span>
-      {isSelected && <CheckIcon className="mt-0.5 size-3.5 shrink-0 text-primary" />}
+      {isSelected && <CheckIcon className="stg:mt-0.5 stg:size-3.5 stg:shrink-0 stg:text-primary" />}
     </button>
   );
 });
@@ -118,12 +118,12 @@ export const VisibilityOptionRow = forwardRef<
 /** Selected-segment / active-tone treatment (also used by the inline confirm). */
 export const SELECTED_STYLES: Record<VisibilityTone, string> = {
   private:
-    "bg-amber-50 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-  org: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+    "stg:bg-amber-50 stg:text-amber-800 stg:dark:bg-amber-900/30 stg:dark:text-amber-300",
+  org: "stg:bg-blue-100 stg:text-blue-800 stg:dark:bg-blue-900/40 stg:dark:text-blue-300",
   platform:
-    "bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300",
+    "stg:bg-violet-100 stg:text-violet-800 stg:dark:bg-violet-900/40 stg:dark:text-violet-300",
   public:
-    "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+    "stg:bg-emerald-100 stg:text-emerald-800 stg:dark:bg-emerald-900/40 stg:dark:text-emerald-300",
 };
 
 /** Inline-confirm (escalation prompt) treatment, keyed by tone. */
@@ -134,39 +134,39 @@ export const PROMPT_STYLES: Record<
   // Private never escalates, but the row keeps the Record total.
   private: {
     container:
-      "border-amber-200 bg-amber-50 dark:border-amber-800/50 dark:bg-amber-950/30",
-    text: "text-amber-800 dark:text-amber-200",
+      "stg:border-amber-200 stg:bg-amber-50 stg:dark:border-amber-800/50 stg:dark:bg-amber-950/30",
+    text: "stg:text-amber-800 stg:dark:text-amber-200",
     confirm:
-      "bg-amber-600 hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-500",
+      "stg:bg-amber-600 stg:hover:bg-amber-700 stg:dark:bg-amber-600 stg:dark:hover:bg-amber-500",
     cancel:
-      "text-amber-700 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-100",
+      "stg:text-amber-700 stg:hover:text-amber-900 stg:dark:text-amber-300 stg:dark:hover:text-amber-100",
   },
   org: {
     container:
-      "border-blue-200 bg-blue-50 dark:border-blue-800/50 dark:bg-blue-950/30",
-    text: "text-blue-800 dark:text-blue-200",
+      "stg:border-blue-200 stg:bg-blue-50 stg:dark:border-blue-800/50 stg:dark:bg-blue-950/30",
+    text: "stg:text-blue-800 stg:dark:text-blue-200",
     confirm:
-      "bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500",
+      "stg:bg-blue-600 stg:hover:bg-blue-700 stg:dark:bg-blue-600 stg:dark:hover:bg-blue-500",
     cancel:
-      "text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100",
+      "stg:text-blue-700 stg:hover:text-blue-900 stg:dark:text-blue-300 stg:dark:hover:text-blue-100",
   },
   platform: {
     container:
-      "border-violet-200 bg-violet-50 dark:border-violet-800/50 dark:bg-violet-950/30",
-    text: "text-violet-800 dark:text-violet-200",
+      "stg:border-violet-200 stg:bg-violet-50 stg:dark:border-violet-800/50 stg:dark:bg-violet-950/30",
+    text: "stg:text-violet-800 stg:dark:text-violet-200",
     confirm:
-      "bg-violet-600 hover:bg-violet-700 dark:bg-violet-600 dark:hover:bg-violet-500",
+      "stg:bg-violet-600 stg:hover:bg-violet-700 stg:dark:bg-violet-600 stg:dark:hover:bg-violet-500",
     cancel:
-      "text-violet-700 hover:text-violet-900 dark:text-violet-300 dark:hover:text-violet-100",
+      "stg:text-violet-700 stg:hover:text-violet-900 stg:dark:text-violet-300 stg:dark:hover:text-violet-100",
   },
   public: {
     container:
-      "border-emerald-200 bg-emerald-50 dark:border-emerald-800/50 dark:bg-emerald-950/30",
-    text: "text-emerald-800 dark:text-emerald-200",
+      "stg:border-emerald-200 stg:bg-emerald-50 stg:dark:border-emerald-800/50 stg:dark:bg-emerald-950/30",
+    text: "stg:text-emerald-800 stg:dark:text-emerald-200",
     confirm:
-      "bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500",
+      "stg:bg-emerald-600 stg:hover:bg-emerald-700 stg:dark:bg-emerald-600 stg:dark:hover:bg-emerald-500",
     cancel:
-      "text-emerald-700 hover:text-emerald-900 dark:text-emerald-300 dark:hover:text-emerald-100",
+      "stg:text-emerald-700 stg:hover:text-emerald-900 stg:dark:text-emerald-300 stg:dark:hover:text-emerald-100",
   },
 };
 

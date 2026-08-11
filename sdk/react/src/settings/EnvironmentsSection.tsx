@@ -18,7 +18,7 @@ export function EnvironmentsSection() {
   const org = useActiveOrgSlug();
 
   return (
-    <div className="space-y-10">
+    <div className="stg:space-y-10">
       <PersonalEnvironmentCard org={org} />
       <EnvironmentsCard org={org} />
     </div>
@@ -50,18 +50,18 @@ function PersonalEnvironmentCard({ org }: { org: string }) {
 
   return (
     <section aria-labelledby="personal-env-heading">
-      <div className="mb-3 flex items-baseline gap-2">
+      <div className="stg:mb-3 stg:flex stg:items-baseline stg:gap-2">
         <h2
           id="personal-env-heading"
-          className="text-foreground text-sm font-semibold"
+          className="stg:text-foreground stg:text-sm stg:font-semibold"
         >
           Personal Environment
         </h2>
-        <span className="bg-primary-subtle text-primary rounded-full px-2 py-0.5 text-[0.6rem] font-medium uppercase tracking-wider">
+        <span className="stg:bg-primary-subtle stg:text-primary stg:rounded-full stg:px-2 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wider">
           You
         </span>
       </div>
-      <p className="text-muted-foreground mb-4 text-xs">
+      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
         Your private secrets and configuration, automatically managed for you.
         Only visible to you — used when running agents that require your
         personal credentials.
@@ -70,13 +70,13 @@ function PersonalEnvironmentCard({ org }: { org: string }) {
       {isLoading || isMutating ? (
         <SkeletonRows count={3} />
       ) : error ? (
-        <p className="text-destructive text-xs" role="alert">
+        <p className="stg:text-destructive stg:text-xs" role="alert">
           {getUserMessage(error)}
         </p>
       ) : environmentId ? (
         <EnvironmentVariableEditor environmentId={environmentId} />
       ) : (
-        <p className="text-muted-foreground text-xs">
+        <p className="stg:text-muted-foreground stg:text-xs">
           Your personal environment will be created automatically when needed.
         </p>
       )}
@@ -99,10 +99,10 @@ function EnvironmentsCard({ org }: { org: string }) {
 
   return (
     <section aria-labelledby="org-env-heading">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
         <h2
           id="org-env-heading"
-          className="text-foreground text-sm font-semibold"
+          className="stg:text-foreground stg:text-sm stg:font-semibold"
         >
           Environments
         </h2>
@@ -111,19 +111,19 @@ function EnvironmentsCard({ org }: { org: string }) {
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="text-primary hover:text-foreground text-xs font-medium transition-colors"
+            className="stg:text-primary stg:hover:text-foreground stg:text-xs stg:font-medium stg:transition-colors"
           >
             + New environment
           </button>
         )}
       </div>
-      <p className="text-muted-foreground mb-4 text-xs">
+      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
         Named environments for your organization. Store credentials, API tokens,
         and configuration that agents need at runtime.
       </p>
 
       {showCreate && (
-        <div className="border-border bg-card mb-4 rounded-lg border p-4">
+        <div className="stg:border-border stg:bg-card stg:mb-4 stg:rounded-lg stg:border stg:p-4">
           <CreateEnvironmentForm
             org={org}
             onCreated={handleCreated}
@@ -139,7 +139,7 @@ function EnvironmentsCard({ org }: { org: string }) {
           onRefetchRef={handleRefetchRef}
         />
       ) : (
-        <p className="text-muted-foreground py-4 text-center text-xs">
+        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
           Select an organization to view environments.
         </p>
       )}
@@ -149,11 +149,11 @@ function EnvironmentsCard({ org }: { org: string }) {
 
 function SkeletonRows({ count }: { count: number }) {
   return (
-    <div className="space-y-2" aria-busy="true" aria-label="Loading">
+    <div className="stg:space-y-2" aria-busy="true" aria-label="Loading">
       {Array.from({ length: count }, (_, i) => (
         <div
           key={i}
-          className="bg-muted-subtle h-8 animate-pulse rounded"
+          className="stg:bg-muted-subtle stg:h-8 stg:animate-pulse stg:rounded"
           style={{ width: `${85 - i * 10}%` }}
         />
       ))}

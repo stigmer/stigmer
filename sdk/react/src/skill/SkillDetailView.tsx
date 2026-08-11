@@ -247,7 +247,7 @@ export function SkillDetailView({
     org: meta?.org,
     slug: meta?.slug,
     description: undefined,
-    icon: <SkillIcon className="size-6 text-muted-foreground" />,
+    icon: <SkillIcon className="stg:size-6 stg:text-muted-foreground" />,
     createdAt: specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null,
     updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
     status: status ? skillStateToPhase(status.state) : undefined,
@@ -324,11 +324,11 @@ function SkillOverview({
   readonly editable?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="stg:flex stg:flex-col stg:gap-6">
       {(editable || spec?.description) && (
         <Section title="Description">
           {editable ? (
-            <div className="max-h-20 overflow-y-auto p-3">
+            <div className="stg:max-h-20 stg:overflow-y-auto stg:p-3">
               <InlineEditTextarea
                 value={spec?.description || ""}
                 onSave={async () => false}
@@ -339,8 +339,8 @@ function SkillOverview({
               />
             </div>
           ) : (
-            <div className="p-3">
-              <pre className="whitespace-pre-wrap break-words text-sm text-foreground font-sans">
+            <div className="stg:p-3">
+              <pre className="stg:whitespace-pre-wrap stg:break-words stg:text-sm stg:text-foreground stg:font-sans">
                 {spec?.description}
               </pre>
             </div>
@@ -351,7 +351,7 @@ function SkillOverview({
       {(editable || spec?.tag) && (
         <Section title="Tag">
           {editable ? (
-            <div className="p-3">
+            <div className="stg:p-3">
               <InlineEditText
                 value={spec?.tag || ""}
                 onSave={async () => false}
@@ -361,8 +361,8 @@ function SkillOverview({
               />
             </div>
           ) : (
-            <div className="flex items-center gap-2 px-3 py-2.5">
-              <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-foreground">
+            <div className="stg:flex stg:items-center stg:gap-2 stg:px-3 stg:py-2.5">
+              <span className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-xs stg:font-medium stg:text-foreground">
                 {spec?.tag}
               </span>
             </div>
@@ -433,7 +433,7 @@ function SkillContentSection({ content }: { readonly content: string }) {
       }
     >
       {viewMode === "rendered" ? (
-        <div className="p-4">
+        <div className="stg:p-4">
           <Markdown
             remarkPlugins={REMARK_PLUGINS}
             components={MARKDOWN_COMPONENTS}
@@ -442,7 +442,7 @@ function SkillContentSection({ content }: { readonly content: string }) {
           </Markdown>
         </div>
       ) : (
-        <pre className="overflow-x-auto p-4 font-mono text-sm leading-relaxed text-foreground">
+        <pre className="stg:overflow-x-auto stg:p-4 stg:font-mono stg:text-sm stg:leading-relaxed stg:text-foreground">
           {content}
         </pre>
       )}
@@ -461,7 +461,7 @@ function ContentViewToggle({
     <div
       role="radiogroup"
       aria-label="Content view mode"
-      className="inline-flex rounded-md border border-input text-[11px]"
+      className="stg:inline-flex stg:rounded-md stg:border stg:border-input stg:text-[11px]"
     >
       <button
         type="button"
@@ -469,11 +469,11 @@ function ContentViewToggle({
         aria-checked={value === "rendered"}
         onClick={() => onChange("rendered")}
         className={cn(
-          "rounded-l-md px-2 py-0.5 font-medium transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "stg:rounded-l-md stg:px-2 stg:py-0.5 stg:font-medium stg:transition-colors",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           value === "rendered"
-            ? "bg-muted text-foreground"
-            : "text-muted-foreground hover:text-foreground",
+            ? "stg:bg-muted stg:text-foreground"
+            : "stg:text-muted-foreground stg:hover:text-foreground",
         )}
       >
         Preview
@@ -484,11 +484,11 @@ function ContentViewToggle({
         aria-checked={value === "source"}
         onClick={() => onChange("source")}
         className={cn(
-          "rounded-r-md border-l border-input px-2 py-0.5 font-medium transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "stg:rounded-r-md stg:border-l stg:border-input stg:px-2 stg:py-0.5 stg:font-medium stg:transition-colors",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           value === "source"
-            ? "bg-muted text-foreground"
-            : "text-muted-foreground hover:text-foreground",
+            ? "stg:bg-muted stg:text-foreground"
+            : "stg:text-muted-foreground stg:hover:text-foreground",
         )}
       >
         Source
@@ -512,14 +512,14 @@ function VersionSection({
 
   return (
     <Section title="Version">
-      <div className="flex flex-col gap-3 p-3">
+      <div className="stg:flex stg:flex-col stg:gap-3 stg:p-3">
         {truncatedHash && (
-          <div className="flex items-baseline gap-2">
-            <span className="text-xs font-medium text-muted-foreground">
+          <div className="stg:flex stg:items-baseline stg:gap-2">
+            <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">
               Hash
             </span>
             <code
-              className="font-mono text-xs text-foreground"
+              className="stg:font-mono stg:text-xs stg:text-foreground"
               title={versionHash}
             >
               {truncatedHash}
@@ -544,31 +544,31 @@ function GitProvenanceDisplay({
     : null;
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-baseline gap-2">
-        <span className="text-xs font-medium text-muted-foreground">Git</span>
-        <div className="flex flex-wrap items-baseline gap-x-1.5 text-xs text-foreground">
+    <div className="stg:flex stg:flex-col stg:gap-1.5">
+      <div className="stg:flex stg:items-baseline stg:gap-2">
+        <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">Git</span>
+        <div className="stg:flex stg:flex-wrap stg:items-baseline stg:gap-x-1.5 stg:text-xs stg:text-foreground">
           {repoUrl ? (
             <a
               href={repoUrl}
-              className="text-primary underline underline-offset-2 hover:text-primary-muted"
+              className="stg:text-primary stg:underline stg:underline-offset-2 stg:hover:text-primary-muted"
               target="_blank"
               rel="noopener noreferrer"
             >
               {formatRepoName(repoUrl)}
             </a>
           ) : (
-            <span className="font-mono">{provenance.remoteUrl}</span>
+            <span className="stg:font-mono">{provenance.remoteUrl}</span>
           )}
           {provenance.ref && (
             <>
-              <span className="text-muted-foreground">@</span>
+              <span className="stg:text-muted-foreground">@</span>
               <span>{provenance.ref}</span>
             </>
           )}
           {truncatedCommit && (
             <code
-              className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]"
+              className="stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:font-mono stg:text-[10px]"
               title={provenance.commit}
             >
               {truncatedCommit}
@@ -577,11 +577,11 @@ function GitProvenanceDisplay({
         </div>
       </div>
       {provenance.subdir && (
-        <div className="flex items-baseline gap-2">
-          <span className="text-xs font-medium text-muted-foreground">
+        <div className="stg:flex stg:items-baseline stg:gap-2">
+          <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">
             Path
           </span>
-          <code className="font-mono text-xs text-foreground">
+          <code className="stg:font-mono stg:text-xs stg:text-foreground">
             {provenance.subdir}
           </code>
         </div>
@@ -605,13 +605,13 @@ function SkillSection({
 }) {
   return (
     <section>
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="stg:mb-2 stg:flex stg:items-center stg:justify-between">
+        <h3 className="stg:text-xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
           {title}
         </h3>
         {trailing}
       </div>
-      <div className="overflow-hidden rounded-lg border border-border">
+      <div className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border">
         {children}
       </div>
     </section>
@@ -625,29 +625,29 @@ function SkillSection({
 function LoadingSkeleton({ className }: { readonly className?: string }) {
   return (
     <div
-      className={cn("flex flex-col gap-6", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-6", className)}
       aria-busy="true"
       aria-label="Loading skill details"
     >
-      <div className="flex items-start gap-3">
-        <div className="mt-1 size-6 shrink-0 animate-pulse rounded bg-muted" />
-        <div className="flex-1 space-y-2">
-          <div className="h-5 w-48 animate-pulse rounded bg-muted" />
-          <div className="h-3 w-64 animate-pulse rounded bg-muted" />
-          <div className="h-4 w-full max-w-md animate-pulse rounded bg-muted" />
+      <div className="stg:flex stg:items-start stg:gap-3">
+        <div className="stg:mt-1 stg:size-6 stg:shrink-0 stg:animate-pulse stg:rounded stg:bg-muted" />
+        <div className="stg:flex-1 stg:space-y-2">
+          <div className="stg:h-5 stg:w-48 stg:animate-pulse stg:rounded stg:bg-muted" />
+          <div className="stg:h-3 stg:w-64 stg:animate-pulse stg:rounded stg:bg-muted" />
+          <div className="stg:h-4 stg:w-full stg:max-w-md stg:animate-pulse stg:rounded stg:bg-muted" />
         </div>
       </div>
-      <div className="space-y-2">
-        <div className="h-3 w-28 animate-pulse rounded bg-muted" />
+      <div className="stg:space-y-2">
+        <div className="stg:h-3 stg:w-28 stg:animate-pulse stg:rounded stg:bg-muted" />
         <div
-          className="animate-pulse rounded-lg border border-border bg-muted-faint"
+          className="stg:animate-pulse stg:rounded-lg stg:border stg:border-border stg:bg-muted-faint"
           style={{ height: "240px" }}
         />
       </div>
-      <div className="space-y-2">
-        <div className="h-3 w-20 animate-pulse rounded bg-muted" />
+      <div className="stg:space-y-2">
+        <div className="stg:h-3 stg:w-20 stg:animate-pulse stg:rounded stg:bg-muted" />
         <div
-          className="animate-pulse rounded-lg border border-border bg-muted-faint"
+          className="stg:animate-pulse stg:rounded-lg stg:border stg:border-border stg:bg-muted-faint"
           style={{ height: "64px" }}
         />
       </div>
@@ -660,15 +660,15 @@ function NotFoundState({ className }: { readonly className?: string }) {
     <div
       role="status"
       className={cn(
-        "flex flex-col items-center gap-2 py-12 text-center",
+        "stg:flex stg:flex-col stg:items-center stg:gap-2 stg:py-12 stg:text-center",
         className,
       )}
     >
-      <SkillIcon className="size-10 text-muted-foreground-faint" />
-      <p className="text-sm font-medium text-muted-foreground">
+      <SkillIcon className="stg:size-10 stg:text-muted-foreground-faint" />
+      <p className="stg:text-sm stg:font-medium stg:text-muted-foreground">
         Skill not found
       </p>
-      <p className="text-xs text-muted-foreground-subtle">
+      <p className="stg:text-xs stg:text-muted-foreground-subtle">
         This skill doesn&apos;t exist or you don&apos;t have access to it.
       </p>
     </div>

@@ -110,7 +110,7 @@ describe("WorkspaceFileSearch", () => {
     );
     typeQuery("button");
     await screen.findByRole("option");
-    const highlight = container.querySelector(".font-semibold");
+    const highlight = container.querySelector(".stg\\:font-semibold");
     expect(highlight?.textContent).toBe("button");
   });
 
@@ -140,7 +140,7 @@ describe("WorkspaceFileSearch", () => {
     typeQuery("zzzzz");
     // Assert the visible message, not the parallel sr-only live-region copy.
     expect(
-      await screen.findByText(/no files matching/i, { ignore: ".sr-only" }),
+      await screen.findByText(/no files matching/i, { ignore: ".stg\\:sr-only" }),
     ).toBeTruthy();
   });
 
@@ -201,7 +201,7 @@ describe("WorkspaceFileSearch", () => {
     expect(status.textContent).toMatch(/matching file/i);
 
     typeQuery("zzzzz");
-    await screen.findByText(/no files matching/i, { ignore: ".sr-only" });
+    await screen.findByText(/no files matching/i, { ignore: ".stg\\:sr-only" });
     expect(status.textContent).toMatch(/no files matching/i);
   });
 

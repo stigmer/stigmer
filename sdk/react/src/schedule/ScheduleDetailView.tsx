@@ -441,7 +441,7 @@ export function ScheduleDetailView({
     id: scheduleId,
     org: meta?.org,
     slug: meta?.slug,
-    icon: <ScheduleIcon className="size-6 text-muted-foreground" />,
+    icon: <ScheduleIcon className="stg:size-6 stg:text-muted-foreground" />,
     createdAt: specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null,
     updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
     status: stateInfo.phase,
@@ -457,9 +457,9 @@ export function ScheduleDetailView({
         actionBusy={isToggling}
       >
         This schedule is staged disabled (
-        <code className="font-mono">spec.enabled</code> is off) — it will not
+        <code className="stg:font-mono">spec.enabled</code> is off) — it will not
         fire on its cron cadence. Use{" "}
-        <span className="font-medium text-foreground">Enable &amp; run now</span>{" "}
+        <span className="stg:font-medium stg:text-foreground">Enable &amp; run now</span>{" "}
         to enable it and start one test run, or Enable it here to hand it to
         the cadence.
         {stateInfo.isPaused && (
@@ -483,9 +483,9 @@ export function ScheduleDetailView({
     ) : undefined;
 
   const overviewContent = (
-    <div className="flex flex-col gap-6">
+    <div className="stg:flex stg:flex-col stg:gap-6">
       <Section title="Definition">
-        <dl className="divide-y divide-border">
+        <dl className="stg:divide-y stg:divide-border">
           <DetailRow label="Cadence">
             {editable ? (
               <CadenceInlineEditor
@@ -527,7 +527,7 @@ export function ScheduleDetailView({
                 }
               />
             ) : (
-              <span className="text-sm text-muted-foreground">—</span>
+              <span className="stg:text-sm stg:text-muted-foreground">—</span>
             )}
           </DetailRow>
           <DetailRow label="Message">
@@ -549,7 +549,7 @@ export function ScheduleDetailView({
                 validate={validateMessage}
               />
             ) : (
-              <p className="whitespace-pre-wrap break-words text-sm text-foreground">
+              <p className="stg:whitespace-pre-wrap stg:break-words stg:text-sm stg:text-foreground">
                 {target?.message || "—"}
               </p>
             )}
@@ -639,16 +639,16 @@ export function ScheduleDetailView({
       </Section>
 
       <Section title="Status">
-        <dl className="divide-y divide-border">
+        <dl className="stg:divide-y stg:divide-border">
           <DetailRow label="Next fire">
-            <span className="text-sm text-foreground">
+            <span className="stg:text-sm stg:text-foreground">
               {stateInfo.state === "active" && status?.nextFireAt
                 ? formatNextFire(timestampDate(status.nextFireAt), renderNow)
                 : "—"}
             </span>
           </DetailRow>
           <DetailRow label="Last fired">
-            <span className="text-sm text-foreground">
+            <span className="stg:text-sm stg:text-foreground">
               {status?.lastFireAt
                 ? formatRelativeTime(
                     timestampDate(status.lastFireAt),
@@ -669,7 +669,7 @@ export function ScheduleDetailView({
                 }
               />
             ) : (
-              <span className="text-sm text-muted-foreground">—</span>
+              <span className="stg:text-sm stg:text-muted-foreground">—</span>
             )}
           </DetailRow>
           <DetailRow label="Failure streak">
@@ -686,8 +686,8 @@ export function ScheduleDetailView({
               type="button"
               onClick={() => effectiveOnTabChange(RUNS_TAB_ID)}
               className={cn(
-                "text-xs font-medium text-primary underline-offset-2 hover:underline",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm",
+                "stg:text-xs stg:font-medium stg:text-primary stg:underline-offset-2 stg:hover:underline",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
               )}
             >
               View all {totalRunCount} runs
@@ -780,22 +780,22 @@ function StateBanner({
   return (
     <div
       role="status"
-      className="flex items-start gap-2.5 rounded-lg border border-warning/30 bg-warning/5 px-4 py-3"
+      className="stg:flex stg:items-start stg:gap-2.5 stg:rounded-lg stg:border stg:border-warning/30 stg:bg-warning/5 stg:px-4 stg:py-3"
     >
-      <WarningIcon className="mt-0.5 size-4 shrink-0 text-warning" />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-foreground">{title}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">{children}</p>
+      <WarningIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0 stg:text-warning" />
+      <div className="stg:min-w-0 stg:flex-1">
+        <p className="stg:text-sm stg:font-medium stg:text-foreground">{title}</p>
+        <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">{children}</p>
       </div>
       <button
         type="button"
         onClick={onAction}
         disabled={actionBusy}
         className={cn(
-          "shrink-0 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium text-foreground",
-          "hover:bg-accent hover:text-accent-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          "disabled:pointer-events-none disabled:opacity-50",
+          "stg:shrink-0 stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-foreground",
+          "stg:hover:bg-accent stg:hover:text-accent-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         )}
       >
         {actionLabel}
@@ -826,25 +826,25 @@ function CadenceSummary({
   readonly cron: string;
   readonly timeZone: string;
 }) {
-  if (!cron) return <span className="text-sm text-muted-foreground">—</span>;
+  if (!cron) return <span className="stg:text-sm stg:text-muted-foreground">—</span>;
 
   const preset = cronToCadence(cron);
   if (preset.kind === "custom") {
     return (
-      <div className="flex flex-col gap-0.5">
-        <code className="font-mono text-sm text-foreground">{cron}</code>
+      <div className="stg:flex stg:flex-col stg:gap-0.5">
+        <code className="stg:font-mono stg:text-sm stg:text-foreground">{cron}</code>
         {timeZone && (
-          <span className="text-xs text-muted-foreground">{timeZone}</span>
+          <span className="stg:text-xs stg:text-muted-foreground">{timeZone}</span>
         )}
       </div>
     );
   }
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-sm text-foreground">
+    <div className="stg:flex stg:flex-col stg:gap-0.5">
+      <span className="stg:text-sm stg:text-foreground">
         {describeCadence(preset, timeZone || undefined)}
       </span>
-      <code className="font-mono text-xs text-muted-foreground">{cron}</code>
+      <code className="stg:font-mono stg:text-xs stg:text-muted-foreground">{cron}</code>
     </div>
   );
 }
@@ -903,14 +903,14 @@ function CadenceInlineEditor({
   const canSave = draftCron !== "" && validateCron(draftCron) === null;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="stg:flex stg:flex-col stg:gap-2">
       <CadenceField
         value={draftCadence}
         onChange={setDraftCadence}
         timeZone={draftZone}
         disabled={isSaving}
       />
-      <div className="space-y-1">
+      <div className="stg:space-y-1">
         <span className={editorLabelClasses}>Time zone</span>
         <TimeZoneField
           value={draftZone}
@@ -963,7 +963,7 @@ function EnvironmentsInlineEditor({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="stg:flex stg:flex-col stg:gap-2">
       <EnvironmentPicker
         org={org}
         value={draft}
@@ -974,7 +974,7 @@ function EnvironmentsInlineEditor({
         // anything else could only produce refused runs.
         filterEnvironment={isOrgSharedEnvironment}
       />
-      <p className="text-[0.65rem] text-muted-foreground">
+      <p className="stg:text-[0.65rem] stg:text-muted-foreground">
         Bind org-shared credentials so the agent&rsquo;s tools work on an
         unattended fire. Without this, an agent whose tools need credentials
         will be refused every run.
@@ -1045,8 +1045,8 @@ function EngineModelInlineEditor({
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
+    <div className="stg:flex stg:flex-col stg:gap-2">
+      <div className="stg:flex stg:items-center stg:gap-2">
         <ModelSelector
           value={modelName}
           onValueChange={setModelName}
@@ -1065,13 +1065,13 @@ function EngineModelInlineEditor({
               setServiceTier("standard");
             }}
             disabled={isSaving}
-            className="rounded-md px-2 py-1 text-[0.65rem] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+            className="stg:rounded-md stg:px-2 stg:py-1 stg:text-[0.65rem] stg:text-muted-foreground stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-50"
           >
             Reset to platform default
           </button>
         )}
       </div>
-      <p className="text-[0.65rem] text-muted-foreground">
+      <p className="stg:text-[0.65rem] stg:text-muted-foreground">
         Runs use the platform&rsquo;s default engine and model unless you pick
         one here. Picking a model pins the engine it belongs to.
       </p>
@@ -1125,7 +1125,7 @@ function BudgetInlineEditor({
   const parsedBudget = Number.isFinite(cost) && cost > 0 ? cost : undefined;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="stg:flex stg:flex-col stg:gap-2">
       <input
         type="number"
         min="0"
@@ -1135,9 +1135,9 @@ function BudgetInlineEditor({
         onChange={(e) => setBudgetUsd(e.target.value)}
         placeholder="platform default"
         disabled={isSaving}
-        className={cn(editorInputClasses, "sm:max-w-48")}
+        className={cn(editorInputClasses, "stg:sm:max-w-48")}
       />
-      <p className="text-[0.65rem] text-muted-foreground">
+      <p className="stg:text-[0.65rem] stg:text-muted-foreground">
         Each run stops when it reaches this spend. You can lower the
         platform&rsquo;s per-run cap, never raise it past the
         platform&rsquo;s ceiling. Blank inherits the platform default.
@@ -1230,13 +1230,13 @@ function validateMessage(value: string): string | null {
 // Inline-edit chrome shared by the bespoke editors above
 // ---------------------------------------------------------------------------
 
-const editorLabelClasses = "block text-xs font-medium text-foreground";
+const editorLabelClasses = "stg:block stg:text-xs stg:font-medium stg:text-foreground";
 
 const editorInputClasses = cn(
-  "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-  "placeholder:text-muted-foreground",
-  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-  "disabled:pointer-events-none disabled:opacity-50",
+  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+  "stg:placeholder:text-muted-foreground",
+  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
 );
 
 /** Read-mode click target with the family's hover pencil. */
@@ -1250,20 +1250,20 @@ function InlineReadButton({
   readonly children: React.ReactNode;
 }) {
   return (
-    <div className="group/inline-edit">
+    <div className="stg:group/inline-edit">
       <button
         type="button"
         onClick={onEdit}
         aria-label={ariaLabel}
         className={cn(
-          "-mx-2 w-full rounded-md px-2 py-1.5 text-left transition-colors",
-          "hover:bg-accent-hover cursor-pointer",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          "stg:-mx-2 stg:w-full stg:rounded-md stg:px-2 stg:py-1.5 stg:text-left stg:transition-colors",
+          "stg:hover:bg-accent-hover stg:cursor-pointer",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
         )}
       >
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">{children}</div>
-          <PencilIcon className="mt-0.5 size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/inline-edit:opacity-100" />
+        <div className="stg:flex stg:items-start stg:justify-between stg:gap-2">
+          <div className="stg:min-w-0 stg:flex-1">{children}</div>
+          <PencilIcon className="stg:mt-0.5 stg:size-3 stg:shrink-0 stg:text-muted-foreground stg:opacity-0 stg:transition-opacity stg:group-hover/inline-edit:opacity-100" />
         </div>
       </button>
     </div>
@@ -1285,17 +1285,17 @@ function InlineEditActions({
   readonly error?: string;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-end gap-1.5">
+    <div className="stg:flex stg:flex-col stg:gap-1.5">
+      <div className="stg:flex stg:items-center stg:justify-end stg:gap-1.5">
         <button
           type="button"
           onClick={onCancel}
           disabled={isSaving}
           className={cn(
-            "rounded-md px-2.5 py-1 text-xs font-medium",
-            "border border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground",
-            "disabled:opacity-50",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+            "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent stg:hover:text-accent-foreground",
+            "stg:disabled:opacity-50",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           Cancel
@@ -1305,10 +1305,10 @@ function InlineEditActions({
           onClick={onSave}
           disabled={!canSave || isSaving}
           className={cn(
-            "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-50",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           {isSaving && <SpinnerIcon />}
@@ -1316,7 +1316,7 @@ function InlineEditActions({
         </button>
       </div>
       {error && (
-        <p className="text-xs text-destructive" role="alert">
+        <p className="stg:text-xs stg:text-destructive" role="alert">
           {error}
         </p>
       )}
@@ -1336,11 +1336,11 @@ function DetailRow({
   readonly children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-4 px-4 py-2.5">
-      <dt className="w-40 shrink-0 pt-0.5 text-xs font-medium text-muted-foreground">
+    <div className="stg:flex stg:items-start stg:gap-4 stg:px-4 stg:py-2.5">
+      <dt className="stg:w-40 stg:shrink-0 stg:pt-0.5 stg:text-xs stg:font-medium stg:text-muted-foreground">
         {label}
       </dt>
-      <dd className="min-w-0 flex-1">{children}</dd>
+      <dd className="stg:min-w-0 stg:flex-1">{children}</dd>
     </div>
   );
 }
@@ -1352,14 +1352,14 @@ function EnvironmentRefList({
   readonly refs: readonly { org: string; slug: string }[];
 }) {
   if (refs.length === 0) {
-    return <span className="text-sm text-muted-foreground">—</span>;
+    return <span className="stg:text-sm stg:text-muted-foreground">—</span>;
   }
   return (
-    <ul className="flex flex-col gap-0.5">
+    <ul className="stg:flex stg:flex-col stg:gap-0.5">
       {refs.map((ref, i) => (
         <li
           key={`${ref.org}/${ref.slug}-${i}`}
-          className="font-mono text-xs text-foreground"
+          className="stg:font-mono stg:text-xs stg:text-foreground"
         >
           {ref.org ? `${ref.org}/${ref.slug}` : ref.slug}
         </li>
@@ -1384,14 +1384,14 @@ function EnvironmentRefList({
  */
 function FailureStreak({ count }: { readonly count: number }) {
   if (count === 0) {
-    return <span className="text-sm text-foreground">0</span>;
+    return <span className="stg:text-sm stg:text-foreground">0</span>;
   }
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-sm font-medium text-warning">
+    <div className="stg:flex stg:flex-col stg:gap-0.5">
+      <span className="stg:text-sm stg:font-medium stg:text-warning">
         {count} consecutive failed {count === 1 ? "run" : "runs"}
       </span>
-      <p className="text-xs text-muted-foreground">
+      <p className="stg:text-xs stg:text-muted-foreground">
         Failed scheduled runs raise this streak; too many in a row and the
         platform pauses the schedule automatically. One successful run
         resets it to 0. Manual runs never count.
@@ -1415,7 +1415,7 @@ function EngineModelSummary({
 
   if (harness === Harness.UNSPECIFIED && modelName === "") {
     return (
-      <span className="text-sm text-muted-foreground">Platform default</span>
+      <span className="stg:text-sm stg:text-muted-foreground">Platform default</span>
     );
   }
 
@@ -1427,7 +1427,7 @@ function EngineModelSummary({
   if (invocation?.runConfig?.serviceTier === ServiceTier.FAST) {
     parts.push("Fast tier");
   }
-  return <span className="text-sm text-foreground">{parts.join(" · ")}</span>;
+  return <span className="stg:text-sm stg:text-foreground">{parts.join(" · ")}</span>;
 }
 
 /** The per-run cost cap, plus the API-only tool-round bound when set. */
@@ -1440,18 +1440,18 @@ function BudgetSummary({
   const maxToolRounds = config?.maxToolRounds ?? 0;
 
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="stg:flex stg:flex-col stg:gap-0.5">
       {maxCostUsd > 0 ? (
-        <span className="text-sm text-foreground">
+        <span className="stg:text-sm stg:text-foreground">
           ≤ ${maxCostUsd.toFixed(2)} per run
         </span>
       ) : (
-        <span className="text-sm text-muted-foreground">Platform default</span>
+        <span className="stg:text-sm stg:text-muted-foreground">Platform default</span>
       )}
       {/* Reachable through the API only (DD-018 D-5) — rendered when
           set so nothing the spec stores is hidden. */}
       {maxToolRounds > 0 && (
-        <span className="text-xs text-muted-foreground">
+        <span className="stg:text-xs stg:text-muted-foreground">
           ≤ {maxToolRounds} tool rounds
         </span>
       )}
@@ -1466,20 +1466,20 @@ function WorkspaceSummary({
   readonly entries: readonly WorkspaceEntry[];
 }) {
   if (entries.length === 0) {
-    return <span className="text-sm text-muted-foreground">—</span>;
+    return <span className="stg:text-sm stg:text-muted-foreground">—</span>;
   }
   return (
-    <ul className="flex flex-col gap-0.5">
+    <ul className="stg:flex stg:flex-col stg:gap-0.5">
       {entries.map((entry, i) => {
         const git =
           entry.source?.source?.case === "gitRepo"
             ? entry.source.source.value
             : undefined;
         return (
-          <li key={`${entry.name}-${i}`} className="text-xs text-foreground">
-            <span className="font-medium">{entry.name}</span>
+          <li key={`${entry.name}-${i}`} className="stg:text-xs stg:text-foreground">
+            <span className="stg:font-medium">{entry.name}</span>
             {git?.url && (
-              <span className="ml-1.5 font-mono text-muted-foreground">
+              <span className="stg:ml-1.5 stg:font-mono stg:text-muted-foreground">
                 {git.url}
                 {git.branch ? `@${git.branch}` : ""}
               </span>
@@ -1500,9 +1500,9 @@ function ReferenceLink({
   readonly onNavigate?: () => void;
   readonly mono?: boolean;
 }) {
-  const textClass = cn("text-sm", mono && "font-mono text-xs");
+  const textClass = cn("stg:text-sm", mono && "stg:font-mono stg:text-xs");
   if (!onNavigate) {
-    return <span className={cn(textClass, "text-foreground")}>{label}</span>;
+    return <span className={cn(textClass, "stg:text-foreground")}>{label}</span>;
   }
   return (
     <button
@@ -1510,8 +1510,8 @@ function ReferenceLink({
       onClick={onNavigate}
       className={cn(
         textClass,
-        "text-primary underline-offset-2 hover:underline",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm",
+        "stg:text-primary stg:underline-offset-2 stg:hover:underline",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
       )}
     >
       {label}
@@ -1526,28 +1526,28 @@ function ReferenceLink({
 function LoadingSkeleton({ className }: { readonly className?: string }) {
   return (
     <div
-      className={cn("flex flex-col gap-6", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-6", className)}
       aria-busy="true"
       aria-label="Loading schedule details"
     >
-      <div className="flex items-start gap-3">
-        <div className="mt-1 size-6 shrink-0 animate-pulse rounded bg-muted" />
-        <div className="flex-1 space-y-2">
-          <div className="h-5 w-48 animate-pulse rounded bg-muted" />
-          <div className="h-3 w-64 animate-pulse rounded bg-muted" />
+      <div className="stg:flex stg:items-start stg:gap-3">
+        <div className="stg:mt-1 stg:size-6 stg:shrink-0 stg:animate-pulse stg:rounded stg:bg-muted" />
+        <div className="stg:flex-1 stg:space-y-2">
+          <div className="stg:h-5 stg:w-48 stg:animate-pulse stg:rounded stg:bg-muted" />
+          <div className="stg:h-3 stg:w-64 stg:animate-pulse stg:rounded stg:bg-muted" />
         </div>
       </div>
-      <div className="space-y-2">
-        <div className="h-3 w-28 animate-pulse rounded bg-muted" />
+      <div className="stg:space-y-2">
+        <div className="stg:h-3 stg:w-28 stg:animate-pulse stg:rounded stg:bg-muted" />
         <div
-          className="animate-pulse rounded-lg border border-border bg-muted-faint"
+          className="stg:animate-pulse stg:rounded-lg stg:border stg:border-border stg:bg-muted-faint"
           style={{ height: "160px" }}
         />
       </div>
-      <div className="space-y-2">
-        <div className="h-3 w-20 animate-pulse rounded bg-muted" />
+      <div className="stg:space-y-2">
+        <div className="stg:h-3 stg:w-20 stg:animate-pulse stg:rounded stg:bg-muted" />
         <div
-          className="animate-pulse rounded-lg border border-border bg-muted-faint"
+          className="stg:animate-pulse stg:rounded-lg stg:border stg:border-border stg:bg-muted-faint"
           style={{ height: "160px" }}
         />
       </div>
@@ -1559,13 +1559,13 @@ function NotFoundState({ className }: { readonly className?: string }) {
   return (
     <div
       role="status"
-      className={cn("flex flex-col items-center gap-2 py-12 text-center", className)}
+      className={cn("stg:flex stg:flex-col stg:items-center stg:gap-2 stg:py-12 stg:text-center", className)}
     >
-      <ScheduleIcon className="size-10 text-muted-foreground-faint" />
-      <p className="text-sm font-medium text-muted-foreground">
+      <ScheduleIcon className="stg:size-10 stg:text-muted-foreground-faint" />
+      <p className="stg:text-sm stg:font-medium stg:text-muted-foreground">
         Schedule not found
       </p>
-      <p className="text-xs text-muted-foreground-subtle">
+      <p className="stg:text-xs stg:text-muted-foreground-subtle">
         This schedule doesn&apos;t exist or you don&apos;t have access to it.
       </p>
     </div>
@@ -1642,7 +1642,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

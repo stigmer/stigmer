@@ -134,14 +134,14 @@ export function AgentShareList({
 
   if (error) {
     return (
-      <div className="py-8 text-center text-sm text-destructive">
+      <div className="stg:py-8 stg:text-center stg:text-sm stg:text-destructive">
         Failed to load shares
       </div>
     );
   }
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("stg:space-y-3", className)}>
       {shares.length === 0 ? (
         <ShareEmptyState
           canCreate={canCreate}
@@ -149,8 +149,8 @@ export function AgentShareList({
         />
       ) : (
         <>
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-foreground">
+          <div className="stg:flex stg:items-center stg:justify-between">
+            <h3 className="stg:text-sm stg:font-medium stg:text-foreground">
               {shares.length} {shares.length === 1 ? "share" : "shares"}
             </h3>
             {canCreate && (
@@ -165,21 +165,21 @@ export function AgentShareList({
             )}
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-border">
+          <div className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border">
             {/* table-fixed keeps the layout deterministic: Name/Link flex and
                 truncate, the rest take fixed widths, so a long name or link
                 can never push the Actions kebab off the panel's edge. */}
-            <table className="w-full table-fixed text-sm">
+            <table className="stg:w-full stg:table-fixed stg:text-sm">
               <thead>
-                <tr className="border-b border-border bg-muted-subtle">
-                  <th className="px-4 py-2 text-left font-medium text-muted-foreground">Name</th>
-                  <th className="px-4 py-2 text-left font-medium text-muted-foreground">Link</th>
-                  <th className="w-28 px-4 py-2 text-left font-medium text-muted-foreground">Audience</th>
-                  <th className="w-24 px-4 py-2 text-left font-medium text-muted-foreground">Status</th>
-                  <th className="w-16 px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>
+                <tr className="stg:border-b stg:border-border stg:bg-muted-subtle">
+                  <th className="stg:px-4 stg:py-2 stg:text-left stg:font-medium stg:text-muted-foreground">Name</th>
+                  <th className="stg:px-4 stg:py-2 stg:text-left stg:font-medium stg:text-muted-foreground">Link</th>
+                  <th className="stg:w-28 stg:px-4 stg:py-2 stg:text-left stg:font-medium stg:text-muted-foreground">Audience</th>
+                  <th className="stg:w-24 stg:px-4 stg:py-2 stg:text-left stg:font-medium stg:text-muted-foreground">Status</th>
+                  <th className="stg:w-16 stg:px-4 stg:py-2 stg:text-right stg:font-medium stg:text-muted-foreground">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="stg:divide-y stg:divide-border">
                 {shares.map((share) => (
                   <ShareRow
                     key={share.metadata?.id}
@@ -306,13 +306,13 @@ function ShareRow({
 
   return (
     <tr
-      className="cursor-pointer transition-colors hover:bg-accent-hover"
+      className="stg:cursor-pointer stg:transition-colors stg:hover:bg-accent-hover"
       onClick={() => onEditClick(share)}
     >
-      <td className="px-4 py-2.5">
-        <div className="flex min-w-0 items-center gap-2">
+      <td className="stg:px-4 stg:py-2.5">
+        <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2">
           <span
-            className="truncate font-medium text-foreground"
+            className="stg:truncate stg:font-medium stg:text-foreground"
             title={meta?.name || slug || undefined}
           >
             {meta?.name || slug || "\u2014"}
@@ -320,9 +320,9 @@ function ShareRow({
           {isCrossOrg && (
             <span
               className={cn(
-                "inline-flex shrink-0 items-center rounded-md px-1.5 py-0.5",
-                "text-[0.6rem] font-medium uppercase tracking-wide",
-                "bg-muted text-muted-foreground border border-border",
+                "stg:inline-flex stg:shrink-0 stg:items-center stg:rounded-md stg:px-1.5 stg:py-0.5",
+                "stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wide",
+                "stg:bg-muted stg:text-muted-foreground stg:border stg:border-border",
               )}
               title={`This share lives in ${org}; the agent lives in ${agent.metadata?.org}`}
             >
@@ -332,10 +332,10 @@ function ShareRow({
         </div>
       </td>
 
-      <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
-        <div className="flex min-w-0 items-center gap-1.5">
+      <td className="stg:px-4 stg:py-2.5" onClick={(e) => e.stopPropagation()}>
+        <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-1.5">
           <code
-            className="truncate font-mono text-xs text-muted-foreground"
+            className="stg:truncate stg:font-mono stg:text-xs stg:text-muted-foreground"
             title={displayPath}
           >
             {displayPath}
@@ -345,9 +345,9 @@ function ShareRow({
             onClick={handleCopyLink}
             aria-label={`Copy link for ${meta?.name || slug}`}
             className={cn(
-              "shrink-0 rounded p-1 text-muted-foreground",
-              "hover:bg-accent-hover hover:text-foreground",
-              "focus:outline-none focus:ring-1 focus:ring-ring",
+              "stg:shrink-0 stg:rounded stg:p-1 stg:text-muted-foreground",
+              "stg:hover:bg-accent-hover stg:hover:text-foreground",
+              "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
             )}
           >
             <CopyIcon />
@@ -355,24 +355,24 @@ function ShareRow({
         </div>
       </td>
 
-      <td className="px-4 py-2.5">
-        <span className="text-xs text-muted-foreground">
+      <td className="stg:px-4 stg:py-2.5">
+        <span className="stg:text-xs stg:text-muted-foreground">
           {audience === "org" ? "Org members" : "Public"}
         </span>
       </td>
 
-      <td className="px-4 py-2.5">
+      <td className="stg:px-4 stg:py-2.5">
         <span
           className={cn(
-            "inline-flex items-center gap-1.5 text-xs",
-            enabled ? "text-foreground" : "text-muted-foreground",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs",
+            enabled ? "stg:text-foreground" : "stg:text-muted-foreground",
           )}
         >
           <span
             aria-hidden="true"
             className={cn(
-              "size-1.5 rounded-full",
-              enabled ? "bg-success" : "bg-muted-foreground",
+              "stg:size-1.5 stg:rounded-full",
+              enabled ? "stg:bg-success" : "stg:bg-muted-foreground",
             )}
           />
           {enabled ? "Active" : "Paused"}
@@ -382,14 +382,14 @@ function ShareRow({
       {/* stopPropagation so opening the kebab never triggers the row's
           click-to-edit. The menu content itself is portaled, so its items
           never bubble to the row regardless. */}
-      <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
+      <td className="stg:px-4 stg:py-2.5 stg:text-right" onClick={(e) => e.stopPropagation()}>
         {(canEdit || canDelete) && (
           <ActionMenu>
             <ActionMenu.Trigger
-              className="ml-auto"
+              className="stg:ml-auto"
               aria-label={`Actions for ${meta?.name || slug}`}
             >
-              <MoreHorizontal className="size-4" />
+              <MoreHorizontal className="stg:size-4" />
             </ActionMenu.Trigger>
             <ActionMenu.Content>
               {canEdit && (
@@ -455,7 +455,7 @@ function ShareEmptyState({
   return (
     <EmptyState
       variant="first-use"
-      icon={<ShareIcon className="size-10" />}
+      icon={<ShareIcon className="stg:size-10" />}
       title="No shares yet"
       description={
         "A share gives this agent a hosted chat link you can send or embed — " +
@@ -477,9 +477,9 @@ function ShareEmptyState({
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-2 py-4">
+    <div className="stg:space-y-2 stg:py-4">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="h-12 animate-pulse rounded-md bg-muted-faint" />
+        <div key={i} className="stg:h-12 stg:animate-pulse stg:rounded-md stg:bg-muted-faint" />
       ))}
     </div>
   );

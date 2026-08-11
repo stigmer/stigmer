@@ -159,54 +159,54 @@ export const TaskPickerPopover = memo(function TaskPickerPopover({
         >
           <Popover.Popup
             className={cn(
-              "stgm z-popover w-56 overflow-hidden rounded-lg border border-border bg-popover shadow-md text-popover-foreground",
+              "stgm stg:z-popover stg:w-56 stg:overflow-hidden stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:shadow-md stg:text-popover-foreground",
               className,
             )}
           >
             <div
-              className="flex flex-col"
+              className="stg:flex stg:flex-col"
               role="dialog"
               aria-label="Select task type"
               onKeyDown={handleKeyDown}
             >
               {insertionContext && (
-                <div className="border-b border-border px-3 py-2">
-                  <div className="text-[11px] font-medium text-[var(--stgm-muted-foreground,#737373)]">
+                <div className="stg:border-b stg:border-border stg:px-3 stg:py-2">
+                  <div className="stg:text-[11px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)]">
                     {pickerData.header}
                   </div>
                 </div>
               )}
 
-              <div className="border-b border-border p-2">
+              <div className="stg:border-b stg:border-border stg:p-2">
                 <input
                   ref={searchRef}
                   type="search"
                   placeholder="Search tasks…"
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  className="w-full rounded border border-border bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] px-2 py-1.5 text-xs text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#737373)] outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+                  className="stg:w-full stg:rounded stg:border stg:border-border stg:bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] stg:px-2 stg:py-1.5 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)] stg:placeholder:text-[var(--stgm-muted-foreground,#737373)] stg:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
                   aria-label="Search task types"
                 />
               </div>
 
               <div
-                className="max-h-64 overflow-y-auto p-1.5"
+                className="stg:max-h-64 stg:overflow-y-auto stg:p-1.5"
                 role="listbox"
                 aria-label="Task types"
               >
                 {isLoading && (
-                  <div className="space-y-2 p-2">
+                  <div className="stg:space-y-2 stg:p-2">
                     {Array.from({ length: 3 }).map((_, i) => (
                       <div
                         key={i}
-                        className="h-8 animate-pulse rounded bg-[var(--stgm-muted,#f5f5f5)]"
+                        className="stg:h-8 stg:animate-pulse stg:rounded stg:bg-[var(--stgm-muted,#f5f5f5)]"
                       />
                     ))}
                   </div>
                 )}
 
                 {!isLoading && pickerData.sections.length === 0 && (
-                  <div className="py-4 text-center text-xs text-[var(--stgm-muted-foreground,#737373)]">
+                  <div className="stg:py-4 stg:text-center stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">
                     {searchQuery ? "No matching tasks" : "No task types available"}
                   </div>
                 )}
@@ -252,16 +252,16 @@ function PickerCategory({
     : (CATEGORY_DISPLAY_NAMES[category] ?? section.label);
 
   return (
-    <div className="mb-1 last:mb-0">
-      <div className="flex items-center gap-1.5 px-1.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--stgm-muted-foreground,#737373)]">
+    <div className="stg:mb-1 stg:last:mb-0">
+      <div className="stg:flex stg:items-center stg:gap-1.5 stg:px-1.5 stg:py-1 stg:text-[10px] stg:font-semibold stg:uppercase stg:tracking-wider stg:text-[var(--stgm-muted-foreground,#737373)]">
         {categoryColor ? (
           <span
-            className="inline-block h-1.5 w-1.5 rounded-full"
+            className="stg:inline-block stg:h-1.5 stg:w-1.5 stg:rounded-full"
             style={{ backgroundColor: categoryColor }}
             aria-hidden="true"
           />
         ) : (
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--stgm-muted-foreground,#737373)]" aria-hidden="true" />
+          <span className="stg:inline-block stg:h-1.5 stg:w-1.5 stg:rounded-full stg:bg-[var(--stgm-muted-foreground,#737373)]" aria-hidden="true" />
         )}
         {label}
       </div>
@@ -311,25 +311,25 @@ function PickerItem({
       title={item.disabled ? item.disabledReason : undefined}
       onClick={item.disabled ? undefined : () => onSelect(item.descriptor.kind)}
       className={cn(
-        "flex w-full items-start gap-2 rounded px-2 py-1.5 text-left transition-colors",
+        "stg:flex stg:w-full stg:items-start stg:gap-2 stg:rounded stg:px-2 stg:py-1.5 stg:text-left stg:transition-colors",
         item.disabled
-          ? "cursor-not-allowed opacity-55"
-          : "hover:bg-[var(--stgm-muted,#f5f5f5)]",
-        isFocused && !item.disabled && "bg-[var(--stgm-muted,#f5f5f5)]",
+          ? "stg:cursor-not-allowed stg:opacity-55"
+          : "stg:hover:bg-[var(--stgm-muted,#f5f5f5)]",
+        isFocused && !item.disabled && "stg:bg-[var(--stgm-muted,#f5f5f5)]",
       )}
     >
       {categoryColor && (
         <span
-          className="mt-1 inline-block h-2 w-0.5 shrink-0 rounded-full"
+          className="stg:mt-1 stg:inline-block stg:h-2 stg:w-0.5 stg:shrink-0 stg:rounded-full"
           style={{ backgroundColor: categoryColor }}
           aria-hidden="true"
         />
       )}
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-xs font-medium text-[var(--stgm-foreground,#1a1a2e)]">
+      <div className="stg:min-w-0 stg:flex-1">
+        <div className="stg:truncate stg:text-xs stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]">
           {item.descriptor.displayName}
         </div>
-        <div className="truncate text-[10px] leading-tight text-[var(--stgm-muted-foreground,#737373)]">
+        <div className="stg:truncate stg:text-[10px] stg:leading-tight stg:text-[var(--stgm-muted-foreground,#737373)]">
           {item.disabled ? item.disabledReason : item.descriptor.description}
         </div>
       </div>

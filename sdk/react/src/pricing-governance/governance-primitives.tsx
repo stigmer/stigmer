@@ -26,16 +26,16 @@ export function PendingOverrideCard({
 }) {
   const provenance = override.provenance;
   return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2">
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="truncate text-xs font-medium text-foreground">
+    <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3 stg:py-2">
+      <div className="stg:flex stg:items-center stg:justify-between stg:gap-2">
+        <div className="stg:min-w-0">
+          <p className="stg:truncate stg:text-xs stg:font-medium stg:text-foreground">
             {override.modelId}
             {override.variant ? ` (${override.variant})` : ""}
             {" · "}
             {RATE_FIELD_LABELS[override.rateField] ?? "Rate"}
           </p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="stg:text-[11px] stg:text-muted-foreground">
             {provenance ? (
               <>
                 Ledger observed {formatRate(provenance.observedRateMicrosPerMillion)} vs
@@ -48,7 +48,7 @@ export function PendingOverrideCard({
             )}
           </p>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="stg:flex stg:shrink-0 stg:gap-2">
           <Button
             size="sm"
             disabled={isSubmitting}
@@ -87,9 +87,9 @@ export function RateCell({
 }) {
   const overridden = baseline !== effective;
   return (
-    <span role={role} className="text-right text-foreground">
+    <span role={role} className="stg:text-right stg:text-foreground">
       {overridden && (
-        <span className="mr-1 text-[10px] text-muted-foreground line-through">
+        <span className="stg:mr-1 stg:text-[10px] stg:text-muted-foreground stg:line-through">
           {formatRate(baseline)}
         </span>
       )}
@@ -113,7 +113,7 @@ export function GovernanceBadge({
 }) {
   if (!ledgerReconcilable) {
     return (
-      <span className="rounded bg-muted-subtle px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+      <span className="stg:rounded stg:bg-muted-subtle stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground">
         Manually governed
       </span>
     );
@@ -121,10 +121,10 @@ export function GovernanceBadge({
   return (
     <span
       className={cn(
-        "rounded px-1.5 py-0.5 text-[10px] font-medium",
+        "stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium",
         hasOverrides
-          ? "bg-accent text-primary"
-          : "bg-muted-subtle text-muted-foreground",
+          ? "stg:bg-accent stg:text-primary"
+          : "stg:bg-muted-subtle stg:text-muted-foreground",
       )}
     >
       {hasOverrides ? "Ledger-corrected" : "Ledger-verified"}

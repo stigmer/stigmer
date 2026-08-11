@@ -181,39 +181,39 @@ export function OAuthAppDetailPanel({
   const updatedAt = oauthApp.status?.audit?.specAudit?.updatedAt;
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("stg:space-y-4", className)}>
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
+        <div className="stg:min-w-0">
           {onBack && (
             <button
               type="button"
               onClick={onBack}
-              className="text-muted-foreground hover:text-foreground mb-1 flex items-center gap-1 text-xs transition-colors"
+              className="stg:text-muted-foreground stg:hover:text-foreground stg:mb-1 stg:flex stg:items-center stg:gap-1 stg:text-xs stg:transition-colors"
             >
               <ArrowLeftIcon />
               Back to list
             </button>
           )}
-          <h3 className="text-foreground truncate text-sm font-semibold">
+          <h3 className="stg:text-foreground stg:truncate stg:text-sm stg:font-semibold">
             {spec?.provider || meta?.name || "OAuth App"}
           </h3>
           {meta?.slug && (
-            <span className="text-muted-foreground font-mono text-xs">
+            <span className="stg:text-muted-foreground stg:font-mono stg:text-xs">
               {meta.slug}
             </span>
           )}
         </div>
 
         {mode === "view" && (
-          <div className="flex items-center gap-1">
+          <div className="stg:flex stg:items-center stg:gap-1">
             <button
               type="button"
               onClick={enterEdit}
               className={cn(
-                "shrink-0 rounded-md px-2.5 py-1.5 text-xs font-medium",
-                "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-                "transition-colors",
+                "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
+                "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+                "stg:transition-colors",
               )}
             >
               Edit
@@ -225,9 +225,9 @@ export function OAuthAppDetailPanel({
                 setConfirmingDelete(true);
               }}
               className={cn(
-                "shrink-0 rounded-md px-2.5 py-1.5 text-xs font-medium",
-                "text-destructive-muted hover:text-destructive hover:bg-destructive-subtle",
-                "transition-colors",
+                "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
+                "stg:text-destructive-muted stg:hover:text-destructive stg:hover:bg-destructive-subtle",
+                "stg:transition-colors",
               )}
             >
               Delete
@@ -239,30 +239,30 @@ export function OAuthAppDetailPanel({
       {/* Inline delete confirmation */}
       {confirmingDelete && (
         <div
-          className="rounded-md border border-destructive/30 bg-destructive-subtle p-3"
+          className="stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:p-3"
           role="alert"
         >
-          <p className="text-foreground mb-2 text-xs font-medium">
+          <p className="stg:text-foreground stg:mb-2 stg:text-xs stg:font-medium">
             Delete this OAuth app?
           </p>
-          <p className="text-muted-foreground mb-3 text-[0.65rem]">
+          <p className="stg:text-muted-foreground stg:mb-3 stg:text-[0.65rem]">
             This action is permanent. Any MCP server overrides referencing
             this app will lose their binding.
           </p>
           {deleteError && (
-            <p className="text-destructive mb-2 text-[0.65rem]" role="alert">
+            <p className="stg:text-destructive stg:mb-2 stg:text-[0.65rem]" role="alert">
               {getUserMessage(deleteError)}
             </p>
           )}
-          <div className="flex items-center gap-2">
+          <div className="stg:flex stg:items-center stg:gap-2">
             <button
               type="button"
               onClick={handleDelete}
               disabled={isDeleting}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-                "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
-                "disabled:pointer-events-none disabled:opacity-40",
+                "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+                "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-40",
               )}
             >
               {isDeleting && <SpinnerIcon />}
@@ -276,9 +276,9 @@ export function OAuthAppDetailPanel({
               }}
               disabled={isDeleting}
               className={cn(
-                "rounded-md px-2.5 py-1.5 text-xs",
-                "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-                "disabled:pointer-events-none disabled:opacity-50",
+                "stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs",
+                "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               )}
             >
               Cancel
@@ -295,7 +295,7 @@ export function OAuthAppDetailPanel({
           updatedAt={updatedAt}
         />
       ) : (
-        <form onSubmit={handleSave} className="space-y-3">
+        <form onSubmit={handleSave} className="stg:space-y-3">
           <FieldInput
             id="stgm-oauth-edit-provider"
             label="Provider"
@@ -370,10 +370,10 @@ export function OAuthAppDetailPanel({
             disabled={isUpdating}
           />
 
-          <div className="space-y-1">
+          <div className="stg:space-y-1">
             <label
               htmlFor="stgm-oauth-edit-approval-status"
-              className="text-xs font-medium text-foreground"
+              className="stg:text-xs stg:font-medium stg:text-foreground"
             >
               Vendor approval status
             </label>
@@ -387,9 +387,9 @@ export function OAuthAppDetailPanel({
               }
               disabled={isUpdating}
               className={cn(
-                "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                "disabled:pointer-events-none disabled:opacity-50",
+                "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               )}
             >
               <option value="unspecified">Unspecified (treated as approved)</option>
@@ -410,19 +410,19 @@ export function OAuthAppDetailPanel({
           />
 
           {updateError && (
-            <p className="text-destructive text-[0.65rem]" role="alert">
+            <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
               {getUserMessage(updateError)}
             </p>
           )}
 
-          <div className="flex items-center gap-2 pt-1">
+          <div className="stg:flex stg:items-center stg:gap-2 stg:pt-1">
             <button
               type="submit"
               disabled={!canSave}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-                "bg-primary text-primary-foreground hover:bg-primary-hover",
-                "disabled:pointer-events-none disabled:opacity-40",
+                "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+                "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-40",
               )}
             >
               {isUpdating && <SpinnerIcon />}
@@ -433,9 +433,9 @@ export function OAuthAppDetailPanel({
               onClick={cancelEdit}
               disabled={isUpdating}
               className={cn(
-                "rounded-md px-2.5 py-1.5 text-xs",
-                "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-                "disabled:pointer-events-none disabled:opacity-50",
+                "stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs",
+                "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               )}
             >
               Cancel
@@ -493,7 +493,7 @@ function ViewMode({
   updatedAt?: Timestamp;
 }) {
   return (
-    <dl className="space-y-2.5">
+    <dl className="stg:space-y-2.5">
       <Field label="Provider" value={spec?.provider} />
       <Field label="Client ID" value={spec?.clientId} mono />
       <Field label="Client secret" value="••••••••" />
@@ -525,7 +525,7 @@ function ViewMode({
       {spec?.vendorApprovalDocsUrl && (
         <Field label="Approval docs" value={spec.vendorApprovalDocsUrl} mono />
       )}
-      <div className="flex gap-6">
+      <div className="stg:flex stg:gap-6">
         {createdAt && (
           <Field
             label="Created"
@@ -559,13 +559,13 @@ function Field({
   if (!value) return null;
   return (
     <div>
-      <dt className="text-muted-foreground text-[0.65rem] font-medium">
+      <dt className="stg:text-muted-foreground stg:text-[0.65rem] stg:font-medium">
         {label}
       </dt>
       <dd
         className={cn(
-          "text-foreground mt-0.5 break-all text-xs",
-          mono && "font-mono",
+          "stg:text-foreground stg:mt-0.5 stg:break-all stg:text-xs",
+          mono && "stg:font-mono",
         )}
       >
         {value}
@@ -596,8 +596,8 @@ function FieldInput({
   required?: boolean;
 }) {
   return (
-    <div className="space-y-1">
-      <label htmlFor={id} className="text-xs font-medium text-foreground">
+    <div className="stg:space-y-1">
+      <label htmlFor={id} className="stg:text-xs stg:font-medium stg:text-foreground">
         {label}
       </label>
       <input
@@ -609,14 +609,14 @@ function FieldInput({
         disabled={disabled}
         required={required}
         className={cn(
-          "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-          "placeholder:text-muted-foreground",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-          "disabled:pointer-events-none disabled:opacity-50",
+          "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+          "stg:placeholder:text-muted-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         )}
       />
       {hint && (
-        <p className="text-[0.65rem] text-muted-foreground">{hint}</p>
+        <p className="stg:text-[0.65rem] stg:text-muted-foreground">{hint}</p>
       )}
     </div>
   );
@@ -662,7 +662,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

@@ -100,29 +100,29 @@ export function InlineEditTextarea({
 
   if (disabled || !isEditing) {
     return (
-      <div className={cn("group/inline-edit", className)}>
+      <div className={cn("stg:group/inline-edit", className)}>
         <button
           type="button"
           onClick={() => { if (!disabled) setIsEditing(true); }}
           disabled={disabled}
           className={cn(
-            "w-full rounded-md px-2 py-1.5 text-left transition-colors",
-            !disabled && "hover:bg-accent-hover cursor-pointer",
-            disabled && "cursor-default",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+            "stg:w-full stg:rounded-md stg:px-2 stg:py-1.5 stg:text-left stg:transition-colors",
+            !disabled && "stg:hover:bg-accent-hover stg:cursor-pointer",
+            disabled && "stg:cursor-default",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
           )}
         >
-          <div className="flex items-start justify-between gap-2">
+          <div className="stg:flex stg:items-start stg:justify-between stg:gap-2">
             <pre
               className={cn(
-                "min-w-0 whitespace-pre-wrap break-words font-mono text-sm text-foreground",
-                !value && "text-muted-foreground italic font-sans",
+                "stg:min-w-0 stg:whitespace-pre-wrap stg:break-words stg:font-mono stg:text-sm stg:text-foreground",
+                !value && "stg:text-muted-foreground stg:italic stg:font-sans",
               )}
             >
               {value || placeholder}
             </pre>
             {!disabled && (
-              <PencilIcon className="mt-0.5 size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/inline-edit:opacity-100" />
+              <PencilIcon className="stg:mt-0.5 stg:size-3 stg:shrink-0 stg:text-muted-foreground stg:opacity-0 stg:transition-opacity stg:group-hover/inline-edit:opacity-100" />
             )}
           </div>
         </button>
@@ -131,7 +131,7 @@ export function InlineEditTextarea({
   }
 
   return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
+    <div className={cn("stg:flex stg:flex-col stg:gap-1.5", className)}>
       <textarea
         ref={textareaRef}
         value={draft}
@@ -141,26 +141,26 @@ export function InlineEditTextarea({
         placeholder={placeholder}
         rows={minRows}
         className={cn(
-          "w-full resize-y rounded-md border border-border bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
-          "focus:outline-none focus:ring-2 focus:ring-ring",
-          "disabled:opacity-50",
-          displayError && "border-destructive",
+          "stg:w-full stg:resize-y stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
+          "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
+          "stg:disabled:opacity-50",
+          displayError && "stg:border-destructive",
         )}
       />
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] text-muted-foreground">
+      <div className="stg:flex stg:items-center stg:justify-between">
+        <span className="stg:text-[10px] stg:text-muted-foreground">
           {isSaving ? "Saving..." : "Ctrl+Enter to save, Escape to cancel"}
         </span>
-        <div className="flex items-center gap-1.5">
+        <div className="stg:flex stg:items-center stg:gap-1.5">
           <button
             type="button"
             onClick={handleCancel}
             disabled={isSaving}
             className={cn(
-              "rounded-md px-2.5 py-1 text-xs font-medium",
-              "border border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground",
-              "disabled:opacity-50",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+              "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent stg:hover:text-accent-foreground",
+              "stg:disabled:opacity-50",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           >
             Cancel
@@ -170,10 +170,10 @@ export function InlineEditTextarea({
             onClick={handleConfirm}
             disabled={isSaving}
             className={cn(
-              "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-              "bg-primary text-primary-foreground hover:bg-primary-hover",
-              "disabled:opacity-50",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+              "stg:disabled:opacity-50",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           >
             {isSaving && <Spinner />}
@@ -182,7 +182,7 @@ export function InlineEditTextarea({
         </div>
       </div>
       {displayError && (
-        <p className="px-1 text-xs text-destructive" role="alert">{displayError}</p>
+        <p className="stg:px-1 stg:text-xs stg:text-destructive" role="alert">{displayError}</p>
       )}
     </div>
   );
@@ -202,7 +202,7 @@ function PencilIcon({ className }: { readonly className?: string }) {
 
 function Spinner() {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="animate-spin" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="stg:animate-spin" aria-hidden="true">
       <path d="M8 2a6 6 0 1 0 6 6" />
     </svg>
   );

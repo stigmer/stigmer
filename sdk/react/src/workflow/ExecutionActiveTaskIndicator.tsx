@@ -77,26 +77,26 @@ export const ExecutionActiveTaskIndicator = memo(function ExecutionActiveTaskInd
     : `Now running: ${activeTask.taskName}`;
 
   return (
-    <div className={cn("absolute left-3 top-3 z-50 flex items-center gap-2", className)}>
+    <div className={cn("stg:absolute stg:left-3 stg:top-3 stg:z-50 stg:flex stg:items-center stg:gap-2", className)}>
       {/* Main indicator pill */}
       <button
         type="button"
         onClick={onJumpToTask}
         className={cn(
-          "flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur-sm transition-colors",
+          "stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:border stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium stg:shadow-sm stg:backdrop-blur-sm stg:transition-colors",
           isApproval
-            ? "border-[var(--stgm-warning,#f59e0b)]/40 bg-[var(--stgm-warning,#f59e0b)]/10 text-[var(--stgm-foreground,#1a1a2e)] hover:bg-[var(--stgm-warning,#f59e0b)]/20"
-            : "border-[var(--stgm-primary,#6366f1)]/30 bg-[var(--stgm-card,#fff)]/90 text-[var(--stgm-foreground,#1a1a2e)] hover:bg-[var(--stgm-primary,#6366f1)]/10",
+            ? "stg:border-[var(--stgm-warning,#f59e0b)]/40 stg:bg-[var(--stgm-warning,#f59e0b)]/10 stg:text-[var(--stgm-foreground,#1a1a2e)] stg:hover:bg-[var(--stgm-warning,#f59e0b)]/20"
+            : "stg:border-[var(--stgm-primary,#6366f1)]/30 stg:bg-[var(--stgm-card,#fff)]/90 stg:text-[var(--stgm-foreground,#1a1a2e)] stg:hover:bg-[var(--stgm-primary,#6366f1)]/10",
         )}
         title="Click to center on active task"
       >
         {/* Pulsing status dot */}
         <span
           className={cn(
-            "inline-block h-2 w-2 rounded-full motion-safe:animate-pulse",
+            "stg:inline-block stg:h-2 stg:w-2 stg:rounded-full stg:motion-safe:animate-pulse",
             isApproval
-              ? "bg-[var(--stgm-warning,#f59e0b)]"
-              : "bg-[var(--stgm-primary,#6366f1)]",
+              ? "stg:bg-[var(--stgm-warning,#f59e0b)]"
+              : "stg:bg-[var(--stgm-primary,#6366f1)]",
           )}
           aria-hidden="true"
         />
@@ -105,8 +105,8 @@ export const ExecutionActiveTaskIndicator = memo(function ExecutionActiveTaskInd
 
         {elapsedMs > 0 && (
           <>
-            <span className="text-[var(--stgm-muted-foreground,#737373)]" aria-hidden="true">·</span>
-            <span className="tabular-nums text-[var(--stgm-muted-foreground,#737373)]">
+            <span className="stg:text-[var(--stgm-muted-foreground,#737373)]" aria-hidden="true">·</span>
+            <span className="stg:tabular-nums stg:text-[var(--stgm-muted-foreground,#737373)]">
               {formatDuration(elapsedMs)}
             </span>
           </>
@@ -118,10 +118,10 @@ export const ExecutionActiveTaskIndicator = memo(function ExecutionActiveTaskInd
         type="button"
         onClick={onFollowToggle}
         className={cn(
-          "flex h-7 w-7 items-center justify-center rounded-md border shadow-sm backdrop-blur-sm transition-colors",
+          "stg:flex stg:h-7 stg:w-7 stg:items-center stg:justify-center stg:rounded-md stg:border stg:shadow-sm stg:backdrop-blur-sm stg:transition-colors",
           isFollowing
-            ? "border-[var(--stgm-primary,#6366f1)]/40 bg-[var(--stgm-primary,#6366f1)]/10 text-[var(--stgm-primary,#6366f1)]"
-            : "border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-card,#fff)]/90 text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-foreground,#1a1a2e)]",
+            ? "stg:border-[var(--stgm-primary,#6366f1)]/40 stg:bg-[var(--stgm-primary,#6366f1)]/10 stg:text-[var(--stgm-primary,#6366f1)]"
+            : "stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-card,#fff)]/90 stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:text-[var(--stgm-foreground,#1a1a2e)]",
         )}
         title={isFollowing ? "Following active task (click to stop)" : "Follow active task"}
         aria-label={isFollowing ? "Stop following active task" : "Follow active task"}
@@ -149,7 +149,7 @@ export const ExecutionActiveTaskIndicator = memo(function ExecutionActiveTaskInd
         role="status"
         aria-live="polite"
         aria-atomic="true"
-        className="sr-only"
+        className="stg:sr-only"
       >
         {announcementText}
       </span>

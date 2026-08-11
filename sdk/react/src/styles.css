@@ -2,23 +2,49 @@
 @source "../node_modules/streamdown/dist/*.js";
 
 /* Declare the standard Tailwind layer order plus our `stgm` utilities layer
-   LAST. In a host app the host's `@import "tailwindcss"` already declares
-   `theme, base, components, utilities` first, so re-stating them here is a
-   harmless no-op that simply pins `stgm` after them; in the standalone SDK build
-   it establishes the full order explicitly.
+   LAST. When a host page also runs Tailwind, its `@import "tailwindcss"`
+   declares `theme, base, components, utilities` too; re-stating them here is a
+   harmless no-op that pins `stgm` after them, so SDK styles win over host
+   utilities on SDK-rendered DOM. In the standalone SDK build it establishes
+   the full order explicitly.
 
-   Why this matters: the preflight-style reset below (which zeroes `border-width`)
-   MUST live in `base`, not in a layer above `utilities`. When this stylesheet is
-   recompiled by a host's Tailwind v4, the SDK's `border-*` utilities are emitted
-   into the host's `utilities` layer (Tailwind v4 emits each utility once) — NOT
-   into `stgm`. A reset placed in any layer after `utilities` therefore wins and
-   silently zeroes every `border` inside `.stgm`. Keeping the reset in `base`
-   (exactly where stock Tailwind keeps preflight) guarantees the utilities win in
-   the host build, the standalone build, and a third-party embed alike. */
+   Why this matters: the preflight-style reset below (which zeroes
+   `border-width`) MUST live in `base`, not in a layer above the SDK's own
+   utilities. A reset placed after the layer that carries `border-*` utilities
+   wins the cascade and silently zeroes every border inside `.stgm`. Keeping
+   the reset in `base` (exactly where stock Tailwind keeps preflight)
+   guarantees the utilities win. */
 @layer theme, base, components, utilities, stgm;
 
-@import "tailwindcss/theme.css" layer(stgm);
-@import "tailwindcss/utilities.css" layer(stgm);
+/* Every Tailwind utility the SDK authors carries the `stg:` prefix
+   (`stg:flex`, emitted as `.stg\:flex`), and the theme variables emit as
+   `--stg-*`. This is the #454 isolation contract: the published stylesheet
+   shares NO class names and NO Tailwind variable names with a host
+   application's own Tailwind build, so neither side can clobber the other's
+   cascade — regardless of load order, layer merging, or where the host mounts
+   `StigmerProvider`. The prefix is deliberately NOT `stgm`: Tailwind prefixes
+   theme variables too, and `--stgm-font-sans`/`--stgm-shadow-sm` would
+   collide with the identically-named `@stigmer/theme` tokens (including a
+   self-referential `--stgm-font-sans: var(--stgm-font-sans)` cycle through
+   the `@theme inline` block below).
+
+   The `stg:` prefix contract is enforced by `scripts/check-prefixed-classnames`
+   (unprefixed utilities in source fail the suite) and by the dist isolation
+   invariant test (unscoped selectors in the built stylesheet fail the suite).
+   The one-shot migration lives in `scripts/prefix-classnames.ts`. */
+@import "tailwindcss/theme.css" layer(stgm) prefix(stg);
+@import "tailwindcss/utilities.css" layer(stgm) prefix(stg);
+/* Enter/exit animation utilities (`stg:animate-in`, `stg:fade-in`,
+   `stg:data-[state=open]:zoom-in-95`, ...) used by SDK dialogs, menus, and
+   tooltips. Build-time dependency only (MIT, pure Tailwind v4 CSS) — the
+   compiled rules ship in dist/styles.css. Before #454 these utilities were
+   never part of the SDK's own build: they only rendered in the web console
+   because ITS Tailwind compile added tw-animate-css, i.e. the standalone
+   stylesheet silently shipped without any dialog/menu animations.
+   Imported WITHOUT layer(...): it contains `@utility` definitions, which
+   cannot be nested inside `@layer` — the generated utilities still emit
+   into `stgm` alongside the standard ones. */
+@import "tw-animate-css";
 @import "@stigmer/theme/tokens.css" layer(stgm);
 
 /* React Flow base styles for workflow graphs. Imported centrally (rather than
@@ -52,6 +78,7 @@
   --color-destructive-foreground: var(--stgm-destructive-foreground);
   --color-success: var(--stgm-success);
   --color-success-foreground: var(--stgm-success-foreground);
+  --color-success-subtle: var(--stgm-success-subtle);
   --color-warning: var(--stgm-warning);
   --color-warning-foreground: var(--stgm-warning-foreground);
   --color-info: var(--stgm-info);

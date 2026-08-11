@@ -75,47 +75,47 @@ export function ErrorMessage({
     <div
       role="alert"
       className={cn(
-        "bg-destructive-subtle border-destructive/20 text-destructive rounded-lg border p-4",
+        "stg:bg-destructive-subtle stg:border-destructive/20 stg:text-destructive stg:rounded-lg stg:border stg:p-4",
         className,
       )}
     >
-      <div className="flex items-start gap-3">
+      <div className="stg:flex stg:items-start stg:gap-3">
         {isShield ? (
-          <ShieldXIcon className="mt-0.5 size-4 shrink-0" />
+          <ShieldXIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0" />
         ) : (
-          <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
+          <AlertTriangleIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0" />
         )}
 
-        <div className="min-w-0 flex-1 space-y-1">
-          <p className="text-sm font-medium">
+        <div className="stg:min-w-0 stg:flex-1 stg:space-y-1">
+          <p className="stg:text-sm stg:font-medium">
             {title ?? CATEGORY_TITLES[category]}
           </p>
-          <p className="text-destructive-muted text-sm">{message}</p>
+          <p className="stg:text-destructive-muted stg:text-sm">{message}</p>
 
           {metadata && (
-            <div className="pt-1">
+            <div className="stg:pt-1">
               <button
                 type="button"
                 onClick={() => setDetailsOpen((prev) => !prev)}
-                className="text-destructive-muted hover:text-destructive-muted inline-flex items-center gap-1 text-xs transition-colors"
+                className="stg:text-destructive-muted stg:hover:text-destructive-muted stg:inline-flex stg:items-center stg:gap-1 stg:text-xs stg:transition-colors"
               >
                 <ChevronDownIcon
                   className={cn(
-                    "size-3 transition-transform",
-                    detailsOpen && "rotate-180",
+                    "stg:size-3 stg:transition-transform",
+                    detailsOpen && "stg:rotate-180",
                   )}
                 />
                 Technical details
               </button>
               {detailsOpen && (
-                <dl className="text-destructive-muted mt-1.5 space-y-0.5 font-mono text-xs">
-                  <div className="flex gap-2">
-                    <dt className="shrink-0">Method:</dt>
-                    <dd className="truncate">{metadata.method}</dd>
+                <dl className="stg:text-destructive-muted stg:mt-1.5 stg:space-y-0.5 stg:font-mono stg:text-xs">
+                  <div className="stg:flex stg:gap-2">
+                    <dt className="stg:shrink-0">Method:</dt>
+                    <dd className="stg:truncate">{metadata.method}</dd>
                   </div>
-                  <div className="flex gap-2">
-                    <dt className="shrink-0">Path:</dt>
-                    <dd className="truncate">{metadata.path}</dd>
+                  <div className="stg:flex stg:gap-2">
+                    <dt className="stg:shrink-0">Path:</dt>
+                    <dd className="stg:truncate">{metadata.path}</dd>
                   </div>
                 </dl>
               )}
@@ -128,12 +128,12 @@ export function ErrorMessage({
             type="button"
             onClick={retry}
             className={cn(
-              "inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium",
-              "border-destructive/20 text-destructive hover:bg-destructive-subtle",
-              "transition-colors",
+              "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
+              "stg:border-destructive/20 stg:text-destructive stg:hover:bg-destructive-subtle",
+              "stg:transition-colors",
             )}
           >
-            <RotateCcwIcon className="size-3" />
+            <RotateCcwIcon className="stg:size-3" />
             Retry
           </button>
         )}

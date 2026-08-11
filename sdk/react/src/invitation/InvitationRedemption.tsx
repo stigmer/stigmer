@@ -141,7 +141,7 @@ export function InvitationRedemption({
   if (isLoading) {
     return (
       <div
-        className={cn("mx-auto max-w-sm", className)}
+        className={cn("stg:mx-auto stg:max-w-sm", className)}
         aria-busy="true"
         aria-label="Loading invitation"
       >
@@ -153,7 +153,7 @@ export function InvitationRedemption({
   // Fetch error
   if (fetchError) {
     return (
-      <div className={cn("mx-auto max-w-sm", className)}>
+      <div className={cn("stg:mx-auto stg:max-w-sm", className)}>
         <ErrorCard
           message={getUserMessage(fetchError)}
           onRetry={refetch}
@@ -165,7 +165,7 @@ export function InvitationRedemption({
   // No preview returned
   if (!preview) {
     return (
-      <div className={cn("mx-auto max-w-sm", className)}>
+      <div className={cn("stg:mx-auto stg:max-w-sm", className)}>
         <ErrorCard message="This invitation could not be found." />
       </div>
     );
@@ -176,14 +176,14 @@ export function InvitationRedemption({
     const orgName = preview.organizationName || "the organization";
     const roleName = iamRoleDisplayName(preview.role);
     return (
-      <div className={cn("mx-auto max-w-sm", className)}>
-        <div className="rounded-lg border border-primary/30 bg-primary-subtle p-6 text-center shadow-sm">
+      <div className={cn("stg:mx-auto stg:max-w-sm", className)}>
+        <div className="stg:rounded-lg stg:border stg:border-primary/30 stg:bg-primary-subtle stg:p-6 stg:text-center stg:shadow-sm">
           <SuccessIcon />
-          <h2 className="mt-3 text-base font-semibold text-foreground">
+          <h2 className="stg:mt-3 stg:text-base stg:font-semibold stg:text-foreground">
             You&rsquo;ve joined {orgName}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            You now have <span className="font-medium text-foreground">{roleName}</span> access.
+          <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">
+            You now have <span className="stg:font-medium stg:text-foreground">{roleName}</span> access.
           </p>
         </div>
       </div>
@@ -197,44 +197,44 @@ export function InvitationRedemption({
   const expiresAt = preview.expiresAt ? timestampDate(preview.expiresAt) : null;
 
   return (
-    <div className={cn("mx-auto max-w-sm", className)}>
-      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+    <div className={cn("stg:mx-auto stg:max-w-sm", className)}>
+      <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-6 stg:shadow-sm">
         {/* Org identity */}
-        <div className="flex flex-col items-center text-center">
+        <div className="stg:flex stg:flex-col stg:items-center stg:text-center">
           {orgLogo ? (
             <img
               src={orgLogo}
               alt={`${orgName} logo`}
-              className="size-14 rounded-full object-cover"
+              className="stg:size-14 stg:rounded-full stg:object-cover"
             />
           ) : (
-            <div className="flex size-14 items-center justify-center rounded-full bg-muted text-xl font-semibold text-muted-foreground">
+            <div className="stg:flex stg:size-14 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:text-xl stg:font-semibold stg:text-muted-foreground">
               {orgInitial}
             </div>
           )}
 
-          <h2 className="mt-3 text-base font-semibold text-foreground">
+          <h2 className="stg:mt-3 stg:text-base stg:font-semibold stg:text-foreground">
             Join {orgName}
           </h2>
 
           {preview.label && (
-            <p className="mt-1 text-sm italic text-muted-foreground">
+            <p className="stg:mt-1 stg:text-sm stg:italic stg:text-muted-foreground">
               {preview.label}
             </p>
           )}
         </div>
 
         {/* Role + expiry details */}
-        <div className="mt-4 flex flex-col items-center gap-1.5 text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+        <div className="stg:mt-4 stg:flex stg:flex-col stg:items-center stg:gap-1.5 stg:text-center">
+          <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:text-foreground">
             <ShieldIcon />
             {roleName} access
           </span>
-          <span className="text-[0.7rem] text-muted-foreground">
+          <span className="stg:text-[0.7rem] stg:text-muted-foreground">
             {iamRoleDescription(preview.role)}
           </span>
           {expiresAt && (
-            <span className="text-[0.7rem] text-muted-foreground">
+            <span className="stg:text-[0.7rem] stg:text-muted-foreground">
               {formatExpiry(expiresAt)}
             </span>
           )}
@@ -247,7 +247,7 @@ export function InvitationRedemption({
 
         {/* Action area */}
         {preview.isValid && (
-          <div className="mt-5">
+          <div className="stg:mt-5">
             {isAuthenticated ? (
               <>
                 <button
@@ -255,17 +255,17 @@ export function InvitationRedemption({
                   onClick={handleAccept}
                   disabled={isRedeeming}
                   className={cn(
-                    "w-full inline-flex items-center justify-center gap-1.5 rounded-md px-4 py-2.5 text-sm font-medium",
-                    "bg-primary text-primary-foreground hover:bg-primary-hover",
-                    "disabled:pointer-events-none disabled:opacity-50",
-                    "transition-colors",
+                    "stg:w-full stg:inline-flex stg:items-center stg:justify-center stg:gap-1.5 stg:rounded-md stg:px-4 stg:py-2.5 stg:text-sm stg:font-medium",
+                    "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+                    "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+                    "stg:transition-colors",
                   )}
                 >
                   {isRedeeming && <SpinnerIcon />}
                   {isRedeeming ? "Accepting\u2026" : "Accept Invitation"}
                 </button>
                 {redeemError && (
-                  <p className="mt-2 text-center text-[0.65rem] text-destructive" role="alert">
+                  <p className="stg:mt-2 stg:text-center stg:text-[0.65rem] stg:text-destructive" role="alert">
                     {getUserMessage(redeemError)}
                   </p>
                 )}
@@ -275,9 +275,9 @@ export function InvitationRedemption({
                 type="button"
                 onClick={onAuthRequired}
                 className={cn(
-                  "w-full inline-flex items-center justify-center gap-1.5 rounded-md px-4 py-2.5 text-sm font-medium",
-                  "bg-primary text-primary-foreground hover:bg-primary-hover",
-                  "transition-colors",
+                  "stg:w-full stg:inline-flex stg:items-center stg:justify-center stg:gap-1.5 stg:rounded-md stg:px-4 stg:py-2.5 stg:text-sm stg:font-medium",
+                  "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+                  "stg:transition-colors",
                 )}
               >
                 Accept Invitation
@@ -296,9 +296,9 @@ export function InvitationRedemption({
 
 function InvalidNotice({ reason }: { reason: string }) {
   return (
-    <div className="mt-4 rounded-md bg-muted-subtle px-3 py-2.5 text-center">
+    <div className="stg:mt-4 stg:rounded-md stg:bg-muted-subtle stg:px-3 stg:py-2.5 stg:text-center">
       <WarningIcon />
-      <p className="mt-1 text-xs text-muted-foreground">
+      <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
         {reason || "This invitation is no longer valid."}
       </p>
     </div>
@@ -317,16 +317,16 @@ function ErrorCard({
   onRetry?: () => void;
 }) {
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive-subtle p-6 text-center shadow-sm">
-      <p className="text-sm text-destructive">{message}</p>
+    <div className="stg:rounded-lg stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:p-6 stg:text-center stg:shadow-sm">
+      <p className="stg:text-sm stg:text-destructive">{message}</p>
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
           className={cn(
-            "mt-3 inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium",
-            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-            "transition-colors",
+            "stg:mt-3 stg:inline-flex stg:items-center stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+            "stg:transition-colors",
           )}
         >
           Try again
@@ -342,18 +342,18 @@ function ErrorCard({
 
 function LoadingSkeleton() {
   return (
-    <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
-      <div className="flex flex-col items-center gap-3">
-        <div className="size-14 rounded-full bg-muted-subtle animate-pulse" />
-        <div className="h-5 w-40 rounded bg-muted-subtle animate-pulse" />
-        <div className="h-4 w-56 rounded bg-muted-subtle animate-pulse" />
+    <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-6 stg:shadow-sm stg:space-y-4">
+      <div className="stg:flex stg:flex-col stg:items-center stg:gap-3">
+        <div className="stg:size-14 stg:rounded-full stg:bg-muted-subtle stg:animate-pulse" />
+        <div className="stg:h-5 stg:w-40 stg:rounded stg:bg-muted-subtle stg:animate-pulse" />
+        <div className="stg:h-4 stg:w-56 stg:rounded stg:bg-muted-subtle stg:animate-pulse" />
       </div>
-      <div className="flex flex-col items-center gap-1.5">
-        <div className="h-6 w-28 rounded-md bg-muted-subtle animate-pulse" />
-        <div className="h-3 w-44 rounded bg-muted-subtle animate-pulse" />
-        <div className="h-3 w-24 rounded bg-muted-subtle animate-pulse" />
+      <div className="stg:flex stg:flex-col stg:items-center stg:gap-1.5">
+        <div className="stg:h-6 stg:w-28 stg:rounded-md stg:bg-muted-subtle stg:animate-pulse" />
+        <div className="stg:h-3 stg:w-44 stg:rounded stg:bg-muted-subtle stg:animate-pulse" />
+        <div className="stg:h-3 stg:w-24 stg:rounded stg:bg-muted-subtle stg:animate-pulse" />
       </div>
-      <div className="h-[42px] w-full rounded-md bg-muted-subtle animate-pulse" />
+      <div className="stg:h-[42px] stg:w-full stg:rounded-md stg:bg-muted-subtle stg:animate-pulse" />
     </div>
   );
 }
@@ -395,7 +395,7 @@ function ShieldIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className="shrink-0"
+      className="stg:shrink-0"
     >
       <path d="M8 1.5l5.5 2v4.5c0 3.5-2.5 5.5-5.5 7-3-1.5-5.5-3.5-5.5-7V3.5L8 1.5z" />
     </svg>
@@ -414,7 +414,7 @@ function WarningIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className="mx-auto text-muted-foreground"
+      className="stg:mx-auto stg:text-muted-foreground"
     >
       <circle cx="8" cy="8" r="6" />
       <path d="M8 5v3.5M8 10.5v.5" />
@@ -434,7 +434,7 @@ function SuccessIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className="mx-auto text-primary"
+      className="stg:mx-auto stg:text-primary"
     >
       <circle cx="12" cy="12" r="10" />
       <path d="M8 12l2.5 2.5L16 9" />
@@ -452,7 +452,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

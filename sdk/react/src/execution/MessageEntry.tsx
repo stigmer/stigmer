@@ -172,14 +172,14 @@ function HumanMessage({
       role="article"
       aria-label="User message"
       className={cn(
-        "group relative ms-[20%] rounded-lg bg-muted-subtle px-4 py-3",
+        "stg:group stg:relative stg:ms-[20%] stg:rounded-lg stg:bg-muted-subtle stg:px-4 stg:py-3",
         className,
       )}
     >
       {/* The badge renders only for non-default modes (a "Plan" pill), so
           ordinary Agent turns carry no extra chrome. */}
       {interactionMode !== undefined && (
-        <InteractionModeBadge mode={interactionMode} className="mb-1.5" />
+        <InteractionModeBadge mode={interactionMode} className="stg:mb-1.5" />
       )}
       {/* The evidence a file rode with this turn (#372) — above the prose,
           mirroring the composer's chips-above-input layout. */}
@@ -187,10 +187,10 @@ function HumanMessage({
         <MessageAttachments
           attachments={attachments}
           executionId={executionId}
-          className="mb-2"
+          className="stg:mb-2"
         />
       )}
-      <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
+      <p className="stg:text-sm stg:text-foreground stg:whitespace-pre-wrap">{content}</p>
       {onEdit && (
         <button
           type="button"
@@ -198,11 +198,11 @@ function HumanMessage({
           aria-label="Edit message"
           title="Edit"
           className={cn(
-            "absolute -top-2.5 -right-2.5 inline-flex h-7 w-7 items-center justify-center rounded-full",
-            "border border-border bg-card text-muted-foreground shadow-sm transition",
-            "hover:text-foreground hover:bg-accent-hover",
-            "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:absolute stg:-top-2.5 stg:-right-2.5 stg:inline-flex stg:h-7 stg:w-7 stg:items-center stg:justify-center stg:rounded-full",
+            "stg:border stg:border-border stg:bg-card stg:text-muted-foreground stg:shadow-sm stg:transition",
+            "stg:hover:text-foreground stg:hover:bg-accent-hover",
+            "stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           <EditIcon />
@@ -262,7 +262,7 @@ function AiMessage({
       role="article"
       aria-label="AI response"
       aria-busy={isStreaming}
-      className={cn("px-4 py-3", className)}
+      className={cn("stg:px-4 stg:py-3", className)}
     >
       <div className="stgm-prose">
         <Streamdown
@@ -301,19 +301,19 @@ function ThinkingMessage({
     <div
       role="article"
       aria-label="Model thinking"
-      className={cn("px-4 py-1.5", className)}
+      className={cn("stg:px-4 stg:py-1.5", className)}
     >
       <button
         type="button"
         aria-expanded={expanded}
         onClick={() => setExpanded((v) => !v)}
         className={cn(
-          "flex items-center gap-1.5 text-xs text-muted-foreground transition-colors",
-          "hover:text-foreground cursor-pointer",
+          "stg:flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground stg:transition-colors",
+          "stg:hover:text-foreground stg:cursor-pointer",
         )}
       >
         <ThinkingIcon isStreaming={isStreaming} />
-        <span className="min-w-0 truncate">
+        <span className="stg:min-w-0 stg:truncate">
           {isStreaming && !hasContent
             ? "Thinking..."
             : expanded
@@ -324,12 +324,12 @@ function ThinkingMessage({
       </button>
 
       {expanded && hasContent && (
-        <div className="mt-1.5 border-l-2 border-muted-foreground/20 pl-3">
-          <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+        <div className="stg:mt-1.5 stg:border-l-2 stg:border-muted-foreground/20 stg:pl-3">
+          <p className="stg:text-xs stg:text-muted-foreground stg:whitespace-pre-wrap stg:leading-relaxed">
             {content}
             {isStreaming && (
               <span
-                className="inline-block w-[2px] h-[0.8em] bg-muted-foreground align-text-bottom animate-pulse ml-0.5"
+                className="stg:inline-block stg:w-[2px] stg:h-[0.8em] stg:bg-muted-foreground stg:align-text-bottom stg:animate-pulse stg:ml-0.5"
                 aria-hidden="true"
               />
             )}
@@ -351,9 +351,9 @@ function SystemMessage({
     <div
       role="article"
       aria-label="System message"
-      className={cn("px-4 py-2", className)}
+      className={cn("stg:px-4 stg:py-2", className)}
     >
-      <p className="text-xs text-muted-foreground italic">{content}</p>
+      <p className="stg:text-xs stg:text-muted-foreground stg:italic">{content}</p>
     </div>
   );
 }
@@ -368,7 +368,7 @@ function ThinkingIcon({ isStreaming }: { isStreaming: boolean }) {
         fill="none"
         stroke="currentColor"
         strokeWidth="1.5"
-        className="shrink-0 animate-spin"
+        className="stg:shrink-0 stg:animate-spin"
         aria-hidden="true"
       >
         <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />
@@ -385,7 +385,7 @@ function ThinkingIcon({ isStreaming }: { isStreaming: boolean }) {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <circle cx="6" cy="5" r="3.5" />
@@ -408,8 +408,8 @@ function ChevronIcon({ expanded }: { expanded: boolean }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={cn(
-        "shrink-0 transition-transform duration-150",
-        expanded && "rotate-90",
+        "stg:shrink-0 stg:transition-transform stg:duration-150",
+        expanded && "stg:rotate-90",
       )}
       aria-hidden="true"
     >

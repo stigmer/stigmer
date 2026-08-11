@@ -83,7 +83,7 @@ export function AttachmentChipList({
           (~h-6) share this row, and flexbox's default stretch alignment
           would balloon the file chips to tile height. */}
       <div
-        className={cn("flex flex-wrap items-center gap-1.5", className)}
+        className={cn("stg:flex stg:flex-wrap stg:items-center stg:gap-1.5", className)}
         role="list"
         aria-label="Attached files"
       >
@@ -220,7 +220,7 @@ function ImageAttachmentChip({
       role="listitem"
       aria-label={chipAriaLabel(entry)}
       title={entry.file.name}
-      className="relative inline-flex"
+      className="stg:relative stg:inline-flex"
     >
       {/* The whole tile is the preview target. Preview stays enabled while
           `disabled` (that prop gates the mutating remove/retry actions) and
@@ -233,8 +233,8 @@ function ImageAttachmentChip({
         aria-label={`Preview ${entry.file.name}`}
         className={cn(
           UNSTYLED_BUTTON,
-          "relative block h-14 w-14 overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          isError && "ring-1 ring-destructive",
+          "stg:relative stg:block stg:h-14 stg:w-14 stg:overflow-hidden stg:rounded-md stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+          isError && "stg:ring-1 stg:ring-destructive",
         )}
       >
         {url ? (
@@ -244,20 +244,20 @@ function ImageAttachmentChip({
             aria-hidden="true"
             onError={() => setLoadFailed(true)}
             className={cn(
-              "h-full w-full object-cover",
-              (isUploading || isError) && "opacity-50",
+              "stg:h-full stg:w-full stg:object-cover",
+              (isUploading || isError) && "stg:opacity-50",
             )}
           />
         ) : (
           // One-frame placeholder until the object-URL effect runs; same
           // footprint as the image, so no layout shift.
           <span
-            className="block h-full w-full animate-pulse bg-muted"
+            className="stg:block stg:h-full stg:w-full stg:animate-pulse stg:bg-muted"
             aria-hidden="true"
           />
         )}
         {isUploading && (
-          <span className="absolute inset-0 flex items-center justify-center">
+          <span className="stg:absolute stg:inset-0 stg:flex stg:items-center stg:justify-center">
             <ChipSpinner size={16} />
           </span>
         )}
@@ -271,7 +271,7 @@ function ImageAttachmentChip({
           aria-label={`Retry uploading ${entry.file.name}`}
           className={cn(
             UNSTYLED_BUTTON,
-            "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-destructive px-1.5 py-0.5 text-[0.6rem] font-medium leading-none text-destructive-foreground shadow-sm hover:bg-destructive-hover disabled:pointer-events-none",
+            "stg:absolute stg:left-1/2 stg:top-1/2 stg:-translate-x-1/2 stg:-translate-y-1/2 stg:rounded-full stg:bg-destructive stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:leading-none stg:text-destructive-foreground stg:shadow-sm stg:hover:bg-destructive-hover stg:disabled:pointer-events-none",
           )}
         >
           Retry
@@ -288,7 +288,7 @@ function ImageAttachmentChip({
           // The established corner-badge geometry (ContextPopover,
           // ComposerToolbar). Solid bg + border keep it legible over any
           // image without opacity-modified tokens (Dont-Do #4).
-          "absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm hover:text-destructive disabled:pointer-events-none",
+          "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-4 stg:w-4 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-border stg:bg-background stg:text-muted-foreground stg:shadow-sm stg:hover:text-destructive stg:disabled:pointer-events-none",
         )}
       >
         <XIcon />
@@ -320,20 +320,20 @@ function FileAttachmentChip({
       role="listitem"
       aria-label={chipAriaLabel(entry)}
       className={cn(
-        "inline-flex max-w-[200px] items-center gap-1 rounded-md px-2 py-0.5 text-xs",
+        "stg:inline-flex stg:max-w-[200px] stg:items-center stg:gap-1 stg:rounded-md stg:px-2 stg:py-0.5 stg:text-xs",
         isError
-          ? "border border-destructive/30 bg-destructive-subtle text-destructive"
-          : "bg-muted-subtle text-foreground",
-        isUploading && "opacity-70",
+          ? "stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:text-destructive"
+          : "stg:bg-muted-subtle stg:text-foreground",
+        isUploading && "stg:opacity-70",
       )}
     >
       {isUploading && <ChipSpinner />}
       {isError && <ErrorDot />}
       {!isUploading && !isError && <FileIcon />}
 
-      <span className="truncate">{entry.file.name}</span>
+      <span className="stg:truncate">{entry.file.name}</span>
 
-      <span className="shrink-0 text-[0.6rem] tabular-nums text-muted-foreground">
+      <span className="stg:shrink-0 stg:text-[0.6rem] stg:tabular-nums stg:text-muted-foreground">
         {formatFileSize(entry.file.size)}
       </span>
 
@@ -363,7 +363,7 @@ function RetryButton({
       disabled={disabled}
       className={cn(
         UNSTYLED_BUTTON,
-        "shrink-0 text-[0.6rem] font-medium text-destructive underline hover:text-destructive-muted disabled:pointer-events-none",
+        "stg:shrink-0 stg:text-[0.6rem] stg:font-medium stg:text-destructive stg:underline stg:hover:text-destructive-muted stg:disabled:pointer-events-none",
       )}
       aria-label={`Retry uploading ${filename}`}
     >
@@ -388,7 +388,7 @@ function RemoveButton({
       disabled={disabled}
       className={cn(
         UNSTYLED_BUTTON,
-        "ml-0.5 shrink-0 text-muted-foreground hover:text-destructive disabled:pointer-events-none",
+        "stg:ml-0.5 stg:shrink-0 stg:text-muted-foreground stg:hover:text-destructive stg:disabled:pointer-events-none",
       )}
       aria-label={`Remove ${filename}`}
     >
@@ -440,7 +440,7 @@ function ChipSpinner({ size = 10 }: { readonly size?: number }) {
       stroke="currentColor"
       strokeWidth="2.5"
       strokeLinecap="round"
-      className="shrink-0 animate-spin text-muted-foreground"
+      className="stg:shrink-0 stg:animate-spin stg:text-muted-foreground"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />
@@ -451,7 +451,7 @@ function ChipSpinner({ size = 10 }: { readonly size?: number }) {
 function ErrorDot() {
   return (
     <span
-      className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-destructive"
+      className="stg:inline-block stg:h-1.5 stg:w-1.5 stg:shrink-0 stg:rounded-full stg:bg-destructive"
       aria-hidden="true"
     />
   );
@@ -468,7 +468,7 @@ function FileIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
       aria-hidden="true"
     >
       <path d="M8 1H4C3.45 1 3 1.45 3 2V12C3 12.55 3.45 13 4 13H10C10.55 13 11 12.55 11 12V4L8 1Z" />

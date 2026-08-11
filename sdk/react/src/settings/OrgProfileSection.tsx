@@ -21,16 +21,16 @@ export function OrgProfileSection() {
     <section aria-labelledby="org-profile-heading">
       <h2
         id="org-profile-heading"
-        className="text-foreground mb-1 text-sm font-semibold"
+        className="stg:text-foreground stg:mb-1 stg:text-sm stg:font-semibold"
       >
         Organization Profile
       </h2>
-      <p className="text-muted-foreground mb-6 text-xs">
+      <p className="stg:text-muted-foreground stg:mb-6 stg:text-xs">
         Manage your organization&apos;s display name, description, and logo.
       </p>
 
       {!orgId ? (
-        <p className="text-muted-foreground py-4 text-center text-xs">
+        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
           Select an organization to view its profile.
         </p>
       ) : (

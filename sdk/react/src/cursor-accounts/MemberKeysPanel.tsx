@@ -141,11 +141,11 @@ export function MemberKeysPanel({
   };
 
   return (
-    <section className="space-y-2">
-      <h4 className="text-xs font-semibold text-foreground">Team coverage</h4>
+    <section className="stg:space-y-2">
+      <h4 className="stg:text-xs stg:font-semibold stg:text-foreground">Team coverage</h4>
 
       {keyViews.length === 0 && (
-        <p className="text-xs text-muted-foreground" role="status">
+        <p className="stg:text-xs stg:text-muted-foreground" role="status">
           No execution keys — this account is <strong>not routable</strong>.
           Add a member's user-scoped API key below.
         </p>
@@ -162,14 +162,14 @@ export function MemberKeysPanel({
       )}
 
       {actions.error && (
-        <p className="text-destructive text-xs" role="alert">
+        <p className="stg:text-destructive stg:text-xs" role="alert">
           {getUserMessage(actions.error)}
         </p>
       )}
 
-      <form className="flex flex-wrap items-end gap-2" onSubmit={submitNewKey}>
-        <label className="block min-w-56 flex-1 space-y-1">
-          <span className="text-[11px] font-medium text-muted-foreground">
+      <form className="stg:flex stg:flex-wrap stg:items-end stg:gap-2" onSubmit={submitNewKey}>
+        <label className="stg:block stg:min-w-56 stg:flex-1 stg:space-y-1">
+          <span className="stg:text-[11px] stg:font-medium stg:text-muted-foreground">
             User-scoped API key
           </span>
           <input
@@ -182,8 +182,8 @@ export function MemberKeysPanel({
             autoComplete="off"
           />
         </label>
-        <label className="block min-w-40 space-y-1">
-          <span className="text-[11px] font-medium text-muted-foreground">
+        <label className="stg:block stg:min-w-40 stg:space-y-1">
+          <span className="stg:text-[11px] stg:font-medium stg:text-muted-foreground">
             Label (optional)
           </span>
           <input
@@ -212,13 +212,13 @@ export function MemberKeysPanel({
       </form>
 
       {showImport && (
-        <form className="space-y-2 rounded-md border border-border bg-card p-3" onSubmit={submitImport}>
-          <label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
+        <form className="stg:space-y-2 stg:rounded-md stg:border stg:border-border stg:bg-card stg:p-3" onSubmit={submitImport}>
+          <label className="stg:block stg:space-y-1">
+            <span className="stg:text-[11px] stg:font-medium stg:text-muted-foreground">
               Bulk import — one user-scoped API key per line
             </span>
             <textarea
-              className={cn(INPUT_CLASSES, "min-h-24 font-mono")}
+              className={cn(INPUT_CLASSES, "stg:min-h-24 stg:font-mono")}
               value={importText}
               onChange={(e) => setImportText(e.target.value)}
               placeholder={"key_...\nkey_...\nkey_..."}
@@ -227,13 +227,13 @@ export function MemberKeysPanel({
               spellCheck={false}
             />
           </label>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="stg:text-[11px] stg:text-muted-foreground">
             Each key is verified against Cursor and bound to its owning team
             member, one at a time. Lines that fail stay in the box so you can
             fix and retry them. A roster sync runs automatically afterwards,
             so the coverage table reflects current team membership.
           </p>
-          <div className="flex items-center gap-2">
+          <div className="stg:flex stg:items-center stg:gap-2">
             <Button type="submit" size="sm" disabled={importKeyCount === 0 || isImporting}>
               {isImporting && importProgress
                 ? `Importing ${importProgress.done + 1} of ${importProgress.total}…`
@@ -259,12 +259,12 @@ export function MemberKeysPanel({
             <ul
               role="list"
               aria-label="Import results"
-              className="m-0 list-none space-y-0.5 p-0 text-[11px]"
+              className="stg:m-0 stg:list-none stg:space-y-0.5 stg:p-0 stg:text-[11px]"
             >
               {importResults.map((result) => (
                 <li
                   key={result.keyPreview}
-                  className={result.ok ? "text-muted-foreground" : "text-destructive"}
+                  className={result.ok ? "stg:text-muted-foreground" : "stg:text-destructive"}
                 >
                   {result.keyPreview}: {result.message}
                 </li>

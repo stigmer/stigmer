@@ -155,7 +155,7 @@ describe("MessageEntry attachment rendering", () => {
     );
 
     // Mint in flight: pulse placeholder, no image yet.
-    expect(container.querySelector(".animate-pulse")).toBeTruthy();
+    expect(container.querySelector(".stg\\:animate-pulse")).toBeTruthy();
     expect(container.querySelector("img")).toBeNull();
   });
 
@@ -177,7 +177,7 @@ describe("MessageEntry attachment rendering", () => {
     expect(screen.queryByRole("button", { name: /Preview|Download/ })).toBeNull();
     // The tile is STATIC — a pulse would promise bytes that a failed send
     // (the other no-executionId bubble) never delivers.
-    expect(container.querySelector(".animate-pulse")).toBeNull();
+    expect(container.querySelector(".stg\\:animate-pulse")).toBeNull();
   });
 
   it("degrades an image chip to the document treatment when the URL cannot be minted", () => {

@@ -34,7 +34,7 @@ export function DiffFileList({
   return (
     <nav
       aria-label="Changed files"
-      className={cn("flex flex-col overflow-auto", className)}
+      className={cn("stg:flex stg:flex-col stg:overflow-auto", className)}
     >
       {files.map((file) => (
         <button
@@ -43,15 +43,15 @@ export function DiffFileList({
           onClick={() => onSelect(file.path)}
           aria-current={file.path === selectedPath ? "true" : undefined}
           className={cn(
-            "flex items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+            "stg:flex stg:items-center stg:gap-2 stg:px-3 stg:py-1.5 stg:text-left stg:text-xs stg:transition-colors",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-inset",
             file.path === selectedPath
-              ? "bg-accent-hover text-foreground"
-              : "text-muted-foreground hover:bg-accent-hover hover:text-foreground",
+              ? "stg:bg-accent-hover stg:text-foreground"
+              : "stg:text-muted-foreground stg:hover:bg-accent-hover stg:hover:text-foreground",
           )}
         >
           <ChangeTypeBadge changeType={file.changeType} />
-          <span className="min-w-0 flex-1 truncate font-mono">{file.path}</span>
+          <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:font-mono">{file.path}</span>
           <DeltaCount additions={file.additions} deletions={file.deletions} />
         </button>
       ))}
@@ -71,14 +71,14 @@ function ChangeTypeBadge({
   const letter = changeType === "modified" ? "M" : changeType === "added" ? "A" : "D";
   const color =
     changeType === "modified"
-      ? "text-diff-hunk-header-fg"
+      ? "stg:text-diff-hunk-header-fg"
       : changeType === "added"
-        ? "text-diff-added-fg"
-        : "text-diff-removed-fg";
+        ? "stg:text-diff-added-fg"
+        : "stg:text-diff-removed-fg";
 
   return (
     <span
-      className={cn("shrink-0 font-mono text-[10px] font-bold", color)}
+      className={cn("stg:shrink-0 stg:font-mono stg:text-[10px] stg:font-bold", color)}
       aria-label={changeType}
     >
       {letter}
@@ -98,13 +98,13 @@ function DeltaCount({
   readonly deletions: number;
 }) {
   return (
-    <span className="shrink-0 font-mono text-[10px]">
+    <span className="stg:shrink-0 stg:font-mono stg:text-[10px]">
       {additions > 0 && (
-        <span className="text-diff-added-fg">+{additions}</span>
+        <span className="stg:text-diff-added-fg">+{additions}</span>
       )}
       {additions > 0 && deletions > 0 && " "}
       {deletions > 0 && (
-        <span className="text-diff-removed-fg">-{deletions}</span>
+        <span className="stg:text-diff-removed-fg">-{deletions}</span>
       )}
     </span>
   );

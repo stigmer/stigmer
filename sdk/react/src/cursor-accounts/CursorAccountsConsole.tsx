@@ -63,10 +63,10 @@ export function CursorAccountsConsole({ className }: CursorAccountsConsoleProps)
 
   if (list.isLoading) {
     return (
-      <div className={cn("space-y-2", className)} aria-busy="true">
-        <div className="h-4 w-40 animate-pulse rounded bg-muted-subtle" />
+      <div className={cn("stg:space-y-2", className)} aria-busy="true">
+        <div className="stg:h-4 stg:w-40 stg:animate-pulse stg:rounded stg:bg-muted-subtle" />
         {Array.from({ length: 3 }, (_, i) => (
-          <div key={i} className="h-10 animate-pulse rounded-lg bg-muted-subtle" />
+          <div key={i} className="stg:h-10 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
         ))}
       </div>
     );
@@ -79,7 +79,7 @@ export function CursorAccountsConsole({ className }: CursorAccountsConsoleProps)
       return <CursorAccountsAccessNotice className={className} />;
     }
     return (
-      <p className={cn("text-destructive text-xs", className)} role="alert">
+      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
         {getUserMessage(list.error)}
       </p>
     );
@@ -120,32 +120,32 @@ export function CursorAccountsConsole({ className }: CursorAccountsConsoleProps)
   const accounts = list.accounts?.accounts ?? [];
 
   return (
-    <div className={cn("space-y-3", className)}>
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold text-foreground">Cursor accounts</h3>
+    <div className={cn("stg:space-y-3", className)}>
+      <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
+        <h3 className="stg:text-sm stg:font-semibold stg:text-foreground">Cursor accounts</h3>
         <Button size="sm" onClick={() => setFlow({ phase: "create" })}>
           Add account
         </Button>
       </div>
 
-      <div className="rounded-lg border border-border bg-card">
+      <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card">
         <div
           aria-hidden="true"
-          className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-2 border-b border-border px-3 py-2 text-[11px] font-medium text-muted-foreground"
+          className="stg:grid stg:grid-cols-[2fr_1fr_1fr_1fr_1fr] stg:gap-2 stg:border-b stg:border-border stg:px-3 stg:py-2 stg:text-[11px] stg:font-medium stg:text-muted-foreground"
         >
           <span>Account</span>
           <span>Orgs</span>
           <span>Status</span>
           <span>Execution keys</span>
-          <span className="text-right">Last synced</span>
+          <span className="stg:text-right">Last synced</span>
         </div>
         {accounts.length === 0 ? (
-          <p className="px-3 py-2 text-xs text-muted-foreground">
+          <p className="stg:px-3 stg:py-2 stg:text-xs stg:text-muted-foreground">
             No Cursor accounts yet. Add one with its team Admin API key, then
             add member execution keys to make it routable.
           </p>
         ) : (
-          <ul role="list" aria-label="Cursor accounts" className="m-0 list-none p-0">
+          <ul role="list" aria-label="Cursor accounts" className="stg:m-0 stg:list-none stg:p-0">
             {accounts.map((summary) => (
               <AccountRow
                 key={summary.account?.accountId}
@@ -181,29 +181,29 @@ function AccountRow({
   if (!account) return null;
 
   return (
-    <li className="border-b border-border last:border-b-0">
+    <li className="stg:border-b stg:border-border stg:last:border-b-0">
       <button
         type="button"
         onClick={onOpen}
         className={cn(
-          "grid w-full grid-cols-[2fr_1fr_1fr_1fr_1fr] items-center gap-2 px-3 py-2 text-left text-xs",
-          "transition-colors hover:bg-accent",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          "stg:grid stg:w-full stg:grid-cols-[2fr_1fr_1fr_1fr_1fr] stg:items-center stg:gap-2 stg:px-3 stg:py-2 stg:text-left stg:text-xs",
+          "stg:transition-colors stg:hover:bg-accent",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
         )}
       >
-        <span className="min-w-0">
-          <span className="block truncate font-medium text-foreground">
+        <span className="stg:min-w-0">
+          <span className="stg:block stg:truncate stg:font-medium stg:text-foreground">
             {account.displayName}
           </span>
           {/* Account class is DERIVED from org_ids (DD-008): no org
               assignment means the account belongs to the shared pool. */}
           {account.orgIds.length === 0 && (
-            <span className="block text-[11px] text-muted-foreground">
+            <span className="stg:block stg:text-[11px] stg:text-muted-foreground">
               shared pool
             </span>
           )}
         </span>
-        <span className="text-muted-foreground">
+        <span className="stg:text-muted-foreground">
           {account.orgIds.length > 0 ? account.orgIds.length : "—"}
         </span>
         <span>
@@ -214,12 +214,12 @@ function AccountRow({
         </span>
         <span>
           {summary.enabledKeyCount > 0 ? (
-            <span className="text-muted-foreground">{summary.enabledKeyCount}</span>
+            <span className="stg:text-muted-foreground">{summary.enabledKeyCount}</span>
           ) : (
             <StateBadge tone="warn" label="Not routable" />
           )}
         </span>
-        <span className="text-right text-muted-foreground">
+        <span className="stg:text-right stg:text-muted-foreground">
           {formatSyncTime(summary.lastSyncedAt)}
         </span>
       </button>
@@ -303,17 +303,17 @@ function AccountDetail({
 
   if (detail.isLoading) {
     return (
-      <div className={cn("space-y-2", className)} aria-busy="true">
-        <div className="h-4 w-40 animate-pulse rounded bg-muted-subtle" />
-        <div className="h-24 animate-pulse rounded-lg bg-muted-subtle" />
+      <div className={cn("stg:space-y-2", className)} aria-busy="true">
+        <div className="stg:h-4 stg:w-40 stg:animate-pulse stg:rounded stg:bg-muted-subtle" />
+        <div className="stg:h-24 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
       </div>
     );
   }
 
   if (detail.error || !detail.view?.account) {
     return (
-      <div className={cn("space-y-2", className)}>
-        <p className="text-destructive text-xs" role="alert">
+      <div className={cn("stg:space-y-2", className)}>
+        <p className="stg:text-destructive stg:text-xs" role="alert">
           {detail.error ? getUserMessage(detail.error) : "Account not found."}
         </p>
         <Button size="sm" variant="outline" onClick={onBack}>
@@ -364,13 +364,13 @@ function AccountDetail({
   }
 
   return (
-    <div className={cn("space-y-4", className)}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className={cn("stg:space-y-4", className)}>
+      <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-2">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">
+          <h3 className="stg:text-sm stg:font-semibold stg:text-foreground">
             {account.displayName}
           </h3>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="stg:text-[11px] stg:text-muted-foreground">
             {account.orgIds.length > 0
               ? `Dedicated to ${account.orgIds.length} org(s): ${account.orgIds.join(", ")}`
               : "Shared pool — serves every org with no dedicated account"}
@@ -389,7 +389,7 @@ function AccountDetail({
               : ""}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="stg:flex stg:gap-2">
           <Button size="sm" variant="outline" onClick={onBack}>
             Back
           </Button>
@@ -425,17 +425,17 @@ function AccountDetail({
       </div>
 
       {syncError && (
-        <p className="text-destructive text-xs" role="alert">
+        <p className="stg:text-destructive stg:text-xs" role="alert">
           {getUserMessage(syncError)}
         </p>
       )}
       {deleteError && (
-        <p className="text-destructive text-xs" role="alert">
+        <p className="stg:text-destructive stg:text-xs" role="alert">
           {getUserMessage(deleteError)}
         </p>
       )}
       {view.snapshot?.syncError && (
-        <p className="text-xs text-muted-foreground" role="status">
+        <p className="stg:text-xs stg:text-muted-foreground" role="status">
           Last sync was partial: {view.snapshot.syncError}
         </p>
       )}

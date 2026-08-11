@@ -85,7 +85,7 @@ describe("ResizableSplit", () => {
         />,
       );
       const root = container.firstElementChild as HTMLElement;
-      expect(root.className).toContain("@container/resizable-split");
+      expect(root.className).toContain("stg:@container/resizable-split");
 
       // Without a collapse to decide, the container marker must be absent —
       // `container-type` imposes layout containment (re-parents fixed
@@ -111,8 +111,8 @@ describe("ResizableSplit", () => {
       );
       const pane = screen.getByTestId("primary").parentElement as HTMLElement;
       const separator = screen.getByRole("separator");
-      expect(pane.className).toContain("@max-3xl/resizable-split:hidden");
-      expect(separator.className).toContain("@max-3xl/resizable-split:hidden");
+      expect(pane.className).toContain("stg:@max-3xl/resizable-split:hidden");
+      expect(separator.className).toContain("stg:@max-3xl/resizable-split:hidden");
       const sibling = screen.getByTestId("secondary")
         .parentElement as HTMLElement;
       expect(sibling.className).not.toContain("@max-3xl");
@@ -128,7 +128,7 @@ describe("ResizableSplit", () => {
     it("hides the collapsed pane and the separator; the sibling flexes", () => {
       renderSplit({ collapsedPane: "secondary" });
       expect(paneOf("secondary").className).toContain("hidden");
-      expect(paneOf("primary").className).toContain("flex-1");
+      expect(paneOf("primary").className).toContain("stg:flex-1");
       const separator = screen.getByRole("separator", { hidden: true });
       expect(separator.className).toContain("hidden");
       expect(separator.getAttribute("tabindex")).toBe("-1");
@@ -138,7 +138,7 @@ describe("ResizableSplit", () => {
       renderSplit({ resizablePane: "primary", collapsedPane: "secondary" });
       // Primary is normally pixel-sized; with its sibling collapsed it flexes.
       expect(paneOf("primary").style.width).toBe("");
-      expect(paneOf("primary").className).toContain("flex-1");
+      expect(paneOf("primary").className).toContain("stg:flex-1");
     });
 
     it("keeps both children mounted (same DOM nodes) across a collapse toggle", () => {

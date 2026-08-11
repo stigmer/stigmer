@@ -42,21 +42,21 @@ export function LowBalanceBanner({
     <div
       role="alert"
       className={cn(
-        "flex items-start gap-2.5 rounded-lg border px-3.5 py-3 text-xs",
+        "stg:flex stg:items-start stg:gap-2.5 stg:rounded-lg stg:border stg:px-3.5 stg:py-3 stg:text-xs",
         isZeroOrNegative
-          ? "border-destructive/30 bg-destructive-subtle text-destructive"
-          : "border-warning/30 bg-warning/5 text-warning-foreground",
+          ? "stg:border-destructive/30 stg:bg-destructive-subtle stg:text-destructive"
+          : "stg:border-warning/30 stg:bg-warning/5 stg:text-warning-foreground",
         className,
       )}
     >
-      <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+      <AlertTriangle className="stg:mt-0.5 stg:size-3.5 stg:shrink-0" aria-hidden="true" />
       <div>
-        <p className="font-medium">
+        <p className="stg:font-medium">
           {isZeroOrNegative
             ? "Credit balance exhausted"
             : "Low credit balance"}
         </p>
-        <p className="mt-0.5 opacity-80">
+        <p className="stg:mt-0.5 stg:opacity-80">
           {isZeroOrNegative
             ? "Your credit balance is zero. Purchase credits to continue running agent executions."
             : `Your balance (${formatCreditBalance(availableMicros)}) is below the warning threshold. Consider purchasing additional credits.`}

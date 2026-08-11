@@ -78,11 +78,11 @@ export function ThreadCardShell({
         // border-prominent (not border): a transparent card needs a line the
         // eye actually catches — the default border token is white at 14%
         // opacity, which vanishes on the dark thread surface.
-        "rounded-lg border border-border-prominent overflow-hidden",
-        accent === "warning" && "border-l-2 border-l-warning",
-        accent === "destructive" && "border-l-2 border-l-destructive",
+        "stg:rounded-lg stg:border stg:border-border-prominent stg:overflow-hidden",
+        accent === "warning" && "stg:border-l-2 stg:border-l-warning",
+        accent === "destructive" && "stg:border-l-2 stg:border-l-destructive",
       )
-    : "border-b border-border-muted last:border-b-0";
+    : "stg:border-b stg:border-border-muted stg:last:border-b-0";
 
   return (
     <div ref={ref} data-cursor-target={cursorTarget} className={cn(chrome, className)}>
@@ -118,13 +118,13 @@ export interface ThreadCardHeaderProps {
   readonly children: ReactNode;
 }
 
-const HEADER_LAYOUT = "flex w-full items-center gap-2 px-2.5 py-1.5 text-xs";
+const HEADER_LAYOUT = "stg:flex stg:w-full stg:items-center stg:gap-2 stg:px-2.5 stg:py-1.5 stg:text-xs";
 
 const HEADER_INTERACTIVE = cn(
-  "cursor-pointer text-left transition-colors",
-  "hover:bg-muted-subtle",
+  "stg:cursor-pointer stg:text-left stg:transition-colors",
+  "stg:hover:bg-muted-subtle",
   // ring-inset so the card's overflow-hidden does not clip the focus ring.
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
 );
 
 /** The thread card's one-line header. See the module doc for the contract. */
@@ -157,7 +157,7 @@ export function ThreadCardHeader({
       className={cn(
         HEADER_LAYOUT,
         HEADER_INTERACTIVE,
-        gesture.expanded && "bg-muted-faint",
+        gesture.expanded && "stg:bg-muted-faint",
       )}
     >
       {children}
@@ -182,7 +182,7 @@ export interface ThreadCardBodyProps {
 /** The thread card's body padding contract. */
 export function ThreadCardBody({ id, cursorTarget, children }: ThreadCardBodyProps) {
   return (
-    <div id={id} data-cursor-target={cursorTarget} className="px-2.5 pb-2.5 pt-1">
+    <div id={id} data-cursor-target={cursorTarget} className="stg:px-2.5 stg:pb-2.5 stg:pt-1">
       {children}
     </div>
   );

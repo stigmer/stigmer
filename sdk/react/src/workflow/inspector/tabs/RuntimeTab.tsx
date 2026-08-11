@@ -43,7 +43,7 @@ export const RuntimeTab = memo(function RuntimeTab({
   );
 
   return (
-    <div className="flex flex-col gap-4 px-3 py-3">
+    <div className="stg:flex stg:flex-col stg:gap-4 stg:px-3 stg:py-3">
       {kindString === "agent_call" && (
         <AgentCallRuntimeSection config={config} onChange={handleChange} />
       )}
@@ -65,7 +65,7 @@ export const RuntimeTab = memo(function RuntimeTab({
       )}
 
       {!isAi && !isInvocation && kindString !== "fork" && kindString !== "for_each" && (
-        <p className="text-xs text-[var(--stgm-muted-foreground,#737373)]">
+        <p className="stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">
           No runtime settings available for this task kind.
         </p>
       )}
@@ -108,7 +108,7 @@ function AgentCallRuntimeSection({
   );
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="stg:flex stg:flex-col stg:gap-3">
       <SectionLabel>Execution</SectionLabel>
 
       <FieldRow label="Model" hint="Override agent default model">
@@ -157,7 +157,7 @@ function AgentRuntimeSection({
   );
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="stg:flex stg:flex-col stg:gap-3">
       <SectionLabel>Execution</SectionLabel>
 
       <FieldRow label="Timeout" hint="Seconds before the task is cancelled">
@@ -203,7 +203,7 @@ function TimeoutSection({
   const currentValue = config[fieldName];
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="stg:flex stg:flex-col stg:gap-3">
       <SectionLabel>Execution</SectionLabel>
       <FieldRow label="Timeout" hint="Seconds before the request is cancelled">
         <input
@@ -233,20 +233,20 @@ function ForkRuntimeSection({
   const compete = config.compete === true;
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="stg:flex stg:flex-col stg:gap-3">
       <SectionLabel>Join policy</SectionLabel>
-      <label className="flex cursor-pointer items-center gap-2">
+      <label className="stg:flex stg:cursor-pointer stg:items-center stg:gap-2">
         <input
           type="checkbox"
           checked={compete}
           onChange={(e) => onChange("compete", e.target.checked || undefined)}
-          className="h-4 w-4 rounded border-[var(--stgm-border,#d4d4d8)] text-[var(--stgm-primary,#6366f1)]"
+          className="stg:h-4 stg:w-4 stg:rounded stg:border-[var(--stgm-border,#d4d4d8)] stg:text-[var(--stgm-primary,#6366f1)]"
         />
-        <span className="text-xs text-[var(--stgm-foreground,#1a1a2e)]">
+        <span className="stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)]">
           Compete mode (first branch wins)
         </span>
       </label>
-      <p className="text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+      <p className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
         {compete
           ? "The join resumes when any branch completes. Other branches are cancelled."
           : "The join waits for all branches to complete before continuing."}
@@ -267,7 +267,7 @@ function ForEachRuntimeSection({
   onChange: (field: string, value: unknown) => void;
 }) {
   return (
-    <section className="flex flex-col gap-3">
+    <section className="stg:flex stg:flex-col stg:gap-3">
       <SectionLabel>Iteration</SectionLabel>
       <FieldRow label="Collection" hint="Expression that produces the items to iterate">
         <input
@@ -287,11 +287,11 @@ function ForEachRuntimeSection({
 // ---------------------------------------------------------------------------
 
 const inputClass =
-  "w-full rounded-md border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 py-1.5 text-xs text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]";
+  "stg:w-full stg:rounded-md stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-2 stg:py-1.5 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)] stg:placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h4 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--stgm-muted-foreground,#737373)]">
+    <h4 className="stg:text-[11px] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-[var(--stgm-muted-foreground,#737373)]">
       {children}
     </h4>
   );
@@ -307,12 +307,12 @@ function FieldRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-[11px] font-medium text-[var(--stgm-foreground,#1a1a2e)]">
+    <div className="stg:flex stg:flex-col stg:gap-1">
+      <label className="stg:text-[11px] stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]">
         {label}
       </label>
       {hint && (
-        <p className="text-[10px] leading-tight text-[var(--stgm-muted-foreground,#737373)]">
+        <p className="stg:text-[10px] stg:leading-tight stg:text-[var(--stgm-muted-foreground,#737373)]">
           {hint}
         </p>
       )}

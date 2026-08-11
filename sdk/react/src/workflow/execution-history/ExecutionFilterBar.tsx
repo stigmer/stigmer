@@ -176,11 +176,11 @@ export const ExecutionFilterBar = memo(function ExecutionFilterBar({
     <div
       role="toolbar"
       aria-label="Execution filters"
-      className={cn("flex flex-col gap-2", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-2", className)}
     >
       {/* Row 1: Phase chips */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="mr-1 text-[11px] font-medium text-[var(--stgm-muted-foreground,#737373)]">
+      <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-1.5">
+        <span className="stg:mr-1 stg:text-[11px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)]">
           Status
         </span>
         {PHASE_CHIPS.map(({ phase, label }) => (
@@ -196,7 +196,7 @@ export const ExecutionFilterBar = memo(function ExecutionFilterBar({
           <button
             type="button"
             onClick={() => setShowMore(true)}
-            className="ml-2 text-[11px] font-medium text-[var(--stgm-primary,#6366f1)] hover:underline"
+            className="stg:ml-2 stg:text-[11px] stg:font-medium stg:text-[var(--stgm-primary,#6366f1)] stg:hover:underline"
           >
             More filters
           </button>
@@ -206,7 +206,7 @@ export const ExecutionFilterBar = memo(function ExecutionFilterBar({
           <button
             type="button"
             onClick={clearAll}
-            className="ml-auto text-[11px] font-medium text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-foreground,#1a1a2e)]"
+            className="stg:ml-auto stg:text-[11px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:text-[var(--stgm-foreground,#1a1a2e)]"
           >
             Clear all ({activeCount})
           </button>
@@ -215,7 +215,7 @@ export const ExecutionFilterBar = memo(function ExecutionFilterBar({
 
       {/* Row 2: Additional filters (shown on "More filters") */}
       {showMore && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-x-4 stg:gap-y-2">
           <FilterGroup label="Duration">
             {DURATION_PRESETS.map((preset, idx) => (
               <FilterChip
@@ -268,11 +268,11 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={isActive}
       className={cn(
-        "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
-        "border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--stgm-ring,#6366f1)]",
+        "stg:rounded-full stg:px-2.5 stg:py-0.5 stg:text-[11px] stg:font-medium stg:transition-colors",
+        "stg:border stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-[var(--stgm-ring,#6366f1)]",
         isActive
-          ? "border-transparent bg-[var(--stgm-primary,#6366f1)] text-[var(--stgm-primary-foreground,#fff)]"
-          : "border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] text-[var(--stgm-foreground,#1a1a2e)] hover:bg-[var(--stgm-accent,#f5f5f5)]",
+          ? "stg:border-transparent stg:bg-[var(--stgm-primary,#6366f1)] stg:text-[var(--stgm-primary-foreground,#fff)]"
+          : "stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:text-[var(--stgm-foreground,#1a1a2e)] stg:hover:bg-[var(--stgm-accent,#f5f5f5)]",
       )}
     >
       {label}
@@ -288,8 +288,8 @@ function FilterGroup({
   readonly children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="mr-0.5 text-[11px] font-medium text-[var(--stgm-muted-foreground,#737373)]">
+    <div className="stg:flex stg:items-center stg:gap-1.5">
+      <span className="stg:mr-0.5 stg:text-[11px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)]">
         {label}
       </span>
       {children}

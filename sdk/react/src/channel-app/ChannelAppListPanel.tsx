@@ -60,12 +60,12 @@ export function ChannelAppListPanel({
   if (isLoading) {
     return (
       <div
-        className={cn("space-y-2", className)}
+        className={cn("stg:space-y-2", className)}
         aria-busy="true"
         aria-label="Loading channel apps"
       >
         {Array.from({ length: 2 }, (_, i) => (
-          <div key={i} className="bg-muted-subtle h-14 animate-pulse rounded-lg" />
+          <div key={i} className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg" />
         ))}
       </div>
     );
@@ -73,7 +73,7 @@ export function ChannelAppListPanel({
 
   if (error) {
     return (
-      <p className={cn("text-destructive text-xs", className)} role="alert">
+      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
         {getUserMessage(error)}
       </p>
     );
@@ -83,7 +83,7 @@ export function ChannelAppListPanel({
     return (
       <p
         className={cn(
-          "text-muted-foreground py-4 text-center text-xs",
+          "stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs",
           className,
         )}
       >
@@ -94,7 +94,7 @@ export function ChannelAppListPanel({
 
   return (
     <div
-      className={cn("space-y-2", className)}
+      className={cn("stg:space-y-2", className)}
       role="list"
       aria-label="Channel apps"
     >
@@ -137,28 +137,28 @@ function ChannelAppRow({
     <div
       role="listitem"
       className={cn(
-        "border-border bg-card flex items-center gap-3 rounded-lg border px-3 py-2.5",
+        "stg:border-border stg:bg-card stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:px-3 stg:py-2.5",
       )}
     >
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
-          <span className="truncate text-xs font-medium text-foreground">
+      <div className="stg:min-w-0 stg:flex-1">
+        <div className="stg:flex stg:items-baseline stg:gap-2">
+          <span className="stg:truncate stg:text-xs stg:font-medium stg:text-foreground">
             {name}
           </span>
           {/* Fall back to the raw oneof case for providers this UI
               doesn't know yet — honest, and never an empty label. */}
-          <span className="text-[0.65rem] text-muted-foreground">
+          <span className="stg:text-[0.65rem] stg:text-muted-foreground">
             {provider?.label ?? providerCase ?? ""}
           </span>
         </div>
-        <div className="flex items-baseline gap-2">
+        <div className="stg:flex stg:items-baseline stg:gap-2">
           {providerAppId && (
-            <span className="truncate font-mono text-[0.65rem] text-muted-foreground">
+            <span className="stg:truncate stg:font-mono stg:text-[0.65rem] stg:text-muted-foreground">
               {providerAppId}
             </span>
           )}
           {createdAt && (
-            <span className="shrink-0 text-[0.65rem] text-muted-foreground">
+            <span className="stg:shrink-0 stg:text-[0.65rem] stg:text-muted-foreground">
               {timestampDate(createdAt).toLocaleDateString()}
             </span>
           )}
@@ -171,8 +171,8 @@ function ChannelAppRow({
           onClick={onEdit}
           aria-label={`Edit ${name}`}
           className={cn(
-            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-            "shrink-0 rounded-md p-1.5 transition-colors",
+            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+            "stg:shrink-0 stg:rounded-md stg:p-1.5 stg:transition-colors",
           )}
         >
           <PencilIcon />

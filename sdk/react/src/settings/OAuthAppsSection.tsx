@@ -43,10 +43,10 @@ export function OAuthAppsSection() {
 
   return (
     <section aria-labelledby="oauth-apps-heading">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
         <h2
           id="oauth-apps-heading"
-          className="text-foreground text-sm font-semibold"
+          className="stg:text-foreground stg:text-sm stg:font-semibold"
         >
           OAuth Apps
         </h2>
@@ -55,13 +55,13 @@ export function OAuthAppsSection() {
           <button
             type="button"
             onClick={() => setFlow({ phase: "creating" })}
-            className="text-primary hover:text-foreground text-xs font-medium transition-colors"
+            className="stg:text-primary stg:hover:text-foreground stg:text-xs stg:font-medium stg:transition-colors"
           >
             + New OAuth app
           </button>
         )}
       </div>
-      <p className="text-muted-foreground mb-4 text-xs">
+      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
         OAuth app credentials configured for your organization. Create new
         apps here or bring your own from an MCP server&apos;s detail page.
       </p>
@@ -72,7 +72,7 @@ export function OAuthAppsSection() {
           OAuth requires the cloud platform.
         </CloudFeatureNotice>
       ) : flow.phase === "creating" ? (
-        <div className="border-border bg-card rounded-lg border p-4">
+        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
           <CreateOAuthAppForm
             org={org}
             onCreated={handleCreated}
@@ -80,7 +80,7 @@ export function OAuthAppsSection() {
           />
         </div>
       ) : flow.phase === "editing" ? (
-        <div className="border-border bg-card rounded-lg border p-4">
+        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
           <OAuthAppDetailPanel
             oauthApp={flow.oauthApp}
             onUpdated={handleUpdated}

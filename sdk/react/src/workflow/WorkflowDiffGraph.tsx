@@ -123,15 +123,15 @@ function WorkflowDiffGraphInner({
 
   if (error) {
     return (
-      <div className={cn("flex h-full flex-col items-center justify-center gap-2 px-6 text-center", className)}>
-        <p className="text-sm text-[var(--stgm-muted-foreground,#737373)]">{error}</p>
+      <div className={cn("stg:flex stg:h-full stg:flex-col stg:items-center stg:justify-center stg:gap-2 stg:px-6 stg:text-center", className)}>
+        <p className="stg:text-sm stg:text-[var(--stgm-muted-foreground,#737373)]">{error}</p>
       </div>
     );
   }
 
   if (nodes.length === 0) {
     return (
-      <div className={cn("flex h-full items-center justify-center text-sm text-[var(--stgm-muted-foreground,#737373)]", className)}>
+      <div className={cn("stg:flex stg:h-full stg:items-center stg:justify-center stg:text-sm stg:text-[var(--stgm-muted-foreground,#737373)]", className)}>
         No changes to display
       </div>
     );
@@ -139,9 +139,9 @@ function WorkflowDiffGraphInner({
 
   return (
     <WorkflowGraphModeProvider mode="diff">
-      <div className={cn("relative h-full w-full", className)}>
+      <div className={cn("stg:relative stg:h-full stg:w-full", className)}>
         {diff && (
-          <div className="absolute left-3 top-3 z-50">
+          <div className="stg:absolute stg:left-3 stg:top-3 stg:z-50">
             <DiffSummaryBar diff={diff} />
           </div>
         )}

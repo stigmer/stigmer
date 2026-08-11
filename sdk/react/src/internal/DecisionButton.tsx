@@ -39,12 +39,12 @@ export interface DecisionButtonProps {
 }
 
 const BASE = cn(
-  "inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5",
-  "text-xs font-medium transition-colors",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+  "stg:inline-flex stg:items-center stg:justify-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5",
+  "stg:text-xs stg:font-medium stg:transition-colors",
+  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-2",
   // Disabled dimming is ELEMENT opacity (allowed), never a `bg-token/NN` opacity
   // modifier — each preset keeps full control of the token colors themselves.
-  "disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none",
+  "stg:disabled:cursor-not-allowed stg:disabled:opacity-50 stg:disabled:pointer-events-none",
 );
 
 // Quiet, Cursor-grade, token-only.
@@ -53,17 +53,17 @@ const VARIANT: Record<DecisionVariant, string> = {
   // and border against the ghost actions — NOT by hue — so the hierarchy holds
   // without color being the only channel (a11y).
   primary:
-    "border border-border bg-accent text-accent-foreground hover:bg-accent-hover",
+    "stg:border stg:border-border stg:bg-accent stg:text-accent-foreground stg:hover:bg-accent-hover",
   // The canonical SDK ghost: no fill at rest, neutral wash on hover.
-  ghost: "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
+  ghost: "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
   // Quiet at rest; the destructive cue is revealed on hover AND keyboard focus
   // (parity for keyboard users — not hover-only). A persistent red button is
   // unnecessary: rejecting is the safe action, and a destructive tool gate is
   // already flagged by the card's accent.
   danger: cn(
-    "text-muted-foreground",
-    "hover:bg-destructive-subtle hover:text-destructive",
-    "focus-visible:bg-destructive-subtle focus-visible:text-destructive",
+    "stg:text-muted-foreground",
+    "stg:hover:bg-destructive-subtle stg:hover:text-destructive",
+    "stg:focus-visible:bg-destructive-subtle stg:focus-visible:text-destructive",
   ),
 };
 
@@ -119,7 +119,7 @@ function SpinnerIcon() {
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />

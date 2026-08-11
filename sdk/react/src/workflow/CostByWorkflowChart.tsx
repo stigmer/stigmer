@@ -52,13 +52,13 @@ export const CostByWorkflowChart = memo(function CostByWorkflowChart({
 
   if (isLoading) {
     return (
-      <div className={cn("space-y-3", className)} aria-busy="true">
-        <div className="h-4 w-40 animate-pulse rounded bg-muted" />
+      <div className={cn("stg:space-y-3", className)} aria-busy="true">
+        <div className="stg:h-4 stg:w-40 stg:animate-pulse stg:rounded stg:bg-muted" />
         {Array.from({ length: 4 }, (_, i) => (
-          <div key={i} className="space-y-1">
-            <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+          <div key={i} className="stg:space-y-1">
+            <div className="stg:h-3 stg:w-24 stg:animate-pulse stg:rounded stg:bg-muted" />
             <div
-              className="h-6 animate-pulse rounded bg-muted/50"
+              className="stg:h-6 stg:animate-pulse stg:rounded stg:bg-muted/50"
               style={{ width: `${80 - i * 15}%` }}
             />
           </div>
@@ -69,11 +69,11 @@ export const CostByWorkflowChart = memo(function CostByWorkflowChart({
 
   if (sorted.length === 0) {
     return (
-      <div className={cn("space-y-3", className)}>
-        <h3 className="text-sm font-semibold text-foreground">
+      <div className={cn("stg:space-y-3", className)}>
+        <h3 className="stg:text-sm stg:font-semibold stg:text-foreground">
           Cost by Workflow
         </h3>
-        <p className="py-6 text-center text-xs text-muted-foreground">
+        <p className="stg:py-6 stg:text-center stg:text-xs stg:text-muted-foreground">
           No cost data available
         </p>
       </div>
@@ -81,33 +81,33 @@ export const CostByWorkflowChart = memo(function CostByWorkflowChart({
   }
 
   return (
-    <div className={cn("space-y-3", className)}>
-      <h3 className="text-sm font-semibold text-foreground">
+    <div className={cn("stg:space-y-3", className)}>
+      <h3 className="stg:text-sm stg:font-semibold stg:text-foreground">
         Cost by Workflow
       </h3>
-      <div className="space-y-2.5" role="list" aria-label="Cost by workflow">
+      <div className="stg:space-y-2.5" role="list" aria-label="Cost by workflow">
         {sorted.map((breakdown, i) => {
           const pct = maxCost > 0 ? (breakdown.totalCostUsd / maxCost) * 100 : 0;
           const color = BAR_COLORS[i % BAR_COLORS.length];
 
           return (
             <div key={breakdown.workflowSlug} role="listitem">
-              <div className="mb-0.5 flex items-baseline justify-between gap-2">
-                <span className="truncate text-xs font-medium text-foreground">
+              <div className="stg:mb-0.5 stg:flex stg:items-baseline stg:justify-between stg:gap-2">
+                <span className="stg:truncate stg:text-xs stg:font-medium stg:text-foreground">
                   {breakdown.workflowName || breakdown.workflowSlug}
                 </span>
-                <span className="flex shrink-0 items-baseline gap-2">
-                  <span className="text-xs font-medium tabular-nums text-foreground">
+                <span className="stg:flex stg:shrink-0 stg:items-baseline stg:gap-2">
+                  <span className="stg:text-xs stg:font-medium stg:tabular-nums stg:text-foreground">
                     {formatCost(breakdown.totalCostUsd)}
                   </span>
-                  <span className="text-xs tabular-nums text-muted-foreground">
+                  <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
                     {breakdown.executionCount} runs
                   </span>
                 </span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-muted">
+              <div className="stg:h-2 stg:overflow-hidden stg:rounded-full stg:bg-muted">
                 <div
-                  className="h-full rounded-full transition-all duration-500"
+                  className="stg:h-full stg:rounded-full stg:transition-all stg:duration-500"
                   style={{ width: `${pct}%`, backgroundColor: color }}
                 />
               </div>

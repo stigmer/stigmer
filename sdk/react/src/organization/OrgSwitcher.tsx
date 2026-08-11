@@ -104,15 +104,15 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
 
   if (error) {
     return (
-      <div className={cn("flex items-center gap-2 px-2 py-1.5", className)}>
-        <AlertCircle className="text-destructive size-4 shrink-0" />
-        <span className="text-destructive truncate text-xs">{error}</span>
+      <div className={cn("stg:flex stg:items-center stg:gap-2 stg:px-2 stg:py-1.5", className)}>
+        <AlertCircle className="stg:text-destructive stg:size-4 stg:shrink-0" />
+        <span className="stg:text-destructive stg:truncate stg:text-xs">{error}</span>
         <button
           onClick={retry}
-          className="text-sidebar-muted-foreground hover:text-sidebar-foreground shrink-0 rounded p-0.5 transition-colors"
+          className="stg:text-sidebar-muted-foreground stg:hover:text-sidebar-foreground stg:shrink-0 stg:rounded stg:p-0.5 stg:transition-colors"
           aria-label="Retry loading organizations"
         >
-          <RefreshCw className="size-3" />
+          <RefreshCw className="stg:size-3" />
         </button>
       </div>
     );
@@ -127,22 +127,22 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
         <MenuTrigger
           aria-label="Organization menu"
           className={cn(
-            "hover:bg-sidebar-accent flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors focus:outline-none",
+            "stg:hover:bg-sidebar-accent stg:flex stg:w-full stg:cursor-pointer stg:items-center stg:gap-2 stg:rounded-lg stg:px-2 stg:py-1.5 stg:text-sm stg:transition-colors stg:focus:outline-none",
             className,
           )}
         >
-          <TriggerIcon className="text-sidebar-muted-foreground mt-0.5 size-4 shrink-0 self-start" />
+          <TriggerIcon className="stg:text-sidebar-muted-foreground stg:mt-0.5 stg:size-4 stg:shrink-0 stg:self-start" />
           {hasOrgs ? (
             <OrgLabel
               org={activeOrg}
-              slugClassName="text-sidebar-muted-foreground"
+              slugClassName="stg:text-sidebar-muted-foreground"
             />
           ) : (
-            <span className="text-sidebar-muted-foreground truncate">
+            <span className="stg:text-sidebar-muted-foreground stg:truncate">
               No organizations
             </span>
           )}
-          <ChevronsUpDown className="text-sidebar-muted-foreground ml-auto mt-0.5 size-3.5 shrink-0 self-start" />
+          <ChevronsUpDown className="stg:text-sidebar-muted-foreground stg:ml-auto stg:mt-0.5 stg:size-3.5 stg:shrink-0 stg:self-start" />
         </MenuTrigger>
 
         <MenuContent align="start" side="bottom" sideOffset={4}>
@@ -155,9 +155,9 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
                 <MenuRadioItem
                   key={org.metadata?.slug}
                   value={org.metadata?.slug ?? ""}
-                  className="items-start"
+                  className="stg:items-start"
                 >
-                  <User className="mt-0.5 size-3.5 shrink-0" />
+                  <User className="stg:mt-0.5 stg:size-3.5 stg:shrink-0" />
                   <OrgLabel org={org} />
                 </MenuRadioItem>
               ))}
@@ -168,9 +168,9 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
                 <MenuRadioItem
                   key={org.metadata?.slug}
                   value={org.metadata?.slug ?? ""}
-                  className="items-start"
+                  className="stg:items-start"
                 >
-                  <Building2 className="mt-0.5 size-3.5 shrink-0" />
+                  <Building2 className="stg:mt-0.5 stg:size-3.5 stg:shrink-0" />
                   <OrgLabel org={org} />
                 </MenuRadioItem>
               ))}
@@ -180,7 +180,7 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
           {hasOrgs && <MenuSeparator />}
 
           <MenuItem onClick={() => setCreateOpen(true)}>
-            <Plus className="size-4" />
+            <Plus className="stg:size-4" />
             Create organization
           </MenuItem>
         </MenuContent>
@@ -193,26 +193,26 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
         <DialogPrimitive.Portal container={portalContainer}>
           <DialogPrimitive.Backdrop
             className={cn(
-              "fixed inset-0 z-50 bg-black/50",
-              "data-open:animate-in data-open:fade-in-0",
-              "data-closed:animate-out data-closed:fade-out-0",
-              "duration-150",
+              "stg:fixed stg:inset-0 stg:z-50 stg:bg-black/50",
+              "stg:data-open:animate-in stg:data-open:fade-in-0",
+              "stg:data-closed:animate-out stg:data-closed:fade-out-0",
+              "stg:duration-150",
             )}
           />
           {/* eslint-disable stigmer/no-main-tokens-in-sidebar -- The entire dialog is portaled outside the sidebar; main-area tokens are correct per DD-005. */}
           <DialogPrimitive.Popup
             className={cn(
-              "bg-background text-foreground ring-border/20",
-              "fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg p-6 shadow-lg ring-1 outline-none",
-              "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
-              "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-              "duration-150",
+              "stg:bg-background stg:text-foreground stg:ring-border/20",
+              "stg:fixed stg:top-1/2 stg:left-1/2 stg:z-50 stg:w-full stg:max-w-md stg:-translate-x-1/2 stg:-translate-y-1/2 stg:rounded-lg stg:p-6 stg:shadow-lg stg:ring-1 stg:outline-none",
+              "stg:data-open:animate-in stg:data-open:fade-in-0 stg:data-open:zoom-in-95",
+              "stg:data-closed:animate-out stg:data-closed:fade-out-0 stg:data-closed:zoom-out-95",
+              "stg:duration-150",
             )}
           >
-            <DialogPrimitive.Title className="text-foreground text-sm font-semibold">
+            <DialogPrimitive.Title className="stg:text-foreground stg:text-sm stg:font-semibold">
               Create organization
             </DialogPrimitive.Title>
-            <DialogPrimitive.Description className="text-muted-foreground mt-1 mb-4 text-xs">
+            <DialogPrimitive.Description className="stg:text-muted-foreground stg:mt-1 stg:mb-4 stg:text-xs">
               Organizations are tenancy boundaries that own agents,
               environments, and other resources.
             </DialogPrimitive.Description>
@@ -248,16 +248,16 @@ function OrgLabel({
   const slug = org.metadata?.slug;
 
   return (
-    <span className="min-w-0 flex-1">
-      <span className="block truncate text-sm font-medium leading-tight">
+    <span className="stg:min-w-0 stg:flex-1">
+      <span className="stg:block stg:truncate stg:text-sm stg:font-medium stg:leading-tight">
         {name}
       </span>
       {slug && (
         <span
           className={cn(
-            "block truncate text-xs leading-tight",
+            "stg:block stg:truncate stg:text-xs stg:leading-tight",
             // eslint-disable-next-line stigmer/no-main-tokens-in-sidebar -- OrgLabel renders inside portaled dropdown content (popover context)
-            slugClassName ?? "text-muted-foreground",
+            slugClassName ?? "stg:text-muted-foreground",
           )}
         >
           {slug}
@@ -269,9 +269,9 @@ function OrgLabel({
 
 function OrgSwitcherSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("flex items-center gap-2 px-2 py-1.5", className)}>
-      <div className="bg-sidebar-muted size-4 animate-pulse rounded" />
-      <div className="bg-sidebar-muted h-4 w-24 animate-pulse rounded" />
+    <div className={cn("stg:flex stg:items-center stg:gap-2 stg:px-2 stg:py-1.5", className)}>
+      <div className="stg:bg-sidebar-muted stg:size-4 stg:animate-pulse stg:rounded" />
+      <div className="stg:bg-sidebar-muted stg:h-4 stg:w-24 stg:animate-pulse stg:rounded" />
     </div>
   );
 }

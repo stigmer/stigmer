@@ -288,8 +288,8 @@ export function VisibilitySelector({
         aria-label={ariaLabel}
         aria-disabled={effectivelyDisabled || undefined}
         className={cn(
-          "flex flex-col gap-0.5 rounded-md border border-border p-1",
-          effectivelyDisabled && "pointer-events-none opacity-50",
+          "stg:flex stg:flex-col stg:gap-0.5 stg:rounded-md stg:border stg:border-border stg:p-1",
+          effectivelyDisabled && "stg:pointer-events-none stg:opacity-50",
           className,
         )}
       >
@@ -313,19 +313,19 @@ export function VisibilitySelector({
           aria-label={`${ariaLabel}: ${current.label}`}
           className={cn(
             VISIBILITY_CHIP_CLASS,
-            "transition-colors hover:bg-accent-hover hover:text-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:transition-colors stg:hover:bg-accent-hover stg:hover:text-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             className,
           )}
         >
           {isPending ? (
             <span
-              className="inline-block size-2.5 animate-spin rounded-full border-2 border-current border-t-transparent"
+              className="stg:inline-block stg:size-2.5 stg:animate-spin stg:rounded-full stg:border-2 stg:border-current stg:border-t-transparent"
               aria-hidden="true"
             />
           ) : (
-            <VisibilityIcon tone={current.tone} className="size-2.5" />
+            <VisibilityIcon tone={current.tone} className="stg:size-2.5" />
           )}
           {current.label}
           <CaretIcon />
@@ -337,8 +337,8 @@ export function VisibilitySelector({
               role="listbox"
               aria-label={ariaLabel}
               className={cn(
-                "z-popover w-72 rounded-lg border border-border bg-popover p-1 shadow-md",
-                "text-popover-foreground animate-in fade-in-0 zoom-in-95",
+                "stg:z-popover stg:w-72 stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:p-1 stg:shadow-md",
+                "stg:text-popover-foreground stg:animate-in stg:fade-in-0 stg:zoom-in-95",
               )}
             >
               {renderRows("option")}
@@ -347,13 +347,13 @@ export function VisibilitySelector({
                 <div
                   role="alert"
                   className={cn(
-                    "mt-1 flex items-center gap-2 rounded-md border px-2.5 py-1.5",
+                    "stg:mt-1 stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:border stg:px-2.5 stg:py-1.5",
                     PROMPT_STYLES[pendingOption.tone].container,
                   )}
                 >
                   <span
                     className={cn(
-                      "flex-1 text-[0.65rem] leading-snug",
+                      "stg:flex-1 stg:text-[0.65rem] stg:leading-snug",
                       PROMPT_STYLES[pendingOption.tone].text,
                     )}
                   >
@@ -363,8 +363,8 @@ export function VisibilitySelector({
                     type="button"
                     onClick={() => setPendingInline(null)}
                     className={cn(
-                      "rounded px-2 py-0.5 text-[0.65rem] font-medium",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      "stg:rounded stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
+                      "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                       PROMPT_STYLES[pendingOption.tone].cancel,
                     )}
                   >
@@ -374,8 +374,8 @@ export function VisibilitySelector({
                     type="button"
                     onClick={() => apply(pendingOption.value)}
                     className={cn(
-                      "rounded px-2 py-0.5 text-[0.65rem] font-medium text-white",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      "stg:rounded stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-white",
+                      "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                       PROMPT_STYLES[pendingOption.tone].confirm,
                     )}
                   >
@@ -395,7 +395,7 @@ export function VisibilitySelector({
 function CaretIcon() {
   return (
     <svg
-      className="size-2.5 shrink-0 text-muted-foreground"
+      className="stg:size-2.5 stg:shrink-0 stg:text-muted-foreground"
       viewBox="0 0 12 12"
       fill="none"
       stroke="currentColor"
@@ -447,7 +447,7 @@ export function VisibilityBadge({
   const option = visibilityOption(visibility);
   const content = (
     <>
-      <VisibilityIcon tone={option.tone} className="size-2.5" />
+      <VisibilityIcon tone={option.tone} className="stg:size-2.5" />
       {option.label}
     </>
   );
@@ -461,8 +461,8 @@ export function VisibilityBadge({
         aria-label={`${option.label} visibility — manage access`}
         className={cn(
           VISIBILITY_CHIP_CLASS,
-          "transition-colors hover:bg-accent-hover hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "stg:transition-colors stg:hover:bg-accent-hover stg:hover:text-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           className,
         )}
       >

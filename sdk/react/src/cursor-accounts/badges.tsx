@@ -14,10 +14,10 @@ export function StateBadge({
   return (
     <span
       className={cn(
-        "inline-block rounded px-1.5 py-0.5 text-[10px] font-medium",
-        tone === "ok" && "bg-accent text-primary",
-        tone === "warn" && "bg-muted-subtle text-destructive",
-        tone === "muted" && "bg-muted-subtle text-muted-foreground",
+        "stg:inline-block stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium",
+        tone === "ok" && "stg:bg-accent stg:text-primary",
+        tone === "warn" && "stg:bg-muted-subtle stg:text-destructive",
+        tone === "muted" && "stg:bg-muted-subtle stg:text-muted-foreground",
       )}
     >
       {label}

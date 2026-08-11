@@ -137,7 +137,7 @@ export function EnvironmentPicker({
   );
 
   return (
-    <div className={cn("space-y-3", className)} role="group" aria-label="Environment bindings">
+    <div className={cn("stg:space-y-3", className)} role="group" aria-label="Environment bindings">
       {value.length > 0 && (
         <SelectedList
           value={value}
@@ -152,13 +152,13 @@ export function EnvironmentPicker({
       )}
 
       {value.length > 1 && (
-        <p className="text-[0.65rem] text-muted-foreground">
+        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
           Environments are merged in order. Later entries override earlier ones when keys conflict.
         </p>
       )}
 
       <div>
-        <label htmlFor={selectId} className="sr-only">
+        <label htmlFor={selectId} className="stg:sr-only">
           Add environment
         </label>
         <select
@@ -169,10 +169,10 @@ export function EnvironmentPicker({
             if (e.target.value) handleAdd(e.target.value);
           }}
           className={cn(
-            "w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm",
-            "text-foreground placeholder:text-muted-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-ring",
-            "disabled:cursor-not-allowed disabled:opacity-50",
+            "stg:w-full stg:rounded-md stg:border stg:border-border stg:bg-background stg:px-3 stg:py-1.5 stg:text-sm",
+            "stg:text-foreground stg:placeholder:text-muted-foreground",
+            "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
+            "stg:disabled:cursor-not-allowed stg:disabled:opacity-50",
           )}
         >
           <option value="">
@@ -217,32 +217,32 @@ function SelectedList({
   total,
 }: SelectedListProps) {
   return (
-    <ol className="space-y-1.5" aria-label="Selected environments (merge order)">
+    <ol className="stg:space-y-1.5" aria-label="Selected environments (merge order)">
       {value.map((ref, index) => (
         <li
           key={`${ref.org}-${ref.slug}-${index}`}
           className={cn(
-            "flex items-center gap-2 rounded-md border border-border px-3 py-2",
-            "bg-muted/30",
+            "stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:border stg:border-border stg:px-3 stg:py-2",
+            "stg:bg-muted/30",
           )}
         >
-          <span className="shrink-0 w-5 text-xs font-medium text-muted-foreground text-right">
+          <span className="stg:shrink-0 stg:w-5 stg:text-xs stg:font-medium stg:text-muted-foreground stg:text-right">
             {index + 1}.
           </span>
 
-          <div className="flex-1 min-w-0">
-            <span className="text-sm font-medium text-foreground truncate block">
+          <div className="stg:flex-1 stg:min-w-0">
+            <span className="stg:text-sm stg:font-medium stg:text-foreground stg:truncate stg:block">
               {resolveEnvName(ref)}
             </span>
             {resolveEnvDescription(ref) && (
-              <span className="text-[0.65rem] text-muted-foreground truncate block">
+              <span className="stg:text-[0.65rem] stg:text-muted-foreground stg:truncate stg:block">
                 {resolveEnvDescription(ref)}
               </span>
             )}
           </div>
 
           {!disabled && (
-            <div className="flex items-center gap-0.5 shrink-0">
+            <div className="stg:flex stg:items-center stg:gap-0.5 stg:shrink-0">
               <ReorderButton
                 direction="up"
                 disabled={index === 0}
@@ -260,9 +260,9 @@ function SelectedList({
                 onClick={() => onRemove(index)}
                 aria-label={`Remove ${resolveEnvName(ref)}`}
                 className={cn(
-                  "rounded p-1 text-muted-foreground",
-                  "hover:text-destructive hover:bg-destructive/10",
-                  "focus:outline-none focus:ring-1 focus:ring-ring",
+                  "stg:rounded stg:p-1 stg:text-muted-foreground",
+                  "stg:hover:text-destructive stg:hover:bg-destructive/10",
+                  "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
                 )}
               >
                 <RemoveIcon />
@@ -293,10 +293,10 @@ function ReorderButton({
       onClick={onClick}
       aria-label={label}
       className={cn(
-        "rounded p-1 text-muted-foreground",
-        "hover:text-foreground hover:bg-accent-hover",
-        "focus:outline-none focus:ring-1 focus:ring-ring",
-        "disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent",
+        "stg:rounded stg:p-1 stg:text-muted-foreground",
+        "stg:hover:text-foreground stg:hover:bg-accent-hover",
+        "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
+        "stg:disabled:opacity-30 stg:disabled:cursor-not-allowed stg:disabled:hover:bg-transparent",
       )}
     >
       {direction === "up" ? <ArrowUpIcon /> : <ArrowDownIcon />}

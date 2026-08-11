@@ -55,8 +55,8 @@ export function WorkflowUsageTab({
 
   if (!hasAggregate && items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
-        <p className="text-xs text-muted-foreground">
+      <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:px-4 stg:py-8 stg:text-center">
+        <p className="stg:text-xs stg:text-muted-foreground">
           No usage data yet. Cost and token stats will appear here.
         </p>
       </div>
@@ -64,15 +64,15 @@ export function WorkflowUsageTab({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="stg:flex stg:flex-col stg:gap-4">
       <UsageSummary costSummary={costSummary} />
 
       {items.length > 0 && (
-        <div className="flex flex-col gap-1">
-          <h3 className="px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="stg:flex stg:flex-col stg:gap-1">
+          <h3 className="stg:px-2 stg:text-xs stg:font-semibold stg:uppercase stg:tracking-wider stg:text-muted-foreground">
             By task
           </h3>
-          <ul role="list" className="flex flex-col">
+          <ul role="list" className="stg:flex stg:flex-col">
             {items.map((item) => (
               <UsageRow key={item.taskName} item={item} />
             ))}
@@ -107,16 +107,16 @@ function UsageSummary({
 
   return (
     <div
-      className="flex flex-col gap-1.5 px-2"
+      className="stg:flex stg:flex-col stg:gap-1.5 stg:px-2"
       role="region"
       aria-label="Execution cost summary"
     >
-      <div className="flex items-baseline gap-1.5">
-        <span className="text-sm font-medium tabular-nums text-foreground">
+      <div className="stg:flex stg:items-baseline stg:gap-1.5">
+        <span className="stg:text-sm stg:font-medium stg:tabular-nums stg:text-foreground">
           {formatMicroUsd(costSummary.costConsumedMicros)}
         </span>
         {costLimit !== undefined && (
-          <span className="text-xs tabular-nums text-muted-foreground">
+          <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
             of {formatMicroUsd(costLimit)} budget
           </span>
         )}
@@ -128,7 +128,7 @@ function UsageSummary({
         label="Cost budget"
       />
 
-      <div className="text-xs tabular-nums text-muted-foreground">
+      <div className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
         {formatTokenCount(costSummary.tokensConsumed)} tokens
         {tokenLimit !== undefined && ` of ${formatTokenCount(tokenLimit)}`}
       </div>
@@ -140,7 +140,7 @@ function UsageSummary({
       />
 
       {costSummary.thresholdBreached && (
-        <p className="flex items-center gap-1.5 text-xs text-warning">
+        <p className="stg:flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-warning">
           <WarningIcon />
           Budget threshold breached
         </p>
@@ -169,23 +169,23 @@ function BudgetGauge({
   const percentage = Number((consumed * BigInt(100)) / limit);
 
   return (
-    <div className="flex items-center gap-2" aria-label={label}>
+    <div className="stg:flex stg:items-center stg:gap-2" aria-label={label}>
       <div
         role="progressbar"
         aria-valuenow={Math.min(percentage, 100)}
         aria-valuemin={0}
         aria-valuemax={100}
-        className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted"
+        className="stg:h-1.5 stg:min-w-0 stg:flex-1 stg:overflow-hidden stg:rounded-full stg:bg-muted"
       >
         <div
           className={cn(
-            "h-full rounded-full transition-all",
-            breached || percentage > 80 ? "bg-warning" : "bg-primary",
+            "stg:h-full stg:rounded-full stg:transition-all",
+            breached || percentage > 80 ? "stg:bg-warning" : "stg:bg-primary",
           )}
           style={{ width: `${Math.min(percentage, 100)}%` }}
         />
       </div>
-      <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+      <span className="stg:shrink-0 stg:text-[10px] stg:tabular-nums stg:text-muted-foreground">
         {percentage.toFixed(0)}%
       </span>
     </div>
@@ -199,19 +199,19 @@ function BudgetGauge({
  */
 function UsageRow({ item }: { readonly item: WorkflowUsageItem }) {
   return (
-    <li className="flex items-stretch">
-      <div className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1 text-left text-xs text-muted-foreground">
-        <span className="min-w-0 flex-1 truncate text-foreground">
+    <li className="stg:flex stg:items-stretch">
+      <div className="stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-2 stg:px-2 stg:py-1 stg:text-left stg:text-xs stg:text-muted-foreground">
+        <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground">
           {item.taskName}
-          <span className="ml-1.5 text-[0.65rem] text-muted-foreground">
+          <span className="stg:ml-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
             {item.kindLabel}
             {isInFlight(item.status) && ` · ${statusLabel(item.status)}`}
           </span>
         </span>
-        <span className="shrink-0 tabular-nums text-foreground">
+        <span className="stg:shrink-0 stg:tabular-nums stg:text-foreground">
           {formatMicroUsd(item.costMicros)}
         </span>
-        <span className="w-14 shrink-0 text-right tabular-nums text-[0.65rem] text-muted-foreground-faint">
+        <span className="stg:w-14 stg:shrink-0 stg:text-right stg:tabular-nums stg:text-[0.65rem] stg:text-muted-foreground-faint">
           {formatTokenCount(item.tokensUsed)} tok
         </span>
       </div>
@@ -247,7 +247,7 @@ function WarningIcon() {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />

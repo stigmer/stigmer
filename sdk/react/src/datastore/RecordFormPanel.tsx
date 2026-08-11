@@ -234,15 +234,15 @@ export function RecordFormPanel({
           : `Insert record into ${collection.name}`
       }
       className={cn(
-        "fixed inset-0 z-50 m-auto w-full max-w-md rounded-lg border border-border bg-popover p-0 text-popover-foreground shadow-lg",
-        "backdrop:bg-black/50",
-        "open:animate-in open:fade-in-0 open:zoom-in-95",
+        "stg:fixed stg:inset-0 stg:z-50 stg:m-auto stg:w-full stg:max-w-md stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:p-0 stg:text-popover-foreground stg:shadow-lg",
+        "stg:backdrop:bg-black/50",
+        "stg:open:animate-in stg:open:fade-in-0 stg:open:zoom-in-95",
       )}
     >
-      <div className="flex max-h-[80vh] flex-col gap-4 overflow-y-auto p-6">
-        <h3 className="text-base font-semibold text-foreground">
+      <div className="stg:flex stg:max-h-[80vh] stg:flex-col stg:gap-4 stg:overflow-y-auto stg:p-6">
+        <h3 className="stg:text-base stg:font-semibold stg:text-foreground">
           {isEdit ? "Edit record" : "Insert record"}
-          <span className="ml-2 font-mono text-xs font-normal text-muted-foreground">
+          <span className="stg:ml-2 stg:font-mono stg:text-xs stg:font-normal stg:text-muted-foreground">
             {collection.name}
           </span>
         </h3>
@@ -250,7 +250,7 @@ export function RecordFormPanel({
         {bannerError && (
           <div
             role="alert"
-            className="rounded-md border border-destructive bg-card px-3 py-2 text-sm text-destructive"
+            className="stg:rounded-md stg:border stg:border-destructive stg:bg-card stg:px-3 stg:py-2 stg:text-sm stg:text-destructive"
           >
             {bannerError}
           </div>
@@ -258,7 +258,7 @@ export function RecordFormPanel({
 
         {isEdit && record && <SystemFieldsSummary record={record} />}
 
-        <div className="flex flex-col gap-3">
+        <div className="stg:flex stg:flex-col stg:gap-3">
           {collection.fields.map((field) => (
             <FieldRow
               key={field.name}
@@ -273,9 +273,9 @@ export function RecordFormPanel({
           ))}
         </div>
 
-        <div className="flex items-center justify-end gap-2">
+        <div className="stg:flex stg:items-center stg:justify-end stg:gap-2">
           {missingRequired.length > 0 && (
-            <span className="mr-auto text-xs text-muted-foreground">
+            <span className="stg:mr-auto stg:text-xs stg:text-muted-foreground">
               Required: {missingRequired.join(", ")}
             </span>
           )}
@@ -283,9 +283,9 @@ export function RecordFormPanel({
             type="button"
             onClick={() => onOpenChange(false)}
             className={cn(
-              "rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium text-foreground",
-              "hover:bg-accent hover:text-accent-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:text-foreground",
+              "stg:hover:bg-accent stg:hover:text-accent-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           >
             Cancel
@@ -295,10 +295,10 @@ export function RecordFormPanel({
             onClick={handleSubmit}
             disabled={isSaving || missingRequired.length > 0}
             className={cn(
-              "rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground",
-              "hover:bg-primary-hover",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:rounded-md stg:bg-primary stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:text-primary-foreground",
+              "stg:hover:bg-primary-hover",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             {isSaving ? "Saving…" : isEdit ? "Save changes" : "Insert"}
@@ -362,12 +362,12 @@ function FieldRow({
   const showClear = isEdit && !field.required && !cleared && value !== undefined;
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-baseline gap-1">
-        <label htmlFor={controlId} className="text-xs font-medium text-muted-foreground">
+    <div className="stg:flex stg:flex-col stg:gap-1">
+      <div className="stg:flex stg:items-baseline stg:gap-1">
+        <label htmlFor={controlId} className="stg:text-xs stg:font-medium stg:text-muted-foreground">
           {field.name}
           {field.required && (
-            <span className="text-destructive" aria-label="required">
+            <span className="stg:text-destructive" aria-label="required">
               {" "}
               *
             </span>
@@ -379,25 +379,25 @@ function FieldRow({
             onClick={onClear}
             aria-label={`Clear ${field.name}`}
             className={cn(
-              "ml-auto text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+              "stg:ml-auto stg:text-xs stg:text-muted-foreground stg:underline-offset-2 stg:hover:text-foreground stg:hover:underline",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
             )}
           >
             Clear
           </button>
         )}
         {cleared && (
-          <span className="ml-auto text-xs italic text-muted-foreground">
+          <span className="stg:ml-auto stg:text-xs stg:italic stg:text-muted-foreground">
             will be cleared
           </span>
         )}
       </div>
       {field.description && (
-        <p className="text-xs leading-tight text-muted-foreground">{field.description}</p>
+        <p className="stg:text-xs stg:leading-tight stg:text-muted-foreground">{field.description}</p>
       )}
       <FieldValueControl id={controlId} field={field} value={value} onChange={onChange} />
       {error && (
-        <span role="alert" className="text-xs text-destructive">
+        <span role="alert" className="stg:text-xs stg:text-destructive">
           {error}
         </span>
       )}
@@ -408,23 +408,23 @@ function FieldRow({
 /** Read-only envelope columns shown in edit mode; never editable, never submitted. */
 function SystemFieldsSummary({ record }: { readonly record: RecordEnvelope }) {
   return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-md bg-muted p-3 text-xs">
-      <dt className="font-medium text-muted-foreground">id</dt>
-      <dd className="truncate font-mono text-foreground">{record.id}</dd>
-      <dt className="font-medium text-muted-foreground">created_at</dt>
-      <dd className="font-mono text-foreground">
+    <dl className="stg:grid stg:grid-cols-[auto_1fr] stg:gap-x-3 stg:gap-y-1 stg:rounded-md stg:bg-muted stg:p-3 stg:text-xs">
+      <dt className="stg:font-medium stg:text-muted-foreground">id</dt>
+      <dd className="stg:truncate stg:font-mono stg:text-foreground">{record.id}</dd>
+      <dt className="stg:font-medium stg:text-muted-foreground">created_at</dt>
+      <dd className="stg:font-mono stg:text-foreground">
         {record.createdAt
           ? formatSystemTimestamp(timestampDate(record.createdAt).toISOString())
           : ""}
       </dd>
-      <dt className="font-medium text-muted-foreground">updated_at</dt>
-      <dd className="font-mono text-foreground">
+      <dt className="stg:font-medium stg:text-muted-foreground">updated_at</dt>
+      <dd className="stg:font-mono stg:text-foreground">
         {record.updatedAt
           ? formatSystemTimestamp(timestampDate(record.updatedAt).toISOString())
           : ""}
       </dd>
-      <dt className="font-medium text-muted-foreground">created_by</dt>
-      <dd className="truncate font-mono text-foreground">
+      <dt className="stg:font-medium stg:text-muted-foreground">created_by</dt>
+      <dd className="stg:truncate stg:font-mono stg:text-foreground">
         {formatSubject(record.createdBy)}
       </dd>
     </dl>

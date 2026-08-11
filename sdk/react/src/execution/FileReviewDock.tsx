@@ -94,11 +94,11 @@ export function FileReviewDock({
       role="region"
       aria-label="File changes awaiting review"
       data-cursor-target="file-review-dock"
-      className={cn("border-t border-border-muted", className)}
+      className={cn("stg:border-t stg:border-border-muted", className)}
     >
       {/* The cap bounds the dock, not each card: with the (defensive) multi-set
           case the whole surface stays within reach of the composer. */}
-      <div className="max-h-[40vh] space-y-2 overflow-y-auto px-4 py-2">
+      <div className="stg:max-h-[40vh] stg:space-y-2 stg:overflow-y-auto stg:px-4 stg:py-2">
         {changeSets.map((changeSet) => (
           <DockedChangeSet
             key={changeSet.id}

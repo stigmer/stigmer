@@ -86,12 +86,12 @@ export const WorkflowTaskPalette = memo(function WorkflowTaskPalette({
 
   if (isLoading) {
     return (
-      <div className={cn("stgm flex w-60 flex-col gap-3 border-r border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] p-3", className)}>
+      <div className={cn("stgm stg:flex stg:w-60 stg:flex-col stg:gap-3 stg:border-r stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:p-3", className)}>
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="space-y-2">
-            <div className="h-4 w-20 animate-pulse rounded bg-[var(--stgm-muted,#f5f5f5)]" />
-            <div className="h-10 w-full animate-pulse rounded bg-[var(--stgm-muted,#f5f5f5)]" />
-            <div className="h-10 w-full animate-pulse rounded bg-[var(--stgm-muted,#f5f5f5)]" />
+          <div key={i} className="stg:space-y-2">
+            <div className="stg:h-4 stg:w-20 stg:animate-pulse stg:rounded stg:bg-[var(--stgm-muted,#f5f5f5)]" />
+            <div className="stg:h-10 stg:w-full stg:animate-pulse stg:rounded stg:bg-[var(--stgm-muted,#f5f5f5)]" />
+            <div className="stg:h-10 stg:w-full stg:animate-pulse stg:rounded stg:bg-[var(--stgm-muted,#f5f5f5)]" />
           </div>
         ))}
       </div>
@@ -100,14 +100,14 @@ export const WorkflowTaskPalette = memo(function WorkflowTaskPalette({
 
   if (error) {
     return (
-      <div className={cn("stgm flex w-60 flex-col items-center justify-center gap-2 border-r border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] p-4", className)}>
-        <span className="text-xs text-[var(--stgm-destructive,#ef4444)]">
+      <div className={cn("stgm stg:flex stg:w-60 stg:flex-col stg:items-center stg:justify-center stg:gap-2 stg:border-r stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:p-4", className)}>
+        <span className="stg:text-xs stg:text-[var(--stgm-destructive,#ef4444)]">
           Failed to load task types
         </span>
         <button
           type="button"
           onClick={refetch}
-          className="rounded border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] px-2 py-1 text-xs text-[var(--stgm-foreground,#1a1a2e)] hover:bg-[var(--stgm-muted,#f5f5f5)]"
+          className="stg:rounded stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:px-2 stg:py-1 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)] stg:hover:bg-[var(--stgm-muted,#f5f5f5)]"
         >
           Retry
         </button>
@@ -118,24 +118,24 @@ export const WorkflowTaskPalette = memo(function WorkflowTaskPalette({
   return (
     <div
       className={cn(
-        "stgm flex w-60 shrink-0 flex-col border-r border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))]",
+        "stgm stg:flex stg:w-60 stg:shrink-0 stg:flex-col stg:border-r stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))]",
         className,
       )}
     >
-      <div className="border-b border-[var(--stgm-border-prominent,#d4d4d8)] p-2">
+      <div className="stg:border-b stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:p-2">
         <input
           type="search"
           placeholder="Search tasks…"
           value={searchQuery}
           onChange={handleSearchChange}
-          className="w-full rounded border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] px-2 py-1.5 text-xs text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#737373)] outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+          className="stg:w-full stg:rounded stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] stg:px-2 stg:py-1.5 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)] stg:placeholder:text-[var(--stgm-muted-foreground,#737373)] stg:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
           aria-label="Search task types"
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2">
+      <div className="stg:flex-1 stg:overflow-y-auto stg:p-2">
         {filteredCategories.length === 0 ? (
-          <div className="py-6 text-center text-xs text-[var(--stgm-muted-foreground,#737373)]">
+          <div className="stg:py-6 stg:text-center stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">
             {searchQuery ? "No matching tasks" : "No task types available"}
           </div>
         ) : (
@@ -172,24 +172,24 @@ function PaletteCategory({
   const categoryColor = CATEGORY_COLORS[category] ?? CATEGORY_COLORS.unspecified;
 
   return (
-    <div className="mb-2">
+    <div className="stg:mb-2">
       <button
         type="button"
         onClick={() => onToggle(category)}
-        className="flex w-full items-center gap-1.5 rounded px-1 py-1 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-muted,#f5f5f5)]"
+        className="stg:flex stg:w-full stg:items-center stg:gap-1.5 stg:rounded stg:px-1 stg:py-1 stg:text-left stg:text-[11px] stg:font-semibold stg:uppercase stg:tracking-wider stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:bg-[var(--stgm-muted,#f5f5f5)]"
         aria-expanded={!isCollapsed}
       >
         <span
-          className="inline-block h-2 w-2 rounded-full"
+          className="stg:inline-block stg:h-2 stg:w-2 stg:rounded-full"
           style={{ backgroundColor: categoryColor }}
           aria-hidden="true"
         />
         {CATEGORY_DISPLAY_NAMES[category]}
-        <span className="ml-auto text-[10px]">{isCollapsed ? "+" : "\u2212"}</span>
+        <span className="stg:ml-auto stg:text-[10px]">{isCollapsed ? "+" : "\u2212"}</span>
       </button>
 
       {!isCollapsed && (
-        <div className="mt-0.5 space-y-0.5" role="listbox" aria-label={CATEGORY_DISPLAY_NAMES[category]}>
+        <div className="stg:mt-0.5 stg:space-y-0.5" role="listbox" aria-label={CATEGORY_DISPLAY_NAMES[category]}>
           {descriptors.map((descriptor) => (
             <PaletteItem
               key={descriptor.kind}
@@ -226,20 +226,20 @@ function PaletteItem({
     <div
       draggable
       onDragStart={handleDragStart}
-      className="flex cursor-grab items-start gap-2 rounded border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 py-1.5 transition-colors hover:bg-[var(--stgm-muted,#f5f5f5)] active:cursor-grabbing"
+      className="stg:flex stg:cursor-grab stg:items-start stg:gap-2 stg:rounded stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-2 stg:py-1.5 stg:transition-colors stg:hover:bg-[var(--stgm-muted,#f5f5f5)] stg:active:cursor-grabbing"
       role="option"
       aria-label={`Drag to add ${descriptor.displayName} task`}
     >
       <span
-        className="mt-0.5 inline-block h-2.5 w-0.5 shrink-0 rounded-full"
+        className="stg:mt-0.5 stg:inline-block stg:h-2.5 stg:w-0.5 stg:shrink-0 stg:rounded-full"
         style={{ backgroundColor: categoryColor }}
         aria-hidden="true"
       />
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-xs font-medium text-[var(--stgm-foreground,#1a1a2e)]">
+      <div className="stg:min-w-0 stg:flex-1">
+        <div className="stg:truncate stg:text-xs stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]">
           {descriptor.displayName}
         </div>
-        <div className="truncate text-[10px] leading-tight text-[var(--stgm-muted-foreground,#737373)]">
+        <div className="stg:truncate stg:text-[10px] stg:leading-tight stg:text-[var(--stgm-muted-foreground,#737373)]">
           {descriptor.description}
         </div>
       </div>

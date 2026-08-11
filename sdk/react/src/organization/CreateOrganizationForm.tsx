@@ -115,13 +115,13 @@ export function CreateOrganizationForm({
   );
 
   return (
-    <form onSubmit={handleSubmit} className={cn("space-y-3", className)}>
-      <div className="space-y-2">
+    <form onSubmit={handleSubmit} className={cn("stg:space-y-3", className)}>
+      <div className="stg:space-y-2">
         {/* ---- Name ---- */}
-        <div className="space-y-1">
+        <div className="stg:space-y-1">
           <label
             htmlFor="stgm-new-org-name"
-            className="text-xs font-medium text-foreground"
+            className="stg:text-xs stg:font-medium stg:text-foreground"
           >
             Name
           </label>
@@ -136,29 +136,29 @@ export function CreateOrganizationForm({
             required
             maxLength={63}
             className={cn(
-              "w-full rounded-md border bg-background px-2.5 py-1.5 text-xs text-foreground",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
-              nameError ? "border-destructive" : "border-input",
+              "stg:w-full stg:rounded-md stg:border stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+              nameError ? "stg:border-destructive" : "stg:border-input",
             )}
           />
           {nameError ? (
-            <p className="text-[0.65rem] text-destructive" role="alert">
+            <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
               {nameError}
             </p>
           ) : (
-            <p className="text-[0.65rem] text-muted-foreground">
+            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
               A human-readable display name for the organization.
             </p>
           )}
         </div>
 
         {/* ---- Slug ---- */}
-        <div className="space-y-1">
+        <div className="stg:space-y-1">
           <label
             htmlFor="stgm-new-org-slug"
-            className="text-xs font-medium text-foreground"
+            className="stg:text-xs stg:font-medium stg:text-foreground"
           >
             Slug
           </label>
@@ -171,21 +171,21 @@ export function CreateOrganizationForm({
             disabled={isCreating}
             required
             className={cn(
-              "w-full rounded-md border bg-background px-2.5 py-1.5 text-xs text-foreground font-mono",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:w-full stg:rounded-md stg:border stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:font-mono",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               slugError
-                ? "border-destructive"
-                : "border-input",
+                ? "stg:border-destructive"
+                : "stg:border-input",
             )}
           />
           {slugError ? (
-            <p className="text-[0.65rem] text-destructive" role="alert">
+            <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
               {slugError}
             </p>
           ) : (
-            <p className="text-[0.65rem] text-muted-foreground">
+            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
               URL-friendly identifier used in resource references. 2&ndash;63
               characters: lowercase letters, numbers, and hyphens.
             </p>
@@ -193,13 +193,13 @@ export function CreateOrganizationForm({
         </div>
 
         {/* ---- Description ---- */}
-        <div className="space-y-1">
+        <div className="stg:space-y-1">
           <label
             htmlFor="stgm-new-org-desc"
-            className="text-xs font-medium text-muted-foreground"
+            className="stg:text-xs stg:font-medium stg:text-muted-foreground"
           >
             Description{" "}
-            <span className="text-muted-foreground-subtle">(optional)</span>
+            <span className="stg:text-muted-foreground-subtle">(optional)</span>
           </label>
           <input
             id="stgm-new-org-desc"
@@ -209,29 +209,29 @@ export function CreateOrganizationForm({
             placeholder="What is this organization for?"
             disabled={isCreating}
             className={cn(
-              "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           />
         </div>
       </div>
 
       {error && (
-        <p className="text-destructive text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
           {getUserMessage(error)}
         </p>
       )}
 
-      <div className="flex items-center gap-2">
+      <div className="stg:flex stg:items-center stg:gap-2">
         <button
           type="submit"
           disabled={!canSubmit}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-40",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
           {isCreating && <SpinnerIcon />}
@@ -244,9 +244,9 @@ export function CreateOrganizationForm({
             onClick={onCancel}
             disabled={isCreating}
             className={cn(
-              "rounded-md px-3 py-1.5 text-xs",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             Cancel
@@ -271,7 +271,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

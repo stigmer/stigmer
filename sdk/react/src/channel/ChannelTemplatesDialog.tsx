@@ -118,8 +118,8 @@ export function ChannelTemplatesDialog({
       className={cn(
         // Wider than the conversations dialog on purpose: template
         // bodies are the content, and a narrow column shreds them.
-        "w-full max-w-2xl rounded-xl border border-border bg-popover p-0 shadow-xl",
-        modal ? "fixed inset-0 m-auto backdrop:bg-black/50" : "relative",
+        "stg:w-full stg:max-w-2xl stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
+        modal ? "stg:fixed stg:inset-0 stg:m-auto stg:backdrop:bg-black/50" : "stg:relative",
       )}
       aria-labelledby="channel-templates-title"
     >
@@ -149,16 +149,16 @@ function ChannelTemplatesDialogBody({
     channel.metadata?.name || channel.metadata?.slug || "this channel";
 
   return (
-    <div className="flex max-h-[75vh] flex-col">
-      <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
-        <div className="min-w-0">
+    <div className="stg:flex stg:max-h-[75vh] stg:flex-col">
+      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3 stg:border-b stg:border-border stg:px-5 stg:py-4">
+        <div className="stg:min-w-0">
           <h2
             id="channel-templates-title"
-            className="text-sm font-semibold text-popover-foreground"
+            className="stg:text-sm stg:font-semibold stg:text-popover-foreground"
           >
             Templates
           </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
             The message templates WhatsApp holds for {channelName} — authored
             and approved in WhatsApp Manager, listed here as WhatsApp reports
             them.
@@ -170,11 +170,11 @@ function ChannelTemplatesDialogBody({
           onClick={onClose}
           aria-label="Close templates"
         >
-          <X className="size-4" />
+          <X className="stg:size-4" />
         </Button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:p-4">
         <ChannelTemplatesContent channel={channel} onEditYaml={onEditYaml} />
       </div>
     </div>
@@ -216,7 +216,7 @@ function ChannelTemplatesContent({
       return (
         <EmptyState
           variant="first-use"
-          icon={<LayoutTemplate className="size-8" />}
+          icon={<LayoutTemplate className="stg:size-8" />}
           title="Connect this channel first"
           description={`${presentation.describeChannel(channel)} Templates become readable once the connection is complete.`}
         />
@@ -225,7 +225,7 @@ function ChannelTemplatesContent({
       return (
         <EmptyState
           variant="first-use"
-          icon={<LayoutTemplate className="size-8" />}
+          icon={<LayoutTemplate className="stg:size-8" />}
           title="This channel is turned off"
           description="Turn the channel on with the switch on its card, then check back here."
         />
@@ -234,7 +234,7 @@ function ChannelTemplatesContent({
       return (
         <EmptyState
           variant="first-use"
-          icon={<LayoutTemplate className="size-8" />}
+          icon={<LayoutTemplate className="stg:size-8" />}
           title="Business-initiated messaging is not enabled"
           description={
             "Templates power messages your agent sends first — reminders, " +
@@ -272,7 +272,7 @@ function ChannelTemplatesList({
     // The server's copy is the teaching state past the pre-check —
     // its refusals name the fix (scope, token, app binding) verbatim.
     return (
-      <p className="px-2 py-6 text-center text-sm text-destructive">
+      <p className="stg:px-2 stg:py-6 stg:text-center stg:text-sm stg:text-destructive">
         {getUserMessage(error)}
       </p>
     );
@@ -284,7 +284,7 @@ function ChannelTemplatesList({
     return (
       <EmptyState
         variant="first-use"
-        icon={<LayoutTemplate className="size-8" />}
+        icon={<LayoutTemplate className="stg:size-8" />}
         title="No templates found for this channel"
         description={
           "Templates are authored in WhatsApp Manager and approved by " +
@@ -303,15 +303,15 @@ function ChannelTemplatesList({
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 px-1 pb-3">
-        <p className="text-xs text-muted-foreground">
+      <div className="stg:flex stg:items-center stg:justify-between stg:gap-3 stg:px-1 stg:pb-3">
+        <p className="stg:text-xs stg:text-muted-foreground">
           {templates.length} {templates.length === 1 ? "template" : "templates"}
           {" \u00b7 "}
           {sendable} ready to send
         </p>
         <WhatsAppManagerLink label="Manage in WhatsApp Manager" />
       </div>
-      <ul className="space-y-2">
+      <ul className="stg:space-y-2">
         {templates.map((template) => (
           <TemplateRow
             key={`${template.name}\u0000${template.language}`}
@@ -329,18 +329,18 @@ function ChannelTemplatesList({
 
 function TemplateRow({ template }: { readonly template: ChannelTemplate }) {
   return (
-    <li className="rounded-lg border border-border p-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+    <li className="stg:rounded-lg stg:border stg:border-border stg:p-3">
+      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
+        <div className="stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-x-2 stg:gap-y-1">
           <span
-            className="truncate text-sm font-medium text-foreground"
+            className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground"
             title={template.name}
           >
             {template.name}
           </span>
           {/* (name, language) is the template's identity — each
               language is approved independently, so it always shows. */}
-          <span className="shrink-0 text-xs text-muted-foreground">
+          <span className="stg:shrink-0 stg:text-xs stg:text-muted-foreground">
             {template.language}
           </span>
           {template.category && <FactChip>{template.category}</FactChip>}
@@ -351,19 +351,19 @@ function TemplateRow({ template }: { readonly template: ChannelTemplate }) {
         <StatusBadge
           phase={templateStatusPhase(template.status)}
           label={template.status}
-          className="shrink-0"
+          className="stg:shrink-0"
         />
       </div>
 
       {template.bodyText && <TemplateBody body={template.bodyText} />}
 
       {template.rejectionReason && (
-        <p className="mt-2 text-xs text-destructive">
+        <p className="stg:mt-2 stg:text-xs stg:text-destructive">
           Rejected: {template.rejectionReason}
         </p>
       )}
       {template.unsupportedReason && (
-        <p className="mt-2 text-xs text-warning" role="status">
+        <p className="stg:mt-2 stg:text-xs stg:text-warning" role="status">
           Not sendable: {template.unsupportedReason}
         </p>
       )}
@@ -378,12 +378,12 @@ function TemplateRow({ template }: { readonly template: ChannelTemplate }) {
  */
 function TemplateBody({ body }: { readonly body: string }) {
   return (
-    <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
+    <p className="stg:mt-2 stg:whitespace-pre-wrap stg:text-xs stg:leading-relaxed stg:text-muted-foreground">
       {splitTemplateBody(body).map((segment, i) =>
         segment.kind === "placeholder" ? (
           <code
             key={i}
-            className="rounded bg-muted-subtle px-1 font-mono text-foreground"
+            className="stg:rounded stg:bg-muted-subtle stg:px-1 stg:font-mono stg:text-foreground"
           >
             {segment.value}
           </code>
@@ -398,7 +398,7 @@ function TemplateBody({ body }: { readonly body: string }) {
 /** Provider-verbatim fact rendered small and quiet (category, header). */
 function FactChip({ children }: { readonly children: ReactNode }) {
   return (
-    <span className="shrink-0 rounded bg-muted-subtle px-1.5 py-0.5 text-xs text-muted-foreground">
+    <span className="stg:shrink-0 stg:rounded stg:bg-muted-subtle stg:px-1.5 stg:py-0.5 stg:text-xs stg:text-muted-foreground">
       {children}
     </span>
   );
@@ -411,22 +411,22 @@ function WhatsAppManagerLink({ label }: { readonly label: string }) {
       target="_blank"
       rel="noreferrer noopener"
       className={cn(
-        "inline-flex shrink-0 items-center gap-1 text-xs font-medium text-foreground",
-        "underline underline-offset-2 hover:text-muted-foreground",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
+        "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1 stg:text-xs stg:font-medium stg:text-foreground",
+        "stg:underline stg:underline-offset-2 stg:hover:text-muted-foreground",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded",
       )}
     >
       {label}
-      <ExternalLink aria-hidden="true" className="size-3" />
+      <ExternalLink aria-hidden="true" className="stg:size-3" />
     </a>
   );
 }
 
 function TemplatesSkeleton() {
   return (
-    <div className="space-y-2 p-1">
+    <div className="stg:space-y-2 stg:p-1">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="h-20 animate-pulse rounded-lg bg-muted-faint" />
+        <div key={i} className="stg:h-20 stg:animate-pulse stg:rounded-lg stg:bg-muted-faint" />
       ))}
     </div>
   );

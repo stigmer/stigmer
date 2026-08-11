@@ -45,7 +45,7 @@ export function ExplorerTree({
   onRemoveEntry,
 }: ExplorerTreeProps) {
   return (
-    <div className="flex flex-col">
+    <div className="stg:flex stg:flex-col">
       {entries.map((entry, index) => (
         <ExplorerRoot
           key={entry.id}
@@ -89,25 +89,25 @@ function ExplorerRoot({
   });
 
   return (
-    <div className="flex flex-col">
-      <div className="group/root flex items-stretch">
+    <div className="stg:flex stg:flex-col">
+      <div className="stg:group/root stg:flex stg:items-stretch">
         <button
           type="button"
           onClick={() => setExpanded((prev) => !prev)}
           aria-expanded={expanded}
           className={cn(
-            "flex min-w-0 flex-1 items-center gap-1.5 px-1.5 py-1 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-foreground transition-colors hover:bg-accent-hover",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+            "stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-1.5 stg:px-1.5 stg:py-1 stg:text-left stg:text-[0.7rem] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-foreground stg:transition-colors stg:hover:bg-accent-hover",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
           )}
           title={entry.type === "local" ? entry.localPath : entry.gitUrl}
         >
           <span
             aria-hidden="true"
-            className="text-[10px] text-muted-foreground-subtle"
+            className="stg:text-[10px] stg:text-muted-foreground-subtle"
           >
             {expanded ? "▼" : "▶"}
           </span>
-          <span className="truncate">{entry.name}</span>
+          <span className="stg:truncate">{entry.name}</span>
         </button>
         {onRemove && (
           <button
@@ -116,9 +116,9 @@ function ExplorerRoot({
             aria-label={`Remove ${entry.name} from workspace`}
             title={`Remove ${entry.name} from workspace`}
             className={cn(
-              "shrink-0 px-1.5 text-muted-foreground opacity-0 transition-opacity",
-              "group-hover/root:opacity-100 focus-visible:opacity-100",
-              "hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+              "stg:shrink-0 stg:px-1.5 stg:text-muted-foreground stg:opacity-0 stg:transition-opacity",
+              "stg:group-hover/root:opacity-100 stg:focus-visible:opacity-100",
+              "stg:hover:text-destructive stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
             )}
           >
             <RemoveIcon />
@@ -174,14 +174,14 @@ function ExplorerRootBody({
         // makes aria-label permitted here (a role-less generic div cannot carry
         // an accessible name — axe `aria-prohibited-attr`).
         role="status"
-        className="space-y-1.5 px-2 py-2"
+        className="stg:space-y-1.5 stg:px-2 stg:py-2"
         aria-busy="true"
         aria-label={`Loading files for ${entryName}`}
       >
         {[1, 2, 3, 4].map((i) => (
           <div
             key={i}
-            className="h-3.5 animate-pulse rounded bg-muted"
+            className="stg:h-3.5 stg:animate-pulse stg:rounded stg:bg-muted"
             style={{ width: `${50 + i * 10}%` }}
             aria-hidden="true"
           />
@@ -192,12 +192,12 @@ function ExplorerRootBody({
 
   if (error) {
     return (
-      <div className="px-2 py-2 text-xs text-destructive">
+      <div className="stg:px-2 stg:py-2 stg:text-xs stg:text-destructive">
         Failed to list files: {error.message}
         <button
           type="button"
           onClick={onRetry}
-          className="ml-2 rounded-sm underline transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="stg:ml-2 stg:rounded-sm stg:underline stg:transition-colors stg:hover:text-destructive stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
         >
           Retry
         </button>
@@ -207,14 +207,14 @@ function ExplorerRootBody({
 
   if (tree.length === 0) {
     return (
-      <p className="px-3 py-2 text-xs text-muted-foreground">No files found.</p>
+      <p className="stg:px-3 stg:py-2 stg:text-xs stg:text-muted-foreground">No files found.</p>
     );
   }
 
   return (
     <>
       <nav aria-label={`File tree for ${entryName}`}>
-        <ul className="py-0.5 pl-1.5" role="tree">
+        <ul className="stg:py-0.5 stg:pl-1.5" role="tree">
           {tree.map((node) => (
             <FileTreeNode
               key={node.path}
@@ -232,7 +232,7 @@ function ExplorerRootBody({
         </ul>
       </nav>
       {truncated && (
-        <p className="px-3 py-1.5 text-[0.65rem] text-muted-foreground">
+        <p className="stg:px-3 stg:py-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
           Showing a partial listing — too many files to load in full.
         </p>
       )}

@@ -14,7 +14,7 @@ const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"] as const;
 const BODY_METHODS = new Set(["POST", "PUT", "PATCH"]);
 
 const inputClass =
-  "w-full rounded-md border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 py-1.5 text-xs text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]";
+  "stg:w-full stg:rounded-md stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-2 stg:py-1.5 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)] stg:placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]";
 
 /**
  * Specialized configuration form for `http_call` tasks.
@@ -112,15 +112,15 @@ export const HttpCallForm = memo(function HttpCallForm({
   );
 
   return (
-    <div className="flex flex-col gap-4 px-3 py-3">
+    <div className="stg:flex stg:flex-col stg:gap-4 stg:px-3 stg:py-3">
       {/* Method + URL */}
-      <section className="flex flex-col gap-2">
+      <section className="stg:flex stg:flex-col stg:gap-2">
         <SectionLabel>Request</SectionLabel>
-        <div className="flex gap-2">
+        <div className="stg:flex stg:gap-2">
           <select
             value={method}
             onChange={(e) => handleChange("method", e.target.value)}
-            className={`${inputClass} w-24 shrink-0`}
+            className={`${inputClass} stg:w-24 stg:shrink-0`}
             data-testid="http-call-method-select"
           >
             {HTTP_METHODS.map((m) => (
@@ -132,37 +132,37 @@ export const HttpCallForm = memo(function HttpCallForm({
             value={typeof endpoint.uri === "string" ? endpoint.uri : ""}
             onChange={(e) => handleEndpointChange("uri", e.target.value)}
             placeholder="https://api.example.com/data"
-            className={`${inputClass} flex-1 font-mono border-[var(--stgm-chart-purple,#8b5cf6)]/40`}
+            className={`${inputClass} stg:flex-1 stg:font-mono stg:border-[var(--stgm-chart-purple,#8b5cf6)]/40`}
             data-testid="http-call-url-input"
           />
         </div>
       </section>
 
       {/* Headers */}
-      <section className="flex flex-col gap-2">
+      <section className="stg:flex stg:flex-col stg:gap-2">
         <SectionLabel>Headers</SectionLabel>
         {headerEntries.length > 0 && (
-          <div className="flex flex-col gap-1.5">
+          <div className="stg:flex stg:flex-col stg:gap-1.5">
             {headerEntries.map(([key, val], idx) => (
-              <div key={idx} className="flex items-start gap-1">
+              <div key={idx} className="stg:flex stg:items-start stg:gap-1">
                 <input
                   type="text"
                   value={key}
                   onChange={(e) => handleHeaderChange(key, e.target.value, val)}
                   placeholder="Header name"
-                  className={`${inputClass} w-2/5`}
+                  className={`${inputClass} stg:w-2/5`}
                 />
                 <input
                   type="text"
                   value={typeof val === "string" ? val : ""}
                   onChange={(e) => handleHeaderChange(key, key, e.target.value)}
                   placeholder="Value"
-                  className={`${inputClass} flex-1`}
+                  className={`${inputClass} stg:flex-1`}
                 />
                 <button
                   type="button"
                   onClick={() => removeHeader(key)}
-                  className="mt-1 text-[10px] text-[var(--stgm-destructive,#ef4444)] hover:underline"
+                  className="stg:mt-1 stg:text-[10px] stg:text-[var(--stgm-destructive,#ef4444)] stg:hover:underline"
                   aria-label={`Remove header ${key}`}
                 >
                   ✕
@@ -174,7 +174,7 @@ export const HttpCallForm = memo(function HttpCallForm({
         <button
           type="button"
           onClick={addHeader}
-          className="self-start text-[11px] font-medium text-[var(--stgm-primary,#6366f1)] hover:underline"
+          className="stg:self-start stg:text-[11px] stg:font-medium stg:text-[var(--stgm-primary,#6366f1)] stg:hover:underline"
         >
           + Add header
         </button>
@@ -182,26 +182,26 @@ export const HttpCallForm = memo(function HttpCallForm({
 
       {/* Body */}
       {showBody && (
-        <section className="flex flex-col gap-2">
+        <section className="stg:flex stg:flex-col stg:gap-2">
           <SectionLabel>Body</SectionLabel>
-          <div className="flex flex-col gap-0.5">
+          <div className="stg:flex stg:flex-col stg:gap-0.5">
             <textarea
               value={bodyValue}
               onChange={handleBodyChange}
               rows={5}
-              className={`${inputClass} resize-y font-mono text-[11px]`}
+              className={`${inputClass} stg:resize-y stg:font-mono stg:text-[11px]`}
               placeholder='{ "key": "value" }'
               data-testid="http-call-body-input"
             />
             {bodyError && (
-              <span className="text-[10px] text-[var(--stgm-destructive,#ef4444)]">{bodyError}</span>
+              <span className="stg:text-[10px] stg:text-[var(--stgm-destructive,#ef4444)]">{bodyError}</span>
             )}
           </div>
         </section>
       )}
 
       {/* Timeout */}
-      <section className="flex flex-col gap-2">
+      <section className="stg:flex stg:flex-col stg:gap-2">
         <SectionLabel>Settings</SectionLabel>
         <FieldRow label="Timeout" hint="Seconds (1–300)">
           <input
@@ -225,7 +225,7 @@ export const HttpCallForm = memo(function HttpCallForm({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h4 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--stgm-muted-foreground,#737373)]">
+    <h4 className="stg:text-[11px] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-[var(--stgm-muted-foreground,#737373)]">
       {children}
     </h4>
   );
@@ -241,10 +241,10 @@ function FieldRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-[11px] font-medium text-[var(--stgm-foreground,#1a1a2e)]">{label}</label>
+    <div className="stg:flex stg:flex-col stg:gap-1">
+      <label className="stg:text-[11px] stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]">{label}</label>
       {hint && (
-        <p className="text-[10px] leading-tight text-[var(--stgm-muted-foreground,#737373)]">{hint}</p>
+        <p className="stg:text-[10px] stg:leading-tight stg:text-[var(--stgm-muted-foreground,#737373)]">{hint}</p>
       )}
       {children}
     </div>

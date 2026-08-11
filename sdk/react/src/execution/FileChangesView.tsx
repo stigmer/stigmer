@@ -76,7 +76,7 @@ export function FileChangesView({ changes, className }: FileChangesViewProps) {
   if (changes.length === 0 || !selected) return null;
 
   return (
-    <div className={cn("flex flex-col gap-3", className)}>
+    <div className={cn("stg:flex stg:flex-col stg:gap-3", className)}>
       <DiffSummary
         fileCount={changes.length}
         additions={totals.additions}
@@ -84,7 +84,7 @@ export function FileChangesView({ changes, className }: FileChangesViewProps) {
       />
 
       {changes.length > 1 && (
-        <div className="overflow-hidden rounded-lg border border-border">
+        <div className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border">
           <DiffFileList
             files={entries}
             selectedPath={selected.path}
@@ -181,25 +181,25 @@ export function FileChangeDiff({
 
   return (
     <div
-      className={cn("flex flex-col gap-1.5", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-1.5", className)}
       data-cursor-target="file-diff"
     >
       {(showFileName || showStatsRow) && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-muted-foreground">
           {showFileName &&
             change.changeType === FileChangeType.RENAME &&
             change.renameFrom && (
-              <span className="min-w-0 truncate font-mono text-muted-foreground-faint">
+              <span className="stg:min-w-0 stg:truncate stg:font-mono stg:text-muted-foreground-faint">
                 {change.renameFrom} →
               </span>
             )}
           {showFileName && (
-            <FilePathLink path={change.path} dirDisplay="dim" className="text-xs" />
+            <FilePathLink path={change.path} dirDisplay="dim" className="stg:text-xs" />
           )}
           {showStatsRow && (
-            <span className="shrink-0 tabular-nums">
-              <span className="text-diff-added-fg">+{stats.additions}</span>{" "}
-              <span className="text-diff-removed-fg">-{stats.deletions}</span>
+            <span className="stg:shrink-0 stg:tabular-nums">
+              <span className="stg:text-diff-added-fg">+{stats.additions}</span>{" "}
+              <span className="stg:text-diff-removed-fg">-{stats.deletions}</span>
             </span>
           )}
         </div>
@@ -283,7 +283,7 @@ function FileChangeBody({
             href={downloadUrl}
             target="_blank"
             rel="noreferrer"
-            className="font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="stg:font-medium stg:text-primary stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
           >
             Download the full file
           </a>
@@ -318,8 +318,8 @@ function Notice({
     <div
       role="status"
       className={cn(
-        "rounded-md border border-border bg-muted-subtle px-3 py-2 text-xs",
-        variant === "error" ? "text-destructive" : "text-muted-foreground",
+        "stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:px-3 stg:py-2 stg:text-xs",
+        variant === "error" ? "stg:text-destructive" : "stg:text-muted-foreground",
       )}
     >
       {children}

@@ -20,30 +20,30 @@ describe("DecisionButton", () => {
     render(<DecisionButton label="Approve" variant="primary" onClick={() => {}} />);
     const cls = screen.getByRole("button").className;
     expect(cls).toContain("border");
-    expect(cls).toContain("bg-accent");
-    expect(cls).toContain("text-accent-foreground");
-    expect(cls).not.toContain("bg-success");
+    expect(cls).toContain("stg:bg-accent");
+    expect(cls).toContain("stg:text-accent-foreground");
+    expect(cls).not.toContain("stg:bg-success");
   });
 
   it("ghost carries no fill at rest (lowest weight)", () => {
     render(<DecisionButton label="Skip" variant="ghost" onClick={() => {}} />);
     const cls = screen.getByRole("button").className;
-    expect(cls).toContain("text-muted-foreground");
+    expect(cls).toContain("stg:text-muted-foreground");
     // No resting background — only a neutral hover wash.
     expect(cls).not.toMatch(/(?:^|\s)bg-/);
-    expect(cls).toContain("hover:bg-accent-hover");
+    expect(cls).toContain("stg:hover:bg-accent-hover");
   });
 
   it("danger is a quiet ghost that reveals the destructive cue on hover AND focus, never the loud red fill", () => {
     render(<DecisionButton label="Reject" variant="danger" onClick={() => {}} />);
     const cls = screen.getByRole("button").className;
-    expect(cls).toContain("text-muted-foreground");
+    expect(cls).toContain("stg:text-muted-foreground");
     expect(cls).not.toMatch(/(?:^|\s)bg-/); // transparent at rest
-    expect(cls).toContain("hover:text-destructive");
-    expect(cls).toContain("hover:bg-destructive-subtle");
+    expect(cls).toContain("stg:hover:text-destructive");
+    expect(cls).toContain("stg:hover:bg-destructive-subtle");
     // Keyboard parity: the cue is not hover-only.
-    expect(cls).toContain("focus-visible:text-destructive");
-    expect(cls).not.toContain("bg-destructive text-destructive-foreground");
+    expect(cls).toContain("stg:focus-visible:text-destructive");
+    expect(cls).not.toContain("stg:bg-destructive stg:text-destructive-foreground");
   });
 
   it("uses NO `bg-token/NN` opacity modifiers in any variant", () => {
@@ -75,7 +75,7 @@ describe("DecisionButton", () => {
         isActive
       />,
     );
-    expect(screen.getByRole("button").querySelector("svg.animate-spin")).toBeTruthy();
+    expect(screen.getByRole("button").querySelector("svg.stg\\:animate-spin")).toBeTruthy();
 
     // In-flight, but a DIFFERENT button is the active one — no spinner here.
     rerender(
@@ -87,7 +87,7 @@ describe("DecisionButton", () => {
         isActive={false}
       />,
     );
-    expect(screen.getByRole("button").querySelector("svg.animate-spin")).toBeNull();
+    expect(screen.getByRole("button").querySelector("svg.stg\\:animate-spin")).toBeNull();
   });
 
   it("forwards className and the data-cursor-target hook", () => {
@@ -96,12 +96,12 @@ describe("DecisionButton", () => {
         label="Approve all"
         variant="ghost"
         onClick={() => {}}
-        className="ml-auto"
+        className="stg:ml-auto"
         cursorTarget="approve-all-button"
       />,
     );
     const btn = screen.getByRole("button");
-    expect(btn.className).toContain("ml-auto");
+    expect(btn.className).toContain("stg:ml-auto");
     expect(btn.getAttribute("data-cursor-target")).toBe("approve-all-button");
   });
 });

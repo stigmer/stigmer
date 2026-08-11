@@ -105,15 +105,15 @@ export function CreateAgentInstanceDialog({
       ref={dialogRef}
       onClose={handleClose}
       className={cn(
-        "fixed inset-0 m-auto w-full max-w-lg rounded-xl border border-border bg-popover p-0 shadow-xl",
-        "backdrop:bg-black/50",
+        "stg:fixed stg:inset-0 stg:m-auto stg:w-full stg:max-w-lg stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
+        "stg:backdrop:bg-black/50",
       )}
       aria-labelledby="create-agent-instance-title"
     >
-      <form onSubmit={handleSubmit} className="flex flex-col">
+      <form onSubmit={handleSubmit} className="stg:flex stg:flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 id="create-agent-instance-title" className="text-base font-semibold text-foreground">
+        <div className="stg:flex stg:items-center stg:justify-between stg:border-b stg:border-border stg:px-6 stg:py-4">
+          <h2 id="create-agent-instance-title" className="stg:text-base stg:font-semibold stg:text-foreground">
             Create Agent Instance
           </h2>
           <button
@@ -121,9 +121,9 @@ export function CreateAgentInstanceDialog({
             onClick={handleClose}
             aria-label="Close"
             className={cn(
-              "rounded-md p-1 text-muted-foreground",
-              "hover:text-foreground hover:bg-accent-hover",
-              "focus:outline-none focus:ring-2 focus:ring-ring",
+              "stg:rounded-md stg:p-1 stg:text-muted-foreground",
+              "stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
             )}
           >
             <CloseIcon />
@@ -131,11 +131,11 @@ export function CreateAgentInstanceDialog({
         </div>
 
         {/* Body */}
-        <div className="space-y-5 px-6 py-5">
+        <div className="stg:space-y-5 stg:px-6 stg:py-5">
           {/* Name */}
           <div>
-            <label htmlFor="agent-instance-name" className="block text-sm font-medium text-foreground mb-1.5">
-              Name <span className="text-destructive">*</span>
+            <label htmlFor="agent-instance-name" className="stg:block stg:text-sm stg:font-medium stg:text-foreground stg:mb-1.5">
+              Name <span className="stg:text-destructive">*</span>
             </label>
             <input
               id="agent-instance-name"
@@ -146,21 +146,21 @@ export function CreateAgentInstanceDialog({
               placeholder="e.g. prod, staging, qa-team"
               disabled={isCreating}
               className={cn(
-                "w-full rounded-md border border-border bg-background px-3 py-2 text-sm",
-                "text-foreground placeholder:text-muted-foreground",
-                "focus:outline-none focus:ring-2 focus:ring-ring",
-                "disabled:cursor-not-allowed disabled:opacity-50",
+                "stg:w-full stg:rounded-md stg:border stg:border-border stg:bg-background stg:px-3 stg:py-2 stg:text-sm",
+                "stg:text-foreground stg:placeholder:text-muted-foreground",
+                "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
+                "stg:disabled:cursor-not-allowed stg:disabled:opacity-50",
               )}
               autoFocus
             />
-            <p className="mt-1 text-[0.65rem] text-muted-foreground">
+            <p className="stg:mt-1 stg:text-[0.65rem] stg:text-muted-foreground">
               A URL-friendly slug will be generated from this name.
             </p>
           </div>
 
           {/* Description */}
           <div>
-            <label htmlFor="agent-instance-description" className="block text-sm font-medium text-foreground mb-1.5">
+            <label htmlFor="agent-instance-description" className="stg:block stg:text-sm stg:font-medium stg:text-foreground stg:mb-1.5">
               Description
             </label>
             <textarea
@@ -171,20 +171,20 @@ export function CreateAgentInstanceDialog({
               disabled={isCreating}
               rows={2}
               className={cn(
-                "w-full rounded-md border border-border bg-background px-3 py-2 text-sm resize-none",
-                "text-foreground placeholder:text-muted-foreground",
-                "focus:outline-none focus:ring-2 focus:ring-ring",
-                "disabled:cursor-not-allowed disabled:opacity-50",
+                "stg:w-full stg:rounded-md stg:border stg:border-border stg:bg-background stg:px-3 stg:py-2 stg:text-sm stg:resize-none",
+                "stg:text-foreground stg:placeholder:text-muted-foreground",
+                "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
+                "stg:disabled:cursor-not-allowed stg:disabled:opacity-50",
               )}
             />
           </div>
 
           {/* Environments */}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
+            <label className="stg:block stg:text-sm stg:font-medium stg:text-foreground stg:mb-1.5">
               Environments
             </label>
-            <p className="text-[0.65rem] text-muted-foreground mb-2">
+            <p className="stg:text-[0.65rem] stg:text-muted-foreground stg:mb-2">
               Bind credentials and configuration to this instance.
             </p>
             <EnvironmentPicker
@@ -197,7 +197,7 @@ export function CreateAgentInstanceDialog({
 
           {/* Visibility */}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
+            <label className="stg:block stg:text-sm stg:font-medium stg:text-foreground stg:mb-1.5">
               Visibility
             </label>
             <InstanceVisibilitySelector
@@ -210,23 +210,23 @@ export function CreateAgentInstanceDialog({
 
           {/* Error */}
           {error && (
-            <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+            <div className="stg:rounded-md stg:bg-destructive/10 stg:px-3 stg:py-2 stg:text-sm stg:text-destructive" role="alert">
               {getUserMessage(error)}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
+        <div className="stg:flex stg:items-center stg:justify-end stg:gap-2 stg:border-t stg:border-border stg:px-6 stg:py-4">
           <button
             type="button"
             onClick={handleClose}
             disabled={isCreating}
             className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-medium",
-              "text-foreground hover:bg-accent-hover",
-              "focus:outline-none focus:ring-2 focus:ring-ring",
-              "disabled:cursor-not-allowed disabled:opacity-50",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium",
+              "stg:text-foreground stg:hover:bg-accent-hover",
+              "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
+              "stg:disabled:cursor-not-allowed stg:disabled:opacity-50",
             )}
           >
             Cancel
@@ -235,11 +235,11 @@ export function CreateAgentInstanceDialog({
             type="submit"
             disabled={isCreating || !name.trim()}
             className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-medium",
-              "bg-primary text-primary-foreground",
-              "hover:bg-primary/90",
-              "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-              "disabled:cursor-not-allowed disabled:opacity-50",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium",
+              "stg:bg-primary stg:text-primary-foreground",
+              "stg:hover:bg-primary/90",
+              "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring stg:focus:ring-offset-2",
+              "stg:disabled:cursor-not-allowed stg:disabled:opacity-50",
             )}
           >
             {isCreating ? "Creating..." : "Create Instance"}

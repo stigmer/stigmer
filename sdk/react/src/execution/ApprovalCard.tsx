@@ -96,15 +96,15 @@ export const ApprovalCard = memo(function ApprovalCard({
   // destructive (delete) gate keeps a red accent as a hard safety signal.
   const accentClass =
     categoryInfo.category === "delete"
-      ? "border-l-2 border-l-destructive"
-      : "border-l-2 border-l-warning";
+      ? "stg:border-l-2 stg:border-l-destructive"
+      : "stg:border-l-2 stg:border-l-warning";
 
   return (
     <div
       role="alert"
       aria-label={`Approval required for ${pendingApproval.toolName}`}
       className={cn(
-        "rounded-lg border border-border-prominent",
+        "stg:rounded-lg stg:border stg:border-border-prominent",
         accentClass,
         className,
       )}
@@ -163,16 +163,16 @@ export function ApprovalCardHeader({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 px-2.5 py-1.5 text-xs",
-        bordered && "border-b border-border-muted",
+        "stg:flex stg:items-center stg:gap-2 stg:px-2.5 stg:py-1.5 stg:text-xs",
+        bordered && "stg:border-b stg:border-border-muted",
       )}
     >
-      <span className="shrink-0 text-warning" aria-hidden="true">
+      <span className="stg:shrink-0 stg:text-warning" aria-hidden="true">
         <CategoryIcon />
       </span>
 
-      <span className="min-w-0 flex-1 flex items-center gap-1.5 overflow-hidden">
-        <span className="shrink-0 font-medium text-foreground">
+      <span className="stg:min-w-0 stg:flex-1 stg:flex stg:items-center stg:gap-1.5 stg:overflow-hidden">
+        <span className="stg:shrink-0 stg:font-medium stg:text-foreground">
           {categoryInfo.label}
         </span>
         {primaryArg &&
@@ -182,26 +182,26 @@ export function ApprovalCardHeader({
             // with the full path on hover, matching the ToolCallItem header.
             <FilePathLink
               path={primaryArg}
-              className="min-w-0 text-xs text-muted-foreground"
+              className="stg:min-w-0 stg:text-xs stg:text-muted-foreground"
             />
           ) : (
             // Shell is the exception: its command is shown in the body's
             // terminal session, so the header stays minimal (icon + label).
-            <span className="min-w-0 truncate font-mono text-muted-foreground">
+            <span className="stg:min-w-0 stg:truncate stg:font-mono stg:text-muted-foreground">
               {primaryArg}
             </span>
           ))}
       </span>
 
       {pendingApproval.fromSubAgent && pendingApproval.subAgentName && (
-        <span className="shrink-0 rounded bg-muted px-1 py-0.5 font-mono text-muted-foreground">
+        <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:font-mono stg:text-muted-foreground">
           via {pendingApproval.subAgentSubject || pendingApproval.subAgentName}
         </span>
       )}
 
       <WaitingDuration requestedAt={pendingApproval.requestedAt} />
 
-      <span className="shrink-0 text-warning" aria-hidden="true">
+      <span className="stg:shrink-0 stg:text-warning" aria-hidden="true">
         <ClockIcon />
       </span>
     </div>
@@ -344,9 +344,9 @@ export function ApprovalCardBody({
   }
 
   return (
-    <div className={cn("px-3 py-2.5 space-y-2", className)}>
+    <div className={cn("stg:px-3 stg:py-2.5 stg:space-y-2", className)}>
       {showMessage && (
-        <p className="text-xs text-foreground">{pendingApproval.message}</p>
+        <p className="stg:text-xs stg:text-foreground">{pendingApproval.message}</p>
       )}
 
       {preview}
@@ -357,7 +357,7 @@ export function ApprovalCardBody({
           never re-gates. A mixed turn (commands + file-tool edits) still
           reviews everything, so this line under-promises rather than over-. */}
       {categoryInfo.category === "shell" && (
-        <p className="text-[11px] italic text-muted-foreground">
+        <p className="stg:text-[11px] stg:italic stg:text-muted-foreground">
           Files this command creates or changes are covered by this approval —
           they are kept automatically, with no second review.
         </p>
@@ -368,7 +368,7 @@ export function ApprovalCardBody({
           run-lifetime lease (Approve all) is demoted to the far right via
           `ml-auto` so it never competes with — or is mis-clicked for — the
           per-call Approve (Fitts/Hick). */}
-      <div className="flex items-center gap-2 pt-1">
+      <div className="stg:flex stg:items-center stg:gap-2 stg:pt-1">
         <DecisionButton
           label="Approve"
           variant="primary"
@@ -401,7 +401,7 @@ export function ApprovalCardBody({
           onClick={() => handleAction(ApprovalAction.APPROVE_ALL)}
           isActive={activeAction === ApprovalAction.APPROVE_ALL}
           isSubmitting={isSubmitting}
-          className="ml-auto"
+          className="stg:ml-auto"
           cursorTarget="approve-all-button"
         />
       </div>
@@ -411,7 +411,7 @@ export function ApprovalCardBody({
           on hover. */}
       {showGateReason && (
         <p
-          className="text-[11px] italic text-muted-foreground"
+          className="stg:text-[11px] stg:italic stg:text-muted-foreground"
           title={gateReason ?? undefined}
           data-cursor-target="approval-gate-reason"
         >
@@ -479,7 +479,7 @@ function WaitingDuration({ requestedAt }: { requestedAt: string }) {
   if (elapsed === null) return null;
 
   return (
-    <span className="shrink-0 text-xs text-muted-foreground">
+    <span className="stg:shrink-0 stg:text-xs stg:text-muted-foreground">
       {formatElapsed(elapsed)}
     </span>
   );

@@ -40,7 +40,7 @@ export function createScheduleColumns(
       id: "name",
       header: "Name",
       cell: (item) => (
-        <span className="font-medium text-foreground">
+        <span className="stg:font-medium stg:text-foreground">
           {item.metadata?.name || item.metadata?.slug}
         </span>
       ),
@@ -59,11 +59,11 @@ export function createScheduleColumns(
       id: "cron",
       header: "Cadence",
       cell: (item) => (
-        <span className="inline-flex items-baseline gap-1.5">
-          <code className="font-mono text-xs text-foreground">
+        <span className="stg:inline-flex stg:items-baseline stg:gap-1.5">
+          <code className="stg:font-mono stg:text-xs stg:text-foreground">
             {item.spec?.cron || "—"}
           </code>
-          <span className="text-xs text-muted-foreground">
+          <span className="stg:text-xs stg:text-muted-foreground">
             {item.spec?.timeZone}
           </span>
         </span>
@@ -77,7 +77,7 @@ export function createScheduleColumns(
         const info = deriveScheduleState(item.spec, item.status);
         const nextFireAt = item.status?.nextFireAt;
         return (
-          <span className="text-muted-foreground">
+          <span className="stg:text-muted-foreground">
             {info.state === "active" && nextFireAt
               ? formatNextFire(timestampDate(nextFireAt), now())
               : "—"}
@@ -90,7 +90,7 @@ export function createScheduleColumns(
       id: "last-run",
       header: "Last run",
       cell: (item) => (
-        <span className="text-muted-foreground">
+        <span className="stg:text-muted-foreground">
           {item.status?.lastFireAt
             ? formatRelativeTime(timestampDate(item.status.lastFireAt), now())
             : "Never"}
@@ -105,7 +105,7 @@ export function createScheduleColumns(
         const target =
           item.spec?.target?.case === "agent" ? item.spec.target.value : undefined;
         return (
-          <span className="text-muted-foreground">
+          <span className="stg:text-muted-foreground">
             {target?.agentRef
               ? `${target.agentRef.org}/${target.agentRef.slug}`
               : "—"}

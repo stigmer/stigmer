@@ -74,9 +74,9 @@ export const WorkflowNodePopover = memo(function WorkflowNodePopover({
       role="dialog"
       aria-label={`${data.taskName} task details`}
       className={cn(
-        "absolute z-50 w-64 overflow-visible rounded-lg border border-[var(--stgm-border,#d4d4d8)]",
-        "bg-[var(--stgm-popover,#fff)] p-3 shadow-lg",
-        "text-[var(--stgm-popover-foreground,#1a1a2e)]",
+        "stg:absolute stg:z-50 stg:w-64 stg:overflow-visible stg:rounded-lg stg:border stg:border-[var(--stgm-border,#d4d4d8)]",
+        "stg:bg-[var(--stgm-popover,#fff)] stg:p-3 stg:shadow-lg",
+        "stg:text-[var(--stgm-popover-foreground,#1a1a2e)]",
       )}
       style={{
         left: Math.min(x, (ref.current?.parentElement?.clientWidth ?? 800) - 272),
@@ -84,24 +84,24 @@ export const WorkflowNodePopover = memo(function WorkflowNodePopover({
         minWidth: "16rem",
       }}
     >
-      <div className="mb-2 flex items-center gap-2">
+      <div className="stg:mb-2 stg:flex stg:items-center stg:gap-2">
         <span
-          className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+          className="stg:inline-block stg:h-2.5 stg:w-2.5 stg:shrink-0 stg:rounded-full"
           style={{ backgroundColor: categoryColor }}
           aria-hidden="true"
         />
-        <span className="truncate text-sm font-medium">{data.taskName}</span>
+        <span className="stg:truncate stg:text-sm stg:font-medium">{data.taskName}</span>
       </div>
 
-      <div className="mb-2 flex items-center gap-2 text-xs text-[var(--stgm-muted-foreground,#737373)]">
-        <span className="rounded bg-[var(--stgm-muted,#f5f5f5)] px-1.5 py-0.5 font-medium">
+      <div className="stg:mb-2 stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">
+        <span className="stg:rounded stg:bg-[var(--stgm-muted,#f5f5f5)] stg:px-1.5 stg:py-0.5 stg:font-medium">
           {displayName}
         </span>
-        <span className="capitalize">{category.replace(/_/g, " ")}</span>
+        <span className="stg:capitalize">{category.replace(/_/g, " ")}</span>
       </div>
 
       {configSummary && (
-        <p className="mb-2 truncate text-xs text-[var(--stgm-muted-foreground,#737373)]">
+        <p className="stg:mb-2 stg:truncate stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">
           {configSummary}
         </p>
       )}
@@ -111,11 +111,11 @@ export const WorkflowNodePopover = memo(function WorkflowNodePopover({
           type="button"
           onClick={handleOpenInEditor}
           className={cn(
-            "mt-1 block w-full whitespace-nowrap rounded-md px-2.5 py-1.5 text-center text-xs font-medium",
-            "bg-[var(--stgm-primary,#6366f1)] text-[var(--stgm-primary-foreground,#fff)]",
-            "hover:bg-[var(--stgm-primary-hover,#4f46e5)]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--stgm-ring,#6366f1)]",
-            "transition-colors",
+            "stg:mt-1 stg:block stg:w-full stg:whitespace-nowrap stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-center stg:text-xs stg:font-medium",
+            "stg:bg-[var(--stgm-primary,#6366f1)] stg:text-[var(--stgm-primary-foreground,#fff)]",
+            "stg:hover:bg-[var(--stgm-primary-hover,#4f46e5)]",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-[var(--stgm-ring,#6366f1)]",
+            "stg:transition-colors",
           )}
         >
           Open in editor

@@ -72,20 +72,20 @@ export const FailureAnalysisPanel = memo(function FailureAnalysisPanel({
     <section
       aria-label="Failure analysis"
       className={cn(
-        "rounded-lg border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)]",
+        "stg:rounded-lg stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)]",
         className,
       )}
     >
-      <div className="flex items-center justify-between border-b border-[var(--stgm-border,#d4d4d8)] px-4 py-2.5">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--stgm-muted-foreground,#737373)]">
+      <div className="stg:flex stg:items-center stg:justify-between stg:border-b stg:border-[var(--stgm-border,#d4d4d8)] stg:px-4 stg:py-2.5">
+        <h3 className="stg:text-xs stg:font-semibold stg:uppercase stg:tracking-wider stg:text-[var(--stgm-muted-foreground,#737373)]">
           Recent Failures
         </h3>
-        <span className="text-xs tabular-nums text-[var(--stgm-destructive,#ef4444)]">
+        <span className="stg:text-xs stg:tabular-nums stg:text-[var(--stgm-destructive,#ef4444)]">
           {groups.reduce((sum, g) => sum + g.count, 0)} failed
         </span>
       </div>
 
-      <div className="divide-y divide-[var(--stgm-border-muted,#e5e5e5)]">
+      <div className="stg:divide-y stg:divide-[var(--stgm-border-muted,#e5e5e5)]">
         {visibleGroups.map((group) => (
           <FailureGroupRow
             key={group.taskName}
@@ -101,7 +101,7 @@ export const FailureAnalysisPanel = memo(function FailureAnalysisPanel({
         <button
           type="button"
           onClick={() => setShowAll(true)}
-          className="w-full border-t border-[var(--stgm-border,#d4d4d8)] px-4 py-2 text-xs font-medium text-[var(--stgm-primary,#6366f1)] transition-colors hover:bg-[var(--stgm-accent,#f5f5f5)]"
+          className="stg:w-full stg:border-t stg:border-[var(--stgm-border,#d4d4d8)] stg:px-4 stg:py-2 stg:text-xs stg:font-medium stg:text-[var(--stgm-primary,#6366f1)] stg:transition-colors stg:hover:bg-[var(--stgm-accent,#f5f5f5)]"
         >
           Show {hiddenCount} more failing task{hiddenCount > 1 ? "s" : ""}
         </button>
@@ -131,30 +131,30 @@ function FailureGroupRow({
         type="button"
         onClick={() => onToggle(group.taskName)}
         aria-expanded={isExpanded}
-        className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[var(--stgm-accent,#f5f5f5)]"
+        className="stg:flex stg:w-full stg:items-center stg:gap-3 stg:px-4 stg:py-2.5 stg:text-left stg:transition-colors stg:hover:bg-[var(--stgm-accent,#f5f5f5)]"
       >
         <ChevronIcon expanded={isExpanded} />
-        <span className="flex-1 min-w-0">
-          <span className="block text-sm font-medium text-[var(--stgm-foreground,#1a1a2e)] truncate">
+        <span className="stg:flex-1 stg:min-w-0">
+          <span className="stg:block stg:text-sm stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)] stg:truncate">
             {group.taskName}
           </span>
-          <span className="block text-xs text-[var(--stgm-muted-foreground,#737373)] truncate">
+          <span className="stg:block stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)] stg:truncate">
             {group.latestError || "No error message"}
           </span>
         </span>
-        <span className="shrink-0 rounded-full bg-[var(--stgm-destructive,#ef4444)]/10 px-2 py-0.5 text-xs font-medium tabular-nums text-[var(--stgm-destructive,#ef4444)]">
+        <span className="stg:shrink-0 stg:rounded-full stg:bg-[var(--stgm-destructive,#ef4444)]/10 stg:px-2 stg:py-0.5 stg:text-xs stg:font-medium stg:tabular-nums stg:text-[var(--stgm-destructive,#ef4444)]">
           {group.count}
         </span>
       </button>
 
       {isExpanded && group.instances.length > 0 && (
-        <div className="border-t border-[var(--stgm-border-muted,#e5e5e5)] bg-[var(--stgm-muted,#f4f4f5)]/30">
+        <div className="stg:border-t stg:border-[var(--stgm-border-muted,#e5e5e5)] stg:bg-[var(--stgm-muted,#f4f4f5)]/30">
           {group.instances.map((inst) => (
             <div
               key={inst.executionId}
               className={cn(
-                "flex items-center gap-3 px-4 py-1.5 pl-10 text-xs",
-                onExecutionClick && "cursor-pointer hover:bg-[var(--stgm-accent-hover,#f5f5f5)]",
+                "stg:flex stg:items-center stg:gap-3 stg:px-4 stg:py-1.5 stg:pl-10 stg:text-xs",
+                onExecutionClick && "stg:cursor-pointer stg:hover:bg-[var(--stgm-accent-hover,#f5f5f5)]",
               )}
               role={onExecutionClick ? "link" : undefined}
               tabIndex={onExecutionClick ? 0 : undefined}
@@ -170,12 +170,12 @@ function FailureGroupRow({
                   : undefined
               }
             >
-              <span className="text-[var(--stgm-foreground,#1a1a2e)] truncate flex-1">
+              <span className="stg:text-[var(--stgm-foreground,#1a1a2e)] stg:truncate stg:flex-1">
                 {inst.executionName || inst.executionId}
               </span>
               {inst.failedAt && (
                 <time
-                  className="shrink-0 text-[var(--stgm-muted-foreground,#737373)]"
+                  className="stg:shrink-0 stg:text-[var(--stgm-muted-foreground,#737373)]"
                   dateTime={inst.failedAt.toISOString()}
                 >
                   {inst.failedAt.toLocaleDateString()}
@@ -206,8 +206,8 @@ function ChevronIcon({ expanded }: { readonly expanded: boolean }) {
       strokeLinejoin="round"
       aria-hidden="true"
       className={cn(
-        "shrink-0 text-[var(--stgm-muted-foreground,#737373)] transition-transform duration-150",
-        expanded && "rotate-90",
+        "stg:shrink-0 stg:text-[var(--stgm-muted-foreground,#737373)] stg:transition-transform stg:duration-150",
+        expanded && "stg:rotate-90",
       )}
     >
       <path d="M4.5 2.5L8 6L4.5 9.5" />

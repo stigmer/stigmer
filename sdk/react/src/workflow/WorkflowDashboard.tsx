@@ -100,14 +100,14 @@ export const WorkflowDashboard = memo(function WorkflowDashboard({
   return (
     <section
       aria-label="Workflow dashboard"
-      className={cn("space-y-6", className)}
+      className={cn("stg:space-y-6", className)}
     >
       <ExecutionSummaryWidget
         summary={summary}
         isLoading={summaryLoading}
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="stg:grid stg:gap-6 stg:lg:grid-cols-2">
         <PendingApprovalsWidget
           approvals={approvals}
           totalCount={approvalCount}

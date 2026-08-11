@@ -49,27 +49,27 @@ export function PlanStreamingDocument({
       role="article"
       aria-label="Plan document"
       aria-busy="true"
-      className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-4 py-3"
+      className="stg:mx-auto stg:flex stg:w-full stg:max-w-3xl stg:flex-col stg:gap-3 stg:px-4 stg:py-3"
     >
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <div className="stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-2">
         <span
           role="status"
-          className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-[0.65rem] font-medium text-muted-foreground"
+          className="stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground"
         >
           <WritingDot />
           Writing…
         </span>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border-muted bg-card">
+      <div className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border-muted stg:bg-card">
         {title && (
-          <header className="border-b border-border-muted bg-muted-faint px-4 py-2.5">
-            <span className="block truncate text-sm font-semibold text-foreground">
+          <header className="stg:border-b stg:border-border-muted stg:bg-muted-faint stg:px-4 stg:py-2.5">
+            <span className="stg:block stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">
               {title}
             </span>
           </header>
         )}
-        <div className="stgm-prose px-4 py-4">
+        <div className="stgm-prose stg:px-4 stg:py-4">
           <Streamdown
             components={PLAN_DOCUMENT_MARKDOWN_COMPONENTS}
             isAnimating
@@ -91,7 +91,7 @@ function WritingDot() {
   return (
     <span
       aria-hidden="true"
-      className="size-1.5 animate-pulse rounded-full bg-primary"
+      className="stg:size-1.5 stg:animate-pulse stg:rounded-full stg:bg-primary"
     />
   );
 }

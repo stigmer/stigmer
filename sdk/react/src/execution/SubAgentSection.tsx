@@ -185,7 +185,7 @@ function CollapsibleCard({
       role="group"
       aria-label={ariaLabel}
       className={cn(
-        "rounded-md border border-border border-l-2 border-l-primary/30 bg-muted-faint",
+        "stg:rounded-md stg:border stg:border-border stg:border-l-2 stg:border-l-primary/30 stg:bg-muted-faint",
         className,
       )}
     >
@@ -195,23 +195,23 @@ function CollapsibleCard({
         aria-expanded={expanded}
         onClick={handleToggle}
         className={cn(
-          "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors",
-          "hover:bg-muted-subtle",
-          "cursor-pointer",
+          "stg:flex stg:w-full stg:items-center stg:gap-2 stg:px-2.5 stg:py-1.5 stg:text-left stg:text-xs stg:text-muted-foreground stg:transition-colors",
+          "stg:hover:bg-muted-subtle",
+          "stg:cursor-pointer",
         )}
       >
-        <span className="shrink-0 text-primary-muted" aria-hidden="true">
+        <span className="stg:shrink-0 stg:text-primary-muted" aria-hidden="true">
           <BotIcon />
         </span>
-        <span className="min-w-0 flex-1 truncate">{displayLabel}</span>
+        <span className="stg:min-w-0 stg:flex-1 stg:truncate">{displayLabel}</span>
         {isRunning && (
-          <span className="shrink-0 text-muted-foreground" aria-hidden="true">
+          <span className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
             <SpinnerIcon />
           </span>
         )}
         <span
           className={cn(
-            "shrink-0 rounded px-1 py-0.5 text-[10px] font-medium leading-none",
+            "stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-medium stg:leading-none",
             statusInfo.badgeClass,
           )}
         >
@@ -221,7 +221,7 @@ function CollapsibleCard({
           <RunningDuration startedAt={sub.startedAt} />
         ) : (
           duration && (
-            <span className="shrink-0 tabular-nums text-muted-foreground">
+            <span className="stg:shrink-0 stg:tabular-nums stg:text-muted-foreground">
               {duration}
             </span>
           )
@@ -231,28 +231,28 @@ function CollapsibleCard({
 
       {/* Active todo preview — visible when collapsed */}
       {collapsedPreview && !expanded && (
-        <div className="flex items-center gap-1.5 px-2.5 pb-1.5 text-xs text-muted-foreground">
-          <span className="ml-[20px] shrink-0" aria-hidden="true">
+        <div className="stg:flex stg:items-center stg:gap-1.5 stg:px-2.5 stg:pb-1.5 stg:text-xs stg:text-muted-foreground">
+          <span className="stg:ml-[20px] stg:shrink-0" aria-hidden="true">
             {isRunning && activeTodo ? (
               <TodoInProgressIcon />
             ) : (
               <TodoCompletedSmallIcon />
             )}
           </span>
-          <span className="min-w-0 truncate">{collapsedPreview}</span>
+          <span className="stg:min-w-0 stg:truncate">{collapsedPreview}</span>
         </div>
       )}
 
       {/* Expanded content — CSS grid-rows animation */}
       <div
         className={cn(
-          "grid transition-[grid-template-rows] duration-150 ease-out",
-          expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+          "stg:grid stg:transition-[grid-template-rows] stg:duration-150 stg:ease-out",
+          expanded ? "stg:grid-rows-[1fr]" : "stg:grid-rows-[0fr]",
         )}
       >
-        <div className="overflow-hidden">
+        <div className="stg:overflow-hidden">
           {expanded && (
-            <div className="border-t border-border-muted px-2.5 pb-2 pt-1.5">
+            <div className="stg:border-t stg:border-border-muted stg:px-2.5 stg:pb-2 stg:pt-1.5">
               <SubAgentThreadContent
                 threadItems={threadItems}
                 todos={sub.todos}
@@ -286,7 +286,7 @@ function RunningDuration({ startedAt }: { readonly startedAt: string }) {
   if (elapsed === null) return null;
 
   return (
-    <span className="shrink-0 tabular-nums text-muted-foreground">
+    <span className="stg:shrink-0 stg:tabular-nums stg:text-muted-foreground">
       {formatElapsed(elapsed)}
     </span>
   );
@@ -318,28 +318,28 @@ function FlatContent({
   return (
     <div
       className={cn(
-        "border-l-2 border-primary/20 pl-3",
+        "stg:border-l-2 stg:border-primary/20 stg:pl-3",
         className,
       )}
     >
       {/* Header */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 py-1.5 text-xs">
+      <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-x-2 stg:gap-y-1 stg:py-1.5 stg:text-xs">
         <span
-          className={cn("shrink-0", statusInfo.colorClass)}
+          className={cn("stg:shrink-0", statusInfo.colorClass)}
           aria-hidden="true"
         >
           <StatusIcon />
         </span>
-        <span className="font-medium text-foreground">
+        <span className="stg:font-medium stg:text-foreground">
           {sub.name}
         </span>
         {sub.subject && (
-          <span className="text-muted-foreground">
+          <span className="stg:text-muted-foreground">
             {sub.subject}
           </span>
         )}
         {duration && (
-          <span className="tabular-nums text-muted-foreground">
+          <span className="stg:tabular-nums stg:text-muted-foreground">
             {duration}
           </span>
         )}
@@ -379,18 +379,18 @@ function SubAgentThreadContent({
 
   return (
     <>
-      {hasTodos && <TodoList todos={todos!} className="pb-1" />}
+      {hasTodos && <TodoList todos={todos!} className="stg:pb-1" />}
 
       {input && (
         <div
-          className="border-l-2 border-muted-foreground/25 pl-2.5 text-xs text-muted-foreground whitespace-pre-wrap mb-1"
+          className="stg:border-l-2 stg:border-muted-foreground/25 stg:pl-2.5 stg:text-xs stg:text-muted-foreground stg:whitespace-pre-wrap stg:mb-1"
         >
           {input}
         </div>
       )}
 
       {threadItems.length > 0 && (
-        <div className="flex flex-col gap-1 pb-1">
+        <div className="stg:flex stg:flex-col stg:gap-1 stg:pb-1">
           {threadItems.map((item) => {
             switch (item.kind) {
               case "message":
@@ -410,7 +410,7 @@ function SubAgentThreadContent({
       )}
 
       {isFailed && error && (
-        <div className="rounded-md border border-destructive/20 bg-destructive-subtle px-2 py-1.5 text-xs text-destructive">
+        <div className="stg:rounded-md stg:border stg:border-destructive/20 stg:bg-destructive-subtle stg:px-2 stg:py-1.5 stg:text-xs stg:text-destructive">
           {error}
         </div>
       )}
@@ -468,38 +468,38 @@ interface SubAgentStatusInfo {
 const SUB_AGENT_STATUS_MAP: Record<SubAgentStatus, SubAgentStatusInfo> = {
   [SubAgentStatus.SUB_AGENT_STATUS_UNSPECIFIED]: {
     label: "Unknown",
-    colorClass: "text-muted-foreground",
-    badgeClass: "bg-muted text-muted-foreground",
+    colorClass: "stg:text-muted-foreground",
+    badgeClass: "stg:bg-muted stg:text-muted-foreground",
     icon: DotIcon,
   },
   [SubAgentStatus.SUB_AGENT_PENDING]: {
     label: "Pending",
-    colorClass: "text-muted-foreground",
-    badgeClass: "bg-muted text-muted-foreground",
+    colorClass: "stg:text-muted-foreground",
+    badgeClass: "stg:bg-muted stg:text-muted-foreground",
     icon: DotIcon,
   },
   [SubAgentStatus.SUB_AGENT_IN_PROGRESS]: {
     label: "Running",
-    colorClass: "text-foreground",
-    badgeClass: "bg-muted text-foreground",
+    colorClass: "stg:text-foreground",
+    badgeClass: "stg:bg-muted stg:text-foreground",
     icon: SpinnerIcon,
   },
   [SubAgentStatus.SUB_AGENT_COMPLETED]: {
     label: "Completed",
-    colorClass: "text-success",
-    badgeClass: "bg-success/15 text-success",
+    colorClass: "stg:text-success",
+    badgeClass: "stg:bg-success/15 stg:text-success",
     icon: CheckCircleIcon,
   },
   [SubAgentStatus.SUB_AGENT_FAILED]: {
     label: "Failed",
-    colorClass: "text-destructive",
-    badgeClass: "bg-destructive/15 text-destructive",
+    colorClass: "stg:text-destructive",
+    badgeClass: "stg:bg-destructive/15 stg:text-destructive",
     icon: XCircleIcon,
   },
   [SubAgentStatus.SUB_AGENT_CANCELLED]: {
     label: "Cancelled",
-    colorClass: "text-muted-foreground",
-    badgeClass: "bg-muted text-muted-foreground",
+    colorClass: "stg:text-muted-foreground",
+    badgeClass: "stg:bg-muted stg:text-muted-foreground",
     icon: XCircleIcon,
   },
 };
@@ -517,7 +517,7 @@ function SpinnerIcon() {
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
-      className="animate-spin"
+      className="stg:animate-spin"
     >
       <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />
     </svg>
@@ -619,8 +619,8 @@ function ChevronIcon({ expanded }: { expanded: boolean }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={cn(
-        "shrink-0 text-muted-foreground transition-transform duration-150",
-        expanded && "rotate-90",
+        "stg:shrink-0 stg:text-muted-foreground stg:transition-transform stg:duration-150",
+        expanded && "stg:rotate-90",
       )}
       aria-hidden="true"
     >

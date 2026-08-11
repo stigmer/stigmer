@@ -249,15 +249,15 @@ describe("WorkspaceSurface extraViews", () => {
     expect(screen.queryByText("Inspect")).toBeNull();
     // The content's wrapper is the bare sidebar column, not the padded
     // scroll envelope the default path applies.
-    expect(probe.parentElement!.className).not.toContain("overflow-y-auto");
-    expect(probe.parentElement!.className).not.toContain("px-3");
+    expect(probe.parentElement!.className).not.toContain("stg:overflow-y-auto");
+    expect(probe.parentElement!.className).not.toContain("stg:px-3");
   });
 
   it("keeps the shared envelope (heading + padded scroll) for unfitted views", () => {
     renderSurface({ extraViews: [configView] });
     fireEvent.click(screen.getByRole("radio", { name: "Config" }));
     const probe = screen.getByTestId("config-probe");
-    expect(probe.parentElement!.className).toContain("overflow-y-auto");
+    expect(probe.parentElement!.className).toContain("stg:overflow-y-auto");
     expect(screen.getByText("Config")).toBeTruthy();
   });
 
@@ -464,11 +464,11 @@ describe("WorkspaceSurface virtualDocuments", () => {
       selectedFile: { entryId: PLAN_ENTRY_ID, path: "plan.md" },
     });
     const body = screen.getByTestId("plan-doc-probe").parentElement!;
-    expect(body.className).toContain("overflow-y-auto");
+    expect(body.className).toContain("stg:overflow-y-auto");
     // overflow-y alone computes overflow-x to auto; the explicit hidden +
     // min-w-0 pair is what forces documents to reflow at narrow widths.
-    expect(body.className).toContain("overflow-x-hidden");
-    expect(body.className).toContain("min-w-0");
+    expect(body.className).toContain("stg:overflow-x-hidden");
+    expect(body.className).toContain("stg:min-w-0");
   });
 
   it("mounts ONLY the active virtual document — inactive tabs stay unmounted", () => {

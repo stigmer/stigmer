@@ -58,15 +58,15 @@ export function PanelChip({ isOpen, onToggle, badgeCount }: PanelChipProps) {
       aria-label={isOpen ? "Hide panel" : "Show panel"}
       title={isOpen ? "Hide panel" : "Show panel"}
       className={cn(
-        "flex items-center gap-1.5 rounded-md border border-border bg-card px-1.5 py-1",
-        "text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "stg:flex stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border stg:bg-card stg:px-1.5 stg:py-1",
+        "stg:text-muted-foreground stg:transition-colors stg:hover:bg-muted stg:hover:text-foreground",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
       )}
     >
       {showCount && (
         <span
           aria-label={`${badgeCount} new items`}
-          className="inline-flex min-w-[1rem] items-center justify-center rounded-full bg-primary px-1 py-px text-[10px] font-medium leading-none text-primary-foreground"
+          className="stg:inline-flex stg:min-w-[1rem] stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-1 stg:py-px stg:text-[10px] stg:font-medium stg:leading-none stg:text-primary-foreground"
         >
           {badgeCount}
         </span>

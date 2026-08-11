@@ -16,7 +16,7 @@ import { cn } from "@stigmer/theme";
 /** Quarter-arc spinner for an in-flight item. */
 export function SpinnerIcon() {
   return (
-    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="animate-spin">
+    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="stg:animate-spin">
       <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />
     </svg>
   );
@@ -97,8 +97,8 @@ export function ChevronIcon({ expanded }: { readonly expanded: boolean }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={cn(
-        "shrink-0 text-muted-foreground transition-transform duration-150",
-        expanded && "rotate-90",
+        "stg:shrink-0 stg:text-muted-foreground stg:transition-transform stg:duration-150",
+        expanded && "stg:rotate-90",
       )}
       aria-hidden="true"
     >

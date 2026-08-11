@@ -66,14 +66,14 @@ export function OAuthAppListPanel({
   if (isLoading) {
     return (
       <div
-        className={cn("space-y-2", className)}
+        className={cn("stg:space-y-2", className)}
         aria-busy="true"
         aria-label="Loading OAuth apps"
       >
         {Array.from({ length: 2 }, (_, i) => (
           <div
             key={i}
-            className="bg-muted-subtle h-14 animate-pulse rounded-lg"
+            className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg"
           />
         ))}
       </div>
@@ -82,7 +82,7 @@ export function OAuthAppListPanel({
 
   if (error) {
     return (
-      <p className={cn("text-destructive text-xs", className)} role="alert">
+      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
         {getUserMessage(error)}
       </p>
     );
@@ -92,7 +92,7 @@ export function OAuthAppListPanel({
     return (
       <p
         className={cn(
-          "text-muted-foreground py-4 text-center text-xs",
+          "stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs",
           className,
         )}
       >
@@ -103,7 +103,7 @@ export function OAuthAppListPanel({
 
   return (
     <div
-      className={cn("space-y-2", className)}
+      className={cn("stg:space-y-2", className)}
       role="list"
       aria-label="OAuth apps"
     >
@@ -136,22 +136,22 @@ function OAuthAppRow({
   return (
     <div
       role="listitem"
-      className="flex items-center gap-3 rounded-lg border border-border-muted px-3 py-2.5 transition-colors hover:border-border"
+      className="stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border-muted stg:px-3 stg:py-2.5 stg:transition-colors stg:hover:border-border"
     >
       <OAuthIcon />
 
-      <div className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium text-foreground">
+      <div className="stg:min-w-0 stg:flex-1">
+        <span className="stg:block stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
           {provider}
         </span>
         {clientId && (
-          <span className="block truncate text-xs font-mono text-muted-foreground">
+          <span className="stg:block stg:truncate stg:text-xs stg:font-mono stg:text-muted-foreground">
             {clientId}
           </span>
         )}
       </div>
 
-      <div className="hidden shrink-0 items-center gap-4 text-xs text-muted-foreground sm:flex">
+      <div className="stg:hidden stg:shrink-0 stg:items-center stg:gap-4 stg:text-xs stg:text-muted-foreground stg:sm:flex">
         {createdAt && (
           <span title={`Created ${timestampDate(createdAt).toISOString()}`}>
             {formatShortDate(timestampDate(createdAt))}
@@ -165,9 +165,9 @@ function OAuthAppRow({
           onClick={onEdit}
           aria-label={`Edit ${provider}`}
           className={cn(
-            "shrink-0 rounded p-1",
-            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-            "transition-colors",
+            "stg:shrink-0 stg:rounded stg:p-1",
+            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+            "stg:transition-colors",
           )}
         >
           <PencilIcon />
@@ -227,7 +227,7 @@ function OAuthIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
     >
       <rect x="2" y="3" width="12" height="10" rx="2" />
       <path d="M8 7v2" />

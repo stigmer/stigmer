@@ -49,11 +49,11 @@ export function CreditPackGrid({
 
   return (
     <div>
-      <h3 className="mb-2 text-xs font-semibold text-foreground">
+      <h3 className="stg:mb-2 stg:text-xs stg:font-semibold stg:text-foreground">
         Purchase Credits
       </h3>
       <div
-        className={cn("grid gap-3 sm:grid-cols-3", className)}
+        className={cn("stg:grid stg:gap-3 stg:sm:grid-cols-3", className)}
         role="group"
         aria-label="Credit packs"
       >
@@ -68,7 +68,7 @@ export function CreditPackGrid({
         ))}
       </div>
       {!isAccountActive && (
-        <p className="mt-2 text-xs text-muted-foreground">
+        <p className="stg:mt-2 stg:text-xs stg:text-muted-foreground">
           Credit purchases are unavailable while your billing account is{" "}
           {accountStatus === BillingAccountStatus.billing_account_suspended
             ? "suspended"
@@ -96,20 +96,20 @@ function PackCard({
   onPurchase: (packId: string) => void;
 }) {
   return (
-    <div className="flex flex-col rounded-lg border border-border bg-card px-4 py-4">
-      <div className="text-sm font-semibold text-foreground">
+    <div className="stg:flex stg:flex-col stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-4 stg:py-4">
+      <div className="stg:text-sm stg:font-semibold stg:text-foreground">
         {pack.displayName}
       </div>
-      <div className="mt-0.5 text-xs text-muted-foreground">
+      <div className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
         {pack.description}
       </div>
 
-      <div className="mt-3 flex items-baseline gap-1">
-        <span className="text-xl font-bold tabular-nums text-foreground">
+      <div className="stg:mt-3 stg:flex stg:items-baseline stg:gap-1">
+        <span className="stg:text-xl stg:font-bold stg:tabular-nums stg:text-foreground">
           {formatPackPrice(pack.priceCents)}
         </span>
       </div>
-      <div className="mt-0.5 text-xs tabular-nums text-muted-foreground">
+      <div className="stg:mt-0.5 stg:text-xs stg:tabular-nums stg:text-muted-foreground">
         {formatCreditCount(pack.credits)} credits
       </div>
 
@@ -118,10 +118,10 @@ function PackCard({
         disabled={isDisabled}
         onClick={() => onPurchase(pack.packId)}
         className={cn(
-          "mt-4 w-full rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-          "bg-primary text-primary-foreground",
-          "hover:bg-primary-hover",
-          "disabled:pointer-events-none disabled:opacity-50",
+          "stg:mt-4 stg:w-full stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:transition-colors",
+          "stg:bg-primary stg:text-primary-foreground",
+          "stg:hover:bg-primary-hover",
+          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         )}
         aria-busy={isPurchasing}
       >

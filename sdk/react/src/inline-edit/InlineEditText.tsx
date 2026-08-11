@@ -88,31 +88,31 @@ export function InlineEditText({
 
   if (disabled || !isEditing) {
     return (
-      <div className={cn("group/inline-edit", className)}>
+      <div className={cn("stg:group/inline-edit", className)}>
         <button
           type="button"
           onClick={() => { if (!disabled) setIsEditing(true); }}
           disabled={disabled}
           className={cn(
-            "inline-flex w-full items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left transition-colors",
-            !disabled && "hover:bg-accent-hover cursor-pointer",
-            disabled && "cursor-default",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+            "stg:inline-flex stg:w-full stg:items-center stg:gap-1.5 stg:rounded-md stg:px-1.5 stg:py-0.5 stg:text-left stg:transition-colors",
+            !disabled && "stg:hover:bg-accent-hover stg:cursor-pointer",
+            disabled && "stg:cursor-default",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
           )}
         >
           <span
             className={cn(
-              "min-w-0 truncate",
+              "stg:min-w-0 stg:truncate",
               variant === "heading"
-                ? "text-lg font-semibold text-foreground"
-                : "text-sm text-foreground",
-              !value && "text-muted-foreground italic",
+                ? "stg:text-lg stg:font-semibold stg:text-foreground"
+                : "stg:text-sm stg:text-foreground",
+              !value && "stg:text-muted-foreground stg:italic",
             )}
           >
             {value || placeholder}
           </span>
           {!disabled && (
-            <PencilIcon className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/inline-edit:opacity-100" />
+            <PencilIcon className="stg:size-3 stg:shrink-0 stg:text-muted-foreground stg:opacity-0 stg:transition-opacity stg:group-hover/inline-edit:opacity-100" />
           )}
         </button>
       </div>
@@ -120,8 +120,8 @@ export function InlineEditText({
   }
 
   return (
-    <div className={cn("flex flex-col gap-1", className)}>
-      <div className="flex items-center gap-1.5">
+    <div className={cn("stg:flex stg:flex-col stg:gap-1", className)}>
+      <div className="stg:flex stg:items-center stg:gap-1.5">
         <input
           ref={inputRef}
           type="text"
@@ -131,11 +131,11 @@ export function InlineEditText({
           disabled={isSaving}
           placeholder={placeholder}
           className={cn(
-            "flex-1 rounded-md border border-border bg-input-bg px-2 py-1 text-sm text-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-ring",
-            "disabled:opacity-50",
-            variant === "heading" && "text-lg font-semibold",
-            displayError && "border-destructive",
+            "stg:flex-1 stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1 stg:text-sm stg:text-foreground",
+            "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
+            "stg:disabled:opacity-50",
+            variant === "heading" && "stg:text-lg stg:font-semibold",
+            displayError && "stg:border-destructive",
           )}
         />
         <button
@@ -144,13 +144,13 @@ export function InlineEditText({
           disabled={isSaving}
           aria-label="Save"
           className={cn(
-            "inline-flex size-7 items-center justify-center rounded-md",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:opacity-50",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:inline-flex stg:size-7 stg:items-center stg:justify-center stg:rounded-md",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:opacity-50",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
-          {isSaving ? <Spinner /> : <CheckIcon className="size-3.5" />}
+          {isSaving ? <Spinner /> : <CheckIcon className="stg:size-3.5" />}
         </button>
         <button
           type="button"
@@ -158,17 +158,17 @@ export function InlineEditText({
           disabled={isSaving}
           aria-label="Cancel"
           className={cn(
-            "inline-flex size-7 items-center justify-center rounded-md",
-            "border border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground",
-            "disabled:opacity-50",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:inline-flex stg:size-7 stg:items-center stg:justify-center stg:rounded-md",
+            "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent stg:hover:text-accent-foreground",
+            "stg:disabled:opacity-50",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
-          <XIcon className="size-3.5" />
+          <XIcon className="stg:size-3.5" />
         </button>
       </div>
       {displayError && (
-        <p className="px-1 text-xs text-destructive" role="alert">{displayError}</p>
+        <p className="stg:px-1 stg:text-xs stg:text-destructive" role="alert">{displayError}</p>
       )}
     </div>
   );
@@ -204,7 +204,7 @@ function XIcon({ className }: { readonly className?: string }) {
 
 function Spinner() {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="animate-spin" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="stg:animate-spin" aria-hidden="true">
       <path d="M8 2a6 6 0 1 0 6 6" />
     </svg>
   );

@@ -133,7 +133,7 @@ describe("ToolCallItem disclosure", () => {
         })}
       />,
     );
-    expect(container.querySelector(".animate-spin")).toBeNull();
+    expect(container.querySelector(".stg\\:animate-spin")).toBeNull();
     expect(hasHeaderChevron(container)).toBe(true);
     expect(isExpanded(container)).toBe(false);
   });
@@ -152,7 +152,7 @@ describe("ToolCallItem disclosure", () => {
       />,
     );
     expect(isExpanded(container)).toBe(true);
-    expect(container.querySelector(".animate-spin")).not.toBeNull();
+    expect(container.querySelector(".stg\\:animate-spin")).not.toBeNull();
 
     rerender(
       <ToolCallItem
@@ -164,7 +164,7 @@ describe("ToolCallItem disclosure", () => {
         })}
       />,
     );
-    expect(container.querySelector(".animate-spin")).toBeNull();
+    expect(container.querySelector(".stg\\:animate-spin")).toBeNull();
     expect(isExpanded(container)).toBe(false);
   });
 
@@ -386,8 +386,8 @@ describe("ToolCallItem disclosure", () => {
     );
 
     const row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
-    expect(row.className).toContain("border-l-destructive");
-    expect(row.className).not.toContain("bg-warning");
+    expect(row.className).toContain("stg:border-l-destructive");
+    expect(row.className).not.toContain("stg:bg-warning");
   });
 
   it("routes an inline APPROVE_ALL decision with the gated tool's id", () => {
@@ -463,13 +463,13 @@ describe("ToolCallItem disclosure", () => {
 
     const { container, rerender } = render(<ToolCallItem toolCall={tc} />);
     let row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
-    expect(row.className).toContain("rounded-lg");
-    expect(row.className).toContain("border-border-prominent");
+    expect(row.className).toContain("stg:rounded-lg");
+    expect(row.className).toContain("stg:border-border-prominent");
 
     rerender(<ToolCallItem toolCall={tc} bordered={false} />);
     row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
-    expect(row.className).not.toContain("rounded-lg");
-    expect(row.className).toContain("border-b");
+    expect(row.className).not.toContain("stg:rounded-lg");
+    expect(row.className).toContain("stg:border-b");
   });
 });
 

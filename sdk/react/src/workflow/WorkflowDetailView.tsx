@@ -279,7 +279,7 @@ export function WorkflowDetailView({
     org: meta?.org,
     slug: meta?.slug,
     description: undefined,
-    icon: <WorkflowIcon className="size-6 text-muted-foreground" />,
+    icon: <WorkflowIcon className="stg:size-6 stg:text-muted-foreground" />,
     createdAt: specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null,
     updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
   };
@@ -456,7 +456,7 @@ function OverviewTab({
   );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="stg:flex stg:flex-col stg:gap-6">
       {/* Summary stat cards */}
       <WorkflowOverviewSummary
         summary={summary}
@@ -473,11 +473,11 @@ function OverviewTab({
               <ExpandButton onClick={() => setGraphExpanded(true)} />
             }
           >
-            <div className="h-[28rem]">
+            <div className="stg:h-[28rem]">
               <WorkflowOverviewGraph
                 workflow={workflow}
                 onOpenInEditor={onOpenInEditor}
-                className="h-full w-full rounded-sm bg-[var(--stgm-muted-subtle,#fafafa)]"
+                className="stg:h-full stg:w-full stg:rounded-sm stg:bg-[var(--stgm-muted-subtle,#fafafa)]"
               />
             </div>
           </Section>
@@ -491,7 +491,7 @@ function OverviewTab({
       )}
 
       {/* Quick action links */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-3">
         {onOpenInEditor && (
           <QuickActionButton
             label="Edit workflow"
@@ -535,7 +535,7 @@ function OverviewTab({
       {showDescription && (
         <Section title="Description">
           {editable ? (
-            <div className="max-h-20 overflow-y-auto p-3">
+            <div className="stg:max-h-20 stg:overflow-y-auto stg:p-3">
               <InlineEditTextarea
                 value={spec?.description || ""}
                 onSave={(v) => saveField?.("description", v || undefined) ?? Promise.resolve(false)}
@@ -552,7 +552,7 @@ function OverviewTab({
 
       {budget && hasBudget(budget) && (
         <Section title="Budget">
-          <div className="divide-y divide-border">
+          <div className="stg:divide-y stg:divide-border">
             {budget.maxCostMicros > 0 && (
               <MetadataRow
                 label="Max Cost"
@@ -594,19 +594,19 @@ function OverviewTab({
               keyLabel="Variable name"
             />
           ) : (
-            <div className="divide-y divide-border">
+            <div className="stg:divide-y stg:divide-border">
               {envEntries.map(([key, decl]) => (
-                <div key={key} className="flex items-center gap-3 px-4 py-2.5">
-                  <code className="shrink-0 text-xs font-medium text-foreground">
+                <div key={key} className="stg:flex stg:items-center stg:gap-3 stg:px-4 stg:py-2.5">
+                  <code className="stg:shrink-0 stg:text-xs stg:font-medium stg:text-foreground">
                     {key}
                   </code>
                   {!decl.optional && (
-                    <span className="shrink-0 rounded bg-destructive/10 px-1 py-0.5 text-[10px] font-medium text-destructive">
+                    <span className="stg:shrink-0 stg:rounded stg:bg-destructive/10 stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-destructive">
                       required
                     </span>
                   )}
                   {decl.description && (
-                    <span className="truncate text-xs text-muted-foreground">
+                    <span className="stg:truncate stg:text-xs stg:text-muted-foreground">
                       {decl.description}
                     </span>
                   )}
@@ -619,7 +619,7 @@ function OverviewTab({
 
       {doc && (
         <Section title="Document">
-          <div className="flex flex-wrap gap-x-6 gap-y-1 px-4 py-2.5 text-xs text-muted-foreground">
+          <div className="stg:flex stg:flex-wrap stg:gap-x-6 stg:gap-y-1 stg:px-4 stg:py-2.5 stg:text-xs stg:text-muted-foreground">
             <span>DSL {doc.dsl}</span>
             <span>{doc.namespace}</span>
             <span>v{doc.version}</span>
@@ -644,12 +644,12 @@ function QuickActionButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-        "border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)]",
-        "text-[var(--stgm-foreground,#1a1a2e)]",
-        "hover:bg-[var(--stgm-accent,#f5f5f5)]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--stgm-ring,#6366f1)]",
-        "transition-colors",
+        "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+        "stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)]",
+        "stg:text-[var(--stgm-foreground,#1a1a2e)]",
+        "stg:hover:bg-[var(--stgm-accent,#f5f5f5)]",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-[var(--stgm-ring,#6366f1)]",
+        "stg:transition-colors",
       )}
     >
       {icon}
@@ -691,10 +691,10 @@ function ExpandButton({ onClick }: { readonly onClick: () => void }) {
       onClick={onClick}
       aria-label="Expand task flow"
       className={cn(
-        "inline-flex size-6 items-center justify-center rounded-md text-muted-foreground",
-        "hover:bg-accent-hover hover:text-foreground",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        "transition-colors",
+        "stg:inline-flex stg:size-6 stg:items-center stg:justify-center stg:rounded-md stg:text-muted-foreground",
+        "stg:hover:bg-accent-hover stg:hover:text-foreground",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+        "stg:transition-colors",
       )}
     >
       <svg
@@ -729,25 +729,25 @@ function DescriptionContent({ text }: { readonly text: string }) {
   }, [text]);
 
   return (
-    <div className="relative p-3">
+    <div className="stg:relative stg:p-3">
       <pre
         ref={contentRef}
         className={cn(
-          "whitespace-pre-wrap break-words text-sm text-foreground font-sans overflow-y-auto transition-[max-height] duration-200",
-          !expanded && "overflow-hidden",
+          "stg:whitespace-pre-wrap stg:break-words stg:text-sm stg:text-foreground stg:font-sans stg:overflow-y-auto stg:transition-[max-height] stg:duration-200",
+          !expanded && "stg:overflow-hidden",
         )}
         style={{ maxHeight: expanded ? "none" : DESCRIPTION_COLLAPSED_HEIGHT }}
       >
         {text}
       </pre>
       {!expanded && overflows && (
-        <div className="pointer-events-none absolute inset-x-3 bottom-10 h-8 bg-gradient-to-t from-background to-transparent" />
+        <div className="stg:pointer-events-none stg:absolute stg:inset-x-3 stg:bottom-10 stg:h-8 stg:bg-gradient-to-t stg:from-background stg:to-transparent" />
       )}
       {overflows && (
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="mt-2 text-xs font-medium text-primary transition-colors hover:text-primary-muted"
+          className="stg:mt-2 stg:text-xs stg:font-medium stg:text-primary stg:transition-colors stg:hover:text-primary-muted"
         >
           {expanded ? "Show less" : "Show more"}
         </button>
@@ -767,7 +767,7 @@ function ValidationIndicator({ state }: { readonly state: ValidationState }) {
   return (
     <>
       <Dot />
-      <span className={cn("text-xs", config.colorClass)}>
+      <span className={cn("stg:text-xs", config.colorClass)}>
         {config.label}
       </span>
     </>
@@ -775,10 +775,10 @@ function ValidationIndicator({ state }: { readonly state: ValidationState }) {
 }
 
 const VALIDATION_STATE_CONFIG: Partial<Record<ValidationState, { label: string; colorClass: string }>> = {
-  [ValidationState.VALID]: { label: "Valid", colorClass: "text-success" },
-  [ValidationState.INVALID]: { label: "Invalid", colorClass: "text-destructive" },
-  [ValidationState.PENDING]: { label: "Validating…", colorClass: "text-muted-foreground" },
-  [ValidationState.FAILED]: { label: "Validation Error", colorClass: "text-destructive" },
+  [ValidationState.VALID]: { label: "Valid", colorClass: "stg:text-success" },
+  [ValidationState.INVALID]: { label: "Invalid", colorClass: "stg:text-destructive" },
+  [ValidationState.PENDING]: { label: "Validating…", colorClass: "stg:text-muted-foreground" },
+  [ValidationState.FAILED]: { label: "Validation Error", colorClass: "stg:text-destructive" },
 };
 
 // ---------------------------------------------------------------------------
@@ -793,16 +793,16 @@ function MetadataRow({
   readonly value: string;
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5">
-      <span className="w-28 shrink-0 text-xs text-muted-foreground">{label}</span>
-      <span className="text-sm text-foreground">{value}</span>
+    <div className="stg:flex stg:items-center stg:gap-3 stg:px-4 stg:py-2.5">
+      <span className="stg:w-28 stg:shrink-0 stg:text-xs stg:text-muted-foreground">{label}</span>
+      <span className="stg:text-sm stg:text-foreground">{value}</span>
     </div>
   );
 }
 
 function Dot() {
   return (
-    <span className="shrink-0" aria-hidden="true">
+    <span className="stg:shrink-0" aria-hidden="true">
       {"\u00B7"}
     </span>
   );
@@ -827,32 +827,32 @@ function hasBudget(budget: {
 
 function LoadingSkeleton({ className }: { readonly className?: string }) {
   return (
-    <div className={cn("flex flex-col gap-6", className)}>
-      <div className="flex items-start gap-3">
-        <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+    <div className={cn("stg:flex stg:flex-col stg:gap-6", className)}>
+      <div className="stg:flex stg:items-start stg:gap-3">
+        <div className="stg:h-8 stg:w-48 stg:animate-pulse stg:rounded stg:bg-muted" />
       </div>
-      <div className="h-40 animate-pulse rounded-lg bg-muted" />
-      <div className="h-28 animate-pulse rounded-lg bg-muted" />
+      <div className="stg:h-40 stg:animate-pulse stg:rounded-lg stg:bg-muted" />
+      <div className="stg:h-28 stg:animate-pulse stg:rounded-lg stg:bg-muted" />
     </div>
   );
 }
 
 function TabLoadingSkeleton() {
   return (
-    <div className="flex flex-col gap-2">
-      <div className="h-8 w-full animate-pulse rounded bg-muted" />
-      <div className="h-8 w-full animate-pulse rounded bg-muted" />
-      <div className="h-8 w-3/4 animate-pulse rounded bg-muted" />
+    <div className="stg:flex stg:flex-col stg:gap-2">
+      <div className="stg:h-8 stg:w-full stg:animate-pulse stg:rounded stg:bg-muted" />
+      <div className="stg:h-8 stg:w-full stg:animate-pulse stg:rounded stg:bg-muted" />
+      <div className="stg:h-8 stg:w-3/4 stg:animate-pulse stg:rounded stg:bg-muted" />
     </div>
   );
 }
 
 function NotFoundState({ className }: { readonly className?: string }) {
   return (
-    <div className={cn("flex flex-col items-center justify-center py-16", className)}>
-      <WorkflowIcon className="size-10 text-muted-foreground-faint" />
-      <p className="mt-2 text-sm text-muted-foreground">Workflow not found</p>
-      <p className="text-xs text-muted-foreground-subtle">
+    <div className={cn("stg:flex stg:flex-col stg:items-center stg:justify-center stg:py-16", className)}>
+      <WorkflowIcon className="stg:size-10 stg:text-muted-foreground-faint" />
+      <p className="stg:mt-2 stg:text-sm stg:text-muted-foreground">Workflow not found</p>
+      <p className="stg:text-xs stg:text-muted-foreground-subtle">
         This workflow doesn&apos;t exist or you don&apos;t have access to it.
       </p>
     </div>

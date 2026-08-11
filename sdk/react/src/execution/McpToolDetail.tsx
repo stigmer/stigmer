@@ -49,7 +49,7 @@ export function McpToolDetail({ toolCall, className }: McpToolDetailProps) {
   const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
 
   return (
-    <div className={cn("space-y-3 text-xs", className)}>
+    <div className={cn("stg:space-y-3 stg:text-xs", className)}>
       <McpMetadataRow
         mcpServerSlug={toolCall.mcpServerSlug}
         toolName={toolCall.name}
@@ -92,8 +92,8 @@ function McpOffloadedOutputView({
   readonly outputRef: NonNullable<ToolCall["outputRef"]>;
 }) {
   return (
-    <div className="space-y-1">
-      <span className="font-medium text-muted-foreground">Result</span>
+    <div className="stg:space-y-1">
+      <span className="stg:font-medium stg:text-muted-foreground">Result</span>
       {outputRef.isImage ? (
         <McpOffloadedImage storageKey={outputRef.storageKey} />
       ) : (
@@ -109,12 +109,12 @@ function McpOffloadedImage({ storageKey }: { readonly storageKey: string }) {
   const { url, error } = useArtifactDownloadUrl(executionId, storageKey);
 
   if (error) {
-    return <p className="text-xs text-destructive">Couldn&apos;t load image output.</p>;
+    return <p className="stg:text-xs stg:text-destructive">Couldn&apos;t load image output.</p>;
   }
   if (!url) {
     return (
       <div
-        className="h-40 w-64 animate-pulse rounded-md border border-border bg-muted"
+        className="stg:h-40 stg:w-64 stg:animate-pulse stg:rounded-md stg:border stg:border-border stg:bg-muted"
         aria-busy="true"
         aria-label="Loading image output"
       />
@@ -125,13 +125,13 @@ function McpOffloadedImage({ storageKey }: { readonly storageKey: string }) {
       href={url}
       target="_blank"
       rel="noreferrer"
-      className="inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="stg:inline-block stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
     >
       <img
         src={url}
         alt="Tool output screenshot"
         loading="lazy"
-        className="max-h-96 w-auto rounded-md border border-border"
+        className="stg:max-h-96 stg:w-auto stg:rounded-md stg:border stg:border-border"
       />
     </a>
   );
@@ -154,11 +154,11 @@ function McpOffloadedText({
 
   const size = Number(outputRef.sizeBytes);
   const sizeSuffix = size ? ` (${formatBytes(size)})` : "";
-  const previewClass = "max-h-80 overflow-auto rounded-md border border-border bg-muted-subtle p-2 text-foreground";
-  const linkClass = "inline-block text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  const previewClass = "stg:max-h-80 stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:p-2 stg:text-foreground";
+  const linkClass = "stg:inline-block stg:text-xs stg:font-medium stg:text-primary stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring";
 
   return (
-    <div className="space-y-1">
+    <div className="stg:space-y-1">
       {!expanded ? (
         <>
           {outputRef.truncatedPreview && (
@@ -169,18 +169,18 @@ function McpOffloadedText({
           </button>
         </>
       ) : isLoading ? (
-        <p className="text-xs text-muted-foreground">Loading full output…</p>
+        <p className="stg:text-xs stg:text-muted-foreground">Loading full output…</p>
       ) : error ? (
-        <p className="text-xs text-destructive">Couldn&apos;t load full output. Try again.</p>
+        <p className="stg:text-xs stg:text-destructive">Couldn&apos;t load full output. Try again.</p>
       ) : content !== null ? (
-        <div className="space-y-1">
+        <div className="stg:space-y-1">
           <CollapsiblePre content={content} className={previewClass} />
           {isTruncated && (
             <button
               type="button"
               onClick={() => download(outputRef.storageKey)}
               disabled={isDownloading}
-              className={cn(linkClass, "disabled:opacity-50")}
+              className={cn(linkClass, "stg:disabled:opacity-50")}
             >
               {isDownloading ? "Preparing download…" : `Output truncated — download full file${sizeSuffix}`}
             </button>
@@ -218,13 +218,13 @@ export function McpMetadataRow({
   if (!hasMetadata) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
+    <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-x-3 stg:gap-y-1 stg:text-muted-foreground">
       {mcpServerSlug && (
-        <span className="inline-flex items-center gap-1.5 rounded bg-muted px-1.5 py-0.5 font-mono">
+        <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono">
           <McpServerIcon />
           {mcpServerSlug}
-          <span className="text-muted-foreground-subtle">/</span>
-          <span className="text-foreground">{humanizeToolName(toolName)}</span>
+          <span className="stg:text-muted-foreground-subtle">/</span>
+          <span className="stg:text-foreground">{humanizeToolName(toolName)}</span>
         </span>
       )}
       {duration && <span>{duration}</span>}
@@ -264,11 +264,11 @@ export function McpArgsView({ args }: McpArgsViewProps) {
   }
 
   return (
-    <div className="space-y-2">
-      <span className="font-medium text-muted-foreground">Arguments</span>
+    <div className="stg:space-y-2">
+      <span className="stg:font-medium stg:text-muted-foreground">Arguments</span>
 
       {scalars.length > 0 && (
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-md border border-border bg-muted-faint px-2.5 py-2">
+        <dl className="stg:grid stg:grid-cols-[auto_1fr] stg:gap-x-3 stg:gap-y-1 stg:rounded-md stg:border stg:border-border stg:bg-muted-faint stg:px-2.5 stg:py-2">
           {scalars.map(([key, value]) => (
             <ScalarRow key={key} label={key} value={value} />
           ))}
@@ -291,17 +291,17 @@ function ScalarRow({ label, value }: { label: string; value: string }) {
 
   return (
     <>
-      <dt className="whitespace-nowrap font-mono text-muted-foreground">
+      <dt className="stg:whitespace-nowrap stg:font-mono stg:text-muted-foreground">
         {humanizeArgKey(label)}
       </dt>
       {isMultiline ? (
-        <dd className="min-w-0">
-          <pre className="whitespace-pre-wrap break-words rounded border border-border bg-muted-subtle px-2 py-1 font-mono text-foreground">
+        <dd className="stg:min-w-0">
+          <pre className="stg:whitespace-pre-wrap stg:break-words stg:rounded stg:border stg:border-border stg:bg-muted-subtle stg:px-2 stg:py-1 stg:font-mono stg:text-foreground">
             {value}
           </pre>
         </dd>
       ) : (
-        <dd className="min-w-0 truncate font-mono text-foreground" title={value}>
+        <dd className="stg:min-w-0 stg:truncate stg:font-mono stg:text-foreground" title={value}>
           {value}
         </dd>
       )}
@@ -317,11 +317,11 @@ function McpResultView({ result }: { result: string }) {
   const parsed = parseMcpResult(result);
 
   return (
-    <div className="space-y-1">
-      <span className="font-medium text-muted-foreground">Result</span>
+    <div className="stg:space-y-1">
+      <span className="stg:font-medium stg:text-muted-foreground">Result</span>
       <CollapsiblePre
         content={parsed}
-        className="max-h-80 overflow-auto rounded-md border border-border bg-muted-subtle p-2 text-foreground"
+        className="stg:max-h-80 stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:p-2 stg:text-foreground"
       />
     </div>
   );

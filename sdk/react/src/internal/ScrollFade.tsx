@@ -15,8 +15,8 @@ export function ScrollFade({ position }: { readonly position: "top" | "bottom" }
   return (
     <div
       className={[
-        "pointer-events-none absolute inset-x-0 z-10 h-3",
-        isTop ? "top-0" : "bottom-0",
+        "stg:pointer-events-none stg:absolute stg:inset-x-0 stg:z-10 stg:h-3",
+        isTop ? "stg:top-0" : "stg:bottom-0",
       ].join(" ")}
       style={{
         background: isTop

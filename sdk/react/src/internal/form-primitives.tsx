@@ -22,14 +22,14 @@ import { cn } from "@stigmer/theme";
  * preflight mirrors it byte-for-byte so embeds render exactly like the
  * consoles.
  */
-export const UNSTYLED_BUTTON = "cursor-pointer";
+export const UNSTYLED_BUTTON = "stg:cursor-pointer";
 
 /** Standard text-input styling for the operator consoles. */
 export const INPUT_CLASSES = cn(
-  "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-  "placeholder:text-muted-foreground",
-  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-  "disabled:pointer-events-none disabled:opacity-50",
+  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+  "stg:placeholder:text-muted-foreground",
+  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
 );
 
 /** Labelled form field wrapper. */
@@ -45,8 +45,8 @@ export function Field({
   readonly children: React.ReactNode;
 }) {
   return (
-    <label className={cn("block space-y-1", className)}>
-      <span className="text-[11px] font-medium text-muted-foreground">
+    <label className={cn("stg:block stg:space-y-1", className)}>
+      <span className="stg:text-[11px] stg:font-medium stg:text-muted-foreground">
         {label}
         {required ? " *" : ""}
       </span>

@@ -78,7 +78,7 @@ describe("SettingsSidebar", () => {
 
     const active = container.querySelector('[data-row-id="api-keys"]')!;
     expect(active.getAttribute("aria-current")).toBe("page");
-    expect(active.className).toContain("bg-sidebar-accent");
+    expect(active.className).toContain("stg:bg-sidebar-accent");
 
     // "/settings/api-keys/rotate" must not light up e.g. "/settings/members".
     const inactive = container.querySelector('[data-row-id="members"]')!;
@@ -92,7 +92,7 @@ describe("SettingsSidebar", () => {
 
     const back = container.querySelector('[data-row-id="back-to-sessions"]')!;
     expect(back.getAttribute("href")).toBe("/sessions/ses_123");
-    expect(back.className).toContain("text-sidebar-muted-foreground");
+    expect(back.className).toContain("stg:text-sidebar-muted-foreground");
     expect(back.textContent).toContain("Back to Sessions");
   });
 

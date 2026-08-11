@@ -479,7 +479,7 @@ export function McpServerPicker({
         : undefined;
 
     return (
-      <div className={cn("w-72", className)}>
+      <div className={cn("stg:w-72", className)}>
         <McpServerConfigPanel
           mcpServer={entry.mcpServer}
           oauthSignIn={oauthSignInProps}
@@ -519,19 +519,19 @@ export function McpServerPicker({
   // -----------------------------------------------------------------------
 
   return (
-    <div className={cn("space-y-2 w-72", className)}>
+    <div className={cn("stg:space-y-2 stg:w-72", className)}>
       {/* Selected items */}
       {selectedCount > 0 && (
-        <div className="space-y-1">
-          <div className="text-[0.65rem] font-medium text-muted-foreground">
+        <div className="stg:space-y-1">
+          <div className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
             Selected
           </div>
-          <div className="relative">
+          <div className="stg:relative">
             {selected_.canScrollUp && <ScrollFade position="top" />}
 
             <div
               ref={selected_.scrollRef}
-              className="max-h-28 space-y-1 overflow-y-auto"
+              className="stg:max-h-28 stg:space-y-1 stg:overflow-y-auto"
             >
               {setup
                 ? Object.entries(setup.entries).map(([key, entry]) => (
@@ -582,16 +582,16 @@ export function McpServerPicker({
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleSearchKeyDown}
         disabled={disabled}
-        className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+        className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-50"
         autoFocus
       />
 
       <ScopeToggle value={activeScope} onChange={setActiveScope} disabled={disabled} />
 
-      {error && <p className="text-xs text-destructive">{error.message}</p>}
+      {error && <p className="stg:text-xs stg:text-destructive">{error.message}</p>}
 
       {/* Scrollable results list */}
-      <div className="relative">
+      <div className="stg:relative">
         {results_.canScrollUp && <ScrollFade position="top" />}
 
         <div
@@ -599,12 +599,12 @@ export function McpServerPicker({
           id={listId}
           role="listbox"
           aria-label="MCP Servers"
-          className="max-h-52 overflow-y-auto"
+          className="stg:max-h-52 stg:overflow-y-auto"
         >
           {isLoading ? (
             <LoadingSkeleton />
           ) : availableResults.length === 0 ? (
-            <div className="py-4 text-center text-xs text-muted-foreground">
+            <div className="stg:py-4 stg:text-center stg:text-xs stg:text-muted-foreground">
               {query
                 ? "No MCP servers match your search"
                 : selectedCount > 0
@@ -621,30 +621,30 @@ export function McpServerPicker({
                 onClick={() => handleSelect(result)}
                 disabled={disabled}
                 className={cn(
-                  "group flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
-                  "disabled:pointer-events-none disabled:opacity-50",
+                  "stg:group stg:flex stg:w-full stg:flex-col stg:gap-0.5 stg:rounded-md stg:px-2 stg:py-1.5 stg:text-left stg:text-xs stg:transition-colors",
+                  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
                   idx === focusIndex
-                    ? "bg-accent text-foreground"
-                    : "text-foreground hover:bg-accent-hover",
+                    ? "stg:bg-accent stg:text-foreground"
+                    : "stg:text-foreground stg:hover:bg-accent-hover",
                 )}
                 role="option"
                 aria-selected={idx === focusIndex}
               >
-                <span className="flex items-center gap-1.5">
+                <span className="stg:flex stg:items-center stg:gap-1.5">
                   <McpServerIcon />
-                  <span className="truncate font-medium">
+                  <span className="stg:truncate stg:font-medium">
                     <HighlightMatch text={result.name} query={query} />
                   </span>
-                  <span className="ml-auto shrink-0 text-[0.6rem] text-muted-foreground">
+                  <span className="stg:ml-auto stg:shrink-0 stg:text-[0.6rem] stg:text-muted-foreground">
                     {result.org}
                   </span>
                 </span>
                 {result.description && (
                   <span
                     className={cn(
-                      "pl-5 text-[0.65rem] text-muted-foreground",
+                      "stg:pl-5 stg:text-[0.65rem] stg:text-muted-foreground",
                       idx !== focusIndex &&
-                        "line-clamp-2 group-hover:line-clamp-none",
+                        "stg:line-clamp-2 stg:group-hover:line-clamp-none",
                     )}
                   >
                     {result.description}
@@ -675,14 +675,14 @@ function SimpleServerRow({
   readonly disabled?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-md bg-muted-faint px-2 py-1 text-xs">
+    <div className="stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-muted-faint stg:px-2 stg:py-1 stg:text-xs">
       <McpServerIcon />
-      <span className="min-w-0 flex-1 truncate text-foreground">{slug}</span>
+      <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground">{slug}</span>
       <button
         type="button"
         onClick={onRemove}
         disabled={disabled}
-        className="shrink-0 text-muted-foreground hover:text-destructive disabled:pointer-events-none"
+        className="stg:shrink-0 stg:text-muted-foreground stg:hover:text-destructive stg:disabled:pointer-events-none"
         aria-label={`Remove ${slug}`}
       >
         <XIcon />
@@ -715,19 +715,19 @@ function SetupServerRow({
   const hasError = entry.error != null;
 
   return (
-    <div className="space-y-1">
+    <div className="stg:space-y-1">
       <div
         className={cn(
-          "flex items-center gap-2 rounded-md px-2 py-1 text-xs",
-          hasError ? "bg-destructive-subtle" : "bg-muted-faint",
+          "stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:px-2 stg:py-1 stg:text-xs",
+          hasError ? "stg:bg-destructive-subtle" : "stg:bg-muted-faint",
         )}
       >
         <StatusIndicator status={entry.status} hasError={hasError} />
-        <span className="min-w-0 flex-1 truncate text-foreground">{slug}</span>
+        <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground">{slug}</span>
 
         {/* Action area — status-dependent */}
         {entry.status === "loading" && !hasError && (
-          <span className="shrink-0 text-[0.6rem] text-muted-foreground">
+          <span className="stg:shrink-0 stg:text-[0.6rem] stg:text-muted-foreground">
             Loading…
           </span>
         )}
@@ -738,9 +738,9 @@ function SetupServerRow({
             onClick={onRetry}
             disabled={disabled}
             className={cn(
-              "shrink-0 rounded px-1.5 py-0.5 text-[0.6rem] font-medium",
-              "text-destructive hover:bg-destructive-subtle",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:shrink-0 stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium",
+              "stg:text-destructive stg:hover:bg-destructive-subtle",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             Retry
@@ -753,9 +753,9 @@ function SetupServerRow({
             onClick={onConfigure}
             disabled={disabled}
             className={cn(
-              "shrink-0 rounded px-1.5 py-0.5 text-[0.6rem] font-medium",
-              "text-warning hover:bg-warning/10",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:shrink-0 stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium",
+              "stg:text-warning stg:hover:bg-warning/10",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             Configure
@@ -763,7 +763,7 @@ function SetupServerRow({
         )}
 
         {isSubmitting && (
-          <span className="shrink-0 text-[0.6rem] text-muted-foreground">
+          <span className="stg:shrink-0 stg:text-[0.6rem] stg:text-muted-foreground">
             Saving…
           </span>
         )}
@@ -774,9 +774,9 @@ function SetupServerRow({
             onClick={onConfigure}
             disabled={disabled}
             className={cn(
-              "shrink-0 flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[0.6rem] font-medium",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:shrink-0 stg:flex stg:items-center stg:gap-0.5 stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             {entry.discoveredTools.length > 0 && (
@@ -793,7 +793,7 @@ function SetupServerRow({
           type="button"
           onClick={onRemove}
           disabled={disabled || isSubmitting}
-          className="shrink-0 text-muted-foreground hover:text-destructive disabled:pointer-events-none disabled:opacity-50"
+          className="stg:shrink-0 stg:text-muted-foreground stg:hover:text-destructive stg:disabled:pointer-events-none stg:disabled:opacity-50"
           aria-label={`Remove ${slug}`}
         >
           <XIcon />
@@ -802,7 +802,7 @@ function SetupServerRow({
 
       {/* Inline error for loading failures */}
       {hasError && entry.status === "loading" && (
-        <p className="px-2 text-[0.6rem] leading-relaxed text-destructive line-clamp-2">
+        <p className="stg:px-2 stg:text-[0.6rem] stg:leading-relaxed stg:text-destructive stg:line-clamp-2">
           {entry.error!.message}
         </p>
       )}
@@ -824,7 +824,7 @@ function StatusIndicator({
   if (hasError) {
     return (
       <span
-        className="inline-block size-2 shrink-0 rounded-full bg-destructive"
+        className="stg:inline-block stg:size-2 stg:shrink-0 stg:rounded-full stg:bg-destructive"
         aria-label="Error"
       />
     );
@@ -837,14 +837,14 @@ function StatusIndicator({
     case "needsSetup":
       return (
         <span
-          className="inline-block size-2 shrink-0 rounded-full bg-warning"
+          className="stg:inline-block stg:size-2 stg:shrink-0 stg:rounded-full stg:bg-warning"
           aria-label="Needs setup"
         />
       );
     case "ready":
       return (
         <span
-          className="inline-block size-2 shrink-0 rounded-full bg-emerald-500"
+          className="stg:inline-block stg:size-2 stg:shrink-0 stg:rounded-full stg:bg-emerald-500"
           aria-label="Ready"
         />
       );
@@ -862,7 +862,7 @@ function HighlightMatch({ text, query }: { text: string; query: string }) {
   return (
     <>
       {text.slice(0, idx)}
-      <span className="font-semibold">
+      <span className="stg:font-semibold">
         {text.slice(idx, idx + query.length)}
       </span>
       {text.slice(idx + query.length)}
@@ -872,15 +872,15 @@ function HighlightMatch({ text, query }: { text: string; query: string }) {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-1 py-1">
+    <div className="stg:space-y-1 stg:py-1">
       {[60, 75, 50, 68].map((w, i) => (
-        <div key={i} className="flex flex-col gap-1 px-2 py-1.5">
+        <div key={i} className="stg:flex stg:flex-col stg:gap-1 stg:px-2 stg:py-1.5">
           <div
-            className="h-3 rounded bg-muted animate-pulse"
+            className="stg:h-3 stg:rounded stg:bg-muted stg:animate-pulse"
             style={{ width: `${w}%` }}
           />
           <div
-            className="h-2 rounded bg-muted-subtle animate-pulse"
+            className="stg:h-2 stg:rounded stg:bg-muted-subtle stg:animate-pulse"
             style={{ width: `${Math.min(w + 15, 90)}%` }}
           />
         </div>
@@ -904,7 +904,7 @@ function McpServerIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
       aria-hidden="true"
     >
       <rect x="2" y="2" width="12" height="4" rx="1" />
@@ -961,7 +961,7 @@ function SmallSpinner() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="shrink-0 animate-spin text-muted-foreground"
+      className="stg:shrink-0 stg:animate-spin stg:text-muted-foreground"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

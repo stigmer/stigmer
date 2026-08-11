@@ -77,7 +77,7 @@ export function ResultView({ view, showFileName = true, showStats = true, classN
     case "outputRef":
       return <OutputRefResultView view={view} className={className} />;
     case "text":
-      return view.text ? <CollapsiblePre content={view.text} className={cn("text-foreground", className)} /> : null;
+      return view.text ? <CollapsiblePre content={view.text} className={cn("stg:text-foreground", className)} /> : null;
     case "json":
       return <CollapsibleCode label="Result" content={formatJson(view.value)} className={className} />;
     case "error":
@@ -183,16 +183,16 @@ function DiffResultView({
   // (path + ± stats) is this view's own, so the DiffViewer is used without its
   // filePath header to avoid a duplicate path.
   return (
-    <div className={cn("space-y-1", className)} data-cursor-target="file-diff">
+    <div className={cn("stg:space-y-1", className)} data-cursor-target="file-diff">
       {(showPath || showStatsRow) && (
-        <div className="flex items-center gap-2 text-muted-foreground">
+        <div className="stg:flex stg:items-center stg:gap-2 stg:text-muted-foreground">
           {showPath && (
-            <FilePathLink path={view.path} dirDisplay="dim" className="text-xs" />
+            <FilePathLink path={view.path} dirDisplay="dim" className="stg:text-xs" />
           )}
           {showStatsRow && stats && (
-            <span className="shrink-0 tabular-nums text-xs">
-              <span className="text-diff-added-fg">+{stats.added}</span>{" "}
-              <span className="text-diff-removed-fg">-{stats.removed}</span>
+            <span className="stg:shrink-0 stg:tabular-nums stg:text-xs">
+              <span className="stg:text-diff-added-fg">+{stats.added}</span>{" "}
+              <span className="stg:text-diff-removed-fg">-{stats.removed}</span>
             </span>
           )}
         </div>
@@ -273,7 +273,7 @@ function SearchResultView({
 
   if (count === 0 && matches.length === 0) {
     return (
-      <p className={cn("text-xs text-muted-foreground", className)}>
+      <p className={cn("stg:text-xs stg:text-muted-foreground", className)}>
         {kind === "files" ? "No files found" : "No matches"}
       </p>
     );
@@ -289,8 +289,8 @@ function SearchResultView({
       : null;
 
   return (
-    <div className={cn("space-y-1", className)}>
-      {header && <span className="font-medium text-muted-foreground">{header}</span>}
+    <div className={cn("stg:space-y-1", className)}>
+      {header && <span className="stg:font-medium stg:text-muted-foreground">{header}</span>}
       {kind === "files" ? (
         <SearchFileList matches={matches} />
       ) : (
@@ -303,7 +303,7 @@ function SearchResultView({
 /** Bounded, scrollable shell shared by both search result treatments. */
 function SearchResultBox({ children }: { children: ReactNode }) {
   return (
-    <div className="max-h-80 overflow-auto rounded-md border border-border bg-muted-subtle text-xs">
+    <div className="stg:max-h-80 stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:text-xs">
       {children}
     </div>
   );
@@ -316,9 +316,9 @@ function SearchFileList({ matches }: { matches: readonly ToolSearchMatch[] }) {
       {matches.map((m, i) => (
         <div
           key={i}
-          className="border-b border-border-muted px-2 py-0.5 last:border-b-0"
+          className="stg:border-b stg:border-border-muted stg:px-2 stg:py-0.5 stg:last:border-b-0"
         >
-          <FilePathLink path={m.file ?? m.text} dirDisplay="dim" className="text-xs" />
+          <FilePathLink path={m.file ?? m.text} dirDisplay="dim" className="stg:text-xs" />
         </div>
       ))}
     </SearchResultBox>
@@ -331,19 +331,19 @@ function SearchContentMatches({ matches }: { matches: readonly ToolSearchMatch[]
   return (
     <SearchResultBox>
       {groups.map((group, gi) => (
-        <div key={gi} className="border-b border-border-muted last:border-b-0">
+        <div key={gi} className="stg:border-b stg:border-border-muted stg:last:border-b-0">
           {group.file && (
-            <div className="bg-muted-faint px-2 py-0.5">
-              <FilePathLink path={group.file} dirDisplay="dim" className="text-xs" />
+            <div className="stg:bg-muted-faint stg:px-2 stg:py-0.5">
+              <FilePathLink path={group.file} dirDisplay="dim" className="stg:text-xs" />
             </div>
           )}
           {group.matches.map((m, i) => (
             <div
               key={i}
-              className="whitespace-pre-wrap break-words px-2 py-0.5 font-mono text-foreground"
+              className="stg:whitespace-pre-wrap stg:break-words stg:px-2 stg:py-0.5 stg:font-mono stg:text-foreground"
             >
               {m.line !== undefined && (
-                <span className="select-none text-muted-foreground-subtle">{m.line}: </span>
+                <span className="stg:select-none stg:text-muted-foreground-subtle">{m.line}: </span>
               )}
               {m.text}
             </div>
@@ -389,18 +389,18 @@ function ListResultView({
   className?: string;
 }) {
   if (count === 0) {
-    return <p className={cn("text-xs text-muted-foreground", className)}>Empty</p>;
+    return <p className={cn("stg:text-xs stg:text-muted-foreground", className)}>Empty</p>;
   }
   return (
-    <div className={cn("space-y-1", className)}>
+    <div className={cn("stg:space-y-1", className)}>
       {showCount && (
-        <span className="font-medium text-muted-foreground">
+        <span className="stg:font-medium stg:text-muted-foreground">
           {count} {count === 1 ? "item" : "items"}
         </span>
       )}
-      <div className="max-h-80 overflow-auto rounded-md border border-border bg-muted-subtle font-mono text-xs">
+      <div className="stg:max-h-80 stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:font-mono stg:text-xs">
         {entries.map((e, i) => (
-          <div key={i} className="truncate px-2 py-0.5 text-foreground">
+          <div key={i} className="stg:truncate stg:px-2 stg:py-0.5 stg:text-foreground">
             {e}
           </div>
         ))}
@@ -430,8 +430,8 @@ function FileResultView({
     // bare, redundant path; otherwise the path itself is the information (a read).
     if (showFileName && view.path) {
       return (
-        <div className={cn("flex items-center gap-1.5 text-xs", className)}>
-          <FilePathLink path={view.path} className="text-xs" />
+        <div className={cn("stg:flex stg:items-center stg:gap-1.5 stg:text-xs", className)}>
+          <FilePathLink path={view.path} className="stg:text-xs" />
         </div>
       );
     }
@@ -440,9 +440,9 @@ function FileResultView({
     );
   }
   return (
-    <div className={cn("space-y-1", className)}>
+    <div className={cn("stg:space-y-1", className)}>
       {showFileName && view.path && (
-        <FilePathLink path={view.path} className="text-xs" />
+        <FilePathLink path={view.path} className="stg:text-xs" />
       )}
       <CollapsibleCode label={view.truncated ? "Content (truncated)" : "Content"} content={view.content} />
     </div>
@@ -463,7 +463,7 @@ function ContentBlocksResultView({
         .join("\n"),
     [blocks],
   );
-  return <CollapsiblePre content={text} className={cn("text-foreground", className)} />;
+  return <CollapsiblePre content={text} className={cn("stg:text-foreground", className)} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -499,30 +499,30 @@ function OutputRefImage({ storageKey, className }: { storageKey: string; classNa
   const { url, error } = useArtifactDownloadUrl(executionId, storageKey);
 
   if (error) {
-    return <p className={cn("text-xs text-destructive", className)}>Couldn&apos;t load image output.</p>;
+    return <p className={cn("stg:text-xs stg:text-destructive", className)}>Couldn&apos;t load image output.</p>;
   }
   if (!url) {
     return (
       <div
-        className={cn("h-40 w-64 animate-pulse rounded-md border border-border bg-muted", className)}
+        className={cn("stg:h-40 stg:w-64 stg:animate-pulse stg:rounded-md stg:border stg:border-border stg:bg-muted", className)}
         aria-busy="true"
         aria-label="Loading image output"
       />
     );
   }
   return (
-    <div className={cn("space-y-1", className)}>
+    <div className={cn("stg:space-y-1", className)}>
       <a
         href={url}
         target="_blank"
         rel="noreferrer"
-        className="inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="stg:inline-block stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
       >
         <img
           src={url}
           alt="Tool output screenshot"
           loading="lazy"
-          className="max-h-96 w-auto rounded-md border border-border"
+          className="stg:max-h-96 stg:w-auto stg:rounded-md stg:border stg:border-border"
         />
       </a>
     </div>
@@ -546,33 +546,33 @@ function OutputRefText({ view, className }: { view: OutputRefView; className?: s
   const sizeSuffix = view.sizeBytes ? ` (${formatBytes(view.sizeBytes)})` : "";
 
   return (
-    <div className={cn("space-y-1", className)}>
+    <div className={cn("stg:space-y-1", className)}>
       {!expanded ? (
         <>
           {view.preview && (
-            <CollapsiblePre content={view.preview} className="text-foreground" />
+            <CollapsiblePre content={view.preview} className="stg:text-foreground" />
           )}
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="inline-block text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="stg:inline-block stg:text-xs stg:font-medium stg:text-primary stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
           >
             View full output{sizeSuffix}
           </button>
         </>
       ) : isLoading ? (
-        <p className="text-xs text-muted-foreground">Loading full output…</p>
+        <p className="stg:text-xs stg:text-muted-foreground">Loading full output…</p>
       ) : error ? (
-        <p className="text-xs text-destructive">Couldn&apos;t load full output. Try again.</p>
+        <p className="stg:text-xs stg:text-destructive">Couldn&apos;t load full output. Try again.</p>
       ) : content !== null ? (
-        <div className="space-y-1">
-          <CollapsiblePre content={content} className="text-foreground" />
+        <div className="stg:space-y-1">
+          <CollapsiblePre content={content} className="stg:text-foreground" />
           {isTruncated && (
             <button
               type="button"
               onClick={() => download(view.storageKey)}
               disabled={isDownloading}
-              className="inline-block text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+              className="stg:inline-block stg:text-xs stg:font-medium stg:text-primary stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:opacity-50"
             >
               {isDownloading ? "Preparing download…" : `Output truncated — download full file${sizeSuffix}`}
             </button>
@@ -585,9 +585,9 @@ function OutputRefText({ view, className }: { view: OutputRefView; className?: s
 
 function ErrorResultView({ message, className }: { message: string; className?: string }) {
   return (
-    <div className={cn("space-y-1", className)}>
-      <span className="font-medium text-destructive">Error</span>
-      <pre className="whitespace-pre-wrap break-words rounded-md border border-destructive/20 bg-destructive-subtle p-2 font-mono text-destructive">
+    <div className={cn("stg:space-y-1", className)}>
+      <span className="stg:font-medium stg:text-destructive">Error</span>
+      <pre className="stg:whitespace-pre-wrap stg:break-words stg:rounded-md stg:border stg:border-destructive/20 stg:bg-destructive-subtle stg:p-2 stg:font-mono stg:text-destructive">
         {message}
       </pre>
     </div>

@@ -86,7 +86,7 @@ export function ToolArgsView({
   );
 
   return (
-    <div className={cn("text-xs", className)}>
+    <div className={cn("stg:text-xs", className)}>
       <CategoryArgsDispatch
         category={categoryInfo.category}
         toolName={toolName}
@@ -183,11 +183,11 @@ function FileArgsView({
   }, [category, args]);
 
   return (
-    <div className="space-y-1.5">
+    <div className="stg:space-y-1.5">
       {showFileName && (
-        <div className="flex items-center gap-1.5 text-xs">
+        <div className="stg:flex stg:items-center stg:gap-1.5 stg:text-xs">
           <FilePathIcon />
-          <FilePathLink path={path} className="text-xs" />
+          <FilePathLink path={path} className="stg:text-xs" />
         </div>
       )}
       {writeContent && (
@@ -199,9 +199,9 @@ function FileArgsView({
 
 function SearchArgsView({ pattern }: { pattern: string }) {
   return (
-    <div className="flex items-center gap-1.5 text-xs">
-      <span className="text-muted-foreground">Pattern:</span>
-      <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+    <div className="stg:flex stg:items-center stg:gap-1.5 stg:text-xs">
+      <span className="stg:text-muted-foreground">Pattern:</span>
+      <code className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-foreground">
         {pattern}
       </code>
     </div>
@@ -218,7 +218,7 @@ function McpArgsPreview({
   mcpServerSlug: string;
 }) {
   return (
-    <div className="space-y-2">
+    <div className="stg:space-y-2">
       <McpMetadataRow
         mcpServerSlug={mcpServerSlug}
         toolName={toolName}

@@ -81,9 +81,9 @@ export function ScheduleRunsTable({
   }
   if (isLoading && runs.length === 0) {
     return (
-      <div className={cn("space-y-2", className)} aria-busy="true">
+      <div className={cn("stg:space-y-2", className)} aria-busy="true">
         {Array.from({ length: 5 }, (_, i) => (
-          <div key={i} className="h-9 animate-pulse rounded-lg bg-muted-subtle" />
+          <div key={i} className="stg:h-9 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
         ))}
       </div>
     );
@@ -104,24 +104,24 @@ export function ScheduleRunsTable({
       <div
         role="table"
         aria-label="Run history"
-        className="overflow-hidden rounded-lg border border-border"
+        className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border"
       >
         <div
           role="row"
           className={cn(
             rowGridClasses,
-            "border-b border-border px-3.5 py-2 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground",
+            "stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-[0.65rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground",
           )}
         >
           <span role="columnheader">Outcome</span>
-          <span role="columnheader" className="hidden sm:block">
+          <span role="columnheader" className="stg:hidden stg:sm:block">
             Origin
           </span>
           <span role="columnheader">Fired</span>
-          <span role="columnheader" className="hidden sm:block">
+          <span role="columnheader" className="stg:hidden stg:sm:block">
             Duration
           </span>
-          <span role="columnheader" className="text-right">
+          <span role="columnheader" className="stg:text-right">
             Execution
           </span>
         </div>
@@ -141,7 +141,7 @@ export function ScheduleRunsTable({
           totalPages={totalPages}
           onPageChange={setPageNum}
           ariaLabel="Run history pagination"
-          className="mt-3"
+          className="stg:mt-3"
         />
       )}
     </div>
@@ -151,7 +151,7 @@ export function ScheduleRunsTable({
 // Mobile keeps the three load-bearing columns (outcome, fired,
 // execution); origin and duration join at the sm breakpoint.
 const rowGridClasses =
-  "grid grid-cols-[7rem_1fr_auto] items-center gap-x-4 sm:grid-cols-[7rem_5.5rem_1fr_5rem_minmax(0,12rem)]";
+  "stg:grid stg:grid-cols-[7rem_1fr_auto] stg:items-center stg:gap-x-4 stg:sm:grid-cols-[7rem_5.5rem_1fr_5rem_minmax(0,12rem)]";
 
 function RunTableRow({
   run,
@@ -172,61 +172,61 @@ function RunTableRow({
       role="row"
       className={cn(
         rowGridClasses,
-        "border-b border-border-muted px-3.5 py-2.5 last:border-b-0",
+        "stg:border-b stg:border-border-muted stg:px-3.5 stg:py-2.5 stg:last:border-b-0",
       )}
     >
       <span role="cell">
         <span
           className={cn(
-            "inline-flex items-center rounded-full px-2 py-0.5 text-[0.65rem] font-medium",
+            "stg:inline-flex stg:items-center stg:rounded-full stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
             badge.className,
           )}
         >
           {badge.label}
         </span>
       </span>
-      <span role="cell" className="hidden text-xs text-muted-foreground sm:block">
+      <span role="cell" className="stg:hidden stg:text-xs stg:text-muted-foreground stg:sm:block">
         {runOriginLabel(run.origin)}
       </span>
       <span
         role="cell"
-        className="text-xs text-muted-foreground"
+        className="stg:text-xs stg:text-muted-foreground"
         title={fireDate ? fireDate.toLocaleString() : undefined}
       >
         {fireDate ? formatRelativeTime(fireDate, now) : "—"}
       </span>
       <span
         role="cell"
-        className="hidden text-xs tabular-nums text-muted-foreground sm:block"
+        className="stg:hidden stg:text-xs stg:tabular-nums stg:text-muted-foreground stg:sm:block"
       >
         {formatRunDuration(run) ?? "—"}
       </span>
-      <span role="cell" className="min-w-0 text-right">
+      <span role="cell" className="stg:min-w-0 stg:text-right">
         {run.executionId ? (
           onNavigateToExecution ? (
             <button
               type="button"
               onClick={() => onNavigateToExecution(run.executionId)}
               className={cn(
-                "max-w-full truncate font-mono text-[0.65rem] text-primary underline-offset-2 hover:underline",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm",
+                "stg:max-w-full stg:truncate stg:font-mono stg:text-[0.65rem] stg:text-primary stg:underline-offset-2 stg:hover:underline",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
               )}
             >
               {run.executionId}
             </button>
           ) : (
-            <span className="font-mono text-[0.65rem] text-muted-foreground">
+            <span className="stg:font-mono stg:text-[0.65rem] stg:text-muted-foreground">
               {run.executionId}
             </span>
           )
         ) : (
-          <span className="text-xs text-muted-foreground">—</span>
+          <span className="stg:text-xs stg:text-muted-foreground">—</span>
         )}
       </span>
       {run.reason && (
         <p
           role="cell"
-          className="col-span-full mt-1 whitespace-pre-wrap break-words text-xs text-muted-foreground"
+          className="stg:col-span-full stg:mt-1 stg:whitespace-pre-wrap stg:break-words stg:text-xs stg:text-muted-foreground"
         >
           {run.reason}
         </p>
@@ -261,9 +261,9 @@ export function ScheduleRunsCompactList({
 }) {
   if (isLoading && runs.length === 0) {
     return (
-      <div className="space-y-2 px-4 py-3" aria-busy="true">
-        <div className="h-4 w-full animate-pulse rounded bg-muted" />
-        <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+      <div className="stg:space-y-2 stg:px-4 stg:py-3" aria-busy="true">
+        <div className="stg:h-4 stg:w-full stg:animate-pulse stg:rounded stg:bg-muted" />
+        <div className="stg:h-4 stg:w-3/4 stg:animate-pulse stg:rounded stg:bg-muted" />
       </div>
     );
   }
@@ -271,7 +271,7 @@ export function ScheduleRunsCompactList({
     return <EmptyRuns />;
   }
   return (
-    <ul className="divide-y divide-border">
+    <ul className="stg:divide-y stg:divide-border">
       {runs.map((run, i) => (
         <CompactRunRow
           key={runKey(run, i)}
@@ -299,29 +299,29 @@ function CompactRunRow({
   const badge = runOutcomeBadge(run.outcome);
 
   return (
-    <li className="flex flex-col gap-1 px-4 py-2.5">
-      <div className="flex items-center gap-2">
+    <li className="stg:flex stg:flex-col stg:gap-1 stg:px-4 stg:py-2.5">
+      <div className="stg:flex stg:items-center stg:gap-2">
         <span
           className={cn(
-            "inline-flex items-center rounded-full px-2 py-0.5 text-[0.65rem] font-medium",
+            "stg:inline-flex stg:items-center stg:rounded-full stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
             badge.className,
           )}
         >
           {badge.label}
         </span>
-        <span className="text-xs text-muted-foreground">
+        <span className="stg:text-xs stg:text-muted-foreground">
           {runOriginLabel(run.origin)}
         </span>
-        <span className="text-xs text-muted-foreground-subtle">·</span>
+        <span className="stg:text-xs stg:text-muted-foreground-subtle">·</span>
         <span
-          className="text-xs text-muted-foreground"
+          className="stg:text-xs stg:text-muted-foreground"
           title={fireDate ? fireDate.toLocaleString() : undefined}
         >
           {fireDate ? formatRelativeTime(fireDate, now) : "—"}
         </span>
       </div>
       {run.reason && (
-        <p className="whitespace-pre-wrap break-words text-xs text-muted-foreground">
+        <p className="stg:whitespace-pre-wrap stg:break-words stg:text-xs stg:text-muted-foreground">
           {run.reason}
         </p>
       )}
@@ -331,14 +331,14 @@ function CompactRunRow({
             type="button"
             onClick={() => onNavigateToExecution(run.executionId)}
             className={cn(
-              "self-start font-mono text-[0.65rem] text-primary underline-offset-2 hover:underline",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm",
+              "stg:self-start stg:font-mono stg:text-[0.65rem] stg:text-primary stg:underline-offset-2 stg:hover:underline",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
             )}
           >
             {run.executionId}
           </button>
         ) : (
-          <span className="self-start font-mono text-[0.65rem] text-muted-foreground">
+          <span className="stg:self-start stg:font-mono stg:text-[0.65rem] stg:text-muted-foreground">
             {run.executionId}
           </span>
         ))}
@@ -352,7 +352,7 @@ function CompactRunRow({
 
 function EmptyRuns() {
   return (
-    <p className="px-4 py-6 text-center text-xs text-muted-foreground">
+    <p className="stg:px-4 stg:py-6 stg:text-center stg:text-xs stg:text-muted-foreground">
       No runs yet. Use &ldquo;Run now&rdquo; to fire a test run — every fire,
       including a refused one, is recorded here.
     </p>
@@ -381,21 +381,21 @@ export function runOutcomeBadge(outcome: ScheduleRunOutcome): {
 } {
   switch (outcome) {
     case ScheduleRunOutcome.STARTED:
-      return { label: "Started", className: "bg-info/10 text-info" };
+      return { label: "Started", className: "stg:bg-info/10 stg:text-info" };
     case ScheduleRunOutcome.COMPLETED:
-      return { label: "Completed", className: "bg-success/10 text-success" };
+      return { label: "Completed", className: "stg:bg-success/10 stg:text-success" };
     case ScheduleRunOutcome.REFUSED:
-      return { label: "Refused", className: "bg-warning/10 text-warning" };
+      return { label: "Refused", className: "stg:bg-warning/10 stg:text-warning" };
     case ScheduleRunOutcome.TARGET_MISSING:
-      return { label: "Target missing", className: "bg-warning/10 text-warning" };
+      return { label: "Target missing", className: "stg:bg-warning/10 stg:text-warning" };
     case ScheduleRunOutcome.SKIPPED:
-      return { label: "Skipped", className: "bg-muted text-muted-foreground" };
+      return { label: "Skipped", className: "stg:bg-muted stg:text-muted-foreground" };
     case ScheduleRunOutcome.FAILED:
-      return { label: "Failed", className: "bg-destructive/10 text-destructive" };
+      return { label: "Failed", className: "stg:bg-destructive/10 stg:text-destructive" };
     case ScheduleRunOutcome.TIMED_OUT:
-      return { label: "Timed out", className: "bg-destructive/10 text-destructive" };
+      return { label: "Timed out", className: "stg:bg-destructive/10 stg:text-destructive" };
     default:
-      return { label: "Unknown", className: "bg-muted text-muted-foreground" };
+      return { label: "Unknown", className: "stg:bg-muted stg:text-muted-foreground" };
   }
 }
 

@@ -109,15 +109,15 @@ export function InlineEditResourceList({
 
   if (disabled || !isEditing) {
     return (
-      <div className={cn("flex flex-col", className)}>
+      <div className={cn("stg:flex stg:flex-col", className)}>
         {value.length > 0 ? (
-          <div className="flex flex-col divide-y divide-border">
+          <div className="stg:flex stg:flex-col stg:divide-y stg:divide-border">
             {value.map((ref, index) => {
               const label = ref.label ?? ref.slug;
               const row = (
-                <div className="flex items-center gap-3">
-                  {itemIcon && <span className="size-4 shrink-0 text-muted-foreground">{itemIcon}</span>}
-                  <span className="text-sm font-medium text-foreground">{label}</span>
+                <div className="stg:flex stg:items-center stg:gap-3">
+                  {itemIcon && <span className="stg:size-4 stg:shrink-0 stg:text-muted-foreground">{itemIcon}</span>}
+                  <span className="stg:text-sm stg:font-medium stg:text-foreground">{label}</span>
                 </div>
               );
 
@@ -127,22 +127,22 @@ export function InlineEditResourceList({
                   type="button"
                   onClick={() => onItemClick(ref)}
                   className={cn(
-                    "w-full px-3 py-2.5 text-left transition-colors",
-                    "hover:bg-accent-hover",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                    "stg:w-full stg:px-3 stg:py-2.5 stg:text-left stg:transition-colors",
+                    "stg:hover:bg-accent-hover",
+                    "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
                   )}
                 >
                   {row}
                 </button>
               ) : (
-                <div key={`${ref.org}/${ref.slug}` || index} className="px-3 py-2.5">
+                <div key={`${ref.org}/${ref.slug}` || index} className="stg:px-3 stg:py-2.5">
                   {row}
                 </div>
               );
             })}
           </div>
         ) : (
-          <p className="px-3 py-3 text-xs text-muted-foreground italic">
+          <p className="stg:px-3 stg:py-3 stg:text-xs stg:text-muted-foreground stg:italic">
             No {resourceLabel}s configured
           </p>
         )}
@@ -151,13 +151,13 @@ export function InlineEditResourceList({
   }
 
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
+    <div className={cn("stg:flex stg:flex-col stg:gap-2", className)}>
       {draft.length > 0 && (
-        <div className="flex flex-col divide-y divide-border rounded-md border border-border">
+        <div className="stg:flex stg:flex-col stg:divide-y stg:divide-border stg:rounded-md stg:border stg:border-border">
           {draft.map((ref, i) => (
-            <div key={`${ref.org}/${ref.slug}`} className="flex items-center gap-2 px-3 py-1.5">
-              {itemIcon && <span className="size-4 shrink-0 text-muted-foreground">{itemIcon}</span>}
-              <span className="flex-1 text-sm font-medium text-foreground">
+            <div key={`${ref.org}/${ref.slug}`} className="stg:flex stg:items-center stg:gap-2 stg:px-3 stg:py-1.5">
+              {itemIcon && <span className="stg:size-4 stg:shrink-0 stg:text-muted-foreground">{itemIcon}</span>}
+              <span className="stg:flex-1 stg:text-sm stg:font-medium stg:text-foreground">
                 {ref.label ?? ref.slug}
               </span>
               <button
@@ -165,12 +165,12 @@ export function InlineEditResourceList({
                 onClick={() => removeItem(i)}
                 aria-label={`Remove ${ref.label ?? ref.slug}`}
                 className={cn(
-                  "inline-flex size-6 items-center justify-center rounded-md text-muted-foreground",
-                  "hover:bg-destructive-subtle hover:text-destructive",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "stg:inline-flex stg:size-6 stg:items-center stg:justify-center stg:rounded-md stg:text-muted-foreground",
+                  "stg:hover:bg-destructive-subtle stg:hover:text-destructive",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 )}
               >
-                <XIcon className="size-3.5" />
+                <XIcon className="stg:size-3.5" />
               </button>
             </div>
           ))}
@@ -178,22 +178,22 @@ export function InlineEditResourceList({
       )}
 
       {showPicker && renderPicker ? (
-        <div className="rounded-md border border-border bg-muted-faint p-2">
+        <div className="stg:rounded-md stg:border stg:border-border stg:bg-muted-faint stg:p-2">
           {renderPicker(addItem)}
         </div>
       ) : showGenericAdd ? (
-        <div className="flex items-center gap-2 rounded-md border border-border bg-muted-faint p-2">
+        <div className="stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:border stg:border-border stg:bg-muted-faint stg:p-2">
           <input
             type="text"
             value={addOrg}
             onChange={(e) => setAddOrg(e.target.value)}
             placeholder="org"
             className={cn(
-              "w-24 rounded-md border border-border bg-input-bg px-2 py-1 text-xs text-foreground",
-              "focus:outline-none focus:ring-2 focus:ring-ring",
+              "stg:w-24 stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1 stg:text-xs stg:text-foreground",
+              "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
             )}
           />
-          <span className="text-xs text-muted-foreground">/</span>
+          <span className="stg:text-xs stg:text-muted-foreground">/</span>
           <input
             type="text"
             value={addSlug}
@@ -210,8 +210,8 @@ export function InlineEditResourceList({
               }
             }}
             className={cn(
-              "flex-1 rounded-md border border-border bg-input-bg px-2 py-1 text-xs text-foreground",
-              "focus:outline-none focus:ring-2 focus:ring-ring",
+              "stg:flex-1 stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1 stg:text-xs stg:text-foreground",
+              "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
             )}
           />
           <button
@@ -225,13 +225,13 @@ export function InlineEditResourceList({
             }}
             disabled={!addSlug.trim()}
             className={cn(
-              "inline-flex size-6 items-center justify-center rounded-md",
-              "bg-primary text-primary-foreground hover:bg-primary-hover",
-              "disabled:opacity-50",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:inline-flex stg:size-6 stg:items-center stg:justify-center stg:rounded-md",
+              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+              "stg:disabled:opacity-50",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           >
-            <PlusIcon className="size-3" />
+            <PlusIcon className="stg:size-3" />
           </button>
         </div>
       ) : (
@@ -239,28 +239,28 @@ export function InlineEditResourceList({
           type="button"
           onClick={() => renderPicker ? setShowPicker(true) : setShowGenericAdd(true)}
           className={cn(
-            "inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium",
-            "border border-dashed border-border text-muted-foreground",
-            "hover:border-muted-foreground hover:text-foreground hover:bg-muted-subtle",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            "transition-colors",
+            "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:border stg:border-dashed stg:border-border stg:text-muted-foreground",
+            "stg:hover:border-muted-foreground stg:hover:text-foreground stg:hover:bg-muted-subtle",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            "stg:transition-colors",
           )}
         >
-          <PlusIcon className="size-3" />
+          <PlusIcon className="stg:size-3" />
           Add {resourceLabel}
         </button>
       )}
 
-      <div className="flex items-center justify-end gap-1.5">
+      <div className="stg:flex stg:items-center stg:justify-end stg:gap-1.5">
         <button
           type="button"
           onClick={handleCancel}
           disabled={isSaving}
           className={cn(
-            "rounded-md px-2.5 py-1 text-xs font-medium",
-            "border border-border bg-background text-foreground hover:bg-accent",
-            "disabled:opacity-50",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+            "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent",
+            "stg:disabled:opacity-50",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           Cancel
@@ -270,10 +270,10 @@ export function InlineEditResourceList({
           onClick={handleSave}
           disabled={isSaving}
           className={cn(
-            "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:opacity-50",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:opacity-50",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           {isSaving && <Spinner />}
@@ -282,7 +282,7 @@ export function InlineEditResourceList({
       </div>
 
       {error && (
-        <p className="px-1 text-xs text-destructive" role="alert">{error}</p>
+        <p className="stg:px-1 stg:text-xs stg:text-destructive" role="alert">{error}</p>
       )}
     </div>
   );
@@ -318,7 +318,7 @@ function XIcon({ className }: { readonly className?: string }) {
 
 function Spinner() {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="animate-spin" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="stg:animate-spin" aria-hidden="true">
       <path d="M8 2a6 6 0 1 0 6 6" />
     </svg>
   );

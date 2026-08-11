@@ -67,40 +67,40 @@ export const FileChangeProgressBar = memo(function FileChangeProgressBar({
       role="region"
       aria-label="File changes in progress"
       data-cursor-target="file-change-progress-bar"
-      className={cn("border-t border-border-muted px-4 py-2", className)}
+      className={cn("stg:border-t stg:border-border-muted stg:px-4 stg:py-2", className)}
     >
-      <div className="flex items-center gap-2">
+      <div className="stg:flex stg:items-center stg:gap-2">
         <button
           type="button"
           onClick={() => setExpanded((prev) => !prev)}
           aria-expanded={expanded}
-          className="flex min-w-0 flex-1 items-center gap-2 text-left text-xs text-muted-foreground hover:text-foreground"
+          className="stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-2 stg:text-left stg:text-xs stg:text-muted-foreground stg:hover:text-foreground"
         >
           <span
             aria-hidden="true"
-            className={cn("shrink-0 transition-transform", expanded && "rotate-90")}
+            className={cn("stg:shrink-0 stg:transition-transform", expanded && "stg:rotate-90")}
           >
             ▸
           </span>
           {/* Only the count is live: a screen reader hears the aggregate move,
               not a per-file announcement on every refresh. */}
-          <span aria-live="polite" className="min-w-0 truncate">
+          <span aria-live="polite" className="stg:min-w-0 stg:truncate">
             {filesChanged} {filesChanged === 1 ? "file" : "files"} changing…
           </span>
         </button>
         <FileLineStats linesAdded={linesAdded} linesRemoved={linesRemoved} />
       </div>
       {expanded && (
-        <ul className="mt-2 max-h-[30vh] space-y-1 overflow-y-auto">
+        <ul className="stg:mt-2 stg:max-h-[30vh] stg:space-y-1 stg:overflow-y-auto">
           {entries.map((entry) => {
             const path = entry.pathAfter || entry.pathBefore;
             return (
-              <li key={path} className="flex items-center gap-2">
+              <li key={path} className="stg:flex stg:items-center stg:gap-2">
                 <FileKindBadge kind={entry.kind} />
                 <FilePathLink
                   path={path}
                   dirDisplay="dim"
-                  className="min-w-0 flex-1 text-xs"
+                  className="stg:min-w-0 stg:flex-1 stg:text-xs"
                 />
                 <FileLineStats
                   linesAdded={entry.linesAdded}
@@ -110,7 +110,7 @@ export const FileChangeProgressBar = memo(function FileChangeProgressBar({
             );
           })}
           {hiddenCount > 0 && (
-            <li className="text-xs text-muted-foreground-faint">
+            <li className="stg:text-xs stg:text-muted-foreground-faint">
               … and {hiddenCount} more
             </li>
           )}

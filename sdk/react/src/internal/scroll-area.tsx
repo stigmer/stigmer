@@ -19,12 +19,12 @@ function ScrollArea({
   return (
     <div
       className={cn(
-        "relative overflow-auto",
-        "[scrollbar-width:thin] [scrollbar-color:var(--color-border)_transparent]",
-        "[&::-webkit-scrollbar]:w-2.5",
-        "[&::-webkit-scrollbar-track]:bg-transparent",
-        "[&::-webkit-scrollbar-thumb]:rounded-full",
-        "[&::-webkit-scrollbar-thumb]:bg-border",
+        "stg:relative stg:overflow-auto",
+        "stg:[scrollbar-width:thin] stg:[scrollbar-color:var(--color-border)_transparent]",
+        "stg:[&::-webkit-scrollbar]:w-2.5",
+        "stg:[&::-webkit-scrollbar-track]:bg-transparent",
+        "stg:[&::-webkit-scrollbar-thumb]:rounded-full",
+        "stg:[&::-webkit-scrollbar-thumb]:bg-border",
         className,
       )}
       {...props}

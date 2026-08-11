@@ -85,12 +85,12 @@ export function RecordFilterBuilder({
     <div
       role="toolbar"
       aria-label="Record filters"
-      className={cn("flex flex-wrap items-center gap-1.5", className)}
+      className={cn("stg:flex stg:flex-wrap stg:items-center stg:gap-1.5", className)}
     >
       {conditions.map((condition, index) => (
         <span
           key={`${condition.field}:${index}`}
-          className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-xs text-foreground"
+          className="stg:inline-flex stg:items-center stg:gap-1 stg:rounded-full stg:border stg:border-border stg:bg-muted stg:px-2 stg:py-0.5 stg:text-xs stg:text-foreground"
         >
           {formatConditionChip(condition)}
           <button
@@ -98,12 +98,12 @@ export function RecordFilterBuilder({
             onClick={() => removeCondition(index)}
             aria-label={`Remove filter ${formatConditionChip(condition)}`}
             className={cn(
-              "inline-flex size-3.5 items-center justify-center rounded-full text-muted-foreground",
-              "hover:bg-accent hover:text-foreground",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+              "stg:inline-flex stg:size-3.5 stg:items-center stg:justify-center stg:rounded-full stg:text-muted-foreground",
+              "stg:hover:bg-accent stg:hover:text-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
             )}
           >
-            <CrossIcon className="size-2.5" />
+            <CrossIcon className="stg:size-2.5" />
           </button>
         </span>
       ))}
@@ -115,8 +115,8 @@ export function RecordFilterBuilder({
           type="button"
           onClick={() => onChange([])}
           className={cn(
-            "text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+            "stg:text-xs stg:text-muted-foreground stg:underline-offset-2 stg:hover:text-foreground stg:hover:underline",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
           )}
         >
           Clear all
@@ -196,23 +196,23 @@ function AddFilterPopover({
     <Popover.Root open={open} onOpenChange={handleOpenChange}>
       <Popover.Trigger
         className={cn(
-          "inline-flex items-center gap-1 rounded-full border border-dashed border-input px-2 py-0.5 text-xs text-muted-foreground",
-          "hover:border-ring hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-full stg:border stg:border-dashed stg:border-input stg:px-2 stg:py-0.5 stg:text-xs stg:text-muted-foreground",
+          "stg:hover:border-ring stg:hover:text-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
         )}
       >
-        <PlusIcon className="size-3" />
+        <PlusIcon className="stg:size-3" />
         Add filter
       </Popover.Trigger>
       <Popover.Portal container={portalContainer}>
         <Popover.Positioner sideOffset={8} align="start">
           <Popover.Popup
             className={cn(
-              "z-popover w-72 rounded-lg border border-border bg-popover p-3 text-popover-foreground shadow-md",
-              "flex flex-col gap-2",
+              "stg:z-popover stg:w-72 stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:p-3 stg:text-popover-foreground stg:shadow-md",
+              "stg:flex stg:flex-col stg:gap-2",
             )}
           >
-            <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+            <label className="stg:flex stg:flex-col stg:gap-1 stg:text-xs stg:font-medium stg:text-muted-foreground">
               Field
               <select
                 className={FIELD_INPUT_CLASSES}
@@ -229,7 +229,7 @@ function AddFilterPopover({
             </label>
 
             {selected && (
-              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+              <label className="stg:flex stg:flex-col stg:gap-1 stg:text-xs stg:font-medium stg:text-muted-foreground">
                 Operator
                 <select
                   className={FIELD_INPUT_CLASSES}
@@ -260,7 +260,7 @@ function AddFilterPopover({
               (isListOperator(op) ? (
                 <ListValueEditor field={selected} values={values} onChange={setValues} />
               ) : (
-                <div className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                <div className="stg:flex stg:flex-col stg:gap-1 stg:text-xs stg:font-medium stg:text-muted-foreground">
                   Value
                   <FieldValueControl
                     field={controlDeclaration(selected)}
@@ -271,14 +271,14 @@ function AddFilterPopover({
                 </div>
               ))}
 
-            <div className="mt-1 flex justify-end gap-2">
+            <div className="stg:mt-1 stg:flex stg:justify-end stg:gap-2">
               <button
                 type="button"
                 onClick={() => handleOpenChange(false)}
                 className={cn(
-                  "rounded-md border border-input bg-background px-2.5 py-1 text-xs font-medium text-foreground",
-                  "hover:bg-accent hover:text-accent-foreground",
-                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  "stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:text-foreground",
+                  "stg:hover:bg-accent stg:hover:text-accent-foreground",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
                 )}
               >
                 Cancel
@@ -288,10 +288,10 @@ function AddFilterPopover({
                 onClick={apply}
                 disabled={!canApply}
                 className={cn(
-                  "rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground",
-                  "hover:bg-primary-hover",
-                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                  "disabled:pointer-events-none disabled:opacity-50",
+                  "stg:rounded-md stg:bg-primary stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:text-primary-foreground",
+                  "stg:hover:bg-primary-hover",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+                  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
                 )}
               >
                 Apply
@@ -338,29 +338,29 @@ function ListValueEditor({
   }, [pending, values, onChange]);
 
   return (
-    <div className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+    <div className="stg:flex stg:flex-col stg:gap-1 stg:text-xs stg:font-medium stg:text-muted-foreground">
       Values
       {values.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="stg:flex stg:flex-wrap stg:gap-1">
           {values.map((v, i) => (
             <span
               key={i}
-              className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-foreground"
+              className="stg:inline-flex stg:items-center stg:gap-1 stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-xs stg:font-normal stg:text-foreground"
             >
               {typeof v === "string" ? v : JSON.stringify(v)}
               <button
                 type="button"
                 onClick={() => onChange(values.filter((_, j) => j !== i))}
                 aria-label={`Remove value ${typeof v === "string" ? v : JSON.stringify(v)}`}
-                className="inline-flex size-3 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
+                className="stg:inline-flex stg:size-3 stg:items-center stg:justify-center stg:rounded-full stg:text-muted-foreground stg:hover:text-foreground"
               >
-                <CrossIcon className="size-2" />
+                <CrossIcon className="stg:size-2" />
               </button>
             </span>
           ))}
         </div>
       )}
-      <div className="flex items-center gap-1.5">
+      <div className="stg:flex stg:items-center stg:gap-1.5">
         <FieldValueControl
           field={controlDeclaration(field)}
           value={pending}
@@ -372,10 +372,10 @@ function ListValueEditor({
           onClick={add}
           disabled={pending === undefined}
           className={cn(
-            "shrink-0 rounded-md border border-input bg-background px-2 py-1 text-xs font-medium text-foreground",
-            "hover:bg-accent hover:text-accent-foreground",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:shrink-0 stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:text-foreground",
+            "stg:hover:bg-accent stg:hover:text-accent-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           Add

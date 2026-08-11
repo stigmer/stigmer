@@ -171,7 +171,7 @@ export const YamlEditor = memo(function YamlEditor({
     <div
       ref={containerRef}
       className={cn(
-        "stgm-yaml-editor overflow-auto rounded-md border border-border bg-background font-mono text-sm",
+        "stgm-yaml-editor stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-background stg:font-mono stg:text-sm",
         className,
       )}
       style={style}

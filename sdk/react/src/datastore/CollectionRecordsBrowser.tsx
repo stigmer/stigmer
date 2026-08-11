@@ -103,7 +103,7 @@ export function CollectionRecordsBrowser({
 
   if (collections.length === 0) {
     return (
-      <p className={cn("px-3 py-6 text-center text-sm text-muted-foreground", className)}>
+      <p className={cn("stg:px-3 stg:py-6 stg:text-center stg:text-sm stg:text-muted-foreground", className)}>
         This datastore declares no collections.
       </p>
     );
@@ -115,12 +115,12 @@ export function CollectionRecordsBrowser({
   );
 
   return (
-    <div className={cn("flex flex-col gap-3", className)}>
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+    <div className={cn("stg:flex stg:flex-col stg:gap-3", className)}>
+      <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
+        <label className="stg:flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground">
           Collection
           <select
-            className={cn(FIELD_INPUT_CLASSES, "w-auto")}
+            className={cn(FIELD_INPUT_CLASSES, "stg:w-auto")}
             value={collectionName}
             onChange={(e) => selectCollection(e.target.value)}
           >
@@ -131,10 +131,10 @@ export function CollectionRecordsBrowser({
             ))}
           </select>
         </label>
-        <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <label className="stg:flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground">
           Partition
           <select
-            className={cn(FIELD_INPUT_CLASSES, "w-auto")}
+            className={cn(FIELD_INPUT_CLASSES, "stg:w-auto")}
             value={partition}
             onChange={(e) => selectPartition(e.target.value)}
           >
@@ -305,23 +305,23 @@ function RecordsPane({
   const totalPages = Math.max(records.totalPages, 1);
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="stg:flex stg:flex-col stg:gap-3">
+      <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
         <RecordFilterBuilder
           collection={collection}
           readableFields={readableFields}
           conditions={conditions}
           onChange={onConditionsChange}
-          className="min-w-0 flex-1"
+          className="stg:min-w-0 stg:flex-1"
         />
         {canInsert && (
           <button
             type="button"
             onClick={openInsert}
             className={cn(
-              "shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground",
-              "hover:bg-primary-hover",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:shrink-0 stg:rounded-md stg:bg-primary stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-primary-foreground",
+              "stg:hover:bg-primary-hover",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           >
             Insert record
@@ -332,23 +332,23 @@ function RecordsPane({
       {records.error ? (
         <div
           role="alert"
-          className="rounded-md border border-destructive bg-card px-3 py-2 text-sm text-destructive"
+          className="stg:rounded-md stg:border stg:border-destructive stg:bg-card stg:px-3 stg:py-2 stg:text-sm stg:text-destructive"
         >
           {getUserMessage(records.error)}
         </div>
       ) : records.isLoading ? (
-        <div className="rounded-lg border border-border px-3 py-6 text-center text-sm text-muted-foreground">
+        <div className="stg:rounded-lg stg:border stg:border-border stg:px-3 stg:py-6 stg:text-center stg:text-sm stg:text-muted-foreground">
           Loading records…
         </div>
       ) : records.records.length === 0 ? (
-        <div className="rounded-lg border border-border px-3 py-6 text-center text-sm text-muted-foreground">
+        <div className="stg:rounded-lg stg:border stg:border-border stg:px-3 stg:py-6 stg:text-center stg:text-sm stg:text-muted-foreground">
           {conditions.length > 0
             ? "No records match the current filters."
             : `No records in “${collection.name}” yet.`}
         </div>
       ) : (
         records.table && (
-          <div className="overflow-x-auto rounded-lg border border-border">
+          <div className="stg:overflow-x-auto stg:rounded-lg stg:border stg:border-border">
             <ResourceTable
               table={records.table}
               aria-label={`Records in ${collection.name}`}
@@ -370,11 +370,11 @@ function RecordsPane({
         )
       )}
 
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className="stg:flex stg:items-center stg:justify-between stg:text-xs stg:text-muted-foreground">
         <span>
           {records.total} record{records.total === 1 ? "" : "s"}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="stg:flex stg:items-center stg:gap-2">
           <button
             type="button"
             onClick={() => onPageChange(page - 1)}
@@ -411,10 +411,10 @@ function RecordsPane({
 }
 
 const paginationButtonClass = cn(
-  "rounded-md border border-input bg-background px-2 py-1 text-xs font-medium text-foreground",
-  "hover:bg-accent hover:text-accent-foreground",
-  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-  "disabled:pointer-events-none disabled:opacity-50",
+  "stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:text-foreground",
+  "stg:hover:bg-accent stg:hover:text-accent-foreground",
+  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
 );
 
 // ---------------------------------------------------------------------------
@@ -425,13 +425,13 @@ function DeniedPanel({ message }: { readonly message: string }) {
   return (
     <div
       role="status"
-      className="flex flex-col items-center gap-2 rounded-lg border border-border bg-muted px-4 py-8 text-center"
+      className="stg:flex stg:flex-col stg:items-center stg:gap-2 stg:rounded-lg stg:border stg:border-border stg:bg-muted stg:px-4 stg:py-8 stg:text-center"
     >
-      <p className="text-sm font-medium text-foreground">{message}</p>
-      <p className="max-w-md text-xs text-muted-foreground">
+      <p className="stg:text-sm stg:font-medium stg:text-foreground">{message}</p>
+      <p className="stg:max-w-md stg:text-xs stg:text-muted-foreground">
         Record access is granted by the datastore's authorization block. To
         gain access, add a role binding for your principal or set a{" "}
-        <code className="font-mono">default_role</code> in the datastore YAML,
+        <code className="stg:font-mono">default_role</code> in the datastore YAML,
         with the verbs you need granted on this collection.
       </p>
     </div>
@@ -510,9 +510,9 @@ function TypedCell({
     <span
       title={value.length > 80 ? value : undefined}
       className={cn(
-        "block max-w-xs truncate",
-        numeric && "text-right tabular-nums",
-        mono && "font-mono",
+        "stg:block stg:max-w-xs stg:truncate",
+        numeric && "stg:text-right stg:tabular-nums",
+        mono && "stg:font-mono",
       )}
     >
       {truncated}
@@ -538,7 +538,7 @@ function RowActions({
   readonly onDelete: (record: RecordEnvelope) => void;
 }) {
   return (
-    <div className="flex items-center gap-1">
+    <div className="stg:flex stg:items-center stg:gap-1">
       {canUpdate && (
         <button
           type="button"
@@ -554,7 +554,7 @@ function RowActions({
           type="button"
           onClick={() => onDelete(record)}
           aria-label={`Delete record ${record.id}`}
-          className={cn(rowActionClass, "text-destructive hover:text-destructive")}
+          className={cn(rowActionClass, "stg:text-destructive stg:hover:text-destructive")}
         >
           Delete
         </button>
@@ -564,7 +564,7 @@ function RowActions({
 }
 
 const rowActionClass = cn(
-  "rounded-md px-1.5 py-0.5 text-xs font-medium text-muted-foreground",
-  "hover:bg-accent hover:text-foreground",
-  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+  "stg:rounded-md stg:px-1.5 stg:py-0.5 stg:text-xs stg:font-medium stg:text-muted-foreground",
+  "stg:hover:bg-accent stg:hover:text-foreground",
+  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
 );

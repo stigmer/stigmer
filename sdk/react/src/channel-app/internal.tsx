@@ -31,8 +31,8 @@ export function FormField({
   required?: boolean;
 }) {
   return (
-    <div className="space-y-1">
-      <label htmlFor={id} className="text-xs font-medium text-foreground">
+    <div className="stg:space-y-1">
+      <label htmlFor={id} className="stg:text-xs stg:font-medium stg:text-foreground">
         {label}
       </label>
       <input
@@ -44,13 +44,13 @@ export function FormField({
         disabled={disabled}
         required={required}
         className={cn(
-          "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-          "placeholder:text-muted-foreground",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-          "disabled:pointer-events-none disabled:opacity-50",
+          "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+          "stg:placeholder:text-muted-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         )}
       />
-      {hint && <p className="text-[0.65rem] text-muted-foreground">{hint}</p>}
+      {hint && <p className="stg:text-[0.65rem] stg:text-muted-foreground">{hint}</p>}
     </div>
   );
 }
@@ -71,13 +71,13 @@ export function CopyRow({
   const { copied, copy } = useCopy(value);
 
   return (
-    <div className="space-y-1">
-      <p className="text-xs font-medium text-foreground">{label}</p>
-      <div className="flex items-center gap-1.5">
+    <div className="stg:space-y-1">
+      <p className="stg:text-xs stg:font-medium stg:text-foreground">{label}</p>
+      <div className="stg:flex stg:items-center stg:gap-1.5">
         <code
           className={cn(
-            "min-w-0 flex-1 truncate rounded-md border border-border bg-muted-subtle",
-            "px-2 py-1.5 font-mono text-[0.65rem] text-foreground",
+            "stg:min-w-0 stg:flex-1 stg:truncate stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle",
+            "stg:px-2 stg:py-1.5 stg:font-mono stg:text-[0.65rem] stg:text-foreground",
           )}
           title={value}
         >
@@ -102,17 +102,17 @@ export function CopyBlock({
   const { copied, copy } = useCopy(value);
 
   return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <p className="text-[0.65rem] font-medium text-muted-foreground">
+    <div className="stg:space-y-1">
+      <div className="stg:flex stg:items-center stg:justify-between">
+        <p className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
           {label}
         </p>
         <CopyButton copied={copied} onCopy={copy} copyTargetId={copyTargetId} />
       </div>
       <pre
         className={cn(
-          "max-h-40 overflow-auto rounded-md border border-border bg-muted-subtle",
-          "px-2.5 py-2 font-mono text-[0.65rem] leading-relaxed text-foreground",
+          "stg:max-h-40 stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle",
+          "stg:px-2.5 stg:py-2 stg:font-mono stg:text-[0.65rem] stg:leading-relaxed stg:text-foreground",
         )}
       >
         {value}
@@ -136,10 +136,10 @@ function CopyButton({
       onClick={onCopy}
       data-cursor-target={copyTargetId}
       className={cn(
-        "shrink-0 rounded-md border border-border px-2 py-1 text-[0.65rem] font-medium transition-colors",
+        "stg:shrink-0 stg:rounded-md stg:border stg:border-border stg:px-2 stg:py-1 stg:text-[0.65rem] stg:font-medium stg:transition-colors",
         copied
-          ? "text-success"
-          : "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
+          ? "stg:text-success"
+          : "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
       )}
       aria-live="polite"
     >
@@ -171,7 +171,7 @@ export function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

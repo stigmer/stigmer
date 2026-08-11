@@ -18,8 +18,8 @@ const HARNESS_LABELS: Record<string, string> = {
 };
 
 const HARNESS_COLORS: Record<string, string> = {
-  native: "bg-chart-1",
-  cursor: "bg-chart-3",
+  native: "stg:bg-chart-1",
+  cursor: "stg:bg-chart-3",
 };
 
 /**
@@ -44,13 +44,13 @@ export function HarnessSplitCard({
 
   return (
     <div className={className}>
-      <h3 className="mb-2 text-xs font-semibold text-foreground">
+      <h3 className="stg:mb-2 stg:text-xs stg:font-semibold stg:text-foreground">
         Harness Split
       </h3>
-      <div className="rounded-lg border border-border bg-card px-3.5 py-3">
+      <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3.5 stg:py-3">
         {/* Segmented bar */}
         <div
-          className="flex h-3 w-full overflow-hidden rounded-full"
+          className="stg:flex stg:h-3 stg:w-full stg:overflow-hidden stg:rounded-full"
           role="img"
           aria-label="Cost distribution by harness"
         >
@@ -62,8 +62,8 @@ export function HarnessSplitCard({
               <div
                 key={entry.harness}
                 className={cn(
-                  "transition-all",
-                  HARNESS_COLORS[entry.harness] ?? "bg-chart-4",
+                  "stg:transition-all",
+                  HARNESS_COLORS[entry.harness] ?? "stg:bg-chart-4",
                 )}
                 style={{ width: `${pct}%` }}
               />
@@ -72,25 +72,25 @@ export function HarnessSplitCard({
         </div>
 
         {/* Labels */}
-        <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1">
+        <div className="stg:mt-2.5 stg:flex stg:flex-wrap stg:gap-x-5 stg:gap-y-1">
           {breakdown.map((entry) => {
             const cost = Number(entry.billableCostMicros);
             const pct = totalCost > 0 ? (cost / totalCost) * 100 : 0;
             return (
-              <div key={entry.harness} className="flex items-center gap-1.5">
+              <div key={entry.harness} className="stg:flex stg:items-center stg:gap-1.5">
                 <div
                   className={cn(
-                    "size-2 rounded-full",
-                    HARNESS_COLORS[entry.harness] ?? "bg-chart-4",
+                    "stg:size-2 stg:rounded-full",
+                    HARNESS_COLORS[entry.harness] ?? "stg:bg-chart-4",
                   )}
                 />
-                <span className="text-xs text-muted-foreground">
+                <span className="stg:text-xs stg:text-muted-foreground">
                   {HARNESS_LABELS[entry.harness] ?? entry.harness}
                 </span>
-                <span className="text-xs tabular-nums font-medium text-foreground">
+                <span className="stg:text-xs stg:tabular-nums stg:font-medium stg:text-foreground">
                   {formatCost(cost / 1_000_000)}
                 </span>
-                <span className="text-[0.6rem] tabular-nums text-muted-foreground">
+                <span className="stg:text-[0.6rem] stg:tabular-nums stg:text-muted-foreground">
                   ({pct.toFixed(0)}%)
                 </span>
               </div>

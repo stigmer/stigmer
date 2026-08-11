@@ -274,43 +274,43 @@ export function McpServerConfigPanel({
 
   return (
     <div
-      className={cn("space-y-3", className)}
+      className={cn("stg:space-y-3", className)}
       role="region"
       aria-label={`Configure ${serverName}`}
     >
       {/* Header */}
-      <div className="flex items-start gap-2">
+      <div className="stg:flex stg:items-start stg:gap-2">
         <button
           type="button"
           onClick={onBack}
           disabled={credentials?.isSubmitting || isOAuthBusy}
           className={cn(
-            "mt-0.5 shrink-0 rounded p-0.5",
-            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:mt-0.5 stg:shrink-0 stg:rounded stg:p-0.5",
+            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
           aria-label="Back to MCP server list"
         >
           <BackArrowIcon />
         </button>
 
-        <div className="flex min-w-0 flex-1 items-start gap-2">
+        <div className="stg:flex stg:min-w-0 stg:flex-1 stg:items-start stg:gap-2">
           {iconUrl && (
             <img
               src={iconUrl}
               alt=""
               width={16}
               height={16}
-              className="mt-0.5 size-4 shrink-0 rounded-sm object-contain"
+              className="stg:mt-0.5 stg:size-4 stg:shrink-0 stg:rounded-sm stg:object-contain"
             />
           )}
-          <div className="min-w-0 flex-1">
-            <h3 className="truncate text-xs font-medium text-foreground">
+          <div className="stg:min-w-0 stg:flex-1">
+            <h3 className="stg:truncate stg:text-xs stg:font-medium stg:text-foreground">
               {serverName}
             </h3>
             {description && (
-              <p className="line-clamp-2 text-[0.65rem] leading-relaxed text-muted-foreground">
+              <p className="stg:line-clamp-2 stg:text-[0.65rem] stg:leading-relaxed stg:text-muted-foreground">
                 {description}
               </p>
             )}
@@ -349,7 +349,7 @@ export function McpServerConfigPanel({
         <button
           type="button"
           onClick={onSwitchToOAuth}
-          className="text-[0.65rem] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+          className="stg:text-[0.65rem] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
         >
           Sign in with OAuth instead
         </button>
@@ -366,7 +366,7 @@ export function McpServerConfigPanel({
           defaultSaveForFuture={credentials.defaultSaveForFuture}
           hideSaveToggle={credentials.hideSaveToggle}
           poolValues={credentials.poolValues}
-          className="w-full"
+          className="stg:w-full"
         />
       )}
 
@@ -374,7 +374,7 @@ export function McpServerConfigPanel({
       {error && (
         <div
           role="alert"
-          className="rounded-md border border-destructive/30 bg-destructive-subtle px-2.5 py-2 text-xs text-destructive"
+          className="stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-2.5 stg:py-2 stg:text-xs stg:text-destructive"
         >
           {getUserMessage(error)}
         </div>
@@ -404,34 +404,34 @@ function inlineHealthProps(
 ): { textClass: string; dotClass: string; label: string } {
   if (isVendorApprovalPending && !isConnected) {
     return {
-      textClass: "text-amber-600 dark:text-amber-400",
-      dotClass: "bg-amber-500",
+      textClass: "stg:text-amber-600 stg:dark:text-amber-400",
+      dotClass: "stg:bg-amber-500",
       label: "Pending approval",
     };
   }
   switch (health) {
     case OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY:
       return {
-        textClass: "text-success",
-        dotClass: "bg-success",
+        textClass: "stg:text-success",
+        dotClass: "stg:bg-success",
         label: "Signed in",
       };
     case OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE:
       return {
-        textClass: "text-amber-600 dark:text-amber-400",
-        dotClass: "bg-amber-500",
+        textClass: "stg:text-amber-600 stg:dark:text-amber-400",
+        dotClass: "stg:bg-amber-500",
         label: "Token expired",
       };
     case OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED:
       return {
-        textClass: "text-destructive",
-        dotClass: "bg-destructive",
+        textClass: "stg:text-destructive",
+        dotClass: "stg:bg-destructive",
         label: "Re-auth needed",
       };
     default:
       return {
-        textClass: "text-muted-foreground",
-        dotClass: "bg-muted-foreground",
+        textClass: "stg:text-muted-foreground",
+        dotClass: "stg:bg-muted-foreground",
         label: "Sign-in required",
       };
   }
@@ -515,11 +515,11 @@ function InlineOAuthSignIn({
   // Inline disconnect confirmation
   if (disconnectPhase === "confirming" || disconnectPhase === "disconnecting") {
     return (
-      <div className="space-y-1.5">
-        <p className="text-[0.65rem] text-foreground">
+      <div className="stg:space-y-1.5">
+        <p className="stg:text-[0.65rem] stg:text-foreground">
           Remove credentials? You can reconnect at any time.
         </p>
-        <div className="flex items-center gap-1.5">
+        <div className="stg:flex stg:items-center stg:gap-1.5">
           <button
             type="button"
             disabled={!!isDisconnecting}
@@ -534,9 +534,9 @@ function InlineOAuthSignIn({
               }
             }}
             className={cn(
-              "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[0.65rem] font-medium",
-              "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:inline-flex stg:items-center stg:gap-1 stg:rounded stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
+              "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             {isDisconnecting && <InlineSpinner />}
@@ -550,21 +550,21 @@ function InlineOAuthSignIn({
               onClearDisconnectError?.();
             }}
             className={cn(
-              "inline-flex items-center rounded px-2 py-0.5 text-[0.65rem] font-medium",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:inline-flex stg:items-center stg:rounded stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             Cancel
           </button>
         </div>
         {disconnectError && (
-          <div className="flex items-start gap-1.5 text-[0.65rem] text-destructive" role="alert">
-            <span className="flex-1">{getUserMessage(disconnectError)}</span>
+          <div className="stg:flex stg:items-start stg:gap-1.5 stg:text-[0.65rem] stg:text-destructive" role="alert">
+            <span className="stg:flex-1">{getUserMessage(disconnectError)}</span>
             <button
               type="button"
               onClick={() => onClearDisconnectError?.()}
-              className="shrink-0 underline underline-offset-2 hover:no-underline"
+              className="stg:shrink-0 stg:underline stg:underline-offset-2 stg:hover:no-underline"
             >
               Dismiss
             </button>
@@ -577,12 +577,12 @@ function InlineOAuthSignIn({
   // Inline "remove custom app" confirmation
   if (removeOrgAppPhase === "confirming" || removeOrgAppPhase === "removing") {
     return (
-      <div className="space-y-1.5">
-        <p className="text-[0.65rem] text-foreground">
+      <div className="stg:space-y-1.5">
+        <p className="stg:text-[0.65rem] stg:text-foreground">
           Remove your custom OAuth app? The server will revert to the
           platform&apos;s app.
         </p>
-        <div className="flex items-center gap-1.5">
+        <div className="stg:flex stg:items-center stg:gap-1.5">
           <button
             type="button"
             disabled={!!isRemovingOrgApp}
@@ -597,9 +597,9 @@ function InlineOAuthSignIn({
               }
             }}
             className={cn(
-              "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[0.65rem] font-medium",
-              "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:inline-flex stg:items-center stg:gap-1 stg:rounded stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
+              "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             {isRemovingOrgApp && <InlineSpinner />}
@@ -610,9 +610,9 @@ function InlineOAuthSignIn({
             disabled={!!isRemovingOrgApp}
             onClick={() => setRemoveOrgAppPhase("idle")}
             className={cn(
-              "inline-flex items-center rounded px-2 py-0.5 text-[0.65rem] font-medium",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:inline-flex stg:items-center stg:rounded stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             Cancel
@@ -623,23 +623,23 @@ function InlineOAuthSignIn({
   }
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
+    <div className="stg:space-y-1.5">
+      <div className="stg:flex stg:items-center stg:justify-between">
+        <div className="stg:flex stg:items-center stg:gap-1.5">
           <span
             className={cn(
-              "inline-flex items-center gap-1 text-[0.65rem] font-medium",
+              "stg:inline-flex stg:items-center stg:gap-1 stg:text-[0.65rem] stg:font-medium",
               status.textClass,
             )}
           >
             <span
-              className={cn("size-1.5 rounded-full", status.dotClass)}
+              className={cn("stg:size-1.5 stg:rounded-full", status.dotClass)}
               aria-hidden="true"
             />
             {status.label}
           </span>
           {isOrgOAuthApp && isConnected && (
-            <span className="text-[0.6rem] text-muted-foreground">
+            <span className="stg:text-[0.6rem] stg:text-muted-foreground">
               Your app
             </span>
           )}
@@ -647,7 +647,7 @@ function InlineOAuthSignIn({
             <button
               type="button"
               onClick={() => setDisconnectPhase("confirming")}
-              className="text-[0.65rem] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+              className="stg:text-[0.65rem] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
             >
               Disconnect
             </button>
@@ -656,7 +656,7 @@ function InlineOAuthSignIn({
             <button
               type="button"
               onClick={() => setRemoveOrgAppPhase("confirming")}
-              className="text-[0.65rem] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+              className="stg:text-[0.65rem] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
             >
               Remove custom app
             </button>
@@ -667,11 +667,11 @@ function InlineOAuthSignIn({
           onClick={onSignIn}
           disabled={signInDisabled}
           className={cn(
-            "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[0.65rem] font-medium",
+            "stg:inline-flex stg:items-center stg:gap-1 stg:rounded stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
             isConnected && !needsReAuth
-              ? "text-muted-foreground hover:text-foreground hover:bg-accent-hover"
-              : "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-50",
+              ? "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover"
+              : "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           {isBusy ? (
@@ -690,7 +690,7 @@ function InlineOAuthSignIn({
 
       {/* Vendor approval blocked message with BYOA CTA */}
       {blocked && !isConnected && !isOrgOAuthApp && (
-        <div className="text-[0.65rem] text-amber-700 dark:text-amber-300">
+        <div className="stg:text-[0.65rem] stg:text-amber-700 stg:dark:text-amber-300">
           <p>
             OAuth sign-in is pending vendor approval.
             {canBringOwnApp && onBringOwnApp
@@ -701,7 +701,7 @@ function InlineOAuthSignIn({
             <button
               type="button"
               onClick={onBringOwnApp}
-              className="mt-1 inline-flex items-center gap-1 rounded bg-amber-600 px-2 py-0.5 text-[0.6rem] font-medium text-white hover:bg-amber-700 dark:bg-amber-500 dark:text-amber-950 dark:hover:bg-amber-400"
+              className="stg:mt-1 stg:inline-flex stg:items-center stg:gap-1 stg:rounded stg:bg-amber-600 stg:px-2 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:text-white stg:hover:bg-amber-700 stg:dark:bg-amber-500 stg:dark:text-amber-950 stg:dark:hover:bg-amber-400"
             >
               Use your own OAuth app
             </button>
@@ -711,7 +711,7 @@ function InlineOAuthSignIn({
               href={vendorApprovalDocsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline decoration-amber-600/40 underline-offset-2 hover:decoration-amber-600 dark:decoration-amber-400/40 dark:hover:decoration-amber-400"
+              className="stg:underline stg:decoration-amber-600/40 stg:underline-offset-2 stg:hover:decoration-amber-600 stg:dark:decoration-amber-400/40 stg:dark:hover:decoration-amber-400"
             >
               Learn how to bring your own token
             </a>
@@ -721,15 +721,15 @@ function InlineOAuthSignIn({
 
       {/* Org override indicator when not connected */}
       {isOrgOAuthApp && !isConnected && (
-        <span className="text-[0.6rem] text-muted-foreground">
+        <span className="stg:text-[0.6rem] stg:text-muted-foreground">
           Using your OAuth app
         </span>
       )}
 
       {error && (
-        <div className="flex items-start gap-1.5 text-[0.65rem] text-destructive" role="alert">
-          <span className="flex-1">{getUserMessage(error)}</span>
-          <div className="flex shrink-0 items-center gap-1.5">
+        <div className="stg:flex stg:items-start stg:gap-1.5 stg:text-[0.65rem] stg:text-destructive" role="alert">
+          <span className="stg:flex-1">{getUserMessage(error)}</span>
+          <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
             {isRetryableError(error) && (
               <button
                 type="button"
@@ -737,7 +737,7 @@ function InlineOAuthSignIn({
                   onClearError();
                   onSignIn();
                 }}
-                className="font-medium underline underline-offset-2 hover:no-underline"
+                className="stg:font-medium stg:underline stg:underline-offset-2 stg:hover:no-underline"
               >
                 Try again
               </button>
@@ -745,7 +745,7 @@ function InlineOAuthSignIn({
             <button
               type="button"
               onClick={onClearError}
-              className="underline underline-offset-2 hover:no-underline"
+              className="stg:underline stg:underline-offset-2 stg:hover:no-underline"
             >
               Dismiss
             </button>
@@ -755,12 +755,12 @@ function InlineOAuthSignIn({
 
       {/* Secondary actions: manual entry, BYOA */}
       {!isConnected && !isBusy && (
-        <div className="flex items-center gap-2">
+        <div className="stg:flex stg:items-center stg:gap-2">
           {onSwitchToManual && (
             <button
               type="button"
               onClick={onSwitchToManual}
-              className="text-[0.65rem] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+              className="stg:text-[0.65rem] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
             >
               Enter token manually
             </button>
@@ -769,7 +769,7 @@ function InlineOAuthSignIn({
             <button
               type="button"
               onClick={onBringOwnApp}
-              className="text-[0.65rem] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+              className="stg:text-[0.65rem] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
             >
               Use your own OAuth app
             </button>
@@ -790,7 +790,7 @@ function InlineSpinner() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

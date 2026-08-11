@@ -142,13 +142,13 @@ export const WorkflowTaskThread = memo(function WorkflowTaskThread({
     useAutoScroll();
 
   return (
-    <div className={cn("relative flex h-full min-h-0 flex-col", className)}>
+    <div className={cn("stg:relative stg:flex stg:h-full stg:min-h-0 stg:flex-col", className)}>
       <ThreadProgressHeader progress={progress} isRunning={isRunning} />
 
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto">
         <div
           ref={contentRef}
-          className="mx-auto flex w-full max-w-3xl flex-col gap-2 px-4 py-4"
+          className="stg:mx-auto stg:flex stg:w-full stg:max-w-3xl stg:flex-col stg:gap-2 stg:px-4 stg:py-4"
         >
           {items.length === 0 ? (
             <ThreadEmptyState isRunning={isRunning} />
@@ -196,15 +196,15 @@ function ThreadProgressHeader({
       : `${settledTasks} ${settledTasks === 1 ? "task" : "tasks"}`;
 
   return (
-    <div className="flex items-center gap-2 border-b border-border px-4 py-1.5 text-xs text-muted-foreground">
+    <div className="stg:flex stg:items-center stg:gap-2 stg:border-b stg:border-border stg:px-4 stg:py-1.5 stg:text-xs stg:text-muted-foreground">
       <span>{settled}</span>
       {activeTasks > 0 && (
-        <span className="flex items-center gap-1.5">
+        <span className="stg:flex stg:items-center stg:gap-1.5">
           <span
             aria-hidden="true"
             className={cn(
-              "size-1.5 rounded-full bg-primary",
-              isRunning && "animate-pulse",
+              "stg:size-1.5 stg:rounded-full stg:bg-primary",
+              isRunning && "stg:animate-pulse",
             )}
           />
           {activeTasks} active
@@ -220,7 +220,7 @@ function ThreadProgressHeader({
 
 function ThreadEmptyState({ isRunning }: { readonly isRunning: boolean }) {
   return (
-    <div role="status" className="px-4 py-10 text-center text-sm text-muted-foreground">
+    <div role="status" className="stg:px-4 stg:py-10 stg:text-center stg:text-sm stg:text-muted-foreground">
       {isRunning
         ? "Waiting for the first task to start…"
         : "No task activity was recorded for this execution."}
@@ -355,29 +355,29 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
         }
       >
         <StatusGlyph status={item.status} />
-        <span className="min-w-0 flex-1 flex items-baseline gap-1.5 overflow-hidden">
-          <span className="shrink-0 font-medium text-foreground">
+        <span className="stg:min-w-0 stg:flex-1 stg:flex stg:items-baseline stg:gap-1.5 stg:overflow-hidden">
+          <span className="stg:shrink-0 stg:font-medium stg:text-foreground">
             {item.taskName}
           </span>
           {item.kindLabel && (
-            <span className="shrink-0 rounded border border-border px-1 py-px text-[10px] uppercase tracking-wide text-muted-foreground">
+            <span className="stg:shrink-0 stg:rounded stg:border stg:border-border stg:px-1 stg:py-px stg:text-[10px] stg:uppercase stg:tracking-wide stg:text-muted-foreground">
               {item.kindLabel}
             </span>
           )}
           {item.attemptNumber > 1 && (
-            <span className="shrink-0 text-muted-foreground">
+            <span className="stg:shrink-0 stg:text-muted-foreground">
               attempt {item.attemptNumber}
             </span>
           )}
           {preview && (
-            <span className="min-w-0 truncate text-muted-foreground">
+            <span className="stg:min-w-0 stg:truncate stg:text-muted-foreground">
               {preview}
             </span>
           )}
         </span>
 
         {meta && (
-          <span className="shrink-0 tabular-nums text-muted-foreground">
+          <span className="stg:shrink-0 stg:tabular-nums stg:text-muted-foreground">
             {meta}
           </span>
         )}
@@ -404,10 +404,10 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
           own error (e.g. "child execution failed") renders above it. */}
       {showTranscript && (
         <ThreadCardBody cursorTarget="task-transcript">
-          <div className="flex flex-col gap-2">
+          <div className="stg:flex stg:flex-col stg:gap-2">
             {item.error && (
               <BoundedContent>
-                <pre className="whitespace-pre-wrap break-words text-xs text-destructive">
+                <pre className="stg:whitespace-pre-wrap stg:break-words stg:text-xs stg:text-destructive">
                   {item.error}
                 </pre>
               </BoundedContent>
@@ -498,7 +498,7 @@ function ThreadTaskCardHitl({
   // No captured request payload (event stream unavailable) — state the
   // block honestly rather than rendering a gate with no material.
   return (
-    <p className="text-xs text-muted-foreground">
+    <p className="stg:text-xs stg:text-muted-foreground">
       Review required to continue this run.
     </p>
   );
@@ -523,12 +523,12 @@ function ThreadTaskIOSection({
   readonly io: TaskDetailIO;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+    <div className="stg:flex stg:flex-col stg:gap-1">
+      <span className="stg:text-[10px] stg:font-medium stg:uppercase stg:tracking-wide stg:text-muted-foreground">
         {label}
       </span>
       {io.source === "event-summary" && (
-        <p className="text-[10px] text-muted-foreground">
+        <p className="stg:text-[10px] stg:text-muted-foreground">
           Showing truncated summary from the event log. Full data appears when
           the run's snapshot is available.
         </p>
@@ -564,10 +564,10 @@ function ThreadTaskPreviewBody({
   };
 }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="stg:flex stg:flex-col stg:gap-2">
       {item.error && (
         <BoundedContent>
-          <pre className="whitespace-pre-wrap break-words text-xs text-destructive">
+          <pre className="stg:whitespace-pre-wrap stg:break-words stg:text-xs stg:text-destructive">
             {item.error}
           </pre>
         </BoundedContent>
@@ -611,19 +611,19 @@ function ThreadTaskDetail({
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
+    <div className="stg:flex stg:flex-col stg:gap-2">
+      <dl className="stg:grid stg:grid-cols-[auto_1fr] stg:gap-x-4 stg:gap-y-1 stg:text-xs">
         {rows.map(([label, value]) => (
-          <div key={label} className="contents">
-            <dt className="text-muted-foreground">{label}</dt>
-            <dd className="text-foreground">{value}</dd>
+          <div key={label} className="stg:contents">
+            <dt className="stg:text-muted-foreground">{label}</dt>
+            <dd className="stg:text-foreground">{value}</dd>
           </div>
         ))}
       </dl>
 
       {item.error && (
         <BoundedContent>
-          <pre className="whitespace-pre-wrap break-words text-xs text-destructive">
+          <pre className="stg:whitespace-pre-wrap stg:break-words stg:text-xs stg:text-destructive">
             {item.error}
           </pre>
         </BoundedContent>
@@ -670,19 +670,19 @@ const STATUS_GLYPH: Record<
   WorkflowThreadItem["status"],
   { readonly Icon: () => React.JSX.Element; readonly color: string }
 > = {
-  running: { Icon: SpinnerIcon, color: "text-foreground" },
-  retrying: { Icon: SpinnerIcon, color: "text-warning" },
-  waiting_approval: { Icon: ClockIcon, color: "text-warning" },
-  completed: { Icon: CheckCircleIcon, color: "text-success" },
-  failed: { Icon: XCircleIcon, color: "text-destructive" },
-  skipped: { Icon: SlashCircleIcon, color: "text-muted-foreground" },
-  pending: { Icon: DotIcon, color: "text-muted-foreground" },
+  running: { Icon: SpinnerIcon, color: "stg:text-foreground" },
+  retrying: { Icon: SpinnerIcon, color: "stg:text-warning" },
+  waiting_approval: { Icon: ClockIcon, color: "stg:text-warning" },
+  completed: { Icon: CheckCircleIcon, color: "stg:text-success" },
+  failed: { Icon: XCircleIcon, color: "stg:text-destructive" },
+  skipped: { Icon: SlashCircleIcon, color: "stg:text-muted-foreground" },
+  pending: { Icon: DotIcon, color: "stg:text-muted-foreground" },
 };
 
 function StatusGlyph({ status }: { readonly status: WorkflowThreadItem["status"] }) {
   const { Icon, color } = STATUS_GLYPH[status];
   return (
-    <span className={cn("shrink-0", color)} aria-hidden="true">
+    <span className={cn("stg:shrink-0", color)} aria-hidden="true">
       <Icon />
     </span>
   );

@@ -38,10 +38,10 @@ export function ApiKeysSection() {
 
   return (
     <section aria-labelledby="api-keys-heading">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
         <h2
           id="api-keys-heading"
-          className="text-foreground text-sm font-semibold"
+          className="stg:text-foreground stg:text-sm stg:font-semibold"
         >
           API Keys
         </h2>
@@ -50,13 +50,13 @@ export function ApiKeysSection() {
           <button
             type="button"
             onClick={() => setFlow({ phase: "creating" })}
-            className="text-primary hover:text-foreground text-xs font-medium transition-colors"
+            className="stg:text-primary stg:hover:text-foreground stg:text-xs stg:font-medium stg:transition-colors"
           >
             + New API key
           </button>
         )}
       </div>
-      <p className="text-muted-foreground mb-4 text-xs">
+      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
         API keys authenticate CLI sessions and programmatic access to the
         Stigmer API. Keys are scoped to your identity and work across all
         your organizations.
@@ -74,12 +74,12 @@ export function ApiKeysSection() {
               rawKey={flow.rawKey}
               keyName={flow.keyName}
               onDismiss={handleDismissReveal}
-              className="mb-4"
+              className="stg:mb-4"
             />
           )}
 
           {flow.phase === "creating" && (
-            <div className="border-border bg-card mb-4 rounded-lg border p-4">
+            <div className="stg:border-border stg:bg-card stg:mb-4 stg:rounded-lg stg:border stg:p-4">
               <CreateApiKeyForm
                 org={org}
                 onCreated={handleCreated}

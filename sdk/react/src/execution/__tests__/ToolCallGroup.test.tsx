@@ -117,16 +117,16 @@ describe("ToolCallGroup timeline", () => {
 
     const group = container.querySelector('[data-cursor-target="tool-call-group"]')!;
     // Cards stacked with a gap — the old left rail is gone.
-    expect(group.className).toContain("gap-2");
-    expect(group.className).not.toContain("border-l-2");
+    expect(group.className).toContain("stg:gap-2");
+    expect(group.className).not.toContain("stg:border-l-2");
 
     const rows = container.querySelectorAll('[data-cursor-target="tool-call-row"]');
     expect(rows.length).toBe(2);
     for (const row of rows) {
-      expect(row.className).toContain("rounded-lg");
+      expect(row.className).toContain("stg:rounded-lg");
       // Class presence only — actual rendering is guarded by the layer-invariant
       // + e2e computed-style tests (happy-dom does not resolve `@layer`).
-      expect(row.className).toContain("border-border-prominent");
+      expect(row.className).toContain("stg:border-border-prominent");
     }
   });
 });

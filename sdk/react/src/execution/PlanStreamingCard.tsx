@@ -65,20 +65,20 @@ export const PlanStreamingCard = memo(function PlanStreamingCard({
       aria-label="Plan being written"
       aria-busy="true"
       className={cn(
-        "mx-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg",
-        "border border-border-muted bg-card px-3 py-2.5",
+        "stg:mx-4 stg:flex stg:flex-wrap stg:items-center stg:gap-x-3 stg:gap-y-2 stg:rounded-lg",
+        "stg:border stg:border-border-muted stg:bg-card stg:px-3 stg:py-2.5",
         className,
       )}
     >
-      <PlanIcon className="animate-pulse" />
-      <div className="min-w-0 flex-1 basis-48">
-        <div className="truncate text-sm font-medium text-foreground">
+      <PlanIcon className="stg:animate-pulse" />
+      <div className="stg:min-w-0 stg:flex-1 stg:basis-48">
+        <div className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
           {title ?? "Writing plan…"}
         </div>
-        <div className="text-[0.65rem] text-muted-foreground-faint">
+        <div className="stg:text-[0.65rem] stg:text-muted-foreground-faint">
           <span role="status">Writing…</span>
           <span aria-hidden="true"> · </span>
-          <span className="tabular-nums">{formatArtifactSize(sizeBytes)}</span>
+          <span className="stg:tabular-nums">{formatArtifactSize(sizeBytes)}</span>
         </div>
       </div>
 
@@ -87,8 +87,8 @@ export const PlanStreamingCard = memo(function PlanStreamingCard({
           type="button"
           onClick={onOpenPlan}
           className={cn(
-            "ml-auto inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm",
+            "stg:ml-auto stg:inline-flex stg:items-center stg:gap-1 stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm",
           )}
         >
           <EyeIcon />
@@ -110,7 +110,7 @@ function PlanIcon({ className }: { readonly className?: string }) {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={cn("shrink-0 text-muted-foreground-faint", className)}
+      className={cn("stg:shrink-0 stg:text-muted-foreground-faint", className)}
       aria-hidden="true"
     >
       <path d="M3 4h10M3 8h7M3 12h8" />
@@ -131,7 +131,7 @@ function EyeIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <path d="M1.5 8S4 3.5 8 3.5s6.5 4.5 6.5 4.5-2.5 4.5-6.5 4.5S1.5 8 1.5 8Z" />

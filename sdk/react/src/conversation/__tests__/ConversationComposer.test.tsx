@@ -85,7 +85,7 @@ describe("ConversationComposer", () => {
     expect(button.textContent).toContain("Sending…");
     // The house in-flight glyph (the session composer's pattern): the
     // static Send icon must not render while the reply is in flight.
-    expect(button.querySelector("svg.animate-spin")).not.toBeNull();
+    expect(button.querySelector("svg.stg\\:animate-spin")).not.toBeNull();
     expect(
       (screen.getByLabelText("Reply to the customer") as HTMLTextAreaElement).disabled,
     ).toBe(true);

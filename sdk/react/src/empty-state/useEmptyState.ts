@@ -2,7 +2,7 @@ import { useMemo, createElement } from "react";
 import { Package, SearchX, Lock, AlertCircle } from "lucide-react";
 import type { UseEmptyStateOptions, UseEmptyStateReturn } from "./types.js";
 
-const ICON_CLASSES = "h-10 w-10";
+const ICON_CLASSES = "stg:h-10 stg:w-10";
 
 function resolveDefaults(
   variant: UseEmptyStateOptions["variant"],

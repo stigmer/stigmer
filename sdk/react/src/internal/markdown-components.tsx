@@ -157,7 +157,7 @@ function extractMermaidSource(children: ReactNode): string | null {
 export const MARKDOWN_COMPONENTS: Components = {
   p({ children, ...props }: MdProps<"p">) {
     return (
-      <p className="text-sm text-foreground mb-3 last:mb-0 leading-relaxed break-words" {...props}>
+      <p className="stg:text-sm stg:text-foreground stg:mb-3 stg:last:mb-0 stg:leading-relaxed stg:break-words" {...props}>
         {children}
       </p>
     );
@@ -167,7 +167,7 @@ export const MARKDOWN_COMPONENTS: Components = {
     return (
       <a
         href={href}
-        className="text-primary underline underline-offset-2 hover:text-primary-muted break-words"
+        className="stg:text-primary stg:underline stg:underline-offset-2 stg:hover:text-primary-muted stg:break-words"
         target="_blank"
         rel="noopener noreferrer"
         {...props}
@@ -179,7 +179,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   h1({ children, ...props }: MdProps<"h1">) {
     return (
-      <h1 className="text-lg font-semibold text-foreground mt-5 mb-2 first:mt-0 break-words" {...props}>
+      <h1 className="stg:text-lg stg:font-semibold stg:text-foreground stg:mt-5 stg:mb-2 stg:first:mt-0 stg:break-words" {...props}>
         {children}
       </h1>
     );
@@ -187,7 +187,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   h2({ children, ...props }: MdProps<"h2">) {
     return (
-      <h2 className="text-base font-semibold text-foreground mt-5 mb-2 first:mt-0 break-words" {...props}>
+      <h2 className="stg:text-base stg:font-semibold stg:text-foreground stg:mt-5 stg:mb-2 stg:first:mt-0 stg:break-words" {...props}>
         {children}
       </h2>
     );
@@ -195,7 +195,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   h3({ children, ...props }: MdProps<"h3">) {
     return (
-      <h3 className="text-sm font-semibold text-foreground mt-4 mb-1.5 first:mt-0 break-words" {...props}>
+      <h3 className="stg:text-sm stg:font-semibold stg:text-foreground stg:mt-4 stg:mb-1.5 stg:first:mt-0 stg:break-words" {...props}>
         {children}
       </h3>
     );
@@ -203,7 +203,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   h4({ children, ...props }: MdProps<"h4">) {
     return (
-      <h4 className="text-sm font-medium text-foreground mt-3 mb-1 first:mt-0 break-words" {...props}>
+      <h4 className="stg:text-sm stg:font-medium stg:text-foreground stg:mt-3 stg:mb-1 stg:first:mt-0 stg:break-words" {...props}>
         {children}
       </h4>
     );
@@ -211,7 +211,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   ul({ children, ...props }: MdProps<"ul">) {
     return (
-      <ul className="list-disc pl-5 mb-3 last:mb-0 space-y-1 text-sm text-foreground" {...props}>
+      <ul className="stg:list-disc stg:pl-5 stg:mb-3 stg:last:mb-0 stg:space-y-1 stg:text-sm stg:text-foreground" {...props}>
         {children}
       </ul>
     );
@@ -219,7 +219,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   ol({ children, ...props }: MdProps<"ol">) {
     return (
-      <ol className="list-decimal pl-5 mb-3 last:mb-0 space-y-1 text-sm text-foreground" {...props}>
+      <ol className="stg:list-decimal stg:pl-5 stg:mb-3 stg:last:mb-0 stg:space-y-1 stg:text-sm stg:text-foreground" {...props}>
         {children}
       </ol>
     );
@@ -227,7 +227,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   li({ children, ...props }: MdProps<"li">) {
     return (
-      <li className="leading-relaxed break-words" {...props}>
+      <li className="stg:leading-relaxed stg:break-words" {...props}>
         {children}
       </li>
     );
@@ -245,7 +245,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
     return (
       <pre
-        className="mb-3 last:mb-0 overflow-x-auto rounded-md bg-muted p-3"
+        className="stg:mb-3 stg:last:mb-0 stg:overflow-x-auto stg:rounded-md stg:bg-muted stg:p-3"
         {...props}
       >
         {children}
@@ -272,7 +272,7 @@ export const MARKDOWN_COMPONENTS: Components = {
       return (
         <code
           className={cn(
-            "hljs font-mono text-xs text-foreground",
+            "hljs stg:font-mono stg:text-xs stg:text-foreground",
             codeClassName,
           )}
           {...props}
@@ -284,7 +284,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
     return (
       <code
-        className="font-mono text-xs bg-muted px-1 py-0.5 rounded text-foreground break-words"
+        className="stg:font-mono stg:text-xs stg:bg-muted stg:px-1 stg:py-0.5 stg:rounded stg:text-foreground stg:break-words"
         {...props}
       >
         {children}
@@ -295,7 +295,7 @@ export const MARKDOWN_COMPONENTS: Components = {
   blockquote({ children, ...props }: MdProps<"blockquote">) {
     return (
       <blockquote
-        className="border-l-2 border-border pl-4 mb-3 last:mb-0 text-muted-foreground italic"
+        className="stg:border-l-2 stg:border-border stg:pl-4 stg:mb-3 stg:last:mb-0 stg:text-muted-foreground stg:italic"
         {...props}
       >
         {children}
@@ -305,8 +305,8 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   table({ children, ...props }: MdProps<"table">) {
     return (
-      <div className="mb-3 last:mb-0 overflow-x-auto">
-        <table className="w-full border-collapse text-sm" {...props}>
+      <div className="stg:mb-3 stg:last:mb-0 stg:overflow-x-auto">
+        <table className="stg:w-full stg:border-collapse stg:text-sm" {...props}>
           {children}
         </table>
       </div>
@@ -316,7 +316,7 @@ export const MARKDOWN_COMPONENTS: Components = {
   th({ children, ...props }: MdProps<"th">) {
     return (
       <th
-        className="border border-border px-3 py-1.5 text-left font-medium text-foreground bg-muted-subtle"
+        className="stg:border stg:border-border stg:px-3 stg:py-1.5 stg:text-left stg:font-medium stg:text-foreground stg:bg-muted-subtle"
         {...props}
       >
         {children}
@@ -326,19 +326,19 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   td({ children, ...props }: MdProps<"td">) {
     return (
-      <td className="border border-border px-3 py-1.5 text-foreground" {...props}>
+      <td className="stg:border stg:border-border stg:px-3 stg:py-1.5 stg:text-foreground" {...props}>
         {children}
       </td>
     );
   },
 
   hr(props: MdProps<"hr">) {
-    return <hr className="my-4 border-border" {...props} />;
+    return <hr className="stg:my-4 stg:border-border" {...props} />;
   },
 
   strong({ children, ...props }: MdProps<"strong">) {
     return (
-      <strong className="font-semibold text-foreground" {...props}>
+      <strong className="stg:font-semibold stg:text-foreground" {...props}>
         {children}
       </strong>
     );
@@ -346,7 +346,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   em({ children, ...props }: MdProps<"em">) {
     return (
-      <em className="italic" {...props}>
+      <em className="stg:italic" {...props}>
         {children}
       </em>
     );
@@ -370,7 +370,7 @@ export const PLAN_DOCUMENT_MARKDOWN_COMPONENTS: Components = {
 
   h1({ children, ...props }: MdProps<"h1">) {
     return (
-      <h1 className="text-lg font-semibold text-foreground mt-6 mb-3 first:mt-0 break-words" {...props}>
+      <h1 className="stg:text-lg stg:font-semibold stg:text-foreground stg:mt-6 stg:mb-3 stg:first:mt-0 stg:break-words" {...props}>
         {children}
       </h1>
     );
@@ -379,7 +379,7 @@ export const PLAN_DOCUMENT_MARKDOWN_COMPONENTS: Components = {
   h2({ children, ...props }: MdProps<"h2">) {
     return (
       <h2
-        className="text-base font-semibold text-foreground mt-6 mb-2.5 pb-1 border-b border-border-muted first:mt-0 break-words"
+        className="stg:text-base stg:font-semibold stg:text-foreground stg:mt-6 stg:mb-2.5 stg:pb-1 stg:border-b stg:border-border-muted stg:first:mt-0 stg:break-words"
         {...props}
       >
         {children}
@@ -389,7 +389,7 @@ export const PLAN_DOCUMENT_MARKDOWN_COMPONENTS: Components = {
 
   h3({ children, ...props }: MdProps<"h3">) {
     return (
-      <h3 className="text-sm font-semibold text-foreground mt-5 mb-2 first:mt-0 break-words" {...props}>
+      <h3 className="stg:text-sm stg:font-semibold stg:text-foreground stg:mt-5 stg:mb-2 stg:first:mt-0 stg:break-words" {...props}>
         {children}
       </h3>
     );
@@ -397,7 +397,7 @@ export const PLAN_DOCUMENT_MARKDOWN_COMPONENTS: Components = {
 
   h4({ children, ...props }: MdProps<"h4">) {
     return (
-      <h4 className="text-sm font-medium text-foreground mt-4 mb-1.5 first:mt-0 break-words" {...props}>
+      <h4 className="stg:text-sm stg:font-medium stg:text-foreground stg:mt-4 stg:mb-1.5 stg:first:mt-0 stg:break-words" {...props}>
         {children}
       </h4>
     );

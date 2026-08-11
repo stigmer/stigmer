@@ -37,26 +37,26 @@ export function AgentBreakdownList({
 
   return (
     <div className={className}>
-      <h3 className="mb-2 text-xs font-semibold text-foreground">
+      <h3 className="stg:mb-2 stg:text-xs stg:font-semibold stg:text-foreground">
         Top Agents by Cost
       </h3>
       <div
-        className="rounded-lg border border-border bg-card"
+        className="stg:rounded-lg stg:border stg:border-border stg:bg-card"
         role="table"
         aria-label="Agent cost breakdown"
       >
         <div
           role="row"
-          className="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 border-b border-border px-3.5 py-2 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground"
+          className="stg:grid stg:grid-cols-[1fr_auto_auto_auto] stg:gap-x-4 stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-[0.65rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground"
         >
           <span role="columnheader">Agent</span>
-          <span role="columnheader" className="text-right">
+          <span role="columnheader" className="stg:text-right">
             Runs
           </span>
-          <span role="columnheader" className="text-right">
+          <span role="columnheader" className="stg:text-right">
             Tokens
           </span>
-          <span role="columnheader" className="text-right">
+          <span role="columnheader" className="stg:text-right">
             Cost
           </span>
         </div>
@@ -74,20 +74,20 @@ export function AgentBreakdownList({
           return (
             <div
               key={agent.agentId}
-              className="border-b border-border-muted px-3.5 py-2 last:border-b-0"
+              className="stg:border-b stg:border-border-muted stg:px-3.5 stg:py-2 stg:last:border-b-0"
             >
               <div
                 role="row"
-                className="grid grid-cols-[1fr_auto_auto_auto] gap-x-4"
+                className="stg:grid stg:grid-cols-[1fr_auto_auto_auto] stg:gap-x-4"
               >
-                <div role="cell" className="min-w-0">
+                <div role="cell" className="stg:min-w-0">
                   <NameTag
                     {...nameProps}
                     className={cn(
-                      "block truncate text-xs font-medium",
+                      "stg:block stg:truncate stg:text-xs stg:font-medium",
                       agentHref
-                        ? "text-primary hover:underline"
-                        : "text-foreground",
+                        ? "stg:text-primary stg:hover:underline"
+                        : "stg:text-foreground",
                     )}
                   >
                     {agent.agentName || agent.agentId}
@@ -95,30 +95,30 @@ export function AgentBreakdownList({
                 </div>
                 <span
                   role="cell"
-                  className="self-center text-right text-xs tabular-nums text-muted-foreground"
+                  className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-muted-foreground"
                 >
                   {agent.executionCount}
                 </span>
                 <span
                   role="cell"
-                  className="self-center text-right text-xs tabular-nums text-muted-foreground"
+                  className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-muted-foreground"
                 >
                   {formatCompactTokens(Number(agent.totalTokens))}
                 </span>
                 <span
                   role="cell"
-                  className="self-center text-right text-xs tabular-nums text-foreground"
+                  className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-foreground"
                 >
                   {formatCost(cost / 1_000_000)}
-                  <span className="ml-1.5 text-[0.6rem] text-muted-foreground">
+                  <span className="stg:ml-1.5 stg:text-[0.6rem] stg:text-muted-foreground">
                     {pct.toFixed(0)}%
                   </span>
                 </span>
               </div>
               {/* Proportional cost bar */}
-              <div className="mt-1.5 h-1 w-full rounded-full bg-muted">
+              <div className="stg:mt-1.5 stg:h-1 stg:w-full stg:rounded-full stg:bg-muted">
                 <div
-                  className="h-full rounded-full bg-chart-2 transition-all"
+                  className="stg:h-full stg:rounded-full stg:bg-chart-2 stg:transition-all"
                   style={{ width: `${barWidth}%` }}
                 />
               </div>

@@ -55,10 +55,10 @@ export function IdentityProvidersSection({
 
   return (
     <section aria-labelledby="identity-providers-heading">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
         <h2
           id="identity-providers-heading"
-          className="text-foreground text-sm font-semibold"
+          className="stg:text-foreground stg:text-sm stg:font-semibold"
         >
           Identity Providers
         </h2>
@@ -67,13 +67,13 @@ export function IdentityProvidersSection({
           <button
             type="button"
             onClick={() => setFlow({ phase: "creating" })}
-            className="text-primary hover:text-foreground text-xs font-medium transition-colors"
+            className="stg:text-primary stg:hover:text-foreground stg:text-xs stg:font-medium stg:transition-colors"
           >
             + New identity provider
           </button>
         )}
       </div>
-      <p className="text-muted-foreground mb-4 text-xs">
+      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
         Identity providers define external OIDC trust relationships for
         federated authentication. Configure providers for platform-managed
         organizations or self-managed SSO.
@@ -85,11 +85,11 @@ export function IdentityProvidersSection({
           authentication requires Stigmer Cloud.
         </CloudFeatureNotice>
       ) : !orgSlug ? (
-        <p className="text-muted-foreground py-4 text-center text-xs">
+        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
           Select an organization to manage identity providers.
         </p>
       ) : flow.phase === "creating" ? (
-        <div className="border-border bg-card rounded-lg border p-4">
+        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
           <IdentityProviderWizard
             org={orgSlug}
             onCreated={handleCreated}
@@ -97,7 +97,7 @@ export function IdentityProvidersSection({
           />
         </div>
       ) : flow.phase === "editing" ? (
-        <div className="border-border bg-card rounded-lg border p-4">
+        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
           <IdentityProviderDetailPanel
             identityProvider={flow.identityProvider}
             ssoLoginUrl={

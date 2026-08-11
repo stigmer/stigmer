@@ -28,26 +28,26 @@ describe("Button", () => {
   it("applies the variant's token classes", () => {
     const { rerender } = render(<Button>CTA</Button>);
     const el = screen.getByRole("button");
-    expect(el.className).toContain("bg-primary");
+    expect(el.className).toContain("stg:bg-primary");
 
     rerender(<Button variant="outline">CTA</Button>);
-    expect(el.className).toContain("border-border");
-    expect(el.className).not.toContain("bg-primary");
+    expect(el.className).toContain("stg:border-border");
+    expect(el.className).not.toContain("stg:bg-primary");
 
     rerender(<Button variant="ghost">CTA</Button>);
-    expect(el.className).toContain("hover:bg-accent-hover");
+    expect(el.className).toContain("stg:hover:bg-accent-hover");
 
     rerender(<Button variant="destructive">CTA</Button>);
-    expect(el.className).toContain("bg-destructive");
+    expect(el.className).toContain("stg:bg-destructive");
   });
 
   it("applies the size classes", () => {
     const { rerender } = render(<Button size="xs">CTA</Button>);
     const el = screen.getByRole("button");
-    expect(el.className).toContain("px-2.5");
+    expect(el.className).toContain("stg:px-2.5");
 
     rerender(<Button size="sm">CTA</Button>);
-    expect(el.className).toContain("px-3");
+    expect(el.className).toContain("stg:px-3");
   });
 
   it("renders a leading icon before the label", () => {
@@ -76,7 +76,7 @@ describe("Button", () => {
   });
 
   it("merges caller classes after the variant classes", () => {
-    render(<Button className="mt-2">CTA</Button>);
-    expect(screen.getByRole("button").className).toContain("mt-2");
+    render(<Button className="stg:mt-2">CTA</Button>);
+    expect(screen.getByRole("button").className).toContain("stg:mt-2");
   });
 });

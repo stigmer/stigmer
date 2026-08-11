@@ -24,15 +24,15 @@ describe("ThreadCardShell chrome", () => {
     );
     const root = () =>
       container.querySelector('[data-cursor-target="row"]') as HTMLElement;
-    expect(root().className).toContain("border-border-prominent");
+    expect(root().className).toContain("stg:border-border-prominent");
 
     rerender(
       <ThreadCardShell cursorTarget="row" bordered={false}>
         <ThreadCardHeader>content</ThreadCardHeader>
       </ThreadCardShell>,
     );
-    expect(root().className).toContain("border-b");
-    expect(root().className).not.toContain("border-border-prominent");
+    expect(root().className).toContain("stg:border-b");
+    expect(root().className).not.toContain("stg:border-border-prominent");
   });
 
   it("carries the gate accent", () => {
@@ -42,7 +42,7 @@ describe("ThreadCardShell chrome", () => {
       </ThreadCardShell>,
     );
     const root = container.querySelector('[data-cursor-target="row"]') as HTMLElement;
-    expect(root.className).toContain("border-l-warning");
+    expect(root.className).toContain("stg:border-l-warning");
   });
 });
 

@@ -11,10 +11,10 @@ export interface NodeHandlesProps {
 }
 
 const HANDLE_CLASS =
-  "!h-2 !w-2 !rounded-full !border-[var(--stgm-border-prominent,#d4d4d8)] !bg-[var(--stgm-card,var(--stgm-background,#fff))]";
+  "stg:!h-2 stg:!w-2 stg:!rounded-full stg:!border-[var(--stgm-border-prominent,#d4d4d8)] stg:!bg-[var(--stgm-card,var(--stgm-background,#fff))]";
 
 const SENTINEL_HANDLE_CLASS =
-  "!h-2 !w-2 !rounded-full !border-[var(--stgm-border-prominent,#d4d4d8)] !bg-[var(--stgm-muted,#f5f5f5)]";
+  "stg:!h-2 stg:!w-2 stg:!rounded-full stg:!border-[var(--stgm-border-prominent,#d4d4d8)] stg:!bg-[var(--stgm-muted,#f5f5f5)]";
 
 /**
  * Renders React Flow connection handles for a workflow node based
@@ -127,8 +127,8 @@ function BranchedHandles({ inputClass, outputClass, handles }: BranchedHandlesPr
             <span
               className={
                 handle.isDefault
-                  ? "pointer-events-none absolute text-[8px] italic leading-none text-[var(--stgm-muted-foreground,#737373)] opacity-70"
-                  : "pointer-events-none absolute text-[8px] font-medium leading-none text-[var(--stgm-muted-foreground,#737373)]"
+                  ? "stg:pointer-events-none stg:absolute stg:text-[8px] stg:italic stg:leading-none stg:text-[var(--stgm-muted-foreground,#737373)] stg:opacity-70"
+                  : "stg:pointer-events-none stg:absolute stg:text-[8px] stg:font-medium stg:leading-none stg:text-[var(--stgm-muted-foreground,#737373)]"
               }
               style={{
                 left: `${leftPct}%`,
@@ -144,7 +144,7 @@ function BranchedHandles({ inputClass, outputClass, handles }: BranchedHandlesPr
       })}
       {overflowCount > 0 && (
         <span
-          className="pointer-events-none absolute text-[8px] font-medium leading-none text-[var(--stgm-muted-foreground,#737373)]"
+          className="stg:pointer-events-none stg:absolute stg:text-[8px] stg:font-medium stg:leading-none stg:text-[var(--stgm-muted-foreground,#737373)]"
           style={{
             left: `${((totalSlots) / (totalSlots + 1)) * 100}%`,
             bottom: -14,

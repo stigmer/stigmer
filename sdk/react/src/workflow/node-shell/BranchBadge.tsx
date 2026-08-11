@@ -59,22 +59,22 @@ function ForkBadge({ config }: { config: Record<string, unknown> }) {
   const overflow = branches.length > maxVisible ? branches.length - maxVisible : 0;
 
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 flex items-center gap-0.5 pointer-events-none">
+    <div className="stg:absolute stg:left-1/2 stg:-translate-x-1/2 stg:top-full stg:mt-1 stg:flex stg:items-center stg:gap-0.5 stg:pointer-events-none">
       {visible.map((name) => (
         <span
           key={name}
-          className="rounded bg-[var(--stgm-muted,#f5f5f5)] border border-[var(--stgm-border,#e5e5e5)] px-1 py-px text-[8px] font-medium text-[var(--stgm-muted-foreground,#737373)] whitespace-nowrap"
+          className="stg:rounded stg:bg-[var(--stgm-muted,#f5f5f5)] stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:px-1 stg:py-px stg:text-[8px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)] stg:whitespace-nowrap"
         >
           {name}
         </span>
       ))}
       {overflow > 0 && (
-        <span className="text-[8px] text-[var(--stgm-muted-foreground,#737373)]">
+        <span className="stg:text-[8px] stg:text-[var(--stgm-muted-foreground,#737373)]">
           +{overflow}
         </span>
       )}
       {compete && (
-        <span className="ml-0.5 rounded bg-[var(--stgm-chart-amber,#f59e0b)]/10 border border-[var(--stgm-chart-amber,#f59e0b)]/30 px-1 py-px text-[8px] font-medium text-[var(--stgm-chart-amber,#f59e0b)] whitespace-nowrap">
+        <span className="stg:ml-0.5 stg:rounded stg:bg-[var(--stgm-chart-amber,#f59e0b)]/10 stg:border stg:border-[var(--stgm-chart-amber,#f59e0b)]/30 stg:px-1 stg:py-px stg:text-[8px] stg:font-medium stg:text-[var(--stgm-chart-amber,#f59e0b)] stg:whitespace-nowrap">
           race
         </span>
       )}
@@ -89,8 +89,8 @@ function TryCatchBadge({ config }: { config: Record<string, unknown> }) {
   const asVar = (catchBlock as Record<string, unknown>).as as string | undefined;
 
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 flex items-center gap-0.5 pointer-events-none">
-      <span className="rounded bg-[var(--stgm-destructive,#ef4444)]/10 border border-[var(--stgm-destructive,#ef4444)]/20 px-1 py-px text-[8px] font-medium text-[var(--stgm-destructive,#ef4444)] whitespace-nowrap">
+    <div className="stg:absolute stg:left-1/2 stg:-translate-x-1/2 stg:top-full stg:mt-1 stg:flex stg:items-center stg:gap-0.5 stg:pointer-events-none">
+      <span className="stg:rounded stg:bg-[var(--stgm-destructive,#ef4444)]/10 stg:border stg:border-[var(--stgm-destructive,#ef4444)]/20 stg:px-1 stg:py-px stg:text-[8px] stg:font-medium stg:text-[var(--stgm-destructive,#ef4444)] stg:whitespace-nowrap">
         catch: {asVar || "error"}
       </span>
     </div>
@@ -111,12 +111,12 @@ function ForEachBadge({ config }: { config: Record<string, unknown> }) {
   const showErrorPolicy = parallelism > 0 && onError && onError !== "FOR_EACH_FAIL_FAST" && onError !== "FOR_EACH_ERROR_POLICY_UNSPECIFIED";
 
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 flex items-center gap-0.5 pointer-events-none">
-      <span className="rounded bg-[var(--stgm-muted,#f5f5f5)] border border-[var(--stgm-border,#e5e5e5)] px-1 py-px text-[8px] font-medium text-[var(--stgm-muted-foreground,#737373)] whitespace-nowrap">
+    <div className="stg:absolute stg:left-1/2 stg:-translate-x-1/2 stg:top-full stg:mt-1 stg:flex stg:items-center stg:gap-0.5 stg:pointer-events-none">
+      <span className="stg:rounded stg:bg-[var(--stgm-muted,#f5f5f5)] stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:px-1 stg:py-px stg:text-[8px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)] stg:whitespace-nowrap">
         ↻ {parts.join(" ")}
       </span>
       {showErrorPolicy && (
-        <span className="rounded bg-[var(--stgm-chart-amber,#f59e0b)]/10 border border-[var(--stgm-chart-amber,#f59e0b)]/30 px-1 py-px text-[8px] font-medium text-[var(--stgm-chart-amber,#f59e0b)] whitespace-nowrap">
+        <span className="stg:rounded stg:bg-[var(--stgm-chart-amber,#f59e0b)]/10 stg:border stg:border-[var(--stgm-chart-amber,#f59e0b)]/30 stg:px-1 stg:py-px stg:text-[8px] stg:font-medium stg:text-[var(--stgm-chart-amber,#f59e0b)] stg:whitespace-nowrap">
           {onError === "FOR_EACH_CONTINUE" ? "continue" : "skip"}
         </span>
       )}

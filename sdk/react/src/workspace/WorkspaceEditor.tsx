@@ -137,11 +137,11 @@ export function WorkspaceEditor({
 
   if (activePanel === "github" && enableGitHub) {
     return (
-      <div className={cn("space-y-2", className)}>
+      <div className={cn("stg:space-y-2", className)}>
         <button
           type="button"
           onClick={goBack}
-          className="inline-flex items-center gap-1 rounded-sm text-[0.65rem] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="stg:inline-flex stg:items-center stg:gap-1 stg:rounded-sm stg:text-[0.65rem] stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
         >
           <ChevronLeftIcon />
           Back
@@ -181,31 +181,31 @@ export function WorkspaceEditor({
   // ---------------------------------------------------------------------------
 
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("stg:space-y-2", className)}>
       {/* Entry list */}
       {workspace.entries.length > 0 && (
-        <div className="relative">
+        <div className="stg:relative">
           {entryList.canScrollUp && <ScrollFade position="top" />}
 
-          <div ref={entryList.scrollRef} className="max-h-28 space-y-1 overflow-y-auto">
+          <div ref={entryList.scrollRef} className="stg:max-h-28 stg:space-y-1 stg:overflow-y-auto">
             {workspace.entries.map((entry) => (
               <div
                 key={entry.id}
-                className="flex items-center gap-2 rounded-md border border-border bg-muted-faint px-2.5 py-1.5 text-xs"
+                className="stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:border stg:border-border stg:bg-muted-faint stg:px-2.5 stg:py-1.5 stg:text-xs"
               >
                 {TYPE_LABELS[entry.type] ? (
-                  <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
+                  <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[0.65rem] stg:text-muted-foreground">
                     {TYPE_LABELS[entry.type]}
                   </span>
                 ) : (
-                  <span className="shrink-0 text-muted-foreground">
+                  <span className="stg:shrink-0 stg:text-muted-foreground">
                     <FolderIcon />
                   </span>
                 )}
                 <span
                   className={cn(
-                    "min-w-0 flex-1 truncate text-foreground",
-                    entry.type === "local" && "[direction:rtl] text-left",
+                    "stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground",
+                    entry.type === "local" && "stg:[direction:rtl] stg:text-left",
                   )}
                   title={entry.name}
                 >
@@ -215,7 +215,7 @@ export function WorkspaceEditor({
                   type="button"
                   onClick={() => workspace.remove(entry.id)}
                   disabled={disabled}
-                  className="shrink-0 rounded-sm text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none"
+                  className="stg:shrink-0 stg:rounded-sm stg:text-muted-foreground stg:transition-colors stg:hover:text-destructive stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:pointer-events-none"
                   aria-label={`Remove ${entry.name}`}
                 >
                   <XIcon />
@@ -229,7 +229,7 @@ export function WorkspaceEditor({
       )}
 
       {/* Action items */}
-      <div className="space-y-0.5">
+      <div className="stg:space-y-0.5">
         {canBrowse && onBrowseLocalFolder && (
           <button
             type="button"
@@ -238,10 +238,10 @@ export function WorkspaceEditor({
               if (path) workspace.addLocalPath(path);
             }}
             disabled={disabled}
-            className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs text-foreground transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+            className="stg:flex stg:w-full stg:items-center stg:gap-2 stg:rounded-md stg:px-2.5 stg:py-2 stg:text-xs stg:text-foreground stg:transition-colors stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-40"
           >
             <FolderIcon />
-            <span className="flex-1 text-left">Browse Folder</span>
+            <span className="stg:flex-1 stg:text-left">Browse Folder</span>
           </button>
         )}
         {enableGitHub && (
@@ -249,10 +249,10 @@ export function WorkspaceEditor({
             type="button"
             onClick={() => setActivePanel("github")}
             disabled={disabled}
-            className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs text-foreground transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+            className="stg:flex stg:w-full stg:items-center stg:gap-2 stg:rounded-md stg:px-2.5 stg:py-2 stg:text-xs stg:text-foreground stg:transition-colors stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-40"
           >
             <GitHubIcon />
-            <span className="flex-1 text-left">Connect GitHub</span>
+            <span className="stg:flex-1 stg:text-left">Connect GitHub</span>
             <ChevronRightIcon />
           </button>
         )}
@@ -276,7 +276,7 @@ function GitHubPanel({
 }) {
   if (connection.isLoading) {
     return (
-      <div className="py-4 text-center text-xs text-muted-foreground">
+      <div className="stg:py-4 stg:text-center stg:text-xs stg:text-muted-foreground">
         Checking GitHub connection...
       </div>
     );
@@ -290,32 +290,32 @@ function GitHubPanel({
     const redirectUri = `${window.location.origin}/auth/github/callback`;
 
     return (
-      <div className="space-y-3 text-center">
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-foreground">
+      <div className="stg:space-y-3 stg:text-center">
+        <div className="stg:space-y-1">
+          <p className="stg:text-xs stg:font-medium stg:text-foreground">
             Choose a GitHub repo to add to workspace
           </p>
-          <p className="text-[0.65rem] text-muted-foreground">
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
             Connect your GitHub account so the agent can access your repos
           </p>
         </div>
         {connection.popupBlocked ? (
-          <div className="space-y-2">
-            <p className="text-[0.65rem] text-destructive">
+          <div className="stg:space-y-2">
+            <p className="stg:text-[0.65rem] stg:text-destructive">
               Popup was blocked by your browser.
             </p>
-            <div className="flex items-center justify-center gap-2">
+            <div className="stg:flex stg:items-center stg:justify-center stg:gap-2">
               <button
                 type="button"
                 onClick={() => connection.connect(redirectUri, { popup: true })}
-                className="rounded-md px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
               >
                 Try again
               </button>
               <button
                 type="button"
                 onClick={() => connection.connect(redirectUri)}
-                className="inline-flex items-center gap-2 rounded-md bg-foreground px-3 py-1.5 text-xs text-background transition-colors hover:bg-foreground-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="stg:inline-flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-foreground stg:px-3 stg:py-1.5 stg:text-xs stg:text-background stg:transition-colors stg:hover:bg-foreground-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
               >
                 <GitHubIcon />
                 <span>Continue with redirect</span>
@@ -326,7 +326,7 @@ function GitHubPanel({
           <button
             type="button"
             onClick={() => connection.connect(redirectUri, { popup: true })}
-            className="inline-flex items-center gap-2 rounded-md bg-foreground px-3 py-1.5 text-xs text-background transition-colors hover:bg-foreground-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="stg:inline-flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-foreground stg:px-3 stg:py-1.5 stg:text-xs stg:text-background stg:transition-colors stg:hover:bg-foreground-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
           >
             <GitHubIcon />
             <span>Connect GitHub</span>
@@ -337,24 +337,24 @@ function GitHubPanel({
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs">
+    <div className="stg:space-y-2">
+      <div className="stg:flex stg:items-center stg:justify-between">
+        <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs">
           {connection.user?.avatarUrl && (
             <img
               src={connection.user.avatarUrl}
               alt=""
-              className="h-4 w-4 rounded-full"
+              className="stg:h-4 stg:w-4 stg:rounded-full"
             />
           )}
-          <span className="text-muted-foreground">
+          <span className="stg:text-muted-foreground">
             {connection.user?.login ?? "Connected"}
           </span>
         </div>
         <button
           type="button"
           onClick={connection.disconnect}
-          className="rounded-sm text-[0.6rem] text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="stg:rounded-sm stg:text-[0.6rem] stg:text-muted-foreground stg:transition-colors stg:hover:text-destructive stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
         >
           Disconnect
         </button>
@@ -390,7 +390,7 @@ function ManualGitPanel({
   onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
 }) {
   return (
-    <div className="space-y-2">
+    <div className="stg:space-y-2">
       <input
         type="url"
         aria-label="Git repository URL"
@@ -398,7 +398,7 @@ function ManualGitPanel({
         value={url}
         onChange={(e) => onUrlChange(e.target.value)}
         onKeyDown={onKeyDown}
-        className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
         autoFocus
       />
       <input
@@ -408,13 +408,13 @@ function ManualGitPanel({
         value={branch}
         onChange={(e) => onBranchChange(e.target.value)}
         onKeyDown={onKeyDown}
-        className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
       />
-      <div className="flex justify-end gap-2">
+      <div className="stg:flex stg:justify-end stg:gap-2">
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-md px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
         >
           Cancel
         </button>
@@ -422,7 +422,7 @@ function ManualGitPanel({
           type="button"
           onClick={onAdd}
           disabled={!url.trim()}
-          className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+          className="stg:rounded-md stg:bg-primary stg:px-2.5 stg:py-1 stg:text-xs stg:text-primary-foreground stg:transition-colors stg:hover:bg-primary-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:opacity-40"
         >
           Add
         </button>
@@ -446,9 +446,9 @@ function GitHubConnectingState({ onCancel }: { onCancel: () => void }) {
   }, []);
 
   return (
-    <div className="space-y-3 py-4 text-center">
-      <div className="mx-auto h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-foreground" />
-      <p className="text-xs text-muted-foreground">
+    <div className="stg:space-y-3 stg:py-4 stg:text-center">
+      <div className="stg:mx-auto stg:h-5 stg:w-5 stg:animate-spin stg:rounded-full stg:border-2 stg:border-muted-foreground stg:border-t-foreground" />
+      <p className="stg:text-xs stg:text-muted-foreground">
         {timedOut
           ? "Taking longer than expected..."
           : "Connecting to GitHub..."}
@@ -456,7 +456,7 @@ function GitHubConnectingState({ onCancel }: { onCancel: () => void }) {
       <button
         type="button"
         onClick={onCancel}
-        className="rounded-sm text-[0.65rem] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="stg:rounded-sm stg:text-[0.65rem] stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
       >
         Cancel
       </button>
@@ -478,7 +478,7 @@ function ChevronLeftIcon() {
 
 function ChevronRightIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="stg:text-muted-foreground">
       <path d="M4.5 2.5L8 6L4.5 9.5" />
     </svg>
   );

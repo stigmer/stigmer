@@ -126,10 +126,10 @@ export function ComposerToolbar({
   const showHarnessSeparate = showHarnessSelector && !showModelSelector;
 
   return (
-    <div className="flex items-center justify-between gap-2 border-t border-border-muted px-3 py-2">
+    <div className="stg:flex stg:items-center stg:justify-between stg:gap-2 stg:border-t stg:border-border-muted stg:px-3 stg:py-2">
       {/* ---- Left group: Primary state (Mode + Model) ---- */}
 
-      <div className="flex min-w-0 items-center gap-1.5">
+      <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-1.5">
         {showInteractionModePicker && (
           <InteractionModePicker
             value={interactionMode ?? "agent"}
@@ -162,7 +162,7 @@ export function ComposerToolbar({
 
       {/* ---- Right group: Secondary actions (icon-only) + Send ---- */}
 
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
         {showWorkspace && (
           onWorkspaceDirectAction
             ? <button
@@ -171,16 +171,16 @@ export function ComposerToolbar({
                 onClick={onWorkspaceDirectAction}
                 title="Workspace"
                 className={cn(
-                  "inline-flex h-8 w-8 items-center justify-center rounded-md text-xs transition-colors",
-                  "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-                  "disabled:pointer-events-none disabled:opacity-50",
+                  "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
+                  "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+                  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
                 )}
                 aria-label="Workspace"
               >
-                <span className="relative">
+                <span className="stg:relative">
                   <WorkspaceIcon />
                   {workspaceCount > 0 && (
-                    <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-0.5 text-[0.5rem] font-medium leading-none text-primary-foreground">
+                    <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-[0.5rem] stg:font-medium stg:leading-none stg:text-primary-foreground">
                       {workspaceCount}
                     </span>
                   )}
@@ -203,16 +203,16 @@ export function ComposerToolbar({
             onClick={onAttachClick}
             title="Attach files"
             className={cn(
-              "inline-flex h-8 w-8 items-center justify-center rounded-md text-xs transition-colors",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
             aria-label="Attach files"
           >
-            <span className="relative">
+            <span className="stg:relative">
               <PaperclipIcon />
               {attachmentCount > 0 && (
-                <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-0.5 text-[0.5rem] font-medium leading-none text-primary-foreground">
+                <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-[0.5rem] stg:font-medium stg:leading-none stg:text-primary-foreground">
                   {attachmentCount}
                 </span>
               )}
@@ -237,7 +237,7 @@ export function ComposerToolbar({
           <button
             type="button"
             onClick={onStop}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary-hover"
+            className="stg:flex stg:h-8 stg:w-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:text-primary-foreground stg:transition-colors stg:hover:bg-primary-hover"
             aria-label="Stop generating"
             title="Stop"
           >
@@ -248,7 +248,7 @@ export function ComposerToolbar({
             type="button"
             disabled={!canSend}
             onClick={onSend}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary-hover disabled:pointer-events-none disabled:opacity-40"
+            className="stg:flex stg:h-8 stg:w-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-lg stg:bg-primary stg:text-primary-foreground stg:transition-colors stg:hover:bg-primary-hover stg:disabled:pointer-events-none stg:disabled:opacity-40"
             aria-label="Send message"
           >
             {isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}

@@ -102,8 +102,8 @@ export function CursorAccountEditor({
   };
 
   return (
-    <form className={cn("max-w-xl space-y-3", className)} onSubmit={handleSubmit}>
-      <h3 className="text-sm font-semibold text-foreground">
+    <form className={cn("stg:max-w-xl stg:space-y-3", className)} onSubmit={handleSubmit}>
+      <h3 className="stg:text-sm stg:font-semibold stg:text-foreground">
         {isCreate ? "Add Cursor account" : `Edit ${initial.displayName}`}
       </h3>
 
@@ -129,7 +129,7 @@ export function CursorAccountEditor({
         />
       </Field>
       {!isCreate && (
-        <p className="text-[11px] text-muted-foreground">
+        <p className="stg:text-[11px] stg:text-muted-foreground">
           Leave the masked value untouched to keep the stored key; typing a
           new key rotates it (validated against Cursor before saving).
         </p>
@@ -147,7 +147,7 @@ export function CursorAccountEditor({
           spellCheck={false}
         />
       </Field>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="stg:text-[11px] stg:text-muted-foreground">
         Optional. Powers one-click &quot;Copy invite&quot; on coverage rows
         whose key owner is not on the team. The link is long-lived and
         joinable by anyone holding it (each join consumes a paid seat) —
@@ -157,14 +157,14 @@ export function CursorAccountEditor({
 
       <Field label="Dedicated organization ids">
         <textarea
-          className={cn(INPUT_CLASSES, "min-h-16 font-mono")}
+          className={cn(INPUT_CLASSES, "stg:min-h-16 stg:font-mono")}
           value={orgIdsText}
           onChange={(e) => setOrgIdsText(e.target.value)}
           placeholder={"one org id per line\n(leave empty for a shared-pool account)"}
           disabled={isSubmitting}
         />
       </Field>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="stg:text-[11px] stg:text-muted-foreground">
         Listing org ids DEDICATES this account to them: their sessions use
         only this account&apos;s keys and fail with a clear message when it
         runs dry. Leaving this empty makes the account part of the shared
@@ -173,9 +173,9 @@ export function CursorAccountEditor({
         one account.
       </p>
 
-      <div className="space-y-2">
+      <div className="stg:space-y-2">
         <div>
-          <label className="flex items-center gap-1.5 text-xs text-foreground">
+          <label className="stg:flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-foreground">
             <input
               type="checkbox"
               checked={enabled}
@@ -184,14 +184,14 @@ export function CursorAccountEditor({
             />
             Enabled for key selection
           </label>
-          <p className="mt-0.5 pl-[1.375rem] text-[11px] text-muted-foreground">
+          <p className="stg:mt-0.5 stg:pl-[1.375rem] stg:text-[11px] stg:text-muted-foreground">
             Leave checked for accounts that should serve traffic. Unchecking
             drains the account: new sessions stop routing here immediately,
             but sessions already pinned to one of its keys keep working.
           </p>
         </div>
         <div>
-          <label className="flex items-center gap-1.5 text-xs text-foreground">
+          <label className="stg:flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-foreground">
             <input
               type="checkbox"
               checked={onDemandEnabled}
@@ -200,7 +200,7 @@ export function CursorAccountEditor({
             />
             On-demand usage enabled (as configured in the Cursor dashboard)
           </label>
-          <p className="mt-0.5 pl-[1.375rem] text-[11px] text-muted-foreground">
+          <p className="stg:mt-0.5 stg:pl-[1.375rem] stg:text-[11px] stg:text-muted-foreground">
             Declared here because Cursor&apos;s Admin API cannot report the
             team&apos;s on-demand setting. Uncheck only when the dashboard has
             on-demand usage OFF: new sessions then avoid member keys whose
@@ -211,12 +211,12 @@ export function CursorAccountEditor({
       </div>
 
       {submitError && (
-        <p className="text-destructive text-xs" role="alert">
+        <p className="stg:text-destructive stg:text-xs" role="alert">
           {getUserMessage(submitError)}
         </p>
       )}
 
-      <div className="flex gap-2">
+      <div className="stg:flex stg:gap-2">
         <Button type="submit" size="sm" disabled={!canSubmit}>
           {isSubmitting ? "Saving…" : isCreate ? "Create account" : "Save changes"}
         </Button>

@@ -71,7 +71,7 @@ export function WorkflowFileReviewList({
   if (pendingFileReviews.length === 0) return null;
 
   return (
-    <div className={cn("stgm space-y-3", className)}>
+    <div className={cn("stgm stg:space-y-3", className)}>
       {pendingFileReviews.map((ref) => (
         <WorkflowChildFileReview
           key={ref.childAgentExecutionId}
@@ -125,12 +125,12 @@ function WorkflowChildFileReview({
   if (changeSets.length === 0) return null;
 
   return (
-    <div className="space-y-2">
+    <div className="stg:space-y-2">
       {onNavigateToAgentExecution && (
         <button
           type="button"
           onClick={() => onNavigateToAgentExecution(childId)}
-          className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+          className="stg:text-xs stg:text-muted-foreground stg:hover:text-foreground stg:underline stg:underline-offset-2"
         >
           View agent execution
         </button>

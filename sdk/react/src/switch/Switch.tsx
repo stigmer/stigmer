@@ -74,22 +74,22 @@ export function Switch({
         // made the track invisible inside dialogs. Both track fills are
         // registered as surface pairs in the theme contrast contract
         // (@stigmer/theme contract/pairs.ts), so every preset is audited.
-        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
-        "motion-reduce:transition-none",
-        checked ? "bg-primary" : "bg-input",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        "disabled:pointer-events-none disabled:opacity-50",
+        "stg:relative stg:inline-flex stg:h-5 stg:w-9 stg:shrink-0 stg:items-center stg:rounded-full stg:transition-colors",
+        "stg:motion-reduce:transition-none",
+        checked ? "stg:bg-primary" : "stg:bg-input",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-2",
+        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         // Expanded invisible hit area (~44px tall) for touch targets.
-        "after:absolute after:-inset-3 after:content-['']",
+        "stg:after:absolute stg:after:-inset-3 stg:after:content-['']",
         className,
       )}
     >
       <span
         aria-hidden="true"
         className={cn(
-          "pointer-events-none block size-4 rounded-full bg-background shadow-sm transition-transform",
-          "motion-reduce:transition-none",
-          checked ? "translate-x-[18px]" : "translate-x-0.5",
+          "stg:pointer-events-none stg:block stg:size-4 stg:rounded-full stg:bg-background stg:shadow-sm stg:transition-transform",
+          "stg:motion-reduce:transition-none",
+          checked ? "stg:translate-x-[18px]" : "stg:translate-x-0.5",
         )}
       />
     </button>

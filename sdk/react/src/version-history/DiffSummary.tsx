@@ -35,7 +35,7 @@ export function DiffSummary({
       role="status"
       aria-live="polite"
       className={cn(
-        "flex items-center gap-2 text-xs text-muted-foreground",
+        "stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-muted-foreground",
         className,
       )}
     >
@@ -43,7 +43,7 @@ export function DiffSummary({
       {additions > 0 && (
         <>
           <span aria-hidden="true">&middot;</span>
-          <span className="font-mono text-diff-added-fg">
+          <span className="stg:font-mono stg:text-diff-added-fg">
             +{additions} {additions === 1 ? "addition" : "additions"}
           </span>
         </>
@@ -51,7 +51,7 @@ export function DiffSummary({
       {deletions > 0 && (
         <>
           <span aria-hidden="true">&middot;</span>
-          <span className="font-mono text-diff-removed-fg">
+          <span className="stg:font-mono stg:text-diff-removed-fg">
             -{deletions} {deletions === 1 ? "deletion" : "deletions"}
           </span>
         </>

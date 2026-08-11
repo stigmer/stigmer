@@ -130,34 +130,34 @@ export function UserMenu({
       <MenuTrigger
         aria-label={triggerLabel}
         className={cn(
-          "hover:bg-sidebar-accent flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition-colors focus:outline-none",
+          "stg:hover:bg-sidebar-accent stg:flex stg:w-full stg:cursor-pointer stg:items-center stg:gap-2 stg:rounded-lg stg:px-2 stg:py-1.5 stg:transition-colors stg:focus:outline-none",
           className,
         )}
       >
         <UserAvatar name={displayName} />
         {user ? (
-          <div className="flex min-w-0 flex-1 flex-col text-left">
+          <div className="stg:flex stg:min-w-0 stg:flex-1 stg:flex-col stg:text-left">
             {user.name && (
-              <span className="truncate text-sm font-medium">
+              <span className="stg:truncate stg:text-sm stg:font-medium">
                 {user.name}
               </span>
             )}
-            <span className="text-sidebar-muted-foreground truncate text-xs">
+            <span className="stg:text-sidebar-muted-foreground stg:truncate stg:text-xs">
               {user.email}
             </span>
           </div>
         ) : (
-          <span className="text-sidebar-muted-foreground truncate text-sm">
+          <span className="stg:text-sidebar-muted-foreground stg:truncate stg:text-sm">
             Local mode
           </span>
         )}
-        <ChevronsUpDown className="text-sidebar-muted-foreground ml-auto size-3.5 shrink-0" />
+        <ChevronsUpDown className="stg:text-sidebar-muted-foreground stg:ml-auto stg:size-3.5 stg:shrink-0" />
       </MenuTrigger>
 
       <MenuContent align="start" side="top" sideOffset={8}>
         {showSettings && (
           <MenuItem onClick={onSettingsClick}>
-            <Settings className="size-4" />
+            <Settings className="stg:size-4" />
             Settings
           </MenuItem>
         )}
@@ -182,7 +182,7 @@ export function UserMenu({
           <>
             {hasContentBeforeSignOut && <MenuSeparator />}
             <MenuItem onClick={onSignOut}>
-              <LogOut className="size-4" />
+              <LogOut className="stg:size-4" />
               Sign out
             </MenuItem>
           </>
@@ -206,7 +206,7 @@ function ColorSchemeSection({
   return (
     <MenuGroup aria-label="Color scheme">
       <MenuLabel>
-        <SunMoon className="mr-1 inline size-3 align-[-2px]" />
+        <SunMoon className="stg:mr-1 stg:inline stg:size-3 stg:align-[-2px]" />
         Color Scheme
       </MenuLabel>
       <MenuRadioGroup
@@ -227,14 +227,14 @@ function UserAvatar({ name }: { name?: string }) {
   return (
     <div
       className={cn(
-        "bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-border",
-        "flex size-6 shrink-0 items-center justify-center rounded-full border",
+        "stg:bg-sidebar-accent stg:text-sidebar-accent-foreground stg:border-sidebar-border",
+        "stg:flex stg:size-6 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:border",
       )}
     >
       {initial ? (
-        <span className="text-xs font-medium">{initial}</span>
+        <span className="stg:text-xs stg:font-medium">{initial}</span>
       ) : (
-        <User className="size-3.5" />
+        <User className="stg:size-3.5" />
       )}
     </div>
   );

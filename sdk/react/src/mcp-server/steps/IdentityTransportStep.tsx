@@ -59,30 +59,30 @@ export function IdentityTransportStep({
       : null;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="stg:flex stg:flex-col stg:gap-6">
       <div>
-        <h2 className="text-lg font-semibold text-foreground">
+        <h2 className="stg:text-lg stg:font-semibold stg:text-foreground">
           Identity & Transport
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">
           Define the MCP server and how to connect to it.
         </p>
       </div>
 
       {validationError && (
-        <p className="text-sm text-destructive" role="alert">
+        <p className="stg:text-sm stg:text-destructive" role="alert">
           {validationError}
         </p>
       )}
 
       {/* Name + Slug */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5">
+      <div className="stg:grid stg:gap-4 stg:sm:grid-cols-2">
+        <div className="stg:space-y-1.5">
           <label
             htmlFor="stgm-wizard-mcp-name"
-            className="text-sm font-medium text-foreground"
+            className="stg:text-sm stg:font-medium stg:text-foreground"
           >
-            Name <span className="text-destructive">*</span>
+            Name <span className="stg:text-destructive">*</span>
           </label>
           <input
             id="stgm-wizard-mcp-name"
@@ -92,17 +92,17 @@ export function IdentityTransportStep({
             placeholder="e.g. GitHub"
             autoFocus
             className={cn(
-              "w-full rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           />
         </div>
 
-        <div className="space-y-1.5">
+        <div className="stg:space-y-1.5">
           <label
             htmlFor="stgm-wizard-mcp-slug"
-            className="text-sm font-medium text-foreground"
+            className="stg:text-sm stg:font-medium stg:text-foreground"
           >
             Slug
           </label>
@@ -113,30 +113,30 @@ export function IdentityTransportStep({
             onChange={(e) => handleSlugChange(e.target.value)}
             placeholder="auto-generated"
             className={cn(
-              "w-full rounded-md border px-3 py-2 font-mono text-sm text-foreground",
+              "stg:w-full stg:rounded-md stg:border stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
               slugError
-                ? "border-destructive bg-input-bg"
-                : "border-input bg-input-bg",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                ? "stg:border-destructive stg:bg-input-bg"
+                : "stg:border-input stg:bg-input-bg",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           />
           {slugError && (
-            <p className="text-xs text-destructive">{slugError}</p>
+            <p className="stg:text-xs stg:text-destructive">{slugError}</p>
           )}
           {!slugError && data.slug && (
-            <p className="text-xs text-muted-foreground">
-              Referenced as <code className="font-mono">{data.slug}</code>
+            <p className="stg:text-xs stg:text-muted-foreground">
+              Referenced as <code className="stg:font-mono">{data.slug}</code>
             </p>
           )}
         </div>
       </div>
 
       {/* Description */}
-      <div className="space-y-1.5">
+      <div className="stg:space-y-1.5">
         <label
           htmlFor="stgm-wizard-mcp-description"
-          className="text-sm font-medium text-foreground"
+          className="stg:text-sm stg:font-medium stg:text-foreground"
         >
           Description
         </label>
@@ -148,19 +148,19 @@ export function IdentityTransportStep({
           placeholder="A brief description of this MCP server"
           maxLength={200}
           className={cn(
-            "w-full rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
-            "placeholder:text-muted-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         />
       </div>
 
       {/* Icon URL + Visibility */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5">
+      <div className="stg:grid stg:gap-4 stg:sm:grid-cols-2">
+        <div className="stg:space-y-1.5">
           <label
             htmlFor="stgm-wizard-mcp-icon"
-            className="text-sm font-medium text-foreground"
+            className="stg:text-sm stg:font-medium stg:text-foreground"
           >
             Icon URL
           </label>
@@ -171,18 +171,18 @@ export function IdentityTransportStep({
             onChange={(e) => updateData({ iconUrl: e.target.value })}
             placeholder="https://example.com/icon.png"
             className={cn(
-              "w-full rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           />
         </div>
 
-        <fieldset className="space-y-1.5">
-          <legend className="text-sm font-medium text-foreground">
+        <fieldset className="stg:space-y-1.5">
+          <legend className="stg:text-sm stg:font-medium stg:text-foreground">
             Visibility
           </legend>
-          <div className="flex gap-2">
+          <div className="stg:flex stg:gap-2">
             <RadioOption
               name="stgm-wizard-mcp-visibility"
               value="private"
@@ -203,11 +203,11 @@ export function IdentityTransportStep({
 
       {/* data-scroll-target: guided tours/demos scroll the transport config
           (the step's decision point) into view within the wizard's scroll area. */}
-      <fieldset className="space-y-3" data-scroll-target="mcp-transport">
-        <legend className="text-sm font-medium text-foreground">
-          Transport <span className="text-destructive">*</span>
+      <fieldset className="stg:space-y-3" data-scroll-target="mcp-transport">
+        <legend className="stg:text-sm stg:font-medium stg:text-foreground">
+          Transport <span className="stg:text-destructive">*</span>
         </legend>
-        <div className="flex gap-2">
+        <div className="stg:flex stg:gap-2">
           <RadioOption
             name="stgm-wizard-mcp-transport"
             value="http"
@@ -224,7 +224,7 @@ export function IdentityTransportStep({
           />
         </div>
         {data.transportType === "stdio" && (
-          <p className="text-xs text-muted-foreground">
+          <p className="stg:text-xs stg:text-muted-foreground">
             Stdio servers run only on local runners (desktop app or CLI).
             Sessions on Stigmer-managed cloud compute require a remote (HTTP)
             server.
@@ -233,13 +233,13 @@ export function IdentityTransportStep({
 
         {/* HTTP fields */}
         {data.transportType === "http" && (
-          <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
-            <div className="space-y-1.5">
+          <div className="stg:flex stg:flex-col stg:gap-4 stg:rounded-lg stg:border stg:border-border stg:p-4">
+            <div className="stg:space-y-1.5">
               <label
                 htmlFor="stgm-wizard-mcp-http-url"
-                className="text-sm font-medium text-foreground"
+                className="stg:text-sm stg:font-medium stg:text-foreground"
               >
-                URL <span className="text-destructive">*</span>
+                URL <span className="stg:text-destructive">*</span>
               </label>
               <input
                 id="stgm-wizard-mcp-http-url"
@@ -248,20 +248,20 @@ export function IdentityTransportStep({
                 onChange={(e) => updateData({ httpUrl: e.target.value })}
                 placeholder="https://mcp.example.com/sse"
                 className={cn(
-                  "w-full rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
-                  "placeholder:text-muted-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
+                  "stg:placeholder:text-muted-foreground",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 )}
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">
+            <div className="stg:space-y-1.5">
+              <label className="stg:text-sm stg:font-medium stg:text-foreground">
                 Headers
               </label>
-              <p className="text-xs text-muted-foreground">
+              <p className="stg:text-xs stg:text-muted-foreground">
                 Custom HTTP headers sent with every request. Values may use{" "}
-                <code className="font-mono text-[11px]">{"${VAR}"}</code>{" "}
+                <code className="stg:font-mono stg:text-[11px]">{"${VAR}"}</code>{" "}
                 placeholders.
               </p>
               <KeyValueEditor
@@ -272,10 +272,10 @@ export function IdentityTransportStep({
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="stg:space-y-1.5">
               <label
                 htmlFor="stgm-wizard-mcp-http-timeout"
-                className="text-sm font-medium text-foreground"
+                className="stg:text-sm stg:font-medium stg:text-foreground"
               >
                 Timeout (seconds)
               </label>
@@ -294,9 +294,9 @@ export function IdentityTransportStep({
                 }
                 placeholder="Default"
                 className={cn(
-                  "w-32 rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
-                  "placeholder:text-muted-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "stg:w-32 stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
+                  "stg:placeholder:text-muted-foreground",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 )}
               />
             </div>
@@ -305,13 +305,13 @@ export function IdentityTransportStep({
 
         {/* Stdio fields */}
         {data.transportType === "stdio" && (
-          <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
-            <div className="space-y-1.5">
+          <div className="stg:flex stg:flex-col stg:gap-4 stg:rounded-lg stg:border stg:border-border stg:p-4">
+            <div className="stg:space-y-1.5">
               <label
                 htmlFor="stgm-wizard-mcp-stdio-command"
-                className="text-sm font-medium text-foreground"
+                className="stg:text-sm stg:font-medium stg:text-foreground"
               >
-                Command <span className="text-destructive">*</span>
+                Command <span className="stg:text-destructive">*</span>
               </label>
               <input
                 id="stgm-wizard-mcp-stdio-command"
@@ -320,17 +320,17 @@ export function IdentityTransportStep({
                 onChange={(e) => updateData({ stdioCommand: e.target.value })}
                 placeholder="e.g. npx, python, node"
                 className={cn(
-                  "w-full rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
-                  "placeholder:text-muted-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
+                  "stg:placeholder:text-muted-foreground",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 )}
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="stg:space-y-1.5">
               <label
                 htmlFor="stgm-wizard-mcp-stdio-args"
-                className="text-sm font-medium text-foreground"
+                className="stg:text-sm stg:font-medium stg:text-foreground"
               >
                 Arguments
               </label>
@@ -341,20 +341,20 @@ export function IdentityTransportStep({
                 onChange={(e) => updateData({ stdioArgs: e.target.value })}
                 placeholder="e.g. -y @modelcontextprotocol/server-github"
                 className={cn(
-                  "w-full rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
-                  "placeholder:text-muted-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
+                  "stg:placeholder:text-muted-foreground",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 )}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="stg:text-xs stg:text-muted-foreground">
                 Space-separated arguments passed to the command.
               </p>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="stg:space-y-1.5">
               <label
                 htmlFor="stgm-wizard-mcp-stdio-workdir"
-                className="text-sm font-medium text-foreground"
+                className="stg:text-sm stg:font-medium stg:text-foreground"
               >
                 Working Directory
               </label>
@@ -367,9 +367,9 @@ export function IdentityTransportStep({
                 }
                 placeholder="/path/to/working/directory"
                 className={cn(
-                  "w-full rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
-                  "placeholder:text-muted-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
+                  "stg:placeholder:text-muted-foreground",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 )}
               />
             </div>
@@ -400,10 +400,10 @@ function RadioOption({
   return (
     <label
       className={cn(
-        "inline-flex cursor-pointer items-center rounded-md border px-3 py-1.5 text-sm transition-colors",
+        "stg:inline-flex stg:cursor-pointer stg:items-center stg:rounded-md stg:border stg:px-3 stg:py-1.5 stg:text-sm stg:transition-colors",
         checked
-          ? "border-primary bg-primary-subtle text-primary font-medium"
-          : "border-input bg-input-bg text-muted-foreground hover:border-border hover:text-foreground",
+          ? "stg:border-primary stg:bg-primary-subtle stg:text-primary stg:font-medium"
+          : "stg:border-input stg:bg-input-bg stg:text-muted-foreground stg:hover:border-border stg:hover:text-foreground",
       )}
     >
       <input
@@ -412,7 +412,7 @@ function RadioOption({
         value={value}
         checked={checked}
         onChange={onChange}
-        className="sr-only"
+        className="stg:sr-only"
       />
       {label}
     </label>
@@ -450,9 +450,9 @@ function KeyValueEditor({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="stg:flex stg:flex-col stg:gap-2">
       {entries.map((entry, index) => (
-        <div key={index} className="flex items-center gap-2">
+        <div key={index} className="stg:flex stg:items-center stg:gap-2">
           <input
             type="text"
             value={entry.key}
@@ -460,9 +460,9 @@ function KeyValueEditor({
             placeholder={keyPlaceholder}
             aria-label={`Header key ${index + 1}`}
             className={cn(
-              "flex-1 rounded-md border border-input bg-input-bg px-2.5 py-1.5 font-mono text-xs text-foreground",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+              "stg:flex-1 stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-2.5 stg:py-1.5 stg:font-mono stg:text-xs stg:text-foreground",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
             )}
           />
           <input
@@ -472,9 +472,9 @@ function KeyValueEditor({
             placeholder={valuePlaceholder}
             aria-label={`Header value ${index + 1}`}
             className={cn(
-              "flex-1 rounded-md border border-input bg-input-bg px-2.5 py-1.5 font-mono text-xs text-foreground",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+              "stg:flex-1 stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-2.5 stg:py-1.5 stg:font-mono stg:text-xs stg:text-foreground",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
             )}
           />
           <button
@@ -482,12 +482,12 @@ function KeyValueEditor({
             onClick={() => removeEntry(index)}
             aria-label={`Remove header ${entry.key || index + 1}`}
             className={cn(
-              "rounded p-1 text-muted-foreground transition-colors",
-              "hover:bg-accent-hover hover:text-destructive",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:rounded stg:p-1 stg:text-muted-foreground stg:transition-colors",
+              "stg:hover:bg-accent-hover stg:hover:text-destructive",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           >
-            <RemoveIcon className="size-3.5" />
+            <RemoveIcon className="stg:size-3.5" />
           </button>
         </div>
       ))}
@@ -496,12 +496,12 @@ function KeyValueEditor({
         type="button"
         onClick={addEntry}
         className={cn(
-          "inline-flex w-fit items-center gap-1.5 rounded-md border border-dashed border-input px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors",
-          "hover:border-border hover:text-foreground hover:bg-accent-hover",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "stg:inline-flex stg:w-fit stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-dashed stg:border-input stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors",
+          "stg:hover:border-border stg:hover:text-foreground stg:hover:bg-accent-hover",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         )}
       >
-        <PlusIcon className="size-3" />
+        <PlusIcon className="stg:size-3" />
         Add header
       </button>
     </div>

@@ -97,55 +97,55 @@ export function InlineEditKeyValue({
 
   if (disabled || !isEditing) {
     return (
-      <div className={cn("flex flex-col", className)}>
+      <div className={cn("stg:flex stg:flex-col", className)}>
         {value.length > 0 ? (
-          <div className="flex flex-col divide-y divide-border">
+          <div className="stg:flex stg:flex-col stg:divide-y stg:divide-border">
             {value.map((row) => (
-              <div key={row.key} className="flex items-start gap-3 px-3 py-2.5">
-                <code className="shrink-0 font-mono text-sm font-medium text-foreground">
+              <div key={row.key} className="stg:flex stg:items-start stg:gap-3 stg:px-3 stg:py-2.5">
+                <code className="stg:shrink-0 stg:font-mono stg:text-sm stg:font-medium stg:text-foreground">
                   {row.key}
                 </code>
                 {showValue && (
-                  <span className="min-w-0 break-all font-mono text-xs text-muted-foreground">
+                  <span className="stg:min-w-0 stg:break-all stg:font-mono stg:text-xs stg:text-muted-foreground">
                     {row.value}
                   </span>
                 )}
                 {showSecretToggle && (
-                  <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground">
                     {row.isSecret ? "secret" : "config"}
                   </span>
                 )}
                 {showOptionalToggle && row.optional && (
-                  <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground-subtle">
+                  <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground-subtle">
                     optional
                   </span>
                 )}
                 {row.description && (
-                  <span className="text-xs text-muted-foreground">{row.description}</span>
+                  <span className="stg:text-xs stg:text-muted-foreground">{row.description}</span>
                 )}
               </div>
             ))}
           </div>
         ) : (
-          <p className="px-3 py-3 text-xs text-muted-foreground italic">No entries</p>
+          <p className="stg:px-3 stg:py-3 stg:text-xs stg:text-muted-foreground stg:italic">No entries</p>
         )}
       </div>
     );
   }
 
   return (
-    <div className={cn("flex flex-col gap-3", className)}>
+    <div className={cn("stg:flex stg:flex-col stg:gap-3", className)}>
       {draft.map((row, i) => (
-        <div key={i} className="flex items-start gap-2 rounded-md border border-border bg-muted-faint p-2.5">
-          <div className="flex flex-1 flex-col gap-1.5">
+        <div key={i} className="stg:flex stg:items-start stg:gap-2 stg:rounded-md stg:border stg:border-border stg:bg-muted-faint stg:p-2.5">
+          <div className="stg:flex stg:flex-1 stg:flex-col stg:gap-1.5">
             <input
               type="text"
               value={row.key}
               onChange={(e) => updateRow(i, { key: e.target.value })}
               placeholder={keyLabel}
               className={cn(
-                "rounded-md border border-border bg-input-bg px-2 py-1 font-mono text-sm text-foreground",
-                "focus:outline-none focus:ring-2 focus:ring-ring",
+                "stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1 stg:font-mono stg:text-sm stg:text-foreground",
+                "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
               )}
             />
             {showValue && (
@@ -155,8 +155,8 @@ export function InlineEditKeyValue({
                 onChange={(e) => updateRow(i, { value: e.target.value })}
                 placeholder={valueLabel}
                 className={cn(
-                  "rounded-md border border-border bg-input-bg px-2 py-1 font-mono text-sm text-foreground",
-                  "focus:outline-none focus:ring-2 focus:ring-ring",
+                  "stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1 stg:font-mono stg:text-sm stg:text-foreground",
+                  "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
                 )}
               />
             )}
@@ -167,30 +167,30 @@ export function InlineEditKeyValue({
                 onChange={(e) => updateRow(i, { description: e.target.value })}
                 placeholder="Description"
                 className={cn(
-                  "rounded-md border border-border bg-input-bg px-2 py-1 text-xs text-foreground",
-                  "focus:outline-none focus:ring-2 focus:ring-ring",
+                  "stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1 stg:text-xs stg:text-foreground",
+                  "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
                 )}
               />
             )}
-            <div className="flex items-center gap-3">
+            <div className="stg:flex stg:items-center stg:gap-3">
               {showSecretToggle && (
-                <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                <label className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground stg:cursor-pointer">
                   <input
                     type="checkbox"
                     checked={row.isSecret ?? false}
                     onChange={(e) => updateRow(i, { isSecret: e.target.checked })}
-                    className="size-3.5 rounded border-border"
+                    className="stg:size-3.5 stg:rounded stg:border-border"
                   />
                   Secret
                 </label>
               )}
               {showOptionalToggle && (
-                <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                <label className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground stg:cursor-pointer">
                   <input
                     type="checkbox"
                     checked={row.optional ?? false}
                     onChange={(e) => updateRow(i, { optional: e.target.checked })}
-                    className="size-3.5 rounded border-border"
+                    className="stg:size-3.5 stg:rounded stg:border-border"
                   />
                   Optional
                 </label>
@@ -202,12 +202,12 @@ export function InlineEditKeyValue({
             onClick={() => removeRow(i)}
             aria-label={`Remove ${row.key || "entry"}`}
             className={cn(
-              "mt-1 inline-flex size-6 items-center justify-center rounded-md text-muted-foreground",
-              "hover:bg-destructive-subtle hover:text-destructive",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:mt-1 stg:inline-flex stg:size-6 stg:items-center stg:justify-center stg:rounded-md stg:text-muted-foreground",
+              "stg:hover:bg-destructive-subtle stg:hover:text-destructive",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           >
-            <TrashIcon className="size-3.5" />
+            <TrashIcon className="stg:size-3.5" />
           </button>
         </div>
       ))}
@@ -216,27 +216,27 @@ export function InlineEditKeyValue({
         type="button"
         onClick={addRow}
         className={cn(
-          "inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium",
-          "border border-dashed border-border text-muted-foreground",
-          "hover:border-muted-foreground hover:text-foreground hover:bg-muted-subtle",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          "transition-colors",
+          "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
+          "stg:border stg:border-dashed stg:border-border stg:text-muted-foreground",
+          "stg:hover:border-muted-foreground stg:hover:text-foreground stg:hover:bg-muted-subtle",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+          "stg:transition-colors",
         )}
       >
-        <PlusIcon className="size-3" />
+        <PlusIcon className="stg:size-3" />
         Add entry
       </button>
 
-      <div className="flex items-center justify-end gap-1.5">
+      <div className="stg:flex stg:items-center stg:justify-end stg:gap-1.5">
         <button
           type="button"
           onClick={handleCancel}
           disabled={isSaving}
           className={cn(
-            "rounded-md px-2.5 py-1 text-xs font-medium",
-            "border border-border bg-background text-foreground hover:bg-accent",
-            "disabled:opacity-50",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+            "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent",
+            "stg:disabled:opacity-50",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           Cancel
@@ -246,10 +246,10 @@ export function InlineEditKeyValue({
           onClick={handleSave}
           disabled={isSaving}
           className={cn(
-            "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:opacity-50",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:opacity-50",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           {isSaving && <Spinner />}
@@ -258,7 +258,7 @@ export function InlineEditKeyValue({
       </div>
 
       {error && (
-        <p className="px-1 text-xs text-destructive" role="alert">{error}</p>
+        <p className="stg:px-1 stg:text-xs stg:text-destructive" role="alert">{error}</p>
       )}
     </div>
   );
@@ -294,7 +294,7 @@ function TrashIcon({ className }: { readonly className?: string }) {
 
 function Spinner() {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="animate-spin" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="stg:animate-spin" aria-hidden="true">
       <path d="M8 2a6 6 0 1 0 6 6" />
     </svg>
   );

@@ -151,14 +151,14 @@ export function EnvironmentVariableEditor({
   if (isLoading) {
     return (
       <div
-        className={cn("space-y-2", className)}
+        className={cn("stg:space-y-2", className)}
         aria-busy="true"
         aria-label="Loading variables"
       >
         {Array.from({ length: 3 }, (_, i) => (
           <div
             key={i}
-            className="bg-muted-subtle h-8 animate-pulse rounded"
+            className="stg:bg-muted-subtle stg:h-8 stg:animate-pulse stg:rounded"
             style={{ width: `${85 - i * 10}%` }}
           />
         ))}
@@ -168,21 +168,21 @@ export function EnvironmentVariableEditor({
 
   if (loadError) {
     return (
-      <p className={cn("text-destructive text-xs", className)} role="alert">
+      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
         {getUserMessage(loadError)}
       </p>
     );
   }
 
   return (
-    <div className={cn("space-y-1", className)}>
+    <div className={cn("stg:space-y-1", className)}>
       {variables.length === 0 && !showAddForm ? (
-        <p className="text-muted-foreground py-4 text-center text-xs">
+        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
           No variables configured.
         </p>
       ) : (
         <div
-          className="divide-border/60 divide-y"
+          className="stg:divide-border/60 stg:divide-y"
           role="list"
           aria-label="Environment variables"
         >
@@ -211,9 +211,9 @@ export function EnvironmentVariableEditor({
             type="button"
             onClick={() => setShowAddForm(true)}
             className={cn(
-              "mt-1 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-              "transition-colors",
+              "stg:mt-1 stg:flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-2 stg:py-1.5 stg:text-xs",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:transition-colors",
             )}
           >
             <PlusIcon />
@@ -336,8 +336,8 @@ function VariableRow({
   if (mode === "editing") {
     return (
       <div role="listitem">
-        <div className="flex items-center gap-2 py-2">
-          <span className="shrink-0 font-mono text-xs font-medium text-foreground">
+        <div className="stg:flex stg:items-center stg:gap-2 stg:py-2">
+          <span className="stg:shrink-0 stg:font-mono stg:text-xs stg:font-medium stg:text-foreground">
             {variable.key}
           </span>
 
@@ -349,10 +349,10 @@ function VariableRow({
             placeholder={variable.isSecret ? "Enter new value" : "Value"}
             autoFocus
             className={cn(
-              "min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-1 font-mono text-xs text-foreground",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:min-w-0 stg:flex-1 stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2 stg:py-1 stg:font-mono stg:text-xs stg:text-foreground",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
             onKeyDown={(e) => {
               if (e.key === "Enter") handleSave();
@@ -387,17 +387,17 @@ function VariableRow({
   // --- Idle / Confirming mode ---
   return (
     <div role="listitem">
-      <div className="group flex items-center gap-3 py-2">
+      <div className="stg:group stg:flex stg:items-center stg:gap-3 stg:py-2">
         {/* Key + badge */}
-        <div className="flex shrink-0 items-baseline gap-1.5">
+        <div className="stg:flex stg:shrink-0 stg:items-baseline stg:gap-1.5">
           <span
-            className="font-mono text-xs font-medium text-foreground"
+            className="stg:font-mono stg:text-xs stg:font-medium stg:text-foreground"
             title={variable.description || undefined}
           >
             {variable.key}
           </span>
           {variable.isSecret && (
-            <span className="text-[0.55rem] uppercase tracking-wider text-muted-foreground-subtle">
+            <span className="stg:text-[0.55rem] stg:uppercase stg:tracking-wider stg:text-muted-foreground-subtle">
               secret
             </span>
           )}
@@ -406,10 +406,10 @@ function VariableRow({
         {/* Value */}
         <span
           className={cn(
-            "min-w-0 flex-1 truncate font-mono text-xs",
+            "stg:min-w-0 stg:flex-1 stg:truncate stg:font-mono stg:text-xs",
             variable.isSecret && revealedValue !== null
-              ? "text-foreground"
-              : "text-muted-foreground",
+              ? "stg:text-foreground"
+              : "stg:text-muted-foreground",
           )}
         >
           {displayValue}
@@ -417,8 +417,8 @@ function VariableRow({
 
         {/* Actions */}
         {mode === "confirming" ? (
-          <div className="flex shrink-0 items-center gap-1">
-            <span className="text-destructive text-[0.65rem]">Delete?</span>
+          <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
+            <span className="stg:text-destructive stg:text-[0.65rem]">Delete?</span>
             <ActionButton
               onClick={confirmDelete}
               disabled={isDeleting}
@@ -437,7 +437,7 @@ function VariableRow({
           </div>
         ) : (
           !readOnly && (
-            <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+            <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-0.5 stg:opacity-0 stg:transition-opacity stg:group-hover:opacity-100 stg:group-focus-within:opacity-100">
               {variable.isSecret && (
                 /* Secret reveal is creator-only (can_read_secrets) at every
                    visibility level — org sharing never widens it. Hide the
@@ -533,8 +533,8 @@ function AddVariableForm({
   );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2 pt-2">
-      <div className="flex items-center gap-2">
+    <form onSubmit={handleSubmit} className="stg:space-y-2 stg:pt-2">
+      <div className="stg:flex stg:items-center stg:gap-2">
         <input
           type="text"
           value={key}
@@ -543,11 +543,11 @@ function AddVariableForm({
           disabled={isAdding}
           autoFocus
           className={cn(
-            "w-40 rounded-md border bg-background px-2 py-1 font-mono text-xs text-foreground",
-            "placeholder:text-muted-foreground",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
-            isDuplicate ? "border-amber-500/70" : "border-input",
+            "stg:w-40 stg:rounded-md stg:border stg:bg-background stg:px-2 stg:py-1 stg:font-mono stg:text-xs stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+            isDuplicate ? "stg:border-amber-500/70" : "stg:border-input",
           )}
         />
 
@@ -558,44 +558,44 @@ function AddVariableForm({
           placeholder="Value"
           disabled={isAdding}
           className={cn(
-            "min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-1 font-mono text-xs text-foreground",
-            "placeholder:text-muted-foreground",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:min-w-0 stg:flex-1 stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2 stg:py-1 stg:font-mono stg:text-xs stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
           onKeyDown={(e) => {
             if (e.key === "Escape") onCancel();
           }}
         />
 
-        <label className="flex shrink-0 cursor-pointer items-center gap-1 text-[0.65rem] text-muted-foreground select-none">
+        <label className="stg:flex stg:shrink-0 stg:cursor-pointer stg:items-center stg:gap-1 stg:text-[0.65rem] stg:text-muted-foreground stg:select-none">
           <input
             type="checkbox"
             checked={isSecret}
             onChange={(e) => setIsSecret(e.target.checked)}
             disabled={isAdding}
-            className="accent-primary size-3"
+            className="stg:accent-primary stg:size-3"
           />
           Secret
         </label>
       </div>
 
       {isDuplicate && (
-        <p className="text-[0.65rem] text-amber-600 dark:text-amber-400">
+        <p className="stg:text-[0.65rem] stg:text-amber-600 stg:dark:text-amber-400">
           This key already exists and will be overwritten.
         </p>
       )}
 
       <RowError error={error} />
 
-      <div className="flex items-center gap-2">
+      <div className="stg:flex stg:items-center stg:gap-2">
         <button
           type="submit"
           disabled={!canSubmit}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-40",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
           {isAdding && <SpinnerIcon />}
@@ -606,9 +606,9 @@ function AddVariableForm({
           onClick={onCancel}
           disabled={isAdding}
           className={cn(
-            "rounded-md px-3 py-1 text-xs",
-            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:rounded-md stg:px-3 stg:py-1 stg:text-xs",
+            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           Cancel
@@ -636,10 +636,10 @@ function ActionButton({
   children: React.ReactNode;
 }) {
   const colorClass = {
-    primary: "text-primary hover:text-primary-muted",
-    muted: "text-muted-foreground hover:text-foreground",
-    "muted-danger": "text-muted-foreground hover:text-destructive",
-    danger: "text-destructive hover:text-destructive-muted",
+    primary: "stg:text-primary stg:hover:text-primary-muted",
+    muted: "stg:text-muted-foreground stg:hover:text-foreground",
+    "muted-danger": "stg:text-muted-foreground stg:hover:text-destructive",
+    danger: "stg:text-destructive stg:hover:text-destructive-muted",
   }[variant];
 
   return (
@@ -649,7 +649,7 @@ function ActionButton({
       disabled={disabled}
       aria-label={label}
       className={cn(
-        "rounded p-1 transition-colors disabled:pointer-events-none disabled:opacity-40",
+        "stg:rounded stg:p-1 stg:transition-colors stg:disabled:pointer-events-none stg:disabled:opacity-40",
         colorClass,
       )}
     >
@@ -661,7 +661,7 @@ function ActionButton({
 function RowError({ error }: { error: Error | null }) {
   if (!error) return null;
   return (
-    <p className="text-destructive pb-1 text-[0.6rem]" role="alert">
+    <p className="stg:text-destructive stg:pb-1 stg:text-[0.6rem]" role="alert">
       {getUserMessage(error)}
     </p>
   );
@@ -814,7 +814,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

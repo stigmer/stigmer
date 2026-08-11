@@ -141,30 +141,30 @@ export function WorkflowInstanceDetailPanel({
   const updatedAt = audit?.updatedAt ? timestampDate(audit.updatedAt) : null;
 
   return (
-    <div className="border border-border rounded-lg bg-background overflow-hidden">
+    <div className="stg:border stg:border-border stg:rounded-lg stg:bg-background stg:overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+      <div className="stg:flex stg:items-center stg:justify-between stg:border-b stg:border-border stg:px-4 stg:py-3">
         <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-foreground">
+          <div className="stg:flex stg:items-center stg:gap-2">
+            <h3 className="stg:text-sm stg:font-semibold stg:text-foreground">
               {meta?.name || meta?.slug || "Instance"}
             </h3>
             <VisibilityBadge visibility={visibility} />
           </div>
-          <p className="text-[0.65rem] text-muted-foreground">
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
             {createdAt && `Created ${createdAt.toLocaleDateString()}`}
             {updatedAt && ` · Updated ${updatedAt.toLocaleDateString()}`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="stg:flex stg:items-center stg:gap-2">
           {onRunClick && (
             <button
               type="button"
               onClick={() => onRunClick(instance)}
               className={cn(
-                "rounded-md px-2.5 py-1 text-xs font-medium",
-                "bg-primary text-primary-foreground hover:bg-primary/90",
-                "focus:outline-none focus:ring-2 focus:ring-ring",
+                "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+                "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary/90",
+                "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
               )}
             >
               Run
@@ -190,8 +190,8 @@ export function WorkflowInstanceDetailPanel({
             onClick={onClose}
             aria-label="Close panel"
             className={cn(
-              "rounded-md p-1 text-muted-foreground",
-              "hover:text-foreground hover:bg-accent-hover",
+              "stg:rounded-md stg:p-1 stg:text-muted-foreground",
+              "stg:hover:text-foreground stg:hover:bg-accent-hover",
             )}
           >
             <CloseIcon />
@@ -199,19 +199,19 @@ export function WorkflowInstanceDetailPanel({
         </div>
       </div>
 
-      <div className="divide-y divide-border">
+      <div className="stg:divide-y stg:divide-border">
         {/* Description */}
         {spec?.description && (
-          <div className="px-4 py-3">
-            <h4 className="text-xs font-medium text-muted-foreground mb-1">Description</h4>
-            <p className="text-sm text-foreground">{spec.description}</p>
+          <div className="stg:px-4 stg:py-3">
+            <h4 className="stg:text-xs stg:font-medium stg:text-muted-foreground stg:mb-1">Description</h4>
+            <p className="stg:text-sm stg:text-foreground">{spec.description}</p>
           </div>
         )}
 
         {/* Environments */}
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-xs font-medium text-muted-foreground">
+        <div className="stg:px-4 stg:py-3">
+          <div className="stg:flex stg:items-center stg:justify-between stg:mb-2">
+            <h4 className="stg:text-xs stg:font-medium stg:text-muted-foreground">
               Environments ({spec?.environmentRefs?.length ?? 0})
             </h4>
             {!isEditingEnvs && (
@@ -219,7 +219,7 @@ export function WorkflowInstanceDetailPanel({
                 <button
                   type="button"
                   onClick={handleStartEditEnvs}
-                  className="text-[0.65rem] text-primary hover:underline"
+                  className="stg:text-[0.65rem] stg:text-primary stg:hover:underline"
                 >
                   Edit
                 </button>
@@ -228,22 +228,22 @@ export function WorkflowInstanceDetailPanel({
           </div>
 
           {isEditingEnvs ? (
-            <div className="space-y-2">
+            <div className="stg:space-y-2">
               <EnvironmentPicker
                 org={org}
                 value={editEnvRefs}
                 onChange={setEditEnvRefs}
                 disabled={isUpdating}
               />
-              <div className="flex items-center gap-2">
+              <div className="stg:flex stg:items-center stg:gap-2">
                 <button
                   type="button"
                   onClick={handleSaveEnvs}
                   disabled={isUpdating}
                   className={cn(
-                    "rounded-md px-2.5 py-1 text-xs font-medium",
-                    "bg-primary text-primary-foreground hover:bg-primary/90",
-                    "disabled:opacity-50",
+                    "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+                    "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary/90",
+                    "stg:disabled:opacity-50",
                   )}
                 >
                   {isUpdating ? "Saving..." : "Save"}
@@ -252,7 +252,7 @@ export function WorkflowInstanceDetailPanel({
                   type="button"
                   onClick={() => setIsEditingEnvs(false)}
                   disabled={isUpdating}
-                  className="rounded-md px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent-hover"
+                  className="stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:text-foreground stg:hover:bg-accent-hover"
                 >
                   Cancel
                 </button>
@@ -261,13 +261,13 @@ export function WorkflowInstanceDetailPanel({
           ) : (
             <div>
               {(spec?.environmentRefs?.length ?? 0) === 0 ? (
-                <p className="text-xs text-muted-foreground">No environments bound.</p>
+                <p className="stg:text-xs stg:text-muted-foreground">No environments bound.</p>
               ) : (
-                <ol className="space-y-1">
+                <ol className="stg:space-y-1">
                   {spec!.environmentRefs.map((ref, idx) => (
-                    <li key={`${ref.slug}-${idx}`} className="flex items-center gap-2 text-sm">
-                      <span className="text-xs text-muted-foreground w-4 text-right">{idx + 1}.</span>
-                      <span className="text-foreground">{resolveEnvName(ref.slug)}</span>
+                    <li key={`${ref.slug}-${idx}`} className="stg:flex stg:items-center stg:gap-2 stg:text-sm">
+                      <span className="stg:text-xs stg:text-muted-foreground stg:w-4 stg:text-right">{idx + 1}.</span>
+                      <span className="stg:text-foreground">{resolveEnvName(ref.slug)}</span>
                     </li>
                   ))}
                 </ol>
@@ -278,42 +278,42 @@ export function WorkflowInstanceDetailPanel({
 
         {/* Delete */}
         <PermissionGate resource={{ kind: "workflow_instance", id }} relation="can_delete">
-          <div className="px-4 py-3">
-            <h4 className="text-xs font-medium text-destructive mb-2">Danger Zone</h4>
+          <div className="stg:px-4 stg:py-3">
+            <h4 className="stg:text-xs stg:font-medium stg:text-destructive stg:mb-2">Danger Zone</h4>
             {!showDeleteConfirm ? (
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
                 className={cn(
-                  "rounded-md px-3 py-1.5 text-xs font-medium",
-                  "border border-destructive/30 text-destructive",
-                  "hover:bg-destructive/10",
-                  "focus:outline-none focus:ring-2 focus:ring-destructive",
+                  "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+                  "stg:border stg:border-destructive/30 stg:text-destructive",
+                  "stg:hover:bg-destructive/10",
+                  "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-destructive",
                 )}
               >
                 Delete Instance
               </button>
             ) : (
-              <div className="space-y-2 rounded-md border border-destructive/30 p-3 bg-destructive/5">
-                <p className="text-xs text-destructive font-medium">
+              <div className="stg:space-y-2 stg:rounded-md stg:border stg:border-destructive/30 stg:p-3 stg:bg-destructive/5">
+                <p className="stg:text-xs stg:text-destructive stg:font-medium">
                   This will permanently delete this instance and all its execution history.
                   This action cannot be undone.
                 </p>
                 {deleteError && (
-                  <p className="text-xs text-destructive" role="alert">
+                  <p className="stg:text-xs stg:text-destructive" role="alert">
                     {getUserMessage(deleteError)}
                   </p>
                 )}
-                <div className="flex items-center gap-2">
+                <div className="stg:flex stg:items-center stg:gap-2">
                   <button
                     type="button"
                     onClick={handleDelete}
                     disabled={isDeleting}
                     className={cn(
-                      "rounded-md px-3 py-1.5 text-xs font-medium",
-                      "bg-destructive text-destructive-foreground",
-                      "hover:bg-destructive/90",
-                      "disabled:opacity-50",
+                      "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+                      "stg:bg-destructive stg:text-destructive-foreground",
+                      "stg:hover:bg-destructive/90",
+                      "stg:disabled:opacity-50",
                     )}
                   >
                     {isDeleting ? "Deleting..." : "Confirm Delete"}
@@ -322,7 +322,7 @@ export function WorkflowInstanceDetailPanel({
                     type="button"
                     onClick={() => setShowDeleteConfirm(false)}
                     disabled={isDeleting}
-                    className="rounded-md px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent-hover"
+                    className="stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-foreground stg:hover:bg-accent-hover"
                   >
                     Cancel
                   </button>

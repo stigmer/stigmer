@@ -139,16 +139,16 @@ export function WorkflowCanvasInner({
       minZoom={0.2}
       maxZoom={3}
       proOptions={{ hideAttribution: true }}
-      className="h-full w-full"
+      className="stg:h-full stg:w-full"
     >
       <Controls
         showInteractive={false}
-        className="!border-[var(--stgm-border-prominent,#d4d4d8)] !bg-[var(--stgm-card,var(--stgm-background,#fff))] !shadow-sm [&>button]:!border-[var(--stgm-border-prominent,#d4d4d8)] [&>button]:!bg-[var(--stgm-card,var(--stgm-background,#fff))] [&>button]:!fill-[var(--stgm-foreground,#1a1a2e)] [&>button:hover]:!bg-[var(--stgm-muted,#f5f5f5)]"
+        className="stg:!border-[var(--stgm-border-prominent,#d4d4d8)] stg:!bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:!shadow-sm stg:[&>button]:!border-[var(--stgm-border-prominent,#d4d4d8)] stg:[&>button]:!bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:[&>button]:!fill-[var(--stgm-foreground,#1a1a2e)] stg:[&>button:hover]:!bg-[var(--stgm-muted,#f5f5f5)]"
       />
       <MiniMap
         nodeColor={minimapNodeColor}
         maskColor="var(--stgm-muted, rgba(245, 245, 245, 0.7))"
-        className="!border-[var(--stgm-border-prominent,#d4d4d8)] !bg-[var(--stgm-card,var(--stgm-background,#fff))]"
+        className="stg:!border-[var(--stgm-border-prominent,#d4d4d8)] stg:!bg-[var(--stgm-card,var(--stgm-background,#fff))]"
       />
       <Background
         variant={BackgroundVariant.Dots}

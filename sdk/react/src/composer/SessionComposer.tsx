@@ -1402,7 +1402,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
               )}
             </div>
           ) : (
-            <div className="relative">
+            <div className="stg:relative">
               <AgentPicker
                 org={org!}
                 value={agentRef ?? null}
@@ -1411,7 +1411,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
                 disabled={isDisabled || isAgentBusy}
               />
               {isAgentBusy && (
-                <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-popover/80">
+                <div className="stg:absolute stg:inset-0 stg:flex stg:items-center stg:justify-center stg:rounded-lg stg:bg-popover/80">
                   <ResolveSpinner />
                 </div>
               )}
@@ -1494,17 +1494,17 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     <div
       role="form"
       aria-label={ariaLabel}
-      className={cn("shrink-0", className)}
+      className={cn("stg:shrink-0", className)}
     >
       <div
         className={cn(
-          "rounded-xl border border-border bg-card shadow-sm",
-          "focus-within:ring-2 focus-within:ring-ring",
+          "stg:rounded-xl stg:border stg:border-border stg:bg-card stg:shadow-sm",
+          "stg:focus-within:ring-2 stg:focus-within:ring-ring",
           // Plan mode tints the frame so the active mode is visible at a
           // glance, without opening the picker. Themeable via --stgm-primary-muted.
-          interactionMode === "plan" && "border-primary-muted",
-          isDisabled && !stopMode && "opacity-50",
-          isDragOver && "ring-2 ring-primary/50",
+          interactionMode === "plan" && "stg:border-primary-muted",
+          isDisabled && !stopMode && "stg:opacity-50",
+          isDragOver && "stg:ring-2 stg:ring-primary/50",
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -1516,9 +1516,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         {isEditing && (
           <div
             role="status"
-            className="flex items-center justify-between gap-2 rounded-t-xl border-b border-border bg-muted px-3 py-1.5"
+            className="stg:flex stg:items-center stg:justify-between stg:gap-2 stg:rounded-t-xl stg:border-b stg:border-border stg:bg-muted stg:px-3 stg:py-1.5"
           >
-            <span className="text-xs font-medium text-muted-foreground">
+            <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">
               Editing message
             </span>
             {onCancelEdit && (
@@ -1527,7 +1527,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
                 onClick={onCancelEdit}
                 aria-label="Cancel editing"
                 title="Cancel editing (Esc)"
-                className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-colors stg:hover:bg-accent stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
               >
                 <XIcon />
               </button>
@@ -1536,7 +1536,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         )}
 
         {/* Zone 1: Textarea */}
-        <div className="relative">
+        <div className="stg:relative">
           <textarea
             {...composer.textareaProps}
             onKeyDown={handleTextareaKeyDown}
@@ -1544,11 +1544,11 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             placeholder={placeholder}
             rows={initialRows}
             autoFocus={autoFocus}
-            className="block w-full resize-none bg-transparent px-4 pt-3 pb-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
+            className="stg:block stg:w-full stg:resize-none stg:bg-transparent stg:px-4 stg:pt-3 stg:pb-2 stg:text-sm stg:text-foreground stg:placeholder:text-muted-foreground stg:focus:outline-none stg:disabled:cursor-not-allowed"
           />
           {isDragOver && (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-t-xl bg-primary-subtle">
-              <span className="text-xs font-medium text-primary">
+            <div className="stg:pointer-events-none stg:absolute stg:inset-0 stg:flex stg:items-center stg:justify-center stg:rounded-t-xl stg:bg-primary-subtle">
+              <span className="stg:text-xs stg:font-medium stg:text-primary">
                 {isDragOverFileRef ? "Reference workspace file" : "Drop files to attach"}
               </span>
             </div>
@@ -1562,7 +1562,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             type="file"
             multiple
             onChange={handleFileInputChange}
-            className="hidden"
+            className="stg:hidden"
             aria-hidden="true"
             tabIndex={-1}
           />
@@ -1570,7 +1570,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
         {/* Zone 2.5: Attachment and file-reference chips */}
         {(showAttach && attachments.hasEntries) || (enableFileReferences && fileRefs.hasRefs) ? (
-          <div className="space-y-1.5 px-3 pb-2">
+          <div className="stg:space-y-1.5 stg:px-3 stg:pb-2">
             {showAttach && attachments.hasEntries && (
               <AttachmentChipList
                 entries={attachments.entries}
@@ -1597,7 +1597,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         {showUploadWaitNotice && (
           <div
             role="status"
-            className="mx-3 mb-2 flex items-center gap-2 rounded-md bg-muted px-2.5 py-1.5 text-xs text-muted-foreground"
+            className="stg:mx-3 stg:mb-2 stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-muted stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-muted-foreground"
           >
             <ChipSpinner />
             <span>Waiting for attachments to finish uploading…</span>
@@ -1610,7 +1610,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           !agentRef && (
             <div
               role="status"
-              className="mx-3 mb-2 flex items-center gap-2 rounded-md bg-warning/10 px-2.5 py-1.5 text-xs text-warning"
+              className="stg:mx-3 stg:mb-2 stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-warning/10 stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-warning"
             >
               <AlertTriangleIcon />
               <span>Agent needs configuration before use</span>
@@ -1621,7 +1621,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
                   setConfigActivePanel("agent");
                 }}
                 disabled={isDisabled}
-                className="ml-auto shrink-0 rounded px-1.5 py-0.5 text-[0.6rem] font-medium hover:bg-warning/20 disabled:pointer-events-none disabled:opacity-50"
+                className="stg:ml-auto stg:shrink-0 stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:hover:bg-warning/20 stg:disabled:pointer-events-none stg:disabled:opacity-50"
               >
                 Configure
               </button>
@@ -1632,7 +1632,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         {showMcp && mcpSetup.needsSetupCount > 0 && (
           <div
             role="status"
-            className="mx-3 mb-2 flex items-center gap-2 rounded-md bg-warning/10 px-2.5 py-1.5 text-xs text-warning"
+            className="stg:mx-3 stg:mb-2 stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-warning/10 stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-warning"
           >
             <AlertTriangleIcon />
             <span>
@@ -1655,7 +1655,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
                 setConfigActivePanel("mcp");
               }}
               disabled={isDisabled}
-              className="ml-auto shrink-0 rounded px-1.5 py-0.5 text-[0.6rem] font-medium hover:bg-warning/20 disabled:pointer-events-none disabled:opacity-50"
+              className="stg:ml-auto stg:shrink-0 stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:hover:bg-warning/20 stg:disabled:pointer-events-none stg:disabled:opacity-50"
             >
               Configure
             </button>
@@ -1721,10 +1721,10 @@ export const SessionComposer = memo(SessionComposerInner);
 
 function AgentSetupError({ error }: { error: Error }) {
   if (isSecretFlowError(error)) {
-    return <SecretFlowErrorGuide error={error} className="mt-2" />;
+    return <SecretFlowErrorGuide error={error} className="stg:mt-2" />;
   }
   return (
-    <p className="mt-2 text-xs text-destructive">
+    <p className="stg:mt-2 stg:text-xs stg:text-destructive">
       {getUserMessage(error)}
     </p>
   );

@@ -130,8 +130,8 @@ export function ConnectWhatsAppDialog({
       open={modal ? undefined : open}
       onClose={handleClose}
       className={cn(
-        "w-full max-w-md rounded-xl border border-border bg-popover p-0 shadow-xl",
-        modal ? "fixed inset-0 m-auto backdrop:bg-black/50" : "relative",
+        "stg:w-full stg:max-w-md stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
+        modal ? "stg:fixed stg:inset-0 stg:m-auto stg:backdrop:bg-black/50" : "stg:relative",
       )}
       aria-labelledby="connect-whatsapp-title"
     >
@@ -309,12 +309,12 @@ function ConnectWhatsAppDialogBody({
   const canConnect = trimmedNumber !== "" && effectiveAppRef !== null && !busy;
 
   return (
-    <div className="flex flex-col">
+    <div className="stg:flex stg:flex-col">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
-        <div className="flex items-center gap-2.5">
-          <WhatsAppMarkIcon className="size-5 text-foreground" />
-          <h2 id="connect-whatsapp-title" className="text-sm font-semibold text-foreground">
+      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3 stg:border-b stg:border-border stg:px-5 stg:py-4">
+        <div className="stg:flex stg:items-center stg:gap-2.5">
+          <WhatsAppMarkIcon className="stg:size-5 stg:text-foreground" />
+          <h2 id="connect-whatsapp-title" className="stg:text-sm stg:font-semibold stg:text-foreground">
             {channel ? "Reconnect to WhatsApp" : "Connect to WhatsApp"}
           </h2>
         </div>
@@ -323,16 +323,16 @@ function ConnectWhatsAppDialogBody({
           onClick={onClose}
           aria-label="Close dialog"
           className={cn(
-            "rounded p-1 text-muted-foreground",
-            "hover:bg-accent-hover hover:text-foreground",
-            "focus:outline-none focus:ring-1 focus:ring-ring",
+            "stg:rounded stg:p-1 stg:text-muted-foreground",
+            "stg:hover:bg-accent-hover stg:hover:text-foreground",
+            "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
           )}
         >
           <CloseIcon />
         </button>
       </div>
 
-      <div className="space-y-4 px-5 py-4">
+      <div className="stg:space-y-4 stg:px-5 stg:py-4">
         {deploymentMode === "local" ? (
           // Preempt the doomed flow: the OSS backend answers every
           // install with FAILED_PRECONDITION.
@@ -349,8 +349,8 @@ function ConnectWhatsAppDialogBody({
         ) : (
           <>
             {!channel && (
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-medium text-foreground">
+              <label className="stg:block">
+                <span className="stg:mb-1.5 stg:block stg:text-xs stg:font-medium stg:text-foreground">
                   Channel name
                 </span>
                 <input
@@ -359,20 +359,20 @@ function ConnectWhatsAppDialogBody({
                   onChange={(e) => setName(e.target.value)}
                   disabled={busy}
                   className={cn(
-                    "w-full rounded-md border border-input bg-background px-3 py-1.5",
-                    "text-sm text-foreground placeholder:text-muted-foreground",
-                    "focus:outline-none focus:ring-1 focus:ring-ring",
+                    "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-3 stg:py-1.5",
+                    "stg:text-sm stg:text-foreground stg:placeholder:text-muted-foreground",
+                    "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
                   )}
                 />
-                <span className="mt-1 block text-xs text-muted-foreground">
+                <span className="stg:mt-1 stg:block stg:text-xs stg:text-muted-foreground">
                   Names the connection in Stigmer — pick something that
                   identifies the number if you connect more than one.
                 </span>
               </label>
             )}
 
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-medium text-foreground">
+            <label className="stg:block">
+              <span className="stg:mb-1.5 stg:block stg:text-xs stg:font-medium stg:text-foreground">
                 Phone number ID
               </span>
               <input
@@ -384,12 +384,12 @@ function ConnectWhatsAppDialogBody({
                 placeholder="106540352242922"
                 data-cursor-target="dialog-whatsapp-number"
                 className={cn(
-                  "w-full rounded-md border border-input bg-background px-3 py-1.5",
-                  "font-mono text-sm text-foreground placeholder:text-muted-foreground",
-                  "focus:outline-none focus:ring-1 focus:ring-ring",
+                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-3 stg:py-1.5",
+                  "stg:font-mono stg:text-sm stg:text-foreground stg:placeholder:text-muted-foreground",
+                  "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
                 )}
               />
-              <span className="mt-1 block text-xs text-muted-foreground">
+              <span className="stg:mt-1 stg:block stg:text-xs stg:text-muted-foreground">
                 From Meta&apos;s WhatsApp Manager (API Setup) — the numeric
                 ID of the number this agent should answer, not the phone
                 number itself.
@@ -406,7 +406,7 @@ function ConnectWhatsAppDialogBody({
               idPrefix="stgm-whatsapp-app"
               appHint="Your Meta app — its credentials verify and serve the number"
               emptyBody={
-                <p className="text-xs text-muted-foreground">
+                <p className="stg:text-xs stg:text-muted-foreground">
                   WhatsApp channels connect through your own Meta app — there
                   is no shared platform app.{" "}
                   <RegisterChannelAppAffordance channelAppsHref={channelAppsHref}>
@@ -432,19 +432,19 @@ function ConnectWhatsAppDialogBody({
               />
             )}
 
-            <p className="text-sm text-muted-foreground">
+            <p className="stg:text-sm stg:text-muted-foreground">
               When you continue, Stigmer verifies the number with WhatsApp
               through the selected app&apos;s credentials — the connection
               completes right here, with no browser hand-off.
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="stg:text-sm stg:text-muted-foreground">
               People reach the agent by sending a WhatsApp message to the
               connected number — it answers as{" "}
-              <span className="font-medium text-foreground">{agentName}</span>.
+              <span className="stg:font-medium stg:text-foreground">{agentName}</span>.
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="stg:text-xs stg:text-muted-foreground">
               Conversations from WhatsApp are billed to{" "}
-              <span className="font-medium">{org}</span>. Each number serves
+              <span className="stg:font-medium">{org}</span>. Each number serves
               one agent per channel app.
             </p>
 
@@ -456,7 +456,7 @@ function ConnectWhatsAppDialogBody({
       </div>
 
       {/* Footer */}
-      <div className="flex justify-end gap-2 border-t border-border px-5 py-3">
+      <div className="stg:flex stg:justify-end stg:gap-2 stg:border-t stg:border-border stg:px-5 stg:py-3">
         {installed || deploymentMode === "local" ? (
           <Button variant="outline" size="sm" onClick={onClose}>
             {installed ? "Done" : "Close"}
@@ -471,7 +471,7 @@ function ConnectWhatsAppDialogBody({
               size="sm"
               onClick={() => void handleConnect()}
               disabled={!canConnect}
-              icon={<WhatsAppMarkIcon className="size-3.5" />}
+              icon={<WhatsAppMarkIcon className="stg:size-3.5" />}
               data-cursor-target="dialog-connect-whatsapp"
             >
               {error ? "Try again" : channel ? "Reconnect to WhatsApp" : "Connect to WhatsApp"}
@@ -518,7 +518,7 @@ function InstallRefusal({
   return (
     <RefusalBox>
       <p>
-        <span className="font-medium">{number}</span> is already connected
+        <span className="stg:font-medium">{number}</span> is already connected
         to an agent through this channel app — each number serves one
         agent.
       </p>
@@ -547,7 +547,7 @@ function AlreadyServedNote({
   readonly channels: readonly AgentChannel[];
 }) {
   return (
-    <div role="status" className="space-y-0.5 text-xs text-warning">
+    <div role="status" className="stg:space-y-0.5 stg:text-xs stg:text-warning">
       {channels.map((c) => {
         const whatsapp =
           c.status?.providerStatus?.case === "whatsapp"
@@ -558,7 +558,7 @@ function AlreadyServedNote({
         const agent = c.spec?.agentRef?.slug || "another agent";
         return (
           <p key={c.metadata?.id ?? number}>
-            <span className="font-medium">{number}</span> is already served
+            <span className="stg:font-medium">{number}</span> is already served
             via {agent} — each number serves one agent per channel app, so
             disconnect that channel or pick a different number.
           </p>
@@ -580,8 +580,8 @@ function AlreadyServedNote({
  */
 function InstallingIndicator() {
   return (
-    <div className="flex items-center gap-2 text-sm text-foreground" aria-live="polite">
-      <Spinner className="size-3.5 shrink-0" />
+    <div className="stg:flex stg:items-center stg:gap-2 stg:text-sm stg:text-foreground" aria-live="polite">
+      <Spinner className="stg:size-3.5 stg:shrink-0" />
       Verifying the number with WhatsApp…
     </div>
   );
@@ -605,19 +605,19 @@ function InstalledSummary({
   const number = whatsapp?.displayPhoneNumber || whatsapp?.phoneNumberId || null;
 
   return (
-    <div className="space-y-2" role="status">
-      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-        <CheckIcon className="size-4 text-success" />
+    <div className="stg:space-y-2" role="status">
+      <div className="stg:flex stg:items-center stg:gap-2 stg:text-sm stg:font-medium stg:text-foreground">
+        <CheckIcon className="stg:size-4 stg:text-success" />
         Connected{number ? ` to ${number}` : ""}
         {whatsapp?.verifiedName ? ` (${whatsapp.verifiedName})` : ""}
       </div>
-      <p className="text-sm text-muted-foreground">
+      <p className="stg:text-sm stg:text-muted-foreground">
         Send a WhatsApp message to{" "}
-        <span className="font-medium text-foreground">
+        <span className="stg:font-medium stg:text-foreground">
           {number ?? "the connected number"}
         </span>{" "}
         and ask your question — answers come from{" "}
-        <span className="font-medium text-foreground">{agentName}</span>.
+        <span className="stg:font-medium stg:text-foreground">{agentName}</span>.
       </p>
     </div>
   );

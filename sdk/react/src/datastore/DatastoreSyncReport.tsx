@@ -33,34 +33,34 @@ export function DatastoreSyncReport({ status, className }: DatastoreSyncReportPr
 
   return (
     <Section title="Sync report" className={className}>
-      <div className="flex flex-col">
-        <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
+      <div className="stg:flex stg:flex-col">
+        <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2 stg:border-b stg:border-border stg:px-3 stg:py-2">
           <SyncOutcomeBadge outcome={status.lastSyncOutcome} />
           {syncedAt && (
-            <span className="text-xs text-muted-foreground">last synced {syncedAt}</span>
+            <span className="stg:text-xs stg:text-muted-foreground">last synced {syncedAt}</span>
           )}
         </div>
         {status.collections.length === 0 ? (
-          <p className="px-3 py-2 text-xs text-muted-foreground">
+          <p className="stg:px-3 stg:py-2 stg:text-xs stg:text-muted-foreground">
             No collections have been synced yet.
           </p>
         ) : (
-          <table className="w-full text-left text-xs">
+          <table className="stg:w-full stg:text-left stg:text-xs">
             <thead>
-              <tr className="border-b border-border text-muted-foreground">
-                <th scope="col" className="px-3 py-2 font-medium">Collection</th>
-                <th scope="col" className="px-3 py-2 font-medium">State</th>
-                <th scope="col" className="px-3 py-2 text-right font-medium">Records</th>
+              <tr className="stg:border-b stg:border-border stg:text-muted-foreground">
+                <th scope="col" className="stg:px-3 stg:py-2 stg:font-medium">Collection</th>
+                <th scope="col" className="stg:px-3 stg:py-2 stg:font-medium">State</th>
+                <th scope="col" className="stg:px-3 stg:py-2 stg:text-right stg:font-medium">Records</th>
               </tr>
             </thead>
             <tbody>
               {status.collections.map((coll) => (
-                <tr key={coll.name} className="border-b border-border last:border-b-0">
-                  <td className="px-3 py-2 font-mono text-foreground">{coll.name}</td>
-                  <td className="px-3 py-2">
+                <tr key={coll.name} className="stg:border-b stg:border-border stg:last:border-b-0">
+                  <td className="stg:px-3 stg:py-2 stg:font-mono stg:text-foreground">{coll.name}</td>
+                  <td className="stg:px-3 stg:py-2">
                     <MaterializationBadge state={coll.state} />
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-foreground">
+                  <td className="stg:px-3 stg:py-2 stg:text-right stg:tabular-nums stg:text-foreground">
                     {String(coll.recordCount)}
                   </td>
                 </tr>

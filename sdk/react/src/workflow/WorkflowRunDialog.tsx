@@ -126,27 +126,27 @@ export function WorkflowRunDialog({
       onCancel={handleDialogCancel}
       onClick={handleBackdropClick}
       className={cn(
-        "fixed inset-0 z-50 m-auto w-full max-w-lg rounded-lg border border-border bg-popover p-0 text-popover-foreground shadow-lg",
-        "backdrop:bg-black/50",
-        "open:animate-in open:fade-in-0 open:zoom-in-95",
+        "stg:fixed stg:inset-0 stg:z-50 stg:m-auto stg:w-full stg:max-w-lg stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:p-0 stg:text-popover-foreground stg:shadow-lg",
+        "stg:backdrop:bg-black/50",
+        "stg:open:animate-in stg:open:fade-in-0 stg:open:zoom-in-95",
       )}
     >
-      <div className="flex flex-col">
+      <div className="stg:flex stg:flex-col">
         {/* Header */}
-        <div className="border-b border-border px-6 py-4">
-          <h3 className="text-base font-semibold text-foreground">
+        <div className="stg:border-b stg:border-border stg:px-6 stg:py-4">
+          <h3 className="stg:text-base stg:font-semibold stg:text-foreground">
             Run {workflowName}
           </h3>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
             Configure inputs and start a new execution
           </p>
         </div>
 
         {/* Body */}
-        <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
+        <div className="stg:max-h-[60vh] stg:overflow-y-auto stg:px-6 stg:py-4">
           {flow.error && (
             <div
-              className="mb-4 rounded-md border border-destructive bg-destructive-muted px-3 py-2 text-sm text-destructive"
+              className="stg:mb-4 stg:rounded-md stg:border stg:border-destructive stg:bg-destructive-muted stg:px-3 stg:py-2 stg:text-sm stg:text-destructive"
               role="alert"
             >
               {flow.error}
@@ -172,17 +172,17 @@ export function WorkflowRunDialog({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 border-t border-border px-6 py-3">
+        <div className="stg:flex stg:justify-end stg:gap-2 stg:border-t stg:border-border stg:px-6 stg:py-3">
           <button
             type="button"
             onClick={() => onOpenChange(false)}
             disabled={flow.isSubmitting}
             className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-              "border border-input bg-background text-foreground",
-              "hover:bg-accent hover:text-accent-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+              "stg:border stg:border-input stg:bg-background stg:text-foreground",
+              "stg:hover:bg-accent stg:hover:text-accent-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             Cancel
@@ -192,10 +192,10 @@ export function WorkflowRunDialog({
             onClick={flow.submit}
             disabled={flow.isSubmitting}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-              "bg-primary text-primary-foreground hover:bg-primary-hover",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-40",
+              "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-40",
             )}
           >
             {flow.isSubmitting && <SpinnerIcon />}
@@ -221,7 +221,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

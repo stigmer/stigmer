@@ -69,10 +69,10 @@ function Trigger({
   return (
     <MenuTrigger
       className={cn(
-        "inline-flex items-center justify-center rounded-md p-1",
-        "text-muted-foreground hover:text-foreground hover:bg-accent",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        "data-popup-open:bg-accent data-popup-open:text-foreground",
+        "stg:inline-flex stg:items-center stg:justify-center stg:rounded-md stg:p-1",
+        "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+        "stg:data-popup-open:bg-accent stg:data-popup-open:text-foreground",
         className,
       )}
       aria-label={ariaLabel}
@@ -84,7 +84,7 @@ function Trigger({
 
 function Content({ children, align = "end", className }: ActionMenuContentProps) {
   return (
-    <InternalMenuContent align={align} className={cn("min-w-44", className)}>
+    <InternalMenuContent align={align} className={cn("stg:min-w-44", className)}>
       {children}
     </InternalMenuContent>
   );
@@ -104,14 +104,14 @@ function Item({
       variant={variant}
       disabled={disabled}
       onClick={onSelect}
-      className={cn("justify-between", className)}
+      className={cn("stg:justify-between", className)}
     >
-      <span className="flex items-center gap-2">
+      <span className="stg:flex stg:items-center stg:gap-2">
         {icon}
         <span>{children}</span>
       </span>
       {shortcut && (
-        <kbd className="ml-auto text-[11px] tracking-widest text-muted-foreground-subtle">
+        <kbd className="stg:ml-auto stg:text-[11px] stg:tracking-widest stg:text-muted-foreground-subtle">
           {shortcut}
         </kbd>
       )}

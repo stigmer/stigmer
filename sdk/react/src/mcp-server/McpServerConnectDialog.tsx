@@ -110,13 +110,13 @@ export function McpServerConnectDialog({
       onClose={handleDialogClose}
       onClick={handleBackdropClick}
       className={cn(
-        "m-auto max-h-[85vh] w-full max-w-md overflow-visible rounded-lg border border-border bg-card p-0 text-foreground shadow-lg",
-        "backdrop:bg-black/50",
+        "stg:m-auto stg:max-h-[85vh] stg:w-full stg:max-w-md stg:overflow-visible stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-0 stg:text-foreground stg:shadow-lg",
+        "stg:backdrop:bg-black/50",
         className,
       )}
     >
       <div
-        className="flex max-h-[85vh] flex-col overflow-y-auto p-6"
+        className="stg:flex stg:max-h-[85vh] stg:flex-col stg:overflow-y-auto stg:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <ConnectDialogContent
@@ -220,9 +220,9 @@ function ConnectDialogContent({
     return (
       <>
         <DialogHeader title="Connect MCP Server" onClose={onClose} />
-        <div className="flex flex-col items-center gap-3 py-8">
+        <div className="stg:flex stg:flex-col stg:items-center stg:gap-3 stg:py-8">
           <LoadingSpinner />
-          <p className="text-sm text-muted-foreground">Loading server details...</p>
+          <p className="stg:text-sm stg:text-muted-foreground">Loading server details...</p>
         </div>
       </>
     );
@@ -232,7 +232,7 @@ function ConnectDialogContent({
     return (
       <>
         <DialogHeader title="Connect MCP Server" onClose={onClose} />
-        <div className="py-4">
+        <div className="stg:py-4">
           <ErrorMessage error={serverError} />
         </div>
       </>
@@ -243,7 +243,7 @@ function ConnectDialogContent({
     return (
       <>
         <DialogHeader title="Connect MCP Server" onClose={onClose} />
-        <p className="py-4 text-sm text-muted-foreground">MCP server not found.</p>
+        <p className="stg:py-4 stg:text-sm stg:text-muted-foreground">MCP server not found.</p>
       </>
     );
   }
@@ -252,22 +252,22 @@ function ConnectDialogContent({
     return (
       <>
         <DialogHeader title="Connected" onClose={onClose} />
-        <div className="flex flex-col items-center gap-3 py-6">
+        <div className="stg:flex stg:flex-col stg:items-center stg:gap-3 stg:py-6">
           <SuccessIcon />
-          <p className="text-sm font-medium text-foreground">
+          <p className="stg:text-sm stg:font-medium stg:text-foreground">
             Successfully connected to {serverName}
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="stg:text-xs stg:text-muted-foreground">
             Tools and capabilities have been discovered.
           </p>
           <button
             type="button"
             onClick={onClose}
             className={cn(
-              "mt-2 inline-flex items-center rounded-md px-4 py-2 text-sm font-medium",
-              "bg-primary text-primary-foreground",
-              "hover:bg-primary-hover",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:mt-2 stg:inline-flex stg:items-center stg:rounded-md stg:px-4 stg:py-2 stg:text-sm stg:font-medium",
+              "stg:bg-primary stg:text-primary-foreground",
+              "stg:hover:bg-primary-hover",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           >
             Done
@@ -285,16 +285,16 @@ function ConnectDialogContent({
       <DialogHeader title={serverName} onClose={onClose} />
 
       {mcpServer.spec?.description && (
-        <p className="mb-4 text-xs leading-relaxed text-muted-foreground">
+        <p className="stg:mb-4 stg:text-xs stg:leading-relaxed stg:text-muted-foreground">
           {mcpServer.spec.description}
         </p>
       )}
 
-      <StdioSandboxNotice serverType={mcpServer.spec?.serverType} className="mb-4" />
-      <OAuthRequiredNotice oauthOnly={mcpServer.spec?.auth?.oauthOnly} className="mb-4" />
+      <StdioSandboxNotice serverType={mcpServer.spec?.serverType} className="stg:mb-4" />
+      <OAuthRequiredNotice oauthOnly={mcpServer.spec?.auth?.oauthOnly} className="stg:mb-4" />
 
       {activeError && (
-        <div className="mb-4">
+        <div className="stg:mb-4">
           <ErrorMessage
             error={activeError}
             title={
@@ -337,7 +337,7 @@ function ConnectDialogContent({
       )}
 
       {creds.missingVariables.length > 0 && (
-        <div className="mt-2">
+        <div className="stg:mt-2">
           <EnvVarForm
             variables={creds.missingVariables}
             onSubmit={(values) => handleCredentialSubmit(values)}
@@ -353,7 +353,7 @@ function ConnectDialogContent({
           type="button"
           onClick={() => creds.setManualOverride(false)}
           disabled={isConnectingPhase}
-          className="mt-2 text-xs text-muted-foreground underline hover:text-foreground"
+          className="stg:mt-2 stg:text-xs stg:text-muted-foreground stg:underline stg:hover:text-foreground"
         >
           Sign in with OAuth instead
         </button>
@@ -365,11 +365,11 @@ function ConnectDialogContent({
           onClick={handleConnect}
           disabled={isConnectingPhase}
           className={cn(
-            "mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium",
-            "bg-primary text-primary-foreground",
-            "hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-50",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:mt-4 stg:inline-flex stg:w-full stg:items-center stg:justify-center stg:gap-2 stg:rounded-md stg:px-4 stg:py-2 stg:text-sm stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground",
+            "stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           {isConnectingPhase && <LoadingSpinner size="sm" />}
@@ -383,11 +383,11 @@ function ConnectDialogContent({
           onClick={handleConnect}
           disabled={isConnectingPhase}
           className={cn(
-            "mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium",
-            "bg-primary text-primary-foreground",
-            "hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-50",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:mt-4 stg:inline-flex stg:w-full stg:items-center stg:justify-center stg:gap-2 stg:rounded-md stg:px-4 stg:py-2 stg:text-sm stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground",
+            "stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           {isConnectingPhase && <LoadingSpinner size="sm" />}
@@ -398,7 +398,7 @@ function ConnectDialogContent({
       {!creds.isReady &&
         creds.missingVariables.length === 0 &&
         creds.authMode === "manual" && (
-          <p className="mt-4 text-center text-xs text-muted-foreground">
+          <p className="stg:mt-4 stg:text-center stg:text-xs stg:text-muted-foreground">
             No credentials required — this server is ready to connect.
           </p>
         )}
@@ -418,13 +418,13 @@ function DialogHeader({
   readonly onClose: () => void;
 }) {
   return (
-    <div className="mb-4 flex items-start justify-between gap-3">
-      <h2 className="text-base font-semibold text-foreground">{title}</h2>
+    <div className="stg:mb-4 stg:flex stg:items-start stg:justify-between stg:gap-3">
+      <h2 className="stg:text-base stg:font-semibold stg:text-foreground">{title}</h2>
       <button
         type="button"
         onClick={onClose}
         aria-label="Close"
-        className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="stg:inline-flex stg:size-7 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-md stg:text-muted-foreground stg:transition-colors stg:hover:bg-accent stg:hover:text-accent-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
       >
         <CloseIcon />
       </button>
@@ -450,9 +450,9 @@ function OAuthSection({
 }) {
   if (isConnected) {
     return (
-      <div className="flex items-center gap-2 rounded-md border border-border bg-muted-faint px-3 py-2">
-        <span className="size-2 shrink-0 rounded-full bg-green-500" />
-        <span className="text-sm text-foreground">OAuth connected</span>
+      <div className="stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:border stg:border-border stg:bg-muted-faint stg:px-3 stg:py-2">
+        <span className="stg:size-2 stg:shrink-0 stg:rounded-full stg:bg-green-500" />
+        <span className="stg:text-sm stg:text-foreground">OAuth connected</span>
       </div>
     );
   }
@@ -466,24 +466,24 @@ function OAuthSection({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="stg:flex stg:flex-col stg:gap-2">
       <button
         type="button"
         onClick={onSignIn}
         disabled={disabled || isInProgress || isVendorApprovalBlocked}
         className={cn(
-          "inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium",
-          "bg-primary text-primary-foreground",
-          "hover:bg-primary-hover",
-          "disabled:pointer-events-none disabled:opacity-50",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "stg:inline-flex stg:w-full stg:items-center stg:justify-center stg:gap-2 stg:rounded-md stg:px-4 stg:py-2 stg:text-sm stg:font-medium",
+          "stg:bg-primary stg:text-primary-foreground",
+          "stg:hover:bg-primary-hover",
+          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         )}
       >
         {isInProgress && <LoadingSpinner size="sm" />}
         {isInProgress ? (phaseLabel[phase] ?? "Connecting...") : "Sign in with OAuth"}
       </button>
       {isVendorApprovalBlocked && onSwitchToManual && (
-        <p className="text-xs text-muted-foreground">
+        <p className="stg:text-xs stg:text-muted-foreground">
           OAuth sign-in is pending vendor approval. You can enter your token manually instead.
         </p>
       )}
@@ -492,7 +492,7 @@ function OAuthSection({
           type="button"
           onClick={onSwitchToManual}
           disabled={disabled || isInProgress}
-          className="text-xs text-muted-foreground underline hover:text-foreground"
+          className="stg:text-xs stg:text-muted-foreground stg:underline stg:hover:text-foreground"
         >
           Enter token manually
         </button>
@@ -502,10 +502,10 @@ function OAuthSection({
 }
 
 function LoadingSpinner({ size = "md" }: { readonly size?: "sm" | "md" }) {
-  const cls = size === "sm" ? "size-3.5" : "size-5";
+  const cls = size === "sm" ? "stg:size-3.5" : "stg:size-5";
   return (
     <svg
-      className={cn(cls, "animate-spin text-current")}
+      className={cn(cls, "stg:animate-spin stg:text-current")}
       viewBox="0 0 24 24"
       fill="none"
       aria-hidden="true"
@@ -517,14 +517,14 @@ function LoadingSpinner({ size = "md" }: { readonly size?: "sm" | "md" }) {
         stroke="currentColor"
         strokeWidth="3"
         strokeLinecap="round"
-        className="opacity-25"
+        className="stg:opacity-25"
       />
       <path
         d="M12 2a10 10 0 0 1 10 10"
         stroke="currentColor"
         strokeWidth="3"
         strokeLinecap="round"
-        className="opacity-75"
+        className="stg:opacity-75"
       />
     </svg>
   );
@@ -533,7 +533,7 @@ function LoadingSpinner({ size = "md" }: { readonly size?: "sm" | "md" }) {
 function SuccessIcon() {
   return (
     <svg
-      className="size-10 text-green-500"
+      className="stg:size-10 stg:text-green-500"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -551,7 +551,7 @@ function SuccessIcon() {
 function CloseIcon() {
   return (
     <svg
-      className="size-4"
+      className="stg:size-4"
       viewBox="0 0 16 16"
       fill="none"
       stroke="currentColor"

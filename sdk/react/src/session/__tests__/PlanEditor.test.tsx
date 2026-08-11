@@ -103,8 +103,8 @@ describe("PlanEditor", () => {
     expect(buildLabel.className).toContain("truncate");
     const toolbar = screen.getByRole("tablist", { name: "Plan view" })
       .parentElement!;
-    expect(toolbar.className).toContain("flex-wrap");
-    expect(toolbar.className).toContain("min-w-0");
+    expect(toolbar.className).toContain("stg:flex-wrap");
+    expect(toolbar.className).toContain("stg:min-w-0");
   });
 
   it("shows a pending label and disables the primary while the build starts", async () => {

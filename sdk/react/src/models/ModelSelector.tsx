@@ -353,26 +353,26 @@ export function ModelSelector({
       <Popover.Trigger
         disabled={disabled}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-md border border-border",
-          "bg-background px-2.5 py-1.5 text-xs text-foreground",
-          "hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          "disabled:pointer-events-none disabled:opacity-50",
-          "transition-colors max-w-[20rem] max-sm:max-w-[12rem]",
+          "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border",
+          "stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+          "stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+          "stg:transition-colors stg:max-w-[20rem] stg:max-sm:max-w-[12rem]",
           className,
         )}
       >
         {triggerHarness && (
-          <span className="shrink-0 text-muted-foreground">{triggerHarness}</span>
+          <span className="stg:shrink-0 stg:text-muted-foreground">{triggerHarness}</span>
         )}
         {triggerHarness && (
-          <span className="shrink-0 text-border" aria-hidden>·</span>
+          <span className="stg:shrink-0 stg:text-border" aria-hidden>·</span>
         )}
-        <span className="truncate">{triggerLabel}</span>
+        <span className="stg:truncate">{triggerLabel}</span>
         {fastActive && (
           <span
             className={cn(
-              "inline-flex shrink-0 items-center gap-0.5 rounded-full border border-primary px-1.5 py-px",
-              "text-[0.6rem] font-medium uppercase tracking-wider text-primary",
+              "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-0.5 stg:rounded-full stg:border stg:border-primary stg:px-1.5 stg:py-px",
+              "stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-primary",
             )}
           >
             <BoltIcon />
@@ -388,13 +388,13 @@ export function ModelSelector({
             role="dialog"
             aria-label="Model selector"
             className={cn(
-              "z-popover w-72 rounded-lg border border-border bg-popover shadow-md",
-              "text-popover-foreground",
+              "stg:z-popover stg:w-72 stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:shadow-md",
+              "stg:text-popover-foreground",
             )}
           >
             {/* Harness selector — inline label + compact dropdown; disabled when locked */}
-            <div className="relative flex items-center justify-between border-b border-border px-3 py-2">
-              <span className="text-xs text-muted-foreground">Harness</span>
+            <div className="stg:relative stg:flex stg:items-center stg:justify-between stg:border-b stg:border-border stg:px-3 stg:py-2">
+              <span className="stg:text-xs stg:text-muted-foreground">Harness</span>
               <button
                 type="button"
                 aria-haspopup="listbox"
@@ -402,13 +402,13 @@ export function ModelSelector({
                 aria-label="Select harness"
                 disabled={isHarnessLocked}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md border border-border",
-                  "bg-background px-2.5 py-1.5 text-xs text-foreground",
-                  "transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border",
+                  "stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+                  "stg:transition-colors",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                   isHarnessLocked
-                    ? "cursor-not-allowed opacity-50"
-                    : "hover:bg-accent-hover",
+                    ? "stg:cursor-not-allowed stg:opacity-50"
+                    : "stg:hover:bg-accent-hover",
                 )}
                 onClick={() => {
                   if (!isHarnessLocked) setHarnessOpen(!harnessOpen);
@@ -429,8 +429,8 @@ export function ModelSelector({
                   role="listbox"
                   aria-label="Available harnesses"
                   className={cn(
-                    "absolute right-3 top-full z-10 mt-1 overflow-hidden rounded-md border border-border",
-                    "bg-popover shadow-md",
+                    "stg:absolute stg:right-3 stg:top-full stg:z-10 stg:mt-1 stg:overflow-hidden stg:rounded-md stg:border stg:border-border",
+                    "stg:bg-popover stg:shadow-md",
                   )}
                 >
                   {resolvedHarnesses.map((h) => {
@@ -442,17 +442,17 @@ export function ModelSelector({
                         role="option"
                         aria-selected={isActive}
                         className={cn(
-                          "flex w-full items-center gap-2 px-2.5 py-1.5 text-xs transition-colors",
-                          "hover:bg-accent-hover",
-                          isActive && "font-medium",
+                          "stg:flex stg:w-full stg:items-center stg:gap-2 stg:px-2.5 stg:py-1.5 stg:text-xs stg:transition-colors",
+                          "stg:hover:bg-accent-hover",
+                          isActive && "stg:font-medium",
                         )}
                         onClick={() => {
                           handleHarnessChange(h);
                           setHarnessOpen(false);
                         }}
                       >
-                        <span className="flex-1 text-left">{HARNESS_META[h].label}</span>
-                        {isActive && <CheckIcon className="shrink-0 text-primary" />}
+                        <span className="stg:flex-1 stg:text-left">{HARNESS_META[h].label}</span>
+                        {isActive && <CheckIcon className="stg:shrink-0 stg:text-primary" />}
                       </button>
                     );
                   })}
@@ -466,10 +466,10 @@ export function ModelSelector({
                 Rendered only while the selected model prices a fast
                 variant (#357). */}
             {showServiceTierToggle && (
-              <div className="flex items-center justify-between border-b border-border px-3 py-2">
-                <div className="flex flex-col">
-                  <span className="text-xs text-foreground">Fast tier</span>
-                  <span className="text-[0.65rem] text-muted-foreground">
+              <div className="stg:flex stg:items-center stg:justify-between stg:border-b stg:border-border stg:px-3 stg:py-2">
+                <div className="stg:flex stg:flex-col">
+                  <span className="stg:text-xs stg:text-foreground">Fast tier</span>
+                  <span className="stg:text-[0.65rem] stg:text-muted-foreground">
                     Faster responses at higher per-token rates
                   </span>
                 </div>
@@ -484,7 +484,7 @@ export function ModelSelector({
             )}
 
             {/* Search input */}
-            <div className="border-b border-border px-3 py-1.5">
+            <div className="stg:border-b stg:border-border stg:px-3 stg:py-1.5">
               <input
                 ref={searchRef}
                 role="searchbox"
@@ -494,8 +494,8 @@ export function ModelSelector({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 className={cn(
-                  "w-full bg-transparent text-xs text-foreground placeholder:text-muted-foreground",
-                  "outline-none",
+                  "stg:w-full stg:bg-transparent stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground",
+                  "stg:outline-none",
                 )}
               />
             </div>
@@ -505,23 +505,23 @@ export function ModelSelector({
               ref={listRef}
               role="listbox"
               aria-label="Available models"
-              className="max-h-72 overflow-y-auto p-1"
+              className="stg:max-h-72 stg:overflow-y-auto stg:p-1"
             >
               {visibleModels.length === 0 && isLoading && (
-                <div className="flex items-center justify-center gap-2 px-2 py-3">
-                  <div className="size-3 animate-spin rounded-full border border-muted border-t-primary" />
-                  <span className="text-xs text-muted-foreground">Loading models…</span>
+                <div className="stg:flex stg:items-center stg:justify-center stg:gap-2 stg:px-2 stg:py-3">
+                  <div className="stg:size-3 stg:animate-spin stg:rounded-full stg:border stg:border-muted stg:border-t-primary" />
+                  <span className="stg:text-xs stg:text-muted-foreground">Loading models…</span>
                 </div>
               )}
 
               {visibleModels.length === 0 && !isLoading && error != null && (
-                <div className="flex flex-col items-center gap-1.5 px-2 py-3">
-                  <span className="text-xs text-muted-foreground">Failed to load models</span>
+                <div className="stg:flex stg:flex-col stg:items-center stg:gap-1.5 stg:px-2 stg:py-3">
+                  <span className="stg:text-xs stg:text-muted-foreground">Failed to load models</span>
                   <button
                     type="button"
                     className={cn(
-                      "rounded-md border border-border bg-background px-2.5 py-1 text-xs text-foreground",
-                      "hover:bg-accent-hover transition-colors cursor-pointer",
+                      "stg:rounded-md stg:border stg:border-border stg:bg-background stg:px-2.5 stg:py-1 stg:text-xs stg:text-foreground",
+                      "stg:hover:bg-accent-hover stg:transition-colors stg:cursor-pointer",
                     )}
                     onClick={refetch}
                   >
@@ -531,7 +531,7 @@ export function ModelSelector({
               )}
 
               {visibleModels.length === 0 && !isLoading && error == null && (
-                <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+                <div className="stg:px-2 stg:py-3 stg:text-center stg:text-xs stg:text-muted-foreground">
                   No models found
                 </div>
               )}
@@ -540,7 +540,7 @@ export function ModelSelector({
               {groupedModels ? (
                 Array.from(groupedModels.entries()).map(([group, groupModels]) => (
                   <div key={group}>
-                    <div className="px-2 pb-0.5 pt-2 text-[0.6rem] font-medium uppercase tracking-wider text-muted-foreground">
+                    <div className="stg:px-2 stg:pb-0.5 stg:pt-2 stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
                       {group}
                     </div>
                     {groupModels.map((model) => (
@@ -575,9 +575,9 @@ export function ModelSelector({
                 <button
                   type="button"
                   className={cn(
-                    "mt-1 flex w-full items-center justify-center rounded-md border border-dashed border-border",
-                    "px-2 py-1.5 text-xs text-muted-foreground",
-                    "hover:bg-accent-hover hover:text-foreground transition-colors cursor-pointer",
+                    "stg:mt-1 stg:flex stg:w-full stg:items-center stg:justify-center stg:rounded-md stg:border stg:border-dashed stg:border-border",
+                    "stg:px-2 stg:py-1.5 stg:text-xs stg:text-muted-foreground",
+                    "stg:hover:bg-accent-hover stg:hover:text-foreground stg:transition-colors stg:cursor-pointer",
                   )}
                   onClick={() => setShowAll(true)}
                 >
@@ -618,28 +618,28 @@ function ModelRow({
       aria-selected={isSelected}
       type="button"
       className={cn(
-        "flex w-full cursor-pointer flex-col rounded-md px-2 py-1.5 text-xs outline-none",
-        "transition-colors",
-        isHighlighted && "bg-accent text-accent-foreground",
-        !isHighlighted && "hover:bg-accent-hover",
+        "stg:flex stg:w-full stg:cursor-pointer stg:flex-col stg:rounded-md stg:px-2 stg:py-1.5 stg:text-xs stg:outline-none",
+        "stg:transition-colors",
+        isHighlighted && "stg:bg-accent stg:text-accent-foreground",
+        !isHighlighted && "stg:hover:bg-accent-hover",
       )}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
     >
-      <div className="flex w-full items-center gap-2">
-        <span className="flex-1 truncate text-left font-medium">{model.displayName}</span>
+      <div className="stg:flex stg:w-full stg:items-center stg:gap-2">
+        <span className="stg:flex-1 stg:truncate stg:text-left stg:font-medium">{model.displayName}</span>
 
-        <span className="shrink-0 text-[0.6rem] text-muted-foreground">
+        <span className="stg:shrink-0 stg:text-[0.6rem] stg:text-muted-foreground">
           {showSpeedBadge
             ? `${SPEED_TIER_LABEL[model.speedTier]} ${COST_TIER_LABEL[model.costTier]}`
             : COST_TIER_LABEL[model.costTier]}
         </span>
 
-        {isSelected && <CheckIcon className="shrink-0 text-primary" />}
+        {isSelected && <CheckIcon className="stg:shrink-0 stg:text-primary" />}
       </div>
 
       {showDescription && model.shortDescription && (
-        <span className="mt-0.5 block text-left text-[0.65rem] text-muted-foreground">
+        <span className="stg:mt-0.5 stg:block stg:text-left stg:text-[0.65rem] stg:text-muted-foreground">
           {model.shortDescription}
         </span>
       )}
@@ -650,7 +650,7 @@ function ModelRow({
 function ChevronIcon() {
   return (
     <svg
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
       width="10"
       height="10"
       viewBox="0 0 10 10"
@@ -686,7 +686,7 @@ function CheckIcon({ className }: { className?: string }) {
 function BoltIcon() {
   return (
     <svg
-      className="shrink-0"
+      className="stg:shrink-0"
       width="8"
       height="10"
       viewBox="0 0 8 10"

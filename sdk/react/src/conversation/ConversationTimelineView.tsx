@@ -113,15 +113,15 @@ export function ConversationTimelineView({
     <TooltipProvider>
       <div
         aria-label="Conversation timeline"
-        className={cn("relative flex min-h-0 flex-1 flex-col", className)}
+        className={cn("stg:relative stg:flex stg:min-h-0 stg:flex-1 stg:flex-col", className)}
       >
         <div
           ref={scrollRef}
-          className="min-h-0 flex-1 overflow-y-auto [overflow-anchor:none] px-4 py-3"
+          className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:[overflow-anchor:none] stg:px-4 stg:py-3"
         >
           {!showsCustomerMessages && descriptor && (
-            <div className="mb-3 flex items-start gap-2 rounded-md border border-border bg-muted-faint px-3 py-2 text-xs text-muted-foreground">
-              <Info aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+            <div className="stg:mb-3 stg:flex stg:items-start stg:gap-2 stg:rounded-md stg:border stg:border-border stg:bg-muted-faint stg:px-3 stg:py-2 stg:text-xs stg:text-muted-foreground">
+              <Info aria-hidden="true" className="stg:mt-0.5 stg:size-3.5 stg:shrink-0" />
               <p>
                 Customer messages on {descriptor.label} channels aren&apos;t shown
                 here yet — this thread has replies, sends, and internal events only.
@@ -132,20 +132,20 @@ export function ConversationTimelineView({
           {isLoading ? (
             <TimelineSkeleton />
           ) : error ? (
-            <p className="px-2 py-6 text-center text-sm text-destructive">
+            <p className="stg:px-2 stg:py-6 stg:text-center stg:text-sm stg:text-destructive">
               {getUserMessage(error)}
             </p>
           ) : items.length === 0 ? (
             <EmptyState
               variant="first-use"
-              icon={<MessageSquare className="size-8" />}
+              icon={<MessageSquare className="stg:size-8" />}
               title="No messages yet"
               description="The conversation's messages appear here as they happen."
             />
           ) : (
             <div ref={contentRef}>
               {hasOlder && (
-                <div className="flex justify-center pb-2">
+                <div className="stg:flex stg:justify-center stg:pb-2">
                   <Button
                     variant="ghost"
                     size="xs"
@@ -159,12 +159,12 @@ export function ConversationTimelineView({
               {days.map((day) => (
                 <div key={day.label}>
                   <div
-                    className="my-2 text-center text-xs text-muted-foreground-faint"
+                    className="stg:my-2 stg:text-center stg:text-xs stg:text-muted-foreground-faint"
                     role="separator"
                   >
                     {day.label}
                   </div>
-                  <ul className="space-y-1.5">
+                  <ul className="stg:space-y-1.5">
                     {day.items.map((item) => (
                       <TimelineItemRow
                         key={item.itemId}
@@ -238,15 +238,15 @@ const TimelineItemRow = memo(function TimelineItemRow({
       : null;
 
   return (
-    <li className={cn("flex", isCustomer ? "justify-start" : "justify-end")}>
+    <li className={cn("stg:flex", isCustomer ? "stg:justify-start" : "stg:justify-end")}>
       <div
         className={cn(
-          "max-w-[80%] rounded-lg px-3 py-2",
-          isCustomer ? "bg-muted-subtle" : "bg-primary-subtle",
+          "stg:max-w-[80%] stg:rounded-lg stg:px-3 stg:py-2",
+          isCustomer ? "stg:bg-muted-subtle" : "stg:bg-primary-subtle",
         )}
       >
         {!isCustomer && (
-          <p className="text-xs font-medium text-muted-foreground">
+          <p className="stg:text-xs stg:font-medium stg:text-muted-foreground">
             {BUSINESS_CAPTION[author]}
           </p>
         )}
@@ -254,7 +254,7 @@ const TimelineItemRow = memo(function TimelineItemRow({
           <ConversationMediaAttachment
             media={item.media}
             address={mediaAddress}
-            className={item.text ? "mb-1.5" : undefined}
+            className={item.text ? "stg:mb-1.5" : undefined}
           />
         )}
         {/* A media item without a caption is complete as its media —
@@ -262,15 +262,15 @@ const TimelineItemRow = memo(function TimelineItemRow({
         {(body || mediaAddress === null) && (
           <p
             className={cn(
-              "whitespace-pre-wrap break-words text-sm text-foreground",
-              !item.text && "italic text-muted-foreground",
+              "stg:whitespace-pre-wrap stg:break-words stg:text-sm stg:text-foreground",
+              !item.text && "stg:italic stg:text-muted-foreground",
             )}
           >
             {body || "Message content unavailable"}
           </p>
         )}
         {receiptExplanation !== null && (
-          <p className="mt-1 break-words text-xs text-destructive">
+          <p className="stg:mt-1 stg:break-words stg:text-xs stg:text-destructive">
             {receiptExplanation}
           </p>
         )}
@@ -323,30 +323,30 @@ function ItemFooter({ item }: { readonly item: ConversationTimelineItem }) {
     : "";
 
   return (
-    <p className="mt-1 flex items-center justify-end gap-1 text-xs text-muted-foreground-faint">
+    <p className="stg:mt-1 stg:flex stg:items-center stg:justify-end stg:gap-1 stg:text-xs stg:text-muted-foreground-faint">
       <span>{time}</span>
       {attempt === "failed" && (
         <StatusHint
           hint="The platform could not deliver this message"
-          className="flex items-center gap-0.5 text-destructive"
+          className="stg:flex stg:items-center stg:gap-0.5 stg:text-destructive"
         >
-          <TriangleAlert aria-hidden="true" className="size-3" />
+          <TriangleAlert aria-hidden="true" className="stg:size-3" />
           Not delivered
         </StatusHint>
       )}
       {attempt === "suppressed" && (
         <StatusHint
           hint="Withheld because a human had the conversation when it came due"
-          className="flex items-center gap-0.5"
+          className="stg:flex stg:items-center stg:gap-0.5"
         >
-          <Ban aria-hidden="true" className="size-3" />
+          <Ban aria-hidden="true" className="stg:size-3" />
           Held
         </StatusHint>
       )}
       {(attempt === "pending" || attempt === "delivering") && (
-        <StatusHint hint="Sending" className="flex items-center gap-0.5">
-          <Clock aria-hidden="true" className="size-3" />
-          <span className="sr-only">Sending</span>
+        <StatusHint hint="Sending" className="stg:flex stg:items-center stg:gap-0.5">
+          <Clock aria-hidden="true" className="stg:size-3" />
+          <span className="stg:sr-only">Sending</span>
         </StatusHint>
       )}
       {attempt === "delivered" && <ReceiptTicks item={item} />}
@@ -366,34 +366,34 @@ function ReceiptTicks({ item }: { readonly item: ConversationTimelineItem }) {
     return (
       <StatusHint
         hint="The provider accepted this message but could not deliver it"
-        className="flex items-center gap-0.5 text-destructive"
+        className="stg:flex stg:items-center stg:gap-0.5 stg:text-destructive"
       >
-        <TriangleAlert aria-hidden="true" className="size-3" />
+        <TriangleAlert aria-hidden="true" className="stg:size-3" />
         Delivery failed
       </StatusHint>
     );
   }
   if (receipt === "read") {
     return (
-      <StatusHint hint="Read by the customer" className="text-primary">
-        <CheckCheck aria-hidden="true" className="size-3.5" />
-        <span className="sr-only">Read</span>
+      <StatusHint hint="Read by the customer" className="stg:text-primary">
+        <CheckCheck aria-hidden="true" className="stg:size-3.5" />
+        <span className="stg:sr-only">Read</span>
       </StatusHint>
     );
   }
   if (receipt === "delivered") {
     return (
       <StatusHint hint="Delivered to the customer's device">
-        <CheckCheck aria-hidden="true" className="size-3.5" />
-        <span className="sr-only">Delivered</span>
+        <CheckCheck aria-hidden="true" className="stg:size-3.5" />
+        <span className="stg:sr-only">Delivered</span>
       </StatusHint>
     );
   }
   // Handed to the provider; no (further) receipt yet.
   return (
     <StatusHint hint="Sent">
-      <Check aria-hidden="true" className="size-3.5" />
-      <span className="sr-only">Sent</span>
+      <Check aria-hidden="true" className="stg:size-3.5" />
+      <span className="stg:sr-only">Sent</span>
     </StatusHint>
   );
 }
@@ -409,25 +409,25 @@ function InternalEventRow({ item }: { readonly item: ConversationTimelineItem })
   const isEscalation = author === "agent" && item.text !== "";
 
   return (
-    <li className="flex justify-center">
+    <li className="stg:flex stg:justify-center">
       <div
         className={cn(
-          "flex max-w-[90%] items-start gap-1.5 rounded-md px-3 py-1.5 text-center text-xs",
+          "stg:flex stg:max-w-[90%] stg:items-start stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-center stg:text-xs",
           isEscalation
-            ? "bg-destructive-subtle text-destructive"
-            : "bg-muted-faint text-muted-foreground",
+            ? "stg:bg-destructive-subtle stg:text-destructive"
+            : "stg:bg-muted-faint stg:text-muted-foreground",
         )}
       >
         {isEscalation ? (
           <>
-            <TriangleAlert aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
-            <span className="min-w-0 break-words">
+            <TriangleAlert aria-hidden="true" className="stg:mt-0.5 stg:size-3.5 stg:shrink-0" />
+            <span className="stg:min-w-0 stg:break-words">
               Agent escalated to a human — “{item.text}”
             </span>
           </>
         ) : item.text !== "" ? (
           // A future internal note flows through with zero code change.
-          <span className="min-w-0 break-words">{item.text}</span>
+          <span className="stg:min-w-0 stg:break-words">{item.text}</span>
         ) : (
           <span>A teammate resolved the attention flag</span>
         )}
@@ -438,10 +438,10 @@ function InternalEventRow({ item }: { readonly item: ConversationTimelineItem })
 
 function TimelineSkeleton() {
   return (
-    <div className="space-y-2" aria-hidden="true">
-      <div className="h-10 w-3/5 animate-pulse rounded-lg bg-muted-faint" />
-      <div className="ml-auto h-10 w-3/5 animate-pulse rounded-lg bg-muted-faint" />
-      <div className="h-10 w-2/5 animate-pulse rounded-lg bg-muted-faint" />
+    <div className="stg:space-y-2" aria-hidden="true">
+      <div className="stg:h-10 stg:w-3/5 stg:animate-pulse stg:rounded-lg stg:bg-muted-faint" />
+      <div className="stg:ml-auto stg:h-10 stg:w-3/5 stg:animate-pulse stg:rounded-lg stg:bg-muted-faint" />
+      <div className="stg:h-10 stg:w-2/5 stg:animate-pulse stg:rounded-lg stg:bg-muted-faint" />
     </div>
   );
 }

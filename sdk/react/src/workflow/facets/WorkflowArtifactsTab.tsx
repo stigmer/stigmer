@@ -46,8 +46,8 @@ export function WorkflowArtifactsTab({
 
   if (entries.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
-        <p className="text-xs text-muted-foreground">
+      <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:px-4 stg:py-8 stg:text-center">
+        <p className="stg:text-xs stg:text-muted-foreground">
           No artifacts yet. Files produced by workflow tasks will appear here.
         </p>
       </div>
@@ -55,7 +55,7 @@ export function WorkflowArtifactsTab({
   }
 
   return (
-    <ul role="list" className="flex flex-col">
+    <ul role="list" className="stg:flex stg:flex-col">
       {entries.map(({ artifact, item }) => (
         <WorkflowArtifactRow
           key={artifact.metadata?.id ?? item.name}

@@ -107,8 +107,8 @@ export function ScopeToggle({
       aria-label="Resource scope"
       aria-disabled={disabled || undefined}
       className={cn(
-        "inline-flex rounded-md bg-muted p-0.5",
-        disabled && "pointer-events-none opacity-50",
+        "stg:inline-flex stg:rounded-md stg:bg-muted stg:p-0.5",
+        disabled && "stg:pointer-events-none stg:opacity-50",
         className,
       )}
     >
@@ -132,14 +132,14 @@ export function ScopeToggle({
             onClick={() => handleSelect(option.value)}
             onKeyDown={(e) => handleKeyDown(e, index)}
             className={cn(
-              "inline-flex cursor-pointer items-center gap-1 rounded-sm px-2 py-1 text-xs font-medium transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:inline-flex stg:cursor-pointer stg:items-center stg:gap-1 stg:rounded-sm stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
               isSelected
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
+                ? "stg:bg-background stg:text-foreground stg:shadow-sm"
+                : "stg:text-muted-foreground stg:hover:text-foreground",
             )}
           >
-            <Icon className="size-3" />
+            <Icon className="stg:size-3" />
             {!compact && option.label}
           </button>
         );

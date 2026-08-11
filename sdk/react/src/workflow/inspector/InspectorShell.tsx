@@ -66,10 +66,10 @@ export const InspectorShell = memo(function InspectorShell({
 }: InspectorShellProps) {
   if (!selection || !graph) {
     return (
-      <div className={cn("flex h-full flex-col", className)}>
+      <div className={cn("stg:flex stg:h-full stg:flex-col", className)}>
         {emptyState ?? (
-          <div className="flex flex-1 items-center justify-center p-4">
-            <span className="text-xs text-[var(--stgm-muted-foreground,#737373)]">
+          <div className="stg:flex stg:flex-1 stg:items-center stg:justify-center stg:p-4">
+            <span className="stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">
               Select a task or connection to inspect
             </span>
           </div>
@@ -175,7 +175,7 @@ function NodeInspectorShell({
   const nodeErrors = validationErrors?.get(node.id);
 
   return (
-    <div className={cn("flex h-full flex-col", className)}>
+    <div className={cn("stg:flex stg:h-full stg:flex-col", className)}>
       <InspectorHeader
         identity={identity}
         graph={graph}
@@ -188,9 +188,9 @@ function NodeInspectorShell({
         activeTab={activeTab}
         onTabChange={handleTabChange}
         aria-label="Task configuration"
-        className="min-h-0 flex-1"
+        className="stg:min-h-0 stg:flex-1"
       >
-        <div className="overflow-y-auto">
+        <div className="stg:overflow-y-auto">
           {activeTab === "configure" && (
             <ConfigureTab
               node={node}

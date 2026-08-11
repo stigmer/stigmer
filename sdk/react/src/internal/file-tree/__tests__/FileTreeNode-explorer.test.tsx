@@ -81,6 +81,6 @@ describe("FileTreeNode — explorer props", () => {
     );
     // The nested group carries the guide border class.
     const group = container.querySelector('ul[role="group"]');
-    expect(group?.className).toContain("border-l");
+    expect(group?.className).toContain("stg:border-l");
   });
 });

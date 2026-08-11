@@ -42,7 +42,7 @@ export function ColumnHeader({
       <th
         scope="col"
         className={cn(
-          "px-3 py-2 text-left text-xs font-medium text-muted-foreground",
+          "stg:px-3 stg:py-2 stg:text-left stg:text-xs stg:font-medium stg:text-muted-foreground",
           className,
         )}
       >
@@ -56,7 +56,7 @@ export function ColumnHeader({
       scope="col"
       aria-sort={ariaSort}
       className={cn(
-        "px-3 py-2 text-left text-xs font-medium text-muted-foreground",
+        "stg:px-3 stg:py-2 stg:text-left stg:text-xs stg:font-medium stg:text-muted-foreground",
         className,
       )}
     >
@@ -64,10 +64,10 @@ export function ColumnHeader({
         type="button"
         onClick={onSort}
         className={cn(
-          "inline-flex items-center gap-1 rounded-sm px-0.5 py-0.5 -mx-0.5",
-          "hover:text-foreground transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          sortDirection && "text-foreground",
+          "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-sm stg:px-0.5 stg:py-0.5 stg:-mx-0.5",
+          "stg:hover:text-foreground stg:transition-colors",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+          sortDirection && "stg:text-foreground",
         )}
       >
         {label}
@@ -94,9 +94,9 @@ function SortIndicator({
       strokeLinejoin="round"
       aria-hidden="true"
       className={cn(
-        "shrink-0 transition-transform",
-        !direction && "opacity-0 group-hover:opacity-40",
-        direction === "desc" && "rotate-180",
+        "stg:shrink-0 stg:transition-transform",
+        !direction && "stg:opacity-0 stg:group-hover:opacity-40",
+        direction === "desc" && "stg:rotate-180",
       )}
     >
       <path d="M6 2.5v7M3 6.5l3-4 3 4" />

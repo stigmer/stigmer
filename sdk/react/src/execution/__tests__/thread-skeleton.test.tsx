@@ -21,7 +21,7 @@ describe("ThreadSkeleton", () => {
   it("renders AI response line silhouettes", () => {
     const { container } = render(<ThreadSkeleton />);
 
-    const pulseContainer = container.querySelector(".animate-pulse");
+    const pulseContainer = container.querySelector(".stg\\:animate-pulse");
     expect(pulseContainer).toBeTruthy();
 
     const lines = pulseContainer!.querySelectorAll("[style]");

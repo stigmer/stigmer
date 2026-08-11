@@ -101,10 +101,10 @@ export const IterationTab = memo(function IterationTab({
   );
 
   return (
-    <div className="flex flex-col gap-4 px-3 py-3">
+    <div className="stg:flex stg:flex-col stg:gap-4 stg:px-3 stg:py-3">
       {/* Variable name */}
       <div>
-        <label className="mb-1 block text-[10px] font-medium text-[var(--stgm-muted-foreground,#737373)]">
+        <label className="stg:mb-1 stg:block stg:text-[10px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)]">
           Item variable name
         </label>
         <input
@@ -113,17 +113,17 @@ export const IterationTab = memo(function IterationTab({
           onChange={(e) => setEach(e.target.value)}
           onBlur={handleEachBlur}
           onKeyDown={(e) => { if (e.key === "Enter") handleEachBlur(); }}
-          className="w-full rounded border border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] px-2 py-1.5 text-xs font-mono text-[var(--stgm-foreground,#1a1a2e)] outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+          className="stg:w-full stg:rounded stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] stg:px-2 stg:py-1.5 stg:text-xs stg:font-mono stg:text-[var(--stgm-foreground,#1a1a2e)] stg:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
           placeholder="item"
         />
-        <p className="mt-0.5 text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
-          Access as <code className="font-mono">{"${"}$data.{each || "item"}{"}"}</code> in nested tasks
+        <p className="stg:mt-0.5 stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
+          Access as <code className="stg:font-mono">{"${"}$data.{each || "item"}{"}"}</code> in nested tasks
         </p>
       </div>
 
       {/* Collection expression */}
       <div>
-        <label className="mb-1 block text-[10px] font-medium text-[var(--stgm-muted-foreground,#737373)]">
+        <label className="stg:mb-1 stg:block stg:text-[10px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)]">
           Collection expression
         </label>
         <input
@@ -132,14 +132,14 @@ export const IterationTab = memo(function IterationTab({
           onChange={(e) => setInExpr(e.target.value)}
           onBlur={handleInBlur}
           onKeyDown={(e) => { if (e.key === "Enter") handleInBlur(); }}
-          className="w-full rounded border border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] px-2 py-1.5 text-xs font-mono text-[var(--stgm-foreground,#1a1a2e)] outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+          className="stg:w-full stg:rounded stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] stg:px-2 stg:py-1.5 stg:text-xs stg:font-mono stg:text-[var(--stgm-foreground,#1a1a2e)] stg:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
           placeholder="${ $data.items }"
         />
       </div>
 
       {/* Concurrency */}
       <div>
-        <label className="mb-1 block text-[10px] font-medium text-[var(--stgm-muted-foreground,#737373)]">
+        <label className="stg:mb-1 stg:block stg:text-[10px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)]">
           Concurrency (max_parallelism)
         </label>
         <input
@@ -148,9 +148,9 @@ export const IterationTab = memo(function IterationTab({
           value={parallelism}
           onChange={(e) => setParallelism(Math.max(0, parseInt(e.target.value) || 0))}
           onBlur={handleParallelismBlur}
-          className="w-full rounded border border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] px-2 py-1.5 text-xs text-[var(--stgm-foreground,#1a1a2e)] outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+          className="stg:w-full stg:rounded stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] stg:px-2 stg:py-1.5 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)] stg:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
         />
-        <p className="mt-0.5 text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+        <p className="stg:mt-0.5 stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
           {parallelism === 0 ? "Sequential execution (one at a time)" : `Up to ${parallelism} iterations in parallel`}
         </p>
       </div>
@@ -158,7 +158,7 @@ export const IterationTab = memo(function IterationTab({
       {/* Batch size — only visible when parallel */}
       {parallelism > 0 && (
         <div>
-          <label className="mb-1 block text-[10px] font-medium text-[var(--stgm-muted-foreground,#737373)]">
+          <label className="stg:mb-1 stg:block stg:text-[10px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)]">
             Batch size
           </label>
           <input
@@ -167,9 +167,9 @@ export const IterationTab = memo(function IterationTab({
             value={batchSize}
             onChange={(e) => setBatchSize(Math.max(0, parseInt(e.target.value) || 0))}
             onBlur={handleBatchSizeBlur}
-            className="w-full rounded border border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] px-2 py-1.5 text-xs text-[var(--stgm-foreground,#1a1a2e)] outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+            className="stg:w-full stg:rounded stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] stg:px-2 stg:py-1.5 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)] stg:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
           />
-          <p className="mt-0.5 text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+          <p className="stg:mt-0.5 stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
             {batchSize === 0 ? "No batching — all items available for parallel execution" : `Process ${batchSize} items per batch`}
           </p>
         </div>
@@ -178,14 +178,14 @@ export const IterationTab = memo(function IterationTab({
       {/* Error policy */}
       {parallelism > 0 && (
         <fieldset>
-          <legend className="text-[10px] font-medium text-[var(--stgm-muted-foreground,#737373)] mb-1.5">
+          <legend className="stg:text-[10px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)] stg:mb-1.5">
             Error policy
           </legend>
-          <div className="flex flex-col gap-1.5">
+          <div className="stg:flex stg:flex-col stg:gap-1.5">
             {ERROR_POLICY_OPTIONS.map((opt) => (
               <label
                 key={opt.value}
-                className="flex items-start gap-2 text-[11px] text-[var(--stgm-foreground,#1a1a2e)] cursor-pointer"
+                className="stg:flex stg:items-start stg:gap-2 stg:text-[11px] stg:text-[var(--stgm-foreground,#1a1a2e)] stg:cursor-pointer"
               >
                 <input
                   type="radio"
@@ -193,12 +193,12 @@ export const IterationTab = memo(function IterationTab({
                   value={opt.value}
                   checked={onError === opt.value}
                   onChange={() => handleErrorPolicyChange(opt.value)}
-                  className="mt-0.5 h-3 w-3 accent-[var(--stgm-primary,#6366f1)]"
+                  className="stg:mt-0.5 stg:h-3 stg:w-3 stg:accent-[var(--stgm-primary,#6366f1)]"
                 />
                 <span>
-                  <span className="font-medium">{opt.label}</span>
+                  <span className="stg:font-medium">{opt.label}</span>
                   <br />
-                  <span className="text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+                  <span className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
                     {opt.description}
                   </span>
                 </span>
@@ -210,24 +210,24 @@ export const IterationTab = memo(function IterationTab({
 
       {/* Nested tasks */}
       <section>
-        <h3 className="text-xs font-semibold text-[var(--stgm-foreground,#1a1a2e)] mb-1.5">
+        <h3 className="stg:text-xs stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)] stg:mb-1.5">
           Loop body ({nestedTasks.length} {nestedTasks.length === 1 ? "task" : "tasks"})
         </h3>
         {nestedTasks.length === 0 ? (
-          <p className="text-[11px] text-[var(--stgm-muted-foreground,#737373)]">
+          <p className="stg:text-[11px] stg:text-[var(--stgm-muted-foreground,#737373)]">
             No tasks in loop body.
           </p>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="stg:flex stg:flex-col stg:gap-1">
             {nestedTasks.map((task, idx) => (
               <div
                 key={`${task.name}-${idx}`}
-                className="flex items-center gap-2 rounded border border-[var(--stgm-border,#e5e5e5)] px-2 py-1"
+                className="stg:flex stg:items-center stg:gap-2 stg:rounded stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:px-2 stg:py-1"
               >
-                <span className="text-[10px] font-mono text-[var(--stgm-muted-foreground,#737373)]">
+                <span className="stg:text-[10px] stg:font-mono stg:text-[var(--stgm-muted-foreground,#737373)]">
                   {task.kind}
                 </span>
-                <span className="text-[11px] text-[var(--stgm-foreground,#1a1a2e)] truncate">
+                <span className="stg:text-[11px] stg:text-[var(--stgm-foreground,#1a1a2e)] stg:truncate">
                   {task.name}
                 </span>
               </div>

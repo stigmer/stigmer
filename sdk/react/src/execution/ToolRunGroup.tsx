@@ -88,7 +88,7 @@ export const ToolRunGroup = memo(function ToolRunGroup({
       aria-label={label}
       data-cursor-target="tool-run-group"
       className={cn(
-        "rounded-lg border border-border-prominent overflow-hidden",
+        "stg:rounded-lg stg:border stg:border-border-prominent stg:overflow-hidden",
         className,
       )}
     >
@@ -97,26 +97,26 @@ export const ToolRunGroup = memo(function ToolRunGroup({
         aria-expanded={expanded}
         onClick={handleToggle}
         className={cn(
-          "flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors",
-          "hover:bg-muted-subtle",
+          "stg:flex stg:w-full stg:cursor-pointer stg:items-center stg:gap-2 stg:px-2.5 stg:py-1.5 stg:text-left stg:text-xs stg:text-muted-foreground stg:transition-colors",
+          "stg:hover:bg-muted-subtle",
           // ring-inset so the card's overflow-hidden does not clip the focus ring.
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
         )}
       >
-        <span className="shrink-0 text-muted-foreground" aria-hidden="true">
+        <span className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
           <Icon />
         </span>
-        <span className="min-w-0 flex-1 truncate font-medium text-foreground">
+        <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:font-medium stg:text-foreground">
           {label}
         </span>
-        <span className={cn("shrink-0", STATUS_COLOR[status])} aria-hidden="true">
+        <span className={cn("stg:shrink-0", STATUS_COLOR[status])} aria-hidden="true">
           <StatusIcon />
         </span>
         <ChevronIcon expanded={expanded} />
       </button>
 
       {expanded && (
-        <div className="border-t border-border-muted">
+        <div className="stg:border-t stg:border-border-muted">
           {/* The chip is already the card; its children render as
               divider-separated rows (bordered={false}) to avoid a card-in-a-card. */}
           {toolCalls.map((tc) => (
@@ -221,11 +221,11 @@ function deriveAggregateStatus(toolCalls: readonly ToolCall[]): AggregateStatus 
 }
 
 const STATUS_COLOR: Record<AggregateStatus, string> = {
-  running: "text-foreground",
-  waiting: "text-warning",
-  failed: "text-destructive",
-  completed: "text-success",
-  pending: "text-muted-foreground",
+  running: "stg:text-foreground",
+  waiting: "stg:text-warning",
+  failed: "stg:text-destructive",
+  completed: "stg:text-success",
+  pending: "stg:text-muted-foreground",
 };
 
 const STATUS_ICON: Record<AggregateStatus, () => React.JSX.Element> = {
@@ -242,7 +242,7 @@ const STATUS_ICON: Record<AggregateStatus, () => React.JSX.Element> = {
 
 function SpinnerIcon() {
   return (
-    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="animate-spin">
+    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="stg:animate-spin">
       <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />
     </svg>
   );
@@ -295,8 +295,8 @@ function ChevronIcon({ expanded }: { expanded: boolean }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={cn(
-        "shrink-0 text-muted-foreground transition-transform duration-150",
-        expanded && "rotate-90",
+        "stg:shrink-0 stg:text-muted-foreground stg:transition-transform stg:duration-150",
+        expanded && "stg:rotate-90",
       )}
       aria-hidden="true"
     >

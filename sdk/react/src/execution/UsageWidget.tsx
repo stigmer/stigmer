@@ -60,16 +60,16 @@ export function UsageWidget({ executions, className }: UsageWidgetProps) {
 
   return (
     <div
-      className={cn("flex flex-col gap-1.5", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-1.5", className)}
       role="region"
       aria-label="Session cost summary"
     >
-      <div className="flex items-baseline gap-1.5">
-        <span className="text-sm font-medium tabular-nums text-foreground">
+      <div className="stg:flex stg:items-baseline stg:gap-1.5">
+        <span className="stg:text-sm stg:font-medium stg:tabular-nums stg:text-foreground">
           {formatCost(usage.totalCostUsd)}
         </span>
         {usage.isEstimated && (
-          <span className="rounded bg-muted px-1 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
+          <span className="stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-medium stg:leading-none stg:text-muted-foreground">
             Estimated
           </span>
         )}
@@ -78,18 +78,18 @@ export function UsageWidget({ executions, className }: UsageWidgetProps) {
       {multiModel ? (
         <ModelBreakdown models={usage.modelBreakdown} />
       ) : (
-        <div className="truncate text-xs text-muted-foreground">
+        <div className="stg:truncate stg:text-xs stg:text-muted-foreground">
           {usage.primaryModel}
           {usage.primaryProvider && ` · ${usage.primaryProvider}`}
         </div>
       )}
 
-      <div className="text-xs tabular-nums text-muted-foreground">
+      <div className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
         {formatTokenCount(usage.totalTokens)} tokens ·{" "}
         {usage.llmCallCount} {usage.llmCallCount === 1 ? "call" : "calls"}
       </div>
 
-      <div className="pl-2 text-xs tabular-nums text-muted-foreground">
+      <div className="stg:pl-2 stg:text-xs stg:tabular-nums stg:text-muted-foreground">
         prompt {formatTokenCount(usage.inputTokens)} · completion{" "}
         {formatTokenCount(usage.outputTokens)}
       </div>
@@ -111,18 +111,18 @@ function ModelBreakdown({
 }) {
   return (
     <div
-      className="flex flex-col gap-0.5"
+      className="stg:flex stg:flex-col stg:gap-0.5"
       role="list"
       aria-label="Model cost breakdown"
     >
       {models.map((entry) => (
         <div
           key={`${entry.model}\0${entry.provider}`}
-          className="flex items-baseline justify-between text-xs text-muted-foreground"
+          className="stg:flex stg:items-baseline stg:justify-between stg:text-xs stg:text-muted-foreground"
           role="listitem"
         >
-          <span className="truncate">{entry.model}</span>
-          <span className="ml-2 shrink-0 tabular-nums">
+          <span className="stg:truncate">{entry.model}</span>
+          <span className="stg:ml-2 stg:shrink-0 stg:tabular-nums">
             {formatCost(entry.estimatedCostUsd)}
           </span>
         </div>
@@ -144,7 +144,7 @@ function CacheLine({
     parts.push(`${formatTokenCount(creationTokens)} write`);
 
   return (
-    <div className="pl-2 text-xs tabular-nums text-muted-foreground">
+    <div className="stg:pl-2 stg:text-xs stg:tabular-nums stg:text-muted-foreground">
       cache {parts.join(" · ")}
     </div>
   );

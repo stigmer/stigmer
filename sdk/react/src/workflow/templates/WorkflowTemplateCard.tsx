@@ -15,24 +15,24 @@ export interface WorkflowTemplateCardProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  "customer-support": "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-  "code-review": "bg-violet-500/10 text-violet-700 dark:text-violet-400",
-  "data-analysis": "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  devops: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-  content: "bg-pink-500/10 text-pink-700 dark:text-pink-400",
-  integration: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400",
-  general: "bg-muted text-muted-foreground",
+  "customer-support": "stg:bg-blue-500/10 stg:text-blue-700 stg:dark:text-blue-400",
+  "code-review": "stg:bg-violet-500/10 stg:text-violet-700 stg:dark:text-violet-400",
+  "data-analysis": "stg:bg-amber-500/10 stg:text-amber-700 stg:dark:text-amber-400",
+  devops: "stg:bg-emerald-500/10 stg:text-emerald-700 stg:dark:text-emerald-400",
+  content: "stg:bg-pink-500/10 stg:text-pink-700 stg:dark:text-pink-400",
+  integration: "stg:bg-cyan-500/10 stg:text-cyan-700 stg:dark:text-cyan-400",
+  general: "stg:bg-muted stg:text-muted-foreground",
 };
 
 const PATTERN_COLORS: Record<string, string> = {
-  parallel: "bg-violet-500/10 text-violet-700 dark:text-violet-400",
-  branching: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  hitl: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-  loop: "bg-pink-500/10 text-pink-700 dark:text-pink-400",
-  "error-handling": "bg-red-500/10 text-red-700 dark:text-red-400",
-  batch: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400",
-  "ai-pipeline": "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-  "http-integration": "bg-orange-500/10 text-orange-700 dark:text-orange-400",
+  parallel: "stg:bg-violet-500/10 stg:text-violet-700 stg:dark:text-violet-400",
+  branching: "stg:bg-amber-500/10 stg:text-amber-700 stg:dark:text-amber-400",
+  hitl: "stg:bg-emerald-500/10 stg:text-emerald-700 stg:dark:text-emerald-400",
+  loop: "stg:bg-pink-500/10 stg:text-pink-700 stg:dark:text-pink-400",
+  "error-handling": "stg:bg-red-500/10 stg:text-red-700 stg:dark:text-red-400",
+  batch: "stg:bg-cyan-500/10 stg:text-cyan-700 stg:dark:text-cyan-400",
+  "ai-pipeline": "stg:bg-blue-500/10 stg:text-blue-700 stg:dark:text-blue-400",
+  "http-integration": "stg:bg-orange-500/10 stg:text-orange-700 stg:dark:text-orange-400",
 };
 
 /**
@@ -86,21 +86,21 @@ export function WorkflowTemplateCard({
       onKeyDown={handleKeyDown}
       aria-label={`Use ${template.name} template`}
       className={cn(
-        "group flex cursor-pointer flex-col gap-3 rounded-lg border border-border bg-card p-4",
-        "transition-colors hover:border-primary hover:bg-accent",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "stg:group stg:flex stg:cursor-pointer stg:flex-col stg:gap-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4",
+        "stg:transition-colors stg:hover:border-primary stg:hover:bg-accent",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         className,
       )}
     >
       {/* Header: name + category */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-foreground">
+      <div className="stg:flex stg:items-start stg:justify-between stg:gap-2">
+        <div className="stg:min-w-0 stg:flex-1">
+          <p className="stg:text-sm stg:font-medium stg:text-foreground">
             {template.name}
           </p>
           <span
             className={cn(
-              "mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
+              "stg:mt-1 stg:inline-block stg:rounded-full stg:px-2 stg:py-0.5 stg:text-[10px] stg:font-medium",
               CATEGORY_COLORS[template.category] ?? CATEGORY_COLORS.general,
             )}
           >
@@ -113,10 +113,10 @@ export function WorkflowTemplateCard({
             onClick={handlePreview}
             aria-label={`Preview ${template.name}`}
             className={cn(
-              "rounded-md p-1 text-muted-foreground opacity-0 transition-opacity",
-              "hover:bg-accent hover:text-accent-foreground",
-              "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "group-hover:opacity-100",
+              "stg:rounded-md stg:p-1 stg:text-muted-foreground stg:opacity-0 stg:transition-opacity",
+              "stg:hover:bg-accent stg:hover:text-accent-foreground",
+              "stg:focus-visible:opacity-100 stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+              "stg:group-hover:opacity-100",
             )}
           >
             <PreviewIcon />
@@ -125,19 +125,19 @@ export function WorkflowTemplateCard({
       </div>
 
       {/* Description */}
-      <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+      <p className="stg:line-clamp-2 stg:text-xs stg:leading-relaxed stg:text-muted-foreground">
         {template.description}
       </p>
 
       {/* Pattern badges */}
       {meta.patterns.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="stg:flex stg:flex-wrap stg:gap-1">
           {meta.patterns.slice(0, 3).map((pattern) => (
             <span
               key={pattern}
               className={cn(
-                "rounded px-1.5 py-0.5 text-[10px] font-medium",
-                PATTERN_COLORS[pattern] ?? "bg-muted text-muted-foreground",
+                "stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium",
+                PATTERN_COLORS[pattern] ?? "stg:bg-muted stg:text-muted-foreground",
               )}
             >
               {PATTERN_LABELS[pattern]}
@@ -147,7 +147,7 @@ export function WorkflowTemplateCard({
       )}
 
       {/* Metadata chips */}
-      <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+      <div className="stg:flex stg:items-center stg:gap-3 stg:text-[10px] stg:text-muted-foreground">
         <span>{meta.taskCount} tasks</span>
         {meta.envVarCount > 0 && <span>{meta.envVarCount} env vars</span>}
         {meta.hasBudget && <span>Budget</span>}
@@ -159,7 +159,7 @@ export function WorkflowTemplateCard({
 function PreviewIcon() {
   return (
     <svg
-      className="size-4"
+      className="stg:size-4"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"

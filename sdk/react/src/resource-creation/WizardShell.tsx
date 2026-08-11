@@ -63,21 +63,21 @@ export function WizardShell({
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-background",
+        "stg:flex stg:min-h-0 stg:flex-col stg:overflow-hidden stg:rounded-lg stg:border stg:border-border stg:bg-background",
         className,
       )}
     >
       {/* Mobile step indicator (visible < sm) */}
-      <div className="flex items-center gap-2 border-b border-border px-4 py-3 sm:hidden">
+      <div className="stg:flex stg:items-center stg:gap-2 stg:border-b stg:border-border stg:px-4 stg:py-3 stg:sm:hidden">
         <MobileProgress current={currentStepIndex + 1} total={steps.length} />
-        <span className="text-sm font-medium text-foreground">
+        <span className="stg:text-sm stg:font-medium stg:text-foreground">
           {steps[currentStepIndex]?.label}
         </span>
       </div>
 
-      <div className="flex min-h-0 flex-1">
+      <div className="stg:flex stg:min-h-0 stg:flex-1">
         {/* Step indicator sidebar (visible >= sm) */}
-        <aside className="hidden w-52 shrink-0 border-r border-border bg-muted-faint px-3 py-6 sm:block">
+        <aside className="stg:hidden stg:w-52 stg:shrink-0 stg:border-r stg:border-border stg:bg-muted-faint stg:px-3 stg:py-6 stg:sm:block">
           <StepIndicator
             steps={steps}
             currentStepIndex={currentStepIndex}
@@ -86,7 +86,7 @@ export function WizardShell({
         </aside>
 
         {/* Content area */}
-        <main className="flex-1 overflow-y-auto px-6 py-6 sm:px-8">
+        <main className="stg:flex-1 stg:overflow-y-auto stg:px-6 stg:py-6 stg:sm:px-8">
           {children}
         </main>
       </div>
@@ -117,7 +117,7 @@ function MobileProgress({
   readonly total: number;
 }) {
   return (
-    <span className="inline-flex items-center justify-center rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
+    <span className="stg:inline-flex stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-2 stg:py-0.5 stg:text-[10px] stg:font-semibold stg:text-primary-foreground">
       {current}/{total}
     </span>
   );

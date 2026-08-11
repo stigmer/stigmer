@@ -71,15 +71,15 @@ export function CadenceField({
       : null;
 
   return (
-    <div className="space-y-2">
+    <div className="stg:space-y-2">
       {/* Preset selector — segmented radio group, matching ScopeToggle's pattern */}
       <div
         role="radiogroup"
         aria-label="Cadence"
         aria-disabled={disabled || undefined}
         className={cn(
-          "inline-flex flex-wrap rounded-md bg-muted p-0.5",
-          disabled && "pointer-events-none opacity-50",
+          "stg:inline-flex stg:flex-wrap stg:rounded-md stg:bg-muted stg:p-0.5",
+          disabled && "stg:pointer-events-none stg:opacity-50",
         )}
       >
         {KIND_OPTIONS.map((option) => {
@@ -106,11 +106,11 @@ export function CadenceField({
                 }
               }}
               className={cn(
-                "inline-flex cursor-pointer items-center rounded-sm px-2.5 py-1 text-xs font-medium transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "stg:inline-flex stg:cursor-pointer stg:items-center stg:rounded-sm stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 isSelected
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? "stg:bg-background stg:text-foreground stg:shadow-sm"
+                  : "stg:text-muted-foreground stg:hover:text-foreground",
               )}
             >
               {option.label}
@@ -121,7 +121,7 @@ export function CadenceField({
 
       {/* Per-preset inputs */}
       {value.kind === "hourly" && (
-        <div className="flex items-center gap-2 text-xs text-foreground">
+        <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground">
           <label htmlFor={`${groupId}-minute`}>At minute</label>
           <input
             id={`${groupId}-minute`}
@@ -152,11 +152,11 @@ export function CadenceField({
       )}
 
       {value.kind === "weekly" && (
-        <div className="space-y-2">
+        <div className="stg:space-y-2">
           <div
             role="group"
             aria-label="Days of week"
-            className="flex flex-wrap gap-1"
+            className="stg:flex stg:flex-wrap stg:gap-1"
           >
             {WEEKDAY_LABELS.map((label, day) => {
               const isOn = value.days.includes(day);
@@ -180,13 +180,13 @@ export function CadenceField({
                     })
                   }
                   className={cn(
-                    "inline-flex h-7 w-9 items-center justify-center rounded-md border text-xs font-medium transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    "disabled:pointer-events-none",
+                    "stg:inline-flex stg:h-7 stg:w-9 stg:items-center stg:justify-center stg:rounded-md stg:border stg:text-xs stg:font-medium stg:transition-colors",
+                    "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                    "stg:disabled:pointer-events-none",
                     isOn
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-input bg-background text-muted-foreground hover:text-foreground",
-                    isLastSelected && "opacity-70",
+                      ? "stg:border-primary stg:bg-primary stg:text-primary-foreground"
+                      : "stg:border-input stg:bg-background stg:text-muted-foreground stg:hover:text-foreground",
+                    isLastSelected && "stg:opacity-70",
                   )}
                 >
                   {label.slice(0, 3)}
@@ -205,8 +205,8 @@ export function CadenceField({
       )}
 
       {value.kind === "monthly" && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs text-foreground">
+        <div className="stg:space-y-2">
+          <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground">
             <label htmlFor={`${groupId}-day`}>On day</label>
             <input
               id={`${groupId}-day`}
@@ -223,10 +223,10 @@ export function CadenceField({
               disabled={disabled}
               className={numberInputClasses}
             />
-            <span className="text-muted-foreground">of every month</span>
+            <span className="stg:text-muted-foreground">of every month</span>
           </div>
           {value.day >= 29 && (
-            <p className="text-[0.65rem] text-muted-foreground">
+            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
               Months without day {value.day} are skipped — February never
               fires a day-{value.day} schedule
               {value.day === 29 ? " except in leap years" : ""}.
@@ -243,7 +243,7 @@ export function CadenceField({
       )}
 
       {value.kind === "custom" && (
-        <div className="space-y-1">
+        <div className="stg:space-y-1">
           <input
             type="text"
             aria-label="Cron expression"
@@ -252,19 +252,19 @@ export function CadenceField({
             onChange={(e) => onChange({ kind: "custom", cron: e.target.value })}
             disabled={disabled}
             className={cn(
-              "w-full rounded-md border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground",
-              "placeholder:font-sans placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
-              cronError && "border-destructive",
+              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:font-mono stg:text-xs stg:text-foreground",
+              "stg:placeholder:font-sans stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+              cronError && "stg:border-destructive",
             )}
           />
           {cronError ? (
-            <p className="text-[0.65rem] text-destructive" role="alert">
+            <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
               {cronError}
             </p>
           ) : (
-            <p className="text-[0.65rem] text-muted-foreground">
+            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
               5 fields (minute hour day-of-month month day-of-week) or
               @hourly, @daily, @weekly, @monthly, @yearly.
             </p>
@@ -274,7 +274,7 @@ export function CadenceField({
 
       {/* Plain-English summary of the chosen cadence */}
       {!(value.kind === "custom" && (cronError || value.cron.trim() === "")) && (
-        <p className="text-xs text-muted-foreground" data-testid="cadence-summary">
+        <p className="stg:text-xs stg:text-muted-foreground" data-testid="cadence-summary">
           {describeCadence(value, timeZone)}
         </p>
       )}
@@ -287,9 +287,9 @@ export function CadenceField({
 // ---------------------------------------------------------------------------
 
 const numberInputClasses = cn(
-  "w-16 rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground",
-  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-  "disabled:pointer-events-none disabled:opacity-50",
+  "stg:w-16 stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2 stg:py-1 stg:text-xs stg:text-foreground",
+  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
 );
 
 function TimeInput({
@@ -306,7 +306,7 @@ function TimeInput({
   readonly onChange: (hour: number, minute: number) => void;
 }) {
   return (
-    <div className="flex items-center gap-2 text-xs text-foreground">
+    <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground">
       <label htmlFor={id}>At</label>
       <input
         id={id}
@@ -318,9 +318,9 @@ function TimeInput({
         }}
         disabled={disabled}
         className={cn(
-          "rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-          "disabled:pointer-events-none disabled:opacity-50",
+          "stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2 stg:py-1 stg:text-xs stg:text-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         )}
       />
     </div>

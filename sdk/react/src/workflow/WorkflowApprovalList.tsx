@@ -82,7 +82,7 @@ export function WorkflowApprovalList({
   if (pendingApprovals.length === 0) return null;
 
   return (
-    <div className={cn("stgm space-y-3", className)}>
+    <div className={cn("stgm stg:space-y-3", className)}>
       {pendingApprovals.map((ref) => {
         // A surfaced gate without its approval payload cannot be decided
         // (there is no toolCallId to route) — skip rather than render a
@@ -137,12 +137,12 @@ const WorkflowApprovalItem = memo(function WorkflowApprovalItem({
   );
 
   return (
-    <div className="space-y-2">
+    <div className="stg:space-y-2">
       {onNavigateToAgentExecution && (
         <button
           type="button"
           onClick={() => onNavigateToAgentExecution(childAgentExecutionId)}
-          className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+          className="stg:text-xs stg:text-muted-foreground stg:hover:text-foreground stg:underline stg:underline-offset-2"
         >
           View agent execution
         </button>

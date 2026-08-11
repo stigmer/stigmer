@@ -88,37 +88,37 @@ export function WorkflowExplainDialog({
       onCancel={handleDialogCancel}
       onClick={handleBackdropClick}
       className={cn(
-        "fixed inset-0 z-50 m-auto w-full max-w-2xl rounded-lg border border-border bg-popover p-0 text-popover-foreground shadow-lg",
-        "backdrop:bg-black/50",
-        "open:animate-in open:fade-in-0 open:zoom-in-95",
+        "stg:fixed stg:inset-0 stg:z-50 stg:m-auto stg:w-full stg:max-w-2xl stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:p-0 stg:text-popover-foreground stg:shadow-lg",
+        "stg:backdrop:bg-black/50",
+        "stg:open:animate-in stg:open:fade-in-0 stg:open:zoom-in-95",
       )}
     >
-      <div className="flex flex-col">
+      <div className="stg:flex stg:flex-col">
         {/* Header */}
-        <div className="border-b border-border px-6 py-4">
-          <div className="flex items-center gap-2">
-            <h3 className="text-base font-semibold text-foreground">
+        <div className="stg:border-b stg:border-border stg:px-6 stg:py-4">
+          <div className="stg:flex stg:items-center stg:gap-2">
+            <h3 className="stg:text-base stg:font-semibold stg:text-foreground">
               Workflow Explanation
             </h3>
             {flow.isStreaming && (
-              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground">
                 <SpinnerIcon />
                 Analyzing…
               </span>
             )}
           </div>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
             A plain-language walkthrough of what this workflow does
           </p>
         </div>
 
         {/* Content */}
-        <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
+        <div className="stg:max-h-[60vh] stg:overflow-y-auto stg:px-6 stg:py-4">
           {/* Starting state */}
           {flow.phase === "starting" && (
-            <div className="flex flex-col items-center justify-center gap-2 py-8">
+            <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:gap-2 stg:py-8">
               <SpinnerIcon size={20} />
-              <p className="text-sm text-muted-foreground">
+              <p className="stg:text-sm stg:text-muted-foreground">
                 Starting Workflow Architect…
               </p>
             </div>
@@ -129,13 +129,13 @@ export function WorkflowExplainDialog({
             <MessageThread
               executions={[]}
               activeStreamExecution={flow.execution}
-              className="min-h-[100px]"
+              className="stg:min-h-[100px]"
             />
           )}
 
           {/* Complete: show the explanation */}
           {flow.phase === "complete" && flow.explanation && (
-            <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+            <div className="stg:whitespace-pre-wrap stg:text-sm stg:leading-relaxed stg:text-foreground">
               {flow.explanation}
             </div>
           )}
@@ -145,14 +145,14 @@ export function WorkflowExplainDialog({
             <MessageThread
               executions={[flow.execution]}
               activeStreamExecution={null}
-              className="min-h-[100px]"
+              className="stg:min-h-[100px]"
             />
           )}
 
           {/* Error */}
           {flow.error && flow.phase === "error" && (
             <div
-              className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+              className="stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive/5 stg:px-3 stg:py-2 stg:text-sm stg:text-destructive"
               role="alert"
             >
               {flow.error}
@@ -161,29 +161,29 @@ export function WorkflowExplainDialog({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-between border-t border-border px-6 py-3">
+        <div className="stg:flex stg:justify-between stg:border-t stg:border-border stg:px-6 stg:py-3">
           <button
             type="button"
             onClick={() => onOpenChange(false)}
             className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-              "border border-input bg-background text-foreground",
-              "hover:bg-accent hover:text-accent-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+              "stg:border stg:border-input stg:bg-background stg:text-foreground",
+              "stg:hover:bg-accent stg:hover:text-accent-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           >
             Close
           </button>
-          <div className="flex gap-2">
+          <div className="stg:flex stg:gap-2">
             {flow.phase === "error" && (
               <button
                 type="button"
                 onClick={flow.explain}
                 className={cn(
-                  "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                  "border border-input bg-background text-foreground",
-                  "hover:bg-accent hover:text-accent-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+                  "stg:border stg:border-input stg:bg-background stg:text-foreground",
+                  "stg:hover:bg-accent stg:hover:text-accent-foreground",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 )}
               >
                 Try Again
@@ -194,9 +194,9 @@ export function WorkflowExplainDialog({
                 type="button"
                 onClick={handleCopy}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                  "bg-primary text-primary-foreground hover:bg-primary/90",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+                  "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary/90",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 )}
               >
                 Copy to clipboard
@@ -219,7 +219,7 @@ function SpinnerIcon({ size = 14 }: { readonly size?: number }) {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

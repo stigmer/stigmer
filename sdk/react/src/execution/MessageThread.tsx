@@ -337,7 +337,7 @@ export type ThreadContentColumn = "center" | "start";
 export function threadContentColumnClass(
   column: ThreadContentColumn | undefined,
 ): string | false {
-  return column != null && cn("w-full max-w-3xl px-4", column === "center" && "mx-auto");
+  return column != null && cn("stg:w-full stg:max-w-3xl stg:px-4", column === "center" && "stg:mx-auto");
 }
 
 /**
@@ -1193,7 +1193,7 @@ export function MessageThread({
 
   if (virtualized) {
     return (
-      <div className={cn("relative min-h-0", className)}>
+      <div className={cn("stg:relative stg:min-h-0", className)}>
         <Suspense fallback={null}>
           <LazyVirtualizedThread
             items={items}
@@ -1311,18 +1311,18 @@ function NonVirtualizedThread({
   useDomNodeCount(scrollRef, "MessageThread");
 
   return (
-    <div className={cn("relative min-h-0", className)}>
+    <div className={cn("stg:relative stg:min-h-0", className)}>
       <div
         ref={scrollRef}
         role="log"
         aria-live="polite"
         aria-relevant="additions"
         className={cn(
-          "h-full overflow-y-auto pt-6 pb-4 [overflow-anchor:none]",
-          "[scrollbar-width:thin] [scrollbar-color:var(--color-border)_transparent]",
-          "[&::-webkit-scrollbar]:w-1.5",
-          "[&::-webkit-scrollbar-track]:bg-transparent",
-          "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/40",
+          "stg:h-full stg:overflow-y-auto stg:pt-6 stg:pb-4 stg:[overflow-anchor:none]",
+          "stg:[scrollbar-width:thin] stg:[scrollbar-color:var(--color-border)_transparent]",
+          "stg:[&::-webkit-scrollbar]:w-1.5",
+          "stg:[&::-webkit-scrollbar-track]:bg-transparent",
+          "stg:[&::-webkit-scrollbar-thumb]:rounded-full stg:[&::-webkit-scrollbar-thumb]:bg-border/40",
         )}
       >
         <SandboxContext.Provider value={sandboxCtx}>
@@ -1330,7 +1330,7 @@ function NonVirtualizedThread({
         <ApprovalContext.Provider value={approvalCtx}>
         <FileReviewContext.Provider value={fileReviewCtx}>
         <DevProfiler id="MessageThread">
-          <div ref={contentRef} className={cn("flex flex-col gap-4", threadContentColumnClass(contentColumn))}>
+          <div ref={contentRef} className={cn("stg:flex stg:flex-col stg:gap-4", threadContentColumnClass(contentColumn))}>
             {items.map((item) => (
               <ThreadItemWrapper key={item.key} animate>
                 <ThreadItemRenderer
@@ -1454,7 +1454,7 @@ export function ThreadItemRenderer({
       return (
         <Entry
           message={item.message}
-          className={item.isPending ? "opacity-70" : undefined}
+          className={item.isPending ? "stg:opacity-70" : undefined}
           isPlanDocument={item.isPlanDocument}
           interactionMode={item.interactionMode}
           attachments={item.attachments}
@@ -1473,19 +1473,19 @@ export function ThreadItemRenderer({
           toolCalls={item.toolCalls}
           subAgentExecutions={item.subAgentExecutions}
           formatSummary={formatToolCallSummary}
-          className="mx-4"
+          className="stg:mx-4"
         />
       );
     case "sub-agent":
       return (
         <SubAgentSection
           subAgentExecution={item.subAgentExecution}
-          className="mx-4"
+          className="stg:mx-4"
         />
       );
     case "phase-badge":
       return (
-        <div className="flex justify-center py-3">
+        <div className="stg:flex stg:justify-center stg:py-3">
           <ExecutionPhaseBadge phase={item.phase} />
         </div>
       );
@@ -1523,7 +1523,7 @@ export function ThreadItemRenderer({
       return <SummarizationCard event={item.event} />;
     case "todos": {
       const Todos = slots?.TodoCard ?? TodoCard;
-      return <Todos todos={item.todos} className="mx-4" TodoRow={slots?.TodoRow} />;
+      return <Todos todos={item.todos} className="stg:mx-4" TodoRow={slots?.TodoRow} />;
     }
     case "plan-completion": {
       // When the plan was published as an artifact, show the richer reviewable
@@ -1600,21 +1600,21 @@ function FailedUserMessage({
   MessageEntryComponent: ComponentType<MessageEntryProps>;
 }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="stg:flex stg:flex-col stg:gap-1">
       {/* Attachments stay visible on the failed bubble — the one turn where
           the user most needs evidence of what they tried to send (and what
           Retry will re-send). No executionId: the send never created one. */}
       <MessageEntryComponent message={message} attachments={attachments} />
       <div
         role="alert"
-        className="mx-4 flex items-center gap-2 text-xs text-destructive"
+        className="stg:mx-4 stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-destructive"
       >
-        <span className="min-w-0 flex-1 truncate">Couldn&rsquo;t send.</span>
+        <span className="stg:min-w-0 stg:flex-1 stg:truncate">Couldn&rsquo;t send.</span>
         {onRetry && (
           <button
             type="button"
             onClick={onRetry}
-            className="shrink-0 rounded font-medium underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="stg:shrink-0 stg:rounded stg:font-medium stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
           >
             Retry
           </button>
@@ -1669,24 +1669,24 @@ function ExecutionErrorNotice({
     <div
       role={interrupted ? "status" : "alert"}
       className={cn(
-        "mx-4 flex flex-col gap-1.5 rounded-md px-3 py-2",
-        interrupted ? "bg-muted" : "bg-destructive-subtle",
+        "stg:mx-4 stg:flex stg:flex-col stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-2",
+        interrupted ? "stg:bg-muted" : "stg:bg-destructive-subtle",
       )}
     >
       <p
         className={cn(
-          "text-xs whitespace-pre-wrap break-words",
-          interrupted ? "text-foreground" : "text-destructive",
-          !expanded && "line-clamp-3",
+          "stg:text-xs stg:whitespace-pre-wrap stg:break-words",
+          interrupted ? "stg:text-foreground" : "stg:text-destructive",
+          !expanded && "stg:line-clamp-3",
         )}
       >
         {error}
       </p>
-      <div className="flex items-center gap-3 text-xs">
+      <div className="stg:flex stg:items-center stg:gap-3 stg:text-xs">
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="font-medium text-muted-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="stg:font-medium stg:text-muted-foreground stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
         >
           {expanded ? "Show less" : "Show more"}
         </button>
@@ -1694,7 +1694,7 @@ function ExecutionErrorNotice({
           <button
             type="button"
             onClick={() => onRetry!(retryMessage!)}
-            className="font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="stg:font-medium stg:text-foreground stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
           >
             {interrupted ? "Resume" : "Retry"}
           </button>
@@ -1744,7 +1744,7 @@ const ApprovalCardRow = memo(function ApprovalCardRow({
       onSubmit={handleSubmit}
       isSubmitting={isSubmitting}
       error={error}
-      className="mx-4"
+      className="stg:mx-4"
     />
   );
 });
@@ -1772,7 +1772,7 @@ const FileReviewRecordRow = memo(function FileReviewRecordRow({
       // the record renders its compact file-list body — the history never
       // duplicates the transcript's diffs.
       showDiffs={false}
-      className="mx-4"
+      className="stg:mx-4"
     />
   );
 });

@@ -95,19 +95,19 @@ function SwitchCaseBranches({
   );
 
   return (
-    <div className="flex flex-col gap-3 px-3 py-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold text-[var(--stgm-foreground,#1a1a2e)]">
+    <div className="stg:flex stg:flex-col stg:gap-3 stg:px-3 stg:py-3">
+      <div className="stg:flex stg:items-center stg:justify-between">
+        <h3 className="stg:text-xs stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)]">
           Cases ({cases.length})
         </h3>
       </div>
 
       {cases.length === 0 ? (
-        <p className="text-[11px] text-[var(--stgm-muted-foreground,#737373)]">
+        <p className="stg:text-[11px] stg:text-[var(--stgm-muted-foreground,#737373)]">
           No cases defined. Add a case to create conditional branches.
         </p>
       ) : (
-        <div className="flex flex-col gap-1.5">
+        <div className="stg:flex stg:flex-col stg:gap-1.5">
           {cases.map((caseEntry, idx) => {
             const isDefault = !caseEntry.when;
             const targetEdge = edges.find((e) => e.sourceHandle === `case_${caseEntry.name}`);
@@ -115,19 +115,19 @@ function SwitchCaseBranches({
               <div
                 key={caseEntry.name}
                 className={cn(
-                  "group/case flex items-center gap-2 rounded-md border px-2 py-1.5",
+                  "stg:group/case stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:border stg:px-2 stg:py-1.5",
                   isDefault
-                    ? "border-dashed border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-muted,#f5f5f5)]"
-                    : "border-[var(--stgm-border,#e5e5e5)]",
+                    ? "stg:border-dashed stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-muted,#f5f5f5)]"
+                    : "stg:border-[var(--stgm-border,#e5e5e5)]",
                 )}
               >
                 {/* Reorder controls */}
-                <div className="flex flex-col gap-0.5 opacity-0 group-hover/case:opacity-100 transition-opacity">
+                <div className="stg:flex stg:flex-col stg:gap-0.5 stg:opacity-0 stg:group-hover/case:opacity-100 stg:transition-opacity">
                   <button
                     type="button"
                     onClick={() => handleMoveUp(idx)}
                     disabled={idx === 0}
-                    className="text-[var(--stgm-muted-foreground,#737373)] disabled:opacity-30 hover:text-[var(--stgm-foreground,#1a1a2e)]"
+                    className="stg:text-[var(--stgm-muted-foreground,#737373)] stg:disabled:opacity-30 stg:hover:text-[var(--stgm-foreground,#1a1a2e)]"
                     aria-label={`Move ${caseEntry.name} up`}
                   >
                     <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
@@ -138,7 +138,7 @@ function SwitchCaseBranches({
                     type="button"
                     onClick={() => handleMoveDown(idx)}
                     disabled={idx === cases.length - 1}
-                    className="text-[var(--stgm-muted-foreground,#737373)] disabled:opacity-30 hover:text-[var(--stgm-foreground,#1a1a2e)]"
+                    className="stg:text-[var(--stgm-muted-foreground,#737373)] stg:disabled:opacity-30 stg:hover:text-[var(--stgm-foreground,#1a1a2e)]"
                     aria-label={`Move ${caseEntry.name} down`}
                   >
                     <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
@@ -148,24 +148,24 @@ function SwitchCaseBranches({
                 </div>
 
                 {/* Case info */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-medium text-[var(--stgm-foreground,#1a1a2e)] truncate">
+                <div className="stg:min-w-0 stg:flex-1">
+                  <div className="stg:flex stg:items-center stg:gap-1.5">
+                    <span className="stg:text-[11px] stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)] stg:truncate">
                       {caseEntry.name}
                     </span>
                     {isDefault && (
-                      <span className="shrink-0 rounded-sm bg-[var(--stgm-muted,#f5f5f5)] border border-[var(--stgm-border,#e5e5e5)] px-1 py-px text-[9px] font-medium text-[var(--stgm-muted-foreground,#737373)]">
+                      <span className="stg:shrink-0 stg:rounded-sm stg:bg-[var(--stgm-muted,#f5f5f5)] stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:px-1 stg:py-px stg:text-[9px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)]">
                         default
                       </span>
                     )}
                   </div>
                   {caseEntry.when && (
-                    <p className="mt-0.5 text-[10px] font-mono text-[var(--stgm-muted-foreground,#737373)] truncate">
+                    <p className="stg:mt-0.5 stg:text-[10px] stg:font-mono stg:text-[var(--stgm-muted-foreground,#737373)] stg:truncate">
                       {caseEntry.when}
                     </p>
                   )}
                   {targetEdge && (
-                    <p className="mt-0.5 text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+                    <p className="stg:mt-0.5 stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
                       → {targetEdge.target}
                     </p>
                   )}
@@ -175,7 +175,7 @@ function SwitchCaseBranches({
                 <button
                   type="button"
                   onClick={() => handleRemove(caseEntry.name)}
-                  className="shrink-0 opacity-0 group-hover/case:opacity-100 transition-opacity text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-destructive,#ef4444)]"
+                  className="stg:shrink-0 stg:opacity-0 stg:group-hover/case:opacity-100 stg:transition-opacity stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:text-[var(--stgm-destructive,#ef4444)]"
                   aria-label={`Remove case ${caseEntry.name}`}
                   title="Remove case"
                 >
@@ -270,30 +270,30 @@ function ForkBranches({
   }, [renamingIdx, renameValue, branches, mutations, node.id]);
 
   return (
-    <div className="flex flex-col gap-3 px-3 py-3">
+    <div className="stg:flex stg:flex-col stg:gap-3 stg:px-3 stg:py-3">
       {/* Join policy */}
       <fieldset>
-        <legend className="text-xs font-semibold text-[var(--stgm-foreground,#1a1a2e)] mb-1.5">
+        <legend className="stg:text-xs stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)] stg:mb-1.5">
           Join policy
         </legend>
-        <div className="flex flex-col gap-1.5">
-          <label className="flex items-center gap-2 text-[11px] text-[var(--stgm-foreground,#1a1a2e)] cursor-pointer">
+        <div className="stg:flex stg:flex-col stg:gap-1.5">
+          <label className="stg:flex stg:items-center stg:gap-2 stg:text-[11px] stg:text-[var(--stgm-foreground,#1a1a2e)] stg:cursor-pointer">
             <input
               type="radio"
               name={`join-policy-${node.id}`}
               checked={!compete}
               onChange={() => handleSetCompete(false)}
-              className="h-3 w-3 accent-[var(--stgm-primary,#6366f1)]"
+              className="stg:h-3 stg:w-3 stg:accent-[var(--stgm-primary,#6366f1)]"
             />
             Wait for all branches
           </label>
-          <label className="flex items-center gap-2 text-[11px] text-[var(--stgm-foreground,#1a1a2e)] cursor-pointer">
+          <label className="stg:flex stg:items-center stg:gap-2 stg:text-[11px] stg:text-[var(--stgm-foreground,#1a1a2e)] stg:cursor-pointer">
             <input
               type="radio"
               name={`join-policy-${node.id}`}
               checked={compete}
               onChange={() => handleSetCompete(true)}
-              className="h-3 w-3 accent-[var(--stgm-primary,#6366f1)]"
+              className="stg:h-3 stg:w-3 stg:accent-[var(--stgm-primary,#6366f1)]"
             />
             Race mode (first branch wins)
           </label>
@@ -302,23 +302,23 @@ function ForkBranches({
 
       {/* Branch listing */}
       <div>
-        <h3 className="text-xs font-semibold text-[var(--stgm-foreground,#1a1a2e)] mb-1.5">
+        <h3 className="stg:text-xs stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)] stg:mb-1.5">
           Parallel branches ({branches.length})
         </h3>
 
-        <div className="flex flex-col gap-1.5">
+        <div className="stg:flex stg:flex-col stg:gap-1.5">
           {branches.map((branch, idx) => (
             <div
               key={branch.name}
-              className="group/branch flex items-center gap-2 rounded-md border border-[var(--stgm-border,#e5e5e5)] px-2 py-1.5"
+              className="stg:group/branch stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:px-2 stg:py-1.5"
             >
               {/* Reorder */}
-              <div className="flex flex-col gap-0.5 opacity-0 group-hover/branch:opacity-100 transition-opacity">
+              <div className="stg:flex stg:flex-col stg:gap-0.5 stg:opacity-0 stg:group-hover/branch:opacity-100 stg:transition-opacity">
                 <button
                   type="button"
                   onClick={() => handleMoveUp(idx)}
                   disabled={idx === 0}
-                  className="text-[var(--stgm-muted-foreground,#737373)] disabled:opacity-30 hover:text-[var(--stgm-foreground,#1a1a2e)]"
+                  className="stg:text-[var(--stgm-muted-foreground,#737373)] stg:disabled:opacity-30 stg:hover:text-[var(--stgm-foreground,#1a1a2e)]"
                   aria-label={`Move ${branch.name} up`}
                 >
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
@@ -329,7 +329,7 @@ function ForkBranches({
                   type="button"
                   onClick={() => handleMoveDown(idx)}
                   disabled={idx === branches.length - 1}
-                  className="text-[var(--stgm-muted-foreground,#737373)] disabled:opacity-30 hover:text-[var(--stgm-foreground,#1a1a2e)]"
+                  className="stg:text-[var(--stgm-muted-foreground,#737373)] stg:disabled:opacity-30 stg:hover:text-[var(--stgm-foreground,#1a1a2e)]"
                   aria-label={`Move ${branch.name} down`}
                 >
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
@@ -339,7 +339,7 @@ function ForkBranches({
               </div>
 
               {/* Branch info */}
-              <div className="min-w-0 flex-1">
+              <div className="stg:min-w-0 stg:flex-1">
                 {renamingIdx === idx ? (
                   <input
                     type="text"
@@ -351,18 +351,18 @@ function ForkBranches({
                       if (e.key === "Escape") setRenamingIdx(null);
                     }}
                     autoFocus
-                    className="w-full rounded border border-[var(--stgm-ring,#3b82f6)] bg-[var(--stgm-background,#fff)] px-1 py-0.5 text-[11px] text-[var(--stgm-foreground,#1a1a2e)] outline-none"
+                    className="stg:w-full stg:rounded stg:border stg:border-[var(--stgm-ring,#3b82f6)] stg:bg-[var(--stgm-background,#fff)] stg:px-1 stg:py-0.5 stg:text-[11px] stg:text-[var(--stgm-foreground,#1a1a2e)] stg:outline-none"
                   />
                 ) : (
                   <span
-                    className="text-[11px] font-medium text-[var(--stgm-foreground,#1a1a2e)] truncate block cursor-text"
+                    className="stg:text-[11px] stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)] stg:truncate stg:block stg:cursor-text"
                     onDoubleClick={() => startRename(idx, branch.name)}
                     title="Double-click to rename"
                   >
                     {branch.name}
                   </span>
                 )}
-                <span className="text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+                <span className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
                   {branch.taskCount} {branch.taskCount === 1 ? "task" : "tasks"}
                 </span>
               </div>
@@ -372,7 +372,7 @@ function ForkBranches({
                 type="button"
                 onClick={() => handleRemove(branch.name)}
                 disabled={branches.length <= 2}
-                className="shrink-0 opacity-0 group-hover/branch:opacity-100 transition-opacity text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-destructive,#ef4444)] disabled:opacity-30 disabled:cursor-not-allowed"
+                className="stg:shrink-0 stg:opacity-0 stg:group-hover/branch:opacity-100 stg:transition-opacity stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:text-[var(--stgm-destructive,#ef4444)] stg:disabled:opacity-30 stg:disabled:cursor-not-allowed"
                 aria-label={`Remove branch ${branch.name}`}
                 title={branches.length <= 2 ? "Fork requires at least 2 branches" : "Remove branch"}
               >

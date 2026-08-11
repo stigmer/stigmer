@@ -1,10 +1,19 @@
 @import "tailwindcss";
+/* Enter/exit animation utilities for this app's OWN components (AppShell,
+   tooltip). Before #454 these classes were silently dead here: they only
+   ever rendered where a build included tw-animate-css, and this app's build
+   never did. (The web console had it all along — a DD-016 parity gap.) */
+@import "tw-animate-css";
 @import "@stigmer/theme/tokens.css";
 @import "@stigmer/theme/presets/corporate.css";
 @import "@stigmer/theme/presets/startup.css";
 @import "@stigmer/theme/presets/friendly.css";
 @import "@stigmer/theme/presets/fintech.css";
 @import "@stigmer/theme/presets/monochrome.css";
+/* The COMPILED SDK stylesheet (dist/styles.css, `stg:`-prefixed utilities;
+   #454) — same prebuilt artifact external hosts get. This app's Tailwind
+   build no longer scans SDK sources; utilities authored by this app's own
+   code are generated from this file's theme mappings. */
 @import "@stigmer/react/styles.css";
 
 @custom-variant dark (&:is([data-stgm-color-mode="dark"] *));

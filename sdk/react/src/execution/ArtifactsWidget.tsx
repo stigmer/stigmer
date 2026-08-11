@@ -109,14 +109,14 @@ export function ArtifactsWidget({
 
   return (
     <section aria-label="Artifacts" className={cn(className)}>
-      <div className="mb-2 flex items-center gap-2">
-        <h3 className="text-sm font-medium text-foreground">Artifacts</h3>
-        <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-muted px-1.5 text-xs tabular-nums text-muted-foreground">
+      <div className="stg:mb-2 stg:flex stg:items-center stg:gap-2">
+        <h3 className="stg:text-sm stg:font-medium stg:text-foreground">Artifacts</h3>
+        <span className="stg:inline-flex stg:min-w-[1.25rem] stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:px-1.5 stg:text-xs stg:tabular-nums stg:text-muted-foreground">
           {artifactCount}
         </span>
       </div>
 
-      <ul role="list" className="flex flex-col">
+      <ul role="list" className="stg:flex stg:flex-col">
         {artifacts.map((entry) => (
           <ArtifactRow
             key={artifactKey(entry.artifact)}

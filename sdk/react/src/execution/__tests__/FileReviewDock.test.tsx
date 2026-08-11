@@ -128,7 +128,7 @@ describe("FileReviewDock", () => {
     const dock = container.querySelector('[data-cursor-target="file-review-dock"]');
     expect(dock).toBeTruthy();
     const scroller = dock!.firstElementChild!;
-    expect(scroller.className).toContain("overflow-y-auto");
+    expect(scroller.className).toContain("stg:overflow-y-auto");
     expect(scroller.className).toContain("max-h-");
   });
 });

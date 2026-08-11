@@ -56,11 +56,11 @@ export function ResourceDetailShell({
   const hasTabs = tabs != null && tabs.length > 0;
 
   return (
-    <div className={cn("flex flex-col gap-6", className)}>
+    <div className={cn("stg:flex stg:flex-col stg:gap-6", className)}>
       {headerBanner}
 
       {/* Header + Action bar row */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="stg:flex stg:items-start stg:justify-between stg:gap-4">
         <Header
           header={header}
           visibilityControl={visibilityControl}
@@ -69,7 +69,7 @@ export function ResourceDetailShell({
         <ResourceActionBar
           primaryAction={primaryAction}
           actions={actions}
-          className="shrink-0"
+          className="stg:shrink-0"
         />
       </div>
 
@@ -121,25 +121,25 @@ function Header({
   const showSlug = slug && slug !== name && !qualifiedSlug;
 
   return (
-    <div className="flex min-w-0 items-start gap-3">
+    <div className="stg:flex stg:min-w-0 stg:items-start stg:gap-3">
       {iconUrl ? (
         <img
           src={iconUrl}
           alt=""
-          className="mt-0.5 size-8 shrink-0 rounded object-cover"
+          className="stg:mt-0.5 stg:size-8 stg:shrink-0 stg:rounded stg:object-cover"
         />
       ) : icon ? (
-        <span className="mt-1 shrink-0">{icon}</span>
+        <span className="stg:mt-1 stg:shrink-0">{icon}</span>
       ) : null}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+      <div className="stg:min-w-0 stg:flex-1">
+        <div className="stg:flex stg:items-center stg:gap-2">
           {nameElement ?? (
-            <h2 className="truncate text-lg font-semibold text-foreground">
+            <h2 className="stg:truncate stg:text-lg stg:font-semibold stg:text-foreground">
               {name}
             </h2>
           )}
           {showSlug && (
-            <code className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+            <code className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-xs stg:font-medium stg:text-muted-foreground">
               {slug}
             </code>
           )}
@@ -152,11 +152,11 @@ function Header({
           {visibilityControl}
         </div>
         {qualifiedSlug && (
-          <span className="mt-0.5 block truncate font-mono text-xs text-muted-foreground">
+          <span className="stg:mt-0.5 stg:block stg:truncate stg:font-mono stg:text-xs stg:text-muted-foreground">
             {qualifiedSlug}
           </span>
         )}
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+        <div className="stg:mt-0.5 stg:flex stg:flex-wrap stg:items-center stg:gap-x-1.5 stg:text-xs stg:text-muted-foreground">
           {org && <span>{org}</span>}
           {metaExtra}
           {createdAt && (
@@ -173,7 +173,7 @@ function Header({
           )}
         </div>
         {description && (
-          <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+          <p className="stg:mt-2 stg:text-sm stg:text-muted-foreground">{description}</p>
         )}
       </div>
     </div>
@@ -186,7 +186,7 @@ function Header({
 
 function Dot() {
   return (
-    <span className="shrink-0" aria-hidden="true">
+    <span className="stg:shrink-0" aria-hidden="true">
       {"\u00B7"}
     </span>
   );

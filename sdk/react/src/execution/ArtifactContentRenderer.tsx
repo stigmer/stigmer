@@ -146,9 +146,9 @@ function MarkdownView({
 
   return (
     <div>
-      <div className="flex items-center border-b border-border px-4 py-1.5">
+      <div className="stg:flex stg:items-center stg:border-b stg:border-border stg:px-4 stg:py-1.5">
         <div
-          className="inline-flex rounded-md bg-muted p-0.5"
+          className="stg:inline-flex stg:rounded-md stg:bg-muted stg:p-0.5"
           role="tablist"
           aria-label="View mode"
         >
@@ -166,7 +166,7 @@ function MarkdownView({
       </div>
 
       {tab === "rendered" ? (
-        <div className="p-5">
+        <div className="stg:p-5">
           <Markdown
             remarkPlugins={REMARK_PLUGINS}
             components={MARKDOWN_COMPONENTS}
@@ -197,11 +197,11 @@ function TabButton({
       aria-selected={active}
       onClick={onClick}
       className={cn(
-        "rounded-sm px-2.5 py-1 text-xs font-medium transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "stg:rounded-sm stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         active
-          ? "bg-background text-foreground shadow-sm"
-          : "text-muted-foreground hover:text-foreground",
+          ? "stg:bg-background stg:text-foreground stg:shadow-sm"
+          : "stg:text-muted-foreground stg:hover:text-foreground",
       )}
     >
       {label}
@@ -231,7 +231,7 @@ function highlightYamlLine(line: string): ReactNode {
   if (!line.trim()) return line;
 
   if (/^---\s*$/.test(line) || /^\.\.\.\s*$/.test(line)) {
-    return <span className="text-muted-foreground">{line}</span>;
+    return <span className="stg:text-muted-foreground">{line}</span>;
   }
 
   const commentMatch = line.match(/^(\s*)(#.*)$/);
@@ -239,7 +239,7 @@ function highlightYamlLine(line: string): ReactNode {
     return (
       <>
         {commentMatch[1]}
-        <span className="text-muted-foreground italic">{commentMatch[2]}</span>
+        <span className="stg:text-muted-foreground stg:italic">{commentMatch[2]}</span>
       </>
     );
   }
@@ -250,8 +250,8 @@ function highlightYamlLine(line: string): ReactNode {
     return (
       <>
         {indent}
-        <span className="text-primary">{key}</span>
-        <span className="text-muted-foreground">{colon}</span>
+        <span className="stg:text-primary">{key}</span>
+        <span className="stg:text-muted-foreground">{colon}</span>
         {value ? highlightYamlValue(value) : null}
       </>
     );
@@ -264,11 +264,11 @@ function highlightYamlValue(value: string): ReactNode {
   const trimmed = value.trim();
 
   if (/^[|>][-+]?\s*$/.test(trimmed)) {
-    return <span className="text-muted-foreground">{value}</span>;
+    return <span className="stg:text-muted-foreground">{value}</span>;
   }
 
   if (/^(true|false|null|~)$/.test(trimmed)) {
-    return <span className="font-medium">{value}</span>;
+    return <span className="stg:font-medium">{value}</span>;
   }
 
   return <>{value}</>;
@@ -285,7 +285,7 @@ function YamlView({
   const lines = content.split("\n");
 
   return (
-    <pre className="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-foreground">
+    <pre className="stg:overflow-x-auto stg:p-4 stg:font-mono stg:text-xs stg:leading-relaxed stg:text-foreground">
       <code ref={containerRef}>
         {lines.map((line, i) => (
           <span
@@ -294,13 +294,13 @@ function YamlView({
             className={cn(
               // Transparent left border by default so revealing a line only
               // changes its color — never shifts the text (no layout jump).
-              "block border-l-2 border-transparent",
-              isRevealed(i + 1) && "border-primary bg-primary-subtle",
+              "stg:block stg:border-l-2 stg:border-transparent",
+              isRevealed(i + 1) && "stg:border-primary stg:bg-primary-subtle",
             )}
           >
             {/* whitespace-pre inner + `\n` fallback preserves indentation and
                 the height of blank lines, mirroring LineNumberedPre. */}
-            <span className="whitespace-pre">
+            <span className="stg:whitespace-pre">
               {line.trim() ? highlightYamlLine(line) : "\n"}
             </span>
           </span>
@@ -330,8 +330,8 @@ function highlightJson(content: string): ReactNode {
         <span key={i}>
           {i > 0 && "\n"}
           {indent}
-          <span className="text-primary">&quot;{key}&quot;</span>
-          <span className="text-muted-foreground">{colon}</span>
+          <span className="stg:text-primary">&quot;{key}&quot;</span>
+          <span className="stg:text-muted-foreground">{colon}</span>
           {highlightJsonValue(rest)}
         </span>
       );
@@ -353,7 +353,7 @@ function highlightJsonValue(value: string): ReactNode {
     return (
       <>
         {" "}
-        <span className="text-success">{trimmed}</span>
+        <span className="stg:text-success">{trimmed}</span>
         {trailingComma}
       </>
     );
@@ -363,7 +363,7 @@ function highlightJsonValue(value: string): ReactNode {
     return (
       <>
         {" "}
-        <span className="font-medium">{trimmed}</span>
+        <span className="stg:font-medium">{trimmed}</span>
         {trailingComma}
       </>
     );
@@ -373,7 +373,7 @@ function highlightJsonValue(value: string): ReactNode {
     return (
       <>
         {" "}
-        <span className="text-warning">{trimmed}</span>
+        <span className="stg:text-warning">{trimmed}</span>
         {trailingComma}
       </>
     );
@@ -384,7 +384,7 @@ function highlightJsonValue(value: string): ReactNode {
 
 function JsonView({ content }: { readonly content: string }) {
   return (
-    <pre className="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-foreground">
+    <pre className="stg:overflow-x-auto stg:p-4 stg:font-mono stg:text-xs stg:leading-relaxed stg:text-foreground">
       <code>{highlightJson(content)}</code>
     </pre>
   );
@@ -422,7 +422,7 @@ function LineNumberedPre({
   const gutterWidth = String(lines.length).length;
 
   return (
-    <pre className="overflow-x-auto font-mono text-xs leading-relaxed text-foreground">
+    <pre className="stg:overflow-x-auto stg:font-mono stg:text-xs stg:leading-relaxed stg:text-foreground">
       <code ref={containerRef}>
         {lines.map((line, i) => (
           <span
@@ -431,18 +431,18 @@ function LineNumberedPre({
             className={cn(
               // Transparent left border by default so a reveal only recolors the
               // row — never shifts its text (no layout jump).
-              "flex border-l-2 border-transparent",
-              isRevealed(i + 1) && "border-primary bg-primary-subtle",
+              "stg:flex stg:border-l-2 stg:border-transparent",
+              isRevealed(i + 1) && "stg:border-primary stg:bg-primary-subtle",
             )}
           >
             <span
-              className="sticky left-0 select-none bg-background pr-4 text-right text-muted-foreground"
+              className="stg:sticky stg:left-0 stg:select-none stg:bg-background stg:pr-4 stg:text-right stg:text-muted-foreground"
               style={{ minWidth: `${gutterWidth + 2}ch` }}
               aria-hidden="true"
             >
               {i + 1}
             </span>
-            <span className="flex-1 whitespace-pre pl-2">{line || "\n"}</span>
+            <span className="stg:flex-1 stg:whitespace-pre stg:pl-2">{line || "\n"}</span>
           </span>
         ))}
       </code>
@@ -456,7 +456,7 @@ function LineNumberedPre({
 
 function TruncationWarning() {
   return (
-    <div className="border-t border-border bg-warning/10 px-4 py-2 text-xs text-warning">
+    <div className="stg:border-t stg:border-border stg:bg-warning/10 stg:px-4 stg:py-2 stg:text-xs stg:text-warning">
       Content was truncated. Download the full file for complete content.
     </div>
   );

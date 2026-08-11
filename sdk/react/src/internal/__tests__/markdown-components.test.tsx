@@ -197,7 +197,7 @@ describe("MARKDOWN_COMPONENTS.code (shared highlight seam)", () => {
     const code = container.querySelector("code");
     expect(code).not.toBeNull();
     expect(code!.className).not.toContain("hljs");
-    expect(code!.className).toContain("bg-muted");
+    expect(code!.className).toContain("stg:bg-muted");
     expect(code!.textContent).toBe("inlineToken");
   });
 });
@@ -255,7 +255,7 @@ describe("MARKDOWN_COMPONENTS.pre (mermaid dispatch seam)", () => {
     expect(container.querySelector('[data-testid="mermaid-diagram"]')).toBeNull();
     const pre = container.querySelector("pre");
     expect(pre).not.toBeNull();
-    expect(pre!.className).toContain("bg-muted");
+    expect(pre!.className).toContain("stg:bg-muted");
   });
 
   it("dispatches through real react-markdown (the artifact/skill surface path)", () => {

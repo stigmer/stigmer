@@ -53,17 +53,17 @@ export function BulkActionBar<TData>({
       aria-label="Bulk actions"
       aria-live="polite"
       className={cn(
-        "flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-2 shadow-md",
+        "stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-4 stg:py-2 stg:shadow-md",
         className,
       )}
     >
-      <span className="text-xs font-medium text-foreground">
+      <span className="stg:text-xs stg:font-medium stg:text-foreground">
         {selectedCount} {selectedCount === 1 ? "item" : "items"} selected
       </span>
 
-      <span className="h-4 w-px bg-border" aria-hidden="true" />
+      <span className="stg:h-4 stg:w-px stg:bg-border" aria-hidden="true" />
 
-      <div className="flex items-center gap-1">
+      <div className="stg:flex stg:items-center stg:gap-1">
         {actions.map((action) => (
           <BulkActionButton
             key={action.id}
@@ -77,9 +77,9 @@ export function BulkActionBar<TData>({
         type="button"
         onClick={onCancel}
         className={cn(
-          "ml-auto text-xs text-muted-foreground transition-colors",
-          "hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm",
+          "stg:ml-auto stg:text-xs stg:text-muted-foreground stg:transition-colors",
+          "stg:hover:text-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm",
         )}
       >
         Cancel
@@ -103,16 +103,16 @@ function BulkActionButton<TData>({
       disabled={action.disabled}
       onClick={() => action.onAction(selectedItems)}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        "disabled:pointer-events-none disabled:opacity-50",
+        "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         isDestructive
-          ? "text-destructive hover:bg-destructive-subtle"
-          : "text-foreground hover:bg-accent-hover",
+          ? "stg:text-destructive stg:hover:bg-destructive-subtle"
+          : "stg:text-foreground stg:hover:bg-accent-hover",
       )}
     >
       {action.icon && (
-        <span className="shrink-0" aria-hidden="true">
+        <span className="stg:shrink-0" aria-hidden="true">
           {action.icon}
         </span>
       )}

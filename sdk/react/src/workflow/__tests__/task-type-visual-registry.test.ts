@@ -15,6 +15,8 @@ const ALL_KIND_STRINGS = Object.entries(WorkflowTaskKind)
   )
   .map(([name]) => name);
 
+// prefix-classnames-ignore: VisualClass is the node-shape taxonomy, not CSS —
+// "container" collides with the Tailwind utility name.
 const ALL_VISUAL_CLASSES: VisualClass[] = [
   "task-card",
   "decision-diamond",

@@ -57,7 +57,7 @@ export function ResourceList<TData>({
     <div
       role="list"
       aria-label={ariaLabel}
-      className={cn("flex flex-col", className)}
+      className={cn("stg:flex stg:flex-col", className)}
     >
       {items.map((item, index) => {
         const id = getItemId(item);
@@ -85,10 +85,10 @@ export function ResourceList<TData>({
                 : undefined
             }
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors",
-              isSelected && "bg-primary-subtle",
-              isClickable && "cursor-pointer hover:bg-accent-hover",
-              isClickable && "focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring",
+              "stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:px-3 stg:py-2.5 stg:transition-colors",
+              isSelected && "stg:bg-primary-subtle",
+              isClickable && "stg:cursor-pointer stg:hover:bg-accent-hover",
+              isClickable && "stg:focus-within:ring-2 stg:focus-within:ring-inset stg:focus-within:ring-ring",
             )}
           >
             {enableSelection && onToggleSelection && (
@@ -98,11 +98,11 @@ export function ResourceList<TData>({
                 aria-label={`Select item ${id}`}
               />
             )}
-            <div className="min-w-0 flex-1">
+            <div className="stg:min-w-0 stg:flex-1">
               {renderRow(item, index)}
             </div>
             {renderRowAction && (
-              <div className="ml-auto shrink-0" onClick={(e) => e.stopPropagation()}>
+              <div className="stg:ml-auto stg:shrink-0" onClick={(e) => e.stopPropagation()}>
                 {renderRowAction(item)}
               </div>
             )}

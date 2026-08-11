@@ -75,22 +75,22 @@ export function ConfigureMenu({
         disabled={disabled}
         title="Configure"
         className={cn(
-          "inline-flex h-8 w-8 items-center justify-center rounded-md text-xs transition-colors",
-          "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-          "disabled:pointer-events-none disabled:opacity-50",
+          "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
+          "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         )}
         aria-label="Configure agent, tools, and skills"
       >
-        <span className="relative">
+        <span className="stg:relative">
           <ConfigureIcon />
           {totalCount > 0 && (
-            <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-0.5 text-[0.5rem] font-medium leading-none text-primary-foreground">
+            <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-[0.5rem] stg:font-medium stg:leading-none stg:text-primary-foreground">
               {totalCount}
             </span>
           )}
           {hasWarning && totalCount === 0 && (
             <span
-              className="absolute -right-0.5 -top-0.5 inline-block h-2 w-2 rounded-full bg-warning"
+              className="stg:absolute stg:-right-0.5 stg:-top-0.5 stg:inline-block stg:h-2 stg:w-2 stg:rounded-full stg:bg-warning"
               aria-label="Configuration needed"
             />
           )}
@@ -100,9 +100,9 @@ export function ConfigureMenu({
         <Popover.Positioner sideOffset={8} align="start">
           <Popover.Popup
             className={cn(
-              "z-popover overflow-x-hidden overflow-y-auto rounded-lg border border-border",
-              "bg-popover shadow-md text-popover-foreground",
-              "max-h-[80vh]",
+              "stg:z-popover stg:overflow-x-hidden stg:overflow-y-auto stg:rounded-lg stg:border stg:border-border",
+              "stg:bg-popover stg:shadow-md stg:text-popover-foreground",
+              "stg:max-h-[80vh]",
             )}
           >
             {activePanelItem ? (
@@ -134,7 +134,7 @@ function MenuList({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="py-1" role="menu">
+    <div className="stg:py-1" role="menu">
       {items.map((item) => (
         <button
           key={item.id}
@@ -142,20 +142,20 @@ function MenuList({
           role="menuitem"
           onClick={() => onSelect(item.id)}
           className={cn(
-            "flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors",
-            "text-foreground hover:bg-accent-hover",
+            "stg:flex stg:w-full stg:items-center stg:gap-2.5 stg:px-3 stg:py-2 stg:text-sm stg:transition-colors",
+            "stg:text-foreground stg:hover:bg-accent-hover",
           )}
         >
-          <span className="shrink-0 text-muted-foreground">{item.icon}</span>
-          <span className="flex-1 text-left">{item.label}</span>
+          <span className="stg:shrink-0 stg:text-muted-foreground">{item.icon}</span>
+          <span className="stg:flex-1 stg:text-left">{item.label}</span>
           {item.hasWarning && (
             <span
-              className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-warning"
+              className="stg:inline-block stg:h-1.5 stg:w-1.5 stg:shrink-0 stg:rounded-full stg:bg-warning"
               aria-label="Needs configuration"
             />
           )}
           {item.count > 0 && (
-            <span className="rounded-full bg-primary-subtle px-1.5 text-[0.6rem] font-medium text-primary">
+            <span className="stg:rounded-full stg:bg-primary-subtle stg:px-1.5 stg:text-[0.6rem] stg:font-medium stg:text-primary">
               {item.count}
             </span>
           )}
@@ -181,21 +181,21 @@ function PanelView({
 }) {
   return (
     <div>
-      <div className="flex items-center gap-2 border-b border-border-muted px-3 py-2">
+      <div className="stg:flex stg:items-center stg:gap-2 stg:border-b stg:border-border-muted stg:px-3 stg:py-2">
         <button
           type="button"
           onClick={onBack}
-          className="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent-hover hover:text-foreground"
+          className="stg:shrink-0 stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-colors stg:hover:bg-accent-hover stg:hover:text-foreground"
           aria-label="Back to configuration menu"
         >
           <ChevronLeftIcon />
         </button>
-        <span className="shrink-0 text-muted-foreground">{item.icon}</span>
-        <span className="text-sm font-medium text-foreground">
+        <span className="stg:shrink-0 stg:text-muted-foreground">{item.icon}</span>
+        <span className="stg:text-sm stg:font-medium stg:text-foreground">
           {item.label}
         </span>
       </div>
-      <div className="p-3">{children}</div>
+      <div className="stg:p-3">{children}</div>
     </div>
   );
 }
@@ -215,7 +215,7 @@ function ChevronRightIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
       aria-hidden="true"
     >
       <path d="M6 4l4 4-4 4" />

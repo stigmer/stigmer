@@ -41,25 +41,25 @@ export function VersionTimelineEntry({
     <div
       role="listitem"
       aria-current={entry.isCurrent ? "true" : undefined}
-      className="relative flex gap-3"
+      className="stg:relative stg:flex stg:gap-3"
     >
       {/* Timeline connector */}
-      <div className="flex flex-col items-center pt-1">
+      <div className="stg:flex stg:flex-col stg:items-center stg:pt-1">
         <div
           className={cn(
-            "size-2.5 shrink-0 rounded-full border-2",
+            "stg:size-2.5 stg:shrink-0 stg:rounded-full stg:border-2",
             entry.isCurrent
-              ? "border-primary bg-primary"
+              ? "stg:border-primary stg:bg-primary"
               : isCompareSource
-                ? "border-primary border-dashed bg-background"
+                ? "stg:border-primary stg:border-dashed stg:bg-background"
                 : isSelected
-                  ? "border-primary bg-background"
-                  : "border-border bg-background",
+                  ? "stg:border-primary stg:bg-background"
+                  : "stg:border-border stg:bg-background",
           )}
           aria-hidden="true"
         />
         {!isLast && (
-          <div className="mt-1 w-px flex-1 bg-border" aria-hidden="true" />
+          <div className="stg:mt-1 stg:w-px stg:flex-1 stg:bg-border" aria-hidden="true" />
         )}
       </div>
 
@@ -71,49 +71,49 @@ export function VersionTimelineEntry({
         tabIndex={0}
         aria-selected={isSelected}
         className={cn(
-          "mb-4 flex min-w-0 flex-1 flex-col gap-1 rounded-md px-2.5 py-2 text-left transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "stg:mb-4 stg:flex stg:min-w-0 stg:flex-1 stg:flex-col stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-2 stg:text-left stg:transition-colors",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           isCompareSource
-            ? "border border-dashed border-primary bg-primary-subtle"
+            ? "stg:border stg:border-dashed stg:border-primary stg:bg-primary-subtle"
             : isSelected
-              ? "bg-accent-hover"
-              : "hover:bg-accent-hover",
+              ? "stg:bg-accent-hover"
+              : "stg:hover:bg-accent-hover",
         )}
       >
         {/* Top line: hash + tag + current badge */}
-        <div className="flex items-center gap-2">
+        <div className="stg:flex stg:items-center stg:gap-2">
           <code
-            className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-medium text-foreground"
+            className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-[11px] stg:font-medium stg:text-foreground"
             title={entry.id}
           >
             {entry.label}
           </code>
 
           {isCompareSource && (
-            <span className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
+            <span className="stg:shrink-0 stg:rounded-full stg:bg-primary stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-primary-foreground">
               A
             </span>
           )}
 
           {entry.tag && (
-            <span className="shrink-0 rounded-full bg-primary-subtle px-1.5 py-0.5 text-[10px] font-medium text-primary">
+            <span className="stg:shrink-0 stg:rounded-full stg:bg-primary-subtle stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-primary">
               {entry.tag}
             </span>
           )}
 
           {entry.isCurrent && (
-            <span className="shrink-0 rounded-full bg-status-ready-subtle px-1.5 py-0.5 text-[10px] font-medium text-status-ready">
+            <span className="stg:shrink-0 stg:rounded-full stg:bg-status-ready-subtle stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-status-ready">
               current
             </span>
           )}
 
           {trailing && (
-            <div className="ml-auto shrink-0">{trailing}</div>
+            <div className="stg:ml-auto stg:shrink-0">{trailing}</div>
           )}
         </div>
 
         {/* Second line: timestamp + actor */}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-muted-foreground">
           <time
             dateTime={entry.timestamp.toISOString()}
             title={entry.timestamp.toLocaleString()}
@@ -124,12 +124,12 @@ export function VersionTimelineEntry({
           {entry.actor && (
             <>
               <span aria-hidden="true">&middot;</span>
-              <span className="flex items-center gap-1">
+              <span className="stg:flex stg:items-center stg:gap-1">
                 {entry.actor.avatar && (
                   <img
                     src={entry.actor.avatar}
                     alt=""
-                    className="size-3.5 rounded-full"
+                    className="stg:size-3.5 stg:rounded-full"
                   />
                 )}
                 <span>{entry.actor.displayName || entry.actor.id}</span>
@@ -140,7 +140,7 @@ export function VersionTimelineEntry({
 
         {/* Optional sublabel (commit message) */}
         {entry.sublabel && (
-          <p className="text-xs text-muted-foreground">
+          <p className="stg:text-xs stg:text-muted-foreground">
             {entry.sublabel}
           </p>
         )}
@@ -170,23 +170,23 @@ function GitProvenanceRow({
     : null;
 
   return (
-    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-      <GitIcon className="size-3 shrink-0" />
+    <div className="stg:flex stg:items-center stg:gap-1.5 stg:text-[11px] stg:text-muted-foreground">
+      <GitIcon className="stg:size-3 stg:shrink-0" />
       {provenance.ref && (
-        <span className="font-medium">{provenance.ref}</span>
+        <span className="stg:font-medium">{provenance.ref}</span>
       )}
       {commitUrl ? (
         <a
           href={commitUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-mono text-primary underline-offset-2 hover:underline"
+          className="stg:font-mono stg:text-primary stg:underline-offset-2 stg:hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
           {truncatedCommit}
         </a>
       ) : (
-        <code className="font-mono">{truncatedCommit}</code>
+        <code className="stg:font-mono">{truncatedCommit}</code>
       )}
     </div>
   );

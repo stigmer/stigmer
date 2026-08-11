@@ -95,19 +95,19 @@ export const WorkflowTaskApprovalSummary = memo(function WorkflowTaskApprovalSum
     <div
       role="group"
       aria-label={`Approval decision for ${taskName}`}
-      className={cn("mt-2 rounded-lg border border-border bg-muted-subtle p-3", className)}
+      className={cn("stg:mt-2 stg:rounded-lg stg:border stg:border-border stg:bg-muted-subtle stg:p-3", className)}
     >
       {/* Decision header */}
       {isFinalizing ? (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-muted-foreground">
           <SpinnerIcon />
           <span>Decision recorded — finalizing…</span>
         </div>
       ) : (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-x-2 stg:gap-y-1">
           <span
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium",
+              "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-2 stg:py-1 stg:text-xs stg:font-medium",
               TONE_CLASSES[tone],
             )}
           >
@@ -115,7 +115,7 @@ export const WorkflowTaskApprovalSummary = memo(function WorkflowTaskApprovalSum
             {outcomeLabel}
           </span>
           {decision!.autoResolved && (
-            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            <span className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground">
               auto-resolved
             </span>
           )}
@@ -124,18 +124,18 @@ export const WorkflowTaskApprovalSummary = memo(function WorkflowTaskApprovalSum
 
       {/* Reviewer + timing */}
       {!isFinalizing && (
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-muted-foreground">
+        <div className="stg:mt-1.5 stg:flex stg:flex-wrap stg:items-center stg:gap-x-1.5 stg:text-[11px] stg:text-muted-foreground">
           {reviewer && <ReviewerChip reviewer={reviewer} />}
           {decision!.respondedAt && (
             <>
               {reviewer && <Dot />}
-              <span className="tabular-nums">{formatTimestamp(decision!.respondedAt)}</span>
+              <span className="stg:tabular-nums">{formatTimestamp(decision!.respondedAt)}</span>
             </>
           )}
           {decision!.waitDurationMs > 0 && (
             <>
               {(reviewer || decision!.respondedAt) && <Dot />}
-              <span className="tabular-nums">waited {formatDuration(decision!.waitDurationMs)}</span>
+              <span className="stg:tabular-nums">waited {formatDuration(decision!.waitDurationMs)}</span>
             </>
           )}
         </div>
@@ -143,7 +143,7 @@ export const WorkflowTaskApprovalSummary = memo(function WorkflowTaskApprovalSum
 
       {/* What was decided on */}
       {prompt && (
-        <div className="mt-3 max-h-80 overflow-y-auto rounded border border-border bg-background p-3">
+        <div className="stg:mt-3 stg:max-h-80 stg:overflow-y-auto stg:rounded stg:border stg:border-border stg:bg-background stg:p-3">
           <div className="stgm-prose">
             <Markdown components={MARKDOWN_COMPONENTS} remarkPlugins={REMARK_PLUGINS}>
               {prompt}
@@ -154,11 +154,11 @@ export const WorkflowTaskApprovalSummary = memo(function WorkflowTaskApprovalSum
 
       {/* Reviewer comment */}
       {!isFinalizing && decision!.comment && (
-        <div className="mt-3">
-          <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        <div className="stg:mt-3">
+          <p className="stg:mb-1 stg:text-[11px] stg:font-medium stg:uppercase stg:tracking-wide stg:text-muted-foreground">
             Comment
           </p>
-          <p className="whitespace-pre-wrap rounded border border-border bg-background p-2 text-xs text-foreground">
+          <p className="stg:whitespace-pre-wrap stg:rounded stg:border stg:border-border stg:bg-background stg:p-2 stg:text-xs stg:text-foreground">
             {decision!.comment}
           </p>
         </div>
@@ -166,13 +166,13 @@ export const WorkflowTaskApprovalSummary = memo(function WorkflowTaskApprovalSum
 
       {/* Submitted form answers */}
       {!isFinalizing && formEntries.length > 0 && (
-        <dl className="mt-3 space-y-2">
+        <dl className="stg:mt-3 stg:space-y-2">
           {formEntries.map((entry) => (
             <div key={entry.key}>
-              <dt className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <dt className="stg:mb-1 stg:text-[11px] stg:font-medium stg:uppercase stg:tracking-wide stg:text-muted-foreground">
                 {entry.label}
               </dt>
-              <dd className="whitespace-pre-wrap rounded border border-border bg-background p-2 text-xs text-foreground">
+              <dd className="stg:whitespace-pre-wrap stg:rounded stg:border stg:border-border stg:bg-background stg:p-2 stg:text-xs stg:text-foreground">
                 {entry.value}
               </dd>
             </div>
@@ -196,16 +196,16 @@ export const WorkflowTaskApprovalSummary = memo(function WorkflowTaskApprovalSum
  */
 function ReviewerChip({ reviewer }: { readonly reviewer: TaskReviewerView }) {
   return (
-    <span className="flex items-center gap-1">
+    <span className="stg:flex stg:items-center stg:gap-1">
       by{" "}
       {reviewer.avatar && (
-        <img src={reviewer.avatar} alt="" className="size-3.5 rounded-full" />
+        <img src={reviewer.avatar} alt="" className="stg:size-3.5 stg:rounded-full" />
       )}
       <span
         className={cn(
           reviewer.isRawId
-            ? "font-mono text-[10px] text-muted-foreground"
-            : "font-medium text-foreground",
+            ? "stg:font-mono stg:text-[10px] stg:text-muted-foreground"
+            : "stg:font-medium stg:text-foreground",
         )}
         title={reviewer.email || undefined}
       >
@@ -222,9 +222,9 @@ function ReviewerChip({ reviewer }: { readonly reviewer: TaskReviewerView }) {
 type DecisionTone = "approve" | "reject" | "neutral";
 
 const TONE_CLASSES: Record<DecisionTone, string> = {
-  approve: "bg-success-subtle text-success",
-  reject: "bg-destructive-subtle text-destructive",
-  neutral: "bg-muted text-foreground",
+  approve: "stg:bg-success-subtle stg:text-success",
+  reject: "stg:bg-destructive-subtle stg:text-destructive",
+  neutral: "stg:bg-muted stg:text-foreground",
 };
 
 /**
@@ -317,7 +317,7 @@ function SpinnerIcon() {
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />

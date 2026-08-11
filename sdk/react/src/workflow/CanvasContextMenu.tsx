@@ -78,30 +78,30 @@ export interface CanvasContextMenuProps {
 // ---------------------------------------------------------------------------
 
 const POPUP_CLASS = cn(
-  "stgm z-50 min-w-[160px] rounded-md border border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-popover,var(--stgm-background,#fff))] p-1 shadow-md",
-  "outline-none",
+  "stgm stg:z-50 stg:min-w-[160px] stg:rounded-md stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-popover,var(--stgm-background,#fff))] stg:p-1 stg:shadow-md",
+  "stg:outline-none",
 );
 
 const ITEM_CLASS = cn(
-  "flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-xs text-[var(--stgm-popover-foreground,var(--stgm-foreground,#1a1a2e))] outline-none",
-  "data-[highlighted]:bg-[var(--stgm-accent,#e5e5e5)]",
+  "stg:flex stg:cursor-default stg:select-none stg:items-center stg:gap-2 stg:rounded-sm stg:px-2 stg:py-1.5 stg:text-xs stg:text-[var(--stgm-popover-foreground,var(--stgm-foreground,#1a1a2e))] stg:outline-none",
+  "stg:data-[highlighted]:bg-[var(--stgm-accent,#e5e5e5)]",
 );
 
 const DESTRUCTIVE_ITEM_CLASS = cn(
-  "flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-xs text-[var(--stgm-destructive,#ef4444)] outline-none",
-  "data-[highlighted]:bg-[var(--stgm-destructive,#ef4444)]/10",
+  "stg:flex stg:cursor-default stg:select-none stg:items-center stg:gap-2 stg:rounded-sm stg:px-2 stg:py-1.5 stg:text-xs stg:text-[var(--stgm-destructive,#ef4444)] stg:outline-none",
+  "stg:data-[highlighted]:bg-[var(--stgm-destructive,#ef4444)]/10",
 );
 
 const DISABLED_ITEM_CLASS = cn(
-  "flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-xs text-[var(--stgm-muted-foreground,#737373)] outline-none",
-  "opacity-50",
+  "stg:flex stg:cursor-default stg:select-none stg:items-center stg:gap-2 stg:rounded-sm stg:px-2 stg:py-1.5 stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)] stg:outline-none",
+  "stg:opacity-50",
 );
 
 const SHORTCUT_HINT_CLASS =
-  "ml-auto pl-4 text-[10px] tracking-wide text-[var(--stgm-muted-foreground,#737373)]";
+  "stg:ml-auto stg:pl-4 stg:text-[10px] stg:tracking-wide stg:text-[var(--stgm-muted-foreground,#737373)]";
 
 const SEPARATOR_CLASS =
-  "my-1 h-px bg-[var(--stgm-border,#e5e5e5)]";
+  "stg:my-1 stg:h-px stg:bg-[var(--stgm-border,#e5e5e5)]";
 
 // ---------------------------------------------------------------------------
 // CanvasContextMenu

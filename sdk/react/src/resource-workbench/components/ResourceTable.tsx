@@ -66,20 +66,20 @@ export function ResourceTable<TData>({
   const someSelected = table.getIsSomeRowsSelected();
 
   return (
-    <div className={cn("overflow-x-auto", className)}>
+    <div className={cn("stg:overflow-x-auto", className)}>
       <table
         role="table"
         aria-label={ariaLabel}
-        className="w-full border-collapse text-sm"
+        className="stg:w-full stg:border-collapse stg:text-sm"
       >
         <thead>
           {headerGroups.map((headerGroup) => (
             <tr
               key={headerGroup.id}
-              className="border-b border-border"
+              className="stg:border-b stg:border-border"
             >
               {enableSelection && (
-                <th scope="col" className="w-10 px-3 py-2">
+                <th scope="col" className="stg:w-10 stg:px-3 stg:py-2">
                   <SelectionCheckbox
                     checked={allSelected}
                     indeterminate={someSelected && !allSelected}
@@ -122,8 +122,8 @@ export function ResourceTable<TData>({
                 );
               })}
               {renderRowAction && (
-                <th scope="col" className="w-10 px-3 py-2">
-                  <span className="sr-only">Actions</span>
+                <th scope="col" className="stg:w-10 stg:px-3 stg:py-2">
+                  <span className="stg:sr-only">Actions</span>
                 </th>
               )}
             </tr>
@@ -167,9 +167,9 @@ function TableRow<TData>({
   return (
     <tr
       className={cn(
-        "border-b border-border-muted transition-colors",
-        isSelected && "bg-primary-subtle",
-        isClickable && "cursor-pointer hover:bg-accent-hover",
+        "stg:border-b stg:border-border-muted stg:transition-colors",
+        isSelected && "stg:bg-primary-subtle",
+        isClickable && "stg:cursor-pointer stg:hover:bg-accent-hover",
       )}
       onClick={
         isClickable
@@ -191,7 +191,7 @@ function TableRow<TData>({
       aria-selected={enableSelection ? isSelected : undefined}
     >
       {enableSelection && (
-        <td className="w-10 px-3 py-2">
+        <td className="stg:w-10 stg:px-3 stg:py-2">
           <SelectionCheckbox
             checked={isSelected}
             onChange={() => row.toggleSelected()}
@@ -202,7 +202,7 @@ function TableRow<TData>({
       {row.getVisibleCells().map((cell) => (
         <td
           key={cell.id}
-          className="px-3 py-2 text-sm text-foreground"
+          className="stg:px-3 stg:py-2 stg:text-sm stg:text-foreground"
           style={{
             minWidth: cell.column.columnDef.minSize
               ? `${cell.column.columnDef.minSize}px`
@@ -213,7 +213,7 @@ function TableRow<TData>({
         </td>
       ))}
       {renderRowAction && (
-        <td className="w-10 px-3 py-2 text-right">
+        <td className="stg:w-10 stg:px-3 stg:py-2 stg:text-right">
           {renderRowAction(item)}
         </td>
       )}

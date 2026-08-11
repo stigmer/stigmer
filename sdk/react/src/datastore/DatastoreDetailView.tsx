@@ -87,7 +87,7 @@ export function DatastoreDetailView({
     org: meta?.org,
     slug: meta?.slug,
     description: spec?.description,
-    icon: <DatastoreIcon className="size-6 text-muted-foreground" />,
+    icon: <DatastoreIcon className="stg:size-6 stg:text-muted-foreground" />,
     createdAt: specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null,
     updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
   };
@@ -107,7 +107,7 @@ export function DatastoreDetailView({
       className={className}
     >
       {tab === "overview" ? (
-        <div className="flex flex-col gap-6">
+        <div className="stg:flex stg:flex-col stg:gap-6">
           {status && <DatastoreSyncReport status={status} />}
           {spec && <CollectionSchemaView spec={spec} />}
         </div>
@@ -132,28 +132,28 @@ export function DatastoreDetailView({
 function LoadingSkeleton({ className }: { readonly className?: string }) {
   return (
     <div
-      className={cn("flex flex-col gap-6", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-6", className)}
       aria-busy="true"
       aria-label="Loading datastore details"
     >
-      <div className="flex items-start gap-3">
-        <div className="mt-1 size-6 shrink-0 animate-pulse rounded bg-muted" />
-        <div className="flex-1 space-y-2">
-          <div className="h-5 w-48 animate-pulse rounded bg-muted" />
-          <div className="h-3 w-64 animate-pulse rounded bg-muted" />
+      <div className="stg:flex stg:items-start stg:gap-3">
+        <div className="stg:mt-1 stg:size-6 stg:shrink-0 stg:animate-pulse stg:rounded stg:bg-muted" />
+        <div className="stg:flex-1 stg:space-y-2">
+          <div className="stg:h-5 stg:w-48 stg:animate-pulse stg:rounded stg:bg-muted" />
+          <div className="stg:h-3 stg:w-64 stg:animate-pulse stg:rounded stg:bg-muted" />
         </div>
       </div>
-      <div className="space-y-2">
-        <div className="h-3 w-28 animate-pulse rounded bg-muted" />
+      <div className="stg:space-y-2">
+        <div className="stg:h-3 stg:w-28 stg:animate-pulse stg:rounded stg:bg-muted" />
         <div
-          className="animate-pulse rounded-lg border border-border bg-muted-faint"
+          className="stg:animate-pulse stg:rounded-lg stg:border stg:border-border stg:bg-muted-faint"
           style={{ height: "160px" }}
         />
       </div>
-      <div className="space-y-2">
-        <div className="h-3 w-20 animate-pulse rounded bg-muted" />
+      <div className="stg:space-y-2">
+        <div className="stg:h-3 stg:w-20 stg:animate-pulse stg:rounded stg:bg-muted" />
         <div
-          className="animate-pulse rounded-lg border border-border bg-muted-faint"
+          className="stg:animate-pulse stg:rounded-lg stg:border stg:border-border stg:bg-muted-faint"
           style={{ height: "240px" }}
         />
       </div>
@@ -165,11 +165,11 @@ function NotFoundState({ className }: { readonly className?: string }) {
   return (
     <div
       role="status"
-      className={cn("flex flex-col items-center gap-2 py-12 text-center", className)}
+      className={cn("stg:flex stg:flex-col stg:items-center stg:gap-2 stg:py-12 stg:text-center", className)}
     >
-      <DatastoreIcon className="size-10 text-muted-foreground-faint" />
-      <p className="text-sm font-medium text-muted-foreground">Datastore not found</p>
-      <p className="text-xs text-muted-foreground-subtle">
+      <DatastoreIcon className="stg:size-10 stg:text-muted-foreground-faint" />
+      <p className="stg:text-sm stg:font-medium stg:text-muted-foreground">Datastore not found</p>
+      <p className="stg:text-xs stg:text-muted-foreground-subtle">
         This datastore doesn&apos;t exist or you don&apos;t have access to it.
       </p>
     </div>

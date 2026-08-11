@@ -28,7 +28,7 @@ import type { useCursorMemberKeyActions } from "./useCursorMemberKeyActions.js";
  * MemberCell) while the key name stays truncate-with-tooltip.
  */
 const ROW_GRID =
-  "grid grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_4.5rem_4.5rem_4.5rem_4.5rem_minmax(6rem,auto)_minmax(10rem,auto)] items-center gap-2 px-3 py-2";
+  "stg:grid stg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_4.5rem_4.5rem_4.5rem_4.5rem_minmax(6rem,auto)_minmax(10rem,auto)] stg:items-center stg:gap-2 stg:px-3 stg:py-2";
 
 /**
  * The roster-coverage table: every member and every stored execution key
@@ -66,31 +66,31 @@ export function MemberCoverageTable({
     <div
       role="table"
       aria-label="Team coverage"
-      className="rounded-lg border border-border bg-card"
+      className="stg:rounded-lg stg:border stg:border-border stg:bg-card"
     >
       <div
         role="row"
         className={cn(
           ROW_GRID,
-          "border-b border-border text-[11px] font-medium text-muted-foreground",
+          "stg:border-b stg:border-border stg:text-[11px] stg:font-medium stg:text-muted-foreground",
         )}
       >
         <span role="columnheader">Member</span>
         <span role="columnheader">Key</span>
-        <span role="columnheader" className="text-right">
+        <span role="columnheader" className="stg:text-right">
           First-party
         </span>
-        <span role="columnheader" className="text-right">
+        <span role="columnheader" className="stg:text-right">
           API
         </span>
-        <span role="columnheader" className="text-right">
+        <span role="columnheader" className="stg:text-right">
           Included
         </span>
-        <span role="columnheader" className="text-right">
+        <span role="columnheader" className="stg:text-right">
           On-demand
         </span>
         <span role="columnheader">Status</span>
-        <span role="columnheader" className="text-right">
+        <span role="columnheader" className="stg:text-right">
           Actions
         </span>
       </div>
@@ -196,17 +196,17 @@ function CoverageGroup({
   readonly children: React.ReactNode;
 }) {
   return (
-    <div role="rowgroup" className="border-b border-border last:border-b-0">
-      <div role="row" className="bg-muted-subtle px-3 py-1.5">
+    <div role="rowgroup" className="stg:border-b stg:border-border stg:last:border-b-0">
+      <div role="row" className="stg:bg-muted-subtle stg:px-3 stg:py-1.5">
         <div role="cell" aria-colspan={8}>
-          <span className="text-[11px] font-semibold text-foreground">
+          <span className="stg:text-[11px] stg:font-semibold stg:text-foreground">
             {title}
-            <span className="ml-1.5 font-normal text-muted-foreground">
+            <span className="stg:ml-1.5 stg:font-normal stg:text-muted-foreground">
               {count}
             </span>
           </span>
           {description && (
-            <span className="block text-[11px] text-muted-foreground">
+            <span className="stg:block stg:text-[11px] stg:text-muted-foreground">
               {description}
             </span>
           )}
@@ -237,12 +237,12 @@ function MemberCell({
   readonly name?: string;
 }) {
   return (
-    <span role="cell" className="min-w-0">
-      <span className="block break-words font-medium text-foreground" title={email}>
+    <span role="cell" className="stg:min-w-0">
+      <span className="stg:block stg:break-words stg:font-medium stg:text-foreground" title={email}>
         {email}
       </span>
       {name && (
-        <span className="block truncate text-[11px] text-muted-foreground">
+        <span className="stg:block stg:truncate stg:text-[11px] stg:text-muted-foreground">
           {name}
         </span>
       )}
@@ -270,27 +270,27 @@ function KeyRow({
   if (!key) return null;
 
   return (
-    <div role="row" className={cn(ROW_GRID, "border-t border-border-muted text-xs")}>
+    <div role="row" className={cn(ROW_GRID, "stg:border-t stg:border-border-muted stg:text-xs")}>
       <MemberCell email={key.boundEmail} />
-      <span role="cell" className="min-w-0">
+      <span role="cell" className="stg:min-w-0">
         <span
-          className="block truncate text-muted-foreground"
+          className="stg:block stg:truncate stg:text-muted-foreground"
           title={key.cursorKeyName || undefined}
         >
           {key.cursorKeyName || "unnamed key"}
         </span>
         {key.label && (
-          <span className="block truncate text-[11px] text-muted-foreground" title={key.label}>
+          <span className="stg:block stg:truncate stg:text-[11px] stg:text-muted-foreground" title={key.label}>
             {key.label}
           </span>
         )}
       </span>
       <SpendCells spend={keyView.spend} />
-      <span role="cell" className="flex flex-wrap items-center gap-1">
+      <span role="cell" className="stg:flex stg:flex-wrap stg:items-center stg:gap-1">
         {keyView.usageGuardTripped && <StateBadge tone="warn" label="Usage guard" />}
         <KeyStatusBadge keyView={keyView} hasRoster={hasRoster} />
       </span>
-      <span role="cell" className="flex items-center justify-end gap-2">
+      <span role="cell" className="stg:flex stg:items-center stg:justify-end stg:gap-2">
         {inviteLink !== "" && <CopyInviteButton inviteLink={inviteLink} />}
         <Button
           size="sm"
@@ -332,16 +332,16 @@ function GapRow({ memberView }: { readonly memberView: CursorTeamMemberView }) {
   if (!member) return null;
 
   return (
-    <div role="row" className={cn(ROW_GRID, "border-t border-border-muted text-xs")}>
+    <div role="row" className={cn(ROW_GRID, "stg:border-t stg:border-border-muted stg:text-xs")}>
       <MemberCell email={member.email} name={member.name} />
-      <span role="cell" className="text-muted-foreground">
+      <span role="cell" className="stg:text-muted-foreground">
         —
       </span>
       <SpendCells spend={memberView.spend} />
       <span role="cell">
         <StateBadge tone="muted" label="No key" />
       </span>
-      <span role="cell" className="text-right text-muted-foreground">
+      <span role="cell" className="stg:text-right stg:text-muted-foreground">
         —
       </span>
     </div>
@@ -360,16 +360,16 @@ function GapRow({ memberView }: { readonly memberView: CursorTeamMemberView }) {
 function SpendCells({ spend }: { readonly spend: CursorMemberSpend | undefined }) {
   return (
     <>
-      <span role="cell" className="text-right tabular-nums text-muted-foreground">
+      <span role="cell" className="stg:text-right stg:tabular-nums stg:text-muted-foreground">
         {spend ? formatPoolPercent(spend.autoPercentUsed) : "—"}
       </span>
-      <span role="cell" className="text-right tabular-nums text-muted-foreground">
+      <span role="cell" className="stg:text-right stg:tabular-nums stg:text-muted-foreground">
         {spend ? formatPoolPercent(spend.apiPercentUsed) : "—"}
       </span>
-      <span role="cell" className="text-right tabular-nums text-muted-foreground">
+      <span role="cell" className="stg:text-right stg:tabular-nums stg:text-muted-foreground">
         {spend ? formatSpendMicros(spend.includedSpendUsdMicros) : "—"}
       </span>
-      <span role="cell" className="text-right tabular-nums text-muted-foreground">
+      <span role="cell" className="stg:text-right stg:tabular-nums stg:text-muted-foreground">
         {spend ? formatSpendMicros(spend.overageSpendUsdMicros) : "—"}
       </span>
     </>

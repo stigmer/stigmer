@@ -56,14 +56,14 @@ export const ExecutionBadge = memo(function ExecutionBadge({
     return (
       <span
         className={cn(
-          "absolute -right-1.5 -top-1.5 z-20 flex h-5 items-center gap-0.5 rounded-full px-1.5 text-[10px] font-semibold leading-none shadow-sm",
-          "bg-[var(--stgm-warning,#f59e0b)] text-[var(--stgm-warning-foreground,#fff)]",
+          "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-5 stg:items-center stg:gap-0.5 stg:rounded-full stg:px-1.5 stg:text-[10px] stg:font-semibold stg:leading-none stg:shadow-sm",
+          "stg:bg-[var(--stgm-warning,#f59e0b)] stg:text-[var(--stgm-warning-foreground,#fff)]",
         )}
         title={approvalLabel}
         aria-label={approvalLabel}
       >
         ✋
-        <span className="max-w-[60px] truncate">{approvalToolName}</span>
+        <span className="stg:max-w-[60px] stg:truncate">{approvalToolName}</span>
       </span>
     );
   }
@@ -78,14 +78,14 @@ export const ExecutionBadge = memo(function ExecutionBadge({
     return (
       <span
         className={cn(
-          "absolute -right-1.5 -top-1.5 z-20 flex h-5 items-center gap-0.5 rounded-full px-1.5 text-[10px] font-semibold leading-none shadow-sm",
-          "bg-[var(--stgm-primary,#6366f1)] text-[var(--stgm-primary-foreground,#fff)]",
+          "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-5 stg:items-center stg:gap-0.5 stg:rounded-full stg:px-1.5 stg:text-[10px] stg:font-semibold stg:leading-none stg:shadow-sm",
+          "stg:bg-[var(--stgm-primary,#6366f1)] stg:text-[var(--stgm-primary-foreground,#fff)]",
         )}
         title={agentLabel}
         aria-label={agentLabel}
       >
         {agentActivity.currentToolName ? "🔧" : "💬"}
-        <span className="max-w-[60px] truncate">{displayText}</span>
+        <span className="stg:max-w-[60px] stg:truncate">{displayText}</span>
       </span>
     );
   }
@@ -99,14 +99,14 @@ export const ExecutionBadge = memo(function ExecutionBadge({
     return (
       <span
         className={cn(
-          "absolute -right-1.5 -top-1.5 z-20 flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold leading-none shadow-sm",
-          "bg-[var(--stgm-primary,#6366f1)] text-[var(--stgm-primary-foreground,#fff)]",
+          "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-5 stg:min-w-5 stg:items-center stg:justify-center stg:rounded-full stg:px-1.5 stg:text-[10px] stg:font-semibold stg:leading-none stg:shadow-sm",
+          "stg:bg-[var(--stgm-primary,#6366f1)] stg:text-[var(--stgm-primary-foreground,#fff)]",
         )}
         title={progressLabel}
         aria-label={progressLabel}
       >
         {forkProgress.completed}/{forkProgress.total}
-        {forkProgress.compete && <span className="ml-0.5">⚡</span>}
+        {forkProgress.compete && <span className="stg:ml-0.5">⚡</span>}
       </span>
     );
   }
@@ -116,7 +116,7 @@ export const ExecutionBadge = memo(function ExecutionBadge({
   return (
     <span
       className={cn(
-        "absolute -right-1.5 -top-1.5 z-20 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none shadow-sm",
+        "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-5 stg:min-w-5 stg:items-center stg:justify-center stg:rounded-full stg:px-1 stg:text-[10px] stg:font-semibold stg:leading-none stg:shadow-sm",
         className,
       )}
       title={label + (attemptNumber && attemptNumber > 1 ? ` (attempt ${attemptNumber})` : "")}
@@ -124,7 +124,7 @@ export const ExecutionBadge = memo(function ExecutionBadge({
     >
       {icon}
       {status === "retrying" && attemptNumber != null && attemptNumber > 1 && (
-        <span className="ml-0.5">{attemptNumber}</span>
+        <span className="stg:ml-0.5">{attemptNumber}</span>
       )}
     </span>
   );
@@ -140,31 +140,31 @@ const BADGE_CONFIG: Record<Exclude<NodeExecutionStatus, "not_reached" | "pending
   running: {
     icon: "⟳",
     label: "Running",
-    className: "bg-[var(--stgm-primary,#6366f1)] text-[var(--stgm-primary-foreground,#fff)]",
+    className: "stg:bg-[var(--stgm-primary,#6366f1)] stg:text-[var(--stgm-primary-foreground,#fff)]",
   },
   completed: {
     icon: "✓",
     label: "Completed",
-    className: "bg-[var(--stgm-success,#22c55e)] text-[var(--stgm-success-foreground,#fff)]",
+    className: "stg:bg-[var(--stgm-success,#22c55e)] stg:text-[var(--stgm-success-foreground,#fff)]",
   },
   failed: {
     icon: "✕",
     label: "Failed",
-    className: "bg-[var(--stgm-destructive,#ef4444)] text-[var(--stgm-destructive-foreground,#fff)]",
+    className: "stg:bg-[var(--stgm-destructive,#ef4444)] stg:text-[var(--stgm-destructive-foreground,#fff)]",
   },
   skipped: {
     icon: "—",
     label: "Skipped",
-    className: "bg-[var(--stgm-muted,#e5e5e5)] text-[var(--stgm-muted-foreground,#737373)]",
+    className: "stg:bg-[var(--stgm-muted,#e5e5e5)] stg:text-[var(--stgm-muted-foreground,#737373)]",
   },
   retrying: {
     icon: "↻",
     label: "Retrying",
-    className: "bg-[var(--stgm-warning,#f59e0b)] text-[var(--stgm-warning-foreground,#fff)]",
+    className: "stg:bg-[var(--stgm-warning,#f59e0b)] stg:text-[var(--stgm-warning-foreground,#fff)]",
   },
   waiting_approval: {
     icon: "✋",
     label: "Waiting for approval",
-    className: "bg-[var(--stgm-warning,#f59e0b)] text-[var(--stgm-warning-foreground,#fff)]",
+    className: "stg:bg-[var(--stgm-warning,#f59e0b)] stg:text-[var(--stgm-warning-foreground,#fff)]",
   },
 };

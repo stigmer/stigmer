@@ -51,9 +51,9 @@ export const TaskComparisonTable = memo(function TaskComparisonTable({
   const handleFilterChange = useCallback((mode: FilterMode) => setFilter(mode), []);
 
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
+    <div className={cn("stg:flex stg:flex-col stg:gap-2", className)}>
       {/* Filter controls */}
-      <div className="flex items-center gap-1" role="tablist" aria-label="Task filter">
+      <div className="stg:flex stg:items-center stg:gap-1" role="tablist" aria-label="Task filter">
         <FilterChip
           label="All"
           count={comparison.tasks.length}
@@ -79,23 +79,23 @@ export const TaskComparisonTable = memo(function TaskComparisonTable({
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-md border border-[var(--stgm-border,#e5e5e5)]">
-        <table className="w-full text-xs" aria-label="Task comparison">
+      <div className="stg:overflow-x-auto stg:rounded-md stg:border stg:border-[var(--stgm-border,#e5e5e5)]">
+        <table className="stg:w-full stg:text-xs" aria-label="Task comparison">
           <thead>
-            <tr className="border-b border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-muted,#f5f5f5)]">
-              <th className="px-3 py-2 text-left font-medium text-[var(--stgm-muted-foreground,#737373)]">
+            <tr className="stg:border-b stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-muted,#f5f5f5)]">
+              <th className="stg:px-3 stg:py-2 stg:text-left stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)]">
                 Task
               </th>
-              <th className="px-3 py-2 text-center font-medium text-[var(--stgm-muted-foreground,#737373)]">
+              <th className="stg:px-3 stg:py-2 stg:text-center stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)]">
                 Base Status
               </th>
-              <th className="px-3 py-2 text-center font-medium text-[var(--stgm-muted-foreground,#737373)]">
+              <th className="stg:px-3 stg:py-2 stg:text-center stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)]">
                 Compare Status
               </th>
-              <th className="px-3 py-2 text-right font-medium text-[var(--stgm-muted-foreground,#737373)]">
+              <th className="stg:px-3 stg:py-2 stg:text-right stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)]">
                 Duration
               </th>
-              <th className="px-3 py-2 text-right font-medium text-[var(--stgm-muted-foreground,#737373)]">
+              <th className="stg:px-3 stg:py-2 stg:text-right stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)]">
                 Cost
               </th>
             </tr>
@@ -103,7 +103,7 @@ export const TaskComparisonTable = memo(function TaskComparisonTable({
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-[var(--stgm-muted-foreground,#737373)]">
+                <td colSpan={5} className="stg:px-3 stg:py-6 stg:text-center stg:text-[var(--stgm-muted-foreground,#737373)]">
                   {filter === "all" ? "No tasks to compare." : "No matching tasks."}
                 </td>
               </tr>
@@ -121,7 +121,7 @@ export const TaskComparisonTable = memo(function TaskComparisonTable({
 
       {/* Unmatched tasks */}
       {(comparison.tasksOnlyInBase.length > 0 || comparison.tasksOnlyInCompare.length > 0) && (
-        <div className="mt-1 text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+        <div className="stg:mt-1 stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
           {comparison.tasksOnlyInBase.length > 0 && (
             <p>Only in base: {comparison.tasksOnlyInBase.join(", ")}</p>
           )}
@@ -144,35 +144,35 @@ const TaskRow = memo(function TaskRow({
   return (
     <tr
       className={cn(
-        "border-b border-[var(--stgm-border,#e5e5e5)] last:border-b-0",
-        task.statusChanged && "bg-[var(--stgm-destructive,#dc2626)]/5",
-        isDivergencePoint && "ring-1 ring-inset ring-[var(--stgm-warning,#f59e0b)]/50",
+        "stg:border-b stg:border-[var(--stgm-border,#e5e5e5)] stg:last:border-b-0",
+        task.statusChanged && "stg:bg-[var(--stgm-destructive,#dc2626)]/5",
+        isDivergencePoint && "stg:ring-1 stg:ring-inset stg:ring-[var(--stgm-warning,#f59e0b)]/50",
       )}
     >
-      <td className="px-3 py-2">
-        <div className="flex items-center gap-1.5">
+      <td className="stg:px-3 stg:py-2">
+        <div className="stg:flex stg:items-center stg:gap-1.5">
           {isDivergencePoint && (
             <span
-              className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--stgm-warning,#f59e0b)]"
+              className="stg:inline-block stg:h-1.5 stg:w-1.5 stg:rounded-full stg:bg-[var(--stgm-warning,#f59e0b)]"
               title="First point of divergence"
               aria-label="Divergence point"
             />
           )}
-          <span className="font-medium text-[var(--stgm-foreground,#1a1a2e)]">
+          <span className="stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]">
             {task.taskName}
           </span>
         </div>
       </td>
-      <td className="px-3 py-2 text-center">
+      <td className="stg:px-3 stg:py-2 stg:text-center">
         <TaskStatusBadge status={task.baseStatus} />
       </td>
-      <td className="px-3 py-2 text-center">
+      <td className="stg:px-3 stg:py-2 stg:text-center">
         <TaskStatusBadge status={task.compareStatus} />
       </td>
-      <td className="px-3 py-2 text-right">
+      <td className="stg:px-3 stg:py-2 stg:text-right">
         <DurationCell task={task} />
       </td>
-      <td className="px-3 py-2 text-right">
+      <td className="stg:px-3 stg:py-2 stg:text-right">
         <CostCell task={task} />
       </td>
     </tr>
@@ -180,9 +180,9 @@ const TaskRow = memo(function TaskRow({
 });
 
 function TaskStatusBadge({ status }: { status: WorkflowTaskStatus }) {
-  const config = TASK_STATUS_CONFIG.get(status) ?? { label: "Unknown", colorClass: "text-[var(--stgm-muted-foreground,#737373)]" };
+  const config = TASK_STATUS_CONFIG.get(status) ?? { label: "Unknown", colorClass: "stg:text-[var(--stgm-muted-foreground,#737373)]" };
   return (
-    <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium", config.colorClass)}>
+    <span className={cn("stg:inline-flex stg:items-center stg:gap-1 stg:text-[10px] stg:font-medium", config.colorClass)}>
       {config.label}
     </span>
   );
@@ -195,19 +195,19 @@ function DurationCell({ task }: { task: TaskComparison }) {
   const compareStr = task.compareDurationMs != null ? formatDuration(task.compareDurationMs) : "—";
 
   if (task.durationDeltaMs == null || task.durationDeltaMs === 0) {
-    return <span className="text-[var(--stgm-muted-foreground,#737373)]">{baseStr}</span>;
+    return <span className="stg:text-[var(--stgm-muted-foreground,#737373)]">{baseStr}</span>;
   }
 
   const sign = task.durationDeltaMs > 0 ? "+" : "−";
   const abs = Math.abs(task.durationDeltaMs);
   const deltaColor = task.durationDeltaMs > 0
-    ? "text-[var(--stgm-destructive,#dc2626)]"
-    : "text-[var(--stgm-success,#16a34a)]";
+    ? "stg:text-[var(--stgm-destructive,#dc2626)]"
+    : "stg:text-[var(--stgm-success,#16a34a)]";
 
   return (
-    <span className="flex flex-col items-end">
-      <span className="text-[var(--stgm-foreground,#1a1a2e)]">{baseStr} / {compareStr}</span>
-      <span className={cn("text-[10px]", deltaColor)}>
+    <span className="stg:flex stg:flex-col stg:items-end">
+      <span className="stg:text-[var(--stgm-foreground,#1a1a2e)]">{baseStr} / {compareStr}</span>
+      <span className={cn("stg:text-[10px]", deltaColor)}>
         {sign}{formatDuration(abs)}
       </span>
     </span>
@@ -216,7 +216,7 @@ function DurationCell({ task }: { task: TaskComparison }) {
 
 function CostCell({ task }: { task: TaskComparison }) {
   if (task.baseCostMicros === BIGINT_ZERO && task.compareCostMicros === BIGINT_ZERO) {
-    return <span className="text-[var(--stgm-muted-foreground,#737373)]">—</span>;
+    return <span className="stg:text-[var(--stgm-muted-foreground,#737373)]">—</span>;
   }
 
   const baseStr = task.baseCostMicros > BIGINT_ZERO ? formatMicroUsd(task.baseCostMicros) : "—";
@@ -224,11 +224,11 @@ function CostCell({ task }: { task: TaskComparison }) {
   const delta = task.baseCostMicros - task.compareCostMicros;
 
   if (delta === BIGINT_ZERO) {
-    return <span className="text-[var(--stgm-muted-foreground,#737373)]">{baseStr}</span>;
+    return <span className="stg:text-[var(--stgm-muted-foreground,#737373)]">{baseStr}</span>;
   }
 
   return (
-    <span className="text-[var(--stgm-foreground,#1a1a2e)]">{baseStr} / {compareStr}</span>
+    <span className="stg:text-[var(--stgm-foreground,#1a1a2e)]">{baseStr} / {compareStr}</span>
   );
 }
 
@@ -250,10 +250,10 @@ function FilterChip({
       aria-selected={active}
       onClick={onClick}
       className={cn(
-        "rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors",
+        "stg:rounded-full stg:px-2.5 stg:py-1 stg:text-[10px] stg:font-medium stg:transition-colors",
         active
-          ? "bg-[var(--stgm-foreground,#1a1a2e)] text-[var(--stgm-background,#fff)]"
-          : "bg-[var(--stgm-muted,#f5f5f5)] text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-border,#e5e5e5)]",
+          ? "stg:bg-[var(--stgm-foreground,#1a1a2e)] stg:text-[var(--stgm-background,#fff)]"
+          : "stg:bg-[var(--stgm-muted,#f5f5f5)] stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:bg-[var(--stgm-border,#e5e5e5)]",
       )}
     >
       {label} ({count})
@@ -262,11 +262,11 @@ function FilterChip({
 }
 
 const TASK_STATUS_CONFIG = new Map<WorkflowTaskStatus, { label: string; colorClass: string }>([
-  [WorkflowTaskStatus.WORKFLOW_TASK_STATUS_UNSPECIFIED, { label: "—", colorClass: "text-[var(--stgm-muted-foreground,#737373)]" }],
-  [WorkflowTaskStatus.WORKFLOW_TASK_PENDING, { label: "Pending", colorClass: "text-[var(--stgm-muted-foreground,#737373)]" }],
-  [WorkflowTaskStatus.WORKFLOW_TASK_IN_PROGRESS, { label: "Running", colorClass: "text-[var(--stgm-foreground,#1a1a2e)]" }],
-  [WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED, { label: "Completed", colorClass: "text-[var(--stgm-success,#16a34a)]" }],
-  [WorkflowTaskStatus.WORKFLOW_TASK_FAILED, { label: "Failed", colorClass: "text-[var(--stgm-destructive,#dc2626)]" }],
-  [WorkflowTaskStatus.WORKFLOW_TASK_SKIPPED, { label: "Skipped", colorClass: "text-[var(--stgm-muted-foreground,#737373)]" }],
-  [WorkflowTaskStatus.WORKFLOW_TASK_WAITING_APPROVAL, { label: "Waiting", colorClass: "text-[var(--stgm-warning,#f59e0b)]" }],
+  [WorkflowTaskStatus.WORKFLOW_TASK_STATUS_UNSPECIFIED, { label: "—", colorClass: "stg:text-[var(--stgm-muted-foreground,#737373)]" }],
+  [WorkflowTaskStatus.WORKFLOW_TASK_PENDING, { label: "Pending", colorClass: "stg:text-[var(--stgm-muted-foreground,#737373)]" }],
+  [WorkflowTaskStatus.WORKFLOW_TASK_IN_PROGRESS, { label: "Running", colorClass: "stg:text-[var(--stgm-foreground,#1a1a2e)]" }],
+  [WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED, { label: "Completed", colorClass: "stg:text-[var(--stgm-success,#16a34a)]" }],
+  [WorkflowTaskStatus.WORKFLOW_TASK_FAILED, { label: "Failed", colorClass: "stg:text-[var(--stgm-destructive,#dc2626)]" }],
+  [WorkflowTaskStatus.WORKFLOW_TASK_SKIPPED, { label: "Skipped", colorClass: "stg:text-[var(--stgm-muted-foreground,#737373)]" }],
+  [WorkflowTaskStatus.WORKFLOW_TASK_WAITING_APPROVAL, { label: "Waiting", colorClass: "stg:text-[var(--stgm-warning,#f59e0b)]" }],
 ]);

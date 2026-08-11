@@ -42,42 +42,42 @@ export const SummarizationCard = memo(function SummarizationCard({
       role="status"
       aria-label="Context compacted"
       className={cn(
-        "mx-4 flex items-center gap-3 rounded-md border border-border/50",
-        "bg-muted/30 px-3 py-2",
+        "stg:mx-4 stg:flex stg:items-center stg:gap-3 stg:rounded-md stg:border stg:border-border/50",
+        "stg:bg-muted/30 stg:px-3 stg:py-2",
         className,
       )}
     >
       <CompactionIcon />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <div className="flex items-baseline gap-1.5 text-xs font-medium text-muted-foreground">
+      <div className="stg:flex stg:min-w-0 stg:flex-1 stg:flex-col stg:gap-0.5">
+        <div className="stg:flex stg:items-baseline stg:gap-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground">
           <span>{isInferred ? "Detected context compaction" : "Context compacted"}</span>
           {event.timestamp && (
-            <time dateTime={event.timestamp} className="ml-auto tabular-nums text-muted-foreground/70">
+            <time dateTime={event.timestamp} className="stg:ml-auto stg:tabular-nums stg:text-muted-foreground/70">
               {formatTime(event.timestamp)}
             </time>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-x-2 text-xs tabular-nums text-muted-foreground/80">
+        <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-x-2 stg:text-xs stg:tabular-nums stg:text-muted-foreground/80">
           <span>
             {formatTokenCount(event.tokensBefore)} &rarr; {formatTokenCount(event.tokensAfter)} tokens
           </span>
-          <span className="text-muted-foreground/50">&middot;</span>
+          <span className="stg:text-muted-foreground/50">&middot;</span>
           <span>{reduction}% reduction</span>
           {event.durationMs > 0 && (
             <>
-              <span className="text-muted-foreground/50">&middot;</span>
+              <span className="stg:text-muted-foreground/50">&middot;</span>
               <span>{formatDuration(event.durationMs)}</span>
             </>
           )}
           {event.model && (
             <>
-              <span className="text-muted-foreground/50">&middot;</span>
+              <span className="stg:text-muted-foreground/50">&middot;</span>
               <span>{event.model}</span>
             </>
           )}
           {event.costUsd > 0 && (
             <>
-              <span className="text-muted-foreground/50">&middot;</span>
+              <span className="stg:text-muted-foreground/50">&middot;</span>
               <span>
                 ${event.costUsd < 0.01 ? event.costUsd.toFixed(4) : event.costUsd.toFixed(2)}
               </span>
@@ -116,7 +116,7 @@ function CompactionIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-muted-foreground/70"
+      className="stg:shrink-0 stg:text-muted-foreground/70"
       aria-hidden="true"
     >
       <path d="M4 2v4l4-2-4-2zM12 14v-4l-4 2 4 2z" />

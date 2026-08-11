@@ -95,8 +95,8 @@ export function ChannelConversationsDialog({
       open={modal ? undefined : open}
       onClose={handleClose}
       className={cn(
-        "w-full max-w-lg rounded-xl border border-border bg-popover p-0 shadow-xl",
-        modal ? "fixed inset-0 m-auto backdrop:bg-black/50" : "relative",
+        "stg:w-full stg:max-w-lg stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
+        modal ? "stg:fixed stg:inset-0 stg:m-auto stg:backdrop:bg-black/50" : "stg:relative",
       )}
       aria-labelledby="channel-conversations-title"
     >
@@ -128,16 +128,16 @@ function ChannelConversationsDialogBody({
   );
 
   return (
-    <div className="flex max-h-[70vh] flex-col">
-      <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
-        <div className="min-w-0">
+    <div className="stg:flex stg:max-h-[70vh] stg:flex-col">
+      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3 stg:border-b stg:border-border stg:px-5 stg:py-4">
+        <div className="stg:min-w-0">
           <h2
             id="channel-conversations-title"
-            className="text-sm font-semibold text-popover-foreground"
+            className="stg:text-sm stg:font-semibold stg:text-popover-foreground"
           >
             Sessions
           </h2>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+          <p className="stg:mt-0.5 stg:truncate stg:text-xs stg:text-muted-foreground">
             The sessions {channelName} created — read-only, visible to the
             channel&apos;s owner and org admins.
           </p>
@@ -148,26 +148,26 @@ function ChannelConversationsDialogBody({
           onClick={onClose}
           aria-label="Close sessions"
         >
-          <X className="size-4" />
+          <X className="stg:size-4" />
         </Button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">
+      <div className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:p-3">
         {isLoading ? (
           <ConversationsSkeleton />
         ) : error ? (
-          <p className="px-2 py-6 text-center text-sm text-destructive">
+          <p className="stg:px-2 stg:py-6 stg:text-center stg:text-sm stg:text-destructive">
             {getUserMessage(error)}
           </p>
         ) : sessions.length === 0 ? (
           <EmptyState
             variant="first-use"
-            icon={<MessageSquare className="size-8" />}
+            icon={<MessageSquare className="stg:size-8" />}
             title="No sessions yet"
             description="When someone messages this channel, the sessions serving them appear here."
           />
         ) : (
-          <ul className="space-y-1">
+          <ul className="stg:space-y-1">
             {sessions.map((session) => (
               <ConversationRow
                 key={session.metadata?.id}
@@ -199,19 +199,19 @@ function ConversationRow({
 
   const content = (
     <>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm text-foreground" title={subject}>
+      <div className="stg:min-w-0 stg:flex-1">
+        <p className="stg:truncate stg:text-sm stg:text-foreground" title={subject}>
           {subject}
         </p>
         {externalUser && (
-          <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-            <User aria-hidden="true" className="size-3" />
+          <p className="stg:mt-0.5 stg:flex stg:items-center stg:gap-1 stg:text-xs stg:text-muted-foreground">
+            <User aria-hidden="true" className="stg:size-3" />
             {externalUser}
           </p>
         )}
       </div>
       {lastActivity && (
-        <span className="shrink-0 text-xs text-muted-foreground-faint">
+        <span className="stg:shrink-0 stg:text-xs stg:text-muted-foreground-faint">
           {formatRelativeTime(lastActivity)}
         </span>
       )}
@@ -219,7 +219,7 @@ function ConversationRow({
   );
 
   const rowClass =
-    "flex items-center gap-3 rounded-md px-2 py-2 text-left";
+    "stg:flex stg:items-center stg:gap-3 stg:rounded-md stg:px-2 stg:py-2 stg:text-left";
 
   return (
     <li>
@@ -228,7 +228,7 @@ function ConversationRow({
           href={href}
           className={cn(
             rowClass,
-            "hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:hover:bg-accent stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           {content}
@@ -242,9 +242,9 @@ function ConversationRow({
 
 function ConversationsSkeleton() {
   return (
-    <div className="space-y-1 p-1">
+    <div className="stg:space-y-1 stg:p-1">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="h-12 animate-pulse rounded-md bg-muted-faint" />
+        <div key={i} className="stg:h-12 stg:animate-pulse stg:rounded-md stg:bg-muted-faint" />
       ))}
     </div>
   );

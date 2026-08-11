@@ -178,7 +178,7 @@ export const ToolCallItem = memo(function ToolCallItem({
       {approvalBadge && (
         <span
           className={cn(
-            "shrink-0 rounded px-1 py-0.5 text-[10px] font-medium leading-none",
+            "stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-medium stg:leading-none",
             approvalBadge.colorClass,
           )}
         >
@@ -189,7 +189,7 @@ export const ToolCallItem = memo(function ToolCallItem({
       {reviewBadge && (
         <span
           className={cn(
-            "shrink-0 rounded px-1 py-0.5 text-[10px] font-medium leading-none",
+            "stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-medium stg:leading-none",
             reviewBadge.colorClass,
           )}
           data-cursor-target="file-review-row-badge"
@@ -199,20 +199,20 @@ export const ToolCallItem = memo(function ToolCallItem({
       )}
 
       {toolCall.mcpServerSlug && (
-        <span className="shrink-0 rounded bg-muted px-1 py-0.5 font-mono text-muted-foreground">
+        <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:font-mono stg:text-muted-foreground">
           {toolCall.mcpServerSlug}
         </span>
       )}
 
       <span
-        className={cn("shrink-0", STATUS_COLOR[status])}
+        className={cn("stg:shrink-0", STATUS_COLOR[status])}
         aria-hidden="true"
       >
         <StatusIcon />
       </span>
 
       {duration && (
-        <span className="shrink-0 tabular-nums text-muted-foreground">
+        <span className="stg:shrink-0 stg:tabular-nums stg:text-muted-foreground">
           {duration}
         </span>
       )}
@@ -228,16 +228,16 @@ export const ToolCallItem = memo(function ToolCallItem({
         className={className}
       >
         <ThreadCardHeader>
-          <span className="shrink-0 text-muted-foreground" aria-hidden="true">
+          <span className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
             <CategoryIcon />
           </span>
 
-          <span className="min-w-0 flex-1 flex items-center gap-1.5 overflow-hidden">
-            <span className="shrink-0 font-medium text-foreground">
+          <span className="stg:min-w-0 stg:flex-1 stg:flex stg:items-center stg:gap-1.5 stg:overflow-hidden">
+            <span className="stg:shrink-0 stg:font-medium stg:text-foreground">
               {displayLabel}
             </span>
             {primaryArg && (
-              <FilePathLink path={primaryArg} className="min-w-0 text-xs" />
+              <FilePathLink path={primaryArg} className="stg:min-w-0 stg:text-xs" />
             )}
           </span>
 
@@ -292,32 +292,32 @@ export const ToolCallItem = memo(function ToolCallItem({
   // only by the summary layout below).
   const headerInner = (
     <>
-      <span className="shrink-0 text-muted-foreground" aria-hidden="true">
+      <span className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
         <CategoryIcon />
       </span>
 
-      <span className="min-w-0 flex-1 flex items-baseline gap-1.5 overflow-hidden">
-        <span className="shrink-0 font-medium text-foreground">
+      <span className="stg:min-w-0 stg:flex-1 stg:flex stg:items-baseline stg:gap-1.5 stg:overflow-hidden">
+        <span className="stg:shrink-0 stg:font-medium stg:text-foreground">
           {displayLabel}
         </span>
         {subtitleIsFilePath && primaryArg ? (
           <FilePathLink
             path={primaryArg}
-            className="min-w-0 text-xs text-muted-foreground"
+            className="stg:min-w-0 stg:text-xs stg:text-muted-foreground"
           />
         ) : (
           displaySubtitle && (
             <span
               ref={measuresSubtitle ? subtitleRef : undefined}
               title={displaySubtitle}
-              className="min-w-0 truncate text-muted-foreground font-mono"
+              className="stg:min-w-0 stg:truncate stg:text-muted-foreground stg:font-mono"
             >
               {displaySubtitle}
             </span>
           )
         )}
         {!isSubAgent && category !== "shell" && resultSummary && (
-          <span className="shrink-0 tabular-nums text-muted-foreground">
+          <span className="stg:shrink-0 stg:tabular-nums stg:text-muted-foreground">
             {resultSummary}
           </span>
         )}
@@ -380,11 +380,11 @@ function getApprovalBadge(toolCall: ToolCall): ApprovalBadgeInfo | null {
   if (!toolCall.requiresApproval) return null;
   switch (toolCall.approvalAction) {
     case ApprovalAction.APPROVE:
-      return { label: "Approved", colorClass: "bg-success/15 text-success" };
+      return { label: "Approved", colorClass: "stg:bg-success/15 stg:text-success" };
     case ApprovalAction.SKIP:
-      return { label: "Skipped", colorClass: "bg-muted text-muted-foreground" };
+      return { label: "Skipped", colorClass: "stg:bg-muted stg:text-muted-foreground" };
     case ApprovalAction.REJECT:
-      return { label: "Rejected", colorClass: "bg-destructive/15 text-destructive" };
+      return { label: "Rejected", colorClass: "stg:bg-destructive/15 stg:text-destructive" };
     default:
       return null;
   }
@@ -401,10 +401,10 @@ function getApprovalBadge(toolCall: ToolCall): ApprovalBadgeInfo | null {
  * the same language.
  */
 const REVIEW_BADGE: Record<FileReviewRowState, ApprovalBadgeInfo> = {
-  pending: { label: "Pending review", colorClass: "bg-warning/15 text-warning" },
-  kept: { label: "Kept", colorClass: "bg-success/15 text-success" },
-  discarded: { label: "Discarded", colorClass: "bg-destructive/15 text-destructive" },
-  failed: { label: "Review failed", colorClass: "bg-destructive/15 text-destructive" },
+  pending: { label: "Pending review", colorClass: "stg:bg-warning/15 stg:text-warning" },
+  kept: { label: "Kept", colorClass: "stg:bg-success/15 stg:text-success" },
+  discarded: { label: "Discarded", colorClass: "stg:bg-destructive/15 stg:text-destructive" },
+  failed: { label: "Review failed", colorClass: "stg:bg-destructive/15 stg:text-destructive" },
 };
 
 // ---------------------------------------------------------------------------
@@ -443,12 +443,12 @@ function mapToolCallStatus(toolCall: ToolCall): ItemStatus {
 }
 
 const STATUS_COLOR: Record<ItemStatus, string> = {
-  running: "text-foreground",
-  waiting: "text-warning",
-  failed: "text-destructive",
-  completed: "text-success",
-  pending: "text-muted-foreground",
-  interrupted: "text-muted-foreground",
+  running: "stg:text-foreground",
+  waiting: "stg:text-warning",
+  failed: "stg:text-destructive",
+  completed: "stg:text-success",
+  pending: "stg:text-muted-foreground",
+  interrupted: "stg:text-muted-foreground",
 };
 
 // ---------------------------------------------------------------------------

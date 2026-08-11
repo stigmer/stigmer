@@ -73,7 +73,7 @@ export function WorkflowVersionTimeline({
   const hasMore = versions.length > visibleCount;
 
   return (
-    <div className={cn("flex flex-col pt-2", className)}>
+    <div className={cn("stg:flex stg:flex-col stg:pt-2", className)}>
       <div role="list" aria-label="Workflow version history">
         {visibleVersions.map((entry, index) => (
           <VersionTimelineRow
@@ -91,9 +91,9 @@ export function WorkflowVersionTimeline({
           type="button"
           onClick={handleLoadMore}
           className={cn(
-            "mt-2 self-center rounded-md px-3 py-1.5 text-xs font-medium text-primary transition-colors",
-            "hover:bg-primary-subtle",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:mt-2 stg:self-center stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-primary stg:transition-colors",
+            "stg:hover:bg-primary-subtle",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           Load more ({versions.length - visibleCount} remaining)
@@ -126,22 +126,22 @@ function VersionTimelineRow({
   };
 
   return (
-    <div role="listitem" className="relative flex gap-3">
+    <div role="listitem" className="stg:relative stg:flex stg:gap-3">
       {/* Timeline connector */}
-      <div className="flex flex-col items-center pt-1">
+      <div className="stg:flex stg:flex-col stg:items-center stg:pt-1">
         <div
           className={cn(
-            "size-2.5 shrink-0 rounded-full border-2",
+            "stg:size-2.5 stg:shrink-0 stg:rounded-full stg:border-2",
             entry.isCurrent
-              ? "border-primary bg-primary"
+              ? "stg:border-primary stg:bg-primary"
               : isSelected
-                ? "border-primary bg-background"
-                : "border-border bg-background",
+                ? "stg:border-primary stg:bg-background"
+                : "stg:border-border stg:bg-background",
           )}
           aria-hidden="true"
         />
         {!isLast && (
-          <div className="mt-1 w-px flex-1 bg-border" aria-hidden="true" />
+          <div className="stg:mt-1 stg:w-px stg:flex-1 stg:bg-border" aria-hidden="true" />
         )}
       </div>
 
@@ -153,13 +153,13 @@ function VersionTimelineRow({
         tabIndex={0}
         aria-selected={isSelected}
         className={cn(
-          "mb-4 flex min-w-0 flex-1 flex-col gap-1 rounded-md px-2.5 py-2 text-left transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          isSelected ? "bg-accent-hover" : "hover:bg-accent-hover",
+          "stg:mb-4 stg:flex stg:min-w-0 stg:flex-1 stg:flex-col stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-2 stg:text-left stg:transition-colors",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+          isSelected ? "stg:bg-accent-hover" : "stg:hover:bg-accent-hover",
         )}
       >
         {/* Top line: version badge */}
-        <div className="flex items-center gap-2">
+        <div className="stg:flex stg:items-center stg:gap-2">
           <WorkflowVersionBadge
             versionHash={entry.id}
             tag={entry.tag}
@@ -168,7 +168,7 @@ function VersionTimelineRow({
         </div>
 
         {/* Second line: timestamp + actor */}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-muted-foreground">
           <time
             dateTime={entry.timestamp.toISOString()}
             title={entry.timestamp.toLocaleString()}
@@ -179,12 +179,12 @@ function VersionTimelineRow({
           {entry.actor && (
             <>
               <span aria-hidden="true">&middot;</span>
-              <span className="flex items-center gap-1">
+              <span className="stg:flex stg:items-center stg:gap-1">
                 {entry.actor.avatar && (
                   <img
                     src={entry.actor.avatar}
                     alt=""
-                    className="size-3.5 rounded-full"
+                    className="stg:size-3.5 stg:rounded-full"
                   />
                 )}
                 <span>{entry.actor.displayName || entry.actor.id}</span>
@@ -195,7 +195,7 @@ function VersionTimelineRow({
 
         {/* Commit message */}
         {entry.sublabel && (
-          <p className="text-xs text-muted-foreground">{entry.sublabel}</p>
+          <p className="stg:text-xs stg:text-muted-foreground">{entry.sublabel}</p>
         )}
       </button>
     </div>
@@ -209,22 +209,22 @@ function VersionTimelineRow({
 function TimelineSkeleton({ className }: { readonly className?: string }) {
   return (
     <div
-      className={cn("flex flex-col gap-4 pt-2", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-4 stg:pt-2", className)}
       aria-busy="true"
       aria-label="Loading workflow version history"
     >
       {[1, 2, 3].map((i) => (
-        <div key={i} className="flex gap-3">
-          <div className="flex flex-col items-center">
-            <div className="size-2.5 animate-pulse rounded-full bg-muted" />
-            {i < 3 && <div className="mt-1 w-px flex-1 bg-border" />}
+        <div key={i} className="stg:flex stg:gap-3">
+          <div className="stg:flex stg:flex-col stg:items-center">
+            <div className="stg:size-2.5 stg:animate-pulse stg:rounded-full stg:bg-muted" />
+            {i < 3 && <div className="stg:mt-1 stg:w-px stg:flex-1 stg:bg-border" />}
           </div>
-          <div className="mb-4 flex-1 space-y-2 px-2.5 py-2">
-            <div className="flex gap-2">
-              <div className="h-4 w-16 animate-pulse rounded bg-muted" />
-              <div className="h-4 w-10 animate-pulse rounded-full bg-muted" />
+          <div className="stg:mb-4 stg:flex-1 stg:space-y-2 stg:px-2.5 stg:py-2">
+            <div className="stg:flex stg:gap-2">
+              <div className="stg:h-4 stg:w-16 stg:animate-pulse stg:rounded stg:bg-muted" />
+              <div className="stg:h-4 stg:w-10 stg:animate-pulse stg:rounded-full stg:bg-muted" />
             </div>
-            <div className="h-3 w-28 animate-pulse rounded bg-muted" />
+            <div className="stg:h-3 stg:w-28 stg:animate-pulse stg:rounded stg:bg-muted" />
           </div>
         </div>
       ))}
@@ -237,12 +237,12 @@ function EmptyState({ className }: { readonly className?: string }) {
     <div
       role="status"
       className={cn(
-        "flex flex-col items-center gap-2 py-8 text-center",
+        "stg:flex stg:flex-col stg:items-center stg:gap-2 stg:py-8 stg:text-center",
         className,
       )}
     >
-      <HistoryIcon className="size-8 text-muted-foreground-faint" />
-      <p className="text-sm text-muted-foreground">
+      <HistoryIcon className="stg:size-8 stg:text-muted-foreground-faint" />
+      <p className="stg:text-sm stg:text-muted-foreground">
         No version history available
       </p>
     </div>

@@ -57,10 +57,10 @@ export function CreditRunwayIndicator({
   return (
     <span
       className={cn(
-        "text-xs tabular-nums",
-        urgency === "healthy" && "text-emerald-600 dark:text-emerald-400",
-        urgency === "warning" && "text-amber-600 dark:text-amber-400",
-        urgency === "critical" && "text-red-600 dark:text-red-400",
+        "stg:text-xs stg:tabular-nums",
+        urgency === "healthy" && "stg:text-emerald-600 stg:dark:text-emerald-400",
+        urgency === "warning" && "stg:text-amber-600 stg:dark:text-amber-400",
+        urgency === "critical" && "stg:text-red-600 stg:dark:text-red-400",
         className,
       )}
       aria-label={`Credit runway: ${label}`}

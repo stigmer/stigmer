@@ -41,8 +41,8 @@ export const InteractionModeBadge = memo(function InteractionModeBadge({
       role="status"
       aria-label="Plan mode"
       className={cn(
-        "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[0.65rem] font-medium",
-        "bg-accent text-muted-foreground",
+        "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-1.5 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
+        "stg:bg-accent stg:text-muted-foreground",
         className,
       )}
     >

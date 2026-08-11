@@ -95,29 +95,29 @@ export function SecretFlowErrorGuide({
     <div
       role="alert"
       className={cn(
-        "rounded-lg border border-amber-500/30 bg-amber-500/5 p-4",
+        "stg:rounded-lg stg:border stg:border-amber-500/30 stg:bg-amber-500/5 stg:p-4",
         className,
       )}
     >
-      <div className="flex items-start gap-3">
-        <KeyIcon className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+      <div className="stg:flex stg:items-start stg:gap-3">
+        <KeyIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0 stg:text-amber-600 stg:dark:text-amber-400" />
 
-        <div className="min-w-0 flex-1 space-y-2">
-          <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+        <div className="stg:min-w-0 stg:flex-1 stg:space-y-2">
+          <p className="stg:text-sm stg:font-medium stg:text-amber-800 stg:dark:text-amber-200">
             Missing environment variables
           </p>
 
-          <div className="space-y-1.5">
+          <div className="stg:space-y-1.5">
             {Array.from(grouped).map(([server, vars]) => (
               <div key={server}>
-                <p className="text-xs text-amber-700 dark:text-amber-300">
-                  <span className="font-medium">{server}</span> requires:
+                <p className="stg:text-xs stg:text-amber-700 stg:dark:text-amber-300">
+                  <span className="stg:font-medium">{server}</span> requires:
                 </p>
-                <ul className="mt-0.5 space-y-0.5">
+                <ul className="stg:mt-0.5 stg:space-y-0.5">
                   {vars.map((v) => (
                     <li
                       key={v}
-                      className="text-xs font-mono text-amber-800/80 dark:text-amber-200/80 pl-3"
+                      className="stg:text-xs stg:font-mono stg:text-amber-800/80 stg:dark:text-amber-200/80 stg:pl-3"
                     >
                       {v}
                     </li>
@@ -127,24 +127,24 @@ export function SecretFlowErrorGuide({
             ))}
           </div>
 
-          <div className="border-t border-amber-500/20 pt-2">
-            <p className="text-xs text-amber-700/90 dark:text-amber-300/90">
+          <div className="stg:border-t stg:border-amber-500/20 stg:pt-2">
+            <p className="stg:text-xs stg:text-amber-700/90 stg:dark:text-amber-300/90">
               You can provide these values in two ways:
             </p>
-            <ul className="mt-1 space-y-0.5 text-xs text-amber-700/80 dark:text-amber-300/80">
-              <li className="flex items-start gap-1.5">
-                <span className="mt-px shrink-0">•</span>
+            <ul className="stg:mt-1 stg:space-y-0.5 stg:text-xs stg:text-amber-700/80 stg:dark:text-amber-300/80">
+              <li className="stg:flex stg:items-start stg:gap-1.5">
+                <span className="stg:mt-px stg:shrink-0">•</span>
                 <span>
                   Add them to your{" "}
-                  <strong className="font-medium">personal environment</strong>{" "}
+                  <strong className="stg:font-medium">personal environment</strong>{" "}
                   in Settings for automatic reuse across sessions.
                 </span>
               </li>
-              <li className="flex items-start gap-1.5">
-                <span className="mt-px shrink-0">•</span>
+              <li className="stg:flex stg:items-start stg:gap-1.5">
+                <span className="stg:mt-px stg:shrink-0">•</span>
                 <span>
                   Provide them as{" "}
-                  <strong className="font-medium">session variables</strong>{" "}
+                  <strong className="stg:font-medium">session variables</strong>{" "}
                   when sending a message.
                 </span>
               </li>

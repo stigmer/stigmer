@@ -63,14 +63,14 @@ export const StructuredDataViewer = memo(function StructuredDataViewer({
   const entries = Object.entries(data);
   if (entries.length === 0) {
     return (
-      <p className={cn("text-xs text-muted-foreground", className)}>
+      <p className={cn("stg:text-xs stg:text-muted-foreground", className)}>
         No data fields
       </p>
     );
   }
 
   return (
-    <div className={cn("space-y-3 text-xs", className)}>
+    <div className={cn("stg:space-y-3 stg:text-xs", className)}>
       <ObjectEntries entries={entries} depth={0} />
     </div>
   );
@@ -101,7 +101,7 @@ function ObjectEntries({
   return (
     <>
       {scalars.length > 0 && (
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 rounded-md border border-border bg-muted-faint px-2.5 py-2">
+        <dl className="stg:grid stg:grid-cols-[auto_1fr] stg:gap-x-3 stg:gap-y-1.5 stg:rounded-md stg:border stg:border-border stg:bg-muted-faint stg:px-2.5 stg:py-2">
           {scalars.map(([key, value]) => (
             <ScalarEntry key={key} label={key} value={value} />
           ))}
@@ -134,28 +134,28 @@ function ScalarEntry({
 
   return (
     <>
-      <dt className="whitespace-nowrap font-mono text-muted-foreground">
+      <dt className="stg:whitespace-nowrap stg:font-mono stg:text-muted-foreground">
         {humanizeArgKey(label)}
       </dt>
       {isLongProse ? (
-        <dd className="min-w-0">
+        <dd className="stg:min-w-0">
           <ProseValue text={strValue} />
         </dd>
       ) : (
         <dd
           className={cn(
-            "min-w-0 font-mono text-foreground",
-            typeof value === "boolean" && "font-medium",
-            (value === null || value === undefined) && "text-muted-foreground",
+            "stg:min-w-0 stg:font-mono stg:text-foreground",
+            typeof value === "boolean" && "stg:font-medium",
+            (value === null || value === undefined) && "stg:text-muted-foreground",
           )}
           title={strValue}
         >
           {strValue.includes("\n") ? (
-            <pre className="whitespace-pre-wrap break-words rounded border border-border bg-muted-subtle px-2 py-1 font-mono text-foreground">
+            <pre className="stg:whitespace-pre-wrap stg:break-words stg:rounded stg:border stg:border-border stg:bg-muted-subtle stg:px-2 stg:py-1 stg:font-mono stg:text-foreground">
               {strValue}
             </pre>
           ) : (
-            <span className="block truncate">{strValue}</span>
+            <span className="stg:block stg:truncate">{strValue}</span>
           )}
         </dd>
       )}
@@ -180,14 +180,14 @@ function ProseValue({ text }: { readonly text: string }) {
 
   return (
     <div>
-      <p className="whitespace-pre-wrap break-words leading-relaxed text-foreground">
+      <p className="stg:whitespace-pre-wrap stg:break-words stg:leading-relaxed stg:text-foreground">
         {displayed}
       </p>
       {needsTruncation && (
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="mt-0.5 text-xs font-medium text-primary transition-colors hover:text-primary-muted"
+          className="stg:mt-0.5 stg:text-xs stg:font-medium stg:text-primary stg:transition-colors stg:hover:text-primary-muted"
         >
           {expanded ? "Show less" : "Show more"}
         </button>
@@ -279,11 +279,11 @@ function ArrayEntry({
 }) {
   if (items.length === 0) {
     return (
-      <div className="flex items-baseline gap-1.5">
-        <span className="font-medium text-muted-foreground">
+      <div className="stg:flex stg:items-baseline stg:gap-1.5">
+        <span className="stg:font-medium stg:text-muted-foreground">
           {humanizeArgKey(label)}
         </span>
-        <span className="text-muted-foreground-subtle">(0 items)</span>
+        <span className="stg:text-muted-foreground-subtle">(0 items)</span>
       </div>
     );
   }
@@ -294,11 +294,11 @@ function ArrayEntry({
 
   if (allScalars && items.length <= INLINE_SCALAR_ARRAY_LIMIT) {
     return (
-      <div className="space-y-1">
-        <span className="font-medium text-muted-foreground">
+      <div className="stg:space-y-1">
+        <span className="stg:font-medium stg:text-muted-foreground">
           {humanizeArgKey(label)}
         </span>
-        <p className="font-mono text-foreground">
+        <p className="stg:font-mono stg:text-foreground">
           {items.map((item) => String(item ?? "null")).join(", ")}
         </p>
       </div>
@@ -350,20 +350,20 @@ function ObjectArraySection({
   const defaultItemExpanded = items.length <= AUTO_COLLAPSE_ITEM_THRESHOLD;
 
   return (
-    <div className="space-y-1.5">
+    <div className="stg:space-y-1.5">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex items-center gap-1 font-medium text-muted-foreground transition-colors hover:text-foreground"
+        className="stg:flex stg:items-center stg:gap-1 stg:font-medium stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground"
       >
         <ChevronIcon expanded={expanded} />
         {humanizeArgKey(label)}{" "}
-        <span className="font-normal text-muted-foreground-subtle">
+        <span className="stg:font-normal stg:text-muted-foreground-subtle">
           ({items.length} {items.length === 1 ? "item" : "items"})
         </span>
       </button>
       {expanded && (
-        <div className="space-y-1.5 border-l-2 border-border pl-3">
+        <div className="stg:space-y-1.5 stg:border-l-2 stg:border-border stg:pl-3">
           {items.map((item, index) => (
             <ObjectArrayItem
               key={index}
@@ -400,9 +400,9 @@ function ObjectArrayItem({
 
   if (entries.length === 0) {
     return (
-      <div className="text-muted-foreground">
+      <div className="stg:text-muted-foreground">
         {itemLabel}{" "}
-        <span className="font-normal text-muted-foreground-subtle">
+        <span className="stg:font-normal stg:text-muted-foreground-subtle">
           (empty)
         </span>
       </div>
@@ -410,22 +410,22 @@ function ObjectArrayItem({
   }
 
   return (
-    <div className="space-y-1">
+    <div className="stg:space-y-1">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+        className="stg:flex stg:items-center stg:gap-1 stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground"
       >
         <ChevronIcon expanded={expanded} />
-        <span className="font-medium">{`Item ${index + 1}`}</span>
+        <span className="stg:font-medium">{`Item ${index + 1}`}</span>
         {subtitle && (
-          <span className="font-normal text-muted-foreground-subtle">
+          <span className="stg:font-normal stg:text-muted-foreground-subtle">
             &mdash; {subtitle}
           </span>
         )}
       </button>
       {expanded && (
-        <div className="border-l-2 border-border pl-3">
+        <div className="stg:border-l-2 stg:border-border stg:pl-3">
           <ObjectEntries entries={entries} depth={depth + 1} />
         </div>
       )}
@@ -489,17 +489,17 @@ function NestedSection({
   const [expanded, setExpanded] = useState(true);
 
   return (
-    <div className="space-y-1.5">
+    <div className="stg:space-y-1.5">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex items-center gap-1 font-medium text-muted-foreground transition-colors hover:text-foreground"
+        className="stg:flex stg:items-center stg:gap-1 stg:font-medium stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground"
       >
         <ChevronIcon expanded={expanded} />
         {label}
       </button>
       {expanded && (
-        <div className="border-l-2 border-border pl-3">{children}</div>
+        <div className="stg:border-l-2 stg:border-border stg:pl-3">{children}</div>
       )}
     </div>
   );
@@ -521,8 +521,8 @@ function ChevronIcon({ expanded }: { readonly expanded: boolean }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={cn(
-        "shrink-0 transition-transform duration-150",
-        expanded && "rotate-90",
+        "stg:shrink-0 stg:transition-transform stg:duration-150",
+        expanded && "stg:rotate-90",
       )}
       aria-hidden="true"
     >

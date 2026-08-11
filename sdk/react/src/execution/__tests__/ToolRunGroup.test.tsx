@@ -88,11 +88,11 @@ describe("ToolRunGroup", () => {
         ]}
       />,
     );
-    expect(container.querySelector(".animate-spin")).toBeNull();
+    expect(container.querySelector(".stg\\:animate-spin")).toBeNull();
     expect(chipExpanded(container)).toBe(false);
     // The aggregate resolves to the terminal branch (completed chip in
     // text-success), not the non-terminal pending fallback (muted dot).
-    expect(container.querySelector(".text-success")).not.toBeNull();
+    expect(container.querySelector(".stg\\:text-success")).not.toBeNull();
     expect(screen.getByText("Read 2 files")).toBeTruthy();
   });
 
@@ -130,10 +130,10 @@ describe("ToolRunGroup", () => {
     );
 
     const chip = container.querySelector('[data-cursor-target="tool-run-group"]')!;
-    expect(chip.className).toContain("rounded-lg");
+    expect(chip.className).toContain("stg:rounded-lg");
     // Class presence only — actual rendering is guarded by the layer-invariant +
     // e2e computed-style tests (happy-dom does not resolve `@layer`).
-    expect(chip.className).toContain("border-border-prominent");
+    expect(chip.className).toContain("stg:border-border-prominent");
 
     fireEvent.click(screen.getByText("Read 2 files"));
 
@@ -141,8 +141,8 @@ describe("ToolRunGroup", () => {
     const rows = container.querySelectorAll('[data-cursor-target="tool-call-row"]');
     expect(rows.length).toBe(2);
     for (const row of rows) {
-      expect(row.className).not.toContain("rounded-lg");
-      expect(row.className).toContain("border-b");
+      expect(row.className).not.toContain("stg:rounded-lg");
+      expect(row.className).toContain("stg:border-b");
     }
   });
 

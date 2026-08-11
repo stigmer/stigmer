@@ -53,16 +53,16 @@ export const PlanDocumentMessage = memo(function PlanDocumentMessage({
     <div
       role="article"
       aria-label="Plan document"
-      className={cn("mx-4", className)}
+      className={cn("stg:mx-4", className)}
     >
-      <div className="overflow-hidden rounded-lg border border-border-muted bg-card">
-        <header className="flex items-center gap-2 border-b border-border-muted bg-muted-faint px-4 py-2.5">
+      <div className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border-muted stg:bg-card">
+        <header className="stg:flex stg:items-center stg:gap-2 stg:border-b stg:border-border-muted stg:bg-muted-faint stg:px-4 stg:py-2.5">
           <PlanDocIcon />
-          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
+          <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">
             {title ?? "Plan"}
           </span>
         </header>
-        <div className="stgm-prose px-4 py-4">
+        <div className="stgm-prose stg:px-4 stg:py-4">
           <Streamdown
             components={PLAN_DOCUMENT_MARKDOWN_COMPONENTS}
             isAnimating={false}
@@ -86,7 +86,7 @@ function PlanDocIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
       aria-hidden="true"
     >
       <path d="M3 4h10M3 8h7M3 12h8" />
