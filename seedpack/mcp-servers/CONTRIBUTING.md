@@ -49,6 +49,16 @@ remains fully supported for **user-defined** servers on local runners; it is
 only the curated catalog that requires a hosted HTTP endpoint. If the vendor
 does not offer one, the server does not belong in the seedpack.
 
+**Use the vendor's streamable HTTP endpoint, never a legacy `/sse` one.** The
+MCP spec deprecated the HTTP+SSE transport in 2025-03-26, and vendors are
+retiring their `/sse` paths (Webflow's retirement broke connect outright —
+stigmer/stigmer#238). Stigmer's client stack is streamable-first by
+construction: the Go discovery transport is streamable-HTTP-only, and the
+runner's SSE fallback is a fragile compatibility path (stigmer/stigmer#231).
+When a vendor documents both, always take the streamable HTTP URL (typically
+`/mcp`). Endpoints known to be retired or deprecated are denylisted in
+`TestMcpServers_NoRetiredEndpoints`.
+
 **HTTP (hosted/remote servers)**
 
 ```yaml
@@ -174,7 +184,7 @@ Use one of these values for `metadata.labels.stigmer.ai/category`:
 | `monitoring` | Sentry, Datadog, logging, observability |
 | `payments` | Stripe, PayPal, Square, e-commerce |
 | `design` | Figma, Canva, design tools |
-| `crm-support` | Atlassian (Jira/Confluence), HubSpot, Intercom, customer platforms |
+| `crm-support` | Atlassian (Jira/Confluence), Intercom, customer platforms |
 
 ## Proto Schema Reference
 

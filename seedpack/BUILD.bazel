@@ -248,7 +248,6 @@ go_library(
         "mcp-servers/github.yaml",
         "mcp-servers/gitlab.yaml",
         "mcp-servers/google-maps.yaml",
-        "mcp-servers/hubspot.yaml",
         "mcp-servers/intercom.yaml",
         "mcp-servers/linear.yaml",
         "mcp-servers/monday.yaml",
