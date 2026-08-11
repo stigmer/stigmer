@@ -14,6 +14,7 @@ import (
 	oauthappv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/oauthapp/v1"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -117,6 +118,12 @@ func (c *McpServerController) InitiateOAuthConnect(
 		AuthMethod:        authMethod,
 		RedirectURI:       c.oauthRedirectURI,
 		Org:               input.GetOrg(),
+	}
+
+	// Fail-closed: an encryption error fails the request; plaintext never
+	// reaches the store.
+	if err := sealPendingOAuthState(c.encryptionService, pendingState); err != nil {
+		return nil, grpclib.InternalError(err, "failed to encrypt OAuth handshake secrets")
 	}
 
 	if err := c.pendingOAuthStateStore.Save(ctx, pendingState); err != nil {
@@ -320,4 +327,49 @@ func generateState() (string, error) {
 		return "", err
 	}
 	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+
+// sealPendingOAuthState encrypts the two real secrets in the pending row —
+// code_verifier (every flow) and client_secret (vendor flow) — before they
+// rest in SQLite, so handshake secrets never leak through filesystem backups
+// of the database (oss#394; ports stigmer-cloud#294). The store itself stays
+// a byte-faithful adapter; this call site is the single write seam.
+//
+// The row is a self-contained SNAPSHOT, never an alias of the OAuthApp's
+// stored ciphertext: initiateVendorOAuth decrypts the app's secret (failing
+// loudly if the key is unavailable), and the seal re-encrypts that plaintext
+// with a fresh nonce. The token exchange must use the credentials the
+// authorization code was minted for, not whatever a later resolution of the
+// OAuthApp would return.
+//
+// The DCR path's empty client secret stays empty — never ciphertext-of-"" —
+// so completeOAuthConnect and the token exchange keep seeing the emptiness
+// that means "public client".
+//
+// Disabled encryption (no key configured) passes plaintext through with a
+// WARN, matching the deployment-wide posture for environment, OAuthApp and
+// ChannelApp secrets under the same key (see the channelapp resolveSecret
+// step). A real encryption error while enabled is returned so the caller
+// fails the request instead of persisting plaintext.
+func sealPendingOAuthState(svc *encryption.SecretService, state *oauth.PendingOAuthState) error {
+	if svc == nil || !svc.IsEnabled() {
+		log.Warn().Msg("Encryption disabled: pending OAuth state secrets will be stored in plaintext")
+		return nil
+	}
+
+	sealedVerifier, err := svc.Encrypt(state.CodeVerifier)
+	if err != nil {
+		return fmt.Errorf("failed to encrypt code_verifier: %w", err)
+	}
+	state.CodeVerifier = sealedVerifier
+
+	if state.ClientSecret != "" {
+		sealedSecret, err := svc.Encrypt(state.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("failed to encrypt client_secret: %w", err)
+		}
+		state.ClientSecret = sealedSecret
+	}
+
+	return nil
 }

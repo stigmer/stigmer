@@ -13,11 +13,15 @@ const pendingStateTTL = 10 * time.Minute
 
 // PendingOAuthState holds the ephemeral state between initiateOAuthConnect
 // and completeOAuthConnect. Expires after 10 minutes.
+//
+// CodeVerifier and ClientSecret rest sealed (enc:v1:) — the controllers
+// seal/unseal at their seams (oss#394); this store persists whatever bytes
+// it is handed, byte-faithfully.
 type PendingOAuthState struct {
 	State             string // Random, lookup key + CSRF protection
-	CodeVerifier      string // PKCE, needed for token exchange
+	CodeVerifier      string // PKCE, needed for token exchange; sealed at rest
 	ClientID          string // From DCR response or OAuthApp
-	ClientSecret      string // Empty for DCR/public clients; from OAuthApp for vendor OAuth
+	ClientSecret      string // Empty for DCR/public clients; from OAuthApp for vendor OAuth; sealed at rest when non-empty
 	TokenEndpoint     string // Discovered or from OAuthApp
 	McpServerID       string
 	IdentityAccountID string
