@@ -108,6 +108,14 @@ export interface CursorHookHarnessOptions {
    * non-pausing "unattended" kind and the adapt-and-explain agent message.
    */
   unattendedSkip?: boolean;
+  /**
+   * Per-server enabled_tools allow-lists (issue #350) — restricted servers
+   * only. The hook's manifest arm denies a beforeMCPExecution call whose
+   * mcp_server_name is listed here with a tool name outside its list (kind
+   * "disabled", ahead of every approval bypass). hookMcp payloads carry
+   * mcp_server_name "srv".
+   */
+  mcpServerEnabledTools?: Record<string, string[]>;
 }
 
 /**
@@ -170,6 +178,7 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
       opts.captureIgnored ?? false,
       opts.gitWorkspace ?? true,
       opts.unattendedSkip ?? false,
+      opts.mcpServerEnabledTools ?? {},
     );
     writeFileSync(statePath, JSON.stringify(state), "utf-8");
   }

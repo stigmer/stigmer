@@ -122,8 +122,9 @@ export const McpServerStatusSchema: GenMessage<McpServerStatus> = /*@__PURE__*/
  *   - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).
  *     Only tool names are valid in Agent enabled_tools and McpServer default_enabled_tools.
  *   - resource_templates: Read-only data endpoints accessed by URI template.
- *     Resource template names must NEVER appear in enabled_tools — doing so causes
- *     a fatal runtime error.
+ *     Resource template names must NEVER appear in enabled_tools — such a name
+ *     never matches a discovered tool, so the runner warns and ignores it
+ *     (enforcing the intersection with the live toolset).
  *
  * Populated by:
  * - Seedpack bootstrap (built-in servers with known, stable tool sets)

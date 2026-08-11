@@ -4,7 +4,9 @@
  * Wraps @langchain/mcp-adapters MultiServerMCPClient with:
  * - Conversion from ResolvedMcpServer[] to the SDK's Connection config
  * - Proper async cleanup via close()
- * - Tool filtering based on discovered capabilities
+ * - Tool filtering by each server's effective enabled_tools allow-list
+ *   (issue #350; semantics in shared/mcp-enabled-tools.ts) — the model only
+ *   ever sees the tools the agent's manifest enables
  *
  * Transport policy (stdio is local-runner-only) is enforced upstream at
  * resolution time by shared/mcp-transport-guard.ts — servers reaching
@@ -32,6 +34,7 @@ import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 import type { Connection } from "@langchain/mcp-adapters";
 import type { DynamicStructuredTool } from "@langchain/core/tools";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
+import { filterToolsByEnabledTools } from "./mcp-enabled-tools.js";
 
 /**
  * Convert harness-agnostic ResolvedMcpServer[] into the
@@ -95,11 +98,25 @@ export async function connectMcpServers(
   }
 
   const client = new MultiServerMCPClient(connectionConfig);
-  const serverToolMap = await client.initializeConnections();
+  const discoveredToolMap = await client.initializeConnections();
 
+  // Enforce each server's effective enabled_tools allow-list (issue #350)
+  // HERE, before anything downstream sees the tools: the parent tool list,
+  // the approval gate's toolServerMap, and the sub-agent McpAccess filter
+  // (whose subset-of-parent check is only real against a narrowed map) all
+  // derive from this result. Servers without a restriction (enabledTools
+  // absent — including synthesized attachments) pass through untouched.
+  const enabledBySlug = new Map(
+    servers.map((s) => [s.slug, s.enabledTools]),
+  );
+  const serverToolMap: Record<string, DynamicStructuredTool[]> = {};
   const tools: DynamicStructuredTool[] = [];
-  for (const serverTools of Object.values(serverToolMap)) {
-    tools.push(...serverTools);
+  for (const [slug, discovered] of Object.entries(discoveredToolMap)) {
+    const filtered = filterToolsByEnabledTools(
+      slug, discovered, enabledBySlug.get(slug),
+    );
+    serverToolMap[slug] = filtered;
+    tools.push(...filtered);
   }
 
   console.log(

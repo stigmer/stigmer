@@ -53,13 +53,18 @@ type McpServerSpec struct {
 	ServerType isMcpServerSpec_ServerType `protobuf_oneof:"server_type"`
 	// Default tools to enable from this MCP server.
 	// Empty list means all tools are enabled by default.
+	// Applies whenever an agent's McpServerUsage.enabled_tools is empty.
 	//
 	// @internal
 	// Tool names must match exactly what the MCP server reports via tools/list.
 	// Only names from discovered_capabilities.tools are valid here.
 	// Do NOT include names from discovered_capabilities.resource_templates —
 	// resource templates are read-only data endpoints, not callable tools.
-	// Including a resource template name here causes a fatal runtime error.
+	// A name the server does not expose (including a resource template name)
+	// is warned and ignored at execution: the runner enforces the INTERSECTION
+	// with the server's live toolset, so a stale or mistyped entry narrows the
+	// toolset but never widens it or fails the run. Enforcement is per harness
+	// — see McpServerUsage.enabled_tools in agent/v1/spec.proto.
 	DefaultEnabledTools []string `protobuf:"bytes,7,rep,name=default_enabled_tools,json=defaultEnabledTools,proto3" json:"default_enabled_tools,omitempty"`
 	// Environment variable declarations for this MCP server.
 	// Keys are variable names; values describe their metadata and optionality.

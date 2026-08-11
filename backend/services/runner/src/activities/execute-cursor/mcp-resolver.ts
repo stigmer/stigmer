@@ -29,6 +29,7 @@ import {
   filterEnvToDeclaredKeys,
   PlaceholderResolutionError,
 } from "./placeholder-resolver.js";
+import { effectiveEnabledTools } from "../../shared/mcp-enabled-tools.js";
 
 /**
  * Cursor SDK MCP server config shape (matches @cursor/sdk McpServerConfig).
@@ -70,6 +71,16 @@ export interface ResolvedMcpServer {
   pinnedToolApprovals: ToolApprovalPolicy[];
   /** True when the server has never been connected (no tool discovery yet). */
   discoveredCapabilitiesEmpty: boolean;
+  /**
+   * The EFFECTIVE tool allow-list for this server (issue #350): the usage's
+   * enabled_tools, falling back to the server's default_enabled_tools when
+   * the usage's list is empty (see shared/mcp-enabled-tools.ts). Absent when
+   * unrestricted. The Cursor SDK config cannot hide tools, so this harness
+   * enforces it in the HITL hook: the restricted map is written into the
+   * approval state (mcpServerEnabledTools) and non-enabled calls are denied
+   * with the non-pausing "disabled" kind (see hook-script.ts).
+   */
+  enabledTools?: string[];
 }
 
 /**
@@ -115,7 +126,7 @@ export async function resolveMcpServers(
         envVars,
         ref.slug,
       );
-      const server = mcpServerToResolved(mcpServer, ref.slug, serverEnv);
+      const server = mcpServerToResolved(mcpServer, ref.slug, serverEnv, usage.enabledTools);
       if (server) {
         assertTransportAllowed(server.slug, server.connectionType, transportPosture);
         resolved.push(server);
@@ -152,6 +163,7 @@ function mcpServerToResolved(
   server: McpServer,
   slug: string,
   envVars: Record<string, string>,
+  usageEnabledTools?: readonly string[],
 ): ResolvedMcpServer | null {
   const spec = server.spec;
   if (!spec) return null;
@@ -167,6 +179,7 @@ function mcpServerToResolved(
     toolApprovals,
     pinnedToolApprovals,
     discoveredCapabilitiesEmpty,
+    enabledTools: effectiveEnabledTools(usageEnabledTools, spec.defaultEnabledTools),
   };
 
   switch (spec.serverType.case) {

@@ -245,6 +245,99 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     });
   });
 
+  // The enabled_tools capability manifest (issue #350): mcpServerEnabledTools
+  // holds ONLY restricted servers; the hook denies a listed server's
+  // non-listed tool with the non-pausing, permanent "disabled" kind — BEFORE
+  // autoApproveAll and the grant checks, because a manifest is not an
+  // approval gate (nothing may resurrect a disabled tool). hookMcp payloads
+  // carry mcp_server_name "srv".
+  describe("MCP enabled_tools manifest (beforeMCPExecution, issue #350)", () => {
+    it("denies a non-enabled tool with kind disabled (content-free, single record) and the manifest message", () => {
+      const h = setup({ mcpServerEnabledTools: { srv: ["list_apps"] } });
+
+      const res = h.decide(hookMcp("click", { app: "Slack" }));
+
+      expect(res.permission).toBe("deny");
+      // Permanent-denial framing, never the approval promise: the model must
+      // adapt, not wait for a resume that will never come.
+      expect(res.raw).toContain("not enabled for this agent");
+      expect(res.raw).not.toContain("submitted to the user for approval");
+      const ledger = h.ledger();
+      expect(ledger).toHaveLength(1);
+      expect(ledger[0].kind).toBe("disabled");
+      // Attributable under the MCP name-token (the identity the stream row
+      // computes), content-free like every non-approval kind.
+      expect(ledger[0].token).toBe(grantToken("click", ""));
+      expect(ledger[0]).not.toHaveProperty("input");
+    });
+
+    it("allows an enabled tool on a restricted server", () => {
+      const h = setup({ mcpServerEnabledTools: { srv: ["list_apps"] } });
+      expect(h.decide(hookMcp("list_apps")).permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+    });
+
+    it("denies even under autoApproveAll (a manifest is not an approval gate)", () => {
+      const h = setup({
+        autoApproveAll: true,
+        mcpServerEnabledTools: { srv: ["list_apps"] },
+      });
+      const res = h.decide(hookMcp("click"));
+      expect(res.permission).toBe("deny");
+      expect(h.ledger()[0].kind).toBe("disabled");
+    });
+
+    it("denies even when the tool holds a reinvocation grant (no approval may resurrect it)", () => {
+      const h = setup({
+        mcpServerEnabledTools: { srv: ["list_apps"] },
+        grants: [{ toolName: "click", mcpServerSlug: "srv", key: "click", salient: "", contentDigest: "", sourceToolCallId: "consent-1" }],
+      });
+      const res = h.decide(hookMcp("click"));
+      expect(res.permission).toBe("deny");
+      expect(h.ledger()[0].kind).toBe("disabled");
+    });
+
+    it("stays kind disabled under unattended mode (mode-independent, like secret)", () => {
+      const h = setup({
+        unattendedSkip: true,
+        mcpServerEnabledTools: { srv: ["list_apps"] },
+      });
+      const res = h.decide(hookMcp("click"));
+      expect(res.permission).toBe("deny");
+      expect(h.ledger()[0].kind).toBe("disabled");
+    });
+
+    it("an enabled tool still flows into the normal approval arm (manifest and gate compose)", () => {
+      const h = setup({
+        mcpPolicies: { click: { requiresApproval: true, message: "Approve click?" } },
+        mcpServerEnabledTools: { srv: ["click"] },
+      });
+      const res = h.decide(hookMcp("click"));
+      expect(res.permission).toBe("deny");
+      expect(res.raw).toContain("Approve click?");
+      expect(h.ledger()[0].kind).toBe("approval");
+    });
+
+    it("a restriction on ANOTHER server never narrows this one (server-scoped matching)", () => {
+      const h = setup({ mcpServerEnabledTools: { other: ["something_else"] } });
+      expect(h.decide(hookMcp("click")).permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+    });
+
+    it("quoted-name matching is exact — an enabled name never allows its prefix-sibling", () => {
+      const h = setup({ mcpServerEnabledTools: { srv: ["list_apps_extended"] } });
+      const res = h.decide(hookMcp("list_apps"));
+      expect(res.permission).toBe("deny");
+      expect(h.ledger()[0].kind).toBe("disabled");
+    });
+
+    it("never gates a preToolUse (built-in) payload — the manifest arm is MCP-event-scoped", () => {
+      const h = setup({ mcpServerEnabledTools: { srv: ["list_apps"] } });
+      expect(h.decide(hookRead("/x/a.txt")).permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+    });
+  });
+
   // The hook captures the COMPLETE tool_input on every denial (base64(JSON)),
   // so the runner can overlay the proposed change onto the gated tool call for
   // the approval preview — the cursor analog of the native harness reading args

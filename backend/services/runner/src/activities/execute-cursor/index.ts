@@ -84,6 +84,7 @@ import {
 import { injectSynthesizedAttachment } from "../../shared/synthesized-attachment.js";
 import { mergeApprovalPolicies } from "./approval-policy.js";
 import { deriveActiveLeases, isUnattendedApprovalMode } from "../../shared/approval-policy.js";
+import { enabledToolsBySlug } from "../../shared/mcp-enabled-tools.js";
 import { backfillMcpServersIfNeeded } from "./connect-backfill.js";
 import { resolveExecutionEnv } from "./env-resolver.js";
 import { resolveBlueprint } from "./blueprint-resolver.js";
@@ -918,6 +919,11 @@ async function executeCursorInner(
       captureIgnored,
       gitWorkspace,
       isUnattendedApprovalMode(execution),
+      // The enabled_tools capability manifest (issue #350): restricted
+      // servers' allow-lists, enforced by the hook's "disabled" arm ahead of
+      // every approval bypass. The Cursor SDK config cannot hide a server's
+      // tools, so this deny-at-call is the harness's enforcement.
+      enabledToolsBySlug(mcpResolution.resolvedServers),
     );
     const hitlGate = await installHitlGate({
       workspaceRoot: primaryWorkspaceDir,
