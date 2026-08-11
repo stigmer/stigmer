@@ -184,7 +184,7 @@ Use one of these values for `metadata.labels.stigmer.ai/category`:
 | `monitoring` | Sentry, Datadog, logging, observability |
 | `payments` | Stripe, PayPal, Square, e-commerce |
 | `design` | Figma, Canva, design tools |
-| `crm-support` | Atlassian (Jira/Confluence), HubSpot, Intercom, customer platforms |
+| `crm-support` | Atlassian (Jira/Confluence), Intercom, customer platforms |
 
 ## Proto Schema Reference
 
