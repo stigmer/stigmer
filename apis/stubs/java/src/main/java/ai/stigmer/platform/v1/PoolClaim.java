@@ -17,8 +17,10 @@ package ai.stigmer.platform.v1;
  * &#64;internal
  * Cloud authorizes against the pool claim record, not FGA: the pool_sandboxes
  * row for the caller token's pool_member_id must be CLAIMED for exactly this
- * session_id (the DB is the authorization source), and the minted session
- * token's TTL is the window-covering value recorded on that row at claim time.
+ * session_id (the DB is the authorization source). Identity and org are minted
+ * from the values the claimer recorded on that row — never from the client —
+ * and the TTL is the config-owned standard sandbox TTL, like every session
+ * token (stigmer-cloud#256; renewal, not lifetime, carries long conversations).
  * OSS has no pool and mints nothing (empty output, presence-based contract).
  * </pre>
  *
@@ -282,8 +284,10 @@ private static final long serialVersionUID = 0L;
    * &#64;internal
    * Cloud authorizes against the pool claim record, not FGA: the pool_sandboxes
    * row for the caller token's pool_member_id must be CLAIMED for exactly this
-   * session_id (the DB is the authorization source), and the minted session
-   * token's TTL is the window-covering value recorded on that row at claim time.
+   * session_id (the DB is the authorization source). Identity and org are minted
+   * from the values the claimer recorded on that row — never from the client —
+   * and the TTL is the config-owned standard sandbox TTL, like every session
+   * token (stigmer-cloud#256; renewal, not lifetime, carries long conversations).
    * OSS has no pool and mints nothing (empty output, presence-based contract).
    * </pre>
    *
