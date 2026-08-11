@@ -3,8 +3,12 @@
  *
  * Converts plain event descriptors (safe for the Temporal deterministic
  * sandbox) into WorkflowExecutionEvent proto objects and sends them
- * alongside a status update via gRPC. Best-effort — failures are logged
- * but do not fail the activity.
+ * alongside a status update via gRPC. Failures propagate so the local
+ * activity's retry policy fires — safe because sequence numbers are
+ * workflow-assigned (stable across attempts) and the store skips
+ * already-persisted sequences, making retries idempotent. The workflow's
+ * emit wrappers catch after retries are exhausted; event emission never
+ * fails a run.
  *
  * Registered as proxyLocalActivities in engine-core.ts so the workflow
  * sandbox can emit events at task boundaries and approval gates.
@@ -140,6 +144,17 @@ function buildClient(): StigmerClient {
   });
 }
 
+/**
+ * LEGACY sequence assignment — only for descriptors that arrive without a
+ * workflow-assigned `sequenceNumber`, i.e. replays of histories recorded
+ * before the "workflow-assigned-event-sequences" patch (see
+ * engine-core.ts). This counter is process-global: it is shared across
+ * every execution on the worker and resets on worker restart, which is
+ * the root cause of oss#308's silent event loss. Deliberately NOT fixed —
+ * pre-patch executions keep their old (flawed) behavior for the
+ * migration window. Delete together with the patch gate once pre-patch
+ * executions have drained.
+ */
 let sequenceCounter = 0;
 
 function nextSequence(): bigint {
@@ -148,33 +163,44 @@ function nextSequence(): bigint {
 }
 
 /**
- * Initialize the event sequence counter from the persisted high-water mark.
+ * Return the persisted event-log high-water mark for the execution, and
+ * seed the legacy process-global counter from it.
  *
- * On first run (no prior events), the counter stays at 0 and the first
- * event gets sequence_number = 1 — identical to the original behavior.
+ * The workflow seeds its own sequence counter from the returned value
+ * (patched path); the legacy global seed remains for pre-patch replays,
+ * whose emit path still assigns sequences here in the activity.
  *
- * On recovery (events already persisted from a failed run), the counter
- * is set to the highest persisted sequence_number so that new events
- * continue from N+1, avoiding duplicate-key collisions in storage.
+ * On first run (no prior events) returns 0, so the first event gets
+ * sequence_number = 1. On recovery (events already persisted from a
+ * failed run) returns the highest persisted sequence_number, so new
+ * events continue from N+1.
  *
  * When executionId is empty (direct executeServerlessWorkflow without a
- * persisted execution), the counter resets to 0 as a safe fallback.
+ * persisted execution), returns 0 as a safe fallback.
+ *
+ * Returns a plain number — the value crosses back into the workflow
+ * through Temporal's JSON payload converter, which cannot carry BigInt.
  */
-export async function initSequenceFromEventLog(executionId: string): Promise<void> {
+export async function initSequenceFromEventLog(executionId: string): Promise<number> {
   if (!executionId) {
     sequenceCounter = 0;
-    return;
+    return 0;
   }
   const client = buildClient();
   const highWaterMark = await client.getEventLogHighWaterMark(executionId);
   sequenceCounter = Number(highWaterMark);
+  return sequenceCounter;
 }
 
 /** @internal Exported for unit testing only. */
 export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEvent {
   const base = create(WorkflowExecutionEventSchema, {
     eventId: crypto.randomUUID(),
-    sequenceNumber: nextSequence(),
+    // Workflow-assigned sequence when present (stable across activity
+    // retries); legacy activity-side assignment only for pre-patch replays.
+    sequenceNumber: desc.sequenceNumber !== undefined
+      ? BigInt(desc.sequenceNumber)
+      : nextSequence(),
     occurredAt: desc.occurredAt,
     taskName: desc.taskName ?? "",
   });
@@ -382,6 +408,14 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
   return base;
 }
 
+/**
+ * Emit workflow events (with the accompanying status snapshot) to the
+ * server. Errors propagate so the local activity retry policy fires;
+ * retries are idempotent because workflow-assigned sequence numbers are
+ * stable across attempts and the store skips already-persisted ones. The
+ * workflow-side emit wrappers absorb the failure after retries are
+ * exhausted, so a broken timeline write never fails the run.
+ */
 export async function emitWorkflowEvents(
   executionId: string,
   events: WorkflowEventDescriptor[],
@@ -389,64 +423,57 @@ export async function emitWorkflowEvents(
 ): Promise<void> {
   if (!executionId || events.length === 0) return;
 
-  try {
-    const client = buildClient();
-    const protoEvents = events.map(toProtoEvent);
+  const client = buildClient();
+  const protoEvents = events.map(toProtoEvent);
 
-    const protoTasks = (taskStatuses ?? []).map(ts =>
-      create(WorkflowTaskSchema, {
-        taskId: ts.taskId ?? "",
-        taskName: ts.taskName,
-        taskType: TASK_KIND_TO_TYPE_MAP[ts.taskKind] ?? WorkflowTaskType.WORKFLOW_TASK_TYPE_UNSPECIFIED,
-        status: TASK_STATUS_MAP[ts.status],
-        startedAt: ts.startedAt ?? "",
-        completedAt: ts.completedAt ?? "",
-        error: ts.error ?? "",
-        input: toJsonObject(ts.input),
-        output: toJsonObject(ts.output),
-        metadata: toJsonObject(ts.metadata),
-        costMicros: BigInt(ts.costMicros ?? 0),
-        inputTokens: BigInt(ts.inputTokens ?? 0),
-        outputTokens: BigInt(ts.outputTokens ?? 0),
-        uiHint: ts.uiHint ?? "",
-      }),
-    );
+  const protoTasks = (taskStatuses ?? []).map(ts =>
+    create(WorkflowTaskSchema, {
+      taskId: ts.taskId ?? "",
+      taskName: ts.taskName,
+      taskType: TASK_KIND_TO_TYPE_MAP[ts.taskKind] ?? WorkflowTaskType.WORKFLOW_TASK_TYPE_UNSPECIFIED,
+      status: TASK_STATUS_MAP[ts.status],
+      startedAt: ts.startedAt ?? "",
+      completedAt: ts.completedAt ?? "",
+      error: ts.error ?? "",
+      input: toJsonObject(ts.input),
+      output: toJsonObject(ts.output),
+      metadata: toJsonObject(ts.metadata),
+      costMicros: BigInt(ts.costMicros ?? 0),
+      inputTokens: BigInt(ts.inputTokens ?? 0),
+      outputTokens: BigInt(ts.outputTokens ?? 0),
+      uiHint: ts.uiHint ?? "",
+    }),
+  );
 
-    const startedEvent = events.find(e => e.type === "execution_started");
-    const completedEvent = events.find(e => e.type === "execution_completed");
-    const failedEvent = events.find(e => e.type === "execution_failed");
+  const startedEvent = events.find(e => e.type === "execution_started");
+  const completedEvent = events.find(e => e.type === "execution_completed");
+  const failedEvent = events.find(e => e.type === "execution_failed");
 
-    const statusFields: Record<string, unknown> = { tasks: protoTasks };
+  const statusFields: Record<string, unknown> = { tasks: protoTasks };
 
-    if (startedEvent) {
-      statusFields.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
-      statusFields.startedAt = startedEvent.occurredAt;
-    }
-    if (completedEvent && completedEvent.type === "execution_completed") {
-      statusFields.phase = ExecutionPhase.EXECUTION_COMPLETED;
-      statusFields.completedAt = completedEvent.occurredAt;
-      statusFields.totalCostMicros = BigInt(completedEvent.totalCostMicros);
-      statusFields.totalInputTokens = BigInt(completedEvent.totalInputTokens ?? 0);
-      statusFields.totalOutputTokens = BigInt(completedEvent.totalOutputTokens ?? 0);
-    }
-    if (failedEvent && failedEvent.type === "execution_failed") {
-      statusFields.phase = ExecutionPhase.EXECUTION_FAILED;
-      statusFields.completedAt = failedEvent.occurredAt;
-      statusFields.error = failedEvent.error;
-    }
-
-    const input = create(WorkflowExecutionUpdateStatusInputSchema, {
-      executionId,
-      status: create(WorkflowExecutionStatusSchema, statusFields as Parameters<typeof create>[1]),
-      events: protoEvents,
-    });
-    await client.workflowExecutionCommand.updateStatus(input);
-  } catch (err) {
-    console.error(
-      `Failed to emit ${events.length} workflow event(s) for ${executionId}:`,
-      err,
-    );
+  if (startedEvent) {
+    statusFields.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
+    statusFields.startedAt = startedEvent.occurredAt;
   }
+  if (completedEvent && completedEvent.type === "execution_completed") {
+    statusFields.phase = ExecutionPhase.EXECUTION_COMPLETED;
+    statusFields.completedAt = completedEvent.occurredAt;
+    statusFields.totalCostMicros = BigInt(completedEvent.totalCostMicros);
+    statusFields.totalInputTokens = BigInt(completedEvent.totalInputTokens ?? 0);
+    statusFields.totalOutputTokens = BigInt(completedEvent.totalOutputTokens ?? 0);
+  }
+  if (failedEvent && failedEvent.type === "execution_failed") {
+    statusFields.phase = ExecutionPhase.EXECUTION_FAILED;
+    statusFields.completedAt = failedEvent.occurredAt;
+    statusFields.error = failedEvent.error;
+  }
+
+  const input = create(WorkflowExecutionUpdateStatusInputSchema, {
+    executionId,
+    status: create(WorkflowExecutionStatusSchema, statusFields as Parameters<typeof create>[1]),
+    events: protoEvents,
+  });
+  await client.workflowExecutionCommand.updateStatus(input);
 }
 
 const PROTO_STATUS_TO_STRING: Record<number, string> = {

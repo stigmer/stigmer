@@ -313,9 +313,17 @@ type Store interface {
 	// ===========================================================================
 
 	// AppendWorkflowExecutionEvents appends events to the execution's event log.
-	// Enforces monotonically increasing sequence_numbers — rejects the batch
-	// if any event's sequence_number is <= the current highest persisted sequence.
-	// Returns the number of events appended.
+	//
+	// Insert-or-skip, first-writer-wins: an event whose
+	// (execution_id, sequence_number) is already persisted is silently
+	// skipped; the rest of the batch still lands. This makes retried
+	// batches idempotent (the runner assigns sequence numbers
+	// deterministically in the workflow, so a retry re-sends the same
+	// numbers) and tolerates out-of-order arrival from parallel branches.
+	// Same contract as the cloud edition's event repo.
+	//
+	// Returns the number of events actually inserted (skipped duplicates
+	// are not counted).
 	AppendWorkflowExecutionEvents(ctx context.Context, executionID string, events []*WorkflowExecutionEventRecord) (int, error)
 
 	// GetWorkflowExecutionEvents retrieves events for an execution with cursor-based pagination.

@@ -145,7 +145,21 @@ export async function runWorkflowEngine(
 
   recordExecutionStartMetric(model.document.name);
 
-  await eventProxy.ResetEventSequence(executionId);
+  // Event sequence numbers are workflow state: assigned here in the
+  // deterministic sandbox (seeded from the persisted high-water mark) so
+  // they are stable across activity retries, worker restarts, and
+  // concurrent executions — the store can then treat re-sent sequences as
+  // idempotent duplicates. Pre-patch histories recorded the activity
+  // result as void and assigned sequences inside the emit activity from a
+  // process-global counter; they must keep doing so on replay, hence the
+  // gate. Remove the gate (and the activity's legacy counter) once
+  // pre-patch executions have drained.
+  const workflowAssignedSequences = patched("workflow-assigned-event-sequences");
+  const eventLogHighWaterMark = await eventProxy.ResetEventSequence(executionId);
+  let eventSequence = workflowAssignedSequences ? Number(eventLogHighWaterMark ?? 0) : 0;
+  const nextEventSequence = workflowAssignedSequences
+    ? () => ++eventSequence
+    : undefined;
 
   let recoveryContext: RecoveryContext | undefined;
   if (options?.recoveryMode && executionId) {
@@ -170,9 +184,15 @@ export async function runWorkflowEngine(
 
   const emitEvents = async (events: WorkflowEventDescriptor[]): Promise<void> => {
     if (!executionId || events.length === 0) return;
+    const stamped = nextEventSequence
+      ? events.map(e => ({ ...e, sequenceNumber: nextEventSequence() }))
+      : events;
     try {
-      await eventProxy.EmitWorkflowEvents(executionId, events, taskStatusAccumulator.toArray());
+      await eventProxy.EmitWorkflowEvents(executionId, stamped, taskStatusAccumulator.toArray());
     } catch (err) {
+      // Final guard after the activity's retries are exhausted: a run must
+      // not die because its timeline write failed. With workflow-assigned
+      // sequences the result is a gap in the log, never a poisoned log.
       log.warn("Failed to emit workflow events (non-fatal)", {
         executionId,
         eventCount: events.length,
@@ -246,6 +266,7 @@ export async function runWorkflowEngine(
         parentWorkflowId: agentMeta.parentWorkflowId || workflowInfo().workflowId,
         taskName: agentMeta.taskName,
         workflowExecutionId: agentMeta.workflowExecutionId || executionId,
+        nextEventSequence,
       }),
     promoteTaskOutput: (taskOutput: unknown, wexId: string, taskName: string, displayName?: string) =>
       promoteProxy.PromoteTaskOutput(taskOutput, wexId || executionId, taskName, displayName),

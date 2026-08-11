@@ -1649,8 +1649,19 @@ func (s *Store) ClearBootstrapState(ctx context.Context) error {
 // =============================================================================
 
 // AppendWorkflowExecutionEvents appends events to the execution's event log.
-// Enforces monotonically increasing sequence_numbers — rejects the batch
-// if any event's sequence_number is <= the current highest persisted sequence.
+//
+// Insert-or-skip, first-writer-wins: `INSERT OR IGNORE` on the
+// (execution_id, sequence_number) primary key silently skips
+// already-persisted sequences while the rest of the batch lands. Sequence
+// numbers are assigned deterministically in the runner's workflow sandbox,
+// so a retried batch re-sends the same numbers (idempotent no-op) and
+// parallel branches may deliver out of order (a lower sequence arriving
+// after a higher one is still valid, not stale). This replaces the old
+// all-or-nothing stale-sequence rejection that silently dropped whole
+// batches on retry (oss#308), and matches the cloud edition's
+// `ON CONFLICT DO NOTHING` contract.
+//
+// Returns the number of events actually inserted.
 func (s *Store) AppendWorkflowExecutionEvents(ctx context.Context, executionID string, events []*store.WorkflowExecutionEventRecord) (int, error) {
 	if len(events) == 0 {
 		return 0, nil
@@ -1672,42 +1683,32 @@ func (s *Store) AppendWorkflowExecutionEvents(ctx context.Context, executionID s
 	}
 	defer tx.Rollback()
 
-	// Get current max sequence for this execution
-	var maxSeq int64
-	err = tx.QueryRowContext(ctx,
-		`SELECT COALESCE(MAX(sequence_number), 0) FROM workflow_execution_events WHERE execution_id = ?`,
-		executionID).Scan(&maxSeq)
-	if err != nil {
-		return 0, fmt.Errorf("query max sequence: %w", err)
-	}
-
-	// Validate all events have sequence > max
-	for _, evt := range events {
-		if evt.SequenceNumber <= maxSeq {
-			return 0, fmt.Errorf("event sequence_number %d is <= current max %d for execution %s",
-				evt.SequenceNumber, maxSeq, executionID)
-		}
-	}
-
 	stmt, err := tx.PrepareContext(ctx,
-		`INSERT INTO workflow_execution_events (execution_id, sequence_number, event_type, task_name, data)
+		`INSERT OR IGNORE INTO workflow_execution_events (execution_id, sequence_number, event_type, task_name, data)
 		 VALUES (?, ?, ?, ?, ?)`)
 	if err != nil {
 		return 0, fmt.Errorf("prepare insert: %w", err)
 	}
 	defer stmt.Close()
 
+	inserted := 0
 	for _, evt := range events {
-		if _, err := stmt.ExecContext(ctx, executionID, evt.SequenceNumber, evt.EventType, evt.TaskName, evt.Data); err != nil {
+		res, err := stmt.ExecContext(ctx, executionID, evt.SequenceNumber, evt.EventType, evt.TaskName, evt.Data)
+		if err != nil {
 			return 0, fmt.Errorf("insert event seq=%d: %w", evt.SequenceNumber, err)
 		}
+		rows, err := res.RowsAffected()
+		if err != nil {
+			return 0, fmt.Errorf("rows affected for event seq=%d: %w", evt.SequenceNumber, err)
+		}
+		inserted += int(rows)
 	}
 
 	if err := tx.Commit(); err != nil {
 		return 0, fmt.Errorf("commit transaction: %w", err)
 	}
 
-	return len(events), nil
+	return inserted, nil
 }
 
 // GetWorkflowExecutionEvents retrieves events for an execution with cursor-based pagination.

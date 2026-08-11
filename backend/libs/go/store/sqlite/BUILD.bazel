@@ -16,7 +16,10 @@ go_library(
 
 go_test(
     name = "sqlite_test",
-    srcs = ["store_test.go"],
+    srcs = [
+        "store_test.go",
+        "store_workflow_execution_events_test.go",
+    ],
     embed = [":sqlite"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
