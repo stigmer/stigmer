@@ -2,6 +2,7 @@ package mcpserver
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -10,6 +11,7 @@ import (
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption"
 )
 
 // CompleteOAuthConnect finishes the OAuth flow by exchanging the authorization
@@ -64,6 +66,19 @@ func (c *McpServerController) CompleteOAuthConnect(
 		return nil, grpclib.FailedPreconditionError(
 			"state parameter does not match the requested mcp_server_id",
 		)
+	}
+
+	// Unseal the handshake secrets that initiateOAuthConnect sealed at rest
+	// (oss#394), at the last moment before their only use. The row was
+	// consumed by GetAndDelete (single-use is atomic), so a decryption
+	// failure costs the user one re-initiate — the same posture as the
+	// expiry refusal; the error message points them there.
+	if err := unsealPendingOAuthState(c.encryptionService, pendingState); err != nil {
+		log.Error().Err(err).
+			Str("mcp_server_id", mcpServerID).
+			Msg("Failed to decrypt pending OAuth state secrets")
+		return nil, grpclib.InternalError(err,
+			"failed to decrypt OAuth handshake secrets — please retry the connect flow")
 	}
 
 	// Exchange authorization code for tokens
@@ -164,6 +179,39 @@ func (c *McpServerController) CompleteOAuthConnect(
 		TargetEnvVar:      pendingState.TargetEnvVar,
 		TokenLifetimeHint: auth.GetTokenLifetimeHint(),
 	}, nil
+}
+
+// unsealPendingOAuthState decrypts the secrets that sealPendingOAuthState
+// encrypted before the row rested (oss#394) — the read seam paired with the
+// write seam in initiate_oauth_connect.go.
+//
+// Decrypt dispatches on the value's own enc:v1: prefix and passes plaintext
+// through unchanged, which quietly covers every legacy shape: rows written
+// before the sealing release, rows written while encryption was disabled,
+// and the DCR path's deliberately empty client secret. No migration — the
+// table turns over in 10 minutes.
+//
+// A sealed row on a deployment whose key has since vanished fails here
+// (loudly, before any token-exchange attempt) rather than sending ciphertext
+// to the vendor's token endpoint.
+func unsealPendingOAuthState(svc *encryption.SecretService, state *oauth.PendingOAuthState) error {
+	if svc == nil {
+		return nil
+	}
+
+	verifier, err := svc.Decrypt(state.CodeVerifier)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt code_verifier: %w", err)
+	}
+	state.CodeVerifier = verifier
+
+	secret, err := svc.Decrypt(state.ClientSecret)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt client_secret: %w", err)
+	}
+	state.ClientSecret = secret
+
+	return nil
 }
 
 // resolveOrCreateManagedEnvironment checks whether an existing OAuthGrant
