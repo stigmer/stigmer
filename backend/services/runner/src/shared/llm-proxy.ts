@@ -75,6 +75,21 @@ export function inferProvider(modelName: string): LlmProvider {
 }
 
 /**
+ * {@link inferProvider}, returning null instead of throwing on an unknown
+ * prefix. For credential pre-checks that must not preempt the construction
+ * path: when the provider cannot be determined here, the caller proceeds and
+ * lets `buildChatModel` raise inferProvider's precise message inside its own
+ * error handling, instead of a guess being made up front.
+ */
+export function tryInferProvider(modelName: string): LlmProvider | null {
+  try {
+    return inferProvider(modelName);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Strip an explicit "provider:" prefix from the model name, returning
  * just the model ID portion. If no explicit prefix is present, returns
  * the original name unchanged.

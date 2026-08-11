@@ -6,6 +6,7 @@ import {
   parseOpenAiBackend,
   resolveAnthropicBackend,
   checkVertexPrerequisites,
+  checkDirectCredentials,
   preflightLlmBackends,
 } from "../llm-backend.js";
 
@@ -136,6 +137,70 @@ describe("checkVertexPrerequisites", () => {
       expect(message).toContain("asia-south1");
     },
   );
+});
+
+describe("checkDirectCredentials", () => {
+  describe("anthropic", () => {
+    it("is satisfied by a non-blank ANTHROPIC_API_KEY", () => {
+      expect(checkDirectCredentials("anthropic", { ANTHROPIC_API_KEY: "sk-ant-x" })).toBeNull();
+    });
+
+    it.each([[undefined], [""], ["   "]])(
+      "treats key %j as missing on the public backend",
+      (key) => {
+        const message = checkDirectCredentials("anthropic", { ANTHROPIC_API_KEY: key });
+        expect(message).toContain("ANTHROPIC_API_KEY");
+        expect(message).toContain("STIGMER_ANTHROPIC_BACKEND=vertex");
+        expect(message).toContain("docs.stigmer.ai");
+      },
+    );
+
+    it("is satisfied by the vertex backend with no key (ADC authenticates)", () => {
+      // The finding-4 pin: a correctly-configured Vertex deployment holds no
+      // Anthropic API key, and must not be reported as credential-less.
+      expect(
+        checkDirectCredentials("anthropic", { STIGMER_ANTHROPIC_BACKEND: "vertex" }),
+      ).toBeNull();
+    });
+
+    it("defers an invalid backend value to construction (one message per condition)", () => {
+      // resolveAnthropicBackend owns the catalog message for invalid values;
+      // reporting "missing credentials" here would mask it.
+      expect(
+        checkDirectCredentials("anthropic", { STIGMER_ANTHROPIC_BACKEND: "verteks" }),
+      ).toBeNull();
+    });
+  });
+
+  describe("openai", () => {
+    it("is satisfied by a non-blank OPENAI_API_KEY", () => {
+      expect(checkDirectCredentials("openai", { OPENAI_API_KEY: "sk-x" })).toBeNull();
+    });
+
+    it.each([[undefined], [""], ["   "]])(
+      "treats key %j as missing",
+      (key) => {
+        const message = checkDirectCredentials("openai", { OPENAI_API_KEY: key });
+        expect(message).toContain("OPENAI_API_KEY");
+        expect(message).toContain("docs.stigmer.ai");
+      },
+    );
+
+    it("offers no backend remedy while azure is unshipped", () => {
+      // STIGMER_OPENAI_BACKEND=azure would fail with "not implemented in
+      // this build" — an error message must not suggest a broken remedy.
+      const message = checkDirectCredentials("openai", {});
+      expect(message).not.toContain("STIGMER_OPENAI_BACKEND");
+    });
+
+    it("ignores the anthropic key and backend when checking openai", () => {
+      const message = checkDirectCredentials("openai", {
+        ANTHROPIC_API_KEY: "sk-ant-x",
+        STIGMER_ANTHROPIC_BACKEND: "vertex",
+      });
+      expect(message).toContain("OPENAI_API_KEY");
+    });
+  });
 });
 
 describe("preflightLlmBackends", () => {

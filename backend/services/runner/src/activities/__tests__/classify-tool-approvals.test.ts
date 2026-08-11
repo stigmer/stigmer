@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { ClassifyToolApprovalsInput, ToolDescriptor } from "../classify-tool-approvals.js";
 
 vi.mock("../../idle-watchdog.js", () => ({
@@ -595,6 +595,122 @@ describe("ClassifyToolApprovals activity", () => {
       const lastCall = vi.mocked(ChatOpenAI).mock.calls.at(-1)?.[0] as Record<string, unknown> | undefined;
       const headers = (lastCall?.configuration as Record<string, unknown>)?.defaultHeaders as Record<string, string>;
       expect(headers).not.toHaveProperty("X-Stigmer-Mcp-Server-Id");
+    });
+  });
+
+  describe("direct mode (no proxy)", () => {
+    // The regression suite for the stigmerBackendEndpoint-as-LLM-proxy bug:
+    // an unproxied runner must call the provider directly with the real key,
+    // and must fail closed with one clear message when it has none.
+    const directOptions = { proxyEndpoint: null, stigmerToken: null, primaryModel: "gpt-4.1" };
+
+    beforeEach(() => {
+      // Deterministic regardless of the developer's shell: blank reads as
+      // missing, and backend/proxy vars must not leak in from outside.
+      vi.stubEnv("OPENAI_API_KEY", "");
+      vi.stubEnv("ANTHROPIC_API_KEY", "");
+      vi.stubEnv("STIGMER_ANTHROPIC_BACKEND", "");
+      vi.stubEnv("STIGMER_OPENAI_BACKEND", "");
+      vi.stubEnv("STIGMER_PROXY_ENDPOINT", "");
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("fails closed without any credential path: every tool gated, no client constructed", async () => {
+      const { ChatAnthropic } = await import("@langchain/anthropic");
+      const { ChatOpenAI } = await import("@langchain/openai");
+      const { classifyTools } = await import("../classify-tool-approvals.js");
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      const tools: ToolDescriptor[] = [
+        { name: "search_code", description: "Search code" },
+        { name: "delete_file", description: "Delete a file" },
+      ];
+
+      const result = await classifyTools(
+        { tools, serverName: "github", serverDescription: "GitHub", mcpServerId: null },
+        directOptions,
+      );
+
+      expect(result).toEqual([
+        { tool_name: "search_code", requires_approval: true, message: "Execute search_code" },
+        { tool_name: "delete_file", requires_approval: true, message: "Execute delete_file" },
+      ]);
+      expect(ChatOpenAI).not.toHaveBeenCalled();
+      expect(ChatAnthropic).not.toHaveBeenCalled();
+      expect(mockInvoke).not.toHaveBeenCalled();
+      // The message must name the model and provider (classification's
+      // provider follows the economy model, not the operator's key) and
+      // carry the predicate's remedy text.
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("'gpt-4o-mini' (openai)"));
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("OPENAI_API_KEY"));
+      warn.mockRestore();
+    });
+
+    it("uses the provider key directly — no proxy baseURL, no Authorization header", async () => {
+      vi.stubEnv("OPENAI_API_KEY", "sk-direct-test");
+      const { ChatOpenAI } = await import("@langchain/openai");
+      const { classifyTools } = await import("../classify-tool-approvals.js");
+
+      mockInvoke.mockResolvedValueOnce({
+        approvals: [{ tool_name: "t", requires_approval: false, message: "" }],
+      });
+
+      const result = await classifyTools(
+        { tools: [{ name: "t", description: "d" }], serverName: "s", serverDescription: "", mcpServerId: null },
+        directOptions,
+      );
+
+      expect(result).toEqual([]);
+      const args = vi.mocked(ChatOpenAI).mock.calls.at(-1)?.[0] as Record<string, unknown>;
+      expect(args.apiKey).toBe("sk-direct-test");
+      // The bug this suite pins: the gRPC control-plane endpoint must never
+      // reappear as a baseURL/Authorization transport override.
+      expect(args).not.toHaveProperty("configuration");
+    });
+
+    it("routes an Anthropic economy model directly through ChatAnthropic with the real key", async () => {
+      vi.stubEnv("ANTHROPIC_API_KEY", "sk-ant-direct");
+      const { ChatAnthropic } = await import("@langchain/anthropic");
+      const { getSummarizationModel } = await import("../../shared/model-registry.js");
+      vi.mocked(getSummarizationModel).mockResolvedValueOnce("claude-haiku-4.5");
+      const { classifyTools } = await import("../classify-tool-approvals.js");
+
+      mockInvoke.mockResolvedValueOnce({
+        approvals: [{ tool_name: "t", requires_approval: false, message: "" }],
+      });
+
+      await classifyTools(
+        { tools: [{ name: "t", description: "d" }], serverName: "s", serverDescription: "", mcpServerId: null },
+        directOptions,
+      );
+
+      const args = vi.mocked(ChatAnthropic).mock.calls.at(-1)?.[0] as Record<string, unknown>;
+      expect(args.apiKey).toBe("sk-ant-direct");
+      expect(args).not.toHaveProperty("clientOptions");
+    });
+
+    it("defers an un-inferable economy model to the per-batch fail-closed path", async () => {
+      // Real scenario: the registry-empty fallback returns the primary model
+      // verbatim (model-registry.ts), whatever its name. The pre-check must
+      // not guess a provider — the batch path owns the precise error.
+      const { getSummarizationModel } = await import("../../shared/model-registry.js");
+      vi.mocked(getSummarizationModel).mockResolvedValueOnce("mystery-model");
+      const { classifyTools } = await import("../classify-tool-approvals.js");
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      const result = await classifyTools(
+        { tools: [{ name: "t", description: "d" }], serverName: "s", serverDescription: "", mcpServerId: null },
+        directOptions,
+      );
+
+      expect(result).toEqual([
+        { tool_name: "t", requires_approval: true, message: "Execute t" },
+      ]);
+      expect(error).toHaveBeenCalled();
+      error.mockRestore();
     });
   });
 });

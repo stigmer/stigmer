@@ -14,6 +14,8 @@
  * `design-decisions/001-provider-backends.md`.
  */
 
+import type { LlmProvider } from "./llm-proxy.js";
+
 // ─── Backend selection ───────────────────────────────────────────────────────
 
 /** Env var selecting where Anthropic models are served. */
@@ -139,6 +141,55 @@ export function checkVertexPrerequisites(
   return (
     `The vertex backend requires CLOUD_ML_REGION (e.g. "asia-south1", or ` +
     `"global" for the global endpoint). See ${BACKEND_DOC_URL}.`
+  );
+}
+
+/**
+ * Check that direct-mode (unproxied) calls to `provider` have a usable
+ * credential path, or return the operator message describing what is
+ * missing. Null means "a request can authenticate":
+ *
+ * - `anthropic`: a non-blank `ANTHROPIC_API_KEY`, or any non-public backend
+ *   (vertex authenticates through Application Default Credentials, and
+ *   `ChatAnthropic` waives its API-key requirement when `createClient` is
+ *   supplied — pinned by vertex-seam.test.ts).
+ * - `openai`: a non-blank `OPENAI_API_KEY`. The message deliberately offers
+ *   no backend remedy until the azure adapter ships — advertising
+ *   STIGMER_OPENAI_BACKEND today would point the operator at a value that
+ *   fails with "not implemented in this build".
+ *
+ * An invalid backend value also returns null: `resolveAnthropicBackend` at
+ * model construction owns that condition's precise catalog message, and
+ * reporting it here too would create a second copy that can drift.
+ *
+ * This is the single copy of the "do we have a credential?" question. The
+ * reaction stays with each caller, because the right one differs per site:
+ * `call-llm.ts` raises a non-retryable LLM_MISSING_API_KEY, tool
+ * classification fails closed (every tool gated), and Cursor tier-2
+ * extraction skips to "no structured output". Callers consult it only when
+ * no proxy is configured — a proxied deployment authenticates with
+ * STIGMER_TOKEN and holds no provider credentials at all.
+ */
+export function checkDirectCredentials(
+  provider: LlmProvider,
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
+  if (provider === "openai") {
+    if (env.OPENAI_API_KEY?.trim()) return null;
+    return (
+      `OPENAI_API_KEY is not set and no proxy is configured. Set the API ` +
+      `key in your environment or connect to a Stigmer Cloud deployment. ` +
+      `See ${BACKEND_DOC_URL}.`
+    );
+  }
+  if (env.ANTHROPIC_API_KEY?.trim()) return null;
+  const parsed = parseAnthropicBackend(env);
+  if (!parsed.ok || parsed.backend !== "public") return null;
+  return (
+    `ANTHROPIC_API_KEY is not set, no model backend is configured, and no ` +
+    `proxy is configured. Set the API key, configure a backend (e.g. ` +
+    `${ANTHROPIC_BACKEND_ENV}=vertex), or connect to a Stigmer Cloud ` +
+    `deployment. See ${BACKEND_DOC_URL}.`
   );
 }
 

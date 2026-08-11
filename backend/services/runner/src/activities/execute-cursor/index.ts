@@ -1992,6 +1992,7 @@ async function executeCursorInner(
             `finalTextLength=${finalText.length}`,
           );
           try {
+            const { extractStructuredOutput } = await import("./extract-structured-output.js");
             structuredOutput = await extractStructuredOutput(
               finalText, structuredOutputSchema, config, requestedModel,
             );
@@ -2315,53 +2316,6 @@ function seedCursorTranscriptFromExecution(
   }
   return persisted.subAgentExecutions.map((sub) => clone(SubAgentExecutionSchema, sub));
 }
-
-// ---------------------------------------------------------------------------
-// Structured Output Extraction (Cursor Harness Tier 2)
-// ---------------------------------------------------------------------------
-
-/**
- * Extract structured data from an agent's free-text response using an
- * economy-tier LLM with withStructuredOutput (function-calling).
- * Guarantees schema-conformant JSON output via the API's tool-use mechanism.
- *
- * Construction (registry-id resolution, provider inference, proxy wiring) is
- * delegated to the shared buildChatModel so the economy model's registry id is
- * always resolved to a provider API id before the call.
- */
-async function extractStructuredOutput(
-  agentResponse: string,
-  schema: Record<string, unknown>,
-  config: Config,
-  primaryModel: string,
-): Promise<unknown | null> {
-  const { getEconomyModel } = await import("../../shared/model-registry.js");
-  const { buildChatModel } = await import("../../shared/model-client.js");
-
-  const extractionModel = await getEconomyModel(primaryModel);
-  const proxyEndpoint = config.proxyEndpoint ?? config.stigmerBackendEndpoint;
-
-  const { model: llm } = await buildChatModel({
-    modelName: extractionModel,
-    proxyEndpoint,
-    stigmerToken: config.stigmerToken ?? undefined,
-    maxTokens: 4096,
-  });
-
-  const zodSchema = jsonSchemaToZod(schema);
-  const structured = llm.withStructuredOutput(zodSchema);
-
-  const result = await structured.invoke([
-    { role: "system", content: "Extract the structured data from the agent's response. Return only the data that matches the schema." },
-    { role: "user", content: agentResponse },
-  ]);
-
-  return result ?? null;
-}
-
-// Re-export for use within this module; shared implementation eliminates
-// the three duplicate converters that previously drifted independently.
-import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
 
 // ---------------------------------------------------------------------------
 // Prompt selection
