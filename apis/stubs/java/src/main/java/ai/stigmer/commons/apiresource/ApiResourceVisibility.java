@@ -20,7 +20,9 @@ package ai.stigmer.commons.apiresource;
  *
  * The visibility levels map to FGA tuples:
  * - PRIVATE: no additional viewer tuples (owner-only access)
- * - ORG: resource#viewer&#64;organization:&lt;org&gt;#member tuple (all org members)
+ * - ORG: resource#viewer&#64;organization:&lt;org&gt;#viewer tuple (everyone in the
+ * org — the org role hierarchy flows downward, so owners, admins, members
+ * AND read-only viewers all satisfy the organization#viewer userset)
  * - PUBLIC: resource#viewer&#64;identity_account:* with allow_public (all users)
  * - PLATFORM: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
  * (all members of all organizations managed by the owning org's
@@ -76,14 +78,23 @@ public enum ApiResourceVisibility
   visibility_public(2),
   /**
    * <pre>
-   * All members of the owning organization can access (read) this resource.
+   * Everyone in the owning organization can access (read) this resource —
+   * all org roles including read-only viewers (the role SSO auto-provisioning
+   * grants by default). Running or otherwise spending against the resource
+   * still requires the org-level member-or-guest permissions
+   * (can_create_session / can_create_execution_in); org visibility widens
+   * read, never spend.
    * Used for instances where a team wants shared observability of executions
    * without granting access to all authenticated users.
    *
-   * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#member
+   * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#viewer
+   * (Before cloud#257 the tuple targeted organization#member, which
+   * excluded viewer-role users; legacy tuples keep resolving until the
+   * cloud's boot-time backfill converges them.)
    *
    * For workflow instances, this enables zero-tuple-per-execution shared
-   * observability: all org members see all executions via inheritance.
+   * observability: everyone in the org sees all executions via inheritance
+   * once the instance opts in.
    * </pre>
    *
    * <code>visibility_org = 3;</code>
@@ -172,14 +183,23 @@ public enum ApiResourceVisibility
   public static final int visibility_public_VALUE = 2;
   /**
    * <pre>
-   * All members of the owning organization can access (read) this resource.
+   * Everyone in the owning organization can access (read) this resource —
+   * all org roles including read-only viewers (the role SSO auto-provisioning
+   * grants by default). Running or otherwise spending against the resource
+   * still requires the org-level member-or-guest permissions
+   * (can_create_session / can_create_execution_in); org visibility widens
+   * read, never spend.
    * Used for instances where a team wants shared observability of executions
    * without granting access to all authenticated users.
    *
-   * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#member
+   * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#viewer
+   * (Before cloud#257 the tuple targeted organization#member, which
+   * excluded viewer-role users; legacy tuples keep resolving until the
+   * cloud's boot-time backfill converges them.)
    *
    * For workflow instances, this enables zero-tuple-per-execution shared
-   * observability: all org members see all executions via inheritance.
+   * observability: everyone in the org sees all executions via inheritance
+   * once the instance opts in.
    * </pre>
    *
    * <code>visibility_org = 3;</code>
