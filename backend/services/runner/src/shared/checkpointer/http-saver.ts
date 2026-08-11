@@ -13,6 +13,19 @@
  *
  * The Java proxy calls Document.parse(json) which handles $binary
  * natively, and doc.toJson() emits the same format on reads.
+ *
+ * Every request runs through {@link HttpCheckpointSaver.fetchWithRetry}:
+ * bounded exponential backoff on transient failures (classified by
+ * http-retry.ts) with a per-request abort timeout. This loop is the ONLY
+ * retry layer between an agent execution and its checkpoints — the deep
+ * agent activity is deliberately non-retryable at the Temporal level
+ * (maximumAttempts: 1; replaying a whole agent run is not safe), so before
+ * this existed a single dropped request killed the execution
+ * (stigmer/stigmer-cloud#188). Retrying puts is safe by server contract:
+ * CheckpointStore documents putCheckpoint/putWrite as keyed save-or-replace
+ * upserts. Budget exhaustion still fails loudly — checkpoints are not
+ * lossy-tolerable (unlike status updates, see status.ts), and silently
+ * dropping one would corrupt resume state.
  */
 
 import type { RunnableConfig } from "@langchain/core/runnables";
@@ -25,6 +38,8 @@ import {
   type ChannelVersions,
 } from "@langchain/langgraph-checkpoint";
 import type { CheckpointMetadata, PendingWrite } from "@langchain/langgraph-checkpoint";
+import type { RetryOptions } from "../grpc-retry.js";
+import { isRetryableFetchError, isRetryableHttpStatus } from "../http-retry.js";
 
 function encodeB64(data: Uint8Array): string {
   if (typeof Buffer !== "undefined") {
@@ -77,17 +92,104 @@ function configOrg(config: RunnableConfig): string | undefined {
   return config.configurable?.org as string | undefined;
 }
 
+/** Retry policy plus the per-request bound; every field is defaulted. */
+export interface HttpCheckpointSaverOptions extends RetryOptions {
+  /**
+   * Milliseconds before an in-flight request is aborted and the attempt is
+   * classified retryable. Without it a hung connection (the realistic
+   * unplanned-pod-kill symptom) stalls forever and the retry never engages.
+   */
+  readonly requestTimeoutMs?: number;
+}
+
+/**
+ * Default transient-retry policy. Wider than status.ts's DEFAULT_PERSIST_RETRY
+ * (3 retries, ~700 ms) on purpose: a dropped status update is lossy-tolerable,
+ * a dropped checkpoint kills the execution, so the budget here is sized to
+ * span a pod-restart reroute (~7.75 s of delays across 5 retries). Worst case
+ * with every attempt hanging — 6 x 30 s + delays, ~3.7 min — stays well inside
+ * the deep-agent activity's 1 h startToCloseTimeout (no heartbeatTimeout).
+ */
+const DEFAULT_RETRY = {
+  baseDelayMs: 250,
+  backoffFactor: 2,
+  maxRetries: 5,
+  requestTimeoutMs: 30_000,
+} as const;
+
+function defaultDelay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export class HttpCheckpointSaver extends BaseCheckpointSaver {
   private readonly baseUrl: string;
   private readonly headers: Record<string, string>;
+  private readonly baseDelayMs: number;
+  private readonly backoffFactor: number;
+  private readonly maxRetries: number;
+  private readonly requestTimeoutMs: number;
+  private readonly delay: (ms: number) => Promise<void>;
 
-  constructor(proxyEndpoint: string, authToken: string) {
+  constructor(
+    proxyEndpoint: string,
+    authToken: string,
+    options: HttpCheckpointSaverOptions = {},
+  ) {
     super();
     this.baseUrl = `${proxyEndpoint.replace(/\/+$/, "")}/v1/proxy/checkpoints`;
     this.headers = {
       Authorization: `Bearer ${authToken}`,
       "Content-Type": "application/json",
     };
+    this.baseDelayMs = options.baseDelayMs ?? DEFAULT_RETRY.baseDelayMs;
+    this.backoffFactor = options.backoffFactor ?? DEFAULT_RETRY.backoffFactor;
+    this.maxRetries = options.maxRetries ?? DEFAULT_RETRY.maxRetries;
+    this.requestTimeoutMs = options.requestTimeoutMs ?? DEFAULT_RETRY.requestTimeoutMs;
+    this.delay = options.delayFn ?? defaultDelay;
+  }
+
+  /**
+   * `fetch` with bounded exponential backoff on transient failures and a
+   * per-request abort timeout.
+   *
+   * Composition contract: on a non-retryable status — or when the budget is
+   * exhausted on a retryable one — the last `Response` is RETURNED, so every
+   * call site keeps its own `resp.ok` / 404 handling unchanged; this wrapper
+   * changes when a response arrives, never what call sites do with it. It
+   * throws only what `fetch` itself throws: a network-level rejection that is
+   * non-retryable or has exhausted the budget.
+   */
+  private async fetchWithRetry(url: string, init?: RequestInit): Promise<Response> {
+    for (let attempt = 0; ; attempt++) {
+      const canRetry = attempt < this.maxRetries;
+      let resp: Response;
+      try {
+        resp = await fetch(url, {
+          ...init,
+          signal: AbortSignal.timeout(this.requestTimeoutMs),
+        });
+      } catch (err) {
+        if (canRetry && isRetryableFetchError(err)) {
+          await this.backOff(attempt, String(err));
+          continue;
+        }
+        throw err;
+      }
+      if (canRetry && isRetryableHttpStatus(resp.status)) {
+        await this.backOff(attempt, `HTTP ${resp.status} ${resp.statusText}`);
+        continue;
+      }
+      return resp;
+    }
+  }
+
+  private async backOff(attempt: number, reason: string): Promise<void> {
+    const delayMs = this.baseDelayMs * Math.pow(this.backoffFactor, attempt);
+    console.warn(
+      `[HttpCheckpointSaver] retryable failure ` +
+      `(attempt ${attempt + 1}/${this.maxRetries + 1}, retry in ${delayMs}ms): ${reason}`,
+    );
+    await this.delay(delayMs);
   }
 
   private async serializeTyped(obj: unknown): Promise<[string, BinaryObj]> {
@@ -113,7 +215,7 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
       params.set("checkpoint_id", checkpointId);
     }
 
-    const resp = await fetch(`${this.baseUrl}/checkpoint?${params}`, {
+    const resp = await this.fetchWithRetry(`${this.baseUrl}/checkpoint?${params}`, {
       headers: this.headers,
     });
     if (resp.status === 404) return undefined;
@@ -143,7 +245,7 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
       params.set("before", beforeId);
     }
 
-    const resp = await fetch(`${this.baseUrl}/checkpoints?${params}`, {
+    const resp = await this.fetchWithRetry(`${this.baseUrl}/checkpoints?${params}`, {
       headers: this.headers,
     });
     if (!resp.ok) {
@@ -183,7 +285,7 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
     const orgId = configOrg(config);
     if (orgId) doc.org_id = orgId;
 
-    const resp = await fetch(`${this.baseUrl}/checkpoint`, {
+    const resp = await this.fetchWithRetry(`${this.baseUrl}/checkpoint`, {
       method: "PUT",
       headers: this.headers,
       body: JSON.stringify(doc),
@@ -203,7 +305,7 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
 
   async deleteThread(threadId: string): Promise<void> {
     const params = new URLSearchParams({ thread_id: threadId });
-    const resp = await fetch(`${this.baseUrl}/thread?${params}`, {
+    const resp = await this.fetchWithRetry(`${this.baseUrl}/thread?${params}`, {
       method: "DELETE",
       headers: this.headers,
     });
@@ -238,7 +340,7 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
       return doc;
     }));
 
-    const resp = await fetch(`${this.baseUrl}/writes`, {
+    const resp = await this.fetchWithRetry(`${this.baseUrl}/writes`, {
       method: "PUT",
       headers: this.headers,
       body: JSON.stringify({ writes: docs }),
@@ -272,7 +374,7 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
       };
     }
 
-    const writesResp = await fetch(
+    const writesResp = await this.fetchWithRetry(
       `${this.baseUrl}/writes?${new URLSearchParams({
         thread_id: threadId,
         checkpoint_ns: checkpointNs,
@@ -280,8 +382,14 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
       })}`,
       { headers: this.headers },
     );
+    // Fail loudly, never degrade: this used to map ANY non-ok response to "no
+    // pending writes", which silently stripped resume state on a transient
+    // 500 — a checkpoint would load without the writes recorded against it.
+    if (!writesResp.ok) {
+      throw new Error(`Checkpoint writes GET failed: ${writesResp.status} ${writesResp.statusText}`);
+    }
     const pendingWrites = await this.parseWrites(
-      writesResp.ok ? (await writesResp.json()) as Record<string, any> : {},
+      (await writesResp.json()) as Record<string, any>,
     );
 
     return {
