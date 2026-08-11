@@ -115,8 +115,8 @@ function MediaImageThumbnail({
 
   return (
     <>
-      {/* UNSTYLED_BUTTON is load-bearing: without it the thumbnail shows
-          the UA's default button box in preflight-less hosts. */}
+      {/* UNSTYLED_BUTTON adds the pointer cursor — the media thumbnail
+          carries no other clickability cue. */}
       <button
         type="button"
         onClick={() => setPreviewOpen(true)}
@@ -201,7 +201,7 @@ function MediaDocumentChip({
           aria-label={`Open ${name}`}
           className={cn(
             UNSTYLED_BUTTON,
-            "flex min-w-0 items-center gap-1.5 rounded-sm text-inherit [font:inherit] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "flex min-w-0 items-center gap-1.5 rounded-sm hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             isOpening && "opacity-70",
           )}
         >

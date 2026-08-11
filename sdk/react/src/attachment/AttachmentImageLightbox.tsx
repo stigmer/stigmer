@@ -101,13 +101,11 @@ export function AttachmentImageLightbox({
             >
               {filename}
             </span>
-            {/* `bg-transparent` neutralizes the UA button box in
-                preflight-less hosts (see UNSTYLED_BUTTON in the chip list). */}
             <button
               type="button"
               onClick={onClose}
               aria-label="Close image preview"
-              className="shrink-0 cursor-pointer rounded bg-transparent p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="shrink-0 cursor-pointer rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
               <CloseIcon />
             </button>

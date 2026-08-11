@@ -9,18 +9,20 @@ import { cn } from "@stigmer/theme";
 // ---------------------------------------------------------------------------
 
 /**
- * Neutralizes the UA's default `<button>` styling (buttonface background,
- * padding, default cursor). The SDK's scoped preflight in `styles.css`
- * resets only borders/box-sizing; in the console and desktop app the host's
- * global Tailwind preflight covers the rest, but a preflight-less host
- * (docs tours, third-party embeds) would otherwise render every bare button
- * as a gray UA box. Font is NOT reset here — callers that render text set
- * `[font:inherit]` or explicit text utilities themselves.
+ * Pointer cursor for buttons that are styled entirely by their content
+ * (chips, image tiles, icon-only affordances) — surfaces where nothing else
+ * signals clickability.
  *
- * Applies to buttons that are styled entirely by their content (chips,
- * icon-only affordances), not to the themed button components.
+ * This used to also carry `bg-transparent p-0` as a stopgap for
+ * preflight-less hosts; the scoped form-control preflight in `styles.css`
+ * (#374) now neutralizes the UA button box (background, padding, font) for
+ * every button under `.stgm`, so only the cursor remains. The cursor stays
+ * a per-component choice rather than a preflight rule on purpose: Tailwind's
+ * preflight leaves buttons with the default arrow cursor, and the scoped
+ * preflight mirrors it byte-for-byte so embeds render exactly like the
+ * consoles.
  */
-export const UNSTYLED_BUTTON = "cursor-pointer bg-transparent p-0";
+export const UNSTYLED_BUTTON = "cursor-pointer";
 
 /** Standard text-input styling for the operator consoles. */
 export const INPUT_CLASSES = cn(
