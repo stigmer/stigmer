@@ -13,7 +13,11 @@ import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/a
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ProjectSchema } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/api_pb";
 
-const VALIDATE_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> = new Map<ApiResourceKind, DescMessage>([
+// Exported for the verb/dispatch conformance suite (registry/registry.test.ts),
+// which holds this map and the matrix's Verb.Validate promises to strict
+// bidirectional equality — the stigmer/stigmer#353 drift class. Command code
+// resolves schemas through `schemaForValidate`, never this map directly.
+export const VALIDATE_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> = new Map<ApiResourceKind, DescMessage>([
   [ApiResourceKind.agent, AgentSchema],
   [ApiResourceKind.workflow, WorkflowSchema],
   [ApiResourceKind.mcp_server, McpServerSchema],
