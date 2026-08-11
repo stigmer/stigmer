@@ -6,6 +6,7 @@ import (
 	"errors"
 	"path/filepath"
 	"testing"
+	"time"
 
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
@@ -322,4 +323,28 @@ func TestPersistConnectResult(t *testing.T) {
 		assert.True(t, errors.Is(err, store.ErrNotFound),
 			"a deleted/absent resource must surface store.ErrNotFound so callers can skip; got: %v", err)
 	})
+}
+
+// TestConnectTimeout_CoversRunnerColdStartBudget pins the connect workflow's
+// total budget against the runner bounds it is derived from (issue #243). The
+// runner grants stdio servers a 270s init allowance (STDIO_INIT_TIMEOUT_MS in
+// activities/discover-mcp-server.ts) and classification a 120s floor
+// (classifyWithTimeout in workflows/connect-mcp-server.ts); the workflow-level
+// budget must exceed their sum or the allowance — and its actionable timeout
+// error — is unreachable by construction, which is exactly how the pre-#243
+// 45s value killed every heavy stdio connect. The literals here restate the
+// runner's values deliberately: if either side moves, this test forces the
+// derivation comment on connectTimeout to be revisited rather than silently
+// drifting. (The runner pins its half in discover-mcp-server.test.ts.)
+func TestConnectTimeout_CoversRunnerColdStartBudget(t *testing.T) {
+	const (
+		runnerStdioInitAllowance  = 270 * time.Second
+		runnerClassificationFloor = 120 * time.Second
+	)
+
+	assert.Greater(t, int64(connectTimeout), int64(runnerStdioInitAllowance+runnerClassificationFloor),
+		"connectTimeout must exceed the runner's stdio cold-start allowance + classification floor, "+
+			"or heavy stdio connects die at the workflow ceiling before the runner's actionable error can fire")
+	assert.Equal(t, 420*time.Second, connectTimeout,
+		"connectTimeout is a user-facing wait ceiling — change it deliberately (update the derivation comment) rather than incidentally")
 }

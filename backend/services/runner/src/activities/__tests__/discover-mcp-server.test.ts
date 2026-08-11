@@ -752,9 +752,10 @@ describe("DiscoverMcpServer activity", () => {
     it("bounds HTTP endpoints at 30s and stdio at 270s", async () => {
       // HTTP has no cold-start excuse: a healthy endpoint completes the MCP
       // handshake in seconds, so a short bound converts the silent-SSE hang
-      // into a fast actionable failure. 30s (not more) keeps the error
-      // reachable under the OSS server's 45s connect-workflow deadline.
-      // stdio keeps the cold-start allowance (issue #243).
+      // into a fast actionable failure. stdio keeps the cold-start allowance
+      // (issue #243). The OSS server's connect-workflow budget (connectTimeout,
+      // controller/connect.go — pinned there) is derived from the stdio bound
+      // + the classification floor, so both bounds stay reachable under it.
       const { initTimeoutMsFor } = await import("../discover-mcp-server.js");
       expect(initTimeoutMsFor("http")).toBe(30_000);
       expect(initTimeoutMsFor("sse")).toBe(30_000);

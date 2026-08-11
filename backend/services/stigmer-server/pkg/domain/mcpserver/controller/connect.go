@@ -31,8 +31,30 @@ import (
 
 const (
 	connectWorkflowName = "stigmer/mcp-server/connect"
-	connectTimeout      = 45 * time.Second
-	personalEnvLabel    = "stigmer.ai/personal"
+
+	// connectTimeout is the connect workflow's WorkflowRunTimeout — the total
+	// budget for discovery + tool-approval classification. It is sized from the
+	// runner's own bounds (issue #243): the 270s stdio init allowance
+	// (STDIO_INIT_TIMEOUT_MS in activities/discover-mcp-server.ts — a first run
+	// may download and compile packages via npx/uvx/go run) + the 120s
+	// classification floor (classifyWithTimeout in workflows/connect-mcp-server.ts)
+	// + margin for tool listing and persistence. Anything smaller makes the
+	// runner's cold-start allowance — and its actionable timeout error —
+	// unreachable by construction, which is exactly how the pre-#243 45s value
+	// killed every heavy stdio connect.
+	//
+	// Deliberately NOT sized for classification retries (maximumAttempts: 2) or
+	// >~160-tool stdio servers, whose budgets scale past any flat ceiling —
+	// async/pollable discovery is the cure for those, not a longer wait.
+	//
+	// Trade-off, accepted: this is also the bound on "no runner ever picked up
+	// the task", so a connect against a dead runner now waits the full budget
+	// before DEADLINE_EXCEEDED. The local daemon supervises the runner
+	// (crash-restart), making that state pathological rather than designed; a
+	// CLI --timeout remains the caller's soft bound.
+	connectTimeout = 420 * time.Second
+
+	personalEnvLabel = "stigmer.ai/personal"
 
 	// bestEffortConnectGetBuffer is added to connectTimeout to bound the
 	// background goroutine's wait on the connect workflow result. The workflow's
@@ -529,8 +551,13 @@ func (c *McpServerController) executeConnectWorkflow(
 			return nil, status.Error(codes.FailedPrecondition,
 				buildConnectFailureMessage(mcpServer, appErr.Message()))
 		case errors.As(err, &timeoutErr):
+			// Name the budget that fired (issue #243): the runner's own bounds
+			// fail earlier with specific, actionable errors, so reaching this
+			// ceiling usually means the runner never served the task at all.
 			return nil, status.Errorf(codes.DeadlineExceeded,
-				"connect did not complete within timeout for MCP server '%s'", mcpServerID)
+				"connect did not complete within the %s budget for MCP server '%s' — "+
+					"if this repeats, check that your runner is running and healthy",
+				connectTimeout, mcpServerID)
 		case errors.As(err, &notFoundErr):
 			return nil, grpclib.UnavailableError(
 				"connect service temporarily unavailable for MCP server '%s'", mcpServerID)
