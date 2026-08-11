@@ -409,6 +409,42 @@ func TestMcpServers_OAuthOnlyDeclared(t *testing.T) {
 	}
 }
 
+// TestMcpServers_NoRetiredEndpoints locks in that no seedpack server points at
+// an endpoint URL the vendor has retired or deprecated. A retired endpoint fails
+// connect with an opaque transport error (stigmer/stigmer#238); a deprecated one
+// works today but relies on the legacy HTTP+SSE transport, which our client
+// stack does not speak natively — the Go transport is streamable-HTTP-only
+// (mcpdiscovery sets DisableStandaloneSSE) and the runner's SSE fallback is the
+// fragile path stigmer/stigmer#231 documents.
+//
+// This is a cited denylist, not a blanket no-/sse rule, on purpose: some vendors
+// (square) still document /sse as their ONLY endpoint, so a blanket rule would
+// force an unverifiable guess. Add an entry here only with a vendor source
+// confirming the replacement endpoint.
+func TestMcpServers_NoRetiredEndpoints(t *testing.T) {
+	servers := loadAllMcpServers(t)
+
+	// URL -> vendor evidence for its retirement/deprecation and replacement.
+	retiredEndpoints := map[string]string{
+		// Webflow changelog 2025-12-09: /sse retired in the SSE -> streamable
+		// HTTP migration; production endpoint is https://mcp.webflow.com/mcp.
+		"https://mcp.webflow.com/sse": "retired; use https://mcp.webflow.com/mcp (Webflow changelog 2025-12-09, stigmer/stigmer#238)",
+		// Intercom MCP docs (developers.intercom.com/docs/guides/mcp): /mcp is
+		// "Recommended", /sse is "Legacy SSE (deprecated)".
+		"https://mcp.intercom.com/sse": "deprecated; use https://mcp.intercom.com/mcp (Intercom MCP docs)",
+	}
+
+	for name, server := range servers {
+		if server.Spec.HTTP == nil {
+			continue
+		}
+		if reason, retired := retiredEndpoints[server.Spec.HTTP.URL]; retired {
+			t.Errorf("%s points at a retired/deprecated endpoint %s — %s",
+				name, server.Spec.HTTP.URL, reason)
+		}
+	}
+}
+
 func TestMcpServers_OAuthEndpointAudit(t *testing.T) {
 	servers := loadAllMcpServers(t)
 	hostedMcpPattern := regexp.MustCompile(`^https://mcp\.[^/]+\.(com|io|dev)/`)

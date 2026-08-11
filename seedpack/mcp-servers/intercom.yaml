@@ -16,7 +16,7 @@ spec:
     - messaging
     - helpdesk
   http:
-    url: "https://mcp.intercom.com/sse"
+    url: "https://mcp.intercom.com/mcp"
     headers:
       Authorization: "Bearer ${INTERCOM_ACCESS_TOKEN}"
   env:
