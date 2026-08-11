@@ -9,6 +9,7 @@ go_library(
         "managed_env.go",
         "pending_state_store.go",
         "pkce.go",
+        "preflight.go",
         "refresh.go",
         "token.go",
     ],
@@ -24,6 +25,9 @@ go_library(
 
 go_test(
     name = "oauth_test",
-    srcs = ["token_test.go"],
+    srcs = [
+        "preflight_test.go",
+        "token_test.go",
+    ],
     embed = [":oauth"],
 )

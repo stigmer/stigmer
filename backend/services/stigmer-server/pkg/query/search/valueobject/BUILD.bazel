@@ -17,6 +17,7 @@ go_library(
 go_test(
     name = "valueobject_test",
     srcs = [
+        "search_criteria_invariant_test.go",
         "search_criteria_test.go",
         "search_paged_result_test.go",
     ],
@@ -24,5 +25,6 @@ go_test(
     deps = [
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//apis/stubs/go/ai/stigmer/search/v1:search",
+        "//backend/libs/go/apiresource",
     ],
 )

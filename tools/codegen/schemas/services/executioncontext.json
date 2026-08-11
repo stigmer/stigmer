@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Create or update an ExecutionContext.\n\n @internal\n The authorization and state-operation are determined depending on whether the execution context\n is going to be created or updated which is determined as part of the request execution."
+          "description": "Create or update an ExecutionContext.\n\n @internal\n Router only: delegates to create when the resource does not exist and\n fails with ALREADY_EXISTS when it does (no update RPC). Authorization is\n inherited from the delegated create pipeline."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Create a new ExecutionContext for an execution.\n\n @internal\n Called by execution pipeline on behalf of the user.\n Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution."
+          "description": "Create a new ExecutionContext for an execution.\n\n @internal\n Called by the execution pipelines (agent execution, workflow execution,\n workflow recovery, MCP connect) as sub-steps, and reachable directly by\n API clients. is_skip_authorization because the caller-class split cannot\n be a declarative option: the create handler trusts internal in-process\n calls (already authorized upstream) and requires external callers to hold\n can_create_execution_in on metadata.org. The pipeline additionally grants\n the caller the owner tuple, which gates all subsequent reads and delete."
         },
         {
           "name": "Delete",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Delete an ExecutionContext.\n\n @internal\n Called when execution completes. Handler-level derived auth: checks can_edit\n on parent agent_execution or workflow_execution."
+          "description": "Delete an ExecutionContext.\n\n @internal\n Called when execution completes. Handler-level auth (the FGA target is the\n loaded resource, so it cannot be a declarative option): caller must have\n can_edit on execution_context:\u003cid\u003e, which the FGA model resolves to the\n owner written at create time."
         }
       ]
     },

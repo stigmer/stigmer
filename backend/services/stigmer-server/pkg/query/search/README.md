@@ -1,6 +1,8 @@
 # Search Query Layer - CQRS Read Side
 
-This package implements the query layer for the unified Search bounded context, providing full-text search across all searchable API resources (Agent, Skill, McpServer, Workflow, Project, Datastore, Environment).
+This package implements the query layer for the unified Search bounded context, providing full-text search across all searchable API resources (Agent, Skill, McpServer, Workflow, Project, Datastore, Environment, Session).
+
+The authoritative list is `SearchableKinds` in `valueobject/search_criteria.go`, pinned against the proto kind registry's `not_search_indexed` annotation by `TestSearchableKinds_CoverSearchIndexedProtoKinds`.
 
 ## Architecture Overview
 
@@ -213,12 +215,17 @@ var SearchableKinds = map[apiresourcekind.ApiResourceKind]bool{
 }
 ```
 
-3. **Update createEmptyProtoForKind**: Add case in `store/sqlite_search_query_store.go`:
+`TestSearchableKinds_CoverSearchIndexedProtoKinds` enforces this step: a kind
+whose proto meta declares `not_search_indexed: false` fails the suite until it
+has a `SearchableKinds` entry (or an explicit, issue-cited decision-pending
+row). Skipping it is the silent-empty-list defect that shipped three times
+(environment, project, session — stigmer/stigmer#310).
 
-```go
-case apiresourcekind.ApiResourceKind_new_resource:
-    return &newresourcev1.NewResource{}
-```
+3. **Wire write-side indexing**: add the `IndexSearchStep` (create/update) and
+`DeleteSearchIndexStep` (delete) pipeline steps in the kind's domain
+controllers, passing the new extractor. The query store materializes results
+through the registered extractor's `NewEmptyProto()` — no per-kind switch to
+update in `store/sqlite_search_query_store.go`.
 
 4. **Update BUILD.bazel**: Add proto dependency to `extractor/BUILD.bazel`
 
