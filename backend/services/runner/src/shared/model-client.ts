@@ -27,7 +27,9 @@ import {
 import {
   resolveAnthropicBackend,
   checkVertexPrerequisites,
+  checkBedrockPrerequisites,
   toVertexModelId,
+  toBedrockModelId,
 } from "./llm-backend.js";
 import { resolveToApiModelId } from "./model-registry.js";
 
@@ -88,29 +90,53 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
       ? resolveAnthropicBackend()
       : "public";
 
-  // The Vertex SDK (and its google-auth-library subtree) loads lazily so
-  // deployments that never configure the vertex backend never evaluate it —
-  // cheap cold starts stay cheap, and bundle-slim's CJS output preserves
-  // exactly this deferred evaluation (see scripts/bundle-slim.mjs). The
-  // factory is invoked lazily by ChatAnthropic once per cached client
-  // (batch + streaming), so the class is captured here, in async context.
+  // Backend SDKs (and their auth subtrees: google-auth-library, AWS smithy)
+  // load lazily so deployments that never configure a backend never
+  // evaluate them — cheap cold starts stay cheap, and bundle-slim's CJS
+  // output preserves exactly this deferred evaluation (see
+  // scripts/bundle-slim.mjs). The factory is invoked lazily by
+  // ChatAnthropic once per cached client (batch + streaming), so the class
+  // is captured here, in async context.
   //
-  // The factory MUST honor options.maxRetries: LangChain owns retrying and
+  // Each factory MUST honor options.maxRetries: LangChain owns retrying and
   // hands the factory maxRetries: 0 — a factory that drops it nests the
-  // Vertex SDK's default 2 retries inside LangChain's retry loop,
-  // multiplying every transient failure. Pinned by vertex-seam.test.ts.
-  // Region/project/credentials are read natively by the SDK from standard
-  // GCP conventions (CLOUD_ML_REGION, ANTHROPIC_VERTEX_PROJECT_ID, ADC).
-  let vertexCreateClient: ((options: { maxRetries?: number }) => unknown) | undefined;
+  // SDK's default 2 retries inside LangChain's retry loop, multiplying
+  // every transient failure. Pinned by vertex-seam.test.ts and
+  // bedrock-seam.test.ts. Prerequisites are re-checked here (not only in
+  // the factories' preflight) so paths that construct models without a
+  // runner factory still fail at dispatch with the catalog message instead
+  // of mid-request. Credentials are read natively by each SDK from its
+  // standard conventions (GCP: CLOUD_ML_REGION + ADC; AWS: AWS_REGION +
+  // the credential chain / AWS_BEARER_TOKEN_BEDROCK).
+  let backendCreateClient: ((options: { maxRetries?: number }) => unknown) | undefined;
+  let wireModelId = apiModelId;
+  let maxTokens = opts.maxTokens;
   if (anthropicBackend === "vertex") {
-    // Re-checked here (not only in the factories' preflight) so paths that
-    // construct models without a runner factory still fail at dispatch with
-    // the catalog message instead of mid-request.
     const prereq = checkVertexPrerequisites();
     if (prereq !== null) throw new Error(prereq);
     const { AnthropicVertex } = await import("@anthropic-ai/vertex-sdk");
-    vertexCreateClient = (options) =>
+    backendCreateClient = (options) =>
       new AnthropicVertex({ maxRetries: options.maxRetries });
+    wireModelId = toVertexModelId(apiModelId);
+  } else if (anthropicBackend === "bedrock") {
+    const prereq = checkBedrockPrerequisites();
+    if (prereq !== null) throw new Error(prereq);
+    const { AnthropicBedrock } = await import("@anthropic-ai/bedrock-sdk");
+    backendCreateClient = (options) =>
+      new AnthropicBedrock({ maxRetries: options.maxRetries });
+    wireModelId = toBedrockModelId(apiModelId);
+    if (maxTokens === undefined) {
+      // LangChain's per-model maxTokens table prefix-matches the model
+      // name. Vertex's translated ids still match their canonical prefix;
+      // Bedrock's `anthropic.…` ids match nothing and silently fall back
+      // to 4096 — a silent output cap. Probe the CANONICAL id with a
+      // throwaway construction (pure field assignment, no I/O; the key is
+      // never used) so bedrock inherits exactly the default the public API
+      // and vertex get for the same model — including models the table
+      // doesn't know yet, where all backends agree on the fallback.
+      // Pinned by the canonical-parity test in bedrock-adapter.test.ts.
+      maxTokens = new ChatAnthropic({ model: apiModelId, apiKey: "max-tokens-probe" }).maxTokens;
+    }
   }
 
   const baseUrl = opts.proxyEndpoint
@@ -131,7 +157,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
   const common = {
     temperature: opts.temperature ?? 0,
     apiKey,
-    ...(opts.maxTokens ? { maxTokens: opts.maxTokens } : {}),
+    ...(maxTokens ? { maxTokens } : {}),
     ...(opts.timeoutMs ? { maxRetries: opts.maxRetries ?? 0, timeout: opts.timeoutMs } : {}),
   };
 
@@ -151,15 +177,15 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
             }
           : {}),
       })
-    : vertexCreateClient
-      ? // Vertex backend: the translated id is wire detail only — the client
-        // moves it from the JSON body into the Vertex URL path. The waiver in
-        // ChatAnthropic (an API key is not required when createClient is
+    : backendCreateClient
+      ? // Backend adapter: the translated id is wire detail only — each
+        // client moves it from the JSON body into its URL path. The waiver
+        // in ChatAnthropic (an API key is not required when createClient is
         // provided) is what lets this construct with no ANTHROPIC_API_KEY.
         new ChatAnthropic({
-          model: toVertexModelId(apiModelId),
+          model: wireModelId,
           ...common,
-          createClient: vertexCreateClient,
+          createClient: backendCreateClient,
         })
       : new ChatAnthropic({
           model: apiModelId,

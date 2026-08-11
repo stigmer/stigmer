@@ -2,25 +2,26 @@
 title: Run models in your own cloud
 description:
   Serve a provider's models from your own cloud account instead of the
-  provider's public API. Configure the GCP Vertex AI backend for Claude models
-  with two environment variables on the runner.
+  provider's public API. Configure the GCP Vertex AI or AWS Bedrock backend for
+  Claude models with two environment variables on the runner.
 ---
 
 By default, a runner in direct mode calls each model provider's public API —
 api.anthropic.com for Claude, api.openai.com for GPT. A **backend** changes
-where those models are served. Point the runner at your own GCP project and
-every Claude call runs inside your cloud account's compliance boundary: your
-region, your contracts, your audit trail. Nothing else changes — Agents, model
-names, usage reporting, and the console all behave exactly as before.
+where those models are served. Point the runner at your own GCP project or AWS
+account and every Claude call runs inside your cloud account's compliance
+boundary: your region, your contracts, your audit trail. Nothing else changes —
+Agents, model names, usage reporting, and the console all behave exactly as
+before.
 
 Backends are a deployment decision, set through environment variables on the
 runner. Agents stay portable: the same Agent runs unchanged on a laptop against
-the public API and on a production runner against Vertex AI.
+the public API and on a production runner against Vertex AI or Bedrock.
 
-| Provider  | Backends                                          |
-| --------- | ------------------------------------------------- |
-| Anthropic | `public` (default), `vertex` — Bedrock is planned |
-| OpenAI    | `public` (default) — Azure OpenAI is planned      |
+| Provider  | Backends                                     |
+| --------- | -------------------------------------------- |
+| Anthropic | `public` (default), `vertex`, `bedrock`      |
+| OpenAI    | `public` (default) — Azure OpenAI is planned |
 
 <Callout type="info">
   Backends apply to runners in **direct mode** — runners you operate with your
@@ -96,23 +97,118 @@ the GCP console under Vertex AI monitoring.
 </Step>
 </Steps>
 
-## How model names map to Vertex
+## Serve Claude from AWS Bedrock
 
-You never configure Vertex model ids. The runner translates each canonical model
-id to Vertex's form on the wire (for example, `claude-sonnet-4-5-20250929`
-becomes `claude-sonnet-4-5@20250929`; dateless ids like `claude-sonnet-4-6` are
-identical on both). Usage metrics and pricing always report the canonical id.
+<Steps>
+<Step>
+
+## Enable the Claude models in your AWS account
+
+In the Bedrock console under **Model access**, enable the Claude models you plan
+to use. Anthropic models require a use-case submission (once per account or
+centrally through your AWS organization), and availability varies by region.
+
+</Step>
+<Step>
+
+## Give the runner an AWS identity
+
+The runner authenticates with the standard AWS credential chain. Any of these
+work:
+
+- **An IAM role** (recommended — IRSA on EKS, or an instance profile) — no keys
+  to manage.
+- **Environment keys** — `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`.
+- **A Bedrock API key** — set `AWS_BEARER_TOKEN_BEDROCK`.
+
+Whichever identity you use, grant it `bedrock:InvokeModel` and
+`bedrock:InvokeModelWithResponseStream` for the models — and, if you use
+cross-region inference, for their inference profiles.
+
+</Step>
+<Step>
+
+## Configure and start the runner
+
+Two variables select the backend and the region. Anthropic API keys are not
+needed — authentication is AWS's:
+
+```bash
+# Stigmer-owned decision: which backend serves Anthropic models.
+export STIGMER_ANTHROPIC_BACKEND=bedrock
+
+# Standard AWS convention, read natively by the Bedrock SDK. Required
+# explicitly: the runner never falls back to the SDK's us-east-1 default —
+# a deployment that chose Bedrock for data residency must pick its region.
+export AWS_REGION=ap-south-1
+
+# Newer Claude models are invoked through cross-region inference profiles.
+# Set your deployment's geography once; it prefixes every derived model id.
+export STIGMER_BEDROCK_INFERENCE_PREFIX=us   # or "eu", "jp", "global", …
+
+stigmer up
+```
+
+The runner validates this configuration at startup. If the backend value is
+wrong or the region is missing, it refuses to start and prints exactly what to
+fix — a misconfigured deployment never accepts work it cannot serve.
+
+</Step>
+<Step>
+
+## Verify with a Session
+
+Run any Agent that uses a Claude model. Usage and cost reporting key on the same
+model names as before — you can confirm the traffic is reaching your account in
+CloudWatch under Bedrock metrics.
+
+</Step>
+</Steps>
+
+<Callout type="warn">
+  Bedrock does not support Anthropic's token-counting or prompt-caching APIs.
+  Executions behave identically otherwise; if a future capability depends on
+  these, it will say so rather than degrade silently.
+</Callout>
+
+## How model names map to Vertex and Bedrock
+
+You never configure backend model ids for the common case. The runner translates
+each canonical model id on the wire — usage metrics and pricing always report
+the canonical id:
+
+- **Vertex**: `claude-sonnet-4-5-20250929` becomes `claude-sonnet-4-5@20250929`;
+  dateless ids like `claude-sonnet-4-6` are identical on both.
+- **Bedrock**: `claude-sonnet-4-5-20250929` becomes
+  `anthropic.claude-sonnet-4-5-20250929-v1:0`, prefixed with
+  `STIGMER_BEDROCK_INFERENCE_PREFIX` when set (e.g.
+  `us.anthropic.claude-sonnet-4-5-20250929-v1:0`).
+
+When a Bedrock id can't be derived this way (AWS occasionally versions ids on
+its own schedule), map that model explicitly — the map wins over the derivation
+rule:
+
+```bash
+export STIGMER_BEDROCK_MODEL_MAP="claude-sonnet-4-6=us.anthropic.claude-sonnet-4-6-v2:0"
+```
+
+Entries are comma-separated `canonical=bedrockId` pairs; the id side accepts
+anything Bedrock accepts, including inference-profile ARNs.
 
 ## Troubleshooting
 
 Every failure names the variable or permission to fix. The common ones:
 
-| Symptom                                          | Fix                                                                                                      |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| Runner refuses to start, names `CLOUD_ML_REGION` | Set the region (e.g. `asia-south1`, or `global`).                                                        |
-| "could not acquire Google credentials"           | Set `GOOGLE_APPLICATION_CREDENTIALS`, or run on a GCP identity (workload identity / metadata server).    |
-| HTTP 403 from Vertex AI                          | Grant the runner's identity the **Vertex AI User** role in the target project.                           |
-| Model not found (HTTP 404)                       | Enable the model in the Model Garden for your project, and confirm it is available in `CLOUD_ML_REGION`. |
+| Symptom                                          | Fix                                                                                                   |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| Runner refuses to start, names `CLOUD_ML_REGION` | Set the region (e.g. `asia-south1`, or `global`).                                                     |
+| Runner refuses to start, names `AWS_REGION`      | Set the region explicitly (e.g. `ap-south-1`) — the runner never assumes `us-east-1`.                 |
+| "could not acquire Google credentials"           | Set `GOOGLE_APPLICATION_CREDENTIALS`, or run on a GCP identity (workload identity / metadata server). |
+| "could not acquire AWS credentials"              | Provide the AWS chain (environment keys, IAM role / IRSA) or set `AWS_BEARER_TOKEN_BEDROCK`.          |
+| HTTP 403 from Vertex AI                          | Grant the runner's identity the **Vertex AI User** role in the target project.                        |
+| HTTP 403 from Bedrock                            | Enable the model under **Model access** in the Bedrock console, and grant `bedrock:InvokeModel`.      |
+| "requires an inference profile"                  | Set `STIGMER_BEDROCK_INFERENCE_PREFIX` to your geography (`us`, `eu`, `global`, …).                   |
+| Model not found (HTTP 404)                       | Enable the model for your project/account, and confirm it is available in your configured region.     |
 
 ## What's next
 
