@@ -3,6 +3,7 @@ package workflow
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 
 	"github.com/rs/zerolog/log"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
@@ -214,43 +215,67 @@ func (s *saveVersionAuditStep) Execute(ctx *pipeline.RequestContext[*workflowv1.
 		kind = apiresourcekind.ApiResourceKind_workflow
 	}
 
-	// Archive the snapshot tagless. The tag lives only in the audit tag column
-	// (the source of truth), assigned below through the single-holder primitive.
-	// Snapshot blobs are never the tag's home, so a later tag move never rewrites
-	// this immutable content.
-	if err := s.store.SaveAudit(ctx.Context(), kind, workflowID, wf, versionHash, ""); err != nil {
-		log.Error().
-			Err(err).
+	// Rollback applies repoint, never duplicate (stigmer/stigmer#341): when the
+	// caller re-applies a prior version's spec, the canonical rendering
+	// reproduces that version's hash, so the content is already archived.
+	// Versions are content-addressed identities — one content, one history
+	// entry — so the head simply repoints to the existing row (the hash chain
+	// was already set by populateVersionHashStep) and only the tag assignment
+	// below still runs. Inserting again would give the tag single-holder
+	// UPDATE two targets and make hash lookups ambiguous. An unexpected
+	// lookup failure degrades to archiving anyway: a possible duplicate row
+	// beats a failed apply.
+	var existingSnapshot workflowv1.Workflow
+	lookupErr := s.store.GetAuditByHash(ctx.Context(), kind, workflowID, versionHash, &existingSnapshot)
+	alreadyArchived := lookupErr == nil
+	if lookupErr != nil && !errors.Is(lookupErr, store.ErrAuditNotFound) {
+		log.Warn().
+			Err(lookupErr).
 			Str("workflow_id", workflowID).
 			Str("version_hash", truncateHash(versionHash)).
-			Msg("Failed to save workflow version audit — reverting version hash to maintain audit-resolvability invariant")
+			Msg("Could not check for an existing archived version — archiving anyway")
+	}
 
-		// Revert: clear version hash so the persisted workflow doesn't reference
-		// an audit entry that doesn't exist. The workflow is still created/updated
-		// successfully, but without version tracking for this apply.
-		wf.Status.VersionHash = ""
-		if wf.Metadata != nil && wf.Metadata.Version != nil {
-			wf.Metadata.Version.Id = ""
-		}
-		ctx.SetNewState(wf)
+	if !alreadyArchived {
+		// Archive the snapshot tagless. The tag lives only in the audit tag column
+		// (the source of truth), assigned below through the single-holder primitive.
+		// Snapshot blobs are never the tag's home, so a later tag move never rewrites
+		// this immutable content.
+		if err := s.store.SaveAudit(ctx.Context(), kind, workflowID, wf, versionHash, ""); err != nil {
+			log.Error().
+				Err(err).
+				Str("workflow_id", workflowID).
+				Str("version_hash", truncateHash(versionHash)).
+				Msg("Failed to save workflow version audit — reverting version hash to maintain audit-resolvability invariant")
 
-		// When this step runs after the final persist (create path), flush the
-		// reverted state ourselves — there is no downstream persist to do it.
-		if s.persistOnRevert {
-			if perr := s.store.SaveResource(ctx.Context(), kind, workflowID, wf); perr != nil {
-				log.Error().
-					Err(perr).
-					Str("workflow_id", workflowID).
-					Msg("Failed to re-persist workflow after reverting version hash")
+			// Revert: clear version hash so the persisted workflow doesn't reference
+			// an audit entry that doesn't exist. The workflow is still created/updated
+			// successfully, but without version tracking for this apply.
+			wf.Status.VersionHash = ""
+			if wf.Metadata != nil && wf.Metadata.Version != nil {
+				wf.Metadata.Version.Id = ""
 			}
+			ctx.SetNewState(wf)
+
+			// When this step runs after the final persist (create path), flush the
+			// reverted state ourselves — there is no downstream persist to do it.
+			if s.persistOnRevert {
+				if perr := s.store.SaveResource(ctx.Context(), kind, workflowID, wf); perr != nil {
+					log.Error().
+						Err(perr).
+						Str("workflow_id", workflowID).
+						Msg("Failed to re-persist workflow after reverting version hash")
+				}
+			}
+			return nil
 		}
-		return nil
 	}
 
 	// Assign the requested tag through SetAuditTag — the one primitive shared
 	// with the tagVersion RPC — so apply-time tagging obeys the same
-	// single-holder invariant (a tag names exactly one version). The freshly
-	// archived head becomes the tag's sole holder; any prior holder is cleared.
+	// single-holder invariant (a tag names exactly one version). The head
+	// version (freshly archived or repointed-to) becomes the tag's sole
+	// holder; any prior holder is cleared.
 	if tag != "" {
 		if err := s.store.SetAuditTag(ctx.Context(), kind, workflowID, versionHash, tag); err != nil {
 			log.Error().
@@ -269,11 +294,19 @@ func (s *saveVersionAuditStep) Execute(ctx *pipeline.RequestContext[*workflowv1.
 		}
 	}
 
-	log.Info().
-		Str("workflow_id", workflowID).
-		Str("version_hash", truncateHash(versionHash)).
-		Str("tag", tag).
-		Msg("Archived workflow version to audit history")
+	if alreadyArchived {
+		log.Info().
+			Str("workflow_id", workflowID).
+			Str("version_hash", truncateHash(versionHash)).
+			Str("tag", tag).
+			Msg("Version content already archived — repointed head without a new history row")
+	} else {
+		log.Info().
+			Str("workflow_id", workflowID).
+			Str("version_hash", truncateHash(versionHash)).
+			Str("tag", tag).
+			Msg("Archived workflow version to audit history")
+	}
 
 	return nil
 }
