@@ -12,6 +12,7 @@ import (
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	iampolicyv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1"
+	identityaccountv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityaccount/v1"
 	platformclientv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/platformclient/v1"
 	iamv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
@@ -19,6 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 func requirePlatformClientClients(t *testing.T) *harness.Clients {
@@ -154,6 +156,58 @@ func TestPlatformClient_MintUserToken_JITProvisioning_CreatesAccount(t *testing.
 	// Mint again with the same user — should succeed (account already exists)
 	token2 := harness.MintUserToken(t, ctx, clients, creds, userID)
 	assert.NotEmpty(t, token2, "second mint for same user should also succeed")
+}
+
+// TestPlatformClient_MintUserToken_RefreshesProfileOnRemint is the regression
+// guard for issue #377: token.proto has always promised that user_email and
+// user_name are "updated on each token mint if the account exists", but the
+// provisioner returned resolved accounts untouched, freezing the profile at
+// first-mint values forever (stale audit actors, MCP caller-identity going
+// dark for users whose email changed in the host platform). Pins the fixed
+// contract end to end, including the sparse arm: empty asserted values are
+// "not asserted" and never clobber stored ones.
+func TestPlatformClient_MintUserToken_RefreshesProfileOnRemint(t *testing.T) {
+	clients := requirePlatformClientClients(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	creds := harness.CreatePlatformClient(t, ctx, clients, harness.WithAutoProvision(true))
+	userID := "refresh-user-" + uuid.New().String()[:8]
+
+	whoAmI := func(token string) *identityaccountv1.IdentityAccount {
+		t.Helper()
+		conn := harness.GRPCConnWithBearer(t, testHarness.Service.GRPCAddress(), token)
+		account, err := harness.NewClients(conn).IdentityAccountQuery.WhoAmI(ctx, &emptypb.Empty{})
+		require.NoError(t, err, "whoAmI with minted token")
+		return account
+	}
+
+	// First mint JIT-provisions the account with the asserted profile.
+	token1 := harness.MintUserTokenWithProfile(t, ctx, clients, creds, userID,
+		"amelia.original@test.stigmer.ai", "Amelia Original")
+	account1 := whoAmI(token1)
+	require.Equal(t, "amelia.original@test.stigmer.ai", account1.GetSpec().GetEmail())
+	require.Equal(t, "Amelia", account1.GetSpec().GetFirstName())
+	require.Equal(t, "Original", account1.GetSpec().GetLastName())
+
+	// Re-mint with a changed profile — the stored account must refresh.
+	token2 := harness.MintUserTokenWithProfile(t, ctx, clients, creds, userID,
+		"amelia.renamed@test.stigmer.ai", "Amelia Renamed")
+	account2 := whoAmI(token2)
+	assert.Equal(t, account1.GetMetadata().GetId(), account2.GetMetadata().GetId(),
+		"same user_id must resolve to the same account, not a new one")
+	assert.Equal(t, "amelia.renamed@test.stigmer.ai", account2.GetSpec().GetEmail(),
+		"re-mint must refresh the stored email (issue #377)")
+	assert.Equal(t, "Renamed", account2.GetSpec().GetLastName(),
+		"re-mint must refresh the stored name (issue #377)")
+
+	// Sparse semantics: a mint that asserts no profile leaves it untouched.
+	token3 := harness.MintUserTokenWithProfile(t, ctx, clients, creds, userID, "", "")
+	account3 := whoAmI(token3)
+	assert.Equal(t, "amelia.renamed@test.stigmer.ai", account3.GetSpec().GetEmail(),
+		"empty user_email must not clobber the stored email")
+	assert.Equal(t, "Renamed", account3.GetSpec().GetLastName(),
+		"empty user_name must not clobber the stored name")
 }
 
 // TestPlatformClient_MintUserToken_JITAutoGrant_GrantsRole is the regression

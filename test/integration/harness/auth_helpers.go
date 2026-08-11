@@ -126,16 +126,27 @@ func WithAllowedOrigins(origins ...string) PlatformClientOption {
 }
 
 // MintUserToken calls mintUserToken with the given credentials and returns
-// the raw access token string.
+// the raw access token string. Profile values derive from the userID; use
+// MintUserTokenWithProfile to assert specific ones.
 func MintUserToken(t *testing.T, ctx context.Context, clients *Clients, creds PlatformClientCredentials, userID string) string {
+	t.Helper()
+	return MintUserTokenWithProfile(t, ctx, clients, creds, userID,
+		userID+"@test.stigmer.ai", "Test User "+userID)
+}
+
+// MintUserTokenWithProfile mints with explicit user_email/user_name — the
+// knob for exercising the refresh-on-remint contract (token.proto: profile
+// fields are "updated on each token mint if the account exists"; empty
+// values mean "not asserted" and never clobber stored ones).
+func MintUserTokenWithProfile(t *testing.T, ctx context.Context, clients *Clients, creds PlatformClientCredentials, userID, email, name string) string {
 	t.Helper()
 
 	resp, err := clients.PlatformClientToken.MintUserToken(ctx, &platformclientv1.MintUserTokenRequest{
 		ClientId:     creds.ClientID,
 		ClientSecret: creds.ClientSecret,
 		UserId:       userID,
-		UserEmail:    userID + "@test.stigmer.ai",
-		UserName:     "Test User " + userID,
+		UserEmail:    email,
+		UserName:     name,
 	})
 	require.NoError(t, err, "mint user token")
 	require.NotEmpty(t, resp.GetAccessToken(), "minted token must not be empty")
