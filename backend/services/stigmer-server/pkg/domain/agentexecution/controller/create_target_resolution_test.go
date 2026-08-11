@@ -28,7 +28,8 @@ func newStore(t *testing.T) store.Store {
 }
 
 // seedDefaultAgent persists an agent carrying the platform default-agent label
-// with the given visibility, so resolveDefaultAgentStep can find it via FindByLabel.
+// with the given visibility, so resolveDefaultAgentStep can resolve it via
+// defaultagent.Find.
 func seedDefaultAgent(t *testing.T, s store.Store, id string, visibility apiresource.ApiResourceVisibility) {
 	t.Helper()
 	agent := &agentv1.Agent{
@@ -160,6 +161,37 @@ func TestResolveDefaultAgentStep(t *testing.T) {
 
 		if code := status.Code(err); code != codes.FailedPrecondition {
 			t.Errorf("expected gRPC code FailedPrecondition, got %v (err: %v)", code, err)
+		}
+	})
+
+	t.Run("non-public labeled agent alongside a public one -> resolves the public one regardless of insertion order", func(t *testing.T) {
+		// The oss#356 defect through this step's lens: the old first-match
+		// lookup could land on the non-public labeled agent and fail with
+		// FailedPrecondition even though a valid public default existed.
+		// Both insertion orders must resolve the public agent.
+		for name, ids := range map[string][2]string{
+			"private inserted first": {"agt_0private", "agt_1public"},
+			"public inserted first":  {"agt_1public", "agt_0private"},
+		} {
+			t.Run(name, func(t *testing.T) {
+				s := newStore(t)
+				for _, id := range ids {
+					visibility := apiresource.ApiResourceVisibility_visibility_private
+					if id == "agt_1public" {
+						visibility = apiresource.ApiResourceVisibility_visibility_public
+					}
+					seedDefaultAgent(t, s, id, visibility)
+				}
+				step := newResolveDefaultAgentStep(s)
+				reqCtx := pipeline.NewRequestContext(context.Background(), newExecution("", ""))
+
+				if err := step.Execute(reqCtx); err != nil {
+					t.Fatalf("expected resolution to succeed, got %v", err)
+				}
+				if got := reqCtx.NewState().GetSpec().GetAgentId(); got != "agt_1public" {
+					t.Errorf("expected the public labeled agent to win, got %q", got)
+				}
+			})
 		}
 	})
 

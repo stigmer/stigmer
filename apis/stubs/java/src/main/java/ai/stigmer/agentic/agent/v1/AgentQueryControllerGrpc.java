@@ -208,6 +208,12 @@ public final class AgentQueryControllerGrpc {
      * &#64;internal
      * Resolves the agent labeled stigmer.ai/default-agent: "true" with
      * visibility_public. Custom authorization in handler.
+     * Resolution is deterministic (stigmer/stigmer#356): only public labeled
+     * agents are candidates, and with multiple candidates — a reachable state,
+     * since safe label rotation applies the new default before retiring the
+     * old — the one with the lowest metadata.id (the incumbent) wins. The
+     * default changes only when the incumbent's label is explicitly removed,
+     * never as a side effect of another agent gaining the label.
      * </pre>
      */
     default void getDefault(ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest request,
@@ -285,6 +291,12 @@ public final class AgentQueryControllerGrpc {
      * &#64;internal
      * Resolves the agent labeled stigmer.ai/default-agent: "true" with
      * visibility_public. Custom authorization in handler.
+     * Resolution is deterministic (stigmer/stigmer#356): only public labeled
+     * agents are candidates, and with multiple candidates — a reachable state,
+     * since safe label rotation applies the new default before retiring the
+     * old — the one with the lowest metadata.id (the incumbent) wins. The
+     * default changes only when the incumbent's label is explicitly removed,
+     * never as a side effect of another agent gaining the label.
      * </pre>
      */
     public void getDefault(ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest request,
@@ -347,6 +359,12 @@ public final class AgentQueryControllerGrpc {
      * &#64;internal
      * Resolves the agent labeled stigmer.ai/default-agent: "true" with
      * visibility_public. Custom authorization in handler.
+     * Resolution is deterministic (stigmer/stigmer#356): only public labeled
+     * agents are candidates, and with multiple candidates — a reachable state,
+     * since safe label rotation applies the new default before retiring the
+     * old — the one with the lowest metadata.id (the incumbent) wins. The
+     * default changes only when the incumbent's label is explicitly removed,
+     * never as a side effect of another agent gaining the label.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent getDefault(ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest request) throws io.grpc.StatusException {
@@ -408,6 +426,12 @@ public final class AgentQueryControllerGrpc {
      * &#64;internal
      * Resolves the agent labeled stigmer.ai/default-agent: "true" with
      * visibility_public. Custom authorization in handler.
+     * Resolution is deterministic (stigmer/stigmer#356): only public labeled
+     * agents are candidates, and with multiple candidates — a reachable state,
+     * since safe label rotation applies the new default before retiring the
+     * old — the one with the lowest metadata.id (the incumbent) wins. The
+     * default changes only when the incumbent's label is explicitly removed,
+     * never as a side effect of another agent gaining the label.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent getDefault(ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest request) {
@@ -471,6 +495,12 @@ public final class AgentQueryControllerGrpc {
      * &#64;internal
      * Resolves the agent labeled stigmer.ai/default-agent: "true" with
      * visibility_public. Custom authorization in handler.
+     * Resolution is deterministic (stigmer/stigmer#356): only public labeled
+     * agents are candidates, and with multiple candidates — a reachable state,
+     * since safe label rotation applies the new default before retiring the
+     * old — the one with the lowest metadata.id (the incumbent) wins. The
+     * default changes only when the incumbent's label is explicitly removed,
+     * never as a side effect of another agent gaining the label.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> getDefault(
