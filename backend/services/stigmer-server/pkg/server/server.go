@@ -65,6 +65,7 @@ import (
 	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/controller"
 	workflowvalidation "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/validation"
 	workflowexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/controller"
+	workflowexecutiondedupe "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/dedupe"
 	workflowexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
 	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	workflowinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowinstance/controller"
@@ -147,6 +148,20 @@ func Run() error {
 	)
 
 	log.Info().Msg("Created WorkflowExecution controller (for Temporal worker dependency)")
+
+	// Wire the signal-dedupe store so sendSignal's idempotency_key contract is
+	// actually enforced (#309): with no store, DedupeClaimStep degrades to a
+	// no-op and duplicate signals are silently re-delivered. Shares the main
+	// store's SQLite handle, like the OAuth sub-stores wired further down.
+	// Fail fast on construction: a warn-and-continue here would silently
+	// disable a documented contract, which is exactly the bug being fixed.
+	signalDedupeStore, err := workflowexecutiondedupe.NewSQLiteSignalDedupeStore(store.DB())
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize signal dedupe store")
+	}
+	workflowExecutionController.SetSignalDedupeStore(signalDedupeStore)
+
+	log.Info().Msg("Wired signal dedupe store into WorkflowExecution controller")
 
 	// ============================================================================
 	// Initialize Temporal connection manager

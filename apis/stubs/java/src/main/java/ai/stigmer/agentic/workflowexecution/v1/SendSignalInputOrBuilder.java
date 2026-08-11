@@ -94,8 +94,9 @@ public interface SendSignalInputOrBuilder extends
    * Optional idempotency key for deduplication of signal delivery.
    *
    * &#64;internal
-   * When provided, duplicate signals with the same key (within the 24-hour TTL window)
-   * return the cached response instead of re-delivering the signal.
+   * When provided, a duplicate signal with the same key (within the 24-hour
+   * TTL window) is rejected with ALREADY_EXISTS instead of being re-delivered;
+   * nothing is cached or replayed. Both editions enforce this identically.
    * Keys are scoped to the organization to prevent cross-org collisions.
    *
    * &#64;since Gap B2 (Event Dedupe)
@@ -110,8 +111,9 @@ public interface SendSignalInputOrBuilder extends
    * Optional idempotency key for deduplication of signal delivery.
    *
    * &#64;internal
-   * When provided, duplicate signals with the same key (within the 24-hour TTL window)
-   * return the cached response instead of re-delivering the signal.
+   * When provided, a duplicate signal with the same key (within the 24-hour
+   * TTL window) is rejected with ALREADY_EXISTS instead of being re-delivered;
+   * nothing is cached or replayed. Both editions enforce this identically.
    * Keys are scoped to the organization to prevent cross-org collisions.
    *
    * &#64;since Gap B2 (Event Dedupe)
