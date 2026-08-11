@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/rs/zerolog/log"
@@ -14,6 +15,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/defaultagent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
@@ -64,8 +66,10 @@ func (c *SessionController) buildCreatePipeline() *pipeline.Pipeline[*sessionv1.
 // entries) without knowing the agent instance — the backend resolves it automatically.
 //
 // The resolution reuses the same pattern established in T01.2 for agent execution
-// creation: find agent by label stigmer.ai/default-agent=true, get or create its
-// default instance, and set agent_instance_id on the session spec.
+// creation: resolve the default agent via the shared defaultagent package
+// (label stigmer.ai/default-agent=true, visibility_public, deterministic
+// incumbent-wins tie-break), get or create its default instance, and set
+// agent_instance_id on the session spec.
 //
 // If agent_instance_id is already provided, this step is a no-op.
 type resolveDefaultAgentInstanceStep struct {
@@ -99,29 +103,27 @@ func (s *resolveDefaultAgentInstanceStep) Execute(ctx *pipeline.RequestContext[*
 
 	log.Info().Msg("agent_instance_id not provided on session, resolving platform default agent")
 
-	// 1. Find default agent by label
-	defaultAgent := &agentv1.Agent{}
-	err := s.store.FindByLabel(
-		ctx.Context(),
-		apiresourcekind.ApiResourceKind_agent,
-		"stigmer.ai/default-agent", "true",
-		defaultAgent,
-	)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to find platform default agent")
+	// 1. Resolve the default agent (shared implementation: candidate set,
+	// visibility preference, deterministic incumbent-wins tie-break)
+	defaultAgent, err := defaultagent.Find(ctx.Context(), s.store)
+	switch {
+	case errors.Is(err, defaultagent.ErrNotConfigured):
+		log.Error().Err(err).Msg("No platform default agent configured")
 		return grpclib.WrapError(
 			fmt.Errorf("no default agent available on this platform: %w", err),
 			codes.NotFound,
 			"No default agent available. Ensure an agent with label stigmer.ai/default-agent=true and visibility_public exists",
 		)
-	}
-
-	if defaultAgent.GetMetadata().GetVisibility() != apiresource.ApiResourceVisibility_visibility_public {
-		return grpclib.WrapError(
-			fmt.Errorf("default agent is not publicly accessible"),
+	case errors.Is(err, defaultagent.ErrNotPublic):
+		log.Error().Err(err).Msg("Default agent is not visibility_public")
+		return grpclib.WrapError(err,
 			codes.FailedPrecondition,
 			"Default agent exists but is not visibility_public",
 		)
+	case err != nil:
+		// Store/decode failure — an internal fault, not "no default agent".
+		log.Error().Err(err).Msg("Failed to resolve platform default agent")
+		return grpclib.WrapError(err, codes.Internal, "failed to resolve the platform default agent")
 	}
 
 	agentID := defaultAgent.GetMetadata().GetId()

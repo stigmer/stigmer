@@ -51,6 +51,13 @@ type AgentQueryControllerClient interface {
 	// @internal
 	// Resolves the agent labeled stigmer.ai/default-agent: "true" with
 	// visibility_public. Custom authorization in handler.
+	//
+	// Resolution is deterministic (stigmer/stigmer#356): only public labeled
+	// agents are candidates, and with multiple candidates — a reachable state,
+	// since safe label rotation applies the new default before retiring the
+	// old — the one with the lowest metadata.id (the incumbent) wins. The
+	// default changes only when the incumbent's label is explicitly removed,
+	// never as a side effect of another agent gaining the label.
 	GetDefault(ctx context.Context, in *GetDefaultAgentRequest, opts ...grpc.CallOption) (*Agent, error)
 }
 
@@ -118,6 +125,13 @@ type AgentQueryControllerServer interface {
 	// @internal
 	// Resolves the agent labeled stigmer.ai/default-agent: "true" with
 	// visibility_public. Custom authorization in handler.
+	//
+	// Resolution is deterministic (stigmer/stigmer#356): only public labeled
+	// agents are candidates, and with multiple candidates — a reachable state,
+	// since safe label rotation applies the new default before retiring the
+	// old — the one with the lowest metadata.id (the incumbent) wins. The
+	// default changes only when the incumbent's label is explicitly removed,
+	// never as a side effect of another agent gaining the label.
 	GetDefault(context.Context, *GetDefaultAgentRequest) (*Agent, error)
 }
 

@@ -58,6 +58,7 @@ go_library(
         "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
+        "//backend/services/stigmer-server/pkg/domain/agent/defaultagent",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/approval",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/filereview",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal",

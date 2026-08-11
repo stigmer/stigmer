@@ -115,29 +115,19 @@ type Store interface {
 	// Returns: slice of marshaled protobuf bytes (one per matching resource)
 	FindAllByField(ctx context.Context, kind apiresourcekind.ApiResourceKind, fieldPath string, value string) ([][]byte, error)
 
-	// FindByLabel retrieves a single resource matching a metadata label key-value pair.
-	// This enables queries like "find the Agent with stigmer.ai/default-agent=true".
-	// Returns ErrNotFound if no resource matches.
+	// FindAllByLabel retrieves all resources matching a metadata label key-value pair.
+	// This enables queries like "find all Agents with stigmer.ai/default-agent=true".
+	// Returns an empty slice (not nil) if no resources match.
 	//
 	// Labels are stored in metadata.labels (map<string, string>) on all API resources.
-	// Unlike FindByField, this method handles map fields correctly and avoids
+	// Unlike FindAllByField, this method handles map fields correctly and avoids
 	// ambiguity with dot-separated label keys (e.g., "stigmer.ai/default-agent").
 	//
-	// If multiple resources match, the first match is returned. Use FindAllByLabel
-	// when the caller needs to enforce uniqueness constraints.
-	//
-	// Parameters:
-	//   - kind: resource kind enum (e.g., ApiResourceKind_agent)
-	//   - labelKey: the label key to match (e.g., "stigmer.ai/default-agent")
-	//   - labelValue: the label value to match (e.g., "true")
-	//   - msg: pointer to proto message to unmarshal into (must be initialized)
-	//
-	// Note: This performs a full table scan for the given kind. For frequently
-	// queried labels, consider adding a dedicated index in the store implementation.
-	FindByLabel(ctx context.Context, kind apiresourcekind.ApiResourceKind, labelKey, labelValue string, msg proto.Message) error
-
-	// FindAllByLabel retrieves all resources matching a metadata label key-value pair.
-	// Returns an empty slice (not nil) if no resources match.
+	// There is deliberately no single-result variant: the store scan has no
+	// ordering, so "first match" is row-insertion-order nondeterminism in
+	// disguise (the stigmer/stigmer#356 defect). Callers that need one winner
+	// must own an explicit, documented tie-break over the full candidate set
+	// (see stigmer-server's domain/agent/defaultagent for the pattern).
 	//
 	// Parameters:
 	//   - kind: resource kind enum (e.g., ApiResourceKind_agent)
