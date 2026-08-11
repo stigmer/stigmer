@@ -32,31 +32,48 @@ const (
 // ExecutionContextCommandController handles write operations for ExecutionContext resources.
 //
 // @internal
-// Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
-// ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
-// FGA model. Authorization is derived from the parent execution:
-//   - create: Caller must have can_edit on parent agent_execution or workflow_execution
-//   - delete: Caller must have can_edit on parent agent_execution or workflow_execution
-//
-// This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
+// Every write RPC uses is_skip_authorization with a real handler-level check
+// (the framework's declarative FGA options cannot express any of these):
+//   - create: the caller-class differs by transport. Internal in-process
+//     pipeline calls (agent execution, workflow execution, workflow recovery,
+//     MCP connect) are trusted — the parent operation already authorized the
+//     run against its session-or-org, and the EC is created before that parent
+//     is persisted, so it carries no resource to re-check. External callers
+//     must hold can_create_execution_in on metadata.org (the same bar that
+//     gates creating an execution in the org; held by members and guests).
+//     A declarative org option cannot encode the internal/external split.
+//   - apply: intentionally unannotated router — it delegates to create
+//     (create-or-fail; ExecutionContext has no update RPC) and the delegated
+//     pipeline runs under create's handler, authorization included.
+//   - delete: caller must have can_edit on execution_context:<id> (owner-only,
+//     per the execution_context FGA model). The FGA target is the loaded
+//     resource, so it cannot be a declarative method option.
 type ExecutionContextCommandControllerClient interface {
 	// Create or update an ExecutionContext.
 	//
 	// @internal
-	// The authorization and state-operation are determined depending on whether the execution context
-	// is going to be created or updated which is determined as part of the request execution.
+	// Router only: delegates to create when the resource does not exist and
+	// fails with ALREADY_EXISTS when it does (no update RPC). Authorization is
+	// inherited from the delegated create pipeline.
 	Apply(ctx context.Context, in *ExecutionContext, opts ...grpc.CallOption) (*ExecutionContext, error)
 	// Create a new ExecutionContext for an execution.
 	//
 	// @internal
-	// Called by execution pipeline on behalf of the user.
-	// Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
+	// Called by the execution pipelines (agent execution, workflow execution,
+	// workflow recovery, MCP connect) as sub-steps, and reachable directly by
+	// API clients. is_skip_authorization because the caller-class split cannot
+	// be a declarative option: the create handler trusts internal in-process
+	// calls (already authorized upstream) and requires external callers to hold
+	// can_create_execution_in on metadata.org. The pipeline additionally grants
+	// the caller the owner tuple, which gates all subsequent reads and delete.
 	Create(ctx context.Context, in *ExecutionContext, opts ...grpc.CallOption) (*ExecutionContext, error)
 	// Delete an ExecutionContext.
 	//
 	// @internal
-	// Called when execution completes. Handler-level derived auth: checks can_edit
-	// on parent agent_execution or workflow_execution.
+	// Called when execution completes. Handler-level auth (the FGA target is the
+	// loaded resource, so it cannot be a declarative option): caller must have
+	// can_edit on execution_context:<id>, which the FGA model resolves to the
+	// owner written at create time.
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*ExecutionContext, error)
 }
 
@@ -105,31 +122,48 @@ func (c *executionContextCommandControllerClient) Delete(ctx context.Context, in
 // ExecutionContextCommandController handles write operations for ExecutionContext resources.
 //
 // @internal
-// Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
-// ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
-// FGA model. Authorization is derived from the parent execution:
-//   - create: Caller must have can_edit on parent agent_execution or workflow_execution
-//   - delete: Caller must have can_edit on parent agent_execution or workflow_execution
-//
-// This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
+// Every write RPC uses is_skip_authorization with a real handler-level check
+// (the framework's declarative FGA options cannot express any of these):
+//   - create: the caller-class differs by transport. Internal in-process
+//     pipeline calls (agent execution, workflow execution, workflow recovery,
+//     MCP connect) are trusted — the parent operation already authorized the
+//     run against its session-or-org, and the EC is created before that parent
+//     is persisted, so it carries no resource to re-check. External callers
+//     must hold can_create_execution_in on metadata.org (the same bar that
+//     gates creating an execution in the org; held by members and guests).
+//     A declarative org option cannot encode the internal/external split.
+//   - apply: intentionally unannotated router — it delegates to create
+//     (create-or-fail; ExecutionContext has no update RPC) and the delegated
+//     pipeline runs under create's handler, authorization included.
+//   - delete: caller must have can_edit on execution_context:<id> (owner-only,
+//     per the execution_context FGA model). The FGA target is the loaded
+//     resource, so it cannot be a declarative method option.
 type ExecutionContextCommandControllerServer interface {
 	// Create or update an ExecutionContext.
 	//
 	// @internal
-	// The authorization and state-operation are determined depending on whether the execution context
-	// is going to be created or updated which is determined as part of the request execution.
+	// Router only: delegates to create when the resource does not exist and
+	// fails with ALREADY_EXISTS when it does (no update RPC). Authorization is
+	// inherited from the delegated create pipeline.
 	Apply(context.Context, *ExecutionContext) (*ExecutionContext, error)
 	// Create a new ExecutionContext for an execution.
 	//
 	// @internal
-	// Called by execution pipeline on behalf of the user.
-	// Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
+	// Called by the execution pipelines (agent execution, workflow execution,
+	// workflow recovery, MCP connect) as sub-steps, and reachable directly by
+	// API clients. is_skip_authorization because the caller-class split cannot
+	// be a declarative option: the create handler trusts internal in-process
+	// calls (already authorized upstream) and requires external callers to hold
+	// can_create_execution_in on metadata.org. The pipeline additionally grants
+	// the caller the owner tuple, which gates all subsequent reads and delete.
 	Create(context.Context, *ExecutionContext) (*ExecutionContext, error)
 	// Delete an ExecutionContext.
 	//
 	// @internal
-	// Called when execution completes. Handler-level derived auth: checks can_edit
-	// on parent agent_execution or workflow_execution.
+	// Called when execution completes. Handler-level auth (the FGA target is the
+	// loaded resource, so it cannot be a declarative option): caller must have
+	// can_edit on execution_context:<id>, which the FGA model resolves to the
+	// owner written at create time.
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*ExecutionContext, error)
 }
 
