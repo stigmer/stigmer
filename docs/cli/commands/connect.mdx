@@ -29,11 +29,11 @@ connect to an MCP server and discover its tools
 stigmer connect mcp-server <slug-or-id> [flags]
 ```
 
-| Flag        | Type     | Default | Description                                                 |
-| ----------- | -------- | ------- | ----------------------------------------------------------- |
-| `--dry-run` | `bool`   |         | discover and display results without pushing to the backend |
-| `--env`     | `string` |         | environment variable for the MCP server (repeatable)        |
-| `--timeout` | `string` | `30`    | timeout for connection and discovery                        |
+| Flag        | Type     | Default | Description                                                                                                                    |
+| ----------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `--dry-run` | `bool`   |         | discover and display results without pushing to the backend                                                                    |
+| `--env`     | `string` |         | environment variable for the MCP server (repeatable)                                                                           |
+| `--timeout` | `string` | `30`    | bound the wait for connection and discovery (always bounds --dry-run; bounds the server-side connect only when set explicitly) |
 
 ### How connection works
 
@@ -120,13 +120,18 @@ Stigmer backend.
 stigmer connect mcp-server stigmer/mcp-server-stigmer
 ```
 
-### Handle slow-starting servers
+### Bound the wait
 
 ```bash
-stigmer connect mcp-server my-server --timeout 60s
+stigmer connect mcp-server my-server --timeout 90
 ```
 
-Increase the timeout for servers that take longer to initialize.
+The value is a number of seconds. `--timeout` always bounds `--dry-run`'s local
+discovery; for a real connect it bounds the wait only when set explicitly — the
+connect keeps running server-side and persists its result, so a timeout here
+means "stop waiting", not "the connect failed". Without an explicit `--timeout`,
+a real connect waits for the server to finish (sandbox start, discovery, and
+tool classification can take a few minutes).
 
 ## Global Flags
 

@@ -26,7 +26,12 @@ export function registerConnect(program: Command): void {
   connect
     .command("mcp-server <slug-or-id>")
     .description("connect to an MCP server and discover its tools")
-    .option("--timeout <seconds>", "timeout for connection and discovery", String(DEFAULT_TIMEOUT_SECONDS))
+    .option(
+      "--timeout <seconds>",
+      "bound the wait for connection and discovery (always bounds --dry-run; " +
+        "bounds the server-side connect only when set explicitly)",
+      String(DEFAULT_TIMEOUT_SECONDS),
+    )
     .option("--dry-run", "discover and display results without pushing to the backend")
     .option(
       "--env <KEY=VALUE>",
@@ -39,6 +44,12 @@ export function registerConnect(program: Command): void {
 
 async function runConnect(reference: string, options: ConnectFlags, command: Command): Promise<void> {
   const timeoutMs = parseTimeout(options.timeout);
+  // The 30s default exists for --dry-run's local discovery. A real connect
+  // legitimately takes minutes (server-side sandbox boot + discovery + tool
+  // classification), so bounding it by the DEFAULT would fail healthy
+  // connects — the wait is bounded only when the user set --timeout
+  // explicitly (issue #239: the flag used to be silently ignored here).
+  const timeoutIsExplicit = command.getOptionValueSource("timeout") === "cli";
   const [{ connectBackend }, { connectMcpServer }, { renderConnectResult }] = await Promise.all([
     import("../backend.js"),
     import("../resources/connect/connect.js"),
@@ -67,6 +78,7 @@ async function runConnect(reference: string, options: ConnectFlags, command: Com
     reference,
     org,
     timeoutMs,
+    pushTimeoutMs: timeoutIsExplicit ? timeoutMs : undefined,
     dryRun: options.dryRun === true,
     envOverrides: options.env,
     backendType: client.config.backend.type,

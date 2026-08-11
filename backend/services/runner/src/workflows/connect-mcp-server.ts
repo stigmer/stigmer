@@ -41,6 +41,13 @@ import type {
 type DiscoverActivities = ReturnType<typeof createDiscoverMcpServerActivities>;
 type ClassifyActivities = ReturnType<typeof createClassifyToolApprovalsActivities>;
 
+// Discovery's bounds ladder (issue #239): the activity heartbeats every 15s,
+// so heartbeatTimeout is pure LIVENESS (dead worker/pod detection) — it no
+// longer kills slow-but-alive discoveries. The activity bounds its own WORK
+// with a transport-aware init timeout (30s HTTP / 270s stdio) that fails with
+// an actionable, endpoint-naming error; startToCloseTimeout is the hard cap
+// above both. Keep the ordering: work bound < hard cap, heartbeat interval
+// (15s) < heartbeatTimeout.
 const discover = proxyActivities<DiscoverActivities>({
   startToCloseTimeout: "600s",
   heartbeatTimeout: "60s",
