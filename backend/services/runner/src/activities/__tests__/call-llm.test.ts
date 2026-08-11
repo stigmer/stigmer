@@ -5,6 +5,45 @@ import { _resetRegistryCache } from "../../shared/model-registry.js";
 const originalFetch = globalThis.fetch;
 const originalEnv = { ...process.env };
 
+const { vertexCreateRequests } = vi.hoisted(() => ({
+  vertexCreateRequests: [] as Array<Record<string, unknown>>,
+}));
+
+// Mocked at the SDK class (the vertex-adapter.test.ts pattern) so no real
+// google-auth credential resolution ever runs inside a unit test — locally
+// it fails fast, but in CI it can probe the GCE metadata server. ChatAnthropic
+// consumes the client's parsed event stream, so the streaming arm returns a
+// plain async generator of Anthropic stream events.
+vi.mock("@anthropic-ai/vertex-sdk", () => ({
+  AnthropicVertex: class {
+    readonly messages = {
+      create: async (request: Record<string, unknown>) => {
+        vertexCreateRequests.push(request);
+        if (request.stream === true) {
+          return (async function* () {
+            yield { type: "message_start", message: { id: "msg_vertex_call_llm", type: "message", role: "assistant", model: request.model, content: [], stop_reason: null, stop_sequence: null, usage: { input_tokens: 11, output_tokens: 1 } } };
+            yield { type: "content_block_start", index: 0, content_block: { type: "text", text: "" } };
+            yield { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "Vertex direct." } };
+            yield { type: "content_block_stop", index: 0 };
+            yield { type: "message_delta", delta: { stop_reason: "end_turn", stop_sequence: null }, usage: { output_tokens: 4 } };
+            yield { type: "message_stop" };
+          })();
+        }
+        return {
+          id: "msg_vertex_call_llm",
+          type: "message",
+          role: "assistant",
+          model: request.model,
+          content: [{ type: "text", text: "Vertex direct." }],
+          stop_reason: "end_turn",
+          stop_sequence: null,
+          usage: { input_tokens: 11, output_tokens: 4 },
+        };
+      },
+    };
+  },
+}));
+
 describe("callLlmAction", () => {
   let mockFetch: ReturnType<typeof vi.fn>;
 
@@ -16,6 +55,12 @@ describe("callLlmAction", () => {
     delete process.env.STIGMER_TOKEN;
     delete process.env.OPENAI_API_KEY;
     delete process.env.ANTHROPIC_API_KEY;
+    // Deterministic regardless of the developer's shell: a leaked
+    // STIGMER_ANTHROPIC_BACKEND=vertex would reroute every direct-mode test.
+    delete process.env.STIGMER_ANTHROPIC_BACKEND;
+    delete process.env.STIGMER_OPENAI_BACKEND;
+    delete process.env.CLOUD_ML_REGION;
+    vertexCreateRequests.length = 0;
   });
 
   afterEach(() => {
@@ -231,6 +276,36 @@ describe("callLlmAction", () => {
       await expect(
         callLlmAction(baseAnthropicConfig, {}, "exec-1"),
       ).rejects.toThrow("ANTHROPIC_API_KEY");
+    });
+  });
+
+  describe("direct mode — Anthropic on the vertex backend", () => {
+    it("serves the call with no ANTHROPIC_API_KEY anywhere (ADC is the credential path)", async () => {
+      // The regression pin for the backend-blind key check: a correctly
+      // configured Vertex deployment holds no Anthropic key, and llm_call
+      // tasks must not fail with LLM_MISSING_API_KEY before construction.
+      process.env.STIGMER_ANTHROPIC_BACKEND = "vertex";
+      process.env.CLOUD_ML_REGION = "global";
+      mockFetchWithRegistry(() => {
+        throw new Error("unexpected fetch: vertex traffic must go through the SDK client");
+      });
+
+      const result = await callLlmAction(baseAnthropicConfig, {}, "exec-1");
+
+      expect(result.result).toBe("Vertex direct.");
+      expect(result.provider).toBe("anthropic");
+      expect(result.input_tokens).toBe(11);
+      expect(result.output_tokens).toBe(4);
+      expect(vertexCreateRequests.length).toBeGreaterThan(0);
+    });
+
+    it("keeps the LLM_MISSING_API_KEY contract on the public backend, now naming the backend remedy", async () => {
+      const err = await callLlmAction(baseAnthropicConfig, {}, "exec-1").catch((e: unknown) => e as Error & { type?: string });
+
+      expect(err).toBeInstanceOf(Error);
+      expect((err as { type?: string }).type).toBe("LLM_MISSING_API_KEY");
+      expect((err as Error).message).toContain("ANTHROPIC_API_KEY");
+      expect((err as Error).message).toContain("STIGMER_ANTHROPIC_BACKEND=vertex");
     });
   });
 

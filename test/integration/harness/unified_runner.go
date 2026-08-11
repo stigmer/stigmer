@@ -592,6 +592,15 @@ func (r *UnifiedRunnerStatic) Stop() error {
 // --- Shared helpers ---
 
 func findUnifiedRunnerDir() string {
+	// An explicit override always wins over relative-path auto-discovery —
+	// it exists so a test run can point at a runner build outside the
+	// checkout (e.g. an isolated worktree build while the checkout carries
+	// unrelated in-flight changes). As a fallback it could never fire in a
+	// normal checkout, where auto-discovery always succeeds first.
+	if envPath := os.Getenv("UNIFIED_RUNNER_DIR"); envPath != "" {
+		return envPath
+	}
+
 	candidates := []string{
 		"../../../../backend/services/runner",
 		"../../backend/services/runner",
@@ -605,10 +614,6 @@ func findUnifiedRunnerDir() string {
 		if _, err := os.Stat(pkgJSON); err == nil {
 			return abs
 		}
-	}
-
-	if envPath := os.Getenv("UNIFIED_RUNNER_DIR"); envPath != "" {
-		return envPath
 	}
 
 	return ""

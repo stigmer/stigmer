@@ -23,6 +23,8 @@ import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { activityStarted, activityFinished } from "../idle-watchdog.js";
 import { getSummarizationModel } from "../shared/model-registry.js";
 import { buildChatModel } from "../shared/model-client.js";
+import { checkDirectCredentials } from "../shared/llm-backend.js";
+import { tryInferProvider } from "../shared/llm-proxy.js";
 import type { Config } from "../config.js";
 
 const BATCH_SIZE = 40;
@@ -149,7 +151,8 @@ Output one classification per tool, maintaining the input order.`;
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface ClassifyToolsOptions {
-  proxyEndpoint: string;
+  /** Null when the deployment has no proxy — the runner calls providers directly. */
+  proxyEndpoint: string | null;
   stigmerToken: string | null;
   primaryModel: string;
 }
@@ -165,6 +168,26 @@ export async function classifyTools(
   }
 
   const model = await getSummarizationModel(options.primaryModel);
+
+  // Direct mode with no credential path fails closed up front, with one
+  // actionable message instead of a provider 401 per batch. The message
+  // names the economy model and its provider because classification's
+  // provider follows the economy-model resolution, not the operator's key:
+  // "OPENAI_API_KEY is missing" is baffling to an operator holding an
+  // Anthropic key unless the log says which model classification wanted.
+  if (!options.proxyEndpoint) {
+    const provider = tryInferProvider(model);
+    const missing = provider === null ? null : checkDirectCredentials(provider);
+    if (missing !== null) {
+      console.warn(
+        `[ClassifyToolApprovals] Cannot classify ${tools.length} tool(s) for ` +
+        `'${serverName}': the classifier model '${model}' (${provider}) has no ` +
+        `credential path — failing closed, every tool requires approval until ` +
+        `a reconnect re-classifies it. ${missing}`,
+      );
+      return fallbackApprovals(tools);
+    }
+  }
 
   const batches: ToolDescriptor[][] = [];
   for (let i = 0; i < tools.length; i += BATCH_SIZE) {
@@ -236,7 +259,7 @@ interface ClassifyBatchParams {
   serverName: string;
   serverDescription: string;
   model: string;
-  proxyEndpoint: string;
+  proxyEndpoint: string | null;
   stigmerToken: string | null;
   mcpServerId: string | null;
   batchIdx: number;
@@ -256,7 +279,7 @@ async function classifyBatch(params: ClassifyBatchParams): Promise<ToolApprovalR
   // primary this routes to Claude, not the hardcoded OpenAI path it used to.
   const { model: llm } = await buildChatModel({
     modelName: model,
-    proxyEndpoint,
+    proxyEndpoint: proxyEndpoint ?? undefined,
     stigmerToken: stigmerToken ?? undefined,
     headerScope: { mcpServerId: mcpServerId ?? undefined },
     maxTokens,
@@ -388,8 +411,15 @@ export function createClassifyToolApprovalsActivities(config: Config) {
           `[ClassifyToolApprovals] Activity started: ${input.tools.length} tools for '${input.serverName}'`,
         );
 
+        // Only a real proxy is an LLM proxy. stigmerBackendEndpoint (the
+        // gRPC control plane) serves no /v1/proxy/llm route — coercing it
+        // into one here used to 404 every classification in unproxied OSS
+        // and silently disable the vertex backend for this activity. (The
+        // registry fetch legitimately falls back to the backend endpoint —
+        // see shared/registry-endpoint.ts — because the control plane DOES
+        // serve /v1/proxy/model-registry; that fallback does not port here.)
         return await classifyTools(input, {
-          proxyEndpoint: config.proxyEndpoint ?? config.stigmerBackendEndpoint,
+          proxyEndpoint: config.proxyEndpoint,
           stigmerToken: config.stigmerToken,
           primaryModel: config.primaryModel,
         });

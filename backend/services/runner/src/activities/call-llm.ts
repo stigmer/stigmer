@@ -31,6 +31,7 @@ import {
 import { computeLlmCostMicros, ensureLoaded as ensurePricingLoaded } from "../shared/model-pricing.js";
 import { resolveToApiModelId } from "../shared/model-registry.js";
 import { buildChatModel } from "../shared/model-client.js";
+import { checkDirectCredentials } from "../shared/llm-backend.js";
 import { classifyModelCallError } from "../shared/model-error.js";
 
 export interface LlmCallConfig {
@@ -169,23 +170,15 @@ export async function callLlmAction(
     `structured=${!!config.response_schema} execution=${executionId}`,
   );
 
-  // Direct mode (no proxy) requires the provider's own API key. Validated here
-  // rather than in buildChatModel so the shared module stays free of Temporal
-  // failure types.
+  // Direct mode (no proxy) requires a usable credential path — the provider's
+  // own API key, or a configured model backend that authenticates itself
+  // (vertex uses Google ADC; requiring an Anthropic key there would reject a
+  // correctly-configured deployment). Validated here rather than in
+  // buildChatModel so the shared module stays free of Temporal failure types.
   if (!proxyActive) {
-    if (provider === "openai" && !process.env.OPENAI_API_KEY) {
-      throw ApplicationFailure.nonRetryable(
-        `OPENAI_API_KEY is not set and no proxy is configured. ` +
-        `Set the API key in your environment or connect to a Stigmer Cloud deployment.`,
-        "LLM_MISSING_API_KEY",
-      );
-    }
-    if (provider === "anthropic" && !process.env.ANTHROPIC_API_KEY) {
-      throw ApplicationFailure.nonRetryable(
-        `ANTHROPIC_API_KEY is not set and no proxy is configured. ` +
-        `Set the API key in your environment or connect to a Stigmer Cloud deployment.`,
-        "LLM_MISSING_API_KEY",
-      );
+    const missing = checkDirectCredentials(provider);
+    if (missing !== null) {
+      throw ApplicationFailure.nonRetryable(missing, "LLM_MISSING_API_KEY");
     }
   }
 
