@@ -11,6 +11,11 @@
 # `npm test`. So compile-time contracts were guarded while runtime behavior
 # across the whole suite could rot silently. This workflow closes that gap.
 #
+# It also boot-checks the compiled dist with plain `node` (verify:dist):
+# vitest/tsx module interop tolerates ESM/CJS import shapes that Node's real
+# loader rejects, so an import-time boot crash (#399) can pass every other
+# gate. See scripts/verify-dist-boot.mjs for the mechanism.
+#
 # This is a SEPARATE job from ci.conformance-execution (its closest sibling)
 # rather than an added step, so it has an independent signal, its own path
 # filter, and its own concurrency group.
@@ -79,6 +84,15 @@ jobs:
       - name: Install unified runner dependencies
         working-directory: backend/services/runner
         run: npm ci
+
+      # Build the tsc dist and boot it with plain `node` BEFORE the long
+      # vitest run: vitest/tsx module interop masks ESM/CJS import crashes
+      # that kill `node dist/main.js` at startup (#399 shipped through every
+      # existing gate this way). verify-dist-boot.mjs is the only gate that
+      # executes the compiled output directly; it needs no Temporal server.
+      - name: Boot-check the compiled dist
+        working-directory: backend/services/runner
+        run: npm run build && npm run verify:dist
 
       # GitHub sets CI=true, so vitest.config.ts caps fork concurrency here.
       - name: Run runner vitest suite

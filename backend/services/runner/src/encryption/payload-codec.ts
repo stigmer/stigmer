@@ -31,8 +31,16 @@
 
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import type { Payload, PayloadCodec } from "@temporalio/common";
-import { temporal } from "@temporalio/proto";
+// Default-import + destructure, NOT `import { temporal } from …`:
+// @temporalio/proto is CommonJS and its `temporal` export defeats Node's
+// cjs-module-lexer named-export detection, so the named form loads under
+// tsx/vitest (their interop is looser) but crashes plain `node dist/main.js`
+// at startup with "Named export 'temporal' not found" (stigmer/stigmer#399
+// boot regression). Pinned by scripts/verify-dist-boot.mjs in CI.
+import proto from "@temporalio/proto";
 import type { EncryptionKey, PayloadEncryptionConfig } from "./config.js";
+
+const { temporal } = proto;
 
 const ENCODING_METADATA_KEY = "encoding";
 const ENCRYPTED_ENCODING_VALUE = "binary/encrypted";

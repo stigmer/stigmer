@@ -743,6 +743,9 @@ check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, des
 	npm run test -w desktop
 	cd $(RUNNER_DIR) && npm run typecheck
 	cd $(RUNNER_DIR) && npm run build
+	# Boot the compiled dist with plain node: vitest/tsx interop masks
+	# ESM/CJS import crashes that kill `node dist/main.js` at startup (#399).
+	cd $(RUNNER_DIR) && npm run verify:dist
 	cd $(RUNNER_DIR) && npm run check-deps
 	cd sdk/ink && npm run tsdoc:check
 	cd sdk/react && npm run tsdoc:check
