@@ -16,7 +16,13 @@ spec:
     - e-commerce
     - invoicing
   http:
-    url: "https://mcp.paypal.com/sse"
+    # Streamable HTTP endpoint. PayPal's quickstart still documents /sse and
+    # /http, but the live server contradicts it (verified 2026-08-11): /http
+    # returns 404, while /mcp answers with a spec-correct OAuth challenge
+    # (RFC 9728 resource_metadata) and is the URL third-party MCP registries
+    # list. /sse is the legacy transport our clients cannot use
+    # (stigmer/stigmer#231; denylisted in mcp_servers_test.go).
+    url: "https://mcp.paypal.com/mcp"
     headers:
       Authorization: "Bearer ${PAYPAL_ACCESS_TOKEN}"
   env:

@@ -432,6 +432,13 @@ func TestMcpServers_NoRetiredEndpoints(t *testing.T) {
 		// Intercom MCP docs (developers.intercom.com/docs/guides/mcp): /mcp is
 		// "Recommended", /sse is "Legacy SSE (deprecated)".
 		"https://mcp.intercom.com/sse": "deprecated; use https://mcp.intercom.com/mcp (Intercom MCP docs)",
+		// PayPal's quickstart is stale (still documents /sse and /http) but the
+		// live server contradicts it, verified 2026-08-11: POST /http returns
+		// 404 while /mcp answers a spec-correct OAuth 401 challenge (RFC 9728
+		// resource_metadata) and is the endpoint third-party MCP registries
+		// (Cequence, Apigene) list. /sse is the legacy transport our clients
+		// cannot use — the exact failure stigmer/stigmer#231 reports.
+		"https://mcp.paypal.com/sse": "legacy; use https://mcp.paypal.com/mcp (live probe 2026-08-11 + MCP registries, stigmer/stigmer#231 — PayPal's own /http doc is dead)",
 	}
 
 	for name, server := range servers {
