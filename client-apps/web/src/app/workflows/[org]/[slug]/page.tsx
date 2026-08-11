@@ -1,13 +1,11 @@
-import { redirect } from "next/navigation";
+import { LegacyWorkflowDetailRedirect } from "@/domain/workflow/LegacyWorkflowRedirects";
 
 export async function generateStaticParams() {
   return [{ org: "__placeholder__", slug: "__placeholder__" }];
 }
 
-export default function WorkflowDetailRedirect({
-  params,
-}: {
-  params: { org: string; slug: string };
-}) {
-  redirect(`/library/workflows/${params.org}/${params.slug}`);
+// A server-side redirect() must not be used here: with dynamic params it
+// bakes a fixed target into the static export (see useLegacyPathRedirect).
+export default function Page() {
+  return <LegacyWorkflowDetailRedirect />;
 }
