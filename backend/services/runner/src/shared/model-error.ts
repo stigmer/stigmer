@@ -26,7 +26,12 @@
  */
 
 import type { LlmProvider } from "./llm-proxy.js";
-import { parseAnthropicBackend, BACKEND_DOC_URL } from "./llm-backend.js";
+import {
+  parseAnthropicBackend,
+  BACKEND_DOC_URL,
+  BEDROCK_INFERENCE_PREFIX_ENV,
+  type AnthropicBackend,
+} from "./llm-backend.js";
 
 /**
  * Machine-readable code the cloud proxy embeds in rewritten platform-fault
@@ -97,7 +102,7 @@ export function classifyModelCallError(
 ): ClassifiedModelError | undefined {
   const root = unwrapModelError(err);
   const message = root instanceof Error ? root.message : String(root);
-  const vertex = isVertexDirectCall(ctx);
+  const backend = resolveDirectBackend(ctx);
 
   // 1. Platform sentinel — before status mapping (see module doc).
   if (message.includes(PLATFORM_CAPACITY_SENTINEL)) {
@@ -108,12 +113,13 @@ export function classifyModelCallError(
     };
   }
 
-  // 1b. Vertex credential acquisition — also before status mapping: these
-  //     failures come from google-auth (thrown while adapting the request,
-  //     usually with no HTTP status) and won't self-heal on retry. Raw, they
-  //     read like library internals ("Could not load the default
-  //     credentials"); the operator needs to hear "fix your GCP credentials".
-  if (vertex && isGoogleCredentialMessage(message)) {
+  // 1b. Backend credential acquisition — also before status mapping: these
+  //     failures come from the auth library (thrown while adapting the
+  //     request, usually with no HTTP status) and won't self-heal on retry.
+  //     Raw, they read like library internals ("Could not load the default
+  //     credentials"); the operator needs to hear "fix your cloud
+  //     credentials".
+  if (backend === "vertex" && isGoogleCredentialMessage(message)) {
     return {
       code: "LLM_BACKEND_CREDENTIALS",
       retryable: false,
@@ -122,6 +128,35 @@ export function classifyModelCallError(
         `Set GOOGLE_APPLICATION_CREDENTIALS to a service-account key, or run on a GCP ` +
         `identity (workload identity / metadata server). ANTHROPIC_VERTEX_PROJECT_ID is ` +
         `only needed when the credentials don't carry a project. See ${BACKEND_DOC_URL}. ` +
+        `Underlying error: ${message}`,
+    };
+  }
+  if (backend === "bedrock" && isAwsCredentialMessage(message)) {
+    return {
+      code: "LLM_BACKEND_CREDENTIALS",
+      retryable: false,
+      message:
+        `The bedrock backend could not acquire AWS credentials for ${modelLabel(ctx)}. ` +
+        `Provide credentials through the standard AWS chain (environment keys, an IAM ` +
+        `role / IRSA, config files) or set AWS_BEARER_TOKEN_BEDROCK. See ${BACKEND_DOC_URL}. ` +
+        `Underlying error: ${message}`,
+    };
+  }
+
+  // 1c. Bedrock's inference-profile rejection — a config condition, not a
+  //     bad request: newer Claude models cannot be invoked by bare model id
+  //     (AWS lists their in-region endpoint as N/A). The operator remedy is
+  //     one env var, so say exactly that instead of relaying AWS prose that
+  //     talks about ARNs and provisioned throughput.
+  if (backend === "bedrock" && isBedrockInferenceProfileMessage(message)) {
+    return {
+      code: "LLM_BACKEND_MODEL_ROUTING",
+      retryable: false,
+      message:
+        `Bedrock requires an inference profile for ${modelLabel(ctx)} — the bare model ` +
+        `id cannot be invoked on-demand. Set ${BEDROCK_INFERENCE_PREFIX_ENV} to your ` +
+        `deployment's geography (e.g. "us", "eu", or "global"), or map this model ` +
+        `explicitly in STIGMER_BEDROCK_MODEL_MAP. See ${BACKEND_DOC_URL}. ` +
         `Underlying error: ${message}`,
     };
   }
@@ -155,7 +190,7 @@ export function classifyModelCallError(
     ? (root as { status: number }).status
     : undefined;
   if (status !== undefined) {
-    return classifyByStatus(status, message, ctx, vertex);
+    return classifyByStatus(status, message, ctx, backend);
   }
 
   // 4. Connection/timeout heuristics on the root error's class name. Strict
@@ -195,7 +230,7 @@ function classifyByStatus(
   status: number,
   rawMessage: string,
   ctx: ModelErrorContext,
-  vertex: boolean,
+  backend: AnthropicBackend,
 ): ClassifiedModelError {
   const context = modelLabel(ctx);
 
@@ -207,12 +242,17 @@ function classifyByStatus(
         message: ctx.proxyMode
           ? `The Stigmer platform rejected this model call (authentication, HTTP 401) for ${context}. ` +
             `Your session token may have expired — retry the execution, and contact support if it persists.`
-          : vertex
-            // On Vertex the credential is a Google identity — "check your API
-            // key" would send the operator hunting for a key that isn't in play.
+          // On a cloud backend the credential is a cloud identity — "check
+          // your API key" would send the operator hunting for a key that
+          // isn't in play.
+          : backend === "vertex"
             ? `Google rejected this Vertex AI call (authentication, HTTP 401) for ${context}. ` +
               `The credentials are expired or not valid for this project — check ` +
               `GOOGLE_APPLICATION_CREDENTIALS or the runner's GCP identity. See ${BACKEND_DOC_URL}.`
+          : backend === "bedrock"
+            ? `AWS rejected this Bedrock call (authentication, HTTP 401) for ${context}. ` +
+              `The credentials are expired or invalid — check the runner's AWS identity ` +
+              `(environment keys, IAM role / IRSA) or AWS_BEARER_TOKEN_BEDROCK. See ${BACKEND_DOC_URL}.`
             : `Authentication failed for ${context}. Check that your API key is valid and not expired.`,
       };
     case 403:
@@ -222,10 +262,18 @@ function classifyByStatus(
         message: ctx.proxyMode
           ? `The Stigmer platform denied this model call (authorization, HTTP 403) for ${context}. ` +
             `Verify this execution is permitted to use the model, and contact support if it persists.`
-          : vertex
+          : backend === "vertex"
             ? `Vertex AI denied this call (HTTP 403) for ${context}. Grant the runner's ` +
               `service account the "Vertex AI User" role (aiplatform.endpoints.predict) ` +
               `in the target project. See ${BACKEND_DOC_URL}.`
+          : backend === "bedrock"
+            // The most common Bedrock setup mistake: Anthropic models must
+            // be enabled per account ("Model access" in the Bedrock console,
+            // including the use-case submission), on top of IAM.
+            ? `Bedrock denied this call (HTTP 403) for ${context}. Enable this Claude model ` +
+              `under "Model access" in the Bedrock console (Anthropic models require a ` +
+              `use-case submission), and grant the runner's identity bedrock:InvokeModel ` +
+              `for the model and its inference profile. See ${BACKEND_DOC_URL}.`
             : `Access denied for ${context}. Verify that your API key has permission to use this model.`,
       };
     case 404:
@@ -234,11 +282,16 @@ function classifyByStatus(
         retryable: false,
         // The most common Vertex setup mistake: Claude models must be enabled
         // per project in Model Garden, and availability varies by region.
-        message: vertex
+        message: backend === "vertex"
           ? `Model not found on Vertex AI: ${context}. Enable this Claude model for your ` +
             `project in the Vertex AI Model Garden, and confirm it is available in ` +
             `${describeVertexRegion()} — availability varies by region. See ${BACKEND_DOC_URL}.`
-          : `Model not found: ${context}. Verify the model name is correct and available in your account.`,
+          : backend === "bedrock"
+            ? `Model not found on Bedrock: ${context}. Confirm the model is available in ` +
+              `${describeBedrockRegion()} — availability varies by region — and that the ` +
+              `resolved Bedrock id is right for your deployment (STIGMER_BEDROCK_MODEL_MAP ` +
+              `overrides, ${BEDROCK_INFERENCE_PREFIX_ENV} for inference profiles). See ${BACKEND_DOC_URL}.`
+            : `Model not found: ${context}. Verify the model name is correct and available in your account.`,
       };
     case 400:
       return {
@@ -298,18 +351,19 @@ export function describeExecutionError(
 }
 
 /**
- * True when this failure came from a direct-mode Anthropic call served by
- * the vertex backend — the only condition under which the Vertex-specific
- * arms may speak. The backend is resolved from env here (deployment-static,
- * like the API keys model-client reads) rather than threaded through every
- * activity's ModelErrorContext; an invalid var value reads as public, since
+ * The backend serving this direct-mode Anthropic call — the only condition
+ * under which a backend's specific arms may speak. Proxied calls and other
+ * providers read as "public" (no backend wording applies). The backend is
+ * resolved from env here (deployment-static, like the API keys
+ * model-client reads) rather than threaded through every activity's
+ * ModelErrorContext; an invalid var value also reads as public, since
  * classification must never throw and invalid values are already fatal at
  * the factories' preflight and at model construction.
  */
-function isVertexDirectCall(ctx: ModelErrorContext): boolean {
-  if (ctx.proxyMode || ctx.provider !== "anthropic") return false;
+function resolveDirectBackend(ctx: ModelErrorContext): AnthropicBackend {
+  if (ctx.proxyMode || ctx.provider !== "anthropic") return "public";
   const parsed = parseAnthropicBackend();
-  return parsed.ok && parsed.backend === "vertex";
+  return parsed.ok ? parsed.backend : "public";
 }
 
 /**
@@ -330,10 +384,43 @@ function isGoogleCredentialMessage(message: string): boolean {
   );
 }
 
+/**
+ * AWS credential-acquisition prose, matched against the raw message.
+ * Narrow by design (mirrors isGoogleCredentialMessage): pinned to the AWS
+ * credential provider chain's terminal failure
+ * (@aws-sdk/credential-providers' CredentialsProviderError wordings) and
+ * the SigV4 signer's invalid-shape error. A miss falls through to status
+ * classification — never worse than the raw error.
+ */
+function isAwsCredentialMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("could not load credentials from any providers")
+    || lower.includes("credential is missing")
+    || lower.includes("resolved credential object is not valid")
+  );
+}
+
+/**
+ * Bedrock's bare-model-id rejection prose (HTTP 400 ValidationException):
+ * "Invocation of model ID … with on-demand throughput isn't supported.
+ * Retry your request with the ID or ARN of an inference profile …".
+ * Matched narrowly on the phrase that only this condition carries.
+ */
+function isBedrockInferenceProfileMessage(message: string): boolean {
+  return message.toLowerCase().includes("on-demand throughput isn't supported");
+}
+
 /** "region {value}" when CLOUD_ML_REGION is set, else a pointer to the var. */
 function describeVertexRegion(): string {
   const region = process.env.CLOUD_ML_REGION?.trim();
   return region ? `region "${region}"` : "your CLOUD_ML_REGION";
+}
+
+/** "region {value}" when AWS_REGION is set, else a pointer to the var. */
+function describeBedrockRegion(): string {
+  const region = process.env.AWS_REGION?.trim();
+  return region ? `region "${region}"` : "your AWS_REGION";
 }
 
 /**

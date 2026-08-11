@@ -1,7 +1,7 @@
 /**
  * LLM provider-backend utilities — pure routing helpers for serving a
  * provider's models through an alternative cloud backend (GCP Vertex AI,
- * and later AWS Bedrock / Azure OpenAI) instead of the provider's public API.
+ * AWS Bedrock, and later Azure OpenAI) instead of the provider's public API.
  *
  * Layering mirrors `llm-proxy.ts`: this module is pure string/config
  * utilities with no LangChain or SDK dependency. Consumers: the runner
@@ -28,12 +28,12 @@ export const BACKEND_DOC_URL = "https://docs.stigmer.ai/guides/runners/model-bac
 
 /**
  * Backends implemented in this build. The design vocabulary also reserves
- * `bedrock` (Anthropic) and `azure` (OpenAI); until those adapters land,
- * selecting them is a distinct "recognized but not implemented" failure —
- * never a silent fallback to the public API, which would quietly route
- * traffic outside the compliance boundary the operator asked for.
+ * `azure` (OpenAI); until that adapter lands, selecting it is a distinct
+ * "recognized but not implemented" failure — never a silent fallback to
+ * the public API, which would quietly route traffic outside the compliance
+ * boundary the operator asked for.
  */
-export type AnthropicBackend = "public" | "vertex";
+export type AnthropicBackend = "public" | "vertex" | "bedrock";
 export type OpenAiBackend = "public";
 
 /**
@@ -47,7 +47,7 @@ export type BackendParseResult<B> =
   | { readonly ok: false; readonly message: string };
 
 /** Planned-but-unshipped values get a "not in this build" message. */
-const PLANNED_ANTHROPIC = ["bedrock"];
+const PLANNED_ANTHROPIC: string[] = [];
 const PLANNED_OPENAI = ["azure"];
 
 function parseBackend<B extends string>(
@@ -87,7 +87,7 @@ export function parseAnthropicBackend(
   return parseBackend(
     ANTHROPIC_BACKEND_ENV,
     env[ANTHROPIC_BACKEND_ENV],
-    ["public", "vertex"],
+    ["public", "vertex", "bedrock"],
     PLANNED_ANTHROPIC,
   );
 }
@@ -144,6 +144,80 @@ export function checkVertexPrerequisites(
   );
 }
 
+/** Operator override map: canonical id -> exact Bedrock id, consulted first. */
+export const BEDROCK_MODEL_MAP_ENV = "STIGMER_BEDROCK_MODEL_MAP";
+/** Inference-profile geography prefix (`us`, `eu`, `global`, …), no default. */
+export const BEDROCK_INFERENCE_PREFIX_ENV = "STIGMER_BEDROCK_INFERENCE_PREFIX";
+
+/**
+ * Static prerequisite check for the bedrock backend, or null when satisfied.
+ *
+ * AWS_REGION is REQUIRED even though the Bedrock SDK would default it to
+ * us-east-1 (pinned by bedrock-seam.test.ts): for a deployment-controlled
+ * data-residency feature, silently routing model traffic to a US region on
+ * a missing var is exactly the failure backends exist to prevent. Same
+ * shape as vertex's CLOUD_ML_REGION requirement. Credentials are
+ * deliberately NOT checked — the AWS chain (env keys, IRSA / instance
+ * metadata, config files, AWS_BEARER_TOKEN_BEDROCK) legitimately resolves
+ * at request time; requiring env keys would reject valid deployments.
+ * Runtime credential failures get actionable classification in
+ * `model-error.ts` instead.
+ *
+ * A malformed STIGMER_BEDROCK_MODEL_MAP is also fatal here: it is
+ * deployment-static, and finding out at the first model call would fail
+ * executions a boot check could have refused.
+ */
+export function checkBedrockPrerequisites(
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
+  if (!env.AWS_REGION?.trim()) {
+    return (
+      `The bedrock backend requires AWS_REGION (e.g. "ap-south-1"). It is ` +
+      `required even though the AWS SDK would default to us-east-1 — a ` +
+      `deployment that chose Bedrock for data residency must never fall ` +
+      `back to another region silently. See ${BACKEND_DOC_URL}.`
+    );
+  }
+  const map = parseBedrockModelMap(env);
+  if (!map.ok) return map.message;
+  return null;
+}
+
+/**
+ * Parse `STIGMER_BEDROCK_MODEL_MAP`: comma-separated `canonical=bedrockId`
+ * pairs, e.g. "claude-sonnet-4-6=us.anthropic.claude-sonnet-4-6-v1:0".
+ * Unset or blank parses to an empty map (the deterministic rule serves
+ * every model). The message is the single copy of the malformed-map text;
+ * preflight and translation surface the same string.
+ */
+export function parseBedrockModelMap(
+  env: NodeJS.ProcessEnv = process.env,
+): { readonly ok: true; readonly map: ReadonlyMap<string, string> } | { readonly ok: false; readonly message: string } {
+  const raw = env[BEDROCK_MODEL_MAP_ENV]?.trim();
+  const map = new Map<string, string>();
+  if (!raw) return { ok: true, map };
+
+  for (const entry of raw.split(",")) {
+    const pair = entry.trim();
+    if (pair === "") continue;
+    const eq = pair.indexOf("=");
+    const canonical = eq === -1 ? "" : pair.slice(0, eq).trim();
+    const bedrockId = eq === -1 ? "" : pair.slice(eq + 1).trim();
+    if (!canonical || !bedrockId) {
+      return {
+        ok: false,
+        message:
+          `${BEDROCK_MODEL_MAP_ENV} entry "${pair}" is not of the form ` +
+          `canonical=bedrockId (e.g. "claude-sonnet-4-6=` +
+          `us.anthropic.claude-sonnet-4-6-v1:0"). Entries are ` +
+          `comma-separated. See ${BACKEND_DOC_URL}.`,
+      };
+    }
+    map.set(canonical, bedrockId);
+  }
+  return { ok: true, map };
+}
+
 /**
  * Check that direct-mode (unproxied) calls to `provider` have a usable
  * credential path, or return the operator message describing what is
@@ -188,8 +262,8 @@ export function checkDirectCredentials(
   return (
     `ANTHROPIC_API_KEY is not set, no model backend is configured, and no ` +
     `proxy is configured. Set the API key, configure a backend (e.g. ` +
-    `${ANTHROPIC_BACKEND_ENV}=vertex), or connect to a Stigmer Cloud ` +
-    `deployment. See ${BACKEND_DOC_URL}.`
+    `${ANTHROPIC_BACKEND_ENV}=vertex or bedrock), or connect to a Stigmer ` +
+    `Cloud deployment. See ${BACKEND_DOC_URL}.`
   );
 }
 
@@ -242,6 +316,9 @@ export function preflightLlmBackends(
   } else if (anthropic.backend === "vertex") {
     const prereq = checkVertexPrerequisites(env);
     if (prereq !== null) errors.push(prereq);
+  } else if (anthropic.backend === "bedrock") {
+    const prereq = checkBedrockPrerequisites(env);
+    if (prereq !== null) errors.push(prereq);
   }
   const openai = parseOpenAiBackend(env);
   if (!openai.ok) errors.push(openai.message);
@@ -282,4 +359,46 @@ const TRAILING_SNAPSHOT_DATE = /-(\d{8})$/;
  */
 export function toVertexModelId(apiModelId: string): string {
   return apiModelId.replace(TRAILING_SNAPSHOT_DATE, "@$1");
+}
+
+/**
+ * Translate a canonical Anthropic API model id into Bedrock's form, in
+ * three layers (approved design, T04) — each a deployment-level knob:
+ *
+ * 1. `STIGMER_BEDROCK_MODEL_MAP` override, consulted first: the escape
+ *    hatch for ids the deterministic rule cannot derive (Bedrock ids for
+ *    dateless canonicals may carry AWS-side snapshot dates we cannot know).
+ * 2. `STIGMER_BEDROCK_INFERENCE_PREFIX` (e.g. "us", "eu", "global"),
+ *    applied to the derived id. Newer Claude models on Bedrock are invoked
+ *    through geography-prefixed inference profiles (AWS lists the base id's
+ *    in-region endpoint as N/A) — but WHICH geography is a deployment
+ *    decision (data residency), underivable from the model id, and never
+ *    defaulted: a missing prefix yields the bare id, and if AWS rejects it
+ *    with its "use an inference profile" error, model-error.ts translates
+ *    that into "set ${BEDROCK_INFERENCE_PREFIX_ENV}".
+ * 3. Deterministic rule: `anthropic.{canonical}-v1:0` — verified against
+ *    AWS's model catalog for the registry's dated ids (e.g.
+ *    claude-sonnet-4-5-20250929 -> anthropic.claude-sonnet-4-5-20250929-v1:0).
+ *
+ * Like the Vertex translation, the result is wire detail only: it rides in
+ * the request URL and must never escape the adapter into usage metrics or
+ * pricing, which key on the canonical id (the canonical-id invariant).
+ *
+ * Throws the catalog message on a malformed map — defense in depth for
+ * paths that construct models without the factories; a normally-booted
+ * runner already refused to start in `checkBedrockPrerequisites`.
+ */
+export function toBedrockModelId(
+  apiModelId: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const parsed = parseBedrockModelMap(env);
+  if (!parsed.ok) throw new Error(parsed.message);
+  const mapped = parsed.map.get(apiModelId);
+  if (mapped !== undefined) return mapped;
+
+  // Lenient on a trailing dot ("us." and "us" both read as intent).
+  const prefix = env[BEDROCK_INFERENCE_PREFIX_ENV]?.trim().replace(/\.$/, "");
+  const derived = `anthropic.${apiModelId}-v1:0`;
+  return prefix ? `${prefix}.${derived}` : derived;
 }

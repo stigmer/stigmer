@@ -307,6 +307,106 @@ describe("classifyModelCallError — vertex backend", () => {
   });
 });
 
+describe("classifyModelCallError — bedrock backend", () => {
+  // The Bedrock arms activate only for direct-mode Anthropic calls under
+  // STIGMER_ANTHROPIC_BACKEND=bedrock, mirroring the vertex suite above.
+  function stubBedrockEnv() {
+    vi.stubEnv("STIGMER_ANTHROPIC_BACKEND", "bedrock");
+    vi.stubEnv("AWS_REGION", "ap-south-1");
+  }
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  const bedrockCtx = {
+    proxyMode: false,
+    provider: "anthropic" as const,
+    modelId: "claude-sonnet-4-6",
+  };
+
+  it("classifies AWS credential-chain failures as non-retryable with the AWS fix", () => {
+    stubBedrockEnv();
+    for (const raw of [
+      "Could not load credentials from any providers",
+      "Resolved credential object is not valid",
+    ]) {
+      const classified = classifyModelCallError(middlewareWrap(new Error(raw)), bedrockCtx);
+      expect(classified?.code, raw).toBe("LLM_BACKEND_CREDENTIALS");
+      expect(classified?.retryable, raw).toBe(false);
+      expect(classified?.message, raw).toContain("AWS");
+      expect(classified?.message, raw).toContain("AWS_BEARER_TOKEN_BEDROCK");
+    }
+  });
+
+  it("does NOT classify credential prose when the backend is not bedrock (no relabeling drift)", () => {
+    const classified = classifyModelCallError(
+      new Error("Could not load credentials from any providers"),
+      bedrockCtx,
+    );
+    expect(classified).toBeUndefined();
+  });
+
+  it("translates the bare-id inference-profile rejection into the one-var remedy", () => {
+    stubBedrockEnv();
+    // AWS's actual ValidationException prose for newer Claude models
+    // invoked by bare model id.
+    const classified = classifyModelCallError(
+      sdkError(
+        400,
+        "Invocation of model ID anthropic.claude-sonnet-4-6-v1:0 with on-demand throughput isn't supported. Retry your request with the ID or ARN of an inference profile that contains this model.",
+      ),
+      bedrockCtx,
+    );
+    expect(classified?.code).toBe("LLM_BACKEND_MODEL_ROUTING");
+    expect(classified?.retryable).toBe(false);
+    expect(classified?.message).toContain("STIGMER_BEDROCK_INFERENCE_PREFIX");
+    expect(classified?.message).toContain("STIGMER_BEDROCK_MODEL_MAP");
+  });
+
+  it("words 401 around AWS identity, not an API key", () => {
+    stubBedrockEnv();
+    const classified = classifyModelCallError(sdkError(401, "unauthorized"), bedrockCtx);
+    expect(classified?.code).toBe("LLM_AUTHENTICATION_ERROR");
+    expect(classified?.message).toContain("AWS rejected this Bedrock call");
+    expect(classified?.message).not.toContain("API key");
+  });
+
+  it("words 403 around Bedrock model access and IAM, not an API key", () => {
+    stubBedrockEnv();
+    const classified = classifyModelCallError(sdkError(403, "forbidden"), bedrockCtx);
+    expect(classified?.code).toBe("LLM_PERMISSION_DENIED");
+    expect(classified?.message).toContain("Model access");
+    expect(classified?.message).toContain("bedrock:InvokeModel");
+    expect(classified?.message).not.toContain("API key");
+  });
+
+  it("words 404 around region availability and the id-resolution knobs", () => {
+    stubBedrockEnv();
+    const classified = classifyModelCallError(sdkError(404, "not found"), bedrockCtx);
+    expect(classified?.code).toBe("LLM_MODEL_NOT_FOUND");
+    expect(classified?.message).toContain('region "ap-south-1"');
+    expect(classified?.message).toContain("STIGMER_BEDROCK_MODEL_MAP");
+  });
+
+  it("stays inert in proxy mode even with the backend var set (proxy owns routing)", () => {
+    stubBedrockEnv();
+    const classified = classifyModelCallError(
+      sdkError(401, "unauthorized"),
+      { proxyMode: true, provider: "anthropic" },
+    );
+    expect(classified?.message).toContain("Stigmer platform");
+    expect(classified?.message).not.toContain("Bedrock");
+  });
+
+  it("keeps vertex wordings and bedrock wordings from cross-contaminating", () => {
+    stubBedrockEnv();
+    const classified = classifyModelCallError(sdkError(403, "forbidden"), bedrockCtx);
+    expect(classified?.message).not.toContain("Vertex");
+    expect(classified?.message).not.toContain("Model Garden");
+  });
+});
+
 describe("describeExecutionError", () => {
   it("labels classified model errors with the stable code, not the wrapper class", () => {
     const { errorType, errorMessage } = describeExecutionError(
