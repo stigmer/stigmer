@@ -25,6 +25,7 @@ function makeServer(overrides: Partial<ResolvedMcpServer>): ResolvedMcpServer {
     connectionType: "stdio",
     toolApprovals: [],
     pinnedToolApprovals: [],
+    toolApprovalOverrides: [],
     discoveredCapabilitiesEmpty: false,
     ...overrides,
   };

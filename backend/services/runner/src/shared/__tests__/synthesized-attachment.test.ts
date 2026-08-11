@@ -40,6 +40,7 @@ const userServer: ResolvedMcpServer = {
   url: "https://example.com",
   toolApprovals: [],
   pinnedToolApprovals: [],
+  toolApprovalOverrides: [],
   discoveredCapabilitiesEmpty: false,
 };
 

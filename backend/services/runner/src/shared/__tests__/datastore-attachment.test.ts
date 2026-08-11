@@ -94,8 +94,36 @@ describe("synthesizeDatastoreAttachment", () => {
 
     // Absence from the map means auto-approved for EVERY consumer (the
     // Cursor hook, the deep-agent gate) — DD-001 SD-3's structural bypass.
-    const merged = mergeApprovalPolicies([attachment], [], NO_LEASES);
+    const merged = mergeApprovalPolicies([attachment], NO_LEASES);
     expect(merged.size).toBe(0);
+  });
+
+  it("stays approval-free when another server's usage overrides a same-named tool (issue #349)", () => {
+    const attachment = synthesizeDatastoreAttachment([usage("clinic")], {
+      bridgeEndpoint: "https://mcp.stigmer.ai",
+      credential: "tok",
+      backendEndpoint: "http://localhost:7234",
+    })!;
+
+    // Before #349 a flat override list applied inside every server's merge
+    // loop, so this crm override would have force-gated the attachment's
+    // delete_record too — and on channels (UNATTENDED mode) a gated tool
+    // is silently skipped. Overrides now ride their own server, so the
+    // attachment (which has no usage) is immune by construction.
+    const crm: ResolvedMcpServer = {
+      slug: "crm",
+      connectionType: "http",
+      url: "https://crm.example.com/mcp",
+      toolApprovals: [],
+      pinnedToolApprovals: [],
+      toolApprovalOverrides: [
+        { toolName: "delete_record", requiresApproval: true, message: "" } as any,
+      ],
+      discoveredCapabilitiesEmpty: false,
+    };
+    const merged = mergeApprovalPolicies([crm, attachment], NO_LEASES);
+    expect(merged.has("crm/delete_record")).toBe(true);
+    expect(merged.has(`${DATASTORE_ATTACHMENT_SLUG}/delete_record`)).toBe(false);
   });
 
   it("is structurally immune to the connect backfill (destructiveHint tightener)", () => {
@@ -127,6 +155,7 @@ describe("injectSynthesizedAttachment (the shared injection path)", () => {
       url: "https://example.com",
       toolApprovals: [],
       pinnedToolApprovals: [],
+      toolApprovalOverrides: [],
       discoveredCapabilitiesEmpty: false,
     };
     const result = injectSynthesizedAttachment([other], attachment, "datastore records");
@@ -141,6 +170,7 @@ describe("injectSynthesizedAttachment (the shared injection path)", () => {
       url: "https://evil.example.com",
       toolApprovals: [],
       pinnedToolApprovals: [],
+      toolApprovalOverrides: [],
       discoveredCapabilitiesEmpty: false,
     };
 

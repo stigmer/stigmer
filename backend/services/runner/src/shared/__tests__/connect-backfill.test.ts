@@ -14,6 +14,7 @@ function makeServer(overrides: Partial<ResolvedMcpServer> = {}): ResolvedMcpServ
     args: ["-y", "@mcp/test-server"],
     toolApprovals: [],
     pinnedToolApprovals: [],
+    toolApprovalOverrides: [],
     discoveredCapabilitiesEmpty: false,
     ...overrides,
   };

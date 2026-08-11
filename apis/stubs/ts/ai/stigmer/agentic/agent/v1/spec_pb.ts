@@ -213,6 +213,9 @@ export type McpServerUsage = Message<"ai.stigmer.agentic.agent.v1.McpServerUsage
    * Override approval requirements for specific tools.
    * Takes precedence over McpServerSpec.pinned_tool_approvals and
    * McpServerStatus.tool_approvals.
+   * Scoped to THIS usage's server: an override applies only to tools of
+   * the McpServer referenced by mcp_server_ref — a same-named tool on
+   * another server is unaffected.
    *
    * @generated from field: repeated ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3;
    */
@@ -307,6 +310,9 @@ export const McpAccessSchema: GenMessage<McpAccess> = /*@__PURE__*/
  * requires it. These overrides take precedence over
  * McpServerSpec.pinned_tool_approvals and McpServerStatus.tool_approvals,
  * but can be bypassed at execution time by AgentExecution.auto_approve_all.
+ *
+ * An override is scoped to the McpServer referenced by its parent usage:
+ * it never affects a same-named tool on another server.
  *
  * @internal
  * Policy chain (lowest to highest priority):

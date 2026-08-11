@@ -15,6 +15,9 @@ package ai.stigmer.agentic.agent.v1;
  * McpServerSpec.pinned_tool_approvals and McpServerStatus.tool_approvals,
  * but can be bypassed at execution time by AgentExecution.auto_approve_all.
  *
+ * An override is scoped to the McpServer referenced by its parent usage:
+ * it never affects a same-named tool on another server.
+ *
  * &#64;internal
  * Policy chain (lowest to highest priority):
  * 1. McpServerStatus.tool_approvals — system-generated defaults
@@ -372,6 +375,9 @@ private static final long serialVersionUID = 0L;
    * requires it. These overrides take precedence over
    * McpServerSpec.pinned_tool_approvals and McpServerStatus.tool_approvals,
    * but can be bypassed at execution time by AgentExecution.auto_approve_all.
+   *
+   * An override is scoped to the McpServer referenced by its parent usage:
+   * it never affects a same-named tool on another server.
    *
    * &#64;internal
    * Policy chain (lowest to highest priority):

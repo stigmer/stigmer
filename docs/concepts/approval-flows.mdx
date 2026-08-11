@@ -100,6 +100,10 @@ A `ToolApprovalOverride` can:
 - **Disable** approval for a tool that does
 - **Change** the approval message
 
+An override applies only to the MCP Server referenced by its parent usage — a
+same-named tool on another server is unaffected. To override the same tool
+name on two servers, add an override under each server's usage.
+
 This lets the same MCP Server behave differently across Agents. A read-only
 Agent might disable approvals for query tools, while a full-access Agent keeps
 them enabled.

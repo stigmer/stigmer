@@ -641,12 +641,11 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     // gate. Both flow into sub-agents via the shared config below.
     const leases = deriveActiveLeases(execution);
     const globalBypass = leases.global;
-    const agentOverrides = agent.spec!.mcpServerUsages?.flatMap(
-      u => u.toolApprovalOverrides ?? [],
-    ) ?? [];
+    // Layer-3 overrides ride each resolved server from its (session-wins
+    // merged) usage — see ResolvedMcpServer.toolApprovalOverrides (issue
+    // #349) — so there is no separate override input to pass here.
     const approvalPolicies = mergeApprovalPolicies(
       resolvedMcpServers?.resolvedServers ?? [],
-      agentOverrides,
       leases,
     );
 

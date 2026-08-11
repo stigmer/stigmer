@@ -2,11 +2,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mcpServerToResolved, mergeMcpServerUsages, resolveMcpServers } from "../mcp-resolver.js";
 import { McpTransportError } from "../mcp-transport-guard.js";
 
-function makeUsage(slug: string, org = "test-org", enabledTools: string[] = []) {
+function makeUsage(
+  slug: string,
+  org = "test-org",
+  enabledTools: string[] = [],
+  toolApprovalOverrides: Array<{ toolName: string; requiresApproval: boolean }> = [],
+) {
   return {
     mcpServerRef: { slug, org, kind: 0 },
     enabledTools,
-    toolApprovalOverrides: [],
+    toolApprovalOverrides,
   } as any;
 }
 
@@ -154,6 +159,60 @@ describe("resolveMcpServers — enabled_tools threading (issue #350)", () => {
     // No usage in hand (discovery) — a per-agent restriction cannot apply,
     // only the server-declared default does.
     expect(resolved?.enabledTools).toEqual(["search_code"]);
+  });
+});
+
+describe("resolveMcpServers — tool_approval_overrides threading (issue #349)", () => {
+  it("carries the usage's overrides on its own resolved server only", async () => {
+    // Riding the server is the scoping mechanism: an override can no longer
+    // reach a same-named tool on another server, because it never exists
+    // anywhere but its own server's object.
+    const client = clientReturning({
+      github: httpMcpServer("github"),
+      slack: httpMcpServer("slack"),
+    });
+
+    const result = await resolveMcpServers(
+      client,
+      [
+        makeUsage("github", "test-org", [], [{ toolName: "delete_item", requiresApproval: false }]),
+        makeUsage("slack"),
+      ],
+      {},
+      "stdio-allowed",
+    );
+
+    const bySlug = new Map(result.resolvedServers.map((s) => [s.slug, s]));
+    expect(bySlug.get("github")!.toolApprovalOverrides).toEqual([
+      { toolName: "delete_item", requiresApproval: false },
+    ]);
+    expect(bySlug.get("slack")!.toolApprovalOverrides).toEqual([]);
+  });
+
+  it("mcpServerToResolved without a usage carries no overrides (the discovery path)", () => {
+    const resolved = mcpServerToResolved(httpMcpServer("github"), "github", {});
+
+    // No usage in hand (discovery) — there is no agent context, so no
+    // layer-3 overrides can exist.
+    expect(resolved?.toolApprovalOverrides).toEqual([]);
+  });
+
+  it("session-wins merge feeds the SESSION usage's overrides to the resolver (native-harness parity)", async () => {
+    // Pins the end-to-end path that was broken before #349: the deep-agent
+    // harness resolved servers from the merged usages but flattened
+    // overrides from the AGENT usages only, so a session's overrides were
+    // silently ignored there (and honored by the Cursor harness).
+    const client = clientReturning({ github: httpMcpServer("github") });
+    const merged = mergeMcpServerUsages(
+      [makeUsage("github", "test-org", [], [{ toolName: "push", requiresApproval: true }])],
+      [makeUsage("github", "test-org", [], [{ toolName: "push", requiresApproval: false }])],
+    );
+
+    const result = await resolveMcpServers(client, merged, {}, "stdio-allowed");
+
+    expect(result.resolvedServers[0].toolApprovalOverrides).toEqual([
+      { toolName: "push", requiresApproval: false },
+    ]);
   });
 });
 
