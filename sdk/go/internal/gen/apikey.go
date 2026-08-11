@@ -27,12 +27,20 @@ func NewApiKeyClient(conn grpc.ClientConnInterface) *ApiKeyClient {
 }
 
 func (a *ApiKeyClient) Create(ctx context.Context, input *ApiKeyInput) (*apikeyv1.ApiKey, error) {
-	resp, err := a.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := a.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (a *ApiKeyClient) Update(ctx context.Context, input *ApiKeyInput) (*apikeyv1.ApiKey, error) {
-	resp, err := a.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := a.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -69,7 +77,7 @@ type ApiKeyInput struct {
 	NeverExpires bool
 }
 
-func (i *ApiKeyInput) toProto() *apikeyv1.ApiKey {
+func (i *ApiKeyInput) toProto() (*apikeyv1.ApiKey, error) {
 	resource := &apikeyv1.ApiKey{
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "ApiKey",
@@ -85,12 +93,14 @@ func (i *ApiKeyInput) toProto() *apikeyv1.ApiKey {
 	resource.Spec.KeyHash = i.KeyHash
 	resource.Spec.Fingerprint = i.Fingerprint
 	if i.ExpiresAt != "" {
-		if t, err := time.Parse(time.RFC3339, i.ExpiresAt); err == nil {
-			resource.Spec.ExpiresAt = timestamppb.New(t)
+		t, err := time.Parse(time.RFC3339, i.ExpiresAt)
+		if err != nil {
+			return nil, fieldErr("ExpiresAt", err)
 		}
+		resource.Spec.ExpiresAt = timestamppb.New(t)
 	}
 	resource.Spec.NeverExpires = i.NeverExpires
-	return resource
+	return resource, nil
 }
 
 // ApiKeyInputFromProto creates a ApiKeyInput from a proto ApiKey resource.

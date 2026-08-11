@@ -25,17 +25,29 @@ func NewAgentShareClient(conn grpc.ClientConnInterface) *AgentShareClient {
 }
 
 func (a *AgentShareClient) Apply(ctx context.Context, input *AgentShareInput) (*agentsharev1.AgentShare, error) {
-	resp, err := a.command.Apply(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := a.command.Apply(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (a *AgentShareClient) Create(ctx context.Context, input *AgentShareInput) (*agentsharev1.AgentShare, error) {
-	resp, err := a.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := a.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (a *AgentShareClient) Update(ctx context.Context, input *AgentShareInput) (*agentsharev1.AgentShare, error) {
-	resp, err := a.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := a.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -104,7 +116,7 @@ type AgentShareMessagesInput struct {
 	ConversationEnded string
 }
 
-func (i *AgentShareInput) toProto() *agentsharev1.AgentShare {
+func (i *AgentShareInput) toProto() (*agentsharev1.AgentShare, error) {
 	resource := &agentsharev1.AgentShare{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "AgentShare",
@@ -126,7 +138,11 @@ func (i *AgentShareInput) toProto() *agentsharev1.AgentShare {
 	resource.Spec.Audience = i.Audience
 	resource.Spec.AllowedOrigins = i.AllowedOrigins
 	if i.Messages != nil {
-		resource.Spec.Messages = i.Messages.toProto()
+		v, err := i.Messages.toProto()
+		if err != nil {
+			return nil, fieldErr("Messages", err)
+		}
+		resource.Spec.Messages = v
 	}
 	for _, r := range i.EnvironmentRefs {
 		ref := r.toProto()
@@ -134,17 +150,21 @@ func (i *AgentShareInput) toProto() *agentsharev1.AgentShare {
 		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, ref)
 	}
 	if i.RunConfig != nil {
-		resource.Spec.RunConfig = i.RunConfig.toProto()
+		v, err := i.RunConfig.toProto()
+		if err != nil {
+			return nil, fieldErr("RunConfig", err)
+		}
+		resource.Spec.RunConfig = v
 	}
-	return resource
+	return resource, nil
 }
 
-func (i *AgentShareMessagesInput) toProto() *agentsharev1.AgentShareMessages {
+func (i *AgentShareMessagesInput) toProto() (*agentsharev1.AgentShareMessages, error) {
 	return &agentsharev1.AgentShareMessages{
 		RateLimited:       i.RateLimited,
 		Unavailable:       i.Unavailable,
 		ConversationEnded: i.ConversationEnded,
-	}
+	}, nil
 }
 
 // AgentShareInputFromProto creates a AgentShareInput from a proto AgentShare resource.

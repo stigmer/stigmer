@@ -25,12 +25,20 @@ func NewIdentityAccountClient(conn grpc.ClientConnInterface) *IdentityAccountCli
 }
 
 func (i *IdentityAccountClient) Create(ctx context.Context, input *IdentityAccountInput) (*identityaccountv1.IdentityAccount, error) {
-	resp, err := i.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := i.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (i *IdentityAccountClient) Update(ctx context.Context, input *IdentityAccountInput) (*identityaccountv1.IdentityAccount, error) {
-	resp, err := i.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := i.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -106,7 +114,7 @@ type IdentityAccountInput struct {
 	IdentityProviderRef ResourceRef
 }
 
-func (i *IdentityAccountInput) toProto() *identityaccountv1.IdentityAccount {
+func (i *IdentityAccountInput) toProto() (*identityaccountv1.IdentityAccount, error) {
 	resource := &identityaccountv1.IdentityAccount{
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "IdentityAccount",
@@ -129,7 +137,7 @@ func (i *IdentityAccountInput) toProto() *identityaccountv1.IdentityAccount {
 	if i.IdentityProviderRef.Org != "" || i.IdentityProviderRef.Slug != "" {
 		resource.Spec.IdentityProviderRef = i.IdentityProviderRef.toProto()
 	}
-	return resource
+	return resource, nil
 }
 
 // IdentityAccountInputFromProto creates a IdentityAccountInput from a proto IdentityAccount resource.

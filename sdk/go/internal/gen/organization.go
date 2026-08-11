@@ -25,17 +25,29 @@ func NewOrganizationClient(conn grpc.ClientConnInterface) *OrganizationClient {
 }
 
 func (o *OrganizationClient) Apply(ctx context.Context, input *OrganizationInput) (*organizationv1.Organization, error) {
-	resp, err := o.command.Apply(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := o.command.Apply(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (o *OrganizationClient) Create(ctx context.Context, input *OrganizationInput) (*organizationv1.Organization, error) {
-	resp, err := o.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := o.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (o *OrganizationClient) Update(ctx context.Context, input *OrganizationInput) (*organizationv1.Organization, error) {
-	resp, err := o.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := o.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -79,7 +91,7 @@ type OrganizationInput struct {
 	IsPersonal          bool
 }
 
-func (i *OrganizationInput) toProto() *organizationv1.Organization {
+func (i *OrganizationInput) toProto() (*organizationv1.Organization, error) {
 	resource := &organizationv1.Organization{
 		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Organization",
@@ -100,7 +112,7 @@ func (i *OrganizationInput) toProto() *organizationv1.Organization {
 	}
 	resource.Spec.ExternalOrgId = i.ExternalOrgId
 	resource.Spec.IsPersonal = i.IsPersonal
-	return resource
+	return resource, nil
 }
 
 // OrganizationInputFromProto creates a OrganizationInput from a proto Organization resource.

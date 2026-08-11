@@ -13,7 +13,6 @@ import (
 	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	searchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // WorkflowClient provides operations on workflow resources.
@@ -34,17 +33,29 @@ func NewWorkflowClient(conn grpc.ClientConnInterface) *WorkflowClient {
 }
 
 func (w *WorkflowClient) Apply(ctx context.Context, input *WorkflowInput) (*workflowv1.Workflow, error) {
-	resp, err := w.command.Apply(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := w.command.Apply(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (w *WorkflowClient) Create(ctx context.Context, input *WorkflowInput) (*workflowv1.Workflow, error) {
-	resp, err := w.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := w.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (w *WorkflowClient) Update(ctx context.Context, input *WorkflowInput) (*workflowv1.Workflow, error) {
-	resp, err := w.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := w.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -59,7 +70,11 @@ func (w *WorkflowClient) Delete(ctx context.Context, id string) (*workflowv1.Wor
 }
 
 func (w *WorkflowClient) ValidateSpec(ctx context.Context, input *WorkflowInput) (*serverless.ServerlessWorkflowValidation, error) {
-	resp, err := w.command.ValidateSpec(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := w.command.ValidateSpec(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -168,7 +183,7 @@ type WorkflowBudgetInput struct {
 	OnExceeded         workflowv1.BudgetExceededPolicy
 }
 
-func (i *WorkflowInput) toProto() *workflowv1.Workflow {
+func (i *WorkflowInput) toProto() (*workflowv1.Workflow, error) {
 	resource := &workflowv1.Workflow{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Workflow",
@@ -188,71 +203,103 @@ func (i *WorkflowInput) toProto() *workflowv1.Workflow {
 	}
 	resource.Spec.Description = i.Description
 	if i.Document != nil {
-		resource.Spec.Document = i.Document.toProto()
+		v, err := i.Document.toProto()
+		if err != nil {
+			return nil, fieldErr("Document", err)
+		}
+		resource.Spec.Document = v
 	}
-	for _, item := range i.Tasks {
-		resource.Spec.Tasks = append(resource.Spec.Tasks, item.toProto())
+	for idx, item := range i.Tasks {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Tasks", idx, err)
+		}
+		resource.Spec.Tasks = append(resource.Spec.Tasks, v)
 	}
 	if len(i.Env) > 0 {
 		resource.Spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(i.Env))
-		for k, v := range i.Env {
-			resource.Spec.Env[k] = v.toProto()
+		for k, val := range i.Env {
+			pv, err := val.toProto()
+			if err != nil {
+				return nil, keyErr("Env", k, err)
+			}
+			resource.Spec.Env[k] = pv
 		}
 	}
 	if i.Budget != nil {
-		resource.Spec.Budget = i.Budget.toProto()
+		v, err := i.Budget.toProto()
+		if err != nil {
+			return nil, fieldErr("Budget", err)
+		}
+		resource.Spec.Budget = v
 	}
-	return resource
+	return resource, nil
 }
 
-func (i *WorkflowDocumentInput) toProto() *workflowv1.WorkflowDocument {
+func (i *WorkflowDocumentInput) toProto() (*workflowv1.WorkflowDocument, error) {
 	return &workflowv1.WorkflowDocument{
 		Dsl:         i.Dsl,
 		Namespace:   i.Namespace,
 		Name:        i.Name,
 		Version:     i.Version,
 		Description: i.Description,
-	}
+	}, nil
 }
 
-func (i *WorkflowTaskInput) toProto() *workflowv1.WorkflowTask {
+func (i *WorkflowTaskInput) toProto() (*workflowv1.WorkflowTask, error) {
 	p := &workflowv1.WorkflowTask{}
 	p.Name = i.Name
 	p.Kind = i.Kind
 	if i.TaskConfig != nil {
-		p.TaskConfig, _ = structpb.NewStruct(i.TaskConfig)
+		v, err := structFromMap(i.TaskConfig)
+		if err != nil {
+			return nil, fieldErr("TaskConfig", err)
+		}
+		p.TaskConfig = v
 	}
 	if i.Export != nil {
-		p.Export = i.Export.toProto()
+		v, err := i.Export.toProto()
+		if err != nil {
+			return nil, fieldErr("Export", err)
+		}
+		p.Export = v
 	}
 	if i.Flow != nil {
-		p.Flow = i.Flow.toProto()
+		v, err := i.Flow.toProto()
+		if err != nil {
+			return nil, fieldErr("Flow", err)
+		}
+		p.Flow = v
 	}
-	for _, item := range i.Compensate {
-		p.Compensate = append(p.Compensate, item.toProto())
+	for idx, item := range i.Compensate {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Compensate", idx, err)
+		}
+		p.Compensate = append(p.Compensate, v)
 	}
-	return p
+	return p, nil
 }
 
-func (i *ExportInput) toProto() *workflowv1.Export {
+func (i *ExportInput) toProto() (*workflowv1.Export, error) {
 	return &workflowv1.Export{
 		As: i.As,
-	}
+	}, nil
 }
 
-func (i *FlowControlInput) toProto() *workflowv1.FlowControl {
+func (i *FlowControlInput) toProto() (*workflowv1.FlowControl, error) {
 	return &workflowv1.FlowControl{
 		Then: i.Then,
-	}
+	}, nil
 }
 
-func (i *WorkflowBudgetInput) toProto() *workflowv1.WorkflowBudget {
+func (i *WorkflowBudgetInput) toProto() (*workflowv1.WorkflowBudget, error) {
 	return &workflowv1.WorkflowBudget{
 		MaxCostMicros:      i.MaxCostMicros,
 		MaxTotalTokens:     i.MaxTotalTokens,
 		MaxDurationSeconds: i.MaxDurationSeconds,
 		OnExceeded:         i.OnExceeded,
-	}
+	}, nil
 }
 
 // WorkflowInputFromProto creates a WorkflowInput from a proto Workflow resource.

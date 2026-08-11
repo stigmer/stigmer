@@ -12,7 +12,6 @@ import (
 	iampolicyv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/iampolicy/v1"
 	searchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // DatastoreClient provides operations on datastore resources.
@@ -35,17 +34,29 @@ func NewDatastoreClient(conn grpc.ClientConnInterface) *DatastoreClient {
 }
 
 func (d *DatastoreClient) Apply(ctx context.Context, input *DatastoreInput) (*datastorev1.Datastore, error) {
-	resp, err := d.command.Apply(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := d.command.Apply(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (d *DatastoreClient) Create(ctx context.Context, input *DatastoreInput) (*datastorev1.Datastore, error) {
-	resp, err := d.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := d.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (d *DatastoreClient) Update(ctx context.Context, input *DatastoreInput) (*datastorev1.Datastore, error) {
-	resp, err := d.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := d.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -232,7 +243,7 @@ type DatastoreGrantInput struct {
 	ReadFields []string
 }
 
-func (i *DatastoreInput) toProto() *datastorev1.Datastore {
+func (i *DatastoreInput) toProto() (*datastorev1.Datastore, error) {
 	resource := &datastorev1.Datastore{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Datastore",
@@ -248,42 +259,62 @@ func (i *DatastoreInput) toProto() *datastorev1.Datastore {
 	resource.Spec.Description = i.Description
 	resource.Spec.Timezone = i.Timezone
 	if i.Authorization != nil {
-		resource.Spec.Authorization = i.Authorization.toProto()
+		v, err := i.Authorization.toProto()
+		if err != nil {
+			return nil, fieldErr("Authorization", err)
+		}
+		resource.Spec.Authorization = v
 	}
-	for _, item := range i.Collections {
-		resource.Spec.Collections = append(resource.Spec.Collections, item.toProto())
+	for idx, item := range i.Collections {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Collections", idx, err)
+		}
+		resource.Spec.Collections = append(resource.Spec.Collections, v)
 	}
-	return resource
+	return resource, nil
 }
 
-func (i *DatastoreAuthorizationInput) toProto() *datastorev1.DatastoreAuthorization {
+func (i *DatastoreAuthorizationInput) toProto() (*datastorev1.DatastoreAuthorization, error) {
 	p := &datastorev1.DatastoreAuthorization{}
-	for _, item := range i.Roles {
-		p.Roles = append(p.Roles, item.toProto())
+	for idx, item := range i.Roles {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Roles", idx, err)
+		}
+		p.Roles = append(p.Roles, v)
 	}
-	for _, item := range i.Bindings {
-		p.Bindings = append(p.Bindings, item.toProto())
+	for idx, item := range i.Bindings {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Bindings", idx, err)
+		}
+		p.Bindings = append(p.Bindings, v)
 	}
 	p.DefaultRole = i.DefaultRole
-	return p
+	return p, nil
 }
 
-func (i *DatastoreRoleInput) toProto() *datastorev1.DatastoreRole {
+func (i *DatastoreRoleInput) toProto() (*datastorev1.DatastoreRole, error) {
 	return &datastorev1.DatastoreRole{
 		Name: i.Name,
-	}
+	}, nil
 }
 
-func (i *DatastoreRoleBindingInput) toProto() *datastorev1.DatastoreRoleBinding {
+func (i *DatastoreRoleBindingInput) toProto() (*datastorev1.DatastoreRoleBinding, error) {
 	p := &datastorev1.DatastoreRoleBinding{}
 	if i.Subject != nil {
-		p.Subject = i.Subject.toProto()
+		v, err := i.Subject.toProto()
+		if err != nil {
+			return nil, fieldErr("Subject", err)
+		}
+		p.Subject = v
 	}
 	p.Role = i.Role
-	return p
+	return p, nil
 }
 
-func (i *DatastoreSubjectInput) toProto() *datastorev1.DatastoreSubject {
+func (i *DatastoreSubjectInput) toProto() (*datastorev1.DatastoreSubject, error) {
 	p := &datastorev1.DatastoreSubject{}
 	if i.ChannelSender != nil {
 		m := &datastorev1.ChannelSenderSubject{}
@@ -298,93 +329,129 @@ func (i *DatastoreSubjectInput) toProto() *datastorev1.DatastoreSubject {
 		m.Relation = i.Principal.Relation
 		p.Kind = &datastorev1.DatastoreSubject_Principal{Principal: m}
 	}
-	return p
+	return p, nil
 }
 
-func (i *CollectionDeclarationInput) toProto() *datastorev1.CollectionDeclaration {
+func (i *CollectionDeclarationInput) toProto() (*datastorev1.CollectionDeclaration, error) {
 	p := &datastorev1.CollectionDeclaration{}
 	p.Name = i.Name
 	p.Description = i.Description
-	for _, item := range i.Fields {
-		p.Fields = append(p.Fields, item.toProto())
+	for idx, item := range i.Fields {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Fields", idx, err)
+		}
+		p.Fields = append(p.Fields, v)
 	}
-	for _, item := range i.Uniques {
-		p.Uniques = append(p.Uniques, item.toProto())
+	for idx, item := range i.Uniques {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Uniques", idx, err)
+		}
+		p.Uniques = append(p.Uniques, v)
 	}
-	for _, item := range i.Checks {
-		p.Checks = append(p.Checks, item.toProto())
+	for idx, item := range i.Checks {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Checks", idx, err)
+		}
+		p.Checks = append(p.Checks, v)
 	}
-	for _, item := range i.Exists {
-		p.Exists = append(p.Exists, item.toProto())
+	for idx, item := range i.Exists {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Exists", idx, err)
+		}
+		p.Exists = append(p.Exists, v)
 	}
-	for _, item := range i.NotExists {
-		p.NotExists = append(p.NotExists, item.toProto())
+	for idx, item := range i.NotExists {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("NotExists", idx, err)
+		}
+		p.NotExists = append(p.NotExists, v)
 	}
-	for _, item := range i.Grants {
-		p.Grants = append(p.Grants, item.toProto())
+	for idx, item := range i.Grants {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Grants", idx, err)
+		}
+		p.Grants = append(p.Grants, v)
 	}
-	return p
+	return p, nil
 }
 
-func (i *FieldDeclarationInput) toProto() *datastorev1.FieldDeclaration {
+func (i *FieldDeclarationInput) toProto() (*datastorev1.FieldDeclaration, error) {
 	p := &datastorev1.FieldDeclaration{}
 	p.Name = i.Name
 	p.Type = i.Type
 	p.Required = i.Required
 	if i.Default != nil {
-		p.Default, _ = structpb.NewValue(i.Default)
+		v, err := valueFromAny(i.Default)
+		if err != nil {
+			return nil, fieldErr("Default", err)
+		}
+		p.Default = v
 	}
 	p.EnumValues = i.EnumValues
 	p.Description = i.Description
-	return p
+	return p, nil
 }
 
-func (i *UniqueConstraintInput) toProto() *datastorev1.UniqueConstraint {
+func (i *UniqueConstraintInput) toProto() (*datastorev1.UniqueConstraint, error) {
 	p := &datastorev1.UniqueConstraint{}
 	p.Name = i.Name
 	p.Fields = i.Fields
 	if i.Where != nil {
-		p.Where = i.Where.toProto()
+		v, err := i.Where.toProto()
+		if err != nil {
+			return nil, fieldErr("Where", err)
+		}
+		p.Where = v
 	}
 	p.Message = i.Message
-	return p
+	return p, nil
 }
 
-func (i *UniqueWhereInput) toProto() *datastorev1.UniqueWhere {
+func (i *UniqueWhereInput) toProto() (*datastorev1.UniqueWhere, error) {
 	p := &datastorev1.UniqueWhere{}
 	p.Field = i.Field
 	if i.Equals != nil {
-		p.Equals, _ = structpb.NewValue(i.Equals)
+		v, err := valueFromAny(i.Equals)
+		if err != nil {
+			return nil, fieldErr("Equals", err)
+		}
+		p.Equals = v
 	}
-	return p
+	return p, nil
 }
 
-func (i *CheckConstraintInput) toProto() *datastorev1.CheckConstraint {
+func (i *CheckConstraintInput) toProto() (*datastorev1.CheckConstraint, error) {
 	return &datastorev1.CheckConstraint{
 		Name:       i.Name,
 		Expression: i.Expression,
 		When:       i.When,
 		Message:    i.Message,
-	}
+	}, nil
 }
 
-func (i *ExistsConstraintInput) toProto() *datastorev1.ExistsConstraint {
+func (i *ExistsConstraintInput) toProto() (*datastorev1.ExistsConstraint, error) {
 	return &datastorev1.ExistsConstraint{
 		Name:       i.Name,
 		Collection: i.Collection,
 		Where:      i.Where,
 		When:       i.When,
 		Message:    i.Message,
-	}
+	}, nil
 }
 
-func (i *DatastoreGrantInput) toProto() *datastorev1.DatastoreGrant {
+func (i *DatastoreGrantInput) toProto() (*datastorev1.DatastoreGrant, error) {
 	return &datastorev1.DatastoreGrant{
 		Role:       i.Role,
 		Verbs:      i.Verbs,
 		Scope:      i.Scope,
 		ReadFields: i.ReadFields,
-	}
+	}, nil
 }
 
 // DatastoreInputFromProto creates a DatastoreInput from a proto Datastore resource.

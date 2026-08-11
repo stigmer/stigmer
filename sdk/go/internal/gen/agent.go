@@ -30,17 +30,29 @@ func NewAgentClient(conn grpc.ClientConnInterface) *AgentClient {
 }
 
 func (a *AgentClient) Apply(ctx context.Context, input *AgentInput) (*agentv1.Agent, error) {
-	resp, err := a.command.Apply(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := a.command.Apply(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (a *AgentClient) Create(ctx context.Context, input *AgentInput) (*agentv1.Agent, error) {
-	resp, err := a.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := a.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (a *AgentClient) Update(ctx context.Context, input *AgentInput) (*agentv1.Agent, error) {
-	resp, err := a.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := a.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -151,7 +163,7 @@ type DatastoreUsageInput struct {
 	DatastoreRef ResourceRef
 }
 
-func (i *AgentInput) toProto() *agentv1.Agent {
+func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 	resource := &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Agent",
@@ -167,30 +179,46 @@ func (i *AgentInput) toProto() *agentv1.Agent {
 	resource.Spec.Description = i.Description
 	resource.Spec.IconUrl = i.IconUrl
 	resource.Spec.Instructions = i.Instructions
-	for _, item := range i.McpServerUsages {
-		resource.Spec.McpServerUsages = append(resource.Spec.McpServerUsages, item.toProto())
+	for idx, item := range i.McpServerUsages {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("McpServerUsages", idx, err)
+		}
+		resource.Spec.McpServerUsages = append(resource.Spec.McpServerUsages, v)
 	}
 	for _, r := range i.SkillRefs {
 		ref := r.toProto()
 		ref.Kind = apiresourcekind.ApiResourceKind_skill
 		resource.Spec.SkillRefs = append(resource.Spec.SkillRefs, ref)
 	}
-	for _, item := range i.SubAgents {
-		resource.Spec.SubAgents = append(resource.Spec.SubAgents, item.toProto())
+	for idx, item := range i.SubAgents {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("SubAgents", idx, err)
+		}
+		resource.Spec.SubAgents = append(resource.Spec.SubAgents, v)
 	}
 	if len(i.Env) > 0 {
 		resource.Spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(i.Env))
-		for k, v := range i.Env {
-			resource.Spec.Env[k] = v.toProto()
+		for k, val := range i.Env {
+			pv, err := val.toProto()
+			if err != nil {
+				return nil, keyErr("Env", k, err)
+			}
+			resource.Spec.Env[k] = pv
 		}
 	}
-	for _, item := range i.DatastoreUsages {
-		resource.Spec.DatastoreUsages = append(resource.Spec.DatastoreUsages, item.toProto())
+	for idx, item := range i.DatastoreUsages {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("DatastoreUsages", idx, err)
+		}
+		resource.Spec.DatastoreUsages = append(resource.Spec.DatastoreUsages, v)
 	}
-	return resource
+	return resource, nil
 }
 
-func (i *McpServerUsageInput) toProto() *agentv1.McpServerUsage {
+func (i *McpServerUsageInput) toProto() (*agentv1.McpServerUsage, error) {
 	p := &agentv1.McpServerUsage{}
 	if i.McpServerRef.Org != "" || i.McpServerRef.Slug != "" {
 		ref := i.McpServerRef.toProto()
@@ -198,27 +226,35 @@ func (i *McpServerUsageInput) toProto() *agentv1.McpServerUsage {
 		p.McpServerRef = ref
 	}
 	p.EnabledTools = i.EnabledTools
-	for _, item := range i.ToolApprovalOverrides {
-		p.ToolApprovalOverrides = append(p.ToolApprovalOverrides, item.toProto())
+	for idx, item := range i.ToolApprovalOverrides {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("ToolApprovalOverrides", idx, err)
+		}
+		p.ToolApprovalOverrides = append(p.ToolApprovalOverrides, v)
 	}
-	return p
+	return p, nil
 }
 
-func (i *ToolApprovalOverrideInput) toProto() *agentv1.ToolApprovalOverride {
+func (i *ToolApprovalOverrideInput) toProto() (*agentv1.ToolApprovalOverride, error) {
 	return &agentv1.ToolApprovalOverride{
 		ToolName:         i.ToolName,
 		RequiresApproval: i.RequiresApproval,
 		Message:          i.Message,
-	}
+	}, nil
 }
 
-func (i *SubAgentInput) toProto() *agentv1.SubAgent {
+func (i *SubAgentInput) toProto() (*agentv1.SubAgent, error) {
 	p := &agentv1.SubAgent{}
 	p.Name = i.Name
 	p.Description = i.Description
 	p.Instructions = i.Instructions
-	for _, item := range i.McpAccess {
-		p.McpAccess = append(p.McpAccess, item.toProto())
+	for idx, item := range i.McpAccess {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("McpAccess", idx, err)
+		}
+		p.McpAccess = append(p.McpAccess, v)
 	}
 	for _, r := range i.SkillRefs {
 		ref := r.toProto()
@@ -226,32 +262,32 @@ func (i *SubAgentInput) toProto() *agentv1.SubAgent {
 		p.SkillRefs = append(p.SkillRefs, ref)
 	}
 	p.ModelOverride = i.ModelOverride
-	return p
+	return p, nil
 }
 
-func (i *McpAccessInput) toProto() *agentv1.McpAccess {
+func (i *McpAccessInput) toProto() (*agentv1.McpAccess, error) {
 	return &agentv1.McpAccess{
 		McpServer:    i.McpServer,
 		EnabledTools: i.EnabledTools,
-	}
+	}, nil
 }
 
-func (i *EnvVarDeclarationInput) toProto() *environmentv1.EnvVarDeclaration {
+func (i *EnvVarDeclarationInput) toProto() (*environmentv1.EnvVarDeclaration, error) {
 	return &environmentv1.EnvVarDeclaration{
 		IsSecret:    i.IsSecret,
 		Description: i.Description,
 		Optional:    i.Optional,
-	}
+	}, nil
 }
 
-func (i *DatastoreUsageInput) toProto() *agentv1.DatastoreUsage {
+func (i *DatastoreUsageInput) toProto() (*agentv1.DatastoreUsage, error) {
 	p := &agentv1.DatastoreUsage{}
 	if i.DatastoreRef.Org != "" || i.DatastoreRef.Slug != "" {
 		ref := i.DatastoreRef.toProto()
 		ref.Kind = apiresourcekind.ApiResourceKind_datastore
 		p.DatastoreRef = ref
 	}
-	return p
+	return p, nil
 }
 
 // AgentInputFromProto creates a AgentInput from a proto Agent resource.

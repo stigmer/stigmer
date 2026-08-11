@@ -26,17 +26,29 @@ func NewIdentityProviderClient(conn grpc.ClientConnInterface) *IdentityProviderC
 }
 
 func (i *IdentityProviderClient) Apply(ctx context.Context, input *IdentityProviderInput) (*identityproviderv1.IdentityProvider, error) {
-	resp, err := i.command.Apply(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := i.command.Apply(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (i *IdentityProviderClient) Create(ctx context.Context, input *IdentityProviderInput) (*identityproviderv1.IdentityProvider, error) {
-	resp, err := i.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := i.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (i *IdentityProviderClient) Update(ctx context.Context, input *IdentityProviderInput) (*identityproviderv1.IdentityProvider, error) {
-	resp, err := i.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := i.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -91,7 +103,7 @@ type IdentityProviderInput struct {
 	TenantOrgClaim        string
 }
 
-func (i *IdentityProviderInput) toProto() *identityproviderv1.IdentityProvider {
+func (i *IdentityProviderInput) toProto() (*identityproviderv1.IdentityProvider, error) {
 	resource := &identityproviderv1.IdentityProvider{
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "IdentityProvider",
@@ -116,7 +128,7 @@ func (i *IdentityProviderInput) toProto() *identityproviderv1.IdentityProvider {
 	resource.Spec.AutoGrantOnOrg = i.AutoGrantOnOrg
 	resource.Spec.AutoGrantRole = i.AutoGrantRole
 	resource.Spec.TenantOrgClaim = i.TenantOrgClaim
-	return resource
+	return resource, nil
 }
 
 // IdentityProviderInputFromProto creates a IdentityProviderInput from a proto IdentityProvider resource.

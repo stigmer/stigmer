@@ -760,6 +760,7 @@ func TestEmitToProtoField(t *testing.T) {
 			field: field("CreatedAt", "createdAt", "created_at", TypeSpec{Kind: "timestamp"}),
 			contains: []string{
 				`time.Parse(time.RFC3339, i.CreatedAt)`,
+				`return nil, fieldErr("CreatedAt", err)`,
 				`resource.Spec.CreatedAt = timestamppb.New(t)`,
 			},
 		},
@@ -768,8 +769,19 @@ func TestEmitToProtoField(t *testing.T) {
 			field: field("Params", "params", "params", TypeSpec{Kind: "struct"}),
 			contains: []string{
 				`if i.Params != nil`,
-				`structpb.NewStruct(i.Params)`,
-				`resource.Spec.Params`,
+				`structFromMap(i.Params)`,
+				`return nil, fieldErr("Params", err)`,
+				`resource.Spec.Params = v`,
+			},
+		},
+		{
+			name:  "value",
+			field: field("Default", "default", "default", TypeSpec{Kind: "value"}),
+			contains: []string{
+				`if i.Default != nil`,
+				`valueFromAny(i.Default)`,
+				`return nil, fieldErr("Default", err)`,
+				`resource.Spec.Default = v`,
 			},
 		},
 		{
@@ -849,7 +861,9 @@ func TestEmitToProtoField(t *testing.T) {
 			field: field("Config", "config", "config", TypeSpec{Kind: "message", MessageType: "SomeConfig"}),
 			contains: []string{
 				`if i.Config != nil`,
-				`resource.Spec.Config = i.Config.toProto()`,
+				`v, err := i.Config.toProto()`,
+				`return nil, fieldErr("Config", err)`,
+				`resource.Spec.Config = v`,
 			},
 		},
 		{
@@ -880,8 +894,23 @@ func TestEmitToProtoField(t *testing.T) {
 				ElementType: &TypeSpec{Kind: "message", MessageType: "WorkflowTask"},
 			}),
 			contains: []string{
-				`for _, item := range i.Items`,
-				`item.toProto()`,
+				`for idx, item := range i.Items`,
+				`v, err := item.toProto()`,
+				`return nil, indexErr("Items", idx, err)`,
+				`resource.Spec.Items = append(resource.Spec.Items, v)`,
+			},
+		},
+		{
+			name: "array_struct",
+			field: field("Entries", "entries", "entries", TypeSpec{
+				Kind:        "array",
+				ElementType: &TypeSpec{Kind: "struct"},
+			}),
+			contains: []string{
+				`for idx, item := range i.Entries`,
+				`v, err := structFromMap(item)`,
+				`return nil, indexErr("Entries", idx, err)`,
+				`resource.Spec.Entries = append(resource.Spec.Entries, v)`,
 			},
 		},
 		{
@@ -920,7 +949,9 @@ func TestEmitToProtoField(t *testing.T) {
 			}),
 			contains: []string{
 				`if len(i.Configs) > 0`,
-				`v.toProto()`,
+				`pv, err := val.toProto()`,
+				`return nil, keyErr("Configs", k, err)`,
+				`resource.Spec.Configs[k] = pv`,
 			},
 		},
 		{
@@ -949,6 +980,12 @@ func TestEmitToProtoField(t *testing.T) {
 			for _, pattern := range tc.contains {
 				mustContain(t, got, pattern)
 			}
+
+			// The silent-drop class (stigmer/stigmer#342): no emitted
+			// conversion may discard its error — neither the blank-assign
+			// shape nor the append-only-on-success shape.
+			mustNotContain(t, got, `, _ = structpb`)
+			mustNotContain(t, got, `err == nil`)
 		})
 	}
 }
@@ -1126,7 +1163,9 @@ func TestEmitOneofMemberToProto(t *testing.T) {
 		got := buf.String()
 
 		mustContain(t, got, `if i.Agent.RunConfig != nil {`)
-		mustContain(t, got, `m.RunConfig = i.Agent.RunConfig.toProto()`)
+		mustContain(t, got, `v, err := i.Agent.RunConfig.toProto()`)
+		mustContain(t, got, `return nil, fieldErr("Agent.RunConfig", err)`)
+		mustContain(t, got, `m.RunConfig = v`)
 		mustNotContain(t, got, "m.RunConfig = i.Agent.RunConfig\n")
 	})
 }
@@ -1216,10 +1255,14 @@ func TestEmitNestedToProto(t *testing.T) {
 		emitNestedToProto(&buf, f, "sessionv1", typeMap, emitted, "SessionSpec", make(map[string]bool))
 		got := buf.String()
 
-		mustContain(t, got, `func (i *WorkspaceEntryInput) toProto() *sessionv1.WorkspaceEntry`)
+		// Even a type where nothing can fail returns (proto, error): every
+		// schema-derived Input's toProto is uniformly fallible so a schema
+		// change never flips a signature (stigmer/stigmer#342).
+		mustContain(t, got, `func (i *WorkspaceEntryInput) toProto() (*sessionv1.WorkspaceEntry, error)`)
 		mustContain(t, got, `return &sessionv1.WorkspaceEntry{`)
 		mustContain(t, got, `Path: i.Path,`)
 		mustContain(t, got, `ReadOnly: i.ReadOnly,`)
+		mustContain(t, got, `}, nil`)
 	})
 
 	t.Run("message_with_struct_field", func(t *testing.T) {
@@ -1239,11 +1282,16 @@ func TestEmitNestedToProto(t *testing.T) {
 		emitNestedToProto(&buf, f, "taskv1", typeMap, emitted, "TaskSpec", make(map[string]bool))
 		got := buf.String()
 
-		mustContain(t, got, `func (i *WorkflowTaskInput) toProto() *taskv1.WorkflowTask`)
+		mustContain(t, got, `func (i *WorkflowTaskInput) toProto() (*taskv1.WorkflowTask, error)`)
 		mustContain(t, got, `p := &taskv1.WorkflowTask{}`)
 		mustContain(t, got, `p.Name = i.Name`)
-		mustContain(t, got, `structpb.NewStruct(i.Params)`)
-		mustContain(t, got, `return p`)
+		mustContain(t, got, `v, err := structFromMap(i.Params)`)
+		mustContain(t, got, `return nil, fieldErr("Params", err)`)
+		mustContain(t, got, `return p, nil`)
+		// The silent-drop shape that shipped empty task configs
+		// (stigmer/stigmer#342) must never be emitted again.
+		mustNotContain(t, got, `, _ = structpb`)
+		mustNotContain(t, got, `err == nil`)
 	})
 
 	t.Run("api_resource_reference_in_simple_type", func(t *testing.T) {
@@ -1360,7 +1408,7 @@ func TestEmitNestedToProto(t *testing.T) {
 		emitNestedToProto(&buf, f, "sessionv1", typeMap, emitted, "SessionSpec", make(map[string]bool))
 		got := buf.String()
 
-		mustContain(t, got, `func (i *WorkspaceSourceInput) toProto() *sessionv1.WorkspaceSource`)
+		mustContain(t, got, `func (i *WorkspaceSourceInput) toProto() (*sessionv1.WorkspaceSource, error)`)
 		mustContain(t, got, `if i.GitRepo != nil {`)
 		mustContain(t, got, `p.Source = &sessionv1.WorkspaceSource_GitRepo{GitRepo: m}`)
 		mustContain(t, got, `if i.LocalPath != nil {`)
@@ -1411,7 +1459,7 @@ func TestEmitNestedToProto(t *testing.T) {
 		emitNestedToProto(&buf, f, "orderv1", typeMap, emitted, "OrderSpec", make(map[string]bool))
 		got := buf.String()
 
-		mustContain(t, got, `func (i *LineItemInput) toProto() *orderv1.LineItem`)
+		mustContain(t, got, `func (i *LineItemInput) toProto() (*orderv1.LineItem, error)`)
 		if !emitted["LineItem_toProto"] {
 			t.Error("expected LineItem_toProto to be marked as emitted")
 		}
@@ -1436,7 +1484,7 @@ func TestEmitNestedToProto(t *testing.T) {
 		emitNestedToProto(&buf, f, "svcv1", typeMap, emitted, "SvcSpec", make(map[string]bool))
 		got := buf.String()
 
-		mustContain(t, got, `func (i *ServerConfigInput) toProto() *svcv1.ServerConfig`)
+		mustContain(t, got, `func (i *ServerConfigInput) toProto() (*svcv1.ServerConfig, error)`)
 	})
 
 	t.Run("scalar_field_no_output", func(t *testing.T) {
@@ -1520,19 +1568,23 @@ func TestEmitNestedToProto(t *testing.T) {
 		emitNestedToProto(&buf, f, "workflowv1", typeMap, emitted, "WorkflowSpec", make(map[string]bool))
 		got := buf.String()
 
-		mustContain(t, got, `func (i *WorkflowTaskInput) toProto() *workflowv1.WorkflowTask`)
+		mustContain(t, got, `func (i *WorkflowTaskInput) toProto() (*workflowv1.WorkflowTask, error)`)
 		mustContain(t, got, `p := &workflowv1.WorkflowTask{}`)
 		mustContain(t, got, `p.Name = i.Name`)
 		mustContain(t, got, `p.Kind = i.Kind`)
-		mustContain(t, got, `structpb.NewStruct(i.TaskConfig)`)
+		mustContain(t, got, `v, err := structFromMap(i.TaskConfig)`)
+		mustContain(t, got, `return nil, fieldErr("TaskConfig", err)`)
 		mustContain(t, got, `if i.Export != nil`)
-		mustContain(t, got, `p.Export = i.Export.toProto()`)
+		mustContain(t, got, `v, err := i.Export.toProto()`)
+		mustContain(t, got, `return nil, fieldErr("Export", err)`)
 		mustContain(t, got, `if i.Flow != nil`)
-		mustContain(t, got, `p.Flow = i.Flow.toProto()`)
-		mustContain(t, got, `for _, item := range i.Compensate`)
-		mustContain(t, got, `p.Compensate = append(p.Compensate, item.toProto())`)
+		mustContain(t, got, `for idx, item := range i.Compensate`)
+		mustContain(t, got, `return nil, indexErr("Compensate", idx, err)`)
+		mustContain(t, got, `p.Compensate = append(p.Compensate, v)`)
+		mustNotContain(t, got, `, _ = structpb`)
+		mustNotContain(t, got, `err == nil`)
 
-		mustContain(t, got, `func (i *ExportInput) toProto() *workflowv1.Export`)
-		mustContain(t, got, `func (i *FlowControlInput) toProto() *workflowv1.FlowControl`)
+		mustContain(t, got, `func (i *ExportInput) toProto() (*workflowv1.Export, error)`)
+		mustContain(t, got, `func (i *FlowControlInput) toProto() (*workflowv1.FlowControl, error)`)
 	})
 }
