@@ -74,6 +74,114 @@ func newSlackApp(name, org string) *channelappv1.ChannelApp {
 	}
 }
 
+func newWhatsAppApp(name, org string) *channelappv1.ChannelApp {
+	return &channelappv1.ChannelApp{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "ChannelApp",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: name,
+			Org:  org,
+		},
+		Spec: &channelappv1.ChannelAppSpec{
+			ProviderConfig: &channelappv1.ChannelAppSpec_Whatsapp{
+				Whatsapp: &channelappv1.WhatsAppChannelAppConfig{
+					AppId:       "108954",
+					AppSecret:   "shh-app-secret",
+					AccessToken: "shh-access-token",
+					VerifyToken: "shh-verify-token",
+				},
+			},
+		},
+	}
+}
+
+// TestRedactAndEncryptCoverEveryProviderArm is the tripwire for the class
+// of gap fixed in #324 (the WhatsApp arm shipped with neither redaction
+// nor encryption): every arm of the ChannelAppSpec provider_config oneof
+// must have a case here proving its secrets are redacted in responses and
+// encrypted at rest. Adding a provider arm to the proto fails this test
+// until the arm gets redaction, encryption, and a case entry — the
+// schema-reflection posture of the sdk/react agentToInput new-field
+// tripwire.
+func TestRedactAndEncryptCoverEveryProviderArm(t *testing.T) {
+	// Per arm: an app whose secrets hold known plaintexts, and a getter
+	// for every secret field so the assertions below stay field-by-field.
+	cases := map[string]struct {
+		newApp  func(name, org string) *channelappv1.ChannelApp
+		secrets func(app *channelappv1.ChannelApp) map[string]string
+	}{
+		"slack": {
+			newApp: newSlackApp,
+			secrets: func(app *channelappv1.ChannelApp) map[string]string {
+				return map[string]string{
+					"client_secret":  app.GetSpec().GetSlack().GetClientSecret(),
+					"signing_secret": app.GetSpec().GetSlack().GetSigningSecret(),
+				}
+			},
+		},
+		"whatsapp": {
+			newApp: newWhatsAppApp,
+			secrets: func(app *channelappv1.ChannelApp) map[string]string {
+				return map[string]string{
+					"app_secret":   app.GetSpec().GetWhatsapp().GetAppSecret(),
+					"access_token": app.GetSpec().GetWhatsapp().GetAccessToken(),
+					"verify_token": app.GetSpec().GetWhatsapp().GetVerifyToken(),
+				}
+			},
+		},
+	}
+
+	// The tripwire proper: the case table must cover every oneof arm.
+	oneofArms := (&channelappv1.ChannelAppSpec{}).ProtoReflect().Descriptor().
+		Oneofs().ByName("provider_config").Fields()
+	for i := 0; i < oneofArms.Len(); i++ {
+		arm := string(oneofArms.Get(i).Name())
+		if _, ok := cases[arm]; !ok {
+			t.Fatalf("provider arm %q has no redaction/encryption coverage: "+
+				"handle it in RedactChannelApp and encryptChannelAppSecretsStep, "+
+				"then add its case here", arm)
+		}
+	}
+	if len(cases) != oneofArms.Len() {
+		t.Fatalf("case table has %d entries but the oneof has %d arms — remove stale cases",
+			len(cases), oneofArms.Len())
+	}
+
+	for arm, tc := range cases {
+		t.Run(arm, func(t *testing.T) {
+			h := newTestHarness(t)
+
+			original := tc.newApp("Acme "+arm+" App", "acme")
+			plaintexts := tc.secrets(original)
+
+			created, err := h.controller.Create(appCtx(), tc.newApp("Acme "+arm+" App", "acme"))
+			if err != nil {
+				t.Fatalf("create failed: %v", err)
+			}
+			for field, value := range tc.secrets(created) {
+				if value != RedactedMarker {
+					t.Errorf("%s must be redacted in the create response, got %q", field, value)
+				}
+			}
+
+			stored := &channelappv1.ChannelApp{}
+			if err := h.store.GetResource(context.Background(),
+				apiresourcekind.ApiResourceKind_channel_app,
+				created.GetMetadata().GetId(), stored); err != nil {
+				t.Fatalf("stored app not found: %v", err)
+			}
+			for field, value := range tc.secrets(stored) {
+				if !h.secrets.IsEncrypted(value) {
+					t.Errorf("stored %s must be encrypted, got %q", field, value)
+				}
+				if h.secrets.MustDecrypt(value) != plaintexts[field] {
+					t.Errorf("stored %s must decrypt to the original plaintext", field)
+				}
+			}
+		})
+	}
+}
+
 func TestChannelAppController_CreateEncryptsAndRedacts(t *testing.T) {
 	h := newTestHarness(t)
 
@@ -245,19 +353,98 @@ func TestChannelAppController_QueriesRedactSecrets(t *testing.T) {
 	}
 }
 
+func TestChannelAppController_WhatsAppQueriesRedactSecrets(t *testing.T) {
+	h := newTestHarness(t)
+
+	created, err := h.controller.Create(appCtx(), newWhatsAppApp("Clinic Meta App", "acme"))
+	if err != nil {
+		t.Fatalf("create failed: %v", err)
+	}
+
+	fetched, err := h.controller.Get(appCtx(), &apiresource.ApiResourceId{
+		Value: created.GetMetadata().GetId()})
+	if err != nil {
+		t.Fatalf("get failed: %v", err)
+	}
+	if fetched.GetSpec().GetWhatsapp().GetAppSecret() != RedactedMarker ||
+		fetched.GetSpec().GetWhatsapp().GetAccessToken() != RedactedMarker ||
+		fetched.GetSpec().GetWhatsapp().GetVerifyToken() != RedactedMarker {
+		t.Error("get must redact all three WhatsApp secret fields")
+	}
+	if fetched.GetSpec().GetWhatsapp().GetAppId() != "108954" {
+		t.Error("app_id is public and must NOT be redacted")
+	}
+
+	byRef, err := h.controller.GetByReference(appCtx(), &apiresource.ApiResourceReference{
+		Org:  "acme",
+		Kind: apiresourcekind.ApiResourceKind_channel_app,
+		Slug: created.GetMetadata().GetSlug(),
+	})
+	if err != nil {
+		t.Fatalf("getByReference failed: %v", err)
+	}
+	if byRef.GetSpec().GetWhatsapp().GetAppSecret() != RedactedMarker {
+		t.Error("getByReference must redact WhatsApp secrets")
+	}
+
+	list, err := h.controller.ListByOrg(appCtx(), &channelappv1.ListChannelAppsByOrgInput{Org: "acme"})
+	if err != nil {
+		t.Fatalf("listByOrg failed: %v", err)
+	}
+	if len(list.GetEntries()) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(list.GetEntries()))
+	}
+	if list.GetEntries()[0].GetSpec().GetWhatsapp().GetAccessToken() != RedactedMarker {
+		t.Error("listByOrg must redact WhatsApp secrets on every entry")
+	}
+}
+
+func TestChannelAppController_WhatsAppUpdateMarkerPreservesPerField(t *testing.T) {
+	h := newTestHarness(t)
+
+	created, err := h.controller.Create(appCtx(), newWhatsAppApp("Clinic Meta App", "acme"))
+	if err != nil {
+		t.Fatalf("create failed: %v", err)
+	}
+
+	// A mixed update: rotate the access token, keep app_secret and
+	// verify_token — the Slack per-field independence contract, on the
+	// three-secret arm.
+	update := newWhatsAppApp("Clinic Meta App", "acme")
+	update.Metadata.Id = created.GetMetadata().GetId()
+	update.Metadata.Slug = created.GetMetadata().GetSlug()
+	update.GetSpec().GetWhatsapp().AppSecret = RedactedMarker
+	update.GetSpec().GetWhatsapp().AccessToken = "rotated-access-token"
+	update.GetSpec().GetWhatsapp().VerifyToken = RedactedMarker
+
+	if _, err := h.controller.Update(appCtx(), update); err != nil {
+		t.Fatalf("update failed: %v", err)
+	}
+
+	stored := &channelappv1.ChannelApp{}
+	if err := h.store.GetResource(context.Background(),
+		apiresourcekind.ApiResourceKind_channel_app,
+		created.GetMetadata().GetId(), stored); err != nil {
+		t.Fatalf("stored app not found: %v", err)
+	}
+	if h.secrets.MustDecrypt(stored.GetSpec().GetWhatsapp().GetAppSecret()) != "shh-app-secret" {
+		t.Error("marker must preserve the ORIGINAL app_secret")
+	}
+	if h.secrets.MustDecrypt(stored.GetSpec().GetWhatsapp().GetAccessToken()) != "rotated-access-token" {
+		t.Error("the plaintext access_token must rotate to the new value")
+	}
+	if h.secrets.MustDecrypt(stored.GetSpec().GetWhatsapp().GetVerifyToken()) != "shh-verify-token" {
+		t.Error("marker must preserve the ORIGINAL verify_token")
+	}
+}
+
 // TestValidateProviderImmutableStep pins the provider-arm immutability at
-// the step level. Only one provider arm (slack) exists in v1, so a real
-// cross-provider flip cannot pass proto validation through the full
-// pipeline yet — the step is exercised directly, exactly the agentchannel
-// provider-immutability test's posture, to pin the refusal a second arm
-// (WhatsApp, T05) will hit.
+// the step level with a real slack-to-whatsapp flip (the empty-spec
+// stand-in this test used before WhatsApp existed is gone with T05).
 func TestValidateProviderImmutableStep(t *testing.T) {
 	existing := newSlackApp("Acme Support App", "acme")
 
-	// The input carries NO provider arm — the closest constructible
-	// stand-in for "a different provider" until a second arm exists.
-	input := newSlackApp("Acme Support App", "acme")
-	input.Spec = &channelappv1.ChannelAppSpec{}
+	input := newWhatsAppApp("Acme Support App", "acme")
 
 	reqCtx := pipeline.NewRequestContext(appCtx(), input)
 	reqCtx.Set(steps.ExistingResourceKey, existing)

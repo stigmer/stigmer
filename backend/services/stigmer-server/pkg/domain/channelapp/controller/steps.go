@@ -24,8 +24,8 @@ const RedactedMarker = "***REDACTED***"
 
 // encryptChannelAppSecretsStep encrypts the ChannelApp secret fields before
 // persistence — the oauthapp encryptClientSecretStep generalized to a
-// provider oneof carrying multiple secrets (Slack: client_secret AND
-// signing_secret).
+// provider oneof carrying multiple secrets (Slack: client_secret and
+// signing_secret; WhatsApp: app_secret, access_token and verify_token).
 //
 // Each field is handled independently, per field:
 //   - Create: encrypts the plaintext value; the redaction marker is
@@ -55,13 +55,23 @@ func (s *encryptChannelAppSecretsStep) Name() string {
 	return "EncryptChannelAppSecrets"
 }
 
+// Every provider arm must be handled here. TestRedactAndEncryptCoverEveryProviderArm
+// fails the build if an arm is added to the spec oneof without encryption.
 func (s *encryptChannelAppSecretsStep) Execute(ctx *pipeline.RequestContext[*channelappv1.ChannelApp]) error {
-	app := ctx.NewState()
-	slack := app.GetSpec().GetSlack()
-	if slack == nil {
-		return nil
+	spec := ctx.NewState().GetSpec()
+	switch {
+	case spec.GetSlack() != nil:
+		return s.encryptSlack(ctx, spec.GetSlack())
+	case spec.GetWhatsapp() != nil:
+		return s.encryptWhatsApp(ctx, spec.GetWhatsapp())
 	}
+	return nil
+}
 
+func (s *encryptChannelAppSecretsStep) encryptSlack(
+	ctx *pipeline.RequestContext[*channelappv1.ChannelApp],
+	slack *channelappv1.SlackChannelAppConfig,
+) error {
 	clientSecret, err := s.resolveSecret(ctx, "client_secret", slack.GetClientSecret(),
 		func(existing *channelappv1.ChannelApp) string {
 			return existing.GetSpec().GetSlack().GetClientSecret()
@@ -80,6 +90,40 @@ func (s *encryptChannelAppSecretsStep) Execute(ctx *pipeline.RequestContext[*cha
 
 	slack.ClientSecret = clientSecret
 	slack.SigningSecret = signingSecret
+	return nil
+}
+
+func (s *encryptChannelAppSecretsStep) encryptWhatsApp(
+	ctx *pipeline.RequestContext[*channelappv1.ChannelApp],
+	whatsapp *channelappv1.WhatsAppChannelAppConfig,
+) error {
+	appSecret, err := s.resolveSecret(ctx, "app_secret", whatsapp.GetAppSecret(),
+		func(existing *channelappv1.ChannelApp) string {
+			return existing.GetSpec().GetWhatsapp().GetAppSecret()
+		})
+	if err != nil {
+		return err
+	}
+
+	accessToken, err := s.resolveSecret(ctx, "access_token", whatsapp.GetAccessToken(),
+		func(existing *channelappv1.ChannelApp) string {
+			return existing.GetSpec().GetWhatsapp().GetAccessToken()
+		})
+	if err != nil {
+		return err
+	}
+
+	verifyToken, err := s.resolveSecret(ctx, "verify_token", whatsapp.GetVerifyToken(),
+		func(existing *channelappv1.ChannelApp) string {
+			return existing.GetSpec().GetWhatsapp().GetVerifyToken()
+		})
+	if err != nil {
+		return err
+	}
+
+	whatsapp.AppSecret = appSecret
+	whatsapp.AccessToken = accessToken
+	whatsapp.VerifyToken = verifyToken
 	return nil
 }
 
@@ -143,18 +187,40 @@ func (s *encryptChannelAppSecretsStep) preserveExistingSecret(
 
 // RedactChannelApp replaces every non-empty secret field with
 // RedactedMarker on the given app — used in all API responses (get,
-// getByReference, create, update, listByOrg), the RedactOAuthApp shape
-// over the provider oneof.
+// getByReference, create, update, delete, listByOrg), the RedactOAuthApp
+// shape over the provider oneof.
+//
+// Every provider arm must be handled here. TestRedactAndEncryptCoverEveryProviderArm
+// fails the build if an arm is added to the spec oneof without redaction.
 func RedactChannelApp(app *channelappv1.ChannelApp) {
-	slack := app.GetSpec().GetSlack()
-	if slack == nil {
-		return
+	switch {
+	case app.GetSpec().GetSlack() != nil:
+		redactSlack(app.GetSpec().GetSlack())
+	case app.GetSpec().GetWhatsapp() != nil:
+		redactWhatsApp(app.GetSpec().GetWhatsapp())
 	}
+}
+
+func redactSlack(slack *channelappv1.SlackChannelAppConfig) {
 	if slack.GetClientSecret() != "" {
 		slack.ClientSecret = RedactedMarker
 	}
 	if slack.GetSigningSecret() != "" {
 		slack.SigningSecret = RedactedMarker
+	}
+}
+
+// redactWhatsApp redacts app_secret, access_token and verify_token —
+// app_id is public and stays.
+func redactWhatsApp(whatsapp *channelappv1.WhatsAppChannelAppConfig) {
+	if whatsapp.GetAppSecret() != "" {
+		whatsapp.AppSecret = RedactedMarker
+	}
+	if whatsapp.GetAccessToken() != "" {
+		whatsapp.AccessToken = RedactedMarker
+	}
+	if whatsapp.GetVerifyToken() != "" {
+		whatsapp.VerifyToken = RedactedMarker
 	}
 }
 
