@@ -173,9 +173,9 @@ function ImagePreviewChip({
 
   return (
     <span role="listitem" aria-label={name} title={name} className="inline-flex">
-      {/* The whole tile is the preview target. UNSTYLED_BUTTON is
-          load-bearing: without it the tile shows the UA's default button
-          box in preflight-less hosts (see the constant). */}
+      {/* The whole tile is the preview target. UNSTYLED_BUTTON adds the
+          pointer cursor — the image tile carries no other clickability
+          cue. */}
       <button
         type="button"
         onClick={onPreview}
@@ -270,7 +270,7 @@ function DocumentChip({
           aria-label={`Download ${name}`}
           className={cn(
             UNSTYLED_BUTTON,
-            "flex min-w-0 items-center gap-1 rounded-sm text-inherit [font:inherit] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "flex min-w-0 items-center gap-1 rounded-sm hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             isDownloading && "opacity-70",
           )}
         >

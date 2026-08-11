@@ -225,8 +225,8 @@ function ImageAttachmentChip({
       {/* The whole tile is the preview target. Preview stays enabled while
           `disabled` (that prop gates the mutating remove/retry actions) and
           in every phase: the object URL wraps in-memory bytes, no fetch.
-          UNSTYLED_BUTTON is load-bearing: without it the tile shows the
-          UA's default button box in preflight-less hosts (see the constant). */}
+          UNSTYLED_BUTTON adds the pointer cursor — the image tile carries
+          no other clickability cue. */}
       <button
         type="button"
         onClick={onPreview}
@@ -271,7 +271,7 @@ function ImageAttachmentChip({
           aria-label={`Retry uploading ${entry.file.name}`}
           className={cn(
             UNSTYLED_BUTTON,
-            "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-destructive px-1.5 py-0.5 text-[0.6rem] font-medium leading-none text-destructive-foreground shadow-sm [font-family:inherit] hover:bg-destructive-hover disabled:pointer-events-none",
+            "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-destructive px-1.5 py-0.5 text-[0.6rem] font-medium leading-none text-destructive-foreground shadow-sm hover:bg-destructive-hover disabled:pointer-events-none",
           )}
         >
           Retry
@@ -363,7 +363,7 @@ function RetryButton({
       disabled={disabled}
       className={cn(
         UNSTYLED_BUTTON,
-        "shrink-0 text-[0.6rem] font-medium text-destructive underline [font-family:inherit] hover:text-destructive-muted disabled:pointer-events-none",
+        "shrink-0 text-[0.6rem] font-medium text-destructive underline hover:text-destructive-muted disabled:pointer-events-none",
       )}
       aria-label={`Retry uploading ${filename}`}
     >

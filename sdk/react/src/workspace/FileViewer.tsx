@@ -538,8 +538,8 @@ function ImageFileContent({
       )}
       <div className="flex flex-col items-center gap-2 p-4">
         {url ? (
-          // UNSTYLED_BUTTON is load-bearing: without it the button shows the
-          // UA's default box in preflight-less hosts (see the constant).
+          // UNSTYLED_BUTTON adds the pointer cursor — the image preview
+          // carries no other clickability cue.
           <button
             type="button"
             onClick={() => setLightboxOpen(true)}

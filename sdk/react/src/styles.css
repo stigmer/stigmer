@@ -147,6 +147,100 @@
     border-style: solid;
     border-color: var(--stgm-border, currentColor);
   }
+
+  /* Scoped form-control preflight (#374). Every SDK component is authored
+     against Tailwind's preflight baseline — our own consoles run it globally,
+     so ghost/outline buttons, icon buttons, and chip actions carry no `bg-*`,
+     `p-*`, or font utilities and silently depend on the host having zeroed
+     the UA's `buttonface` box. A host WITHOUT a global preflight (third-party
+     embeds, the packed demo tours) rendered every such control as a grey UA
+     default box. These rules reproduce, under `.stgm`, the form-control
+     subset of `tailwindcss/preflight.css` — copied VERBATIM, value for
+     value. That byte-parity is load-bearing twice over:
+
+     - In a preflight host the same values already apply globally in this
+       same `base` layer, so the scoped copy is a no-op by construction
+       (the `.stgm`-prefixed selector has higher specificity within `base`,
+       which only matters if the values ever diverge — do not let them).
+     - In a preflight-less host, SDK surfaces render exactly what the
+       components were designed against in the consoles.
+
+     Like the border reset above, these MUST stay in `base`: one layer
+     higher and they silently override every `bg-*`/`p-*` utility on every
+     button in the SDK (the utilities are emitted into `utilities`/`stgm`).
+
+     Deliberately NOT ported from preflight: the universal margin/padding
+     zero and the typography resets. In the documented quickstart the host
+     wraps its whole app in `StigmerProvider`, i.e. inside `.stgm` — those
+     rules would strip a non-Tailwind host's own content styling (paragraph
+     margins, heading sizes). Form controls carry the same bounded,
+     already-accepted trade-off as the border reset above. The margin/
+     padding zero below is preflight's universal rule narrowed to the
+     controls it exists to fix. Normalization rules for input types the SDK
+     never renders (date/time/search chrome, -moz-ui-invalid) are also
+     omitted — add them verbatim if such an input ever ships. */
+  .stgm button,
+  .stgm input,
+  .stgm select,
+  .stgm optgroup,
+  .stgm textarea,
+  .stgm ::file-selector-button {
+    margin: 0;
+    padding: 0;
+    font: inherit;
+    font-feature-settings: inherit;
+    font-variation-settings: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    border-radius: 0;
+    background-color: transparent;
+    opacity: 1;
+  }
+
+  /* Correct the inability to style the border radius in iOS Safari. */
+  .stgm button,
+  .stgm input:where([type="button"], [type="reset"], [type="submit"]),
+  .stgm ::file-selector-button {
+    appearance: button;
+  }
+
+  /* Restore default font weight (the block above inherits it away). */
+  .stgm :where(select:is([multiple], [size])) optgroup {
+    font-weight: bolder;
+  }
+
+  /* Restore space after button. */
+  .stgm ::file-selector-button {
+    margin-inline-end: 4px;
+  }
+
+  /* Reset the default placeholder opacity in Firefox.
+     (https://github.com/tailwindlabs/tailwindcss/issues/3300) */
+  .stgm ::placeholder {
+    opacity: 1;
+  }
+
+  /* Set the default placeholder color to a semi-transparent version of the
+     current text color in browsers that do not crash when using
+     `color-mix(…)` with `currentcolor`.
+     (https://github.com/tailwindlabs/tailwindcss/issues/17194) */
+  @supports (not (-webkit-appearance: -apple-pay-button)) /* Not Safari */ or
+    (contain-intrinsic-size: 1px) /* Safari 17+ */ {
+    .stgm ::placeholder {
+      color: color-mix(in oklab, currentcolor 50%, transparent);
+    }
+  }
+
+  /* Prevent resizing textareas horizontally by default. */
+  .stgm textarea {
+    resize: vertical;
+  }
+
+  /* Correct the cursor style of increment and decrement buttons in Safari. */
+  .stgm ::-webkit-inner-spin-button,
+  .stgm ::-webkit-outer-spin-button {
+    height: auto;
+  }
 }
 
 @layer stgm {

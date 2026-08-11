@@ -102,4 +102,44 @@ describe("styles.css border-layer invariant (host-compiled)", () => {
       `expected @layer base (#${baseIdx}) to precede @layer utilities (#${utilitiesIdx}); order was [${layerOrder.join(", ")}]`,
     ).toBeLessThan(utilitiesIdx);
   });
+
+  // The form-control preflight (#374) has the same one dangerous failure mode
+  // as the border reset: land it in any layer above `utilities` and it
+  // silently overrides every `bg-*`/`p-*` utility on every button in the SDK.
+  // Same harness, same invariant — pinned separately because the rule is
+  // found by a different fingerprint (background-color on `.stgm button`).
+  it("emits the .stgm form-control preflight in `base`, below the `utilities` layer", async () => {
+    const css = await compileHostContext();
+    const root = postcss.parse(css);
+
+    let controlRule: Rule | null = null;
+    root.walkRules((rule) => {
+      if (!rule.selector.includes(".stgm button")) return;
+      const clearsBackground = rule.some(
+        (decl) =>
+          decl.type === "decl" &&
+          decl.prop === "background-color" &&
+          decl.value.trim() === "transparent",
+      );
+      if (clearsBackground) controlRule = rule;
+    });
+    expect(
+      controlRule,
+      "the .stgm form-control preflight (background-color: transparent on .stgm button) was not found",
+    ).not.toBeNull();
+    expect(
+      enclosingLayer(controlRule!),
+      "the .stgm form-control preflight must live in @layer base (a layer above `utilities` silently overrides every bg-*/p-* utility on every button in the SDK)",
+    ).toBe("base");
+
+    // The block must cover all five control elements, not just button —
+    // an accidental selector trim would silently re-expose the UA defaults
+    // on inputs/textareas in preflight-less hosts.
+    for (const control of ["input", "select", "optgroup", "textarea"]) {
+      expect(
+        controlRule!.selector,
+        `the form-control preflight selector must include .stgm ${control}`,
+      ).toContain(`.stgm ${control}`);
+    }
+  });
 });
