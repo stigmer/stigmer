@@ -11,6 +11,7 @@ import {
   CALLER_IDENTITY_VALUE_ENV_KEY,
   SESSION_ID_ENV_KEY,
   STIGMER_USER_KIND,
+  SYSTEM_CREATOR_SENTINEL,
   anonymousCallerIdentity,
   injectAnonymousCallerIdentityForDiscovery,
   injectCallerIdentityEnv,
@@ -68,6 +69,30 @@ describe("resolveCallerIdentity precedence", () => {
       kind: ANONYMOUS_KIND,
       value: "",
     });
+  });
+
+  it('the "system" audit placeholder is never a caller — falls to anonymous (contract guard)', () => {
+    // The OSS server stamps created_by.id = "system" on every create (no
+    // local auth) and the cloud's AuditActorBuilder falls back to the
+    // same literal — one string shared by ALL such traffic. Presenting it
+    // would let a single MCP binding for "system" grant every one of
+    // those sessions, so it must resolve to the anonymous sentinel.
+    expect(resolveCallerIdentity(undefined, { id: SYSTEM_CREATOR_SENTINEL })).toEqual({
+      kind: ANONYMOUS_KIND,
+      value: "",
+    });
+    expect(resolveCallerIdentity({}, { id: " system ", email: "" })).toEqual({
+      kind: ANONYMOUS_KIND,
+      value: "",
+    });
+  });
+
+  it('a real email always wins — an account is never demoted for its id alone', () => {
+    // Email-first ordering: the sentinel check only ever sees creators
+    // that have no email, so a resolvable principal cannot be demoted.
+    expect(
+      resolveCallerIdentity(undefined, { id: SYSTEM_CREATOR_SENTINEL, email: "ops@example.com" }),
+    ).toEqual({ kind: STIGMER_USER_KIND, value: "ops@example.com" });
   });
 
   it("a half-present channel identity (value without kind) is NOT a channel sender", () => {

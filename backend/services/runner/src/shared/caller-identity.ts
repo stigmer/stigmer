@@ -10,8 +10,10 @@
  *   2. The session creator (`stigmer_user`) from the Session resource's
  *      audit actor — console/CLI sessions have no channel sender, but the
  *      platform knows exactly who created the session.
- *   3. The anonymous sentinel — discovery (no session exists) and sessions
- *      with no readable creator. Consumers must treat anonymous as a
+ *   3. The anonymous sentinel — discovery (no session exists), sessions
+ *      with no readable creator, and sessions whose creator is the
+ *      backend's "system" audit placeholder (not a principal — see
+ *      SYSTEM_CREATOR_SENTINEL). Consumers must treat anonymous as a
  *      first-class caller: answer tools/list, refuse tool calls.
  *
  * Injection is opt-in by construction: the values enter the env map used
@@ -54,6 +56,20 @@ export const STIGMER_USER_KIND = "stigmer_user";
  */
 export const ANONYMOUS_KIND = "anonymous";
 
+/**
+ * Audit-actor id that backends stamp when NO caller identity exists —
+ * the OSS server writes it on every create (no local auth), and the
+ * cloud's AuditActorBuilder falls back to it for caller-less internal
+ * writes. It names "nobody in particular": unrelated sessions from
+ * unrelated people all carry it, so presenting it as a caller identity
+ * would make the one string a grantable value that silently covers ALL
+ * such traffic in an MCP server's binding sheet. A creator matching this
+ * sentinel (and carrying no email) is therefore unresolvable and falls
+ * to anonymous — the deny-by-default the docs guide already promises
+ * for self-hosted backends.
+ */
+export const SYSTEM_CREATOR_SENTINEL = "system";
+
 /** The resolved caller identity. */
 export interface CallerIdentity {
   kind: string;
@@ -79,6 +95,12 @@ export function anonymousCallerIdentity(): CallerIdentity {
  * humans, and the audit actor's `id` field is historically mixed
  * (identity-account id vs email — see the proto's own @internal note).
  * Binding matchers should compare emails case-insensitively.
+ *
+ * A creator with no email whose id is the "system" audit placeholder is
+ * NOT a principal (see SYSTEM_CREATOR_SENTINEL) and resolves to
+ * anonymous. Email-first is deliberate here too: a real account that
+ * merely has "system" somewhere in its id is never demoted, because its
+ * email wins before the sentinel check runs.
  */
 export function resolveCallerIdentity(
   sessionMetadata: Record<string, string> | undefined,
@@ -90,10 +112,23 @@ export function resolveCallerIdentity(
   }
 
   const email = creator?.email?.trim();
+  if (email) {
+    return { kind: STIGMER_USER_KIND, value: email };
+  }
+
   const id = creator?.id?.trim();
-  const value = email || id;
-  if (value) {
-    return { kind: STIGMER_USER_KIND, value };
+  if (id === SYSTEM_CREATOR_SENTINEL) {
+    // Operator tripwire: identity-gated MCP tools will refuse this
+    // session; the fix is real caller attribution, never a "system" grant.
+    console.info(
+      `Session creator is the "${SYSTEM_CREATOR_SENTINEL}" audit placeholder ` +
+      `(no email) — not a resolvable principal; presenting the anonymous ` +
+      `caller identity to MCP servers`,
+    );
+    return anonymousCallerIdentity();
+  }
+  if (id) {
+    return { kind: STIGMER_USER_KIND, value: id };
   }
 
   return anonymousCallerIdentity();
