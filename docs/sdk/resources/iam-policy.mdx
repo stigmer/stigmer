@@ -62,6 +62,7 @@ IamPolicy iamPolicy = client.iamPolicies().get("iamp_01j5q3k7m8r2s4tnz2hfp0q0c3"
 | [`create`](#create) | Create a new IAM policy. |
 | [`delete`](#delete) | Delete a single IAM policy by spec. |
 | [`bootstrapPolicy`](#bootstrappolicy) | Bootstrap IAM policy during resource creation. |
+| [`bootstrapRevokeOrgAccess`](#bootstraprevokeorgaccess) | Revoke all of a user's access to an organization via the system (bootstrap) path. |
 | [`checkAuthorization`](#checkauthorization) | Check if a principal is authorized to perform a relation on a resource. |
 | [`checkMyPermission`](#checkmypermission) | Check whether the AUTHENTICATED CALLER has a permission on a resource. |
 | [`cleanupResourcePolicies`](#cleanupresourcepolicies) | Cleanup all IAM policies for a deleted resource. |
@@ -511,6 +512,51 @@ IamPolicy iamPolicy = client.iamPolicies().bootstrapPolicy(IamPolicySpec.builder
 **Parameters**: [`IamPolicySpec`](#iampolicyspec)
 
 **Returns**: [`IamPolicy`](#iampolicy)
+
+### bootstrapRevokeOrgAccess
+
+Revoke all of a user's access to an organization via the system (bootstrap) path.
+
+The system-flow twin of revokeOrgAccess: identical revocation behavior, but authorized by can_bootstrap_iam on platform:stigmer instead of can_grant_access on the organization.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const empty = await stigmer.iamPolicy.bootstrapRevokeOrgAccess({
+  identityAccountId: "...",
+  organizationId: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+empty, err := client.IamPolicy.BootstrapRevokeOrgAccess(ctx, &stigmer.RevokeOrgAccessInput{
+  IdentityAccountId: "...",
+  OrganizationId:    "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+empty = client.iam_policies.bootstrap_revoke_org_access(RevokeOrgAccessInput(
+    identity_account_id="...",
+    organization_id="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Empty empty = client.iamPolicies().bootstrapRevokeOrgAccess(RevokeOrgAccessInput.builder()
+    .identityAccountId("...")
+    .organizationId("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`RevokeOrgAccessInput`](#revokeorgaccessinput)
+
+**Returns**: `void`
 
 ### checkAuthorization
 

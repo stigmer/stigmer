@@ -20,11 +20,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IamPolicyCommandController_Create_FullMethodName                  = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/create"
-	IamPolicyCommandController_Delete_FullMethodName                  = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/delete"
-	IamPolicyCommandController_BootstrapPolicy_FullMethodName         = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/bootstrapPolicy"
-	IamPolicyCommandController_CleanupResourcePolicies_FullMethodName = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/cleanupResourcePolicies"
-	IamPolicyCommandController_RevokeOrgAccess_FullMethodName         = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/revokeOrgAccess"
+	IamPolicyCommandController_Create_FullMethodName                   = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/create"
+	IamPolicyCommandController_Delete_FullMethodName                   = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/delete"
+	IamPolicyCommandController_BootstrapPolicy_FullMethodName          = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/bootstrapPolicy"
+	IamPolicyCommandController_CleanupResourcePolicies_FullMethodName  = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/cleanupResourcePolicies"
+	IamPolicyCommandController_RevokeOrgAccess_FullMethodName          = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/revokeOrgAccess"
+	IamPolicyCommandController_BootstrapRevokeOrgAccess_FullMethodName = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/bootstrapRevokeOrgAccess"
 )
 
 // IamPolicyCommandControllerClient is the client API for IamPolicyCommandController service.
@@ -200,7 +201,10 @@ type IamPolicyCommandControllerClient interface {
 	// 5. Removes all corresponding tuples from OpenFGA
 	//
 	// Authorization:
-	// - Caller must have 'can_grant_access' permission on the organization
+	//   - Caller must have 'can_grant_access' permission on the organization
+	//   - System flows running as the platform machine account cannot satisfy this
+	//     check (the machine account holds no org-scoped grants by design) and must
+	//     use bootstrapRevokeOrgAccess instead
 	//
 	// Use Cases:
 	// - Removing a member from an organization
@@ -209,6 +213,42 @@ type IamPolicyCommandControllerClient interface {
 	// Input: RevokeOrgAccessInput with identity_account_id and organization_id
 	// Output: Empty (google.protobuf.Empty)
 	RevokeOrgAccess(ctx context.Context, in *RevokeOrgAccessInput, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// Revoke all of a user's access to an organization via the system (bootstrap) path.
+	//
+	// The system-flow twin of revokeOrgAccess: identical revocation behavior, but
+	// authorized by can_bootstrap_iam on platform:stigmer instead of
+	// can_grant_access on the organization.
+	//
+	// @internal
+	// Exists because system flows execute the revoke as the platform machine
+	// account, which by design holds no org-scoped grants. The system channel does
+	// NOT bypass authorization — it authenticates as the machine account, which
+	// can only satisfy platform-scoped permissions. revokeOrgAccess therefore
+	// always fails with PERMISSION_DENIED on the system channel; this RPC is the
+	// sanctioned path, mirroring how bootstrapPolicy is the system-path twin of
+	// create (see https://github.com/stigmer/stigmer/issues/332).
+	//
+	// The operation (identical to revokeOrgAccess after authorization):
+	//  1. Validates can_bootstrap_iam permission on platform:stigmer
+	//  2. Loads all policies where the identity account is principal within the org
+	//     scope, plus policies directly on the organization itself
+	//  3. Deletes all matching policies from MongoDB
+	//  4. Removes all corresponding tuples from OpenFGA (idempotent if none exist)
+	//
+	// Authorization:
+	// - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
+	// - This is typically only granted to platform services (machine accounts)
+	//
+	// Use Cases:
+	// - Federated account deprovisioning (deprovisionFederatedAccount's revoke step)
+	// - Any platform-driven offboarding that runs under system credentials
+	//
+	// End-user member removal must use revokeOrgAccess, which checks
+	// can_grant_access on the organization.
+	//
+	// Input: RevokeOrgAccessInput with identity_account_id and organization_id
+	// Output: Empty (google.protobuf.Empty)
+	BootstrapRevokeOrgAccess(ctx context.Context, in *RevokeOrgAccessInput, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type iamPolicyCommandControllerClient struct {
@@ -263,6 +303,16 @@ func (c *iamPolicyCommandControllerClient) RevokeOrgAccess(ctx context.Context, 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, IamPolicyCommandController_RevokeOrgAccess_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iamPolicyCommandControllerClient) BootstrapRevokeOrgAccess(ctx context.Context, in *RevokeOrgAccessInput, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, IamPolicyCommandController_BootstrapRevokeOrgAccess_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -442,7 +492,10 @@ type IamPolicyCommandControllerServer interface {
 	// 5. Removes all corresponding tuples from OpenFGA
 	//
 	// Authorization:
-	// - Caller must have 'can_grant_access' permission on the organization
+	//   - Caller must have 'can_grant_access' permission on the organization
+	//   - System flows running as the platform machine account cannot satisfy this
+	//     check (the machine account holds no org-scoped grants by design) and must
+	//     use bootstrapRevokeOrgAccess instead
 	//
 	// Use Cases:
 	// - Removing a member from an organization
@@ -451,6 +504,42 @@ type IamPolicyCommandControllerServer interface {
 	// Input: RevokeOrgAccessInput with identity_account_id and organization_id
 	// Output: Empty (google.protobuf.Empty)
 	RevokeOrgAccess(context.Context, *RevokeOrgAccessInput) (*emptypb.Empty, error)
+	// Revoke all of a user's access to an organization via the system (bootstrap) path.
+	//
+	// The system-flow twin of revokeOrgAccess: identical revocation behavior, but
+	// authorized by can_bootstrap_iam on platform:stigmer instead of
+	// can_grant_access on the organization.
+	//
+	// @internal
+	// Exists because system flows execute the revoke as the platform machine
+	// account, which by design holds no org-scoped grants. The system channel does
+	// NOT bypass authorization — it authenticates as the machine account, which
+	// can only satisfy platform-scoped permissions. revokeOrgAccess therefore
+	// always fails with PERMISSION_DENIED on the system channel; this RPC is the
+	// sanctioned path, mirroring how bootstrapPolicy is the system-path twin of
+	// create (see https://github.com/stigmer/stigmer/issues/332).
+	//
+	// The operation (identical to revokeOrgAccess after authorization):
+	//  1. Validates can_bootstrap_iam permission on platform:stigmer
+	//  2. Loads all policies where the identity account is principal within the org
+	//     scope, plus policies directly on the organization itself
+	//  3. Deletes all matching policies from MongoDB
+	//  4. Removes all corresponding tuples from OpenFGA (idempotent if none exist)
+	//
+	// Authorization:
+	// - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
+	// - This is typically only granted to platform services (machine accounts)
+	//
+	// Use Cases:
+	// - Federated account deprovisioning (deprovisionFederatedAccount's revoke step)
+	// - Any platform-driven offboarding that runs under system credentials
+	//
+	// End-user member removal must use revokeOrgAccess, which checks
+	// can_grant_access on the organization.
+	//
+	// Input: RevokeOrgAccessInput with identity_account_id and organization_id
+	// Output: Empty (google.protobuf.Empty)
+	BootstrapRevokeOrgAccess(context.Context, *RevokeOrgAccessInput) (*emptypb.Empty, error)
 }
 
 // UnimplementedIamPolicyCommandControllerServer should be embedded to have
@@ -474,6 +563,9 @@ func (UnimplementedIamPolicyCommandControllerServer) CleanupResourcePolicies(con
 }
 func (UnimplementedIamPolicyCommandControllerServer) RevokeOrgAccess(context.Context, *RevokeOrgAccessInput) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RevokeOrgAccess not implemented")
+}
+func (UnimplementedIamPolicyCommandControllerServer) BootstrapRevokeOrgAccess(context.Context, *RevokeOrgAccessInput) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BootstrapRevokeOrgAccess not implemented")
 }
 func (UnimplementedIamPolicyCommandControllerServer) testEmbeddedByValue() {}
 
@@ -585,6 +677,24 @@ func _IamPolicyCommandController_RevokeOrgAccess_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IamPolicyCommandController_BootstrapRevokeOrgAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeOrgAccessInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IamPolicyCommandControllerServer).BootstrapRevokeOrgAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IamPolicyCommandController_BootstrapRevokeOrgAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IamPolicyCommandControllerServer).BootstrapRevokeOrgAccess(ctx, req.(*RevokeOrgAccessInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IamPolicyCommandController_ServiceDesc is the grpc.ServiceDesc for IamPolicyCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -611,6 +721,10 @@ var IamPolicyCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "revokeOrgAccess",
 			Handler:    _IamPolicyCommandController_RevokeOrgAccess_Handler,
+		},
+		{
+			MethodName: "bootstrapRevokeOrgAccess",
+			Handler:    _IamPolicyCommandController_BootstrapRevokeOrgAccess_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

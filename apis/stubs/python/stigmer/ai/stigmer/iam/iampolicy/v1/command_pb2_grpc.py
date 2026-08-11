@@ -57,6 +57,11 @@ class IamPolicyCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.RevokeOrgAccessInput.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                 _registered_method=True)
+        self.bootstrapRevokeOrgAccess = channel.unary_unary(
+                '/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/bootstrapRevokeOrgAccess',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.RevokeOrgAccessInput.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
 
 
 class IamPolicyCommandControllerServicer(object):
@@ -244,10 +249,54 @@ class IamPolicyCommandControllerServicer(object):
 
         Authorization:
         - Caller must have 'can_grant_access' permission on the organization
+        - System flows running as the platform machine account cannot satisfy this
+        check (the machine account holds no org-scoped grants by design) and must
+        use bootstrapRevokeOrgAccess instead
 
         Use Cases:
         - Removing a member from an organization
         - Offboarding a user from all org resources in one operation
+
+        Input: RevokeOrgAccessInput with identity_account_id and organization_id
+        Output: Empty (google.protobuf.Empty)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def bootstrapRevokeOrgAccess(self, request, context):
+        """Revoke all of a user's access to an organization via the system (bootstrap) path.
+
+        The system-flow twin of revokeOrgAccess: identical revocation behavior, but
+        authorized by can_bootstrap_iam on platform:stigmer instead of
+        can_grant_access on the organization.
+
+        @internal
+        Exists because system flows execute the revoke as the platform machine
+        account, which by design holds no org-scoped grants. The system channel does
+        NOT bypass authorization — it authenticates as the machine account, which
+        can only satisfy platform-scoped permissions. revokeOrgAccess therefore
+        always fails with PERMISSION_DENIED on the system channel; this RPC is the
+        sanctioned path, mirroring how bootstrapPolicy is the system-path twin of
+        create (see https://github.com/stigmer/stigmer/issues/332).
+
+        The operation (identical to revokeOrgAccess after authorization):
+        1. Validates can_bootstrap_iam permission on platform:stigmer
+        2. Loads all policies where the identity account is principal within the org
+        scope, plus policies directly on the organization itself
+        3. Deletes all matching policies from MongoDB
+        4. Removes all corresponding tuples from OpenFGA (idempotent if none exist)
+
+        Authorization:
+        - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
+        - This is typically only granted to platform services (machine accounts)
+
+        Use Cases:
+        - Federated account deprovisioning (deprovisionFederatedAccount's revoke step)
+        - Any platform-driven offboarding that runs under system credentials
+
+        End-user member removal must use revokeOrgAccess, which checks
+        can_grant_access on the organization.
 
         Input: RevokeOrgAccessInput with identity_account_id and organization_id
         Output: Empty (google.protobuf.Empty)
@@ -281,6 +330,11 @@ def add_IamPolicyCommandControllerServicer_to_server(servicer, server):
             ),
             'revokeOrgAccess': grpc.unary_unary_rpc_method_handler(
                     servicer.revokeOrgAccess,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.RevokeOrgAccessInput.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'bootstrapRevokeOrgAccess': grpc.unary_unary_rpc_method_handler(
+                    servicer.bootstrapRevokeOrgAccess,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.RevokeOrgAccessInput.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
@@ -433,6 +487,33 @@ class IamPolicyCommandController(object):
             request,
             target,
             '/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/revokeOrgAccess',
+            ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.RevokeOrgAccessInput.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def bootstrapRevokeOrgAccess(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/bootstrapRevokeOrgAccess',
             ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.RevokeOrgAccessInput.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options,

@@ -66,6 +66,12 @@ public final class IamPolicyClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public void bootstrapRevokeOrgAccess(RevokeOrgAccessInput input) {
+        try {
+            command.bootstrapRevokeOrgAccess(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
     public IamPolicy get(String id) {
         try {
             return query.get(IamPolicyId.newBuilder().setValue(id).build());

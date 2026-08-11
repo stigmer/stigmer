@@ -43,7 +43,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "y/v1/api.proto\032$ai/stigmer/iam/iampolicy" +
       "/v1/io.proto\032&ai/stigmer/iam/iampolicy/v" +
       "1/spec.proto\032\033google/protobuf/empty.prot" +
-      "o2\314\006\n\032IamPolicyCommandController\022\202\001\n\006cre" +
+      "o2\233\010\n\032IamPolicyCommandController\022\202\001\n\006cre" +
       "ate\022*.ai.stigmer.iam.iampolicy.v1.IamPol" +
       "icySpec\032&.ai.stigmer.iam.iampolicy.v1.Ia" +
       "mPolicy\"$\302\270\030 \010\004*\034unauthorized to grant a" +
@@ -64,11 +64,16 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       ".stigmer.iam.iampolicy.v1.RevokeOrgAcces" +
       "sInput\032\026.google.protobuf.Empty\"2\302\270\030.\010\004**" +
       "unauthorized to revoke organization acce" +
-      "ss\032\004\240\377+\nB\237\001B\014CommandProtoP\001\242\002\004ASII\252\002\033Ai." +
-      "Stigmer.Iam.Iampolicy.V1\312\002\033Ai\\Stigmer\\Ia" +
-      "m\\Iampolicy\\V1\342\002\'Ai\\Stigmer\\Iam\\Iampolic" +
-      "y\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Iam::Iam" +
-      "policy::V1b\006proto3"
+      "ss\022\314\001\n\030bootstrapRevokeOrgAccess\0221.ai.sti" +
+      "gmer.iam.iampolicy.v1.RevokeOrgAccessInp" +
+      "ut\032\026.google.protobuf.Empty\"e\302\270\030a\010\021\020\037*Run" +
+      "authorized to revoke organization access" +
+      " - can_bootstrap_iam permission required" +
+      "2\007stigmer\032\004\240\377+\nB\237\001B\014CommandProtoP\001\242\002\004ASI" +
+      "I\252\002\033Ai.Stigmer.Iam.Iampolicy.V1\312\002\033Ai\\Sti" +
+      "gmer\\Iam\\Iampolicy\\V1\342\002\'Ai\\Stigmer\\Iam\\I" +
+      "ampolicy\\V1\\GPBMetadata\352\002\037Ai::Stigmer::I" +
+      "am::Iampolicy::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

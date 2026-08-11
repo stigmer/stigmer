@@ -17,6 +17,8 @@ import (
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -168,17 +170,36 @@ func TestIdentityAccount_CreateFederated_Lifecycle(t *testing.T) {
 	require.NoError(t, err, "updateFederatedAccount should succeed")
 	assert.Equal(t, "updated-federated@test.stigmer.ai", updated.GetSpec().GetEmail())
 
+	// The revoke phase of deprovision only has something to observe when the
+	// account actually holds org grants — grant membership the way production
+	// flows do (JIT auto-grant and invitation redeem land on the same IamPolicy
+	// records), so the revocations below are visible in FGA.
+	memberPolicy := &iampolicyv1.IamPolicySpec{
+		Principal: &iampolicyv1.ApiResourceRef{Kind: "identity_account", Id: created.GetMetadata().GetId()},
+		Resource:  &iampolicyv1.ApiResourceRef{Kind: "organization", Id: harness.TestOrg},
+		Relation:  "member",
+	}
+	isOrgMember := func() bool {
+		result, err := clients.IamPolicyQuery.CheckAuthorization(ctx,
+			&iampolicyv1.CheckAuthorizationInput{Policy: memberPolicy})
+		require.NoError(t, err, "checkAuthorization should succeed")
+		return result.GetIsAuthorized()
+	}
+	if testHarness.FGAEnabled() {
+		_, err = clients.IamPolicyCommand.Create(ctx, memberPolicy)
+		require.NoError(t, err, "granting the federated account org membership should succeed")
+		require.True(t, isOrgMember(), "sanity: the grant must be visible in FGA before deprovision")
+	}
+
 	// Deprovision (revoke only, don't delete)
 	//
-	// Skipped in the FGA lane: the deprovision flow's revokeOrgAccess call goes
-	// over the system channel, but the RPC requires can_grant_access (org
-	// admin), which the machine account does not hold — broken in production,
-	// previously masked by a harness tuple that seeded the machine account as
-	// org admin (removed with the #329 fix).
-	// https://github.com/stigmer/stigmer/issues/332
-	if testHarness.FGAEnabled() {
-		t.Skip("deprovisionFederatedAccount is broken with real FGA — see issue #332")
-	}
+	// Regression pin for https://github.com/stigmer/stigmer/issues/332: the
+	// deprovision flow's revoke runs as the platform machine account, which by
+	// design holds no org-scoped grants, so it must go through
+	// bootstrapRevokeOrgAccess (can_bootstrap_iam on platform:stigmer). The
+	// user-facing revokeOrgAccess (can_grant_access on the org) always failed
+	// here with PERMISSION_DENIED — previously masked by a harness tuple that
+	// seeded the machine account as org admin (removed with the #329 fix).
 	deprovisioned, err := clients.IdentityAccountCommand.DeprovisionFederatedAccount(ctx,
 		&identityaccountv1.DeprovisionFederatedAccountInput{
 			Org:                 harness.TestOrg,
@@ -188,6 +209,43 @@ func TestIdentityAccount_CreateFederated_Lifecycle(t *testing.T) {
 		})
 	require.NoError(t, err, "deprovisionFederatedAccount (revoke-only) should succeed")
 	assert.Equal(t, created.GetMetadata().GetId(), deprovisioned.GetMetadata().GetId())
+
+	if testHarness.FGAEnabled() {
+		assert.False(t, isOrgMember(),
+			"revoke-only deprovision must actually revoke the account's org access in FGA")
+
+		// Re-grant so the delete arm below also exercises the revoke path.
+		_, err = clients.IamPolicyCommand.Create(ctx, memberPolicy)
+		require.NoError(t, err, "re-granting org membership should succeed")
+	}
+
+	// Deprovision with delete_account=true — the arm confirmed broken in
+	// production (issue #332): revoke, then account deletion plus full policy
+	// cleanup (cleanupResourcePolicies).
+	deleted, err := clients.IdentityAccountCommand.DeprovisionFederatedAccount(ctx,
+		&identityaccountv1.DeprovisionFederatedAccountInput{
+			Org:                 harness.TestOrg,
+			IdentityProviderRef: idpRef,
+			ExternalSub:         "ext-sub-12345",
+			DeleteAccount:       true,
+		})
+	require.NoError(t, err, "deprovisionFederatedAccount (delete) should succeed")
+	assert.Equal(t, created.GetMetadata().GetId(), deleted.GetMetadata().GetId())
+
+	if testHarness.FGAEnabled() {
+		assert.False(t, isOrgMember(), "deleting deprovision must revoke the re-granted org access")
+	}
+
+	// The account is gone: a further deprovision has nothing to look up.
+	_, err = clients.IdentityAccountCommand.DeprovisionFederatedAccount(ctx,
+		&identityaccountv1.DeprovisionFederatedAccountInput{
+			Org:                 harness.TestOrg,
+			IdentityProviderRef: idpRef,
+			ExternalSub:         "ext-sub-12345",
+			DeleteAccount:       false,
+		})
+	require.Error(t, err, "deprovisioning a deleted account should fail")
+	assert.Equal(t, codes.NotFound, status.Code(err), "expected NOT_FOUND for a deleted account")
 }
 
 // --- IamPolicy ---
