@@ -10,6 +10,8 @@ exclude = [
   "https://portal\\.azure\\.com/",
   "https://console\\.aws\\.amazon\\.com/",
   "https://console\\.anthropic\\.com/",
+  "https://console\\.cloud\\.google\\.com/",
+  "https://ai\\.azure\\.com/",
   "https://docs\\.aws\\.amazon\\.com/cognito/",
   "https://api\\.stigmer\\.ai",
   "http://localhost"
