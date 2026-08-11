@@ -163,6 +163,60 @@ describe("buildChatModel", () => {
     expect(apiModelId).toBe("claude-haiku-4.5");
   });
 
+  // ─── Request timeout (STIGMER_LLM_REQUEST_TIMEOUT_MS) ──────────────────────
+  //
+  // The timeout lives in a different slot per wrapper: ChatOpenAI reads it
+  // as a constructor field; ChatAnthropic only honors clientOptions.timeout.
+  // Putting it in the shared constructor spread was the regression that made
+  // the env var inert on every Anthropic path (T02 finding 2, repaired in
+  // T06). The backend factories' half of the chain is pinned in the
+  // vertex/bedrock/foundry adapter tests.
+
+  describe("request timeout", () => {
+    it("places the OpenAI timeout at the constructor level with maxRetries 0", async () => {
+      mockRegistryResponse([
+        { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai" },
+      ]);
+
+      await buildChatModel({ modelName: "gpt-4.1", timeoutMs: 5000 });
+
+      const args = mockOpenAICtor.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+      expect(args).toMatchObject({ timeout: 5000, maxRetries: 0 });
+    });
+
+    it("places the Anthropic timeout in clientOptions, never the inert constructor slot", async () => {
+      mockRegistryResponse([
+        { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({ modelName: "claude-haiku-4.5", timeoutMs: 5000 });
+
+      const args = lastAnthropicArgs();
+      expect(args).toMatchObject({ clientOptions: { timeout: 5000 }, maxRetries: 0 });
+      expect(args).not.toHaveProperty("timeout");
+    });
+
+    it("merges the timeout with the proxy wiring inside one clientOptions block", async () => {
+      mockRegistryResponse([
+        { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({
+        modelName: "claude-haiku-4.5",
+        proxyEndpoint: "https://api.stigmer.ai",
+        stigmerToken: "tok-123",
+        timeoutMs: 5000,
+      });
+
+      expect(lastAnthropicArgs()).toMatchObject({
+        clientOptions: {
+          timeout: 5000,
+          baseURL: "https://api.stigmer.ai/v1/proxy/llm/anthropic",
+        },
+      });
+    });
+  });
+
   // ─── Provider backends (STIGMER_ANTHROPIC_BACKEND) ─────────────────────────
 
   describe("vertex backend", () => {

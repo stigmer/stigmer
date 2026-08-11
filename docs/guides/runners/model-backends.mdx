@@ -290,6 +290,20 @@ canonical id to whatever you named the deployment in the portal:
 export STIGMER_FOUNDRY_DEPLOYMENT_MAP="claude-sonnet-4-6=my-sonnet-deployment"
 ```
 
+## Bound each model request with a timeout
+
+Set `STIGMER_LLM_REQUEST_TIMEOUT_MS` to cap how long the runner waits for a
+single model response. The bound applies uniformly to the public provider APIs
+and to every backend on this page:
+
+```bash
+export STIGMER_LLM_REQUEST_TIMEOUT_MS=120000   # fail a stuck request after 2 minutes
+```
+
+Leave it unset to use each SDK's default (10 minutes). Values that are not
+positive integers are ignored. A request that exceeds the bound fails as a
+retryable connection timeout that names the model.
+
 ## Troubleshooting
 
 Every failure names the variable or permission to fix. The common ones:

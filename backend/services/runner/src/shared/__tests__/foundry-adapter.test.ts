@@ -13,6 +13,9 @@
  *
  * Pinned here:
  * - the factory forwards LangChain's `maxRetries: 0` to the client,
+ * - the factory forwards the request timeout (clientOptions.timeout ->
+ *   factory options -> SDK constructor; how STIGMER_LLM_REQUEST_TIMEOUT_MS
+ *   bounds this backend),
  * - construction and invocation succeed with NO ANTHROPIC_API_KEY (Foundry
  *   auth is Azure's, and ChatAnthropic waives the key when createClient is
  *   provided),
@@ -35,6 +38,7 @@ import { HumanMessage, AIMessage } from "@langchain/core/messages";
 const { foundryCtorArgs, createRequests, identityCalls } = vi.hoisted(() => ({
   foundryCtorArgs: [] as Array<{
     maxRetries?: number;
+    timeout?: number;
     azureADTokenProvider?: () => Promise<string>;
   }>,
   createRequests: [] as Array<Record<string, unknown>>,
@@ -65,6 +69,7 @@ vi.mock("@anthropic-ai/foundry-sdk", () => ({
 
     constructor(opts: {
       maxRetries?: number;
+      timeout?: number;
       azureADTokenProvider?: () => Promise<string>;
     }) {
       foundryCtorArgs.push(opts);
@@ -230,6 +235,22 @@ describe("buildChatModel foundry adapter", () => {
     await model.invoke([new HumanMessage("hi")]);
 
     expect(createRequests.at(-1)?.max_tokens).toBe(canonicalDefault);
+  });
+
+  it("forwards the request timeout to the SDK client (STIGMER_LLM_REQUEST_TIMEOUT_MS path)", async () => {
+    // The timeout rides clientOptions -> factory options -> SDK constructor.
+    // A factory that drops it silently unbounds the operator's timeout on
+    // this backend (the regression T06 repaired for the public path).
+    const { model } = await buildChatModel({
+      modelName: "claude-sonnet-4-6",
+      maxTokens: 256,
+      timeoutMs: 5000,
+    });
+    await model.invoke([new HumanMessage("hi")]);
+
+    expect(foundryCtorArgs).toHaveLength(1);
+    expect(foundryCtorArgs[0].timeout).toBe(5000);
+    expect(foundryCtorArgs[0].maxRetries).toBe(0);
   });
 
   it("constructs and invokes with no ANTHROPIC_API_KEY anywhere in the environment", async () => {
