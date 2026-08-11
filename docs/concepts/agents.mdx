@@ -177,13 +177,12 @@ The assistant is minimal by design. It has no Skills and no MCP server
 references — it's a blank slate. The value of Stigmer appears when you create
 Agents tailored to your domain.
 
-The `stigmer.ai/default-agent: "true"` label is what marks the default, and
-the Agent must be publicly visible to serve as one. To replace the default,
-apply the new labeled Agent first, then remove the label from the old one —
-that removal is the cutover. While both carry the label, the original keeps
-serving: among labeled public Agents, the longest-standing one (lowest ID)
-wins, so the default never changes as a side effect of another Agent gaining
-the label.
+The `stigmer.ai/default-agent: "true"` label is what marks the default, and the
+Agent must be publicly visible to serve as one. To replace the default, apply
+the new labeled Agent first, then remove the label from the old one — that
+removal is the cutover. While both carry the label, the original keeps serving:
+among labeled public Agents, the longest-standing one (lowest ID) wins, so the
+default never changes as a side effect of another Agent gaining the label.
 
 ## Instructions matter
 

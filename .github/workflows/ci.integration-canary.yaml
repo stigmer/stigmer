@@ -37,6 +37,8 @@ concurrency:
 permissions:
   contents: read
   checks: write
+  # Lets the notify-failure job file/update the canary-failure issue.
+  issues: write
 
 jobs:
   build-service-jar:
@@ -104,7 +106,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: ".nvmrc"
 
       - name: Install npm workspace dependencies
         run: npm ci
@@ -150,3 +152,31 @@ jobs:
           name: Canary Test Report
           path: test/integration/.test-output-canary/junit.xml
           reporter: java-junit
+
+  # Scheduled runs have no PR to block, so a red canary is invisible unless it
+  # announces itself — this lane once sat red for 30+ days unnoticed (#323).
+  # One open issue per breakage window: subsequent failures comment on the
+  # existing issue instead of filing duplicates; closing it arms the next one.
+  # Manual dispatches are attended, so only cron failures notify.
+  notify-failure:
+    name: File Canary Failure Issue
+    runs-on: ubuntu-latest
+    needs: [build-service-jar, canary-tests]
+    if: failure() && github.event_name == 'schedule'
+    steps:
+      - name: File or update the canary-failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          existing=$(gh issue list --repo "${{ github.repository }}" \
+            --label ci-canary-failure --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "${{ github.repository }}" \
+              --body "Nightly provider canary failed again: $run_url"
+          else
+            gh issue create --repo "${{ github.repository }}" \
+              --label ci-canary-failure \
+              --title "ci.integration-canary: nightly provider canary is failing" \
+              --body "$(printf 'The scheduled provider canary failed: %s\n\nThis lane asserts only that live provider calls complete (model retirement, proxy breakage, API key expiry). A failure here usually means a provider or credential problem, not a code regression.\n\nThis issue is filed automatically by the notify-failure job; later failures add comments here instead of new issues. Close it once the lane is green again.' "$run_url")"
+          fi
