@@ -16,7 +16,7 @@ spec:
     - cms
     - web-design
   http:
-    url: "https://mcp.webflow.com/sse"
+    url: "https://mcp.webflow.com/mcp"
     headers:
       Authorization: "Bearer ${WEBFLOW_ACCESS_TOKEN}"
   env:
