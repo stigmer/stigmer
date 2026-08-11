@@ -1043,6 +1043,69 @@ func TestStore_GetAuditByHash(t *testing.T) {
 	assert.True(t, errors.Is(err, store.ErrAuditNotFound), "expected ErrAuditNotFound, got: %v", err)
 }
 
+// TestStore_GetAuditByHash_DuplicateHashRowsResolveNewest pins the ordered
+// contract of the hash lookup (stigmer/stigmer-cloud#191): duplicate rows
+// for one (kind, resource_id, version_hash) are legal data — the skill push
+// path archives a re-push of prior content as a fresh row, and legacy
+// workflow rows predating the stigmer/stigmer#341 repoint semantics can
+// hold duplicates — and the lookup must return the NEWEST row (its envelope
+// carries the current version chain and archive-time tag fact), matching
+// the ordering of every other audit read.
+//
+// Negative control: without the ORDER BY, SQLite's idx_audit_hash scan
+// returns the lowest-rowid (oldest) duplicate in practice, so this test
+// fails against the previous unordered query.
+func TestStore_GetAuditByHash_DuplicateHashRowsResolveNewest(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s.Close()
+
+	kindNameStr, err := apiresourcelib.GetKindName(apiresourcekind.ApiResourceKind_agent)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	resourceId := "agent-duplicate-hash-test"
+	agent := &agentv1.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       kindNameStr,
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   resourceId,
+			Name: "duplicate-hash-agent",
+		},
+	}
+	err = s.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, agent)
+	require.NoError(t, err)
+
+	// Two archives of the SAME hash with distinguishable envelopes. Both
+	// inserts land within the same datetime('now') second, so this also
+	// exercises the id DESC tiebreaker.
+	sharedHash := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+	agent.Spec = &agentv1.AgentSpec{Description: "first archive of this content"}
+	err = s.SaveAudit(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, agent, sharedHash, "")
+	require.NoError(t, err)
+
+	agent.Spec = &agentv1.AgentSpec{Description: "second archive of this content"}
+	err = s.SaveAudit(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, agent, sharedHash, "re-push-tag")
+	require.NoError(t, err)
+
+	// The unmarshalling adapter returns the newest snapshot...
+	retrieved := &agentv1.Agent{}
+	err = s.GetAuditByHash(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, sharedHash, retrieved)
+	require.NoError(t, err)
+	assert.Equal(t, "second archive of this content", retrieved.Spec.Description,
+		"duplicate-hash lookup must resolve to the newest row")
+
+	// ...and the record variant carries the newest row's authoritative tag column.
+	rec, err := s.GetAuditRecordByHash(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, sharedHash)
+	require.NoError(t, err)
+	assert.Equal(t, "re-push-tag", rec.Tag,
+		"duplicate-hash lookup must carry the newest row's tag column")
+}
+
 func TestStore_GetAuditByTag(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.sqlite")

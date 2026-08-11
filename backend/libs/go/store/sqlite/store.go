@@ -1310,6 +1310,17 @@ func (s *Store) ListAuditRecords(ctx context.Context, kind apiresourcekind.ApiRe
 
 // GetAuditRecordByHash retrieves a single archived version by exact hash,
 // carrying its authoritative tag from the tag column.
+//
+// Duplicate rows for one (kind, resource_id, version_hash) are legal data,
+// so this lookup must be ordered, not an arbitrary LIMIT 1
+// (stigmer/stigmer-cloud#191): the skill push path archives a re-push of
+// prior content as a fresh row (skill tags are archive-time facts resolved
+// most-recently-archived-wins — see ArchiveCurrentSkillStep), and workflow
+// rows archived before the stigmer/stigmer#341 repoint semantics can hold
+// duplicates too. Duplicates share content but differ in envelope metadata
+// (metadata.version.previous_version_id, audit timestamps, archive-time
+// tag), and the newest row carries the current version chain — so newest
+// wins, matching every other audit read in this file.
 func (s *Store) GetAuditRecordByHash(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId, versionHash string) (*store.AuditRecord, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -1322,10 +1333,12 @@ func (s *Store) GetAuditRecordByHash(ctx context.Context, kind apiresourcekind.A
 		data []byte
 		tag  sql.NullString
 	)
-	// Query uses idx_audit_hash index for efficient lookup
+	// Query uses idx_audit_hash index and returns most recent by archived_at.
+	// Use id DESC as tiebreaker when timestamps are equal (sub-second inserts).
 	err := s.db.QueryRowContext(ctx,
 		`SELECT data, tag FROM resource_audit
 		 WHERE kind = ? AND resource_id = ? AND version_hash = ?
+		 ORDER BY archived_at DESC, id DESC
 		 LIMIT 1`,
 		kind.String(), resourceId, versionHash).Scan(&data, &tag)
 
