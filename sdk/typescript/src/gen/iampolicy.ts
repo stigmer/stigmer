@@ -52,6 +52,12 @@ export class IamPolicyClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async bootstrapRevokeOrgAccess(input: RevokeOrgAccessInput): Promise<void> {
+    try {
+      await this.command.bootstrapRevokeOrgAccess(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
   async get(id: string): Promise<IamPolicy> {
     try {
       return await this.query.get(create(IamPolicyIdSchema, { value: id }));

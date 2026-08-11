@@ -181,6 +181,37 @@ public final class IamPolicyCommandControllerGrpc {
     return getRevokeOrgAccessMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput,
+      com.google.protobuf.Empty> getBootstrapRevokeOrgAccessMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "bootstrapRevokeOrgAccess",
+      requestType = ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput.class,
+      responseType = com.google.protobuf.Empty.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput,
+      com.google.protobuf.Empty> getBootstrapRevokeOrgAccessMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput, com.google.protobuf.Empty> getBootstrapRevokeOrgAccessMethod;
+    if ((getBootstrapRevokeOrgAccessMethod = IamPolicyCommandControllerGrpc.getBootstrapRevokeOrgAccessMethod) == null) {
+      synchronized (IamPolicyCommandControllerGrpc.class) {
+        if ((getBootstrapRevokeOrgAccessMethod = IamPolicyCommandControllerGrpc.getBootstrapRevokeOrgAccessMethod) == null) {
+          IamPolicyCommandControllerGrpc.getBootstrapRevokeOrgAccessMethod = getBootstrapRevokeOrgAccessMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput, com.google.protobuf.Empty>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "bootstrapRevokeOrgAccess"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.google.protobuf.Empty.getDefaultInstance()))
+              .setSchemaDescriptor(new IamPolicyCommandControllerMethodDescriptorSupplier("bootstrapRevokeOrgAccess"))
+              .build();
+        }
+      }
+    }
+    return getBootstrapRevokeOrgAccessMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -409,6 +440,9 @@ public final class IamPolicyCommandControllerGrpc {
      * 5. Removes all corresponding tuples from OpenFGA
      * Authorization:
      * - Caller must have 'can_grant_access' permission on the organization
+     * - System flows running as the platform machine account cannot satisfy this
+     *   check (the machine account holds no org-scoped grants by design) and must
+     *   use bootstrapRevokeOrgAccess instead
      * Use Cases:
      * - Removing a member from an organization
      * - Offboarding a user from all org resources in one operation
@@ -419,6 +453,43 @@ public final class IamPolicyCommandControllerGrpc {
     default void revokeOrgAccess(ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput request,
         io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRevokeOrgAccessMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Revoke all of a user's access to an organization via the system (bootstrap) path.
+     * The system-flow twin of revokeOrgAccess: identical revocation behavior, but
+     * authorized by can_bootstrap_iam on platform:stigmer instead of
+     * can_grant_access on the organization.
+     * &#64;internal
+     * Exists because system flows execute the revoke as the platform machine
+     * account, which by design holds no org-scoped grants. The system channel does
+     * NOT bypass authorization — it authenticates as the machine account, which
+     * can only satisfy platform-scoped permissions. revokeOrgAccess therefore
+     * always fails with PERMISSION_DENIED on the system channel; this RPC is the
+     * sanctioned path, mirroring how bootstrapPolicy is the system-path twin of
+     * create (see https://github.com/stigmer/stigmer/issues/332).
+     * The operation (identical to revokeOrgAccess after authorization):
+     * 1. Validates can_bootstrap_iam permission on platform:stigmer
+     * 2. Loads all policies where the identity account is principal within the org
+     *    scope, plus policies directly on the organization itself
+     * 3. Deletes all matching policies from MongoDB
+     * 4. Removes all corresponding tuples from OpenFGA (idempotent if none exist)
+     * Authorization:
+     * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
+     * - This is typically only granted to platform services (machine accounts)
+     * Use Cases:
+     * - Federated account deprovisioning (deprovisionFederatedAccount's revoke step)
+     * - Any platform-driven offboarding that runs under system credentials
+     * End-user member removal must use revokeOrgAccess, which checks
+     * can_grant_access on the organization.
+     * Input: RevokeOrgAccessInput with identity_account_id and organization_id
+     * Output: Empty (google.protobuf.Empty)
+     * </pre>
+     */
+    default void bootstrapRevokeOrgAccess(ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput request,
+        io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getBootstrapRevokeOrgAccessMethod(), responseObserver);
     }
   }
 
@@ -632,6 +703,9 @@ public final class IamPolicyCommandControllerGrpc {
      * 5. Removes all corresponding tuples from OpenFGA
      * Authorization:
      * - Caller must have 'can_grant_access' permission on the organization
+     * - System flows running as the platform machine account cannot satisfy this
+     *   check (the machine account holds no org-scoped grants by design) and must
+     *   use bootstrapRevokeOrgAccess instead
      * Use Cases:
      * - Removing a member from an organization
      * - Offboarding a user from all org resources in one operation
@@ -643,6 +717,44 @@ public final class IamPolicyCommandControllerGrpc {
         io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getRevokeOrgAccessMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Revoke all of a user's access to an organization via the system (bootstrap) path.
+     * The system-flow twin of revokeOrgAccess: identical revocation behavior, but
+     * authorized by can_bootstrap_iam on platform:stigmer instead of
+     * can_grant_access on the organization.
+     * &#64;internal
+     * Exists because system flows execute the revoke as the platform machine
+     * account, which by design holds no org-scoped grants. The system channel does
+     * NOT bypass authorization — it authenticates as the machine account, which
+     * can only satisfy platform-scoped permissions. revokeOrgAccess therefore
+     * always fails with PERMISSION_DENIED on the system channel; this RPC is the
+     * sanctioned path, mirroring how bootstrapPolicy is the system-path twin of
+     * create (see https://github.com/stigmer/stigmer/issues/332).
+     * The operation (identical to revokeOrgAccess after authorization):
+     * 1. Validates can_bootstrap_iam permission on platform:stigmer
+     * 2. Loads all policies where the identity account is principal within the org
+     *    scope, plus policies directly on the organization itself
+     * 3. Deletes all matching policies from MongoDB
+     * 4. Removes all corresponding tuples from OpenFGA (idempotent if none exist)
+     * Authorization:
+     * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
+     * - This is typically only granted to platform services (machine accounts)
+     * Use Cases:
+     * - Federated account deprovisioning (deprovisionFederatedAccount's revoke step)
+     * - Any platform-driven offboarding that runs under system credentials
+     * End-user member removal must use revokeOrgAccess, which checks
+     * can_grant_access on the organization.
+     * Input: RevokeOrgAccessInput with identity_account_id and organization_id
+     * Output: Empty (google.protobuf.Empty)
+     * </pre>
+     */
+    public void bootstrapRevokeOrgAccess(ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput request,
+        io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getBootstrapRevokeOrgAccessMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -827,6 +939,9 @@ public final class IamPolicyCommandControllerGrpc {
      * 5. Removes all corresponding tuples from OpenFGA
      * Authorization:
      * - Caller must have 'can_grant_access' permission on the organization
+     * - System flows running as the platform machine account cannot satisfy this
+     *   check (the machine account holds no org-scoped grants by design) and must
+     *   use bootstrapRevokeOrgAccess instead
      * Use Cases:
      * - Removing a member from an organization
      * - Offboarding a user from all org resources in one operation
@@ -837,6 +952,43 @@ public final class IamPolicyCommandControllerGrpc {
     public com.google.protobuf.Empty revokeOrgAccess(ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getRevokeOrgAccessMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Revoke all of a user's access to an organization via the system (bootstrap) path.
+     * The system-flow twin of revokeOrgAccess: identical revocation behavior, but
+     * authorized by can_bootstrap_iam on platform:stigmer instead of
+     * can_grant_access on the organization.
+     * &#64;internal
+     * Exists because system flows execute the revoke as the platform machine
+     * account, which by design holds no org-scoped grants. The system channel does
+     * NOT bypass authorization — it authenticates as the machine account, which
+     * can only satisfy platform-scoped permissions. revokeOrgAccess therefore
+     * always fails with PERMISSION_DENIED on the system channel; this RPC is the
+     * sanctioned path, mirroring how bootstrapPolicy is the system-path twin of
+     * create (see https://github.com/stigmer/stigmer/issues/332).
+     * The operation (identical to revokeOrgAccess after authorization):
+     * 1. Validates can_bootstrap_iam permission on platform:stigmer
+     * 2. Loads all policies where the identity account is principal within the org
+     *    scope, plus policies directly on the organization itself
+     * 3. Deletes all matching policies from MongoDB
+     * 4. Removes all corresponding tuples from OpenFGA (idempotent if none exist)
+     * Authorization:
+     * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
+     * - This is typically only granted to platform services (machine accounts)
+     * Use Cases:
+     * - Federated account deprovisioning (deprovisionFederatedAccount's revoke step)
+     * - Any platform-driven offboarding that runs under system credentials
+     * End-user member removal must use revokeOrgAccess, which checks
+     * can_grant_access on the organization.
+     * Input: RevokeOrgAccessInput with identity_account_id and organization_id
+     * Output: Empty (google.protobuf.Empty)
+     * </pre>
+     */
+    public com.google.protobuf.Empty bootstrapRevokeOrgAccess(ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getBootstrapRevokeOrgAccessMethod(), getCallOptions(), request);
     }
   }
 
@@ -1021,6 +1173,9 @@ public final class IamPolicyCommandControllerGrpc {
      * 5. Removes all corresponding tuples from OpenFGA
      * Authorization:
      * - Caller must have 'can_grant_access' permission on the organization
+     * - System flows running as the platform machine account cannot satisfy this
+     *   check (the machine account holds no org-scoped grants by design) and must
+     *   use bootstrapRevokeOrgAccess instead
      * Use Cases:
      * - Removing a member from an organization
      * - Offboarding a user from all org resources in one operation
@@ -1031,6 +1186,43 @@ public final class IamPolicyCommandControllerGrpc {
     public com.google.protobuf.Empty revokeOrgAccess(ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getRevokeOrgAccessMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Revoke all of a user's access to an organization via the system (bootstrap) path.
+     * The system-flow twin of revokeOrgAccess: identical revocation behavior, but
+     * authorized by can_bootstrap_iam on platform:stigmer instead of
+     * can_grant_access on the organization.
+     * &#64;internal
+     * Exists because system flows execute the revoke as the platform machine
+     * account, which by design holds no org-scoped grants. The system channel does
+     * NOT bypass authorization — it authenticates as the machine account, which
+     * can only satisfy platform-scoped permissions. revokeOrgAccess therefore
+     * always fails with PERMISSION_DENIED on the system channel; this RPC is the
+     * sanctioned path, mirroring how bootstrapPolicy is the system-path twin of
+     * create (see https://github.com/stigmer/stigmer/issues/332).
+     * The operation (identical to revokeOrgAccess after authorization):
+     * 1. Validates can_bootstrap_iam permission on platform:stigmer
+     * 2. Loads all policies where the identity account is principal within the org
+     *    scope, plus policies directly on the organization itself
+     * 3. Deletes all matching policies from MongoDB
+     * 4. Removes all corresponding tuples from OpenFGA (idempotent if none exist)
+     * Authorization:
+     * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
+     * - This is typically only granted to platform services (machine accounts)
+     * Use Cases:
+     * - Federated account deprovisioning (deprovisionFederatedAccount's revoke step)
+     * - Any platform-driven offboarding that runs under system credentials
+     * End-user member removal must use revokeOrgAccess, which checks
+     * can_grant_access on the organization.
+     * Input: RevokeOrgAccessInput with identity_account_id and organization_id
+     * Output: Empty (google.protobuf.Empty)
+     * </pre>
+     */
+    public com.google.protobuf.Empty bootstrapRevokeOrgAccess(ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getBootstrapRevokeOrgAccessMethod(), getCallOptions(), request);
     }
   }
 
@@ -1219,6 +1411,9 @@ public final class IamPolicyCommandControllerGrpc {
      * 5. Removes all corresponding tuples from OpenFGA
      * Authorization:
      * - Caller must have 'can_grant_access' permission on the organization
+     * - System flows running as the platform machine account cannot satisfy this
+     *   check (the machine account holds no org-scoped grants by design) and must
+     *   use bootstrapRevokeOrgAccess instead
      * Use Cases:
      * - Removing a member from an organization
      * - Offboarding a user from all org resources in one operation
@@ -1231,6 +1426,44 @@ public final class IamPolicyCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getRevokeOrgAccessMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Revoke all of a user's access to an organization via the system (bootstrap) path.
+     * The system-flow twin of revokeOrgAccess: identical revocation behavior, but
+     * authorized by can_bootstrap_iam on platform:stigmer instead of
+     * can_grant_access on the organization.
+     * &#64;internal
+     * Exists because system flows execute the revoke as the platform machine
+     * account, which by design holds no org-scoped grants. The system channel does
+     * NOT bypass authorization — it authenticates as the machine account, which
+     * can only satisfy platform-scoped permissions. revokeOrgAccess therefore
+     * always fails with PERMISSION_DENIED on the system channel; this RPC is the
+     * sanctioned path, mirroring how bootstrapPolicy is the system-path twin of
+     * create (see https://github.com/stigmer/stigmer/issues/332).
+     * The operation (identical to revokeOrgAccess after authorization):
+     * 1. Validates can_bootstrap_iam permission on platform:stigmer
+     * 2. Loads all policies where the identity account is principal within the org
+     *    scope, plus policies directly on the organization itself
+     * 3. Deletes all matching policies from MongoDB
+     * 4. Removes all corresponding tuples from OpenFGA (idempotent if none exist)
+     * Authorization:
+     * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
+     * - This is typically only granted to platform services (machine accounts)
+     * Use Cases:
+     * - Federated account deprovisioning (deprovisionFederatedAccount's revoke step)
+     * - Any platform-driven offboarding that runs under system credentials
+     * End-user member removal must use revokeOrgAccess, which checks
+     * can_grant_access on the organization.
+     * Input: RevokeOrgAccessInput with identity_account_id and organization_id
+     * Output: Empty (google.protobuf.Empty)
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.google.protobuf.Empty> bootstrapRevokeOrgAccess(
+        ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getBootstrapRevokeOrgAccessMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_CREATE = 0;
@@ -1238,6 +1471,7 @@ public final class IamPolicyCommandControllerGrpc {
   private static final int METHODID_BOOTSTRAP_POLICY = 2;
   private static final int METHODID_CLEANUP_RESOURCE_POLICIES = 3;
   private static final int METHODID_REVOKE_ORG_ACCESS = 4;
+  private static final int METHODID_BOOTSTRAP_REVOKE_ORG_ACCESS = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1274,6 +1508,10 @@ public final class IamPolicyCommandControllerGrpc {
           break;
         case METHODID_REVOKE_ORG_ACCESS:
           serviceImpl.revokeOrgAccess((ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput) request,
+              (io.grpc.stub.StreamObserver<com.google.protobuf.Empty>) responseObserver);
+          break;
+        case METHODID_BOOTSTRAP_REVOKE_ORG_ACCESS:
+          serviceImpl.bootstrapRevokeOrgAccess((ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput) request,
               (io.grpc.stub.StreamObserver<com.google.protobuf.Empty>) responseObserver);
           break;
         default:
@@ -1329,6 +1567,13 @@ public final class IamPolicyCommandControllerGrpc {
               ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput,
               com.google.protobuf.Empty>(
                 service, METHODID_REVOKE_ORG_ACCESS)))
+        .addMethod(
+          getBootstrapRevokeOrgAccessMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput,
+              com.google.protobuf.Empty>(
+                service, METHODID_BOOTSTRAP_REVOKE_ORG_ACCESS)))
         .build();
   }
 
@@ -1382,6 +1627,7 @@ public final class IamPolicyCommandControllerGrpc {
               .addMethod(getBootstrapPolicyMethod())
               .addMethod(getCleanupResourcePoliciesMethod())
               .addMethod(getRevokeOrgAccessMethod())
+              .addMethod(getBootstrapRevokeOrgAccessMethod())
               .build();
         }
       }
