@@ -224,12 +224,14 @@ describe("ExecutionContext conformance — secrets", () => {
   });
 
   it("getByExecutionId under a user token follows the same secret contract as get", async () => {
-    // On cloud, getByExecutionId decrypts only for runner-class credentials
-    // (token_type of sandbox / workflow_sandbox / connect_sandbox /
-    // embedded_runner). The conformance harness authenticates as a user, so it
-    // must see the same redaction as get — this is the stigmer-cloud#152
-    // contract: no read RPC hands plaintext secrets to a user-class caller.
-    // OSS has no redaction, so the value comes back in plaintext.
+    // On cloud, getByExecutionId decrypts only for scope-bound runner
+    // credentials (token_type of sandbox / workflow_sandbox / connect_sandbox,
+    // each bound to the EC it reads; the unscoped embedded_runner bootstrap
+    // credential is refused — stigmer-cloud#218). The conformance harness
+    // authenticates as a user, so it must see the same redaction as get —
+    // this is the stigmer-cloud#152 contract: no read RPC hands plaintext
+    // secrets to a user-class caller. OSS has no redaction, so the value
+    // comes back in plaintext.
     const { org } = await target.provisionTenancy();
     const secretValue = "runtime-secret-value";
     const executionId = uniqueName("aex");

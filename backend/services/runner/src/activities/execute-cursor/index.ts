@@ -644,9 +644,21 @@ async function executeCursorInner(
     // the messaging reach; undefined lets a cloud sandbox runner's
     // ambient session-scoped token or OSS's no-auth apply). The
     // attachment header falls back to the ambient credential where no
-    // exchange happens.
-    const exchangedRunnerToken =
-      await client.acquireScopedRunnerToken({ agentExecutionId: executionId });
+    // exchange happens. Unlike the env read (which hard-fails on a broken
+    // exchange — secrets are load-bearing there), this exchange is
+    // opportunistic: every consumer below degrades to an empty answer by
+    // contract, and the server refuses the ambient fallback safely, so a
+    // failed exchange must not kill the run.
+    let exchangedRunnerToken: string | undefined;
+    try {
+      exchangedRunnerToken =
+        await client.acquireScopedRunnerToken({ agentExecutionId: executionId });
+    } catch (err) {
+      console.warn(
+        "[execute-cursor] Scoped-token exchange failed for attachment/discovery " +
+        `reads; degrading to the ambient credential: ${err instanceof Error ? err.message : err}`,
+      );
+    }
     const attachmentCredential = exchangedRunnerToken
       ?? config.stigmerTokenRef?.current
       ?? config.stigmerToken;

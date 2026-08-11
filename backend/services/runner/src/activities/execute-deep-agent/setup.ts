@@ -359,9 +359,22 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     // exchanged token authenticates the discovery reads per-call (the
     // messaging reach refuses a desktop runner's ambient embedded_runner
     // credential; undefined lets the ambient credential apply). The
-    // attachment header falls back to the ambient credential.
-    const exchangedRunnerToken =
-      await client.acquireScopedRunnerToken({ agentExecutionId: executionId });
+    // attachment header falls back to the ambient credential. Unlike the
+    // env read (which hard-fails on a broken exchange — secrets are
+    // load-bearing there), this exchange is opportunistic: every consumer
+    // below degrades to an empty answer by contract, and the server
+    // refuses the ambient fallback safely, so a failed exchange must not
+    // kill the run.
+    let exchangedRunnerToken: string | undefined;
+    try {
+      exchangedRunnerToken =
+        await client.acquireScopedRunnerToken({ agentExecutionId: executionId });
+    } catch (err) {
+      console.warn(
+        "[execute-deep-agent] Scoped-token exchange failed for attachment/discovery " +
+        `reads; degrading to the ambient credential: ${err instanceof Error ? err.message : err}`,
+      );
+    }
     const attachmentCredential = exchangedRunnerToken
       ?? config.stigmerTokenRef?.current
       ?? config.stigmerToken;

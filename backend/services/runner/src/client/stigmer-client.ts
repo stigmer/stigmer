@@ -360,10 +360,15 @@ export class StigmerClient {
    * OSS/local runner holds no runner-class credential at all (skip — the
    * server neither mints nor redacts).
    *
-   * Failure falls back rather than failing the execution: returning undefined
-   * makes the read authenticate with the bootstrap credential, which remains
-   * decrypt-eligible until issue #156 item 3 removes it — at that point this
-   * fallback stops yielding secrets and executions surface the warning below.
+   * A failed exchange is a hard error, not a fallback: since the #156 item-3
+   * flip (stigmer-cloud#218) the bootstrap credential no longer decrypts, so
+   * a read that "fell back" would silently receive redacted placeholders and
+   * the execution would run against junk secret values — strictly worse than
+   * failing here with the real reason. The secret-delivery call sites let
+   * this error fail the activity; opportunistic consumers that can genuinely
+   * proceed without a scoped token (attachment credential, channel
+   * discovery) catch it at the call site, where their degrade-to-empty
+   * contract lives.
    */
   async acquireScopedRunnerToken(
     scope: RunnerScopedTokenScope,
@@ -371,24 +376,33 @@ export class StigmerClient {
     if (!isEmbeddedRunnerToken(this.runnerTokenRef?.current)) {
       return undefined;
     }
+    const scopeDescription =
+      "agentExecutionId" in scope
+        ? `agent execution ${scope.agentExecutionId}`
+        : "workflowExecutionId" in scope
+          ? `workflow execution ${scope.workflowExecutionId}`
+          : JSON.stringify(scope);
+    let scoped: RunnerScopedToken | undefined;
     try {
-      const scoped = await this.getRunnerScopedToken(scope);
-      if (!scoped) {
-        console.warn(
-          "[stigmer-client] Server minted no scoped runner token; " +
-          "falling back to the bootstrap credential for the ExecutionContext read",
-        );
-        return undefined;
-      }
-      return scoped.token;
+      scoped = await this.getRunnerScopedToken(scope);
     } catch (err) {
-      console.warn(
-        "[stigmer-client] Scoped runner token exchange failed; " +
-        "falling back to the bootstrap credential for the ExecutionContext read: " +
-        `${err instanceof Error ? err.message : err}`,
+      throw new Error(
+        `Scoped runner token exchange failed for ${scopeDescription}: ` +
+        `${err instanceof Error ? err.message : String(err)}. ` +
+        "The bootstrap credential cannot read ExecutionContext secrets " +
+        "(stigmer-cloud#218), so this runner cannot serve the execution " +
+        "until the exchange succeeds.",
       );
-      return undefined;
     }
+    if (!scoped) {
+      throw new Error(
+        `Server minted no scoped runner token for ${scopeDescription}. ` +
+        "The bootstrap credential cannot read ExecutionContext secrets " +
+        "(stigmer-cloud#218), so this runner cannot serve the execution " +
+        "until the control plane mints scoped tokens.",
+      );
+    }
+    return scoped.token;
   }
 
   /**
