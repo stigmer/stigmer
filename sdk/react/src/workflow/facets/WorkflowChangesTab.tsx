@@ -69,18 +69,18 @@ export function WorkflowChangesTab({
     return (
       <div
         role="status"
-        className="flex flex-col items-center justify-center px-4 py-8 text-center"
+        className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:px-4 stg:py-8 stg:text-center"
       >
-        <p className="text-xs text-muted-foreground">Loading file changes…</p>
+        <p className="stg:text-xs stg:text-muted-foreground">Loading file changes…</p>
       </div>
     );
   }
 
   if (fileChanges.length === 0) {
     return (
-      <div className="flex flex-col gap-2 px-4 py-8 text-center">
+      <div className="stg:flex stg:flex-col stg:gap-2 stg:px-4 stg:py-8 stg:text-center">
         {error && <ErrorNotice error={error} />}
-        <p className="text-xs text-muted-foreground">
+        <p className="stg:text-xs stg:text-muted-foreground">
           No file changes yet. Files edited by agent tasks will appear here.
         </p>
       </div>
@@ -88,9 +88,9 @@ export function WorkflowChangesTab({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="stg:flex stg:flex-col stg:gap-2">
       {error && (
-        <div className="px-2 pt-2">
+        <div className="stg:px-2 stg:pt-2">
           <ErrorNotice error={error} />
         </div>
       )}
@@ -105,7 +105,7 @@ export function WorkflowChangesTab({
       />
 
       {isRefetching && (
-        <p role="status" className="px-3 pb-2 text-[0.65rem] text-muted-foreground-faint">
+        <p role="status" className="stg:px-3 stg:pb-2 stg:text-[0.65rem] stg:text-muted-foreground-faint">
           Updating…
         </p>
       )}
@@ -121,7 +121,7 @@ function ErrorNotice({ error }: { readonly error: Error }) {
   return (
     <div
       role="alert"
-      className="rounded-md border border-border bg-muted-subtle px-3 py-2 text-left text-xs text-destructive"
+      className="stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:px-3 stg:py-2 stg:text-left stg:text-xs stg:text-destructive"
     >
       Some task changes could not be loaded: {error.message}
     </div>

@@ -98,7 +98,7 @@ export function SkillUploader({
   }, [upload, dupCheck]);
 
   return (
-    <div className={cn("flex flex-col gap-0 rounded-lg border border-border bg-card", className)}>
+    <div className={cn("stg:flex stg:flex-col stg:gap-0 stg:rounded-lg stg:border stg:border-border stg:bg-card", className)}>
       {upload.preview ? (
         <PreviewPhase
           preview={upload.preview}
@@ -178,7 +178,7 @@ function DropZonePhase({
   );
 
   return (
-    <div className="flex flex-col">
+    <div className="stg:flex stg:flex-col">
       <div
         role="button"
         tabIndex={0}
@@ -189,30 +189,30 @@ function DropZonePhase({
         onClick={handleClick}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleClick(); }}
         className={cn(
-          "flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-12 transition-colors cursor-pointer",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "stg:flex stg:flex-col stg:items-center stg:justify-center stg:gap-3 stg:rounded-lg stg:border-2 stg:border-dashed stg:p-12 stg:transition-colors stg:cursor-pointer",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           isDragOver
-            ? "border-primary bg-muted-subtle"
-            : "border-border hover:border-muted-foreground hover:bg-muted-subtle",
-          isProcessing && "pointer-events-none opacity-60",
+            ? "stg:border-primary stg:bg-muted-subtle"
+            : "stg:border-border stg:hover:border-muted-foreground stg:hover:bg-muted-subtle",
+          isProcessing && "stg:pointer-events-none stg:opacity-60",
         )}
       >
-        <UploadIcon className={cn("size-10 text-muted-foreground", isDragOver && "text-primary")} />
+        <UploadIcon className={cn("stg:size-10 stg:text-muted-foreground", isDragOver && "stg:text-primary")} />
 
         {isProcessing ? (
-          <p className="text-sm font-medium text-foreground">Processing...</p>
+          <p className="stg:text-sm stg:font-medium stg:text-foreground">Processing...</p>
         ) : (
           <>
-            <p className="text-sm font-medium text-foreground">
+            <p className="stg:text-sm stg:font-medium stg:text-foreground">
               Drop your skill package here
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="stg:text-xs stg:text-muted-foreground">
               or click to browse
             </p>
           </>
         )}
 
-        <p className="mt-2 text-[10px] text-muted-foreground-subtle">
+        <p className="stg:mt-2 stg:text-[10px] stg:text-muted-foreground-subtle">
           Accepts .zip files following the Anthropic Agent Skills format
         </p>
 
@@ -221,29 +221,29 @@ function DropZonePhase({
           type="file"
           accept=".zip"
           onChange={handleFileChange}
-          className="hidden"
+          className="stg:hidden"
           aria-hidden="true"
         />
       </div>
 
       {validationError && (
-        <div className="px-4 py-3">
-          <p className="text-sm text-destructive" role="alert">
+        <div className="stg:px-4 stg:py-3">
+          <p className="stg:text-sm stg:text-destructive" role="alert">
             {validationError}
           </p>
         </div>
       )}
 
       {onCancel && (
-        <div className="flex justify-end border-t border-border px-4 py-3">
+        <div className="stg:flex stg:justify-end stg:border-t stg:border-border stg:px-4 stg:py-3">
           <button
             type="button"
             onClick={onCancel}
             className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground",
-              "hover:text-foreground hover:bg-muted",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "transition-colors",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:text-muted-foreground",
+              "stg:hover:text-foreground stg:hover:bg-muted",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+              "stg:transition-colors",
             )}
           >
             Cancel
@@ -280,47 +280,47 @@ function PreviewPhase({
   const strippedContent = stripFrontmatter(preview.skillMdContent);
 
   return (
-    <div className="flex flex-col">
+    <div className="stg:flex stg:flex-col">
       {/* Header */}
-      <div className="border-b border-border px-4 py-3">
-        <h3 className="text-sm font-medium text-foreground">
+      <div className="stg:border-b stg:border-border stg:px-4 stg:py-3">
+        <h3 className="stg:text-sm stg:font-medium stg:text-foreground">
           Skill Package Preview
         </h3>
       </div>
 
       {/* Metadata */}
-      <div className="flex flex-col gap-2 border-b border-border px-4 py-3">
-        <div className="flex items-baseline gap-2">
-          <span className="text-xs font-medium text-muted-foreground w-20 shrink-0">Name</span>
-          <span className="text-sm font-medium text-foreground font-mono">{preview.name}</span>
+      <div className="stg:flex stg:flex-col stg:gap-2 stg:border-b stg:border-border stg:px-4 stg:py-3">
+        <div className="stg:flex stg:items-baseline stg:gap-2">
+          <span className="stg:text-xs stg:font-medium stg:text-muted-foreground stg:w-20 stg:shrink-0">Name</span>
+          <span className="stg:text-sm stg:font-medium stg:text-foreground stg:font-mono">{preview.name}</span>
         </div>
         {preview.description && (
-          <div className="flex items-baseline gap-2">
-            <span className="text-xs font-medium text-muted-foreground w-20 shrink-0">Description</span>
-            <span className="text-sm text-foreground">{preview.description}</span>
+          <div className="stg:flex stg:items-baseline stg:gap-2">
+            <span className="stg:text-xs stg:font-medium stg:text-muted-foreground stg:w-20 stg:shrink-0">Description</span>
+            <span className="stg:text-sm stg:text-foreground">{preview.description}</span>
           </div>
         )}
       </div>
 
       {/* File list */}
-      <div className="border-b border-border px-4 py-3">
-        <div className="mb-2 flex items-baseline justify-between">
-          <span className="text-xs font-medium text-muted-foreground">
+      <div className="stg:border-b stg:border-border stg:px-4 stg:py-3">
+        <div className="stg:mb-2 stg:flex stg:items-baseline stg:justify-between">
+          <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">
             Files ({preview.files.filter((f) => !f.isDirectory).length})
           </span>
-          <span className="text-[10px] text-muted-foreground-subtle">
+          <span className="stg:text-[10px] stg:text-muted-foreground-subtle">
             {formatBytes(preview.totalSize)} total
           </span>
         </div>
-        <div className="rounded-md border border-border overflow-hidden">
-          <table className="w-full text-xs">
+        <div className="stg:rounded-md stg:border stg:border-border stg:overflow-hidden">
+          <table className="stg:w-full stg:text-xs">
             <tbody>
               {preview.files
                 .filter((f) => !f.isDirectory)
                 .map((file) => (
-                  <tr key={file.path} className="border-b border-border last:border-b-0">
-                    <td className="px-3 py-1.5 font-mono text-foreground">{file.path}</td>
-                    <td className="px-3 py-1.5 text-right text-muted-foreground tabular-nums">
+                  <tr key={file.path} className="stg:border-b stg:border-border stg:last:border-b-0">
+                    <td className="stg:px-3 stg:py-1.5 stg:font-mono stg:text-foreground">{file.path}</td>
+                    <td className="stg:px-3 stg:py-1.5 stg:text-right stg:text-muted-foreground stg:tabular-nums">
                       {formatBytes(file.size)}
                     </td>
                   </tr>
@@ -332,11 +332,11 @@ function PreviewPhase({
 
       {/* SKILL.md preview */}
       {strippedContent && (
-        <div className="border-b border-border px-4 py-3">
-          <span className="mb-2 block text-xs font-medium text-muted-foreground">
+        <div className="stg:border-b stg:border-border stg:px-4 stg:py-3">
+          <span className="stg:mb-2 stg:block stg:text-xs stg:font-medium stg:text-muted-foreground">
             SKILL.md Preview
           </span>
-          <div className="max-h-[240px] overflow-y-auto rounded-md border border-border p-3">
+          <div className="stg:max-h-[240px] stg:overflow-y-auto stg:rounded-md stg:border stg:border-border stg:p-3">
             <Markdown remarkPlugins={REMARK_PLUGINS} components={MARKDOWN_COMPONENTS}>
               {strippedContent}
             </Markdown>
@@ -346,13 +346,13 @@ function PreviewPhase({
 
       {/* Duplicate warning */}
       {isDuplicate && (
-        <div className="flex items-start gap-2.5 border-b border-amber-500/20 bg-amber-500/5 px-4 py-3" role="alert">
-          <WarningIcon className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+        <div className="stg:flex stg:items-start stg:gap-2.5 stg:border-b stg:border-amber-500/20 stg:bg-amber-500/5 stg:px-4 stg:py-3" role="alert">
+          <WarningIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0 stg:text-amber-600 stg:dark:text-amber-400" />
+          <div className="stg:min-w-0 stg:flex-1">
+            <p className="stg:text-sm stg:font-medium stg:text-amber-700 stg:dark:text-amber-300">
               No changes detected
             </p>
-            <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-400">
+            <p className="stg:mt-0.5 stg:text-xs stg:text-amber-600 stg:dark:text-amber-400">
               This skill&apos;s content is identical to the current version. Pushing will create a new version record with the same content.
             </p>
           </div>
@@ -360,46 +360,46 @@ function PreviewPhase({
       )}
 
       {isCheckingDuplicate && (
-        <div className="flex items-center gap-2 border-b border-border px-4 py-2">
+        <div className="stg:flex stg:items-center stg:gap-2 stg:border-b stg:border-border stg:px-4 stg:py-2">
           <Spinner />
-          <span className="text-xs text-muted-foreground">Checking for changes...</span>
+          <span className="stg:text-xs stg:text-muted-foreground">Checking for changes...</span>
         </div>
       )}
 
       {/* Error */}
       {pushError && (
-        <div className="px-4 py-2">
-          <p className="text-sm text-destructive" role="alert">
+        <div className="stg:px-4 stg:py-2">
+          <p className="stg:text-sm stg:text-destructive" role="alert">
             {pushError.message}
           </p>
         </div>
       )}
 
       {/* Footer actions */}
-      <div className="flex items-center justify-between px-4 py-3">
+      <div className="stg:flex stg:items-center stg:justify-between stg:px-4 stg:py-3">
         <button
           type="button"
           onClick={onReset}
           className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground",
-            "hover:text-foreground hover:bg-muted",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            "transition-colors",
+            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:text-muted-foreground",
+            "stg:hover:text-foreground stg:hover:bg-muted",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            "stg:transition-colors",
           )}
         >
           Choose Different File
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="stg:flex stg:items-center stg:gap-2">
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
               className={cn(
-                "rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground",
-                "hover:text-foreground hover:bg-muted",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                "transition-colors",
+                "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:text-muted-foreground",
+                "stg:hover:text-foreground stg:hover:bg-muted",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                "stg:transition-colors",
               )}
             >
               Cancel
@@ -410,11 +410,11 @@ function PreviewPhase({
             onClick={onPush}
             disabled={isPushing}
             className={cn(
-              "rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground",
-              "hover:bg-primary-hover",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "disabled:opacity-50 disabled:cursor-not-allowed",
-              "transition-colors",
+              "stg:rounded-md stg:bg-primary stg:px-4 stg:py-1.5 stg:text-sm stg:font-medium stg:text-primary-foreground",
+              "stg:hover:bg-primary-hover",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+              "stg:disabled:opacity-50 stg:disabled:cursor-not-allowed",
+              "stg:transition-colors",
             )}
           >
             {isPushing ? "Pushing..." : isDuplicate ? "Push Anyway" : "Push Skill"}
@@ -455,7 +455,7 @@ function WarningIcon({ className }: { readonly className?: string }) {
 
 function Spinner() {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="animate-spin" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="stg:animate-spin" aria-hidden="true">
       <path d="M8 2a6 6 0 1 0 6 6" />
     </svg>
   );

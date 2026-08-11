@@ -102,9 +102,9 @@ export function TemplateGallery<TData>({
   }, []);
 
   return (
-    <div className={cn("flex flex-col gap-4", className)}>
+    <div className={cn("stg:flex stg:flex-col stg:gap-4", className)}>
       {/* Search input */}
-      <div className="relative">
+      <div className="stg:relative">
         <SearchIcon />
         <input
           type="search"
@@ -113,9 +113,9 @@ export function TemplateGallery<TData>({
           placeholder="Search templates…"
           aria-label="Search templates"
           className={cn(
-            "w-full rounded-md border border-input bg-input-bg py-2 pl-9 pr-3 text-sm text-foreground",
-            "placeholder:text-muted-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:py-2 stg:pl-9 stg:pr-3 stg:text-sm stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         />
       </div>
@@ -127,7 +127,7 @@ export function TemplateGallery<TData>({
           role="tablist"
           aria-label="Template categories"
           onKeyDown={handleTabKeyDown}
-          className="flex flex-wrap gap-1"
+          className="stg:flex stg:flex-wrap stg:gap-1"
         >
           <CategoryTab
             label="All"
@@ -150,7 +150,7 @@ export function TemplateGallery<TData>({
         <div
           role="list"
           aria-label="Templates"
-          className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          className="stg:grid stg:grid-cols-1 stg:gap-3 stg:sm:grid-cols-2 stg:lg:grid-cols-3"
         >
           {filtered.map((template) => (
             <div key={template.id} role="listitem">
@@ -160,7 +160,7 @@ export function TemplateGallery<TData>({
         </div>
       ) : (
         (emptyContent ?? (
-          <div className="py-8 text-center text-sm text-muted-foreground">
+          <div className="stg:py-8 stg:text-center stg:text-sm stg:text-muted-foreground">
             No templates match your search.
           </div>
         ))
@@ -190,11 +190,11 @@ function CategoryTab({
       tabIndex={isActive ? 0 : -1}
       onClick={onClick}
       className={cn(
-        "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         isActive
-          ? "bg-primary text-primary-foreground"
-          : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+          ? "stg:bg-primary stg:text-primary-foreground"
+          : "stg:bg-muted stg:text-muted-foreground stg:hover:bg-accent stg:hover:text-accent-foreground",
       )}
     >
       {label}
@@ -205,7 +205,7 @@ function CategoryTab({
 function SearchIcon() {
   return (
     <svg
-      className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+      className="stg:pointer-events-none stg:absolute stg:left-3 stg:top-1/2 stg:size-4 stg:-translate-y-1/2 stg:text-muted-foreground"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"

@@ -118,12 +118,12 @@ export function FileTreeNode({
         draggable={isDraggable}
         onDragStart={isDraggable ? handleDragStart : undefined}
         className={cn(
-          "flex w-full items-center gap-1.5 py-1 text-left text-xs transition-colors",
-          "hover:bg-muted",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-          isSelected && !isFolder && "bg-muted text-foreground font-medium",
-          !isSelected && "text-muted-foreground",
-          isDraggable && "cursor-grab active:cursor-grabbing",
+          "stg:flex stg:w-full stg:items-center stg:gap-1.5 stg:py-1 stg:text-left stg:text-xs stg:transition-colors",
+          "stg:hover:bg-muted",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
+          isSelected && !isFolder && "stg:bg-muted stg:text-foreground stg:font-medium",
+          !isSelected && "stg:text-muted-foreground",
+          isDraggable && "stg:cursor-grab stg:active:cursor-grabbing",
         )}
         // Indent-guide mode indents via the nested group's margin, so rows need
         // only a small constant inset; padding mode keeps the per-depth inset.
@@ -133,7 +133,7 @@ export function FileTreeNode({
         {isFolder && (
           <span
             aria-hidden="true"
-            className="text-[10px] text-muted-foreground-subtle"
+            className="stg:text-[10px] stg:text-muted-foreground-subtle"
           >
             {expanded ? "▼" : "▶"}
           </span>
@@ -144,14 +144,14 @@ export function FileTreeNode({
           ) : (
             <FileTypeIcon fileName={node.name} />
           ))}
-        <span className={cn("truncate", isFolder && "font-medium text-foreground")}>
+        <span className={cn("stg:truncate", isFolder && "stg:font-medium stg:text-foreground")}>
           {node.name}
         </span>
       </button>
       {isFolder && expanded && node.children && (
         <ul
           role="group"
-          className={cn(indentGuides && "ml-3 border-l border-border")}
+          className={cn(indentGuides && "stg:ml-3 stg:border-l stg:border-border")}
         >
           {node.children.map((child) => (
             <FileTreeNode

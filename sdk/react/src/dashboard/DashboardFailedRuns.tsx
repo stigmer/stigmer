@@ -41,13 +41,13 @@ export const DashboardFailedRuns = memo(function DashboardFailedRuns({
   if (isLoading) {
     return (
       <div
-        className={cn("rounded-lg border border-border bg-card p-4", className)}
+        className={cn("stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4", className)}
         aria-busy="true"
       >
-        <div className="mb-3 h-4 w-32 animate-pulse rounded bg-muted" />
-        <div className="space-y-2">
+        <div className="stg:mb-3 stg:h-4 stg:w-32 stg:animate-pulse stg:rounded stg:bg-muted" />
+        <div className="stg:space-y-2">
           {Array.from({ length: 3 }, (_, i) => (
-            <div key={i} className="h-10 animate-pulse rounded bg-muted/50" />
+            <div key={i} className="stg:h-10 stg:animate-pulse stg:rounded stg:bg-muted/50" />
           ))}
         </div>
       </div>
@@ -55,47 +55,47 @@ export const DashboardFailedRuns = memo(function DashboardFailedRuns({
   }
 
   return (
-    <div className={cn("rounded-lg border border-border bg-card p-4", className)}>
-      <h3 className="mb-3 text-sm font-semibold text-foreground">
+    <div className={cn("stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4", className)}>
+      <h3 className="stg:mb-3 stg:text-sm stg:font-semibold stg:text-foreground">
         Recent Failures
       </h3>
       {failedRuns.length === 0 ? (
-        <p className="py-6 text-center text-xs text-muted-foreground">
+        <p className="stg:py-6 stg:text-center stg:text-xs stg:text-muted-foreground">
           No recent failures
         </p>
       ) : (
-        <ul className="space-y-1.5" role="list">
+        <ul className="stg:space-y-1.5" role="list">
           {failedRuns.map((run) => (
             <li
               key={run.id}
-              className="flex items-start gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-muted/50"
+              className="stg:flex stg:items-start stg:gap-2 stg:rounded-md stg:px-2 stg:py-1.5 stg:text-xs stg:hover:bg-muted/50"
             >
               <span
                 className={cn(
-                  "mt-0.5 shrink-0 rounded px-1 py-0.5 text-[10px] font-medium leading-none",
+                  "stg:mt-0.5 stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-medium stg:leading-none",
                   run.type === "agent_execution"
-                    ? "bg-primary/10 text-primary"
-                    : "bg-muted text-muted-foreground",
+                    ? "stg:bg-primary/10 stg:text-primary"
+                    : "stg:bg-muted stg:text-muted-foreground",
                 )}
               >
                 {run.type === "agent_execution" ? "Agent" : "Workflow"}
               </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-foreground">
+              <div className="stg:min-w-0 stg:flex-1">
+                <p className="stg:truncate stg:font-medium stg:text-foreground">
                   {run.name}
                 </p>
                 {run.error && (
-                  <p className="truncate text-muted-foreground">{run.error}</p>
+                  <p className="stg:truncate stg:text-muted-foreground">{run.error}</p>
                 )}
               </div>
-              <span className="shrink-0 text-muted-foreground">
+              <span className="stg:shrink-0 stg:text-muted-foreground">
                 {timeAgo(run.failedAt)}
               </span>
               {onViewClick && (
                 <button
                   type="button"
                   onClick={() => onViewClick(run.id, run.type)}
-                  className="shrink-0 text-primary hover:underline"
+                  className="stg:shrink-0 stg:text-primary stg:hover:underline"
                 >
                   View
                 </button>

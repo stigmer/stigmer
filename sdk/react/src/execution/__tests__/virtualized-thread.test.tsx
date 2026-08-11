@@ -172,7 +172,7 @@ describe("ThreadItemRenderer", () => {
 
     const { container } = render(<ThreadItemRenderer item={item} />);
     const root = container.firstElementChild as HTMLElement;
-    expect(root?.className).toContain("opacity-70");
+    expect(root?.className).toContain("stg:opacity-70");
   });
 
   it("renders a phase badge item", () => {

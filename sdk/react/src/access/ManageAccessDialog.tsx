@@ -105,25 +105,25 @@ export function ManageAccessDialog({
       ref={dialogRef}
       onClose={handleClose}
       className={cn(
-        "fixed inset-0 m-auto w-full max-w-md rounded-xl border border-border bg-popover p-0 shadow-xl",
-        "backdrop:bg-black/50",
+        "stg:fixed stg:inset-0 stg:m-auto stg:w-full stg:max-w-md stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
+        "stg:backdrop:bg-black/50",
       )}
       aria-labelledby="manage-access-title"
     >
       {/* Body mounts only while open so the access-list fetch is lazy. */}
       {open && (
-        <div className="flex flex-col">
+        <div className="stg:flex stg:flex-col">
           {/* Header */}
-          <div className="flex items-start justify-between border-b border-border px-6 py-4">
-            <div className="min-w-0">
+          <div className="stg:flex stg:items-start stg:justify-between stg:border-b stg:border-border stg:px-6 stg:py-4">
+            <div className="stg:min-w-0">
               <h2
                 id="manage-access-title"
-                className="text-base font-semibold text-foreground"
+                className="stg:text-base stg:font-semibold stg:text-foreground"
               >
                 Manage access
               </h2>
               {resource.name && (
-                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                <p className="stg:mt-0.5 stg:truncate stg:text-xs stg:text-muted-foreground">
                   {resource.name}
                 </p>
               )}
@@ -133,9 +133,9 @@ export function ManageAccessDialog({
               onClick={handleClose}
               aria-label="Close"
               className={cn(
-                "rounded-md p-1 text-muted-foreground",
-                "hover:text-foreground hover:bg-accent-hover",
-                "focus:outline-none focus:ring-2 focus:ring-ring",
+                "stg:rounded-md stg:p-1 stg:text-muted-foreground",
+                "stg:hover:text-foreground stg:hover:bg-accent-hover",
+                "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
               )}
             >
               <CloseIcon />
@@ -143,7 +143,7 @@ export function ManageAccessDialog({
           </div>
 
           {/* Body */}
-          <div className="flex flex-col divide-y divide-border">
+          <div className="stg:flex stg:flex-col stg:divide-y stg:divide-border">
             {visibility && (
               <AccessSection
                 title="General access"
@@ -185,14 +185,14 @@ export function ManageAccessDialog({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end border-t border-border px-6 py-3">
+          <div className="stg:flex stg:items-center stg:justify-end stg:border-t stg:border-border stg:px-6 stg:py-3">
             <button
               type="button"
               onClick={handleClose}
               className={cn(
-                "rounded-md px-3 py-1.5 text-sm font-medium",
-                "bg-primary text-primary-foreground hover:bg-primary-hover",
-                "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium",
+                "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+                "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring stg:focus:ring-offset-2",
               )}
             >
               Done
@@ -218,14 +218,14 @@ function AccessSection({
   readonly children: ReactNode;
 }) {
   return (
-    <section className="px-6 py-4">
-      <h3 className="text-xs font-medium text-muted-foreground">{title}</h3>
+    <section className="stg:px-6 stg:py-4">
+      <h3 className="stg:text-xs stg:font-medium stg:text-muted-foreground">{title}</h3>
       {description && (
-        <p className="mt-0.5 text-[0.65rem] text-muted-foreground">
+        <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-muted-foreground">
           {description}
         </p>
       )}
-      <div className="mt-2.5">{children}</div>
+      <div className="stg:mt-2.5">{children}</div>
     </section>
   );
 }

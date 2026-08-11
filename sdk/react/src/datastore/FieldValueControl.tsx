@@ -14,10 +14,10 @@ import {
  * tokens; no pixel font sizes, no hex fallbacks).
  */
 export const FIELD_INPUT_CLASSES = cn(
-  "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-  "placeholder:text-muted-foreground",
-  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-  "disabled:pointer-events-none disabled:opacity-50",
+  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+  "stg:placeholder:text-muted-foreground",
+  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
 );
 
 /** Props for {@link FieldValueControl}. */
@@ -267,11 +267,11 @@ function JsonControl({ value, onChange, disabled, id, "aria-label": ariaLabel }:
   );
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="stg:flex stg:flex-col stg:gap-1">
       <textarea
         id={id}
         rows={4}
-        className={cn(FIELD_INPUT_CLASSES, "resize-y font-mono")}
+        className={cn(FIELD_INPUT_CLASSES, "stg:resize-y stg:font-mono")}
         value={raw}
         onChange={handleChange}
         placeholder="{}"
@@ -280,7 +280,7 @@ function JsonControl({ value, onChange, disabled, id, "aria-label": ariaLabel }:
         aria-invalid={parseError !== null}
       />
       {parseError && (
-        <span role="alert" className="text-xs text-destructive">
+        <span role="alert" className="stg:text-xs stg:text-destructive">
           {parseError}
         </span>
       )}

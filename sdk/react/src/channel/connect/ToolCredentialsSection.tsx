@@ -40,19 +40,19 @@ export function ToolCredentialsSection({
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
         className={cn(
-          "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground",
-          "hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
+          "stg:inline-flex stg:items-center stg:gap-1 stg:text-xs stg:font-medium stg:text-muted-foreground",
+          "stg:hover:text-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded",
         )}
       >
         <ChevronIcon
-          className={cn("size-3 transition-transform", expanded && "rotate-90")}
+          className={cn("stg:size-3 stg:transition-transform", expanded && "stg:rotate-90")}
         />
         Tool credentials
       </button>
 
       {expanded && (
-        <div className="mt-2">
+        <div className="stg:mt-2">
           <ChannelToolCredentials
             agent={agent}
             org={org}

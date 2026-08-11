@@ -117,22 +117,22 @@ export function FilePathLink({
   );
 
   const sharedClasses = cn(
-    "inline-flex min-w-0 items-center gap-1 font-mono text-foreground",
-    "transition-colors hover:text-primary hover:underline",
-    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:rounded-sm",
+    "stg:inline-flex stg:min-w-0 stg:items-center stg:gap-1 stg:font-mono stg:text-foreground",
+    "stg:transition-colors stg:hover:text-primary stg:hover:underline",
+    "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm",
     className,
   );
 
   // The directory truncates (it is context); the base never shrinks (it is
   // identity). Together they keep the file name legible at any width.
   const label = copied ? (
-    <span className="min-w-0 truncate">Copied</span>
+    <span className="stg:min-w-0 stg:truncate">Copied</span>
   ) : (
     <>
       {dirDisplay === "dim" && dir && (
-        <span className="min-w-0 truncate text-muted-foreground-faint">{dir}</span>
+        <span className="stg:min-w-0 stg:truncate stg:text-muted-foreground-faint">{dir}</span>
       )}
-      <span className="shrink-0">{base}</span>
+      <span className="stg:shrink-0">{base}</span>
     </>
   );
 
@@ -150,7 +150,7 @@ export function FilePathLink({
         onClick={handleClick}
         aria-label={ariaLabel}
         title={title}
-        className={cn(sharedClasses, "group/fpl")}
+        className={cn(sharedClasses, "stg:group/fpl")}
       >
         {label}
         <ExternalLinkIcon />
@@ -164,7 +164,7 @@ export function FilePathLink({
       onClick={handleClick}
       aria-label={ariaLabel}
       title={title}
-      className={cn(sharedClasses, "group/fpl cursor-pointer")}
+      className={cn(sharedClasses, "stg:group/fpl stg:cursor-pointer")}
     >
       {label}
       {!copied && <CopyIcon />}
@@ -187,7 +187,7 @@ function ExternalLinkIcon() {
       strokeWidth="1.2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 opacity-0 transition-opacity group-hover/fpl:opacity-70"
+      className="stg:shrink-0 stg:opacity-0 stg:transition-opacity stg:group-hover/fpl:opacity-70"
       aria-hidden="true"
     >
       <path d="M9 3L5 7" />
@@ -208,7 +208,7 @@ function CopyIcon() {
       strokeWidth="1.2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 opacity-0 transition-opacity group-hover/fpl:opacity-70"
+      className="stg:shrink-0 stg:opacity-0 stg:transition-opacity stg:group-hover/fpl:opacity-70"
       aria-hidden="true"
     >
       <rect x="4" y="4" width="6.5" height="6.5" rx="1" />

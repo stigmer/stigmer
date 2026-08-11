@@ -89,15 +89,15 @@ export function McpToolSelector({
 
   if (tools.length === 0) {
     return (
-      <div className={cn("space-y-1", className)}>
-        <div className="text-[0.65rem] font-medium text-muted-foreground">
+      <div className={cn("stg:space-y-1", className)}>
+        <div className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
           Tools
         </div>
-        <div className="rounded-md border border-border px-3 py-4 text-center">
-          <p className="text-xs text-muted-foreground">
+        <div className="stg:rounded-md stg:border stg:border-border stg:px-3 stg:py-4 stg:text-center">
+          <p className="stg:text-xs stg:text-muted-foreground">
             Tools have not been discovered yet.
           </p>
-          <p className="mt-1 text-[0.65rem] text-muted-foreground-subtle">
+          <p className="stg:mt-1 stg:text-[0.65rem] stg:text-muted-foreground-subtle">
             All tools will be enabled by default.
           </p>
         </div>
@@ -106,21 +106,21 @@ export function McpToolSelector({
   }
 
   return (
-    <div className={cn("space-y-1.5", className)}>
+    <div className={cn("stg:space-y-1.5", className)}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <span className="text-[0.65rem] font-medium text-muted-foreground">
+      <div className="stg:flex stg:items-center stg:justify-between">
+        <span className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
           Tools ({tools.length})
         </span>
-        <span className="flex items-center gap-1">
+        <span className="stg:flex stg:items-center stg:gap-1">
           <button
             type="button"
             onClick={handleSelectAll}
             disabled={disabled}
             className={cn(
-              "rounded px-1.5 py-0.5 text-[0.6rem] font-medium",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             All
@@ -130,9 +130,9 @@ export function McpToolSelector({
             onClick={handleSelectNone}
             disabled={disabled}
             className={cn(
-              "rounded px-1.5 py-0.5 text-[0.6rem] font-medium",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             None
@@ -141,14 +141,14 @@ export function McpToolSelector({
       </div>
 
       {/* Tool list */}
-      <div className="relative">
+      <div className="stg:relative">
         {list.canScrollUp && <ScrollFade position="top" />}
 
         <div
           ref={list.scrollRef}
           role="group"
           aria-label="MCP server tools"
-          className="max-h-52 space-y-0.5 overflow-y-auto"
+          className="stg:max-h-52 stg:space-y-0.5 stg:overflow-y-auto"
         >
           {tools.map((tool) => {
             const checkboxId = `${instanceId}-tool-${tool.name}`;
@@ -162,13 +162,13 @@ export function McpToolSelector({
               <div
                 key={tool.name}
                 className={cn(
-                  "group rounded-md px-2 py-1.5 transition-colors",
-                  isEnabled ? "bg-accent-hover" : "hover:bg-accent-hover",
+                  "stg:group stg:rounded-md stg:px-2 stg:py-1.5 stg:transition-colors",
+                  isEnabled ? "stg:bg-accent-hover" : "stg:hover:bg-accent-hover",
                 )}
               >
                 <label
                   htmlFor={checkboxId}
-                  className="flex cursor-pointer items-start gap-2"
+                  className="stg:flex stg:cursor-pointer stg:items-start stg:gap-2"
                 >
                   <input
                     id={checkboxId}
@@ -177,11 +177,11 @@ export function McpToolSelector({
                     onChange={() => handleToggle(tool.name)}
                     disabled={disabled}
                     aria-describedby={descId}
-                    className="mt-0.5 size-3 shrink-0 accent-primary disabled:pointer-events-none disabled:opacity-50"
+                    className="stg:mt-0.5 stg:size-3 stg:shrink-0 stg:accent-primary stg:disabled:pointer-events-none stg:disabled:opacity-50"
                   />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1.5">
-                      <span className="truncate font-mono text-xs text-foreground">
+                  <span className="stg:min-w-0 stg:flex-1">
+                    <span className="stg:flex stg:items-center stg:gap-1.5">
+                      <span className="stg:truncate stg:font-mono stg:text-xs stg:text-foreground">
                         {tool.name}
                       </span>
                       {approvalMessage !== undefined && (
@@ -191,7 +191,7 @@ export function McpToolSelector({
                     {tool.description && (
                       <span
                         id={descId}
-                        className="line-clamp-2 group-hover:line-clamp-none group-focus-within:line-clamp-none text-[0.65rem] leading-relaxed text-muted-foreground"
+                        className="stg:line-clamp-2 stg:group-hover:line-clamp-none stg:group-focus-within:line-clamp-none stg:text-[0.65rem] stg:leading-relaxed stg:text-muted-foreground"
                       >
                         {tool.description}
                       </span>
@@ -218,7 +218,7 @@ function ApprovalBadge({ message }: { readonly message: string }) {
 
   return (
     <span
-      className="inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-[0.6rem] font-medium leading-none bg-warning/15 text-warning"
+      className="stg:inline-flex stg:shrink-0 stg:items-center stg:gap-0.5 stg:rounded stg:px-1 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:leading-none stg:bg-warning/15 stg:text-warning"
       title={resolvedTitle}
     >
       <ShieldIcon />

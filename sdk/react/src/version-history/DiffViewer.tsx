@@ -38,7 +38,7 @@ export function DiffViewer({ hunks, filePath, className }: DiffViewerProps) {
       <div
         role="status"
         className={cn(
-          "flex items-center justify-center py-8 text-sm text-muted-foreground",
+          "stg:flex stg:items-center stg:justify-center stg:py-8 stg:text-sm stg:text-muted-foreground",
           className,
         )}
       >
@@ -50,18 +50,18 @@ export function DiffViewer({ hunks, filePath, className }: DiffViewerProps) {
   return (
     <div
       className={cn(
-        "overflow-auto rounded-lg border border-border font-mono text-[13px] leading-[1.6]",
+        "stg:overflow-auto stg:rounded-lg stg:border stg:border-border stg:font-mono stg:text-[13px] stg:leading-[1.6]",
         className,
       )}
     >
       {filePath && (
-        <div className="sticky top-0 z-10 border-b border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
+        <div className="stg:sticky stg:top-0 stg:z-10 stg:border-b stg:border-border stg:bg-muted stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground">
           {filePath}
         </div>
       )}
 
-      <table className="w-full border-collapse" role="table">
-        <thead className="sr-only">
+      <table className="stg:w-full stg:border-collapse" role="table">
+        <thead className="stg:sr-only">
           <tr>
             <th scope="col">Line</th>
             <th scope="col">Change</th>
@@ -97,7 +97,7 @@ function HunkRows({
         <tr>
           <td
             colSpan={3}
-            className="select-none bg-diff-hunk-header-bg px-3 py-1 text-[11px] text-diff-hunk-header-fg"
+            className="stg:select-none stg:bg-diff-hunk-header-bg stg:px-3 stg:py-1 stg:text-[11px] stg:text-diff-hunk-header-fg"
             aria-label={`Hunk: ${header}`}
           >
             {header}
@@ -116,25 +116,25 @@ function HunkRows({
 // ---------------------------------------------------------------------------
 
 const LINE_NUM_CLASSES =
-  "w-[1px] min-w-10 select-none whitespace-nowrap px-2 text-right text-[11px] text-muted-foreground-faint";
-const MARKER_CLASSES = "w-[1px] select-none px-1 text-center";
+  "stg:w-[1px] stg:min-w-10 stg:select-none stg:whitespace-nowrap stg:px-2 stg:text-right stg:text-[11px] stg:text-muted-foreground-faint";
+const MARKER_CLASSES = "stg:w-[1px] stg:select-none stg:px-1 stg:text-center";
 
 function DiffLineRow({ line }: { readonly line: DiffLine }) {
   const marker = line.type === "added" ? "+" : line.type === "removed" ? "-" : " ";
 
   const rowClass =
     line.type === "added"
-      ? "bg-diff-added-bg"
+      ? "stg:bg-diff-added-bg"
       : line.type === "removed"
-        ? "bg-diff-removed-bg"
+        ? "stg:bg-diff-removed-bg"
         : "";
 
   const markerColor =
     line.type === "added"
-      ? "text-diff-added-fg"
+      ? "stg:text-diff-added-fg"
       : line.type === "removed"
-        ? "text-diff-removed-fg"
-        : "text-muted-foreground-faint";
+        ? "stg:text-diff-removed-fg"
+        : "stg:text-muted-foreground-faint";
 
   const ariaLabel =
     line.type === "added"
@@ -158,7 +158,7 @@ function DiffLineRow({ line }: { readonly line: DiffLine }) {
       <td className={cn(MARKER_CLASSES, markerColor)} aria-hidden="true">
         {marker}
       </td>
-      <td className="whitespace-pre-wrap break-all px-2">
+      <td className="stg:whitespace-pre-wrap stg:break-all stg:px-2">
         {line.content}
       </td>
     </tr>

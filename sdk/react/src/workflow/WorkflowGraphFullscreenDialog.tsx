@@ -67,14 +67,14 @@ export function WorkflowGraphFullscreenDialog({
       onCancel={handleCancel}
       aria-label={`${workflowName} — full view`}
       className={cn(
-        "fixed inset-0 z-50 m-auto h-[90vh] w-[95vw] rounded-lg border border-border bg-background p-0 text-foreground shadow-2xl outline-none",
-        "[&::backdrop]:bg-black/60",
+        "stg:fixed stg:inset-0 stg:z-50 stg:m-auto stg:h-[90vh] stg:w-[95vw] stg:rounded-lg stg:border stg:border-border stg:bg-background stg:p-0 stg:text-foreground stg:shadow-2xl stg:outline-none",
+        "stg:[&::backdrop]:bg-black/60",
       )}
     >
       {open && (
-        <div className="flex h-full flex-col">
-          <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
-            <h2 className="truncate text-sm font-semibold text-foreground">
+        <div className="stg:flex stg:h-full stg:flex-col">
+          <div className="stg:flex stg:shrink-0 stg:items-center stg:justify-between stg:border-b stg:border-border stg:px-4 stg:py-3">
+            <h2 className="stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">
               {workflowName}
             </h2>
             <button
@@ -82,21 +82,21 @@ export function WorkflowGraphFullscreenDialog({
               onClick={onClose}
               aria-label="Close full view"
               className={cn(
-                "inline-flex size-7 items-center justify-center rounded-md text-muted-foreground",
-                "hover:bg-accent-hover hover:text-foreground",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                "transition-colors",
+                "stg:inline-flex stg:size-7 stg:items-center stg:justify-center stg:rounded-md stg:text-muted-foreground",
+                "stg:hover:bg-accent-hover stg:hover:text-foreground",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                "stg:transition-colors",
               )}
             >
               <CloseIcon />
             </button>
           </div>
-          <div className="min-h-0 flex-1">
+          <div className="stg:min-h-0 stg:flex-1">
             <WorkflowOverviewGraph
               workflow={workflow}
               onOpenInEditor={onOpenInEditor}
               nodesDraggable
-              className="h-full w-full bg-[var(--stgm-muted-subtle,#fafafa)]"
+              className="stg:h-full stg:w-full stg:bg-[var(--stgm-muted-subtle,#fafafa)]"
             />
           </div>
         </div>

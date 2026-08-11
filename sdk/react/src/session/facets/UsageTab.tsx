@@ -20,8 +20,8 @@ export function UsageTab({ executions }: UsageTabProps) {
 
   if (!usage.hasUsage) {
     return (
-      <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
-        <p className="text-xs text-muted-foreground">
+      <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:px-4 stg:py-8 stg:text-center">
+        <p className="stg:text-xs stg:text-muted-foreground">
           No usage data yet. Cost and token stats will appear here.
         </p>
       </div>

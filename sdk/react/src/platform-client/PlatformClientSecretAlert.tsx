@@ -87,14 +87,14 @@ export function PlatformClientSecretAlert({
     <div
       role="alert"
       className={cn(
-        "rounded-lg border border-primary/30 bg-primary-subtle p-4",
+        "stg:rounded-lg stg:border stg:border-primary/30 stg:bg-primary-subtle stg:p-4",
         className,
       )}
     >
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-foreground">{title}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+      <div className="stg:mb-3 stg:flex stg:items-start stg:justify-between stg:gap-3">
+        <div className="stg:min-w-0">
+          <p className="stg:text-sm stg:font-medium stg:text-foreground">{title}</p>
+          <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
             Copy the client secret now. It will not be shown again.
           </p>
         </div>
@@ -103,16 +103,16 @@ export function PlatformClientSecretAlert({
           onClick={onDismiss}
           aria-label="Dismiss"
           className={cn(
-            "shrink-0 rounded p-1",
-            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-            "transition-colors",
+            "stg:shrink-0 stg:rounded stg:p-1",
+            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+            "stg:transition-colors",
           )}
         >
           <CloseIcon />
         </button>
       </div>
 
-      <div className="space-y-2">
+      <div className="stg:space-y-2">
         <CopyableField
           id="stgm-pc-client-id-reveal"
           label="Client ID"
@@ -133,7 +133,7 @@ export function PlatformClientSecretAlert({
         role="status"
         aria-live="polite"
         aria-atomic="true"
-        className="sr-only"
+        className="stg:sr-only"
       >
         {copiedField === "id" && "Client ID copied to clipboard"}
         {copiedField === "secret" && "Client secret copied to clipboard"}
@@ -161,16 +161,16 @@ function CopyableField({
 }) {
   return (
     <div>
-      <span className="text-[0.65rem] font-medium text-muted-foreground">
+      <span className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
         {label}
       </span>
-      <div className="mt-0.5 flex items-center gap-2">
+      <div className="stg:mt-0.5 stg:flex stg:items-center stg:gap-2">
         <code
           id={id}
           className={cn(
-            "min-w-0 flex-1 select-all truncate rounded-md",
-            "border border-input bg-background px-2.5 py-1.5",
-            "font-mono text-xs text-foreground",
+            "stg:min-w-0 stg:flex-1 stg:select-all stg:truncate stg:rounded-md",
+            "stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5",
+            "stg:font-mono stg:text-xs stg:text-foreground",
           )}
         >
           {value}
@@ -180,9 +180,9 @@ function CopyableField({
           onClick={onCopy}
           aria-label={`Copy ${label}`}
           className={cn(
-            "inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "transition-colors",
+            "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:transition-colors",
           )}
         >
           {copied ? <CheckIcon /> : <CopyIcon />}

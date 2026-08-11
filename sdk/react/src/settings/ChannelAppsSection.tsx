@@ -73,10 +73,10 @@ export function ChannelAppsSection() {
 
   return (
     <section aria-labelledby="channel-apps-heading">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
         <h2
           id="channel-apps-heading"
-          className="text-foreground text-sm font-semibold"
+          className="stg:text-foreground stg:text-sm stg:font-semibold"
         >
           Channel Apps
         </h2>
@@ -85,13 +85,13 @@ export function ChannelAppsSection() {
           <button
             type="button"
             onClick={() => setFlow({ phase: "creating" })}
-            className="text-primary hover:text-foreground text-xs font-medium transition-colors"
+            className="stg:text-primary stg:hover:text-foreground stg:text-xs stg:font-medium stg:transition-colors"
           >
             + New channel app
           </button>
         )}
       </div>
-      <p className="text-muted-foreground mb-4 text-xs">
+      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
         Your own provider apps for serving agent channels. A Slack app
         gives the bot your name and icon, and lets multiple agents serve
         the same workspace — one per app. A Meta app is how WhatsApp
@@ -104,7 +104,7 @@ export function ChannelAppsSection() {
           require Stigmer Cloud.
         </CloudFeatureNotice>
       ) : flow.phase === "creating" ? (
-        <div className="border-border bg-card rounded-lg border p-4">
+        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
           <CreateChannelAppForm
             org={org}
             onCreated={handleCreated}
@@ -112,7 +112,7 @@ export function ChannelAppsSection() {
           />
         </div>
       ) : flow.phase === "editing" ? (
-        <div className="border-border bg-card rounded-lg border p-4">
+        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
           <ChannelAppDetailPanel
             channelApp={flow.channelApp}
             createHandoff={flow.createHandoff}

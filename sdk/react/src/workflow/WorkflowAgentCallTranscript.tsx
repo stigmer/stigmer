@@ -171,20 +171,20 @@ export const WorkflowAgentCallTranscript = memo(
         aria-label={
           agentSlug ? `Transcript of agent ${agentSlug}` : "Agent transcript"
         }
-        className={cn("flex max-h-[60vh] min-w-0 flex-col", className)}
+        className={cn("stg:flex stg:max-h-[60vh] stg:min-w-0 stg:flex-col", className)}
       >
         {/* Only what the card header cannot express: the child stream's
             reconnecting state and the standalone pop-out. */}
         {showBar && (
-          <div className="flex min-w-0 shrink-0 items-center gap-3 pb-1.5">
+          <div className="stg:flex stg:min-w-0 stg:shrink-0 stg:items-center stg:gap-3 stg:pb-1.5">
             {isReconnecting && (
-              <span className="text-xs text-muted-foreground">Reconnecting…</span>
+              <span className="stg:text-xs stg:text-muted-foreground">Reconnecting…</span>
             )}
             {onNavigateToAgentExecution && (
               <button
                 type="button"
                 onClick={() => onNavigateToAgentExecution(childExecutionId)}
-                className="ml-auto inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm"
+                className="stg:ml-auto stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm"
               >
                 <PopOutIcon />
                 Open standalone
@@ -196,7 +196,7 @@ export const WorkflowAgentCallTranscript = memo(
         {/* The thread owns the scrolling inside the bounded box (its
             auto-scroll machine + jump-to-latest need the scroll container);
             min-h-0 lets the flex slot shrink to the cap. */}
-        <div className="min-h-0 min-w-0 flex-1">
+        <div className="stg:min-h-0 stg:min-w-0 stg:flex-1">
           {execution ? (
             <MessageThread
               executions={EMPTY_EXECUTIONS}
@@ -205,30 +205,30 @@ export const WorkflowAgentCallTranscript = memo(
               submittingApprovalIds={hitl?.approvalSubmittingToolCallIds}
               approvalErrors={hitl?.approvalErrorsByToolCallId}
               showFileReviewRecords={hitl != null}
-              className="h-full"
+              className="stg:h-full"
             />
           ) : isLoading ? (
-            <ThreadSkeleton className="py-2" />
+            <ThreadSkeleton className="stg:py-2" />
           ) : error ? (
             <div
               role="alert"
-              className="flex flex-col items-start gap-2 py-2"
+              className="stg:flex stg:flex-col stg:items-start stg:gap-2 stg:py-2"
             >
-              <p className="text-xs text-destructive">{error.message}</p>
+              <p className="stg:text-xs stg:text-destructive">{error.message}</p>
               <button
                 type="button"
                 onClick={reconnect}
-                className="rounded border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="stg:rounded stg:border stg:border-border stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-foreground stg:hover:bg-muted stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
               >
                 Retry
               </button>
             </div>
           ) : (
-            <div role="status" className="flex flex-col gap-1 py-2">
-              <p className="text-xs font-medium text-foreground">
+            <div role="status" className="stg:flex stg:flex-col stg:gap-1 stg:py-2">
+              <p className="stg:text-xs stg:font-medium stg:text-foreground">
                 This agent execution is no longer available.
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="stg:text-xs stg:text-muted-foreground">
                 It may have been removed, or the workflow run predates
                 transcript retention.
               </p>
@@ -245,7 +245,7 @@ export const WorkflowAgentCallTranscript = memo(
             onSubmit={handleFileDecision}
             submittingDecisionKeys={hitl.fileDecisionSubmittingKeys}
             decisionErrors={hitl.fileDecisionErrorsByKey}
-            className="shrink-0"
+            className="stg:shrink-0"
           />
         )}
       </div>
@@ -268,7 +268,7 @@ function PopOutIcon() {
       strokeWidth="1.3"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <path d="M10.5 4.5V1.5H7.5" />

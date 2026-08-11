@@ -213,28 +213,28 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
   }, [mode, editor.diagnostics]);
 
   const rootClassName = cn(
-    "stgm-workflow-editor flex flex-col",
-    isFullPage && "fixed inset-0 z-50 bg-background",
-    !isFullPage && "h-full",
+    "stgm-workflow-editor stg:flex stg:flex-col",
+    isFullPage && "stg:fixed stg:inset-0 stg:z-50 stg:bg-background",
+    !isFullPage && "stg:h-full",
     className,
   );
 
   return (
     <div className={rootClassName}>
       {/* Toolbar */}
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <div className="flex items-center gap-3">
+      <div className="stg:flex stg:items-center stg:justify-between stg:border-b stg:border-border stg:px-3 stg:py-2">
+        <div className="stg:flex stg:items-center stg:gap-3">
           {/* Mode Toggle */}
           <ModeToggle mode={mode} onSwitchToCode={handleSwitchToCode} onSwitchToVisual={handleSwitchToVisual} />
-          <div className="mx-1 h-4 w-px bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
+          <div className="stg:mx-1 stg:h-4 stg:w-px stg:bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
           <button
             type="button"
             onClick={toggleRefinePanel}
             className={cn(
-              "inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors",
+              "stg:inline-flex stg:items-center stg:gap-1 stg:rounded stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
               showRefinePanel
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                ? "stg:bg-primary/10 stg:text-primary"
+                : "stg:text-muted-foreground stg:hover:bg-muted stg:hover:text-foreground",
             )}
             aria-pressed={showRefinePanel}
             aria-label="Refine with AI"
@@ -242,7 +242,7 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
             <RefineSparklesIcon />
             Refine
           </button>
-          <div className="mx-1 h-4 w-px bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
+          <div className="stg:mx-1 stg:h-4 stg:w-px stg:bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
           <ValidationSummary
             errorCount={editor.errorCount}
             warningCount={editor.warningCount}
@@ -252,8 +252,8 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
               type="button"
               onClick={handleFixWithAI}
               className={cn(
-                "inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors",
-                "text-muted-foreground hover:bg-muted hover:text-foreground",
+                "stg:inline-flex stg:items-center stg:gap-1 stg:rounded stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
+                "stg:text-muted-foreground stg:hover:bg-muted stg:hover:text-foreground",
               )}
               aria-label="Fix validation errors with AI"
             >
@@ -262,11 +262,11 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
             </button>
           )}
           {(editor.isDirty || canvasDirty) && (
-            <span className="text-xs text-muted-foreground">Unsaved changes</span>
+            <span className="stg:text-xs stg:text-muted-foreground">Unsaved changes</span>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="stg:flex stg:items-center stg:gap-2">
           {mode === "code" && (editor.isDirty || editor.versionMessage) && (
             <input
               type="text"
@@ -275,10 +275,10 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
               placeholder="Version message (optional)"
               disabled={editor.isSaving}
               className={cn(
-                "h-7 w-48 rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 text-xs",
-                "text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)]",
-                "focus:border-[var(--stgm-primary,#6366f1)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-primary,#6366f1)]",
-                "disabled:opacity-40",
+                "stg:h-7 stg:w-48 stg:rounded stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-2 stg:text-xs",
+                "stg:text-[var(--stgm-foreground,#1a1a2e)] stg:placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)]",
+                "stg:focus:border-[var(--stgm-primary,#6366f1)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-primary,#6366f1)]",
+                "stg:disabled:opacity-40",
               )}
             />
           )}
@@ -288,9 +288,9 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
               onClick={editor.reset}
               disabled={!editor.isDirty || editor.isSaving}
               className={cn(
-                "rounded px-2.5 py-1 text-xs font-medium transition-colors",
-                "text-muted-foreground hover:bg-muted hover:text-foreground",
-                "disabled:pointer-events-none disabled:opacity-40",
+                "stg:rounded stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
+                "stg:text-muted-foreground stg:hover:bg-muted stg:hover:text-foreground",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-40",
               )}
             >
               Reset
@@ -302,9 +302,9 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
               onClick={handleSave}
               disabled={!editor.isDirty || editor.isSaving || editor.errorCount > 0}
               className={cn(
-                "rounded bg-primary px-3 py-1 text-xs font-medium text-primary-foreground transition-colors",
-                "hover:bg-primary/90",
-                "disabled:pointer-events-none disabled:opacity-40",
+                "stg:rounded stg:bg-primary stg:px-3 stg:py-1 stg:text-xs stg:font-medium stg:text-primary-foreground stg:transition-colors",
+                "stg:hover:bg-primary/90",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-40",
               )}
             >
               {editor.isSaving ? "Saving\u2026" : "Save"}
@@ -314,8 +314,8 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
             type="button"
             onClick={() => setShowExplainDialog(true)}
             className={cn(
-              "inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors",
-              "text-muted-foreground hover:bg-muted hover:text-foreground",
+              "stg:inline-flex stg:items-center stg:gap-1 stg:rounded stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
+              "stg:text-muted-foreground stg:hover:bg-muted stg:hover:text-foreground",
             )}
             aria-label="Explain this workflow"
           >
@@ -325,7 +325,7 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
           <button
             type="button"
             onClick={toggleFullPage}
-            className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="stg:rounded stg:p-1 stg:text-muted-foreground stg:hover:bg-muted stg:hover:text-foreground"
             aria-label={isFullPage ? "Exit full page" : "Full page"}
           >
             <ExpandIcon expanded={isFullPage} />
@@ -335,7 +335,7 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
 
       {/* Save error banner */}
       {editor.saveError && (
-        <div className="border-b border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+        <div className="stg:border-b stg:border-destructive/20 stg:bg-destructive/5 stg:px-3 stg:py-2 stg:text-xs stg:text-destructive">
           {editor.saveError.message}
         </div>
       )}
@@ -359,18 +359,18 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
       />
 
       {/* Main content area */}
-      <div className="flex min-h-0 flex-1">
+      <div className="stg:flex stg:min-h-0 stg:flex-1">
         {mode === "code" ? (
           <>
-            <div className="flex-1 overflow-hidden border-r border-border">
+            <div className="stg:flex-1 stg:overflow-hidden stg:border-r stg:border-border">
               <WorkflowYamlEditor
                 value={editor.yaml}
                 onChange={editor.setYaml}
                 diagnostics={editor.diagnostics as import("@codemirror/lint").Diagnostic[]}
-                className="h-full rounded-none border-0"
+                className="stg:h-full stg:rounded-none stg:border-0"
               />
             </div>
-            <div className="w-[40%] min-w-[240px] overflow-hidden">
+            <div className="stg:w-[40%] stg:min-w-[240px] stg:overflow-hidden">
               {showRefinePanel ? (
                 <WorkflowRefinePanel
                   org={org}
@@ -378,12 +378,12 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
                   onAccept={handleRefineAccept}
                   onClose={toggleRefinePanel}
                   initialInstruction={pendingFixInstruction}
-                  className="h-full"
+                  className="stg:h-full"
                 />
               ) : (
                 <WorkflowCodePreviewGraph
                   yaml={editor.yaml}
-                  className="h-full"
+                  className="stg:h-full"
                 />
               )}
             </div>
@@ -397,17 +397,17 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
               onDirtyChange={setCanvasDirty}
               nodeErrors={nodeErrors}
               layoutEngine={layoutEngine}
-              className={showRefinePanel ? "w-[60%]" : "flex-1"}
+              className={showRefinePanel ? "stg:w-[60%]" : "stg:flex-1"}
             />
             {showRefinePanel && (
-              <div className="w-[40%] min-w-[240px] overflow-hidden">
+              <div className="stg:w-[40%] stg:min-w-[240px] stg:overflow-hidden">
                 <WorkflowRefinePanel
                   org={org}
                   currentYaml={editor.yaml}
                   onAccept={handleRefineAccept}
                   onClose={toggleRefinePanel}
                   initialInstruction={pendingFixInstruction}
-                  className="h-full"
+                  className="stg:h-full"
                 />
               </div>
             )}
@@ -433,14 +433,14 @@ function ModeToggle({
 }) {
   const segmentClass = (active: boolean) =>
     cn(
-      "rounded px-2.5 py-1 text-xs font-medium transition-colors",
+      "stg:rounded stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
       active
-        ? "bg-[var(--stgm-primary,#6366f1)] text-[var(--stgm-primary-foreground,#fff)]"
-        : "text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-muted,#f5f5f5)] hover:text-[var(--stgm-foreground,#1a1a2e)]",
+        ? "stg:bg-[var(--stgm-primary,#6366f1)] stg:text-[var(--stgm-primary-foreground,#fff)]"
+        : "stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:bg-[var(--stgm-muted,#f5f5f5)] stg:hover:text-[var(--stgm-foreground,#1a1a2e)]",
     );
 
   return (
-    <div className="flex items-center gap-0.5 rounded-md border border-[var(--stgm-border,#d4d4d8)] p-0.5" role="tablist" aria-label="Editor mode">
+    <div className="stg:flex stg:items-center stg:gap-0.5 stg:rounded-md stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:p-0.5" role="tablist" aria-label="Editor mode">
       <button type="button" role="tab" aria-selected={mode === "code"} onClick={onSwitchToCode} className={segmentClass(mode === "code")}>
         Code
       </button>
@@ -463,23 +463,23 @@ function ModeWarningDialog({
   onCancel: () => void;
 }) {
   return (
-    <div className="border-b border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-accent,#fffbeb)] px-3 py-2">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-[var(--stgm-foreground,#1a1a2e)]">
+    <div className="stg:border-b stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-accent,#fffbeb)] stg:px-3 stg:py-2">
+      <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
+        <p className="stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)]">
           Switching to visual mode will normalize YAML formatting. Comments and custom ordering will not be preserved.
         </p>
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded px-2 py-1 text-xs text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-muted,#f5f5f5)]"
+            className="stg:rounded stg:px-2 stg:py-1 stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:bg-[var(--stgm-muted,#f5f5f5)]"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="rounded bg-[var(--stgm-primary,#6366f1)] px-2.5 py-1 text-xs font-medium text-[var(--stgm-primary-foreground,#fff)] hover:opacity-90"
+            className="stg:rounded stg:bg-[var(--stgm-primary,#6366f1)] stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:text-[var(--stgm-primary-foreground,#fff)] stg:hover:opacity-90"
           >
             Continue
           </button>
@@ -501,23 +501,23 @@ function DirtyPromptDialog({
   onCancel: () => void;
 }) {
   return (
-    <div className="border-b border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-accent,#fffbeb)] px-3 py-2">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-[var(--stgm-foreground,#1a1a2e)]">
+    <div className="stg:border-b stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-accent,#fffbeb)] stg:px-3 stg:py-2">
+      <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
+        <p className="stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)]">
           You have unsaved changes in the visual editor. Switching to code mode will discard them.
         </p>
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded px-2 py-1 text-xs text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-muted,#f5f5f5)]"
+            className="stg:rounded stg:px-2 stg:py-1 stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:bg-[var(--stgm-muted,#f5f5f5)]"
           >
             Stay in Visual
           </button>
           <button
             type="button"
             onClick={onDiscard}
-            className="rounded bg-[var(--stgm-destructive,#ef4444)] px-2.5 py-1 text-xs font-medium text-[var(--stgm-destructive-foreground,#fff)] hover:opacity-90"
+            className="stg:rounded stg:bg-[var(--stgm-destructive,#ef4444)] stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:text-[var(--stgm-destructive-foreground,#fff)] stg:hover:opacity-90"
           >
             Discard &amp; Switch
           </button>
@@ -540,7 +540,7 @@ function ValidationSummary({
 }) {
   if (errorCount === 0 && warningCount === 0) {
     return (
-      <span className="text-xs text-success">
+      <span className="stg:text-xs stg:text-success">
         <CheckCircleIcon />
         {" "}Valid
       </span>
@@ -548,14 +548,14 @@ function ValidationSummary({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="stg:flex stg:items-center stg:gap-2">
       {errorCount > 0 && (
-        <span className="text-xs text-destructive">
+        <span className="stg:text-xs stg:text-destructive">
           {errorCount} {errorCount === 1 ? "error" : "errors"}
         </span>
       )}
       {warningCount > 0 && (
-        <span className="text-xs text-warning">
+        <span className="stg:text-xs stg:text-warning">
           {warningCount} {warningCount === 1 ? "warning" : "warnings"}
         </span>
       )}
@@ -574,7 +574,7 @@ function CheckCircleIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="inline-block"
+      className="stg:inline-block"
     >
       <circle cx="8" cy="8" r="6.5" />
       <path d="M5.5 8l2 2 3-3.5" />

@@ -43,9 +43,9 @@ export function CollapsibleCode({ label, content, className }: CollapsibleCodePr
       : content;
 
   return (
-    <div className={cn("space-y-1", className)}>
-      <span className="font-medium text-muted-foreground">{label}</span>
-      <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted-subtle p-2 font-mono text-foreground">
+    <div className={cn("stg:space-y-1", className)}>
+      <span className="stg:font-medium stg:text-muted-foreground">{label}</span>
+      <pre className="stg:max-h-80 stg:overflow-auto stg:whitespace-pre-wrap stg:break-words stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:p-2 stg:font-mono stg:text-foreground">
         {displayContent}
       </pre>
       {needsTruncation && (
@@ -92,7 +92,7 @@ export function CollapsiblePre({ content, className }: CollapsiblePreProps) {
 
   return (
     <>
-      <pre className={cn("whitespace-pre-wrap break-words font-mono", className)}>
+      <pre className={cn("stg:whitespace-pre-wrap stg:break-words stg:font-mono", className)}>
         {displayContent}
       </pre>
       {needsTruncation && (
@@ -129,11 +129,11 @@ export function CollapsibleJsonBlock({ label, content }: CollapsibleJsonBlockPro
   const isLong = lines.length > 3;
 
   return (
-    <div className="space-y-1">
+    <div className="stg:space-y-1">
       <button
         type="button"
         onClick={() => setIsExpanded((v) => !v)}
-        className="flex items-center gap-1 font-medium text-muted-foreground transition-colors hover:text-foreground"
+        className="stg:flex stg:items-center stg:gap-1 stg:font-medium stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground"
       >
         <svg
           width="8"
@@ -145,8 +145,8 @@ export function CollapsibleJsonBlock({ label, content }: CollapsibleJsonBlockPro
           strokeLinecap="round"
           strokeLinejoin="round"
           className={cn(
-            "shrink-0 transition-transform duration-150",
-            isExpanded && "rotate-90",
+            "stg:shrink-0 stg:transition-transform stg:duration-150",
+            isExpanded && "stg:rotate-90",
           )}
           aria-hidden="true"
         >
@@ -154,13 +154,13 @@ export function CollapsibleJsonBlock({ label, content }: CollapsibleJsonBlockPro
         </svg>
         {label}
         {!isExpanded && isLong && (
-          <span className="font-normal text-muted-foreground-subtle">
+          <span className="stg:font-normal stg:text-muted-foreground-subtle">
             ({lines.length} lines)
           </span>
         )}
       </button>
       {isExpanded && (
-        <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted-subtle p-2 font-mono text-foreground">
+        <pre className="stg:max-h-80 stg:overflow-auto stg:whitespace-pre-wrap stg:break-words stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:p-2 stg:font-mono stg:text-foreground">
           {content}
         </pre>
       )}
@@ -184,7 +184,7 @@ export function FilePathIcon() {
       strokeWidth="1.2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
       aria-hidden="true"
     >
       <path d="M7 1H3C2.45 1 2 1.45 2 2V10C2 10.55 2.45 11 3 11H9C9.55 11 10 10.55 10 10V4L7 1Z" />
@@ -205,7 +205,7 @@ export function McpServerIcon() {
       strokeWidth="1.2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <circle cx="6" cy="3" r="1.5" />

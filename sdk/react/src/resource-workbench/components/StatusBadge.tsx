@@ -53,13 +53,13 @@ export function StatusBadge({
   const badge = (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium leading-none",
+        "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-full stg:px-2 stg:py-0.5 stg:text-[11px] stg:font-medium stg:leading-none",
         statusClasses(phase),
         className,
       )}
     >
       <span
-        className={cn("size-1.5 shrink-0 rounded-full", dotClasses(phase))}
+        className={cn("stg:size-1.5 stg:shrink-0 stg:rounded-full", dotClasses(phase))}
         aria-hidden="true"
       />
       {displayLabel}
@@ -69,7 +69,7 @@ export function StatusBadge({
   if (!tooltip) return badge;
 
   return (
-    <span title={tooltip} className="inline-flex">
+    <span title={tooltip} className="stg:inline-flex">
       {badge}
     </span>
   );
@@ -82,19 +82,19 @@ export function StatusBadge({
 function statusClasses(phase: StatusPhase): string {
   switch (phase) {
     case "ready":
-      return "bg-[var(--stgm-status-ready-subtle)] text-[var(--stgm-status-ready)]";
+      return "stg:bg-[var(--stgm-status-ready-subtle)] stg:text-[var(--stgm-status-ready)]";
     case "running":
-      return "bg-[var(--stgm-status-running-subtle)] text-[var(--stgm-status-running)]";
+      return "stg:bg-[var(--stgm-status-running-subtle)] stg:text-[var(--stgm-status-running)]";
     case "pending":
-      return "bg-[var(--stgm-status-pending-subtle)] text-[var(--stgm-status-pending)]";
+      return "stg:bg-[var(--stgm-status-pending-subtle)] stg:text-[var(--stgm-status-pending)]";
     case "degraded":
-      return "bg-[var(--stgm-status-degraded-subtle)] text-[var(--stgm-status-degraded)]";
+      return "stg:bg-[var(--stgm-status-degraded-subtle)] stg:text-[var(--stgm-status-degraded)]";
     case "failed":
-      return "bg-[var(--stgm-status-failed-subtle)] text-[var(--stgm-status-failed)]";
+      return "stg:bg-[var(--stgm-status-failed-subtle)] stg:text-[var(--stgm-status-failed)]";
     case "disabled":
-      return "bg-[var(--stgm-status-disabled-subtle)] text-[var(--stgm-status-disabled)]";
+      return "stg:bg-[var(--stgm-status-disabled-subtle)] stg:text-[var(--stgm-status-disabled)]";
     case "draft":
-      return "bg-[var(--stgm-status-draft-subtle)] text-[var(--stgm-status-draft)]";
+      return "stg:bg-[var(--stgm-status-draft-subtle)] stg:text-[var(--stgm-status-draft)]";
   }
 }
 
@@ -102,18 +102,18 @@ function statusClasses(phase: StatusPhase): string {
 function dotClasses(phase: StatusPhase): string {
   switch (phase) {
     case "ready":
-      return "bg-[var(--stgm-status-ready)]";
+      return "stg:bg-[var(--stgm-status-ready)]";
     case "running":
-      return "bg-[var(--stgm-status-running)]";
+      return "stg:bg-[var(--stgm-status-running)]";
     case "pending":
-      return "bg-[var(--stgm-status-pending)]";
+      return "stg:bg-[var(--stgm-status-pending)]";
     case "degraded":
-      return "bg-[var(--stgm-status-degraded)]";
+      return "stg:bg-[var(--stgm-status-degraded)]";
     case "failed":
-      return "bg-[var(--stgm-status-failed)]";
+      return "stg:bg-[var(--stgm-status-failed)]";
     case "disabled":
-      return "bg-[var(--stgm-status-disabled)]";
+      return "stg:bg-[var(--stgm-status-disabled)]";
     case "draft":
-      return "bg-[var(--stgm-status-draft)]";
+      return "stg:bg-[var(--stgm-status-draft)]";
   }
 }

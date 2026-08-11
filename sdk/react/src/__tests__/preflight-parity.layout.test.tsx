@@ -92,7 +92,7 @@ describe("scoped form-control preflight (#374)", () => {
       // The exact pattern the issue screenshotted: an image tile whose only
       // classes are UNSTYLED_BUTTON + geometry.
       const probe = renderScoped(
-        <button type="button" className={`${UNSTYLED_BUTTON} relative block h-14 w-14 rounded-md`}>
+        <button type="button" className={`${UNSTYLED_BUTTON} stg:relative stg:block stg:h-14 stg:w-14 stg:rounded-md`}>
           tile
         </button>,
       );

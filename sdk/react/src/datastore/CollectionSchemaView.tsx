@@ -37,7 +37,7 @@ export interface CollectionSchemaViewProps {
  */
 export function CollectionSchemaView({ spec, className }: CollectionSchemaViewProps) {
   return (
-    <div className={cn("flex flex-col gap-6", className)}>
+    <div className={cn("stg:flex stg:flex-col stg:gap-6", className)}>
       <AuthorizationSummary authorization={spec.authorization} timezone={spec.timezone} />
       {spec.collections.map((coll) => (
         <CollectionSchema key={coll.name} collection={coll} />
@@ -63,44 +63,44 @@ function AuthorizationSummary({
 
   return (
     <Section title="Authorization">
-      <div className="flex flex-col gap-3 p-3 text-sm">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground">Roles</span>
+      <div className="stg:flex stg:flex-col stg:gap-3 stg:p-3 stg:text-sm">
+        <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
+          <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">Roles</span>
           {roles.length === 0 ? (
-            <span className="text-xs text-muted-foreground">none declared</span>
+            <span className="stg:text-xs stg:text-muted-foreground">none declared</span>
           ) : (
             roles.map((r) => (
               <span
                 key={r.name}
-                className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground"
+                className="stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-xs stg:font-medium stg:text-foreground"
               >
                 {r.name}
               </span>
             ))
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground">Default role</span>
+        <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
+          <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">Default role</span>
           {defaultRole ? (
-            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+            <span className="stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-xs stg:font-medium stg:text-foreground">
               {defaultRole}
             </span>
           ) : (
-            <span className="text-xs text-muted-foreground">
+            <span className="stg:text-xs stg:text-muted-foreground">
               none — unbound callers are denied
             </span>
           )}
         </div>
         {bindings.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-muted-foreground">
+          <div className="stg:flex stg:flex-col stg:gap-1">
+            <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">
               Bindings ({bindings.length})
             </span>
-            <ul className="flex flex-col gap-0.5">
+            <ul className="stg:flex stg:flex-col stg:gap-0.5">
               {bindings.map((b, i) => (
-                <li key={i} className="text-xs text-foreground">
-                  <code className="font-mono">{formatSubject(b.subject)}</code>
-                  <span className="text-muted-foreground"> → </span>
+                <li key={i} className="stg:text-xs stg:text-foreground">
+                  <code className="stg:font-mono">{formatSubject(b.subject)}</code>
+                  <span className="stg:text-muted-foreground"> → </span>
                   {b.role}
                 </li>
               ))}
@@ -108,9 +108,9 @@ function AuthorizationSummary({
           </div>
         )}
         {timezone && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground">Timezone</span>
-            <span className="text-xs text-foreground">{timezone}</span>
+          <div className="stg:flex stg:items-center stg:gap-2">
+            <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">Timezone</span>
+            <span className="stg:text-xs stg:text-foreground">{timezone}</span>
           </div>
         )}
       </div>
@@ -178,63 +178,63 @@ function CollectionSchema({ collection }: { readonly collection: CollectionDecla
 
   return (
     <Section title={collection.name} count={collection.fields.length}>
-      <div className="flex flex-col">
+      <div className="stg:flex stg:flex-col">
         {collection.description && (
-          <p className="border-b border-border px-3 py-2 text-xs text-muted-foreground">
+          <p className="stg:border-b stg:border-border stg:px-3 stg:py-2 stg:text-xs stg:text-muted-foreground">
             {collection.description}
           </p>
         )}
 
-        <table className="w-full text-left text-xs">
+        <table className="stg:w-full stg:text-left stg:text-xs">
           <thead>
-            <tr className="border-b border-border text-muted-foreground">
-              <th scope="col" className="px-3 py-2 font-medium">Field</th>
-              <th scope="col" className="px-3 py-2 font-medium">Type</th>
-              <th scope="col" className="px-3 py-2 font-medium">Required</th>
-              <th scope="col" className="px-3 py-2 font-medium">Default</th>
-              <th scope="col" className="px-3 py-2 font-medium">Description</th>
+            <tr className="stg:border-b stg:border-border stg:text-muted-foreground">
+              <th scope="col" className="stg:px-3 stg:py-2 stg:font-medium">Field</th>
+              <th scope="col" className="stg:px-3 stg:py-2 stg:font-medium">Type</th>
+              <th scope="col" className="stg:px-3 stg:py-2 stg:font-medium">Required</th>
+              <th scope="col" className="stg:px-3 stg:py-2 stg:font-medium">Default</th>
+              <th scope="col" className="stg:px-3 stg:py-2 stg:font-medium">Description</th>
             </tr>
           </thead>
           <tbody>
             {collection.fields.map((f) => (
-              <tr key={f.name} className="border-b border-border last:border-b-0">
-                <td className="px-3 py-2 font-mono text-foreground">{f.name}</td>
-                <td className="px-3 py-2 text-foreground">
+              <tr key={f.name} className="stg:border-b stg:border-border stg:last:border-b-0">
+                <td className="stg:px-3 stg:py-2 stg:font-mono stg:text-foreground">{f.name}</td>
+                <td className="stg:px-3 stg:py-2 stg:text-foreground">
                   {FieldType[f.type]}
                   {f.enumValues.length > 0 && (
-                    <span className="text-muted-foreground">
+                    <span className="stg:text-muted-foreground">
                       {" "}
                       ({f.enumValues.join(" | ")})
                     </span>
                   )}
                 </td>
-                <td className="px-3 py-2 text-muted-foreground">{f.required ? "yes" : ""}</td>
-                <td className="px-3 py-2 font-mono text-muted-foreground">
+                <td className="stg:px-3 stg:py-2 stg:text-muted-foreground">{f.required ? "yes" : ""}</td>
+                <td className="stg:px-3 stg:py-2 stg:font-mono stg:text-muted-foreground">
                   {f.default !== undefined
                     ? formatFieldValue(f.type, toJson(ValueSchema, f.default))
                     : ""}
                 </td>
-                <td className="px-3 py-2 text-muted-foreground">{f.description}</td>
+                <td className="stg:px-3 stg:py-2 stg:text-muted-foreground">{f.description}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
         {constraints.length > 0 && (
-          <div className="border-t border-border">
-            <h4 className="px-3 pt-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <div className="stg:border-t stg:border-border">
+            <h4 className="stg:px-3 stg:pt-2 stg:text-xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
               Constraints
             </h4>
-            <ul className="flex flex-col gap-1 p-3">
+            <ul className="stg:flex stg:flex-col stg:gap-1 stg:p-3">
               {constraints.map((c) => (
-                <li key={`${c.kind}:${c.name}`} className="flex flex-wrap items-baseline gap-2 text-xs">
-                  <span className="rounded bg-muted px-1.5 py-0.5 font-medium text-muted-foreground">
+                <li key={`${c.kind}:${c.name}`} className="stg:flex stg:flex-wrap stg:items-baseline stg:gap-2 stg:text-xs">
+                  <span className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-medium stg:text-muted-foreground">
                     {c.kind}
                   </span>
-                  <code className="font-mono text-foreground">{c.name}</code>
-                  {c.fields && <span className="text-muted-foreground">({c.fields})</span>}
+                  <code className="stg:font-mono stg:text-foreground">{c.name}</code>
+                  {c.fields && <span className="stg:text-muted-foreground">({c.fields})</span>}
                   {c.message && (
-                    <span className="text-muted-foreground">— “{c.message}”</span>
+                    <span className="stg:text-muted-foreground">— “{c.message}”</span>
                   )}
                 </li>
               ))}

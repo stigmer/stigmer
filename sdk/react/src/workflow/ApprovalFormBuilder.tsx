@@ -86,7 +86,7 @@ export const ApprovalFormBuilder = memo(function ApprovalFormBuilder({
   }, [nodeId, edges]);
 
   return (
-    <div className="flex flex-col">
+    <div className="stg:flex stg:flex-col">
       <PromptSection
         prompt={typeof cfg.prompt === "string" ? cfg.prompt : ""}
         onUpdate={onUpdateConfig}
@@ -147,7 +147,7 @@ function PromptSection({
         onChange={(e) => onUpdate("prompt", e.target.value || undefined)}
         placeholder="${ $context.ticket.id } needs approval — review and decide."
         rows={3}
-        className={cn(inputClass, "resize-y font-mono")}
+        className={cn(inputClass, "stg:resize-y stg:font-mono")}
         aria-label="Prompt message"
       />
     </CollapsibleSection>
@@ -271,12 +271,12 @@ function OutcomesSection({
   return (
     <CollapsibleSection title="Outcomes">
       {outcomes.length === 0 && (
-        <p className="py-1 text-[11px] text-[var(--stgm-muted-foreground,#737373)]">
+        <p className="stg:py-1 stg:text-[11px] stg:text-[var(--stgm-muted-foreground,#737373)]">
           No custom outcomes. Default: binary Approve / Deny.
         </p>
       )}
 
-      <div className="flex flex-col gap-2">
+      <div className="stg:flex stg:flex-col stg:gap-2">
         {outcomes.map((o, idx) => {
           const routeTarget = routingMap.get(`outcome_${o.name}`) ?? "";
           return (
@@ -307,7 +307,7 @@ function OutcomesSection({
       <button
         type="button"
         onClick={handleAdd}
-        className="mt-1 self-start text-[11px] font-medium text-[var(--stgm-primary,#6366f1)] hover:underline"
+        className="stg:mt-1 stg:self-start stg:text-[11px] stg:font-medium stg:text-[var(--stgm-primary,#6366f1)] stg:hover:underline"
       >
         + Add outcome
       </button>
@@ -380,11 +380,11 @@ function OutcomeEntry({
       onDragOver={handleDragOverEvent}
       onDrop={onDrop}
       className={cn(
-        "flex flex-col gap-1 rounded-md border border-[var(--stgm-border,#e5e5e5)] p-2 transition-[border-color]",
-        isDragOver && "border-[var(--stgm-primary,#6366f1)]",
+        "stg:flex stg:flex-col stg:gap-1 stg:rounded-md stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:p-2 stg:transition-[border-color]",
+        isDragOver && "stg:border-[var(--stgm-primary,#6366f1)]",
       )}
     >
-      <div className="flex items-center gap-1">
+      <div className="stg:flex stg:items-center stg:gap-1">
         <DragGrip onDragStart={onDragStart} onDragEnd={onDragEnd} />
         <input
           type="text"
@@ -393,23 +393,23 @@ function OutcomeEntry({
           onBlur={validateAndCommit}
           onKeyDown={(e) => { if (e.key === "Enter") validateAndCommit(); }}
           placeholder="outcome_name"
-          className="min-w-0 flex-1 rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-1.5 py-1 text-xs font-medium text-[var(--stgm-foreground,#1a1a2e)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+          className="stg:min-w-0 stg:flex-1 stg:rounded stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-1.5 stg:py-1 stg:text-xs stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
           aria-label={`Outcome ${index + 1} name`}
         />
-        <div className="flex shrink-0 items-center">
+        <div className="stg:flex stg:shrink-0 stg:items-center">
           <ArrowButton direction="up" disabled={index === 0} onClick={onMoveUp} />
           <ArrowButton direction="down" disabled={index === total - 1} onClick={onMoveDown} />
           <button
             type="button"
             onClick={onRemove}
-            className="ml-0.5 text-[10px] text-[var(--stgm-destructive,#ef4444)] hover:underline"
+            className="stg:ml-0.5 stg:text-[10px] stg:text-[var(--stgm-destructive,#ef4444)] stg:hover:underline"
             aria-label={`Remove outcome ${outcome.name}`}
           >
             ✕
           </button>
         </div>
       </div>
-      {nameError && <span className="text-[10px] text-[var(--stgm-destructive,#ef4444)]">{nameError}</span>}
+      {nameError && <span className="stg:text-[10px] stg:text-[var(--stgm-destructive,#ef4444)]">{nameError}</span>}
 
       <input
         type="text"
@@ -489,14 +489,14 @@ function FormSchemaSection({
 
   return (
     <CollapsibleSection title="Form Fields">
-      <div className="mb-1 flex items-center justify-between">
-        <span className="text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+      <div className="stg:mb-1 stg:flex stg:items-center stg:justify-between">
+        <span className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
           {rawMode ? "Raw JSON Schema" : "Visual builder"}
         </span>
         <button
           type="button"
           onClick={() => setRawMode(!rawMode)}
-          className="text-[10px] text-[var(--stgm-primary,#6366f1)] hover:underline"
+          className="stg:text-[10px] stg:text-[var(--stgm-primary,#6366f1)] stg:hover:underline"
         >
           {rawMode ? "Visual" : "Raw JSON"}
         </button>
@@ -507,17 +507,17 @@ function FormSchemaSection({
           value={formSchema != null ? JSON.stringify(formSchema, null, 2) : ""}
           onChange={(e) => handleRawChange(e.target.value)}
           rows={8}
-          className={cn(inputClass, "resize-y font-mono text-[11px]")}
+          className={cn(inputClass, "stg:resize-y stg:font-mono stg:text-[11px]")}
           placeholder='{ "type": "object", "properties": { ... } }'
         />
       ) : (
         <>
           {fields.length === 0 && (
-            <p className="py-1 text-[11px] text-[var(--stgm-muted-foreground,#737373)]">
+            <p className="stg:py-1 stg:text-[11px] stg:text-[var(--stgm-muted-foreground,#737373)]">
               No form fields. Reviewer sees only outcome buttons.
             </p>
           )}
-          <div className="flex flex-col gap-1.5">
+          <div className="stg:flex stg:flex-col stg:gap-1.5">
             {fields.map((field, idx) => (
               <FormFieldRow
                 key={`${field.name}_${idx}`}
@@ -531,7 +531,7 @@ function FormSchemaSection({
           <button
             type="button"
             onClick={handleAdd}
-            className="mt-1 self-start text-[11px] font-medium text-[var(--stgm-primary,#6366f1)] hover:underline"
+            className="stg:mt-1 stg:self-start stg:text-[11px] stg:font-medium stg:text-[var(--stgm-primary,#6366f1)] stg:hover:underline"
           >
             + Add field
           </button>
@@ -553,20 +553,20 @@ function FormFieldRow({
   onRemove: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-1 rounded border border-[var(--stgm-border,#e5e5e5)] p-1.5">
-      <div className="flex items-center gap-1">
+    <div className="stg:flex stg:flex-col stg:gap-1 stg:rounded stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:p-1.5">
+      <div className="stg:flex stg:items-center stg:gap-1">
         <input
           type="text"
           value={field.name}
           onChange={(e) => onUpdate({ name: e.target.value })}
           placeholder="field_name"
-          className="min-w-0 flex-1 rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-1 py-0.5 text-[11px] text-[var(--stgm-foreground,#1a1a2e)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+          className="stg:min-w-0 stg:flex-1 stg:rounded stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-1 stg:py-0.5 stg:text-[11px] stg:text-[var(--stgm-foreground,#1a1a2e)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
           aria-label={`Field ${index + 1} name`}
         />
         <select
           value={field.type}
           onChange={(e) => onUpdate({ type: e.target.value as FormFieldEntry["type"] })}
-          className="rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-1 py-0.5 text-[11px] text-[var(--stgm-foreground,#1a1a2e)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+          className="stg:rounded stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-1 stg:py-0.5 stg:text-[11px] stg:text-[var(--stgm-foreground,#1a1a2e)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
           aria-label={`Type for field ${field.name}`}
         >
           <option value="string">string</option>
@@ -574,19 +574,19 @@ function FormFieldRow({
           <option value="boolean">boolean</option>
           <option value="enum">enum</option>
         </select>
-        <label className="flex shrink-0 cursor-pointer items-center gap-0.5 text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+        <label className="stg:flex stg:shrink-0 stg:cursor-pointer stg:items-center stg:gap-0.5 stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
           <input
             type="checkbox"
             checked={field.required}
             onChange={(e) => onUpdate({ required: e.target.checked })}
-            className="h-3 w-3"
+            className="stg:h-3 stg:w-3"
           />
           Req
         </label>
         <button
           type="button"
           onClick={onRemove}
-          className="text-[10px] text-[var(--stgm-destructive,#ef4444)] hover:underline"
+          className="stg:text-[10px] stg:text-[var(--stgm-destructive,#ef4444)] stg:hover:underline"
           aria-label={`Remove field ${field.name}`}
         >
           ✕
@@ -597,7 +597,7 @@ function FormFieldRow({
         value={field.description}
         onChange={(e) => onUpdate({ description: e.target.value })}
         placeholder="Description (optional)"
-        className="rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-1 py-0.5 text-[10px] text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+        className="stg:rounded stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-1 stg:py-0.5 stg:text-[10px] stg:text-[var(--stgm-foreground,#1a1a2e)] stg:placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
       />
       {field.type === "enum" && (
         <input
@@ -605,7 +605,7 @@ function FormFieldRow({
           value={field.enumValues}
           onChange={(e) => onUpdate({ enumValues: e.target.value })}
           placeholder="P1, P2, P3 (comma-separated)"
-          className="rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-1 py-0.5 text-[10px] font-mono text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+          className="stg:rounded stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-mono stg:text-[var(--stgm-foreground,#1a1a2e)] stg:placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
         />
       )}
     </div>
@@ -669,20 +669,20 @@ function TimeoutSection({
 
   return (
     <CollapsibleSection title="Timeout">
-      <div className="flex items-center gap-1">
+      <div className="stg:flex stg:items-center stg:gap-1">
         <input
           type="number"
           value={displayValue}
           onChange={handleValueChange}
           placeholder="0"
           min={0}
-          className={cn(smallInputClass, "w-16")}
+          className={cn(smallInputClass, "stg:w-16")}
           aria-label="Timeout duration"
         />
         <select
           value={unit}
           onChange={handleUnitChange}
-          className={cn(smallInputClass, "w-20")}
+          className={cn(smallInputClass, "stg:w-20")}
           aria-label="Timeout unit"
         >
           {TIMEOUT_UNITS.map((u) => (
@@ -692,8 +692,8 @@ function TimeoutSection({
       </div>
 
       {timeout > 0 && (
-        <div className="mt-1.5 flex flex-col gap-1">
-          <label className="text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+        <div className="stg:mt-1.5 stg:flex stg:flex-col stg:gap-1">
+          <label className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
             On timeout
           </label>
           <select
@@ -711,8 +711,8 @@ function TimeoutSection({
       )}
 
       {isEscalate && (
-        <div className="mt-1.5 flex flex-col gap-1">
-          <label className="text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+        <div className="stg:mt-1.5 stg:flex stg:flex-col stg:gap-1">
+          <label className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
             Escalation task
           </label>
           <select
@@ -776,21 +776,21 @@ function StringListSection({
 
   return (
     <CollapsibleSection title={title}>
-      <div className="flex flex-col gap-1">
+      <div className="stg:flex stg:flex-col stg:gap-1">
         {values.map((val, idx) => (
-          <div key={idx} className="flex items-center gap-1">
+          <div key={idx} className="stg:flex stg:items-center stg:gap-1">
             <input
               type="text"
               value={val}
               onChange={(e) => handleChange(idx, e.target.value)}
               placeholder={placeholder}
-              className={cn(smallInputClass, "flex-1")}
+              className={cn(smallInputClass, "stg:flex-1")}
               aria-label={`${title} entry ${idx + 1}`}
             />
             <button
               type="button"
               onClick={() => handleRemove(idx)}
-              className="text-[10px] text-[var(--stgm-destructive,#ef4444)] hover:underline"
+              className="stg:text-[10px] stg:text-[var(--stgm-destructive,#ef4444)] stg:hover:underline"
               aria-label={`Remove ${title.toLowerCase()} entry ${idx + 1}`}
             >
               ✕
@@ -801,7 +801,7 @@ function StringListSection({
       <button
         type="button"
         onClick={handleAdd}
-        className="mt-1 self-start text-[11px] font-medium text-[var(--stgm-primary,#6366f1)] hover:underline"
+        className="stg:mt-1 stg:self-start stg:text-[11px] stg:font-medium stg:text-[var(--stgm-primary,#6366f1)] stg:hover:underline"
       >
         + Add entry
       </button>
@@ -825,11 +825,11 @@ function CollapsibleSection({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="border-b border-[var(--stgm-border,#e5e5e5)] last:border-b-0">
+    <div className="stg:border-b stg:border-[var(--stgm-border,#e5e5e5)] stg:last:border-b-0">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-1.5 px-3 py-2 text-left text-xs font-semibold text-[var(--stgm-foreground,#1a1a2e)] hover:bg-[var(--stgm-muted,#f5f5f5)]"
+        className="stg:flex stg:w-full stg:items-center stg:gap-1.5 stg:px-3 stg:py-2 stg:text-left stg:text-xs stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)] stg:hover:bg-[var(--stgm-muted,#f5f5f5)]"
         aria-expanded={open}
       >
         <svg
@@ -841,13 +841,13 @@ function CollapsibleSection({
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className={cn("transition-transform", open && "rotate-90")}
+          className={cn("stg:transition-transform", open && "stg:rotate-90")}
         >
           <path d="M6 4l4 4-4 4" />
         </svg>
         {title}
       </button>
-      {open && <div className="flex flex-col gap-1.5 px-3 pb-3">{children}</div>}
+      {open && <div className="stg:flex stg:flex-col stg:gap-1.5 stg:px-3 stg:pb-3">{children}</div>}
     </div>
   );
 }
@@ -868,7 +868,7 @@ function DragGrip({
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      className="flex shrink-0 cursor-grab items-center text-[var(--stgm-muted-foreground,#a3a3a3)] hover:text-[var(--stgm-foreground,#1a1a2e)] active:cursor-grabbing"
+      className="stg:flex stg:shrink-0 stg:cursor-grab stg:items-center stg:text-[var(--stgm-muted-foreground,#a3a3a3)] stg:hover:text-[var(--stgm-foreground,#1a1a2e)] stg:active:cursor-grabbing"
       aria-label="Drag to reorder"
     >
       <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor">
@@ -901,7 +901,7 @@ function ArrowButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="px-0.5 py-0.5 text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-foreground,#1a1a2e)] disabled:opacity-30"
+      className="stg:px-0.5 stg:py-0.5 stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:text-[var(--stgm-foreground,#1a1a2e)] stg:disabled:opacity-30"
       aria-label={`Move ${direction}`}
     >
       <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -916,10 +916,10 @@ function ArrowButton({
 // ---------------------------------------------------------------------------
 
 const inputClass =
-  "w-full rounded-md border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 py-1.5 text-xs text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]";
+  "stg:w-full stg:rounded-md stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-2 stg:py-1.5 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)] stg:placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]";
 
 const smallInputClass =
-  "w-full rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-1.5 py-1 text-xs text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]";
+  "stg:w-full stg:rounded stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-1.5 stg:py-1 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)] stg:placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]";
 
 // ---------------------------------------------------------------------------
 // Helpers

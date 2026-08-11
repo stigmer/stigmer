@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "tsx scripts/copy-embed-loader.ts",
+    "predev": "tsx scripts/copy-embed-loader.ts && tsx ../../sdk/react/scripts/build-styles.ts",
     "dev": "next dev",
     "generate-images": "tsx scripts/generate-images.ts",
     "build": "tsx scripts/generate-images.ts && tsx scripts/copy-embed-loader.ts && next build",

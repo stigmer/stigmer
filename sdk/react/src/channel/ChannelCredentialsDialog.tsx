@@ -79,8 +79,8 @@ export function ChannelCredentialsDialog({
       open={modal ? undefined : open}
       onClose={handleClose}
       className={cn(
-        "w-full max-w-md rounded-xl border border-border bg-popover p-0 shadow-xl",
-        modal ? "fixed inset-0 m-auto backdrop:bg-black/50" : "relative",
+        "stg:w-full stg:max-w-md stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
+        modal ? "stg:fixed stg:inset-0 stg:m-auto stg:backdrop:bg-black/50" : "stg:relative",
       )}
       aria-labelledby="channel-credentials-title"
     >
@@ -138,16 +138,16 @@ function ChannelCredentialsDialogBody({
   }, [channel, draft, onClose, onSaved, save]);
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
-        <div className="min-w-0">
+    <div className="stg:flex stg:flex-col">
+      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3 stg:border-b stg:border-border stg:px-5 stg:py-4">
+        <div className="stg:min-w-0">
           <h2
             id="channel-credentials-title"
-            className="text-sm font-semibold text-foreground"
+            className="stg:text-sm stg:font-semibold stg:text-foreground"
           >
             Tool credentials
           </h2>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+          <p className="stg:mt-0.5 stg:truncate stg:text-xs stg:text-muted-foreground">
             {channelName}
           </p>
         </div>
@@ -156,16 +156,16 @@ function ChannelCredentialsDialogBody({
           onClick={onClose}
           aria-label="Close dialog"
           className={cn(
-            "rounded p-1 text-muted-foreground",
-            "hover:bg-accent-hover hover:text-foreground",
-            "focus:outline-none focus:ring-1 focus:ring-ring",
+            "stg:rounded stg:p-1 stg:text-muted-foreground",
+            "stg:hover:bg-accent-hover stg:hover:text-foreground",
+            "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
           )}
         >
           <CloseIcon />
         </button>
       </div>
 
-      <div className="px-5 py-4">
+      <div className="stg:px-5 stg:py-4">
         <ChannelToolCredentials
           agent={agent}
           org={org}
@@ -178,14 +178,14 @@ function ChannelCredentialsDialogBody({
         {error && (
           <div
             role="alert"
-            className="mt-3 rounded-md border border-destructive/30 bg-destructive-subtle px-3 py-2 text-xs text-destructive"
+            className="stg:mt-3 stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2 stg:text-xs stg:text-destructive"
           >
             {getUserMessage(error)}
           </div>
         )}
       </div>
 
-      <div className="flex justify-end gap-2 border-t border-border px-5 py-3">
+      <div className="stg:flex stg:justify-end stg:gap-2 stg:border-t stg:border-border stg:px-5 stg:py-3">
         <Button
           variant="ghost"
           size="sm"

@@ -92,16 +92,16 @@ export function ConversationControlBanner({
   return (
     <div
       className={cn(
-        "border-b border-border px-4 py-2",
-        humanHeld ? "bg-primary-subtle" : "bg-muted-faint",
+        "stg:border-b stg:border-border stg:px-4 stg:py-2",
+        humanHeld ? "stg:bg-primary-subtle" : "stg:bg-muted-faint",
         className,
       )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-sm text-foreground">
+      <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-2">
+        <p className="stg:flex stg:items-center stg:gap-1.5 stg:text-sm stg:text-foreground">
           {humanHeld ? (
             <>
-              <User aria-hidden="true" className="size-4 text-muted-foreground" />
+              <User aria-hidden="true" className="stg:size-4 stg:text-muted-foreground" />
               {heldByMe
                 ? "You have this conversation — the agent is quiet until you hand it back."
                 : currentIdentityAccountId !== undefined
@@ -114,15 +114,15 @@ export function ConversationControlBanner({
             </>
           ) : (
             <>
-              <Bot aria-hidden="true" className="size-4 text-muted-foreground" />
+              <Bot aria-hidden="true" className="stg:size-4 stg:text-muted-foreground" />
               The agent is serving this conversation.
             </>
           )}
         </p>
 
         {confirmingHandBack ? (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-destructive">
+          <div className="stg:flex stg:items-center stg:gap-2">
+            <span className="stg:text-xs stg:text-destructive">
               The customer&apos;s last message has no reply — the agent stays
               quiet until they write again.
             </span>
@@ -157,14 +157,14 @@ export function ConversationControlBanner({
             {pendingCommands.has("handBack") ? "Handing back…" : "Hand back to agent"}
           </Button>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="stg:flex stg:items-center stg:gap-2">
             {!supportsStaffReplies && (
               // Visible text, never a native title (F-18): a disabled
               // Button swallows hover (disabled:pointer-events-none) and
               // leaves the tab order, so a title on it is unreachable by
               // every input method. Kept short — the composer's own
               // notice already explains the missing staff reply lane.
-              <span className="text-xs text-muted-foreground">
+              <span className="stg:text-xs stg:text-muted-foreground">
                 This channel&apos;s provider has no staff send lane yet — a
                 takeover would silence the agent with no way to reply.
               </span>
@@ -186,7 +186,7 @@ export function ConversationControlBanner({
       </div>
 
       {error && (
-        <p className="mt-1 text-xs text-destructive">{getUserMessage(error)}</p>
+        <p className="stg:mt-1 stg:text-xs stg:text-destructive">{getUserMessage(error)}</p>
       )}
     </div>
   );

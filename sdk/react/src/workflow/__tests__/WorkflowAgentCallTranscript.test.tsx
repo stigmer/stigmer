@@ -199,8 +199,8 @@ describe("WorkflowAgentCallTranscript", () => {
     render(<WorkflowAgentCallTranscript childExecutionId="aex_1" />);
 
     const root = screen.getByRole("group", { name: "Agent transcript" });
-    expect(root.className).toContain("max-h-[60vh]");
-    expect(root.className).not.toContain("h-full");
+    expect(root.className).toContain("stg:max-h-[60vh]");
+    expect(root.className).not.toContain("stg:h-full");
   });
 
   it("is read-only without hitl: no thread handlers, no records, no dock (DD-011)", () => {

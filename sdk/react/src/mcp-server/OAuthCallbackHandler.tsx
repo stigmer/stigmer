@@ -153,22 +153,22 @@ export function OAuthCallbackHandler({
   return (
     <div
       className={cn(
-        "flex min-h-[200px] items-center justify-center p-8",
+        "stg:flex stg:min-h-[200px] stg:items-center stg:justify-center stg:p-8",
         className,
       )}
     >
-      <div className="max-w-sm text-center">
+      <div className="stg:max-w-sm stg:text-center">
         {status === "processing" && (
           <>
             <Spinner />
-            <p className="mt-3 text-sm text-muted-foreground">
+            <p className="stg:mt-3 stg:text-sm stg:text-muted-foreground">
               Completing authentication...
             </p>
           </>
         )}
 
         {status === "done" && (
-          <p className="text-sm text-muted-foreground">
+          <p className="stg:text-sm stg:text-muted-foreground">
             Authentication complete. You can close this window.
           </p>
         )}
@@ -176,10 +176,10 @@ export function OAuthCallbackHandler({
         {status === "no-opener" && (
           <>
             <CheckIcon />
-            <p className="mt-3 text-sm font-medium text-foreground">
+            <p className="stg:mt-3 stg:text-sm stg:font-medium stg:text-foreground">
               Authentication successful
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
               Please close this tab and return to the application to continue.
             </p>
           </>
@@ -188,11 +188,11 @@ export function OAuthCallbackHandler({
         {status === "error" && (
           <>
             <WarningIcon />
-            <p className="mt-3 text-sm font-medium text-destructive">
+            <p className="stg:mt-3 stg:text-sm stg:font-medium stg:text-destructive">
               Authentication failed
             </p>
             {errorMessage && (
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
                 {errorMessage}
               </p>
             )}
@@ -217,7 +217,7 @@ function Spinner() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="mx-auto animate-spin text-muted-foreground"
+      className="stg:mx-auto stg:animate-spin stg:text-muted-foreground"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />
@@ -236,7 +236,7 @@ function CheckIcon() {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="mx-auto text-success"
+      className="stg:mx-auto stg:text-success"
       aria-hidden="true"
     >
       <path d="m3 8.5 3.5 3.5 6.5-8" />
@@ -255,7 +255,7 @@ function WarningIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="mx-auto text-destructive"
+      className="stg:mx-auto stg:text-destructive"
       aria-hidden="true"
     >
       <path d="M8 1.5 1 14h14L8 1.5Z" />

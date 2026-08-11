@@ -93,7 +93,7 @@ export const WorkflowExecutionHistory = memo(function WorkflowExecutionHistory({
   return (
     <section
       aria-label="Execution history"
-      className={cn("flex flex-col gap-4", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-4", className)}
     >
       <HealthMetricsStrip summary={summary} isLoading={summaryLoading} />
 

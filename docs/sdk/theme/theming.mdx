@@ -24,13 +24,20 @@ token values.
 </div>
 ```
 
-Three mechanisms keep Stigmer's styles from colliding with your host
-application:
+Three mechanisms keep Stigmer's styles and your host application's styles
+from colliding — in either direction:
 
-- **The `.stgm` class** scopes every Stigmer style rule. Outside the scope,
-  Stigmer's CSS does nothing.
-- **The `stgm` cascade layer** (`@layer stgm`) gives Stigmer's rules lower
-  priority than your unlayered host CSS, so your styles win ties by default.
+- **The `stg:` utility prefix.** Every utility class in the compiled
+  stylesheet is namespaced (`.stg\:flex`, never `.flex`), and its Tailwind
+  theme variables are namespaced too (`--stg-*`). The stylesheet shares no
+  class names and no variable names with your own Tailwind build, so loading
+  it cannot change how your classes render — and your build cannot change how
+  Stigmer components render. This holds everywhere, including host elements
+  inside the provider subtree.
+- **The `.stgm` scope and cascade layer.** Styles that cannot be namespaced
+  (vendor CSS such as the workflow graph's) are scoped to the `.stgm`
+  containers, and everything lives in `@layer stgm`, so your unlayered host
+  CSS wins ties against Stigmer rules by default.
 - **The `--stgm-*` namespace** keeps token names from clashing with your own
   custom properties.
 
@@ -164,37 +171,26 @@ Two rules keep custom themes correct:
   `-foreground` partner so the pair stays readable — dark-mode fills are
   usually lighter, which is why their foregrounds flip to near-black.
 
-## Tailwind hosts: avoid theme-key collisions
+## Tailwind hosts
 
-Stigmer's stylesheet maps its tokens onto Tailwind's standard theme keys
-(`--color-background`, `--color-card`, `--color-muted`, …) so components can
-use plain utilities like `bg-background`. If your own Tailwind v4 build maps
-those same keys to your palette in an `@theme` block, Tailwind resolves each
-key once — last definition wins — and Stigmer components will silently paint
-with *your* palette, ignoring `data-stgm-color-mode` and presets.
+The compiled stylesheet coexists with your own Tailwind build without
+configuration. Stigmer's semantic color declarations resolve straight through
+the `--stgm-*` tokens (a `stg:bg-background` utility paints
+`var(--stgm-background)` directly), and Tailwind's own theme variables ship
+under the `--stg-*` namespace — so nothing in your `@theme` blocks can
+repaint Stigmer components, and nothing Stigmer ships can repaint yours.
 
-If your app defines those keys, re-point the underlying variables inside the
-Stigmer scope so shared utilities resolve through the token contract again:
+Two things remain worth knowing:
 
-```css
-.stgm {
-  --background: var(--stgm-background);
-  --foreground: var(--stgm-foreground);
-  --card: var(--stgm-card);
-  --card-foreground: var(--stgm-card-foreground);
-  --muted: var(--stgm-muted);
-  --muted-foreground: var(--stgm-muted-foreground);
-  --primary: var(--stgm-primary);
-  --primary-foreground: var(--stgm-primary-foreground);
-  --border: var(--stgm-border);
-  /* ...every key both palettes define */
-}
-```
-
-No light/dark pairing is needed here — the `--stgm-*` values already flip
-with `data-stgm-color-mode`. Similarly, if your build declares its own
-`dark` variant (e.g. next-themes' `.dark` class), declare the combined form
-after your imports so both your app and Stigmer scopes respond correctly:
+- **Overriding component styling via `className` uses *your* utilities.**
+  Stigmer components merge your classes with theirs treating the `stg:`
+  prefix as transparent for conflict resolution, so a `p-4` you pass
+  displaces the component's `stg:p-2` exactly as it would between two of
+  your own classes.
+- **If your build declares its own `dark` variant** (e.g. next-themes'
+  `.dark` class) and your elements render inside Stigmer scopes, declare the
+  combined form after your imports so your own utilities also respond to
+  `data-stgm-color-mode`:
 
 ```css
 @custom-variant dark (&:is(.dark *, [data-stgm-color-mode="dark"] *));

@@ -104,9 +104,9 @@ describe("WriteBackCard", () => {
       />,
     );
     const error = screen.getByText(/git push failed/);
-    expect(error.className).toContain("text-destructive");
+    expect(error.className).toContain("stg:text-destructive");
     const caption = screen.getByText("Failed");
-    expect(caption.className).toContain("text-destructive");
+    expect(caption.className).toContain("stg:text-destructive");
   });
 
   it("renders a PUSHED record's PR error as a degraded notice, branch info intact", () => {
@@ -124,8 +124,8 @@ describe("WriteBackCard", () => {
     expect(screen.getByText("stigmer/ses-01test")).toBeTruthy();
     expect(screen.getByText("Pushed")).toBeTruthy();
     const notice = screen.getByText(/no github token/i);
-    expect(notice.className).toContain("text-status-degraded");
-    expect(notice.className).not.toContain("text-destructive");
+    expect(notice.className).toContain("stg:text-status-degraded");
+    expect(notice.className).not.toContain("stg:text-destructive");
     expect(screen.queryByRole("link")).toBeNull();
   });
 

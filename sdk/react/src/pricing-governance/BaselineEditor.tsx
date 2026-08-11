@@ -368,40 +368,40 @@ export function BaselineEditor({
   if (pendingBaseline) {
     const changes = diffRates(initial, pendingBaseline);
     return (
-      <div className="space-y-3 rounded-lg border border-border bg-card px-3 py-3">
-        <h4 className="text-xs font-semibold text-foreground">
+      <div className="stg:space-y-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3 stg:py-3">
+        <h4 className="stg:text-xs stg:font-semibold stg:text-foreground">
           {initial ? "Confirm baseline revision" : "Confirm new catalog entry"}
           {" · "}
-          <span className="font-normal text-muted-foreground">
+          <span className="stg:font-normal stg:text-muted-foreground">
             {pendingBaseline.modelId} / {pendingBaseline.provider} / {pendingBaseline.harness}
           </span>
         </h4>
         {changes.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="stg:text-xs stg:text-muted-foreground">
             No rate changes — only catalog fields move. Billing is unaffected.
           </p>
         ) : (
-          <div className="space-y-1" role="table" aria-label="Rate changes">
+          <div className="stg:space-y-1" role="table" aria-label="Rate changes">
             {changes.map((change) => (
-              <p key={change.label} className="text-xs text-foreground" role="row">
-                <span className="text-muted-foreground">{change.label}: </span>
-                <span className="line-through">{change.before}</span>
+              <p key={change.label} className="stg:text-xs stg:text-foreground" role="row">
+                <span className="stg:text-muted-foreground">{change.label}: </span>
+                <span className="stg:line-through">{change.before}</span>
                 {" → "}
-                <span className="font-medium">{change.after}</span>
+                <span className="stg:font-medium">{change.after}</span>
               </p>
             ))}
-            <p className="text-[11px] text-muted-foreground">
+            <p className="stg:text-[11px] stg:text-muted-foreground">
               New rates govern charges from the moment this revision is applied
               (forward-only; already-billed records keep their stamps).
             </p>
           </div>
         )}
         {submitError && (
-          <p className="text-destructive text-xs" role="alert">
+          <p className="stg:text-destructive stg:text-xs" role="alert">
             {getUserMessage(submitError)}
           </p>
         )}
-        <div className="flex gap-2">
+        <div className="stg:flex stg:gap-2">
           <Button size="sm" disabled={isSubmitting} onClick={handleConfirm}>
             {isSubmitting ? "Applying…" : "Apply revision"}
           </Button>
@@ -422,13 +422,13 @@ export function BaselineEditor({
   return (
     <form
       onSubmit={handleReview}
-      className="space-y-3 rounded-lg border border-border bg-card px-3 py-3"
+      className="stg:space-y-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3 stg:py-3"
     >
-      <h4 className="text-xs font-semibold text-foreground">
+      <h4 className="stg:text-xs stg:font-semibold stg:text-foreground">
         {initial ? `Edit ${initial.modelId}` : "Add model"}
       </h4>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="stg:grid stg:grid-cols-2 stg:gap-2">
         <Field label="Model id" required>
           <input
             className={INPUT_CLASSES}
@@ -516,7 +516,7 @@ export function BaselineEditor({
         </Field>
       </div>
 
-      <label className="flex cursor-pointer items-center gap-1.5 text-xs text-foreground">
+      <label className="stg:flex stg:cursor-pointer stg:items-center stg:gap-1.5 stg:text-xs stg:text-foreground">
         <input
           type="checkbox"
           checked={form.featured}
@@ -526,11 +526,11 @@ export function BaselineEditor({
         Featured (appears in the curated default picker list)
       </label>
 
-      <fieldset className="space-y-2">
-        <legend className="text-xs font-medium text-foreground">
+      <fieldset className="stg:space-y-2">
+        <legend className="stg:text-xs stg:font-medium stg:text-foreground">
           Rates ($ per million tokens)
         </legend>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+        <div className="stg:grid stg:grid-cols-2 stg:gap-2 stg:sm:grid-cols-5">
           <RateField label="Input" value={form.input} disabled={isSubmitting} onChange={(v) => set("input", v)} />
           <RateField label="Output" value={form.output} disabled={isSubmitting} onChange={(v) => set("output", v)} />
           <RateField label="Cache write" value={form.cacheWrite} disabled={isSubmitting} onChange={(v) => set("cacheWrite", v)} />
@@ -545,12 +545,12 @@ export function BaselineEditor({
         </div>
       </fieldset>
 
-      <fieldset className="space-y-2">
-        <legend className="text-xs font-medium text-foreground">Pricing variants</legend>
+      <fieldset className="stg:space-y-2">
+        <legend className="stg:text-xs stg:font-medium stg:text-foreground">Pricing variants</legend>
         {form.variants.map((variant, index) => (
-          <div key={index} className="space-y-2 rounded-md border border-border-muted px-2.5 py-2">
-            <div className="flex items-end gap-2">
-              <Field label="Variant key" className="w-32">
+          <div key={index} className="stg:space-y-2 stg:rounded-md stg:border stg:border-border-muted stg:px-2.5 stg:py-2">
+            <div className="stg:flex stg:items-end stg:gap-2">
+              <Field label="Variant key" className="stg:w-32">
                 <input
                   className={INPUT_CLASSES}
                   value={variant.key}
@@ -559,7 +559,7 @@ export function BaselineEditor({
                   disabled={isSubmitting}
                 />
               </Field>
-              <Field label="Wire ids (comma-separated)" className="flex-1">
+              <Field label="Wire ids (comma-separated)" className="stg:flex-1">
                 <input
                   className={INPUT_CLASSES}
                   value={variant.wireIds}
@@ -582,7 +582,7 @@ export function BaselineEditor({
                 Remove
               </Button>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="stg:grid stg:grid-cols-2 stg:gap-2 stg:sm:grid-cols-4">
               <RateField label="Input" value={variant.input} disabled={isSubmitting} onChange={(v) => updateVariant(setForm, index, { input: v })} />
               <RateField label="Output" value={variant.output} disabled={isSubmitting} onChange={(v) => updateVariant(setForm, index, { output: v })} />
               <RateField label="Cache write" value={variant.cacheWrite} disabled={isSubmitting} onChange={(v) => updateVariant(setForm, index, { cacheWrite: v })} />
@@ -619,16 +619,16 @@ export function BaselineEditor({
       </Field>
 
       {validationErrors.length > 0 && (
-        <div role="alert" className="space-y-0.5">
+        <div role="alert" className="stg:space-y-0.5">
           {validationErrors.map((message) => (
-            <p key={message} className="text-destructive text-xs">
+            <p key={message} className="stg:text-destructive stg:text-xs">
               {message}
             </p>
           ))}
         </div>
       )}
 
-      <div className="flex gap-2">
+      <div className="stg:flex stg:gap-2">
         <Button size="sm" type="submit" disabled={isSubmitting}>
           Review changes
         </Button>

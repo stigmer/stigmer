@@ -39,27 +39,27 @@ export function CreditBalanceCard({
   return (
     <div
       className={cn(
-        "rounded-lg border border-border bg-card px-4 py-4",
+        "stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-4 stg:py-4",
         className,
       )}
     >
-      <div className="text-xs font-medium text-muted-foreground">
+      <div className="stg:text-xs stg:font-medium stg:text-muted-foreground">
         Available Credits
       </div>
       <div
         className={cn(
-          "mt-1 text-2xl font-bold tabular-nums",
+          "stg:mt-1 stg:text-2xl stg:font-bold stg:tabular-nums",
           isZeroOrNegative
-            ? "text-destructive"
+            ? "stg:text-destructive"
             : isLowBalance
-              ? "text-warning-foreground"
-              : "text-foreground",
+              ? "stg:text-warning-foreground"
+              : "stg:text-foreground",
         )}
       >
         {formatCreditBalance(available)}
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs tabular-nums text-muted-foreground">
+      <div className="stg:mt-3 stg:flex stg:flex-wrap stg:gap-x-4 stg:gap-y-1 stg:text-xs stg:tabular-nums stg:text-muted-foreground">
         {balance.purchasedMicros > zero && (
           <span>
             Purchased: {formatCreditBalance(balance.purchasedMicros)}

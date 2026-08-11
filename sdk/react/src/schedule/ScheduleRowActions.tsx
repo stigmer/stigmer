@@ -112,10 +112,10 @@ function RowActionButton({
       onClick={onClick}
       disabled={busy}
       className={cn(
-        "rounded-md border border-input bg-background px-2 py-1 text-xs font-medium text-foreground",
-        "hover:bg-accent hover:text-accent-foreground",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        "disabled:pointer-events-none disabled:opacity-50",
+        "stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:text-foreground",
+        "stg:hover:bg-accent stg:hover:text-accent-foreground",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
       )}
     >
       {children}

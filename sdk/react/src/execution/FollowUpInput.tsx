@@ -136,15 +136,15 @@ export function FollowUpInput({
       role="form"
       aria-label="Send follow-up message"
       className={cn(
-        "shrink-0 px-4 py-3",
+        "stg:shrink-0 stg:px-4 stg:py-3",
         className,
       )}
     >
       <div
         className={cn(
-          "rounded-xl border border-border bg-card shadow-sm",
-          "focus-within:ring-2 focus-within:ring-ring",
-          isDisabled && "opacity-50",
+          "stg:rounded-xl stg:border stg:border-border stg:bg-card stg:shadow-sm",
+          "stg:focus-within:ring-2 stg:focus-within:ring-ring",
+          isDisabled && "stg:opacity-50",
         )}
       >
         <textarea
@@ -158,11 +158,11 @@ export function FollowUpInput({
           placeholder={placeholder}
           disabled={isDisabled}
           rows={1}
-          className="block w-full resize-none bg-transparent px-4 pt-3 pb-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
+          className="stg:block stg:w-full stg:resize-none stg:bg-transparent stg:px-4 stg:pt-3 stg:pb-2 stg:text-sm stg:text-foreground stg:placeholder:text-muted-foreground stg:focus:outline-none stg:disabled:cursor-not-allowed"
         />
 
-        <div className="flex items-center justify-between gap-2 border-t border-border-muted px-3 py-2">
-          <div className="flex items-center gap-2">
+        <div className="stg:flex stg:items-center stg:justify-between stg:gap-2 stg:border-t stg:border-border-muted stg:px-3 stg:py-2">
+          <div className="stg:flex stg:items-center stg:gap-2">
             {showModelSelector && (
               <ModelSelector
                 value={modelId}
@@ -176,7 +176,7 @@ export function FollowUpInput({
             type="button"
             disabled={!canSubmit}
             onClick={handleSubmit}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary-hover disabled:pointer-events-none disabled:opacity-40"
+            className="stg:flex stg:h-8 stg:w-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-lg stg:bg-primary stg:text-primary-foreground stg:transition-colors stg:hover:bg-primary-hover stg:disabled:pointer-events-none stg:disabled:opacity-40"
             aria-label="Send message"
           >
             {isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}
@@ -214,7 +214,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />
     </svg>

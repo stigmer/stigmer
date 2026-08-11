@@ -172,23 +172,23 @@ export function AgentPicker({
   );
 
   return (
-    <div className={["space-y-2 w-72", className].filter(Boolean).join(" ")}>
+    <div className={["stg:space-y-2 stg:w-72", className].filter(Boolean).join(" ")}>
       {/* Selected agent */}
       {value && (
-        <div className="space-y-1">
-          <div className="text-[0.65rem] font-medium text-muted-foreground">
+        <div className="stg:space-y-1">
+          <div className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
             Selected
           </div>
-          <div className="flex items-center gap-2 rounded-md bg-muted-faint px-2 py-1 text-xs">
+          <div className="stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-muted-faint stg:px-2 stg:py-1 stg:text-xs">
             <AgentIcon />
-            <span className="min-w-0 flex-1 truncate text-foreground">
+            <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground">
               {value.slug}
             </span>
             <button
               type="button"
               onClick={handleDeselect}
               disabled={disabled}
-              className="shrink-0 text-muted-foreground hover:text-destructive disabled:pointer-events-none"
+              className="stg:shrink-0 stg:text-muted-foreground stg:hover:text-destructive stg:disabled:pointer-events-none"
               aria-label={`Remove ${value.slug}`}
             >
               <XIcon />
@@ -212,7 +212,7 @@ export function AgentPicker({
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleSearchKeyDown}
         disabled={disabled}
-        className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+        className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-50"
         autoFocus
       />
 
@@ -220,10 +220,10 @@ export function AgentPicker({
         <ScopeToggle value={activeScope} onChange={setActiveScope} disabled={disabled} />
       )}
 
-      {error && <p className="text-xs text-destructive">{error.message}</p>}
+      {error && <p className="stg:text-xs stg:text-destructive">{error.message}</p>}
 
       {/* Scrollable results list */}
-      <div className="relative">
+      <div className="stg:relative">
         {canScrollUp && <ScrollFade position="top" />}
 
         <div
@@ -231,12 +231,12 @@ export function AgentPicker({
           id={LIST_ID}
           role="listbox"
           aria-label="Agents"
-          className="max-h-52 overflow-y-auto"
+          className="stg:max-h-52 stg:overflow-y-auto"
         >
           {isLoading ? (
             <LoadingSkeleton />
           ) : availableResults.length === 0 ? (
-            <div className="py-4 text-center text-xs text-muted-foreground">
+            <div className="stg:py-4 stg:text-center stg:text-xs stg:text-muted-foreground">
               {query
                 ? "No agents match your search"
                 : value
@@ -253,30 +253,30 @@ export function AgentPicker({
                 onClick={() => handleSelect(result)}
                 disabled={disabled}
                 className={cn(
-                  "group flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
-                  "disabled:pointer-events-none disabled:opacity-50",
+                  "stg:group stg:flex stg:w-full stg:flex-col stg:gap-0.5 stg:rounded-md stg:px-2 stg:py-1.5 stg:text-left stg:text-xs stg:transition-colors",
+                  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
                   idx === focusIndex
-                    ? "bg-accent text-foreground"
-                    : "text-foreground hover:bg-accent-hover",
+                    ? "stg:bg-accent stg:text-foreground"
+                    : "stg:text-foreground stg:hover:bg-accent-hover",
                 )}
                 role="option"
                 aria-selected={idx === focusIndex}
               >
-                <span className="flex items-center gap-1.5">
+                <span className="stg:flex stg:items-center stg:gap-1.5">
                   <AgentIcon />
-                  <span className="truncate font-medium">
+                  <span className="stg:truncate stg:font-medium">
                     <HighlightMatch text={result.name} query={query} />
                   </span>
-                  <span className="ml-auto shrink-0 text-[0.6rem] text-muted-foreground">
+                  <span className="stg:ml-auto stg:shrink-0 stg:text-[0.6rem] stg:text-muted-foreground">
                     {result.org}
                   </span>
                 </span>
                 {result.description && (
                   <span
                     className={cn(
-                      "pl-5 text-[0.65rem] text-muted-foreground",
+                      "stg:pl-5 stg:text-[0.65rem] stg:text-muted-foreground",
                       idx !== focusIndex &&
-                        "line-clamp-2 group-hover:line-clamp-none",
+                        "stg:line-clamp-2 stg:group-hover:line-clamp-none",
                     )}
                   >
                     {result.description}
@@ -304,7 +304,7 @@ function HighlightMatch({ text, query }: { text: string; query: string }) {
   return (
     <>
       {text.slice(0, idx)}
-      <span className="font-semibold">
+      <span className="stg:font-semibold">
         {text.slice(idx, idx + query.length)}
       </span>
       {text.slice(idx + query.length)}
@@ -314,15 +314,15 @@ function HighlightMatch({ text, query }: { text: string; query: string }) {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-1 py-1">
+    <div className="stg:space-y-1 stg:py-1">
       {[50, 65, 40, 58].map((w, i) => (
-        <div key={i} className="flex flex-col gap-1 px-2 py-1.5">
+        <div key={i} className="stg:flex stg:flex-col stg:gap-1 stg:px-2 stg:py-1.5">
           <div
-            className="h-3 rounded bg-muted animate-pulse"
+            className="stg:h-3 stg:rounded stg:bg-muted stg:animate-pulse"
             style={{ width: `${w}%` }}
           />
           <div
-            className="h-2 rounded bg-muted-subtle animate-pulse"
+            className="stg:h-2 stg:rounded stg:bg-muted-subtle stg:animate-pulse"
             style={{ width: `${Math.min(w + 15, 90)}%` }}
           />
         </div>
@@ -342,7 +342,7 @@ function AgentIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
       aria-hidden="true"
     >
       <rect x="3" y="5" width="10" height="8" rx="2" />

@@ -87,7 +87,7 @@ export function SettingsSidebar({
       footer={footer}
     >
       {/* Back to Sessions */}
-      <div className="flex-none px-3 py-1">
+      <div className="stg:flex-none stg:px-3 stg:py-1">
         {renderLink({
           id: "back-to-sessions",
           href: backHref,
@@ -96,7 +96,7 @@ export function SettingsSidebar({
           "aria-current": undefined,
           children: (
             <>
-              <ArrowLeft className="size-4 shrink-0" />
+              <ArrowLeft className="stg:size-4 stg:shrink-0" />
               Back to Sessions
             </>
           ),
@@ -106,10 +106,10 @@ export function SettingsSidebar({
       <SidebarSeparator />
 
       {/* Settings nav links — grouped, permission-aware via `groups` */}
-      <div className="flex flex-col gap-4 px-3 py-1">
+      <div className="stg:flex stg:flex-col stg:gap-4 stg:px-3 stg:py-1">
         {groups.map((group) => (
-          <div key={group.label} className="flex flex-col gap-0.5">
-            <span className="text-sidebar-muted-foreground px-2 pb-1 text-[11px] font-medium tracking-wider uppercase">
+          <div key={group.label} className="stg:flex stg:flex-col stg:gap-0.5">
+            <span className="stg:text-sidebar-muted-foreground stg:px-2 stg:pb-1 stg:text-[11px] stg:font-medium stg:tracking-wider stg:uppercase">
               {group.label}
             </span>
             {group.items.map((item) => {
@@ -123,7 +123,7 @@ export function SettingsSidebar({
                   key={item.href}
                   href={item.href}
                   label={item.label}
-                  icon={<item.icon className="size-4 shrink-0" />}
+                  icon={<item.icon className="stg:size-4 stg:shrink-0" />}
                   active={active}
                   renderLink={renderLink}
                 />
@@ -134,7 +134,7 @@ export function SettingsSidebar({
       </div>
 
       {/* Spacer pushes the footer to the bottom (no scrollable middle). */}
-      <div className="flex-1" />
+      <div className="stg:flex-1" />
     </SidebarChrome>
   );
 }

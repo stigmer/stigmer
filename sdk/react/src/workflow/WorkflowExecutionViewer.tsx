@@ -413,7 +413,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   // Loading state
   if (isLoadingExecution) {
     return (
-      <div className={cn("flex h-full items-center justify-center", className)}>
+      <div className={cn("stg:flex stg:h-full stg:items-center stg:justify-center", className)}>
         <LoadingSkeleton />
       </div>
     );
@@ -422,12 +422,12 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   // Error state
   if (executionError) {
     return (
-      <div className={cn("flex h-full flex-col items-center justify-center gap-3 px-6", className)}>
-        <p className="text-sm text-destructive">{executionError.message}</p>
+      <div className={cn("stg:flex stg:h-full stg:flex-col stg:items-center stg:justify-center stg:gap-3 stg:px-6", className)}>
+        <p className="stg:text-sm stg:text-destructive">{executionError.message}</p>
         <button
           type="button"
           onClick={refetchExecution}
-          className="rounded border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+          className="stg:rounded stg:border stg:border-border stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-foreground stg:hover:bg-muted"
         >
           Retry
         </button>
@@ -438,14 +438,14 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   // Not found
   if (!execution) {
     return (
-      <div className={cn("flex h-full items-center justify-center text-sm text-muted-foreground", className)}>
+      <div className={cn("stg:flex stg:h-full stg:items-center stg:justify-center stg:text-sm stg:text-muted-foreground", className)}>
         Execution not found
       </div>
     );
   }
 
   return (
-    <div className={cn("flex h-full flex-col overflow-hidden", className)}>
+    <div className={cn("stg:flex stg:h-full stg:flex-col stg:overflow-hidden", className)}>
       <WorkflowExecutionHeader
         execution={execution}
         streamState={streamState}
@@ -487,12 +487,12 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
           resume/recover). Approval failures are per-gate and surface in-card on
           the failing approval card, never here. */}
       {actions.error && (
-        <div className="flex items-center gap-2 border-b border-destructive/20 bg-destructive/5 px-4 py-2">
-          <p className="flex-1 text-xs text-destructive">{actions.error.message}</p>
+        <div className="stg:flex stg:items-center stg:gap-2 stg:border-b stg:border-destructive/20 stg:bg-destructive/5 stg:px-4 stg:py-2">
+          <p className="stg:flex-1 stg:text-xs stg:text-destructive">{actions.error.message}</p>
           <button
             type="button"
             onClick={actions.clearError}
-            className="shrink-0 rounded border border-destructive/30 px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
+            className="stg:shrink-0 stg:rounded stg:border stg:border-destructive/30 stg:px-2 stg:py-1 stg:text-xs stg:text-destructive stg:hover:bg-destructive/10"
           >
             Dismiss
           </button>
@@ -501,7 +501,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
 
       {/* Comparison view (replaces normal content when active) */}
       {compareTargetId ? (
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <div className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:p-4">
           <ExecutionComparisonView
             baseExecutionId={executionId}
             compareExecutionId={compareTargetId}
@@ -512,12 +512,12 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
       <>
       {/* Stream error banner */}
       {streamError && (
-        <div className="flex items-center gap-2 border-b border-destructive/20 bg-destructive/5 px-4 py-2">
-          <p className="flex-1 text-xs text-destructive">{streamError.message}</p>
+        <div className="stg:flex stg:items-center stg:gap-2 stg:border-b stg:border-destructive/20 stg:bg-destructive/5 stg:px-4 stg:py-2">
+          <p className="stg:flex-1 stg:text-xs stg:text-destructive">{streamError.message}</p>
           <button
             type="button"
             onClick={reconnect}
-            className="shrink-0 rounded border border-destructive/30 px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
+            className="stg:shrink-0 stg:rounded stg:border stg:border-destructive/30 stg:px-2 stg:py-1 stg:text-xs stg:text-destructive stg:hover:bg-destructive/10"
           >
             Reconnect
           </button>
@@ -538,16 +538,16 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         maxSize={960}
         storageKey="stgm-wf-exec-panel-width"
         ariaLabel="Resize execution panel"
-        className="min-h-0 flex-1"
+        className="stg:min-h-0 stg:flex-1"
         primary={
-      <div className="flex h-full min-h-0 flex-1 flex-col">
+      <div className="stg:flex stg:h-full stg:min-h-0 stg:flex-1 stg:flex-col">
         {/* Center-column view switcher (S8). Graph is the default; the
             thread is the session-style card-per-task view (T02 pivot). */}
         <CenterViewSwitcher view={centerView} onChange={handleCenterViewChange} />
 
         {/* One always-visible live region for task state changes — see the
             ownership note on `announcement` above. */}
-        <div role="log" aria-live="polite" aria-atomic="false" className="sr-only">
+        <div role="log" aria-live="polite" aria-atomic="false" className="stg:sr-only">
           {announcement}
         </div>
 
@@ -558,7 +558,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
             a passive topology visualization. */}
         <div
           data-center-view="thread"
-          className={cn("min-h-0 flex-1", centerView !== "thread" && "hidden")}
+          className={cn("stg:min-h-0 stg:flex-1", centerView !== "thread" && "stg:hidden")}
         >
           <WorkflowTaskThread
             taskStates={effectiveTaskStates}
@@ -573,12 +573,12 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
             // Full per-task I/O for the card bodies (T04) — an O(1)
             // per-card snapshot lookup.
             taskSnapshotsByName={taskSnapshotsByName}
-            className="h-full"
+            className="stg:h-full"
           />
         </div>
         <div
           data-center-view="graph"
-          className={cn("min-h-0 flex-1", centerView !== "graph" && "hidden")}
+          className={cn("stg:min-h-0 stg:flex-1", centerView !== "graph" && "stg:hidden")}
         >
           <WorkflowExecutionGraph
             executionId={executionId}
@@ -591,7 +591,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
             // graph's own would go silent while CSS-hidden in Thread view.
             announceTaskStates={false}
             nodesDraggable={nodesDraggable}
-            className="h-full"
+            className="stg:h-full"
           />
         </div>
       </div>
@@ -737,7 +737,7 @@ function ExecutionWorkspacePanel({
               entryId: FILE_CHANGE_DOCUMENT_ENTRY_ID,
               path: editor.path,
               content: change ? (
-                <div className="mx-auto w-full max-w-5xl px-4 py-4">
+                <div className="stg:mx-auto stg:w-full stg:max-w-5xl stg:px-4 stg:py-4">
                   <FileChangeDiff key={editor.path} change={change} />
                 </div>
               ) : (
@@ -786,7 +786,7 @@ function ExecutionWorkspacePanel({
       onPinEditor={panel.pinEditor}
       onCloseEditor={panel.closeEditor}
       onCollapse={panel.closePanel}
-      className="h-full"
+      className="stg:h-full"
     />
   );
 }
@@ -795,12 +795,12 @@ function FileChangeUnavailableNotice() {
   return (
     <div
       role="status"
-      className="mx-auto flex w-full max-w-3xl flex-col items-center gap-1 px-4 py-8 text-center"
+      className="stg:mx-auto stg:flex stg:w-full stg:max-w-3xl stg:flex-col stg:items-center stg:gap-1 stg:px-4 stg:py-8 stg:text-center"
     >
-      <p className="text-xs font-medium text-foreground">
+      <p className="stg:text-xs stg:font-medium stg:text-foreground">
         This file change is no longer available.
       </p>
-      <p className="text-xs text-muted-foreground">
+      <p className="stg:text-xs stg:text-muted-foreground">
         The rollup was refreshed and this file no longer appears among the
         execution&apos;s changes.
       </p>
@@ -812,12 +812,12 @@ function ArtifactUnavailableNotice() {
   return (
     <div
       role="status"
-      className="mx-auto flex w-full max-w-3xl flex-col items-center gap-1 px-4 py-8 text-center"
+      className="stg:mx-auto stg:flex stg:w-full stg:max-w-3xl stg:flex-col stg:items-center stg:gap-1 stg:px-4 stg:py-8 stg:text-center"
     >
-      <p className="text-xs font-medium text-foreground">
+      <p className="stg:text-xs stg:font-medium stg:text-foreground">
         This artifact is no longer available.
       </p>
-      <p className="text-xs text-muted-foreground">
+      <p className="stg:text-xs stg:text-muted-foreground">
         It may have expired or been removed from storage.
       </p>
     </div>
@@ -826,14 +826,14 @@ function ArtifactUnavailableNotice() {
 
 function LoadingSkeleton() {
   return (
-    <div className="flex w-full flex-col gap-3 p-6">
-      <div className="h-4 w-48 animate-pulse rounded bg-muted" />
-      <div className="h-3 w-32 animate-pulse rounded bg-muted" />
-      <div className="mt-4 space-y-2">
+    <div className="stg:flex stg:w-full stg:flex-col stg:gap-3 stg:p-6">
+      <div className="stg:h-4 stg:w-48 stg:animate-pulse stg:rounded stg:bg-muted" />
+      <div className="stg:h-3 stg:w-32 stg:animate-pulse stg:rounded stg:bg-muted" />
+      <div className="stg:mt-4 stg:space-y-2">
         {Array.from({ length: 5 }, (_, i) => (
-          <div key={i} className="flex items-center gap-3">
-            <div className="size-3 animate-pulse rounded-full bg-muted" />
-            <div className="h-3 flex-1 animate-pulse rounded bg-muted" />
+          <div key={i} className="stg:flex stg:items-center stg:gap-3">
+            <div className="stg:size-3 stg:animate-pulse stg:rounded-full stg:bg-muted" />
+            <div className="stg:h-3 stg:flex-1 stg:animate-pulse stg:rounded stg:bg-muted" />
           </div>
         ))}
       </div>
@@ -864,7 +864,7 @@ function CenterViewSwitcher({
     <div
       role="radiogroup"
       aria-label="Center view"
-      className="flex items-center gap-0.5 border-b border-[var(--stgm-border,#e5e5e5)] px-2 py-1"
+      className="stg:flex stg:items-center stg:gap-0.5 stg:border-b stg:border-[var(--stgm-border,#e5e5e5)] stg:px-2 stg:py-1"
     >
       <CenterViewButton
         label="Thread"
@@ -896,10 +896,10 @@ function CenterViewButton({
       aria-checked={isActive}
       onClick={onClick}
       className={cn(
-        "rounded px-2 py-0.5 text-xs font-medium transition-colors",
+        "stg:rounded stg:px-2 stg:py-0.5 stg:text-xs stg:font-medium stg:transition-colors",
         isActive
-          ? "bg-[var(--stgm-muted,#f5f5f5)] text-[var(--stgm-foreground,#171717)]"
-          : "text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-foreground,#171717)]",
+          ? "stg:bg-[var(--stgm-muted,#f5f5f5)] stg:text-[var(--stgm-foreground,#171717)]"
+          : "stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:text-[var(--stgm-foreground,#171717)]",
       )}
     >
       {label}

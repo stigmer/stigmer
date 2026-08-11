@@ -99,21 +99,21 @@ export function SkillDiffDialog({ state, onClose }: SkillDiffDialogProps) {
       onCancel={handleDialogCancel}
       onClick={handleBackdropClick}
       className={cn(
-        "fixed inset-0 z-50 m-auto h-[85vh] w-full max-w-4xl rounded-lg border border-border bg-popover p-0 text-popover-foreground shadow-lg",
-        "backdrop:bg-black/50",
-        "open:animate-in open:fade-in-0 open:zoom-in-95",
+        "stg:fixed stg:inset-0 stg:z-50 stg:m-auto stg:h-[85vh] stg:w-full stg:max-w-4xl stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:p-0 stg:text-popover-foreground stg:shadow-lg",
+        "stg:backdrop:bg-black/50",
+        "stg:open:animate-in stg:open:fade-in-0 stg:open:zoom-in-95",
       )}
     >
-      <div className="flex h-full flex-col">
+      <div className="stg:flex stg:h-full stg:flex-col">
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="font-medium text-foreground">Comparing</span>
-            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+        <div className="stg:flex stg:shrink-0 stg:items-center stg:justify-between stg:border-b stg:border-border stg:px-4 stg:py-3">
+          <div className="stg:flex stg:items-center stg:gap-2 stg:text-sm">
+            <span className="stg:font-medium stg:text-foreground">Comparing</span>
+            <code className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-[11px] stg:text-muted-foreground">
               {state.fromLabel}
             </code>
-            <ArrowIcon className="size-3.5 text-muted-foreground-faint" />
-            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+            <ArrowIcon className="stg:size-3.5 stg:text-muted-foreground-faint" />
+            <code className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-[11px] stg:text-muted-foreground">
               {state.toLabel}
             </code>
           </div>
@@ -122,17 +122,17 @@ export function SkillDiffDialog({ state, onClose }: SkillDiffDialogProps) {
             onClick={onClose}
             aria-label="Close diff viewer"
             className={cn(
-              "rounded-md p-1.5 text-muted-foreground transition-colors",
-              "hover:bg-accent-hover hover:text-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:rounded-md stg:p-1.5 stg:text-muted-foreground stg:transition-colors",
+              "stg:hover:bg-accent-hover stg:hover:text-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           >
-            <CloseIcon className="size-4" />
+            <CloseIcon className="stg:size-4" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-auto p-4">
+        <div className="stg:flex-1 stg:overflow-auto stg:p-4">
           {isLoading ? (
             <DiffSkeleton />
           ) : error ? (
@@ -153,21 +153,21 @@ export function SkillDiffDialog({ state, onClose }: SkillDiffDialogProps) {
 function DiffSkeleton() {
   return (
     <div
-      className="flex flex-col gap-4"
+      className="stg:flex stg:flex-col stg:gap-4"
       aria-busy="true"
       aria-label="Loading diff"
     >
-      <div className="flex items-center gap-2">
-        <div className="h-4 w-36 animate-pulse rounded bg-muted" />
-        <div className="h-4 w-20 animate-pulse rounded bg-muted" />
-        <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+      <div className="stg:flex stg:items-center stg:gap-2">
+        <div className="stg:h-4 stg:w-36 stg:animate-pulse stg:rounded stg:bg-muted" />
+        <div className="stg:h-4 stg:w-20 stg:animate-pulse stg:rounded stg:bg-muted" />
+        <div className="stg:h-4 stg:w-20 stg:animate-pulse stg:rounded stg:bg-muted" />
       </div>
-      <div className="h-6 w-full animate-pulse rounded bg-muted" />
+      <div className="stg:h-6 stg:w-full stg:animate-pulse stg:rounded stg:bg-muted" />
       {[1, 2, 3, 4, 5, 6].map((i) => (
-        <div key={i} className="flex gap-2">
-          <div className="h-4 w-10 animate-pulse rounded bg-muted" />
-          <div className="h-4 w-10 animate-pulse rounded bg-muted" />
-          <div className="h-4 flex-1 animate-pulse rounded bg-muted" />
+        <div key={i} className="stg:flex stg:gap-2">
+          <div className="stg:h-4 stg:w-10 stg:animate-pulse stg:rounded stg:bg-muted" />
+          <div className="stg:h-4 stg:w-10 stg:animate-pulse stg:rounded stg:bg-muted" />
+          <div className="stg:h-4 stg:flex-1 stg:animate-pulse stg:rounded stg:bg-muted" />
         </div>
       ))}
     </div>

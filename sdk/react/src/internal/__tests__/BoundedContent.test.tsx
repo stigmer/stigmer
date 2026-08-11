@@ -20,7 +20,7 @@ afterEach(cleanup);
 
 /** The collapsed clamp element: `overflow-hidden` + the shared budget. */
 function clampEl(container: HTMLElement): Element | null {
-  return container.querySelector(`.overflow-hidden.${PREVIEW_MAX_HEIGHT}`);
+  return container.querySelector(`.stg\\:overflow-hidden.${PREVIEW_MAX_HEIGHT.replace(":", "\\:")}`);
 }
 
 describe("BoundedContent", () => {

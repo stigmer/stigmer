@@ -155,16 +155,16 @@ export function ApplyManifestDialog({
       ref={dialogRef}
       onCancel={handleCancel}
       className={cn(
-        "fixed inset-0 z-50 m-auto w-full max-w-3xl rounded-lg border border-border bg-popover p-0 text-popover-foreground shadow-lg",
-        "backdrop:bg-black/50",
-        "open:animate-in open:fade-in-0 open:zoom-in-95",
+        "stg:fixed stg:inset-0 stg:z-50 stg:m-auto stg:w-full stg:max-w-3xl stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:p-0 stg:text-popover-foreground stg:shadow-lg",
+        "stg:backdrop:bg-black/50",
+        "stg:open:animate-in stg:open:fade-in-0 stg:open:zoom-in-95",
       )}
     >
-      <div className="flex flex-col gap-4 p-6">
+      <div className="stg:flex stg:flex-col stg:gap-4 stg:p-6">
         {/* Header */}
-        <div className="flex flex-col gap-1">
-          <h3 className="text-base font-semibold text-foreground">Apply YAML</h3>
-          <p className="text-sm text-muted-foreground">
+        <div className="stg:flex stg:flex-col stg:gap-1">
+          <h3 className="stg:text-base stg:font-semibold stg:text-foreground">Apply YAML</h3>
+          <p className="stg:text-sm stg:text-muted-foreground">
             Paste a resource manifest or upload a file. Resources are created
             when new and updated when they already exist.
           </p>
@@ -177,9 +177,9 @@ export function ApplyManifestDialog({
           accept=".yaml,.yml,.json"
           onChange={handleFileChange}
           className={cn(
-            "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground",
-            "file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-primary-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
+            "stg:file:mr-3 stg:file:rounded-md stg:file:border-0 stg:file:bg-primary stg:file:px-2.5 stg:file:py-1 stg:file:text-xs stg:file:font-medium stg:file:text-primary-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
           aria-label="Select manifest file"
         />
@@ -189,7 +189,7 @@ export function ApplyManifestDialog({
           <LazyYamlEditor
             value={manifest.content}
             onChange={manifest.setContent}
-            className="h-56"
+            className="stg:h-56"
           />
         </Suspense>
 
@@ -199,7 +199,7 @@ export function ApplyManifestDialog({
         {manifest.validationError && (
           <div
             role="alert"
-            className="rounded-md border border-destructive bg-card px-3 py-2.5 text-sm text-destructive"
+            className="stg:rounded-md stg:border stg:border-destructive stg:bg-card stg:px-3 stg:py-2.5 stg:text-sm stg:text-destructive"
           >
             {manifest.validationError}
           </div>
@@ -207,7 +207,7 @@ export function ApplyManifestDialog({
 
         {/* Per-document preview */}
         {manifest.entries && manifest.entries.length > 0 && (
-          <ul className="flex max-h-48 flex-col gap-2 overflow-y-auto" aria-label="Resources to apply">
+          <ul className="stg:flex stg:max-h-48 stg:flex-col stg:gap-2 stg:overflow-y-auto" aria-label="Resources to apply">
             {manifest.entries.map((entry, index) => (
               <PreviewRow key={`${entry.document.handler.yamlKind}/${entry.document.org}/${entry.document.slug}/${index}`} entry={entry} />
             ))}
@@ -215,21 +215,21 @@ export function ApplyManifestDialog({
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs text-muted-foreground" aria-live="polite">
+        <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
+          <p className="stg:text-xs stg:text-muted-foreground" aria-live="polite">
             {manifest.isValidating ? "Validating…" : ""}
           </p>
-          <div className="flex gap-2">
+          <div className="stg:flex stg:gap-2">
             <button
               type="button"
               onClick={closeAndMaybeRefresh}
               disabled={manifest.isApplying}
               className={cn(
-                "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                "border border-input bg-background text-foreground",
-                "hover:bg-accent hover:text-accent-foreground",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                "disabled:pointer-events-none disabled:opacity-50",
+                "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+                "stg:border stg:border-input stg:bg-background stg:text-foreground",
+                "stg:hover:bg-accent stg:hover:text-accent-foreground",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               )}
             >
               Cancel
@@ -239,10 +239,10 @@ export function ApplyManifestDialog({
               onClick={handleApply}
               disabled={!canApply}
               className={cn(
-                "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                "bg-primary text-primary-foreground hover:bg-primary-hover",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                "disabled:pointer-events-none disabled:opacity-50",
+                "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+                "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               )}
             >
               {manifest.isApplying
@@ -263,7 +263,7 @@ function applyLabel(count: number): string {
 
 function EditorLoading() {
   return (
-    <div className="flex h-56 items-center justify-center rounded-md border border-border bg-muted text-sm text-muted-foreground">
+    <div className="stg:flex stg:h-56 stg:items-center stg:justify-center stg:rounded-md stg:border stg:border-border stg:bg-muted stg:text-sm stg:text-muted-foreground">
       Loading editor…
     </div>
   );
@@ -275,24 +275,24 @@ function EditorLoading() {
 
 function PreviewRow({ entry }: { readonly entry: ManifestPreviewEntry }) {
   return (
-    <li className="rounded-md border border-border bg-card px-3 py-2">
-      <div className="flex items-center gap-2">
-        <span className="inline-flex rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+    <li className="stg:rounded-md stg:border stg:border-border stg:bg-card stg:px-3 stg:py-2">
+      <div className="stg:flex stg:items-center stg:gap-2">
+        <span className="stg:inline-flex stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-xs stg:font-medium stg:text-muted-foreground">
           {entry.document.handler.displayName}
         </span>
-        <span className="text-sm font-medium text-foreground">
+        <span className="stg:text-sm stg:font-medium stg:text-foreground">
           {entry.document.name}
         </span>
         <ActionBadge entry={entry} />
-        <span className="ml-auto text-xs text-muted-foreground">
+        <span className="stg:ml-auto stg:text-xs stg:text-muted-foreground">
           {entry.document.org}
         </span>
       </div>
       {entry.document.warning && (
-        <p className="mt-1 text-xs text-muted-foreground">{entry.document.warning}</p>
+        <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">{entry.document.warning}</p>
       )}
       {entry.status === "failed" && entry.errorMessage && (
-        <p role="alert" className="mt-1 text-xs text-destructive">
+        <p role="alert" className="stg:mt-1 stg:text-xs stg:text-destructive">
           {entry.errorMessage}
         </p>
       )}
@@ -305,10 +305,10 @@ function ActionBadge({ entry }: { readonly entry: ManifestPreviewEntry }) {
   return (
     <span
       className={cn(
-        "inline-flex rounded px-1.5 py-0.5 text-xs font-medium",
+        "stg:inline-flex stg:rounded stg:px-1.5 stg:py-0.5 stg:text-xs stg:font-medium",
         entry.status === "failed"
-          ? "bg-card text-destructive border border-destructive"
-          : "bg-muted text-muted-foreground",
+          ? "stg:bg-card stg:text-destructive stg:border stg:border-destructive"
+          : "stg:bg-muted stg:text-muted-foreground",
       )}
     >
       {label}

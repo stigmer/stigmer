@@ -36,14 +36,14 @@ export const DataTab = memo(function DataTab({
   }, [value, node.id, onUpdateExport]);
 
   return (
-    <div className="flex flex-col gap-4 px-3 py-3">
-      <section className="flex flex-col gap-1.5">
-        <h4 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--stgm-muted-foreground,#737373)]">
+    <div className="stg:flex stg:flex-col stg:gap-4 stg:px-3 stg:py-3">
+      <section className="stg:flex stg:flex-col stg:gap-1.5">
+        <h4 className="stg:text-[11px] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-[var(--stgm-muted-foreground,#737373)]">
           Export
         </h4>
-        <p className="text-[10px] leading-tight text-[var(--stgm-muted-foreground,#737373)]">
+        <p className="stg:text-[10px] stg:leading-tight stg:text-[var(--stgm-muted-foreground,#737373)]">
           Save task output to the workflow context for downstream tasks.
-          Use <code className="rounded bg-[var(--stgm-muted,#f5f5f5)] px-1 text-[10px]">{"${ . }"}</code> to export the entire output.
+          Use <code className="stg:rounded stg:bg-[var(--stgm-muted,#f5f5f5)] stg:px-1 stg:text-[10px]">{"${ . }"}</code> to export the entire output.
         </p>
         <input
           type="text"
@@ -51,7 +51,7 @@ export const DataTab = memo(function DataTab({
           onChange={handleChange}
           onBlur={handleBlur}
           placeholder='e.g., ${ . } or ${ .fieldName }'
-          className="w-full rounded-md border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 py-1.5 text-xs text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+          className="stg:w-full stg:rounded-md stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-2 stg:py-1.5 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)] stg:placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
         />
       </section>
     </div>

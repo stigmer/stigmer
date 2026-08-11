@@ -31,24 +31,24 @@ const PHASE_LABEL: ReadonlyMap<number, string> = new Map([
 const STAT_CARDS: readonly StatCardDef[] = [
   {
     label: "Active",
-    valueClass: "text-foreground",
+    valueClass: "stg:text-foreground",
     getValue: (s) => String(s.activeCount),
   },
   {
     label: "Completed",
-    valueClass: "text-success",
+    valueClass: "stg:text-success",
     getValue: (s) =>
       String(s.phaseCounts[ExecutionPhase.EXECUTION_COMPLETED] ?? 0),
   },
   {
     label: "Failed",
-    valueClass: "text-destructive",
+    valueClass: "stg:text-destructive",
     getValue: (s) =>
       String(s.phaseCounts[ExecutionPhase.EXECUTION_FAILED] ?? 0),
   },
   {
     label: "Total Cost",
-    valueClass: "text-foreground",
+    valueClass: "stg:text-foreground",
     getValue: (s) =>
       s.totalCost?.totalCostUsd
         ? `$${s.totalCost.totalCostUsd.toFixed(2)}`
@@ -74,13 +74,13 @@ export const ExecutionSummaryWidget = memo(function ExecutionSummaryWidget({
     if (!summary) return [];
     const entries: { label: string; count: number; colorClass: string }[] = [];
     const colorMap: Record<number, string> = {
-      [ExecutionPhase.EXECUTION_PENDING]: "bg-muted-foreground",
-      [ExecutionPhase.EXECUTION_IN_PROGRESS]: "bg-primary",
-      [ExecutionPhase.EXECUTION_COMPLETED]: "bg-success",
-      [ExecutionPhase.EXECUTION_FAILED]: "bg-destructive",
-      [ExecutionPhase.EXECUTION_CANCELLED]: "bg-muted-foreground",
-      [ExecutionPhase.EXECUTION_TERMINATED]: "bg-destructive",
-      [ExecutionPhase.EXECUTION_PAUSED]: "bg-muted-foreground",
+      [ExecutionPhase.EXECUTION_PENDING]: "stg:bg-muted-foreground",
+      [ExecutionPhase.EXECUTION_IN_PROGRESS]: "stg:bg-primary",
+      [ExecutionPhase.EXECUTION_COMPLETED]: "stg:bg-success",
+      [ExecutionPhase.EXECUTION_FAILED]: "stg:bg-destructive",
+      [ExecutionPhase.EXECUTION_CANCELLED]: "stg:bg-muted-foreground",
+      [ExecutionPhase.EXECUTION_TERMINATED]: "stg:bg-destructive",
+      [ExecutionPhase.EXECUTION_PAUSED]: "stg:bg-muted-foreground",
     };
     for (const [phase, count] of Object.entries(summary.phaseCounts)) {
       const p = Number(phase);
@@ -88,7 +88,7 @@ export const ExecutionSummaryWidget = memo(function ExecutionSummaryWidget({
         entries.push({
           label: PHASE_LABEL.get(p) ?? `Phase ${p}`,
           count,
-          colorClass: colorMap[p] ?? "bg-muted",
+          colorClass: colorMap[p] ?? "stg:bg-muted",
         });
       }
     }
@@ -99,12 +99,12 @@ export const ExecutionSummaryWidget = memo(function ExecutionSummaryWidget({
 
   if (isLoading) {
     return (
-      <div className={cn("space-y-3", className)} aria-busy="true">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={cn("stg:space-y-3", className)} aria-busy="true">
+        <div className="stg:grid stg:gap-3 stg:sm:grid-cols-2 stg:lg:grid-cols-4">
           {Array.from({ length: 4 }, (_, i) => (
             <div
               key={i}
-              className="h-[72px] animate-pulse rounded-lg border border-border bg-muted/50"
+              className="stg:h-[72px] stg:animate-pulse stg:rounded-lg stg:border stg:border-border stg:bg-muted/50"
             />
           ))}
         </div>
@@ -119,17 +119,17 @@ export const ExecutionSummaryWidget = memo(function ExecutionSummaryWidget({
     : 0;
 
   return (
-    <div className={cn("space-y-4", className)}>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className={cn("stg:space-y-4", className)}>
+      <div className="stg:grid stg:gap-3 stg:sm:grid-cols-2 stg:lg:grid-cols-4">
         {STAT_CARDS.map((card) => (
           <div
             key={card.label}
-            className="rounded-lg border border-border bg-card px-4 py-3"
+            className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-4 stg:py-3"
           >
-            <p className="text-xs font-medium text-muted-foreground">
+            <p className="stg:text-xs stg:font-medium stg:text-muted-foreground">
               {card.label}
             </p>
-            <p className={cn("mt-1 text-2xl font-semibold", card.valueClass)}>
+            <p className={cn("stg:mt-1 stg:text-2xl stg:font-semibold", card.valueClass)}>
               {card.getValue(summary)}
             </p>
           </div>
@@ -137,11 +137,11 @@ export const ExecutionSummaryWidget = memo(function ExecutionSummaryWidget({
       </div>
 
       {(avgSeconds > 0 || totalExecutions > 0) && (
-        <div className="flex items-center gap-6 text-xs text-muted-foreground">
+        <div className="stg:flex stg:items-center stg:gap-6 stg:text-xs stg:text-muted-foreground">
           {avgSeconds > 0 && (
             <span>
               Avg duration:{" "}
-              <span className="font-medium text-foreground">
+              <span className="stg:font-medium stg:text-foreground">
                 {formatDurationSec(avgSeconds)}
               </span>
             </span>
@@ -149,7 +149,7 @@ export const ExecutionSummaryWidget = memo(function ExecutionSummaryWidget({
           {totalExecutions > 0 && (
             <span>
               Total:{" "}
-              <span className="font-medium text-foreground">
+              <span className="stg:font-medium stg:text-foreground">
                 {totalExecutions}
               </span>{" "}
               executions
@@ -159,26 +159,26 @@ export const ExecutionSummaryWidget = memo(function ExecutionSummaryWidget({
       )}
 
       {totalExecutions > 0 && (
-        <div className="space-y-2">
+        <div className="stg:space-y-2">
           <div
-            className="flex h-2 overflow-hidden rounded-full bg-muted"
+            className="stg:flex stg:h-2 stg:overflow-hidden stg:rounded-full stg:bg-muted"
             role="img"
             aria-label="Execution phase breakdown"
           >
             {phaseBreakdown.map((entry) => (
               <div
                 key={entry.label}
-                className={cn("h-full", entry.colorClass)}
+                className={cn("stg:h-full", entry.colorClass)}
                 style={{
                   width: `${(entry.count / totalExecutions) * 100}%`,
                 }}
               />
             ))}
           </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
+          <div className="stg:flex stg:flex-wrap stg:gap-x-4 stg:gap-y-1">
             {phaseBreakdown.map((entry) => (
-              <span key={entry.label} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className={cn("inline-block h-2 w-2 rounded-full", entry.colorClass)} />
+              <span key={entry.label} className="stg:flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground">
+                <span className={cn("stg:inline-block stg:h-2 stg:w-2 stg:rounded-full", entry.colorClass)} />
                 {entry.label}: {entry.count}
               </span>
             ))}

@@ -58,10 +58,10 @@ export interface WorkflowRunFormProps {
 }
 
 const INPUT_CLASSES = cn(
-  "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-sm text-foreground",
-  "placeholder:text-muted-foreground",
-  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-  "disabled:pointer-events-none disabled:opacity-50",
+  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-sm stg:text-foreground",
+  "stg:placeholder:text-muted-foreground",
+  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
 );
 
 /**
@@ -128,7 +128,7 @@ export function WorkflowRunForm({
     : instances.length > 1;
 
   return (
-    <div className={cn("flex flex-col gap-4", className)}>
+    <div className={cn("stg:flex stg:flex-col stg:gap-4", className)}>
       {/* Instance selector — shown first so env var state reacts to selection */}
       {showInstanceSelector && (
         <FieldGroup>
@@ -158,8 +158,8 @@ export function WorkflowRunForm({
 
       {/* Environment variables */}
       {envEntries.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <h4 className="text-xs font-medium text-muted-foreground">
+        <div className="stg:flex stg:flex-col stg:gap-3">
+          <h4 className="stg:text-xs stg:font-medium stg:text-muted-foreground">
             Environment Variables
           </h4>
           {envEntries.map(([key, decl]) => {
@@ -170,10 +170,10 @@ export function WorkflowRunForm({
             return (
               <FieldGroup key={key}>
                 <FieldLabel htmlFor={fieldId}>
-                  <code className="text-xs">{key}</code>
+                  <code className="stg:text-xs">{key}</code>
                   {isRequired && (
                     <span
-                      className="ml-1 text-destructive"
+                      className="stg:ml-1 stg:text-destructive"
                       aria-label="required"
                     >
                       *
@@ -203,7 +203,7 @@ export function WorkflowRunForm({
                   }
                   className={cn(
                     INPUT_CLASSES,
-                    fieldError && "border-destructive focus-visible:ring-destructive",
+                    fieldError && "stg:border-destructive stg:focus-visible:ring-destructive",
                   )}
                 />
                 {satisfiedByInstance && !fieldError && (
@@ -223,7 +223,7 @@ export function WorkflowRunForm({
                 {fieldError && (
                   <p
                     id={`${fieldId}-error`}
-                    className="text-[0.7rem] text-destructive"
+                    className="stg:text-[0.7rem] stg:text-destructive"
                     role="alert"
                   >
                     {fieldError}
@@ -248,11 +248,11 @@ export function WorkflowRunForm({
             placeholder="Optional message or JSON payload to trigger the workflow"
             disabled={disabled}
             rows={3}
-            className={cn(INPUT_CLASSES, "resize-y")}
+            className={cn(INPUT_CLASSES, "stg:resize-y")}
           />
           <FieldHint>
             Accessible in the workflow as{" "}
-            <code className="text-[0.7rem]">
+            <code className="stg:text-[0.7rem]">
               {"${ $input }"}
             </code>
           </FieldHint>
@@ -263,9 +263,9 @@ export function WorkflowRunForm({
           onClick={() => onShowTriggerMessageChange(true)}
           disabled={disabled}
           className={cn(
-            "self-start text-[0.7rem] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:rounded-sm",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:self-start stg:text-[0.7rem] stg:text-muted-foreground stg:underline-offset-2 stg:hover:text-foreground stg:hover:underline",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           + Add trigger input
@@ -284,7 +284,7 @@ function FieldGroup({
 }: {
   readonly children: React.ReactNode;
 }) {
-  return <div className="flex flex-col gap-1">{children}</div>;
+  return <div className="stg:flex stg:flex-col stg:gap-1">{children}</div>;
 }
 
 function FieldLabel({
@@ -295,7 +295,7 @@ function FieldLabel({
   readonly children: React.ReactNode;
 }) {
   return (
-    <label htmlFor={htmlFor} className="text-xs font-medium text-foreground">
+    <label htmlFor={htmlFor} className="stg:text-xs stg:font-medium stg:text-foreground">
       {children}
     </label>
   );
@@ -309,7 +309,7 @@ function FieldHint({
   readonly children: React.ReactNode;
 }) {
   return (
-    <p id={id} className="text-[0.7rem] text-muted-foreground">
+    <p id={id} className="stg:text-[0.7rem] stg:text-muted-foreground">
       {children}
     </p>
   );

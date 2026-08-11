@@ -160,12 +160,12 @@ export const WorkflowTaskApprovalCard = memo(function WorkflowTaskApprovalCard({
       // Neutral card + 2px warning left accent — the quiet Cursor-grade chrome
       // shared with ApprovalCard. (Replaces the old amber `bg-warning/5` fill.)
       className={cn(
-        "mt-2 rounded-lg border border-border-prominent border-l-2 border-l-warning p-3",
+        "stg:mt-2 stg:rounded-lg stg:border stg:border-border-prominent stg:border-l-2 stg:border-l-warning stg:p-3",
         className,
       )}
     >
       {prompt && (
-        <div className="mb-3 max-h-80 overflow-y-auto rounded border border-border bg-background p-3">
+        <div className="stg:mb-3 stg:max-h-80 stg:overflow-y-auto stg:rounded stg:border stg:border-border stg:bg-background stg:p-3">
           <div className="stgm-prose">
             <Markdown components={MARKDOWN_COMPONENTS} remarkPlugins={REMARK_PLUGINS}>
               {prompt}
@@ -177,12 +177,12 @@ export const WorkflowTaskApprovalCard = memo(function WorkflowTaskApprovalCard({
       {payload !== null && (
         <div
           aria-label={`Review material for ${taskName}`}
-          className="mb-3 max-h-96 overflow-y-auto rounded border border-border bg-background p-3"
+          className="stg:mb-3 stg:max-h-96 stg:overflow-y-auto stg:rounded stg:border stg:border-border stg:bg-background stg:p-3"
         >
           {isPlainObject(payload) ? (
             <StructuredDataViewer data={payload} />
           ) : (
-            <pre className="overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-foreground">
+            <pre className="stg:overflow-auto stg:whitespace-pre-wrap stg:break-words stg:font-mono stg:text-xs stg:leading-relaxed stg:text-foreground">
               <code>{formatJson(payload)}</code>
             </pre>
           )}
@@ -190,12 +190,12 @@ export const WorkflowTaskApprovalCard = memo(function WorkflowTaskApprovalCard({
       )}
 
       {formFields.length > 0 && (
-        <div className="mb-3 space-y-2">
+        <div className="stg:mb-3 stg:space-y-2">
           {formFields.map((field) => (
             <div key={field.name}>
               <label
                 htmlFor={`${taskName}-${field.name}`}
-                className="mb-1 block text-xs font-medium text-foreground"
+                className="stg:mb-1 stg:block stg:text-xs stg:font-medium stg:text-foreground"
               >
                 {field.label}
               </label>
@@ -207,11 +207,11 @@ export const WorkflowTaskApprovalCard = memo(function WorkflowTaskApprovalCard({
                 disabled={isSubmitting}
                 rows={2}
                 className={cn(
-                  "w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground",
-                  "placeholder:text-muted-foreground",
-                  "focus:outline-none focus:ring-1 focus:ring-ring",
-                  "disabled:opacity-50",
-                  "resize-y",
+                  "stg:w-full stg:rounded stg:border stg:border-border stg:bg-background stg:px-2 stg:py-1.5 stg:text-xs stg:text-foreground",
+                  "stg:placeholder:text-muted-foreground",
+                  "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
+                  "stg:disabled:opacity-50",
+                  "stg:resize-y",
                 )}
               />
             </div>
@@ -219,7 +219,7 @@ export const WorkflowTaskApprovalCard = memo(function WorkflowTaskApprovalCard({
         </div>
       )}
 
-      <div className="mb-2">
+      <div className="stg:mb-2">
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
@@ -227,16 +227,16 @@ export const WorkflowTaskApprovalCard = memo(function WorkflowTaskApprovalCard({
           disabled={isSubmitting}
           rows={1}
           className={cn(
-            "w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground",
-            "placeholder:text-muted-foreground",
-            "focus:outline-none focus:ring-1 focus:ring-ring",
-            "disabled:opacity-50",
-            "resize-y",
+            "stg:w-full stg:rounded stg:border stg:border-border stg:bg-background stg:px-2 stg:py-1.5 stg:text-xs stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
+            "stg:disabled:opacity-50",
+            "stg:resize-y",
           )}
         />
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="stg:flex stg:flex-wrap stg:gap-2">
         {outcomes.map((outcome, index) => (
           <DecisionButton
             key={outcome.name}
@@ -255,7 +255,7 @@ export const WorkflowTaskApprovalCard = memo(function WorkflowTaskApprovalCard({
           spinner has already reverted, and this explains the snap-back. Shared
           with the agent ApprovalCard / FileReviewCard via InCardDecisionError. */}
       {error && (
-        <div className="mt-2">
+        <div className="stg:mt-2">
           <InCardDecisionError
             error={error}
             leadIn="submit decision"

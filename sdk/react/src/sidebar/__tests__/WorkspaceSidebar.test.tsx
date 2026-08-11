@@ -175,12 +175,12 @@ describe("WorkspaceSidebar — primary navigation", () => {
 
     const library = container.querySelector('[data-row-id="library"]')!;
     expect(library.getAttribute("aria-current")).toBe("page");
-    expect(library.className.split(" ")).toContain("bg-sidebar-accent");
+    expect(library.className.split(" ")).toContain("stg:bg-sidebar-accent");
 
     const dashboard = container.querySelector('[data-row-id="dashboard"]')!;
     expect(dashboard.getAttribute("aria-current")).toBeNull();
     // (hover:bg-sidebar-accent is fine — only the resting accent means active)
-    expect(dashboard.className.split(" ")).not.toContain("bg-sidebar-accent");
+    expect(dashboard.className.split(" ")).not.toContain("stg:bg-sidebar-accent");
   });
 });
 
@@ -215,7 +215,7 @@ describe("WorkspaceSidebar — recents", () => {
     );
 
     const active = container.querySelector('[data-row-id="ses_today"]')!;
-    expect(active.className).toContain("bg-sidebar-accent");
+    expect(active.className).toContain("stg:bg-sidebar-accent");
     expect(active.getAttribute("aria-current")).toBe("page");
     // The failed execution row explains why it is in the list.
     const failed = container.querySelector('[data-row-id="wex_yesterday"]')!;

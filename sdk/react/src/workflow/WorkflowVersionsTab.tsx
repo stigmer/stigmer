@@ -50,12 +50,12 @@ export function WorkflowVersionsTab({
     selectedVersionHash !== null && selectedVersionHash !== currentVersionHash;
 
   return (
-    <div className={cn("flex min-h-[24rem] gap-4", className)}>
+    <div className={cn("stg:flex stg:min-h-[24rem] stg:gap-4", className)}>
       {/* Timeline panel */}
       <div
         className={cn(
-          "flex shrink-0 flex-col overflow-y-auto",
-          showDiff ? "w-[280px]" : "w-full max-w-md",
+          "stg:flex stg:shrink-0 stg:flex-col stg:overflow-y-auto",
+          showDiff ? "stg:w-[280px]" : "stg:w-full stg:max-w-md",
         )}
       >
         <WorkflowVersionTimeline
@@ -69,11 +69,11 @@ export function WorkflowVersionsTab({
 
       {/* Diff panel */}
       {showDiff && (
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="stg:flex stg:min-w-0 stg:flex-1 stg:flex-col">
+          <div className="stg:mb-2 stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-muted-foreground">
             <span>
               Comparing{" "}
-              <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">
+              <code className="stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:font-mono stg:text-[11px]">
                 {selectedVersionHash.slice(0, 8)}
               </code>{" "}
               with current
@@ -83,7 +83,7 @@ export function WorkflowVersionsTab({
             workflowId={workflowId}
             hashA={selectedVersionHash}
             hashB={currentVersionHash}
-            className="flex-1"
+            className="stg:flex-1"
           />
         </div>
       )}

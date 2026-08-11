@@ -542,18 +542,18 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
   }, [canvas.selection, canvas.graph]);
 
   const fallback = loadingFallback ?? (
-    <div className="flex h-full w-full items-center justify-center text-sm text-[var(--stgm-muted-foreground,#737373)]">
+    <div className="stg:flex stg:h-full stg:w-full stg:items-center stg:justify-center stg:text-sm stg:text-[var(--stgm-muted-foreground,#737373)]">
       Loading canvas…
     </div>
   );
 
   if (canvas.error) {
     return (
-      <div className={cn("flex h-full w-full flex-col items-center justify-center gap-2 p-4", className)}>
-        <span className="text-sm font-medium text-[var(--stgm-destructive,#ef4444)]">
+      <div className={cn("stg:flex stg:h-full stg:w-full stg:flex-col stg:items-center stg:justify-center stg:gap-2 stg:p-4", className)}>
+        <span className="stg:text-sm stg:font-medium stg:text-[var(--stgm-destructive,#ef4444)]">
           Failed to parse workflow
         </span>
-        <span className="max-w-md text-center text-xs text-[var(--stgm-muted-foreground,#737373)]">
+        <span className="stg:max-w-md stg:text-center stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">
           {canvas.error}
         </span>
       </div>
@@ -565,16 +565,16 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
   return (
     <div
       ref={containerRef}
-      className={cn("stgm relative flex h-full w-full", className)}
+      className={cn("stgm stg:relative stg:flex stg:h-full stg:w-full", className)}
       tabIndex={-1}
     >
-      <div className="sr-only" aria-live="polite" aria-atomic="true">
+      <div className="stg:sr-only" aria-live="polite" aria-atomic="true">
         {selectionAnnouncement}
       </div>
 
       {showPalette && !paletteCollapsed && <WorkflowTaskPalette />}
 
-      <div className="relative flex-1">
+      <div className="stg:relative stg:flex-1">
         {showPalette && (
           <PaletteToggle
             collapsed={paletteCollapsed}
@@ -617,12 +617,12 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
             />
           </Suspense>
           {!hasGraph && (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="flex flex-col items-center gap-2 text-center">
-                <span className="text-sm text-[var(--stgm-muted-foreground,#737373)]">
+            <div className="stg:pointer-events-none stg:absolute stg:inset-0 stg:flex stg:items-center stg:justify-center">
+              <div className="stg:flex stg:flex-col stg:items-center stg:gap-2 stg:text-center">
+                <span className="stg:text-sm stg:text-[var(--stgm-muted-foreground,#737373)]">
                   No workflow to visualize
                 </span>
-                <span className="text-xs text-[var(--stgm-muted-foreground,#737373)]">
+                <span className="stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">
                   Drag a task from the palette to get started
                 </span>
               </div>
@@ -675,7 +675,7 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
       </div>
 
       {showInspector && hasGraph && (
-        <div className="w-[280px] min-w-[240px] overflow-hidden border-l border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))]">
+        <div className="stg:w-[280px] stg:min-w-[240px] stg:overflow-hidden stg:border-l stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))]">
           <WorkflowInspectorPanel
             selection={canvas.selection}
             graph={canvas.graph}
@@ -736,9 +736,9 @@ function PaletteToggle({
       type="button"
       onClick={onToggle}
       className={cn(
-        "absolute left-2 z-10 rounded border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] p-1 shadow-sm",
-        "hover:bg-[var(--stgm-muted,#f5f5f5)] active:bg-[var(--stgm-accent,#e5e5e5)]",
-        collapsed ? "top-2" : "bottom-2",
+        "stg:absolute stg:left-2 stg:z-10 stg:rounded stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:p-1 stg:shadow-sm",
+        "stg:hover:bg-[var(--stgm-muted,#f5f5f5)] stg:active:bg-[var(--stgm-accent,#e5e5e5)]",
+        collapsed ? "stg:top-2" : "stg:bottom-2",
       )}
       aria-label={collapsed ? "Show task palette" : "Hide task palette"}
       title={collapsed ? "Show task palette" : "Hide task palette"}
@@ -752,7 +752,7 @@ function PaletteToggle({
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="text-[var(--stgm-foreground,#1a1a2e)]"
+        className="stg:text-[var(--stgm-foreground,#1a1a2e)]"
       >
         {collapsed ? (
           <>
@@ -799,35 +799,35 @@ function CanvasToolbar({
   isSaving?: boolean;
 }) {
   const btnClass =
-    "rounded border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] px-2 py-1 text-xs font-medium text-[var(--stgm-foreground,#1a1a2e)] shadow-sm hover:bg-[var(--stgm-muted,#f5f5f5)] active:bg-[var(--stgm-accent,#e5e5e5)] disabled:cursor-not-allowed disabled:opacity-40";
+    "stg:rounded stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)] stg:shadow-sm stg:hover:bg-[var(--stgm-muted,#f5f5f5)] stg:active:bg-[var(--stgm-accent,#e5e5e5)] stg:disabled:cursor-not-allowed stg:disabled:opacity-40";
 
   return (
-    <div className="absolute left-2 top-2 z-10 flex items-center gap-1">
+    <div className="stg:absolute stg:left-2 stg:top-2 stg:z-10 stg:flex stg:items-center stg:gap-1">
       <button type="button" onClick={onUndo} disabled={!canUndo} className={btnClass} aria-label="Undo" title={`Undo (${TOOLBAR_SHORTCUTS.undo})`}>
         Undo
       </button>
       <button type="button" onClick={onRedo} disabled={!canRedo} className={btnClass} aria-label="Redo" title={`Redo (${TOOLBAR_SHORTCUTS.redo})`}>
         Redo
       </button>
-      <div className="mx-1 h-4 w-px bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
+      <div className="stg:mx-1 stg:h-4 stg:w-px stg:bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
       <button type="button" onClick={onAutoLayout} className={btnClass} aria-label="Auto-layout" title="Auto-layout">
         Auto-layout
       </button>
       {onSave && (
         <>
-          <div className="mx-1 h-4 w-px bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
+          <div className="stg:mx-1 stg:h-4 stg:w-px stg:bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
           <button
             type="button"
             onClick={onSave}
             disabled={!isDirty || isSaving}
-            className="rounded bg-[var(--stgm-primary,#6366f1)] px-2.5 py-1 text-xs font-medium text-[var(--stgm-primary-foreground,#fff)] shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="stg:rounded stg:bg-[var(--stgm-primary,#6366f1)] stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:text-[var(--stgm-primary-foreground,#fff)] stg:shadow-sm stg:hover:opacity-90 stg:disabled:cursor-not-allowed stg:disabled:opacity-40"
           >
             {isSaving ? "Saving\u2026" : "Save"}
           </button>
         </>
       )}
       {isDirty && !onSave && (
-        <span className="ml-1 text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+        <span className="stg:ml-1 stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
           Modified
         </span>
       )}

@@ -142,10 +142,10 @@ export const SetupProgress = memo(function SetupProgress({
     <div
       role="status"
       aria-label={currentMessage}
-      className={cn("flex items-center gap-2.5 px-4 py-2", className)}
+      className={cn("stg:flex stg:items-center stg:gap-2.5 stg:px-4 stg:py-2", className)}
     >
       <PulseIndicator />
-      <span className="text-sm text-muted-foreground animate-in fade-in duration-300">
+      <span className="stg:text-sm stg:text-muted-foreground stg:animate-in stg:fade-in stg:duration-300">
         {currentMessage}
       </span>
     </div>
@@ -154,9 +154,9 @@ export const SetupProgress = memo(function SetupProgress({
 
 function PulseIndicator() {
   return (
-    <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-muted-foreground opacity-75" />
-      <span className="relative inline-flex h-2 w-2 rounded-full bg-muted-foreground" />
+    <span className="stg:relative stg:flex stg:h-2 stg:w-2 stg:shrink-0" aria-hidden="true">
+      <span className="stg:absolute stg:inline-flex stg:h-full stg:w-full stg:animate-ping stg:rounded-full stg:bg-muted-foreground stg:opacity-75" />
+      <span className="stg:relative stg:inline-flex stg:h-2 stg:w-2 stg:rounded-full stg:bg-muted-foreground" />
     </span>
   );
 }

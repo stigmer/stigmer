@@ -91,34 +91,34 @@ export const ViewYamlDialog = memo(function ViewYamlDialog({
     <dialog
       ref={dialogRef}
       className={cn(
-        "stgm m-auto max-h-[80vh] w-full max-w-lg rounded-lg border border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-background,#fff)] p-0 shadow-xl",
-        "backdrop:bg-black/40",
+        "stgm stg:m-auto stg:max-h-[80vh] stg:w-full stg:max-w-lg stg:rounded-lg stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-background,#fff)] stg:p-0 stg:shadow-xl",
+        "stg:backdrop:bg-black/40",
       )}
       onClick={handleBackdropClick}
       aria-label={node ? `YAML for ${node.taskName}` : "View YAML"}
     >
       {node && (
-        <div className="flex flex-col">
+        <div className="stg:flex stg:flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-[var(--stgm-border,#e5e5e5)] px-4 py-3">
-            <div className="flex items-center gap-2">
+          <div className="stg:flex stg:items-center stg:justify-between stg:border-b stg:border-[var(--stgm-border,#e5e5e5)] stg:px-4 stg:py-3">
+            <div className="stg:flex stg:items-center stg:gap-2">
               <CodeBracketIcon />
-              <span className="text-sm font-semibold text-[var(--stgm-foreground,#1a1a2e)]">
+              <span className="stg:text-sm stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)]">
                 {node.taskName}
               </span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="stg:flex stg:items-center stg:gap-1">
               <button
                 type="button"
                 onClick={handleCopy}
-                className="rounded px-2 py-1 text-xs font-medium text-[var(--stgm-foreground,#1a1a2e)] hover:bg-[var(--stgm-muted,#f5f5f5)]"
+                className="stg:rounded stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)] stg:hover:bg-[var(--stgm-muted,#f5f5f5)]"
               >
                 {copied ? "Copied!" : "Copy"}
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="flex h-6 w-6 items-center justify-center rounded text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-muted,#f5f5f5)] hover:text-[var(--stgm-foreground,#1a1a2e)]"
+                className="stg:flex stg:h-6 stg:w-6 stg:items-center stg:justify-center stg:rounded stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:bg-[var(--stgm-muted,#f5f5f5)] stg:hover:text-[var(--stgm-foreground,#1a1a2e)]"
                 aria-label="Close"
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
@@ -129,8 +129,8 @@ export const ViewYamlDialog = memo(function ViewYamlDialog({
           </div>
 
           {/* YAML content */}
-          <div className="overflow-auto p-4">
-            <pre className="whitespace-pre text-xs leading-relaxed text-[var(--stgm-foreground,#1a1a2e)]">
+          <div className="stg:overflow-auto stg:p-4">
+            <pre className="stg:whitespace-pre stg:text-xs stg:leading-relaxed stg:text-[var(--stgm-foreground,#1a1a2e)]">
               <code>{yaml}</code>
             </pre>
           </div>
@@ -142,7 +142,7 @@ export const ViewYamlDialog = memo(function ViewYamlDialog({
 
 function CodeBracketIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-[var(--stgm-muted-foreground,#737373)]">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="stg:text-[var(--stgm-muted-foreground,#737373)]">
       <path d="M5 4L1.5 8 5 12M11 4l3.5 4-3.5 4M9 2l-2 12" />
     </svg>
   );

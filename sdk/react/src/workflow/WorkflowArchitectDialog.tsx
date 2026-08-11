@@ -118,12 +118,12 @@ export function WorkflowArchitectDialog({
       onCancel={handleDialogCancel}
       onClick={handleBackdropClick}
       className={cn(
-        "fixed inset-0 z-50 m-auto w-full max-w-3xl rounded-lg border border-border bg-popover p-0 text-popover-foreground shadow-lg",
-        "backdrop:bg-black/50",
-        "open:animate-in open:fade-in-0 open:zoom-in-95",
+        "stg:fixed stg:inset-0 stg:z-50 stg:m-auto stg:w-full stg:max-w-3xl stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:p-0 stg:text-popover-foreground stg:shadow-lg",
+        "stg:backdrop:bg-black/50",
+        "stg:open:animate-in stg:open:fade-in-0 stg:open:zoom-in-95",
       )}
     >
-      <div className="flex flex-col">
+      <div className="stg:flex stg:flex-col">
         <DialogPhase flow={flow} onClose={() => onOpenChange(false)} />
       </div>
     </dialog>
@@ -163,10 +163,10 @@ function DialogPhase({ flow, onClose }: DialogPhaseProps) {
 // ---------------------------------------------------------------------------
 
 const INPUT_CLASSES = cn(
-  "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-sm text-foreground",
-  "placeholder:text-muted-foreground",
-  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-  "disabled:pointer-events-none disabled:opacity-50",
+  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-sm stg:text-foreground",
+  "stg:placeholder:text-muted-foreground",
+  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
 );
 
 function InputPhase({
@@ -178,33 +178,33 @@ function InputPhase({
 }) {
   return (
     <>
-      <div className="border-b border-border px-6 py-4">
-        <h3 className="text-base font-semibold text-foreground">
+      <div className="stg:border-b stg:border-border stg:px-6 stg:py-4">
+        <h3 className="stg:text-base stg:font-semibold stg:text-foreground">
           Generate Workflow
         </h3>
-        <p className="mt-0.5 text-xs text-muted-foreground">
+        <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
           Describe what you want and the Workflow Architect agent will design,
           validate, and generate a workflow definition
         </p>
       </div>
 
-      <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
+      <div className="stg:max-h-[60vh] stg:overflow-y-auto stg:px-6 stg:py-4">
         {flow.error && (
           <div
-            className="mb-4 rounded-md border border-destructive bg-destructive-muted px-3 py-2 text-sm text-destructive"
+            className="stg:mb-4 stg:rounded-md stg:border stg:border-destructive stg:bg-destructive-muted stg:px-3 stg:py-2 stg:text-sm stg:text-destructive"
             role="alert"
           >
             {flow.error}
           </div>
         )}
 
-        <div className="flex flex-col gap-1">
+        <div className="stg:flex stg:flex-col stg:gap-1">
           <label
             htmlFor="architect-prompt"
-            className="text-xs font-medium text-foreground"
+            className="stg:text-xs stg:font-medium stg:text-foreground"
           >
             Description
-            <span className="ml-1 text-destructive" aria-label="required">
+            <span className="stg:ml-1 stg:text-destructive" aria-label="required">
               *
             </span>
           </label>
@@ -214,7 +214,7 @@ function InputPhase({
             onChange={(e) => flow.setPrompt(e.target.value)}
             placeholder="e.g., A workflow that enriches customer data using my data-agent, validates the output, and sends a Slack notification on failure"
             rows={5}
-            className={cn(INPUT_CLASSES, "resize-y")}
+            className={cn(INPUT_CLASSES, "stg:resize-y")}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
@@ -222,22 +222,22 @@ function InputPhase({
               }
             }}
           />
-          <p className="text-[0.7rem] text-muted-foreground">
+          <p className="stg:text-[0.7rem] stg:text-muted-foreground">
             Describe the goal, steps, and any specific agents or task kinds to
             use. The agent will discover available resources automatically.
           </p>
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 border-t border-border px-6 py-3">
+      <div className="stg:flex stg:justify-end stg:gap-2 stg:border-t stg:border-border stg:px-6 stg:py-3">
         <button
           type="button"
           onClick={onClose}
           className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-            "border border-input bg-background text-foreground",
-            "hover:bg-accent hover:text-accent-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+            "stg:border stg:border-input stg:bg-background stg:text-foreground",
+            "stg:hover:bg-accent stg:hover:text-accent-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           Cancel
@@ -247,10 +247,10 @@ function InputPhase({
           onClick={flow.generate}
           disabled={flow.prompt.trim().length < 10}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-40",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
           Generate
@@ -273,33 +273,33 @@ function StreamingPhase({
 }) {
   return (
     <>
-      <div className="border-b border-border px-6 py-4">
-        <div className="flex items-center gap-2">
-          <h3 className="text-base font-semibold text-foreground">
+      <div className="stg:border-b stg:border-border stg:px-6 stg:py-4">
+        <div className="stg:flex stg:items-center stg:gap-2">
+          <h3 className="stg:text-base stg:font-semibold stg:text-foreground">
             Workflow Architect
           </h3>
-          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground">
             <SpinnerIcon />
             {flow.phase === "starting" ? "Starting…" : "Working…"}
           </span>
         </div>
-        <p className="mt-0.5 text-xs text-muted-foreground">
+        <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
           The agent is designing and validating your workflow
         </p>
       </div>
 
-      <div className="h-[55vh] overflow-hidden">
+      <div className="stg:h-[55vh] stg:overflow-hidden">
         <MessageThread
           executions={[]}
           activeStreamExecution={flow.execution}
           pendingUserMessage={
             flow.phase === "starting" ? flow.prompt : undefined
           }
-          className="h-full"
+          className="stg:h-full"
         />
       </div>
 
-      <div className="flex justify-end gap-2 border-t border-border px-6 py-3">
+      <div className="stg:flex stg:justify-end stg:gap-2 stg:border-t stg:border-border stg:px-6 stg:py-3">
         <button
           type="button"
           onClick={() => {
@@ -307,10 +307,10 @@ function StreamingPhase({
             onClose();
           }}
           className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-            "border border-input bg-background text-foreground",
-            "hover:bg-accent hover:text-accent-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+            "stg:border stg:border-input stg:bg-background stg:text-foreground",
+            "stg:hover:bg-accent stg:hover:text-accent-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           Cancel
@@ -336,19 +336,19 @@ function ResultPhase({
 
   return (
     <>
-      <div className="border-b border-border px-6 py-4">
-        <h3 className="text-base font-semibold text-foreground">
+      <div className="stg:border-b stg:border-border stg:px-6 stg:py-4">
+        <h3 className="stg:text-base stg:font-semibold stg:text-foreground">
           Generated Workflow
         </h3>
-        <p className="mt-0.5 text-xs text-muted-foreground">
+        <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
           Review the generated workflow before creating it
         </p>
       </div>
 
-      <div className="max-h-[65vh] overflow-y-auto px-6 py-4">
+      <div className="stg:max-h-[65vh] stg:overflow-y-auto stg:px-6 stg:py-4">
         {flow.error && (
           <div
-            className="mb-4 rounded-md border border-destructive bg-destructive-muted px-3 py-2 text-sm text-destructive"
+            className="stg:mb-4 stg:rounded-md stg:border stg:border-destructive stg:bg-destructive-muted stg:px-3 stg:py-2 stg:text-sm stg:text-destructive"
             role="alert"
           >
             {flow.error}
@@ -356,11 +356,11 @@ function ResultPhase({
         )}
 
         {flow.explanation && (
-          <div className="mb-4">
-            <h4 className="mb-1 text-xs font-medium text-muted-foreground">
+          <div className="stg:mb-4">
+            <h4 className="stg:mb-1 stg:text-xs stg:font-medium stg:text-muted-foreground">
               Explanation
             </h4>
-            <p className="whitespace-pre-wrap text-sm text-foreground">
+            <p className="stg:whitespace-pre-wrap stg:text-sm stg:text-foreground">
               {flow.explanation}
             </p>
           </div>
@@ -368,26 +368,26 @@ function ResultPhase({
 
         {flow.extractedYaml && (
           <div>
-            <h4 className="mb-1 text-xs font-medium text-muted-foreground">
+            <h4 className="stg:mb-1 stg:text-xs stg:font-medium stg:text-muted-foreground">
               Workflow Structure
             </h4>
-            <div className="h-[280px] overflow-hidden rounded-md border border-border">
+            <div className="stg:h-[280px] stg:overflow-hidden stg:rounded-md stg:border stg:border-border">
               <WorkflowDiffGraph
                 beforeYaml=""
                 afterYaml={flow.extractedYaml}
               />
             </div>
 
-            <div className="mt-3">
+            <div className="stg:mt-3">
               <button
                 type="button"
                 onClick={() => setShowYaml((v) => !v)}
-                className="text-xs font-medium text-muted-foreground hover:text-foreground"
+                className="stg:text-xs stg:font-medium stg:text-muted-foreground stg:hover:text-foreground"
               >
                 {showYaml ? "▾ Hide YAML" : "▸ View YAML"}
               </button>
               {showYaml && (
-                <pre className="mt-1 max-h-60 overflow-auto rounded-md border border-border bg-muted p-3 text-xs leading-relaxed text-foreground">
+                <pre className="stg:mt-1 stg:max-h-60 stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-muted stg:p-3 stg:text-xs stg:leading-relaxed stg:text-foreground">
                   {flow.extractedYaml}
                 </pre>
               )}
@@ -396,31 +396,31 @@ function ResultPhase({
         )}
       </div>
 
-      <div className="flex justify-between border-t border-border px-6 py-3">
+      <div className="stg:flex stg:justify-between stg:border-t stg:border-border stg:px-6 stg:py-3">
         <button
           type="button"
           onClick={onClose}
           disabled={isApplying}
           className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-            "text-muted-foreground hover:text-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+            "stg:text-muted-foreground stg:hover:text-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           Close
         </button>
-        <div className="flex gap-2">
+        <div className="stg:flex stg:gap-2">
           <button
             type="button"
             onClick={flow.reset}
             disabled={isApplying}
             className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-              "border border-input bg-background text-foreground",
-              "hover:bg-accent hover:text-accent-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+              "stg:border stg:border-input stg:bg-background stg:text-foreground",
+              "stg:hover:bg-accent stg:hover:text-accent-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             Try Again
@@ -430,10 +430,10 @@ function ResultPhase({
             onClick={flow.createWorkflow}
             disabled={isApplying}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-              "bg-primary text-primary-foreground hover:bg-primary-hover",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-40",
+              "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-40",
             )}
           >
             {isApplying && <SpinnerIcon />}
@@ -458,30 +458,30 @@ function ErrorPhase({
 }) {
   return (
     <>
-      <div className="border-b border-border px-6 py-4">
-        <h3 className="text-base font-semibold text-foreground">
+      <div className="stg:border-b stg:border-border stg:px-6 stg:py-4">
+        <h3 className="stg:text-base stg:font-semibold stg:text-foreground">
           Generation Failed
         </h3>
       </div>
 
-      <div className="px-6 py-6">
+      <div className="stg:px-6 stg:py-6">
         <div
-          className="rounded-md border border-destructive bg-destructive-muted px-3 py-2 text-sm text-destructive"
+          className="stg:rounded-md stg:border stg:border-destructive stg:bg-destructive-muted stg:px-3 stg:py-2 stg:text-sm stg:text-destructive"
           role="alert"
         >
           {flow.error ?? "An unexpected error occurred."}
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 border-t border-border px-6 py-3">
+      <div className="stg:flex stg:justify-end stg:gap-2 stg:border-t stg:border-border stg:px-6 stg:py-3">
         <button
           type="button"
           onClick={onClose}
           className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-            "border border-input bg-background text-foreground",
-            "hover:bg-accent hover:text-accent-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+            "stg:border stg:border-input stg:bg-background stg:text-foreground",
+            "stg:hover:bg-accent stg:hover:text-accent-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           Close
@@ -490,9 +490,9 @@ function ErrorPhase({
           type="button"
           onClick={flow.reset}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           Try Again
@@ -516,7 +516,7 @@ function SpinnerIcon({ size = 14 }: { readonly size?: number }) {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

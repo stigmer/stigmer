@@ -112,7 +112,7 @@ export function AgentInstanceList({
 
   if (error) {
     return (
-      <div className="py-8 text-center text-sm text-destructive">
+      <div className="stg:py-8 stg:text-center stg:text-sm stg:text-destructive">
         Failed to load instances
       </div>
     );
@@ -123,9 +123,9 @@ export function AgentInstanceList({
   }
 
   return (
-    <div className={cn("space-y-3", className)}>
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-foreground">
+    <div className={cn("stg:space-y-3", className)}>
+      <div className="stg:flex stg:items-center stg:justify-between">
+        <h3 className="stg:text-sm stg:font-medium stg:text-foreground">
           {userInstances.length} {userInstances.length === 1 ? "instance" : "instances"}
         </h3>
         {onCreateClick && (
@@ -140,20 +140,20 @@ export function AgentInstanceList({
         )}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border">
+      <div className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border">
         {/* table-fixed keeps the layout deterministic: Name/Environments flex
             and truncate, Visibility/Actions take fixed widths, so long
             content can never push the Actions kebab off the panel's edge. */}
-        <table className="w-full table-fixed text-sm">
+        <table className="stg:w-full stg:table-fixed stg:text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted-subtle">
-              <th className="px-4 py-2 text-left font-medium text-muted-foreground">Name</th>
-              <th className="px-4 py-2 text-left font-medium text-muted-foreground">Environments</th>
-              <th className="w-36 px-4 py-2 text-left font-medium text-muted-foreground">Visibility</th>
-              <th className="w-16 px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>
+            <tr className="stg:border-b stg:border-border stg:bg-muted-subtle">
+              <th className="stg:px-4 stg:py-2 stg:text-left stg:font-medium stg:text-muted-foreground">Name</th>
+              <th className="stg:px-4 stg:py-2 stg:text-left stg:font-medium stg:text-muted-foreground">Environments</th>
+              <th className="stg:w-36 stg:px-4 stg:py-2 stg:text-left stg:font-medium stg:text-muted-foreground">Visibility</th>
+              <th className="stg:w-16 stg:px-4 stg:py-2 stg:text-right stg:font-medium stg:text-muted-foreground">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="stg:divide-y stg:divide-border">
             {userInstances.map((inst) => (
               <InstanceRow
                 key={inst.metadata?.id}
@@ -208,16 +208,16 @@ function InstanceRow({
   return (
     <tr
       className={cn(
-        "transition-colors",
-        onRowClick && "cursor-pointer hover:bg-accent-hover",
+        "stg:transition-colors",
+        onRowClick && "stg:cursor-pointer stg:hover:bg-accent-hover",
       )}
       onClick={() => onRowClick?.(instance)}
     >
-      <td className="px-4 py-2.5">
-        <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-2">
+      <td className="stg:px-4 stg:py-2.5">
+        <div className="stg:min-w-0">
+          <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2">
             <span
-              className="truncate font-medium text-foreground"
+              className="stg:truncate stg:font-medium stg:text-foreground"
               title={meta?.name || meta?.slug || undefined}
             >
               {meta?.name || meta?.slug || "\u2014"}
@@ -225,9 +225,9 @@ function InstanceRow({
             {isPersonal && (
               <span
                 className={cn(
-                  "inline-flex shrink-0 items-center rounded-md px-1.5 py-0.5",
-                  "text-[0.6rem] font-medium uppercase tracking-wide",
-                  "bg-muted text-muted-foreground border border-border",
+                  "stg:inline-flex stg:shrink-0 stg:items-center stg:rounded-md stg:px-1.5 stg:py-0.5",
+                  "stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wide",
+                  "stg:bg-muted stg:text-muted-foreground stg:border stg:border-border",
                 )}
               >
                 Personal
@@ -235,26 +235,26 @@ function InstanceRow({
             )}
           </div>
           {instance.spec?.description && (
-            <p className="text-[0.65rem] text-muted-foreground truncate">
+            <p className="stg:text-[0.65rem] stg:text-muted-foreground stg:truncate">
               {instance.spec.description}
             </p>
           )}
         </div>
       </td>
 
-      <td className="px-4 py-2.5">
+      <td className="stg:px-4 stg:py-2.5">
         {envRefs.length === 0 ? (
-          <span className="text-xs text-muted-foreground">None</span>
+          <span className="stg:text-xs stg:text-muted-foreground">None</span>
         ) : (
-          <div className="flex flex-wrap gap-1">
+          <div className="stg:flex stg:flex-wrap stg:gap-1">
             {envRefs.map((ref, idx) => (
               <span
                 key={`${ref.slug}-${idx}`}
                 className={cn(
-                  "inline-flex items-center rounded-md px-1.5 py-0.5",
-                  "text-[0.65rem] font-medium",
-                  "bg-muted text-muted-foreground",
-                  "border border-border",
+                  "stg:inline-flex stg:items-center stg:rounded-md stg:px-1.5 stg:py-0.5",
+                  "stg:text-[0.65rem] stg:font-medium",
+                  "stg:bg-muted stg:text-muted-foreground",
+                  "stg:border stg:border-border",
                 )}
               >
                 {resolveEnvName(ref.slug)}
@@ -264,7 +264,7 @@ function InstanceRow({
         )}
       </td>
 
-      <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
+      <td className="stg:px-4 stg:py-2.5" onClick={(e) => e.stopPropagation()}>
         {id ? (
           <ResourceVisibilityControl
             kind="agentInstance"
@@ -273,21 +273,21 @@ function InstanceRow({
             onChanged={refetch}
           />
         ) : (
-          <span className="text-xs text-muted-foreground">{"\u2014"}</span>
+          <span className="stg:text-xs stg:text-muted-foreground">{"\u2014"}</span>
         )}
       </td>
 
       {/* stopPropagation so opening the kebab never triggers the row's
           click. The menu content itself is portaled, so its items never
           bubble to the row regardless. */}
-      <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
+      <td className="stg:px-4 stg:py-2.5 stg:text-right" onClick={(e) => e.stopPropagation()}>
         {(showStartSession || showDelete) && (
           <ActionMenu>
             <ActionMenu.Trigger
-              className="ml-auto"
+              className="stg:ml-auto"
               aria-label={`Actions for ${meta?.name || meta?.slug}`}
             >
-              <MoreHorizontal className="size-4" />
+              <MoreHorizontal className="stg:size-4" />
             </ActionMenu.Trigger>
             <ActionMenu.Content>
               {showStartSession && (
@@ -318,9 +318,9 @@ function InstanceRow({
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-2 py-4">
+    <div className="stg:space-y-2 stg:py-4">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="h-12 animate-pulse rounded-md bg-muted-faint" />
+        <div key={i} className="stg:h-12 stg:animate-pulse stg:rounded-md stg:bg-muted-faint" />
       ))}
     </div>
   );

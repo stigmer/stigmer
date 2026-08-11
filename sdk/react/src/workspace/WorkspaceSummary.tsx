@@ -41,12 +41,12 @@ export function WorkspaceSummary({
   if (entries.length === 0) return null;
 
   return (
-    <ul className={cn("space-y-1.5", className)} aria-label="Workspace entries">
+    <ul className={cn("stg:space-y-1.5", className)} aria-label="Workspace entries">
       {entries.map((entry) => (
-        <li key={entry.name} className="text-xs">
-          <div className="flex items-center gap-1.5 font-medium">
+        <li key={entry.name} className="stg:text-xs">
+          <div className="stg:flex stg:items-center stg:gap-1.5 stg:font-medium">
             <FolderIcon />
-            <span className="truncate">{entry.name}</span>
+            <span className="stg:truncate">{entry.name}</span>
           </div>
           <SourceLabel source={entry.source} />
         </li>
@@ -69,7 +69,7 @@ function SourceLabel({ source }: { source?: WorkspaceSource }) {
       .replace(/\.git$/, "");
     return (
       <span
-        className="ml-5 block truncate text-muted-foreground"
+        className="stg:ml-5 stg:block stg:truncate stg:text-muted-foreground"
         title={url}
       >
         {short}
@@ -81,7 +81,7 @@ function SourceLabel({ source }: { source?: WorkspaceSource }) {
     const path = source.source.value.path;
     return (
       <span
-        className="ml-5 block truncate font-mono text-muted-foreground"
+        className="stg:ml-5 stg:block stg:truncate stg:font-mono stg:text-muted-foreground"
         title={path}
       >
         {path}

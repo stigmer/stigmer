@@ -42,7 +42,7 @@ export const WorkflowNode = memo(function WorkflowNode({
       data-diff-status={diffState?.status}
       aria-label={buildAriaLabel(data, errorCount, executionState?.status)}
       role="button"
-      className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--stgm-ring,#3b82f6)] focus-visible:ring-offset-1 rounded-sm"
+      className="stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-[var(--stgm-ring,#3b82f6)] stg:focus-visible:ring-offset-1 stg:rounded-sm"
     >
       <NodeShell
         visualClass={visualSpec.visualClass}
@@ -68,7 +68,7 @@ export const WorkflowNode = memo(function WorkflowNode({
       {/* Validation badge — design mode only */}
       {mode === "design" && errorCount > 0 && (
         <span
-          className="absolute -right-1.5 -top-1.5 z-20 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--stgm-destructive,#ef4444)] px-1 text-[9px] font-bold leading-none text-[var(--stgm-destructive-foreground,#fff)]"
+          className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-4 stg:min-w-4 stg:items-center stg:justify-center stg:rounded-full stg:bg-[var(--stgm-destructive,#ef4444)] stg:px-1 stg:text-[9px] stg:font-bold stg:leading-none stg:text-[var(--stgm-destructive-foreground,#fff)]"
           title={`${errorCount} validation ${errorCount === 1 ? "error" : "errors"}`}
         >
           {errorCount}

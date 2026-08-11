@@ -242,7 +242,7 @@ describe("ToolCallDetail — write body", () => {
   // absence is how these tests pin WHICH truncation mechanism bounds the body —
   // jsdom has no layout, so the reveal control itself only appears for the
   // line-count mechanism (CollapsibleCode), never for the pixel clamp.
-  const CLAMP = ".max-h-48";
+  const CLAMP = ".stg\\:max-h-48";
 
   /** A change set capturing one reviewable modify of `path`. */
   function capturedSet(

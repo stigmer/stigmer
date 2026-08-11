@@ -45,8 +45,8 @@ describe("WorkflowTaskApprovalCard", () => {
     it("first outcome is the neutral chip (primary), never the loud success green", () => {
       render(<WorkflowTaskApprovalCard {...defaultProps} />);
       const btn = screen.getByRole("button", { name: "Approve" });
-      expect(btn.className).toContain("bg-accent");
-      expect(btn.className).not.toContain("bg-success");
+      expect(btn.className).toContain("stg:bg-accent");
+      expect(btn.className).not.toContain("stg:bg-success");
     });
 
     it('outcome named "reject" is a quiet danger ghost (no red fill)', () => {
@@ -57,8 +57,8 @@ describe("WorkflowTaskApprovalCard", () => {
       ];
       render(<WorkflowTaskApprovalCard {...defaultProps} outcomes={outcomes} />);
       const btn = screen.getByRole("button", { name: "Reject" });
-      expect(btn.className).toContain("hover:text-destructive");
-      expect(btn.className).not.toContain("bg-destructive text-destructive-foreground");
+      expect(btn.className).toContain("stg:hover:text-destructive");
+      expect(btn.className).not.toContain("stg:bg-destructive stg:text-destructive-foreground");
     });
 
     it('outcome named "deny" is a quiet danger ghost (no red fill)', () => {
@@ -69,8 +69,8 @@ describe("WorkflowTaskApprovalCard", () => {
       ];
       render(<WorkflowTaskApprovalCard {...defaultProps} outcomes={outcomes} />);
       const btn = screen.getByRole("button", { name: "Deny" });
-      expect(btn.className).toContain("hover:text-destructive");
-      expect(btn.className).not.toContain("bg-destructive text-destructive-foreground");
+      expect(btn.className).toContain("stg:hover:text-destructive");
+      expect(btn.className).not.toContain("stg:bg-destructive stg:text-destructive-foreground");
     });
 
     it("second of two outcomes is the danger ghost (binary fallback)", () => {
@@ -80,7 +80,7 @@ describe("WorkflowTaskApprovalCard", () => {
       ];
       render(<WorkflowTaskApprovalCard {...defaultProps} outcomes={outcomes} />);
       const btn = screen.getByRole("button", { name: "Decline" });
-      expect(btn.className).toContain("hover:text-destructive");
+      expect(btn.className).toContain("stg:hover:text-destructive");
     });
 
     it("middle outcomes in 3+ are neutral ghosts (no resting fill)", () => {
@@ -91,16 +91,16 @@ describe("WorkflowTaskApprovalCard", () => {
       ];
       render(<WorkflowTaskApprovalCard {...defaultProps} outcomes={outcomes} />);
       const btn = screen.getByRole("button", { name: "Defer" });
-      expect(btn.className).toContain("text-muted-foreground");
+      expect(btn.className).toContain("stg:text-muted-foreground");
       expect(btn.className).not.toMatch(/(?:^|\s)bg-/);
     });
 
     it("the card uses neutral chrome + warning accent, never the old amber fill", () => {
       render(<WorkflowTaskApprovalCard {...defaultProps} />);
       const card = screen.getByRole("form");
-      expect(card.className).toContain("border-border-prominent");
-      expect(card.className).toContain("border-l-warning");
-      expect(card.className).not.toContain("bg-warning");
+      expect(card.className).toContain("stg:border-border-prominent");
+      expect(card.className).toContain("stg:border-l-warning");
+      expect(card.className).not.toContain("stg:bg-warning");
     });
   });
 
@@ -251,10 +251,10 @@ describe("WorkflowTaskApprovalCard", () => {
       rerender(<WorkflowTaskApprovalCard {...defaultProps} isSubmitting={true} />);
 
       const approveBtn = screen.getByRole("button", { name: "Approve" });
-      expect(approveBtn.querySelector(".animate-spin")).toBeTruthy();
+      expect(approveBtn.querySelector(".stg\\:animate-spin")).toBeTruthy();
 
       const rejectBtn = screen.getByRole("button", { name: "Reject" });
-      expect(rejectBtn.querySelector(".animate-spin")).toBeNull();
+      expect(rejectBtn.querySelector(".stg\\:animate-spin")).toBeNull();
     });
 
     it("activeOutcome clears when isSubmitting transitions to false", () => {
@@ -265,12 +265,12 @@ describe("WorkflowTaskApprovalCard", () => {
 
       rerender(<WorkflowTaskApprovalCard {...defaultProps} isSubmitting={true} />);
       expect(
-        screen.getByRole("button", { name: "Approve" }).querySelector(".animate-spin"),
+        screen.getByRole("button", { name: "Approve" }).querySelector(".stg\\:animate-spin"),
       ).toBeTruthy();
 
       rerender(<WorkflowTaskApprovalCard {...defaultProps} isSubmitting={false} />);
       expect(
-        screen.getByRole("button", { name: "Approve" }).querySelector(".animate-spin"),
+        screen.getByRole("button", { name: "Approve" }).querySelector(".stg\\:animate-spin"),
       ).toBeNull();
     });
   });

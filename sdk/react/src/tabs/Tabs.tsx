@@ -113,12 +113,12 @@ export function Tabs({
   );
 
   return (
-    <div className={cn("flex flex-col", className)}>
+    <div className={cn("stg:flex stg:flex-col", className)}>
       <div
         role="tablist"
         aria-label={ariaLabel}
         onKeyDown={handleKeyDown}
-        className="flex border-b border-border"
+        className="stg:flex stg:border-b stg:border-border"
       >
         {tabs.map((tab) => {
           const isActive = tab.id === activeTab;
@@ -138,11 +138,11 @@ export function Tabs({
               onClick={() => onTabChange(tab.id)}
               data-cursor-target={`tab-${tab.id}`}
               className={cn(
-                "relative inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+                "stg:relative stg:inline-flex stg:items-center stg:gap-1.5 stg:px-3 stg:py-2 stg:text-xs stg:font-medium stg:transition-colors",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-1",
                 isActive
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? "stg:text-foreground"
+                  : "stg:text-muted-foreground stg:hover:text-foreground",
               )}
             >
               {tab.icon}
@@ -151,10 +151,10 @@ export function Tabs({
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1 py-px text-[10px] font-medium leading-none",
+                    "stg:inline-flex stg:min-w-[1.25rem] stg:items-center stg:justify-center stg:rounded-full stg:px-1 stg:py-px stg:text-[10px] stg:font-medium stg:leading-none",
                     isActive
-                      ? "bg-primary-subtle text-primary"
-                      : "bg-muted text-muted-foreground",
+                      ? "stg:bg-primary-subtle stg:text-primary"
+                      : "stg:bg-muted stg:text-muted-foreground",
                   )}
                 >
                   {tab.badge}
@@ -162,7 +162,7 @@ export function Tabs({
               )}
               {isActive && (
                 <span
-                  className="absolute inset-x-0 -bottom-px h-0.5 bg-primary"
+                  className="stg:absolute stg:inset-x-0 stg:-bottom-px stg:h-0.5 stg:bg-primary"
                   aria-hidden="true"
                 />
               )}
@@ -176,7 +176,7 @@ export function Tabs({
         role="tabpanel"
         aria-labelledby={tabId(activeTab)}
         tabIndex={0}
-        className="min-h-0 flex-1 pt-4 focus-visible:outline-none"
+        className="stg:min-h-0 stg:flex-1 stg:pt-4 stg:focus-visible:outline-none"
       >
         {children}
       </div>

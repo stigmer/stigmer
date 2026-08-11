@@ -45,7 +45,7 @@ export function UnifiedDiffView({ patch, className }: UnifiedDiffViewProps) {
   return (
     <pre
       className={cn(
-        "max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted-subtle p-2 font-mono text-xs",
+        "stg:max-h-96 stg:overflow-auto stg:whitespace-pre-wrap stg:break-words stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:p-2 stg:font-mono stg:text-xs",
         className,
       )}
     >
@@ -53,9 +53,9 @@ export function UnifiedDiffView({ patch, className }: UnifiedDiffViewProps) {
         <div
           key={i}
           className={cn(
-            line.startsWith("+") && !line.startsWith("+++") && "text-diff-added-fg",
-            line.startsWith("-") && !line.startsWith("---") && "text-diff-removed-fg",
-            line.startsWith("@@") && "text-diff-hunk-header-fg",
+            line.startsWith("+") && !line.startsWith("+++") && "stg:text-diff-added-fg",
+            line.startsWith("-") && !line.startsWith("---") && "stg:text-diff-removed-fg",
+            line.startsWith("@@") && "stg:text-diff-hunk-header-fg",
           )}
         >
           {line || " "}

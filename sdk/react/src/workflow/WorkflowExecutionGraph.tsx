@@ -252,7 +252,7 @@ function WorkflowExecutionGraphInner({
 
   if (isLoading) {
     return (
-      <div className={cn("flex h-full items-center justify-center", className)}>
+      <div className={cn("stg:flex stg:h-full stg:items-center stg:justify-center", className)}>
         <GraphLoadingSkeleton />
       </div>
     );
@@ -260,15 +260,15 @@ function WorkflowExecutionGraphInner({
 
   if (error) {
     return (
-      <div className={cn("flex h-full flex-col items-center justify-center gap-2 px-6 text-center", className)}>
-        <p className="text-sm text-[var(--stgm-muted-foreground,#737373)]">{error}</p>
+      <div className={cn("stg:flex stg:h-full stg:flex-col stg:items-center stg:justify-center stg:gap-2 stg:px-6 stg:text-center", className)}>
+        <p className="stg:text-sm stg:text-[var(--stgm-muted-foreground,#737373)]">{error}</p>
       </div>
     );
   }
 
   if (nodes.length === 0) {
     return (
-      <div className={cn("flex h-full items-center justify-center text-sm text-[var(--stgm-muted-foreground,#737373)]", className)}>
+      <div className={cn("stg:flex stg:h-full stg:items-center stg:justify-center stg:text-sm stg:text-[var(--stgm-muted-foreground,#737373)]", className)}>
         No graph available for this execution
       </div>
     );
@@ -276,9 +276,9 @@ function WorkflowExecutionGraphInner({
 
   return (
     <WorkflowGraphModeProvider mode="execution">
-      <div className={cn("relative h-full w-full", className)}>
+      <div className={cn("stg:relative stg:h-full stg:w-full", className)}>
         {versionMismatch && (
-          <div className="absolute left-3 right-3 top-3 z-50 rounded-md border border-[var(--stgm-warning,#f59e0b)]/30 bg-[var(--stgm-warning,#f59e0b)]/5 px-3 py-2 text-xs text-[var(--stgm-foreground,#1a1a2e)]">
+          <div className="stg:absolute stg:left-3 stg:right-3 stg:top-3 stg:z-50 stg:rounded-md stg:border stg:border-[var(--stgm-warning,#f59e0b)]/30 stg:bg-[var(--stgm-warning,#f59e0b)]/5 stg:px-3 stg:py-2 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)]">
             {versionMismatch}
           </div>
         )}
@@ -299,8 +299,8 @@ function WorkflowExecutionGraphInner({
             type="button"
             onClick={handleResetLayout}
             className={cn(
-              "absolute left-3 z-50 rounded-full border border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-background,#fff)] px-3 py-1 text-xs text-[var(--stgm-foreground,#1a1a2e)] shadow-sm transition-colors hover:bg-[var(--stgm-muted,#f5f5f5)]",
-              versionMismatch ? "top-12" : "top-3",
+              "stg:absolute stg:left-3 stg:z-50 stg:rounded-full stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-background,#fff)] stg:px-3 stg:py-1 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)] stg:shadow-sm stg:transition-colors stg:hover:bg-[var(--stgm-muted,#f5f5f5)]",
+              versionMismatch ? "stg:top-12" : "stg:top-3",
             )}
           >
             Reset layout
@@ -350,7 +350,7 @@ function WorkflowExecutionGraphInner({
             role="log"
             aria-live="polite"
             aria-atomic="false"
-            className="sr-only"
+            className="stg:sr-only"
           >
             {announcement}
           </div>
@@ -362,12 +362,12 @@ function WorkflowExecutionGraphInner({
 
 function GraphLoadingSkeleton() {
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="h-8 w-8 animate-pulse rounded-full bg-[var(--stgm-muted,#e5e5e5)]" />
-      <div className="h-3 w-24 animate-pulse rounded bg-[var(--stgm-muted,#e5e5e5)]" />
-      <div className="mt-2 flex gap-4">
-        <div className="h-10 w-32 animate-pulse rounded-md bg-[var(--stgm-muted,#e5e5e5)]" />
-        <div className="h-10 w-32 animate-pulse rounded-md bg-[var(--stgm-muted,#e5e5e5)]" />
+    <div className="stg:flex stg:flex-col stg:items-center stg:gap-3">
+      <div className="stg:h-8 stg:w-8 stg:animate-pulse stg:rounded-full stg:bg-[var(--stgm-muted,#e5e5e5)]" />
+      <div className="stg:h-3 stg:w-24 stg:animate-pulse stg:rounded stg:bg-[var(--stgm-muted,#e5e5e5)]" />
+      <div className="stg:mt-2 stg:flex stg:gap-4">
+        <div className="stg:h-10 stg:w-32 stg:animate-pulse stg:rounded-md stg:bg-[var(--stgm-muted,#e5e5e5)]" />
+        <div className="stg:h-10 stg:w-32 stg:animate-pulse stg:rounded-md stg:bg-[var(--stgm-muted,#e5e5e5)]" />
       </div>
     </div>
   );

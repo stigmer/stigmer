@@ -56,7 +56,7 @@ export function TerminalSession({
     <div
       data-cursor-target="terminal-session"
       className={cn(
-        "space-y-1 rounded-md border border-border bg-muted-subtle p-2.5 font-mono text-xs",
+        "stg:space-y-1 stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:p-2.5 stg:font-mono stg:text-xs",
         className,
       )}
     >
@@ -64,23 +64,23 @@ export function TerminalSession({
         // A plain <pre> (not CollapsiblePre): the command is the user's intent
         // and renders in full — even a multi-line heredoc — without a second
         // truncation toggle competing with stdout's.
-        <pre className="whitespace-pre-wrap break-words text-foreground">
-          <span className="select-none text-muted-foreground">$ </span>
+        <pre className="stg:whitespace-pre-wrap stg:break-words stg:text-foreground">
+          <span className="stg:select-none stg:text-muted-foreground">$ </span>
           {normalize(command)}
         </pre>
       )}
       {stdout && (
-        <CollapsiblePre content={normalize(stdout)} className="text-foreground" />
+        <CollapsiblePre content={normalize(stdout)} className="stg:text-foreground" />
       )}
       {stderr && (
-        <CollapsiblePre content={normalize(stderr)} className="text-destructive" />
+        <CollapsiblePre content={normalize(stderr)} className="stg:text-destructive" />
       )}
       {failed && (
         <div>
-          <span className="sr-only">Command exited with code {exitCode}</span>
+          <span className="stg:sr-only">Command exited with code {exitCode}</span>
           <span
             aria-hidden="true"
-            className="inline-block rounded bg-destructive-subtle px-1 py-0.5 text-[10px] font-medium leading-none tabular-nums text-destructive"
+            className="stg:inline-block stg:rounded stg:bg-destructive-subtle stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-medium stg:leading-none stg:tabular-nums stg:text-destructive"
           >
             exit {exitCode}
           </span>

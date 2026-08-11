@@ -87,12 +87,12 @@ export const InspectorHeader = memo(function InspectorHeader({
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   return (
-    <div className={cn("flex flex-col gap-1.5 border-b border-[var(--stgm-border,#e5e5e5)] px-3 py-2.5", className)}>
+    <div className={cn("stg:flex stg:flex-col stg:gap-1.5 stg:border-b stg:border-[var(--stgm-border,#e5e5e5)] stg:px-3 stg:py-2.5", className)}>
       {/* Row 1: task name + overflow menu */}
-      <div className="flex items-center gap-1">
-        <div className="min-w-0 flex-1">
+      <div className="stg:flex stg:items-center stg:gap-1">
+        <div className="stg:min-w-0 stg:flex-1">
           {editingName ? (
-            <div className="flex flex-col gap-0.5">
+            <div className="stg:flex stg:flex-col stg:gap-0.5">
               <input
                 type="text"
                 value={nameValue}
@@ -100,17 +100,17 @@ export const InspectorHeader = memo(function InspectorHeader({
                 onBlur={commitName}
                 onKeyDown={handleKeyDown}
                 autoFocus
-                className="w-full rounded-md border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 py-1 text-sm font-semibold text-[var(--stgm-foreground,#1a1a2e)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+                className="stg:w-full stg:rounded-md stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-2 stg:py-1 stg:text-sm stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
               />
               {nameError && (
-                <span className="text-[10px] text-[var(--stgm-destructive,#ef4444)]">{nameError}</span>
+                <span className="stg:text-[10px] stg:text-[var(--stgm-destructive,#ef4444)]">{nameError}</span>
               )}
             </div>
           ) : (
             <button
               type="button"
               onClick={startEditing}
-              className="w-fit max-w-full truncate text-left text-sm font-semibold text-[var(--stgm-foreground,#1a1a2e)] hover:underline"
+              className="stg:w-fit stg:max-w-full stg:truncate stg:text-left stg:text-sm stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)] stg:hover:underline"
               title="Click to rename"
             >
               {identity.taskName}
@@ -119,11 +119,11 @@ export const InspectorHeader = memo(function InspectorHeader({
         </div>
 
         {/* Overflow menu trigger */}
-        <div className="relative shrink-0">
+        <div className="stg:relative stg:shrink-0">
           <button
             type="button"
             onClick={toggleMenu}
-            className="flex h-6 w-6 items-center justify-center rounded text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-muted,#f5f5f5)] hover:text-[var(--stgm-foreground,#1a1a2e)]"
+            className="stg:flex stg:h-6 stg:w-6 stg:items-center stg:justify-center stg:rounded stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:bg-[var(--stgm-muted,#f5f5f5)] stg:hover:text-[var(--stgm-foreground,#1a1a2e)]"
             aria-label="Node actions"
             aria-expanded={menuOpen}
             aria-haspopup="true"
@@ -144,9 +144,9 @@ export const InspectorHeader = memo(function InspectorHeader({
       </div>
 
       {/* Row 2: kind badge + category */}
-      <div className="flex items-center gap-1.5">
+      <div className="stg:flex stg:items-center stg:gap-1.5">
         <span
-          className="inline-block rounded px-1.5 py-0.5 text-[10px] font-medium leading-tight"
+          className="stg:inline-block stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:leading-tight"
           style={{
             color: identity.categoryColor,
             backgroundColor: `color-mix(in srgb, ${identity.categoryColor} 12%, transparent)`,
@@ -155,7 +155,7 @@ export const InspectorHeader = memo(function InspectorHeader({
           {identity.kindString.replace(/_/g, " ")}
         </span>
         {identity.description && (
-          <span className="truncate text-[10px] text-[var(--stgm-muted-foreground,#737373)]" title={identity.description}>
+          <span className="stg:truncate stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]" title={identity.description}>
             {identity.description}
           </span>
         )}
@@ -192,11 +192,11 @@ function ActionsMenu({
   return (
     <>
       {/* Click-away backdrop */}
-      <div className="fixed inset-0 z-40" onClick={onClose} aria-hidden="true" />
+      <div className="stg:fixed stg:inset-0 stg:z-40" onClick={onClose} aria-hidden="true" />
 
       <div
         role="menu"
-        className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded-md border border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-popover,var(--stgm-background,#fff))] py-1 shadow-md"
+        className="stg:absolute stg:right-0 stg:top-full stg:z-50 stg:mt-1 stg:min-w-[160px] stg:rounded-md stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-popover,var(--stgm-background,#fff))] stg:py-1 stg:shadow-md"
       >
         <MenuItem label="Rename" onClick={() => handleAction(onRename)} />
         {mutations.onDuplicateNode && (
@@ -239,10 +239,10 @@ function MenuItem({
       role="menuitem"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center px-3 py-1.5 text-left text-xs transition-colors",
+        "stg:flex stg:w-full stg:items-center stg:px-3 stg:py-1.5 stg:text-left stg:text-xs stg:transition-colors",
         destructive
-          ? "text-[var(--stgm-destructive,#ef4444)] hover:bg-[var(--stgm-destructive,#ef4444)]/10"
-          : "text-[var(--stgm-foreground,#1a1a2e)] hover:bg-[var(--stgm-muted,#f5f5f5)]",
+          ? "stg:text-[var(--stgm-destructive,#ef4444)] stg:hover:bg-[var(--stgm-destructive,#ef4444)]/10"
+          : "stg:text-[var(--stgm-foreground,#1a1a2e)] stg:hover:bg-[var(--stgm-muted,#f5f5f5)]",
       )}
     >
       {label}
@@ -251,7 +251,7 @@ function MenuItem({
 }
 
 function MenuDivider() {
-  return <div className="my-1 border-t border-[var(--stgm-border,#e5e5e5)]" />;
+  return <div className="stg:my-1 stg:border-t stg:border-[var(--stgm-border,#e5e5e5)]" />;
 }
 
 function MoreIcon() {

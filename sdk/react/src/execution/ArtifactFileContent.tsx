@@ -44,11 +44,11 @@ export function ArtifactFileContent({
 }: ArtifactFileContentProps) {
   if (isLoading) {
     return (
-      <div className="space-y-2 p-4" aria-busy="true" aria-label="Loading content">
+      <div className="stg:space-y-2 stg:p-4" aria-busy="true" aria-label="Loading content">
         {SKELETON_LINE_WIDTHS.map((width, i) => (
           <div
             key={i}
-            className="h-4 animate-pulse rounded bg-muted"
+            className="stg:h-4 stg:animate-pulse stg:rounded stg:bg-muted"
             style={{ width: `${width}%` }}
             aria-hidden="true"
           />
@@ -59,16 +59,16 @@ export function ArtifactFileContent({
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 p-8 text-center">
+      <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:gap-2 stg:p-8 stg:text-center">
         <ErrorAlertIcon />
-        <p className="text-sm text-destructive">{error.message}</p>
+        <p className="stg:text-sm stg:text-destructive">{error.message}</p>
       </div>
     );
   }
 
   if (content === null) {
     return (
-      <div className="p-8 text-center text-sm text-muted-foreground">
+      <div className="stg:p-8 stg:text-center stg:text-sm stg:text-muted-foreground">
         Content not available for preview.
       </div>
     );
@@ -99,7 +99,7 @@ function ErrorAlertIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="text-destructive"
+      className="stg:text-destructive"
       aria-hidden="true"
     >
       <circle cx="8" cy="8" r="6.5" />

@@ -265,10 +265,10 @@ export function ConversationsWorkbench({
   return (
     <div
       aria-label="Conversations workbench"
-      className={cn("flex min-h-0 flex-1", className)}
+      className={cn("stg:flex stg:min-h-0 stg:flex-1", className)}
     >
       <ConversationListPane
-        className="w-80 shrink-0 border-r border-border"
+        className="stg:w-80 stg:shrink-0 stg:border-r stg:border-border"
         conversations={list.conversations}
         isLoading={list.isLoading}
         error={list.error}
@@ -286,10 +286,10 @@ export function ConversationsWorkbench({
       />
 
       {selected === null ? (
-        <div className="flex min-w-0 flex-1 items-center justify-center p-6">
+        <div className="stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:justify-center stg:p-6">
           <EmptyState
             variant="first-use"
-            icon={<MessagesSquare className="size-8" />}
+            icon={<MessagesSquare className="stg:size-8" />}
             title="Select a conversation"
             description="Pick a conversation to read its thread, reply as your business, or take over from the agent."
           />
@@ -305,15 +305,15 @@ export function ConversationsWorkbench({
         // Channel ids never contain ":", so the joined key is unambiguous.
         <div
           key={`${selected.agentChannelId}:${selected.conversationKey}`}
-          className="flex min-w-0 flex-1 flex-col"
+          className="stg:flex stg:min-w-0 stg:flex-1 stg:flex-col"
         >
-          <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
-            <div className="min-w-0">
-              <h2 className="truncate text-sm font-semibold text-foreground">
+          <div className="stg:flex stg:items-center stg:justify-between stg:gap-2 stg:border-b stg:border-border stg:px-4 stg:py-2.5">
+            <div className="stg:min-w-0">
+              <h2 className="stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">
                 {detailLabel}
               </h2>
               {(detailContact !== null || channelName) && (
-                <p className="truncate text-xs text-muted-foreground">
+                <p className="stg:truncate stg:text-xs stg:text-muted-foreground">
                   {detailContact}
                   {detailContact !== null && channelName && " · "}
                   {channelName &&
@@ -323,7 +323,7 @@ export function ConversationsWorkbench({
                     (selectedChannelHref ? (
                       <a
                         href={selectedChannelHref}
-                        className="hover:text-foreground hover:underline"
+                        className="stg:hover:text-foreground stg:hover:underline"
                       >
                         {channelName}
                       </a>

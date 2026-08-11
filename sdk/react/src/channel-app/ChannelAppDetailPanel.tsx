@@ -94,17 +94,17 @@ export function ChannelAppDetailPanel({
   }, [deleteApp, appId, onDeleted]);
 
   return (
-    <div className={cn("space-y-5", className)}>
-      <div className="flex items-center justify-between">
-        <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold text-foreground">{name}</h3>
-          <p className="font-mono text-[0.65rem] text-muted-foreground">{appId}</p>
+    <div className={cn("stg:space-y-5", className)}>
+      <div className="stg:flex stg:items-center stg:justify-between">
+        <div className="stg:min-w-0">
+          <h3 className="stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">{name}</h3>
+          <p className="stg:font-mono stg:text-[0.65rem] stg:text-muted-foreground">{appId}</p>
         </div>
         {onBack && (
           <button
             type="button"
             onClick={onBack}
-            className="text-muted-foreground hover:text-foreground shrink-0 text-xs transition-colors"
+            className="stg:text-muted-foreground stg:hover:text-foreground stg:shrink-0 stg:text-xs stg:transition-colors"
           >
             ← Back
           </button>
@@ -126,15 +126,15 @@ export function ChannelAppDetailPanel({
       ) : null}
 
       {/* Deletion */}
-      <section className="border-t border-border pt-3" aria-label="Danger zone">
+      <section className="stg:border-t stg:border-border stg:pt-3" aria-label="Danger zone">
         {deleteError && (
-          <p className="text-destructive mb-2 text-[0.65rem]" role="alert">
+          <p className="stg:text-destructive stg:mb-2 stg:text-[0.65rem]" role="alert">
             {getUserMessage(deleteError)}
           </p>
         )}
         {confirmingDelete ? (
-          <div className="flex items-center gap-2">
-            <p className="text-xs text-foreground">
+          <div className="stg:flex stg:items-center stg:gap-2">
+            <p className="stg:text-xs stg:text-foreground">
               Delete this channel app? Channels installing through it must be
               disconnected first.
             </p>
@@ -143,9 +143,9 @@ export function ChannelAppDetailPanel({
               onClick={handleDelete}
               disabled={isDeleting}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
-                "bg-destructive text-destructive-foreground hover:opacity-90",
-                "disabled:pointer-events-none disabled:opacity-40",
+                "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+                "stg:bg-destructive stg:text-destructive-foreground stg:hover:opacity-90",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-40",
               )}
             >
               {isDeleting && <SpinnerIcon />}
@@ -155,7 +155,7 @@ export function ChannelAppDetailPanel({
               type="button"
               onClick={() => setConfirmingDelete(false)}
               disabled={isDeleting}
-              className="text-muted-foreground hover:text-foreground text-xs transition-colors"
+              className="stg:text-muted-foreground stg:hover:text-foreground stg:text-xs stg:transition-colors"
             >
               Keep
             </button>
@@ -164,7 +164,7 @@ export function ChannelAppDetailPanel({
           <button
             type="button"
             onClick={() => setConfirmingDelete(true)}
-            className="text-destructive text-xs font-medium hover:opacity-80"
+            className="stg:text-destructive stg:text-xs stg:font-medium stg:hover:opacity-80"
           >
             Delete channel app
           </button>
@@ -250,10 +250,10 @@ function SlackAppDetail({
   return (
     <>
       {/* Finish setup: the per-app webhook URL only exists after creation */}
-      <section className="space-y-2" aria-label="Finish setup in Slack">
-        <p className="text-xs font-medium text-foreground">Finish setup in Slack</p>
-        <p className="text-[0.65rem] text-muted-foreground">
-          On the app&apos;s <span className="font-medium">Event
+      <section className="stg:space-y-2" aria-label="Finish setup in Slack">
+        <p className="stg:text-xs stg:font-medium stg:text-foreground">Finish setup in Slack</p>
+        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          On the app&apos;s <span className="stg:font-medium">Event
           Subscriptions</span> page, enable events and set the request URL
           below (Slack verifies it immediately). The completed manifest is
           also available for review or re-paste.
@@ -268,10 +268,10 @@ function SlackAppDetail({
       </section>
 
       {/* Credential rotation */}
-      <form onSubmit={handleSave} className="space-y-3" aria-label="Credentials">
-        <p className="text-xs font-medium text-foreground">Credentials</p>
-        <p className="-mt-2 text-[0.65rem] text-muted-foreground">
-          Secrets show as <code className="font-mono">***REDACTED***</code>;
+      <form onSubmit={handleSave} className="stg:space-y-3" aria-label="Credentials">
+        <p className="stg:text-xs stg:font-medium stg:text-foreground">Credentials</p>
+        <p className="stg:-mt-2 stg:text-[0.65rem] stg:text-muted-foreground">
+          Secrets show as <code className="stg:font-mono">***REDACTED***</code>;
           leave a field untouched to keep its stored value, or paste a new
           one to rotate it.
         </p>
@@ -307,7 +307,7 @@ function SlackAppDetail({
         />
 
         {updateError && (
-          <p className="text-destructive text-[0.65rem]" role="alert">
+          <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
             {getUserMessage(updateError)}
           </p>
         )}
@@ -316,9 +316,9 @@ function SlackAppDetail({
           type="submit"
           disabled={!canSave}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-40",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
           {isUpdating && <SpinnerIcon />}
@@ -401,14 +401,14 @@ function WhatsAppAppDetail({
     <>
       {/* Finish setup: the per-app webhook URL only exists after creation,
           and the verify token is only visible in the create handoff. */}
-      <section className="space-y-2" aria-label="Finish setup in Meta">
-        <p className="text-xs font-medium text-foreground">Finish setup in Meta</p>
-        <p className="text-[0.65rem] text-muted-foreground">
-          On the app&apos;s <span className="font-medium">WhatsApp →
+      <section className="stg:space-y-2" aria-label="Finish setup in Meta">
+        <p className="stg:text-xs stg:font-medium stg:text-foreground">Finish setup in Meta</p>
+        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          On the app&apos;s <span className="stg:font-medium">WhatsApp →
           Configuration</span> page, set the callback URL and verify token
-          below, click <span className="font-medium">Verify and save</span>{" "}
+          below, click <span className="stg:font-medium">Verify and save</span>{" "}
           (Meta verifies immediately), then subscribe to the{" "}
-          <span className="font-medium">
+          <span className="stg:font-medium">
             {WHATSAPP_CHANNEL_APP_WEBHOOK_FIELDS.join(", ")}
           </span>{" "}
           webhook field.
@@ -425,9 +425,9 @@ function WhatsAppAppDetail({
             copyTargetId="stgm-chapp-verify-token-copy"
           />
         ) : (
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-foreground">Verify token</p>
-            <p className="text-[0.65rem] text-muted-foreground">
+          <div className="stg:space-y-1">
+            <p className="stg:text-xs stg:font-medium stg:text-foreground">Verify token</p>
+            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
               Shown once at registration. If you no longer have it, paste a
               new one below and update Meta&apos;s webhook configuration to
               match.
@@ -437,10 +437,10 @@ function WhatsAppAppDetail({
       </section>
 
       {/* Credential rotation */}
-      <form onSubmit={handleSave} className="space-y-3" aria-label="Credentials">
-        <p className="text-xs font-medium text-foreground">Credentials</p>
-        <p className="-mt-2 text-[0.65rem] text-muted-foreground">
-          Secrets show as <code className="font-mono">***REDACTED***</code>;
+      <form onSubmit={handleSave} className="stg:space-y-3" aria-label="Credentials">
+        <p className="stg:text-xs stg:font-medium stg:text-foreground">Credentials</p>
+        <p className="stg:-mt-2 stg:text-[0.65rem] stg:text-muted-foreground">
+          Secrets show as <code className="stg:font-mono">***REDACTED***</code>;
           leave a field untouched to keep its stored value, or paste a new
           one to rotate it.
         </p>
@@ -487,7 +487,7 @@ function WhatsAppAppDetail({
         />
 
         {updateError && (
-          <p className="text-destructive text-[0.65rem]" role="alert">
+          <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
             {getUserMessage(updateError)}
           </p>
         )}
@@ -496,9 +496,9 @@ function WhatsAppAppDetail({
           type="submit"
           disabled={!canSave}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-40",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
           {isUpdating && <SpinnerIcon />}

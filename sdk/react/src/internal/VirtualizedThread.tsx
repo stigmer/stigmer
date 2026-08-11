@@ -64,10 +64,10 @@ export interface VirtualizedThreadProps {
 // ---------------------------------------------------------------------------
 
 const SCROLLBAR_CLASSES = cn(
-  "[scrollbar-width:thin] [scrollbar-color:var(--color-border)_transparent]",
-  "[&::-webkit-scrollbar]:w-1.5",
-  "[&::-webkit-scrollbar-track]:bg-transparent",
-  "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/40",
+  "stg:[scrollbar-width:thin] stg:[scrollbar-color:var(--color-border)_transparent]",
+  "stg:[&::-webkit-scrollbar]:w-1.5",
+  "stg:[&::-webkit-scrollbar-track]:bg-transparent",
+  "stg:[&::-webkit-scrollbar-thumb]:rounded-full stg:[&::-webkit-scrollbar-thumb]:bg-border/40",
 );
 
 // ---------------------------------------------------------------------------
@@ -186,10 +186,10 @@ export function VirtualizedThread({
           computeItemKey={(_index, item) => item.key}
           increaseViewportBy={{ top: 200, bottom: 200 }}
           scrollerRef={handleScrollerRef}
-          className="h-full"
+          className="stg:h-full"
           components={{ Scroller: ScrollerWithA11y }}
           itemContent={(index, item) => (
-            <div className={cn("pb-4 pt-0 first:pt-6", threadContentColumnClass(contentColumn))}>
+            <div className={cn("stg:pb-4 stg:pt-0 stg:first:pt-6", threadContentColumnClass(contentColumn))}>
               <ThreadItemWrapper animate={index >= items.length - 2}>
                 <ThreadItemRenderer
                   item={item}

@@ -19,7 +19,7 @@ export function RefusalBox({ children }: { readonly children: ReactNode }) {
   return (
     <div
       role="alert"
-      className="space-y-1 rounded-md border border-destructive/30 bg-destructive-subtle px-3 py-2 text-xs text-destructive"
+      className="stg:space-y-1 stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2 stg:text-xs stg:text-destructive"
     >
       {children}
     </div>

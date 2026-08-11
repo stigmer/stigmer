@@ -179,11 +179,11 @@ export function WorkspaceContentSearch({
               : `${totalMatches} ${totalMatches === 1 ? "match" : "matches"}.`;
 
   return (
-    <div className={cn("flex h-full flex-col", className)}>
-      <div role="status" aria-live="polite" className="sr-only">
+    <div className={cn("stg:flex stg:h-full stg:flex-col", className)}>
+      <div role="status" aria-live="polite" className="stg:sr-only">
         {statusMessage}
       </div>
-      <div className="flex items-center gap-1.5 border-b border-border px-2 py-1.5">
+      <div className="stg:flex stg:items-center stg:gap-1.5 stg:border-b stg:border-border stg:px-2 stg:py-1.5">
         <SearchIcon />
         <input
           ref={inputRef}
@@ -198,9 +198,9 @@ export function WorkspaceContentSearch({
           placeholder="Search text in files…"
           disabled={isUnsupported}
           className={cn(
-            "min-w-0 flex-1 bg-transparent text-xs text-foreground",
-            "placeholder:text-muted-foreground",
-            "focus-visible:outline-none disabled:cursor-not-allowed",
+            "stg:min-w-0 stg:flex-1 stg:bg-transparent stg:text-xs stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus-visible:outline-none stg:disabled:cursor-not-allowed",
           )}
           aria-label="Search text in workspace files"
         />
@@ -212,7 +212,7 @@ export function WorkspaceContentSearch({
               setQuery("");
               inputRef.current?.focus();
             }}
-            className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+            className="stg:shrink-0 stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground"
             aria-label="Clear search"
           >
             <ClearIcon />
@@ -220,7 +220,7 @@ export function WorkspaceContentSearch({
         )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto">
         {isUnsupported ? (
           <MessageState>Text search isn&rsquo;t available here.</MessageState>
         ) : trimmed.length === 0 ? (
@@ -235,7 +235,7 @@ export function WorkspaceContentSearch({
           <MessageState>No files containing &ldquo;{trimmed}&rdquo;.</MessageState>
         ) : (
           <>
-            <ul id={listboxId} role="listbox" aria-label="Search results" className="py-0.5">
+            <ul id={listboxId} role="listbox" aria-label="Search results" className="stg:py-0.5">
               {renderRows({
                 groups,
                 query: trimmed,
@@ -247,7 +247,7 @@ export function WorkspaceContentSearch({
               })}
             </ul>
             {totalMatches > flatResults.length && (
-              <p className="border-t border-border px-3 py-1.5 text-[0.65rem] text-muted-foreground">
+              <p className="stg:border-t stg:border-border stg:px-3 stg:py-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
                 Showing the first {flatResults.length} of {totalMatches} matches — refine
                 your search to narrow the list.
               </p>
@@ -369,16 +369,16 @@ function LineRow({
       aria-current={isOpen ? "true" : undefined}
       onClick={onOpen}
       className={cn(
-        "flex cursor-pointer items-baseline gap-2 py-0.5 pl-6 pr-3 text-xs transition-colors",
-        isFocused && "bg-muted",
-        isOpen && "bg-muted",
-        !isFocused && !isOpen && "hover:bg-muted",
+        "stg:flex stg:cursor-pointer stg:items-baseline stg:gap-2 stg:py-0.5 stg:pl-6 stg:pr-3 stg:text-xs stg:transition-colors",
+        isFocused && "stg:bg-muted",
+        isOpen && "stg:bg-muted",
+        !isFocused && !isOpen && "stg:hover:bg-muted",
       )}
     >
-      <span className="w-8 shrink-0 text-right font-mono text-[0.65rem] tabular-nums text-muted-foreground-subtle">
+      <span className="stg:w-8 stg:shrink-0 stg:text-right stg:font-mono stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground-subtle">
         {match.line}
       </span>
-      <span className="min-w-0 flex-1 truncate font-mono text-muted-foreground">
+      <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:font-mono stg:text-muted-foreground">
         <HighlightedPreview text={match.preview} query={query} />
       </span>
     </li>
@@ -405,7 +405,7 @@ function HighlightedPreview({
   ranges.forEach((range, i) => {
     if (range.start > cursor) parts.push(text.slice(cursor, range.start));
     parts.push(
-      <span key={i} className="font-semibold text-foreground">
+      <span key={i} className="stg:font-semibold stg:text-foreground">
         {text.slice(range.start, range.end)}
       </span>,
     );
@@ -420,7 +420,7 @@ function EntryHeader({ name }: { readonly name: string }) {
   return (
     <li
       role="presentation"
-      className="truncate px-3 pb-0.5 pt-2 text-[0.6rem] font-medium uppercase tracking-wide text-muted-foreground"
+      className="stg:truncate stg:px-3 stg:pb-0.5 stg:pt-2 stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wide stg:text-muted-foreground"
     >
       {name}
     </li>
@@ -435,10 +435,10 @@ function FileHeader({ path }: { readonly path: string }) {
   return (
     <li
       role="presentation"
-      className="flex items-baseline gap-1.5 px-3 pb-0.5 pt-1.5 text-xs"
+      className="stg:flex stg:items-baseline stg:gap-1.5 stg:px-3 stg:pb-0.5 stg:pt-1.5 stg:text-xs"
     >
-      <span className="shrink-0 font-medium text-foreground">{basename}</span>
-      {dir && <span className="truncate text-[0.65rem] text-muted-foreground">{dir}</span>}
+      <span className="stg:shrink-0 stg:font-medium stg:text-foreground">{basename}</span>
+      {dir && <span className="stg:truncate stg:text-[0.65rem] stg:text-muted-foreground">{dir}</span>}
     </li>
   );
 }
@@ -454,8 +454,8 @@ function GroupNotice({
     <li
       role="presentation"
       className={cn(
-        "px-3 py-1 text-[0.65rem]",
-        isError ? "text-destructive" : "text-muted-foreground",
+        "stg:px-3 stg:py-1 stg:text-[0.65rem]",
+        isError ? "stg:text-destructive" : "stg:text-muted-foreground",
       )}
     >
       {children}
@@ -465,7 +465,7 @@ function GroupNotice({
 
 function MessageState({ children }: { readonly children: ReactNode }) {
   return (
-    <div className="flex h-full items-center justify-center p-8 text-center text-xs text-muted-foreground">
+    <div className="stg:flex stg:h-full stg:items-center stg:justify-center stg:p-8 stg:text-center stg:text-xs stg:text-muted-foreground">
       {children}
     </div>
   );
@@ -477,7 +477,7 @@ function MessageState({ children }: { readonly children: ReactNode }) {
 
 function SearchIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground" aria-hidden="true">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
       <circle cx="5.25" cy="5.25" r="3.5" />
       <path d="M7.75 7.75L10.5 10.5" />
     </svg>
@@ -496,7 +496,7 @@ function Spinner() {
   return (
     <span
       aria-hidden="true"
-      className="h-3 w-3 shrink-0 animate-spin rounded-full border border-muted-foreground border-t-transparent"
+      className="stg:h-3 stg:w-3 stg:shrink-0 stg:animate-spin stg:rounded-full stg:border stg:border-muted-foreground stg:border-t-transparent"
     />
   );
 }

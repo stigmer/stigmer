@@ -125,7 +125,7 @@ export function SsoLoginPrompt({
 
   return (
     <div
-      className={cn("w-full", className)}
+      className={cn("stg:w-full", className)}
       role="region"
       aria-label="SSO sign-in"
     >
@@ -195,10 +195,10 @@ interface OrgInputFormProps {
 const OrgInputForm = forwardRef<HTMLInputElement, OrgInputFormProps>(
   function OrgInputForm({ value, onChange, onSubmit }, ref) {
     return (
-      <form onSubmit={onSubmit} className="space-y-3">
+      <form onSubmit={onSubmit} className="stg:space-y-3">
         <label
           htmlFor="sso-org-input"
-          className="block text-sm font-medium text-foreground"
+          className="stg:block stg:text-sm stg:font-medium stg:text-foreground"
         >
           Organization
         </label>
@@ -212,22 +212,22 @@ const OrgInputForm = forwardRef<HTMLInputElement, OrgInputFormProps>(
           autoComplete="organization"
           spellCheck={false}
           className={cn(
-            "block w-full rounded-md border border-input bg-background px-3 py-2",
-            "text-sm text-foreground placeholder:text-muted-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-ring",
-            "transition-colors",
+            "stg:block stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-3 stg:py-2",
+            "stg:text-sm stg:text-foreground stg:placeholder:text-muted-foreground",
+            "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
+            "stg:transition-colors",
           )}
         />
         <button
           type="submit"
           disabled={!value.trim()}
           className={cn(
-            "w-full rounded-md px-4 py-2 text-sm font-medium",
-            "bg-primary text-primary-foreground",
-            "hover:bg-primary-hover",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
-            "transition-colors",
+            "stg:w-full stg:rounded-md stg:px-4 stg:py-2 stg:text-sm stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground",
+            "stg:hover:bg-primary-hover",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+            "stg:transition-colors",
           )}
         >
           Continue
@@ -240,13 +240,13 @@ const OrgInputForm = forwardRef<HTMLInputElement, OrgInputFormProps>(
 function LoadingState({ org }: { org: string }) {
   return (
     <div
-      className="flex flex-col items-center gap-3 py-4"
+      className="stg:flex stg:flex-col stg:items-center stg:gap-3 stg:py-4"
       aria-busy="true"
       aria-label={`Looking up SSO provider for ${org}`}
     >
       <SpinnerIcon />
-      <p className="text-sm text-muted-foreground">
-        Looking up <span className="font-medium text-foreground">{org}</span>&hellip;
+      <p className="stg:text-sm stg:text-muted-foreground">
+        Looking up <span className="stg:font-medium stg:text-foreground">{org}</span>&hellip;
       </p>
     </div>
   );
@@ -266,11 +266,11 @@ function FoundState({
   onChangeOrg: () => void;
 }) {
   return (
-    <div className="space-y-4">
-      <div className="text-center">
-        <p className="text-xs text-muted-foreground">
+    <div className="stg:space-y-4">
+      <div className="stg:text-center">
+        <p className="stg:text-xs stg:text-muted-foreground">
           Signing in to{" "}
-          <span className="font-medium text-foreground">{org}</span>
+          <span className="stg:font-medium stg:text-foreground">{org}</span>
         </p>
       </div>
 
@@ -279,12 +279,12 @@ function FoundState({
         onClick={onClick}
         onKeyDown={onKeyDown}
         className={cn(
-          "flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5",
-          "text-sm font-medium",
-          "bg-primary text-primary-foreground",
-          "hover:bg-primary-hover",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          "transition-colors",
+          "stg:flex stg:w-full stg:items-center stg:justify-center stg:gap-2 stg:rounded-md stg:px-4 stg:py-2.5",
+          "stg:text-sm stg:font-medium",
+          "stg:bg-primary stg:text-primary-foreground",
+          "stg:hover:bg-primary-hover",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+          "stg:transition-colors",
         )}
       >
         <SsoShieldIcon />
@@ -294,7 +294,7 @@ function FoundState({
       <button
         type="button"
         onClick={onChangeOrg}
-        className="block w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+        className="stg:block stg:w-full stg:text-center stg:text-xs stg:text-muted-foreground stg:hover:text-foreground stg:transition-colors"
       >
         Not your organization? Change
       </button>
@@ -310,15 +310,15 @@ function NotFoundState({
   onBack: () => void;
 }) {
   return (
-    <div className="space-y-3 text-center">
-      <p className="text-sm text-muted-foreground">
+    <div className="stg:space-y-3 stg:text-center">
+      <p className="stg:text-sm stg:text-muted-foreground">
         No SSO provider configured for{" "}
-        <span className="font-medium text-foreground">{org}</span>.
+        <span className="stg:font-medium stg:text-foreground">{org}</span>.
       </p>
       <button
         type="button"
         onClick={onBack}
-        className="text-xs text-primary hover:text-primary-hover transition-colors"
+        className="stg:text-xs stg:text-primary stg:hover:text-primary-hover stg:transition-colors"
       >
         Try a different organization
       </button>
@@ -336,16 +336,16 @@ function ErrorState({
   onBack: () => void;
 }) {
   return (
-    <div className="space-y-3 text-center" role="alert">
-      <p className="text-sm text-destructive">{getUserMessage(error)}</p>
-      <div className="flex items-center justify-center gap-3">
+    <div className="stg:space-y-3 stg:text-center" role="alert">
+      <p className="stg:text-sm stg:text-destructive">{getUserMessage(error)}</p>
+      <div className="stg:flex stg:items-center stg:justify-center stg:gap-3">
         <button
           type="button"
           onClick={onRetry}
           className={cn(
-            "rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "transition-colors",
+            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:transition-colors",
           )}
         >
           Retry
@@ -353,7 +353,7 @@ function ErrorState({
         <button
           type="button"
           onClick={onBack}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="stg:text-xs stg:text-muted-foreground stg:hover:text-foreground stg:transition-colors"
         >
           Back
         </button>
@@ -376,7 +376,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin text-muted-foreground"
+      className="stg:animate-spin stg:text-muted-foreground"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

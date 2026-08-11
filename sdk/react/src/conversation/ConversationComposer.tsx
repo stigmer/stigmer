@@ -93,38 +93,38 @@ export function ConversationComposer({
 
   if (disabledReason !== null) {
     return (
-      <div className={cn("border-t border-border px-4 py-3", className)}>
-        <p className="text-center text-xs text-muted-foreground">{disabledReason}</p>
+      <div className={cn("stg:border-t stg:border-border stg:px-4 stg:py-3", className)}>
+        <p className="stg:text-center stg:text-xs stg:text-muted-foreground">{disabledReason}</p>
       </div>
     );
   }
 
   return (
-    <div className={cn("border-t border-border px-4 py-3", className)}>
+    <div className={cn("stg:border-t stg:border-border stg:px-4 stg:py-3", className)}>
       {/* The persistent forecast sits above the transient send-outcome
           notice: the notice is the more recent event and belongs closest
           to the input it reacts to. */}
       {hasAdvisory && (
         <p
           id={advisoryId}
-          className="mb-2 flex items-start gap-1.5 rounded-md bg-status-degraded-subtle px-2.5 py-1.5 text-xs text-status-degraded"
+          className="stg:mb-2 stg:flex stg:items-start stg:gap-1.5 stg:rounded-md stg:bg-status-degraded-subtle stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-status-degraded"
         >
-          <TriangleAlert aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
-          <span className="min-w-0">{advisory}</span>
+          <TriangleAlert aria-hidden="true" className="stg:mt-0.5 stg:size-3.5 stg:shrink-0" />
+          <span className="stg:min-w-0">{advisory}</span>
         </p>
       )}
       {notice && (
         <p
           className={cn(
-            "mb-2 text-xs",
-            notice.kind === "queued" ? "text-muted-foreground" : "text-destructive",
+            "stg:mb-2 stg:text-xs",
+            notice.kind === "queued" ? "stg:text-muted-foreground" : "stg:text-destructive",
           )}
           role="status"
         >
           {notice.text}
         </p>
       )}
-      <div className="flex items-end gap-2">
+      <div className="stg:flex stg:items-end stg:gap-2">
         <textarea
           {...composer.textareaProps}
           rows={1}
@@ -132,9 +132,9 @@ export function ConversationComposer({
           aria-label="Reply to the customer"
           aria-describedby={hasAdvisory ? advisoryId : undefined}
           className={cn(
-            "min-h-9 flex-1 resize-none rounded-md border border-border bg-background",
-            "px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground-faint",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:min-h-9 stg:flex-1 stg:resize-none stg:rounded-md stg:border stg:border-border stg:bg-background",
+            "stg:px-3 stg:py-2 stg:text-sm stg:text-foreground stg:placeholder:text-muted-foreground-faint",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         />
         <Button
@@ -147,7 +147,7 @@ export function ConversationComposer({
           {/* The house in-flight glyph (the session composer's pattern):
               the spinner replaces the Send icon so the button itself
               reports progress, not just its label. */}
-          {isSending ? <SpinnerIcon /> : <Send aria-hidden="true" className="size-4" />}
+          {isSending ? <SpinnerIcon /> : <Send aria-hidden="true" className="stg:size-4" />}
           {isSending ? "Sending…" : "Send"}
         </Button>
       </div>

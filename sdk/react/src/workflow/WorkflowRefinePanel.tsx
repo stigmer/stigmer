@@ -127,21 +127,21 @@ export function WorkflowRefinePanel({
   return (
     <div
       className={cn(
-        "flex h-full flex-col border-l border-border bg-background",
+        "stg:flex stg:h-full stg:flex-col stg:border-l stg:border-border stg:bg-background",
         className,
       )}
       role="complementary"
       aria-label="Workflow refinement panel"
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <div className="flex items-center gap-1.5">
+      <div className="stg:flex stg:items-center stg:justify-between stg:border-b stg:border-border stg:px-3 stg:py-2">
+        <div className="stg:flex stg:items-center stg:gap-1.5">
           <SparklesIcon />
-          <h3 className="text-xs font-semibold text-foreground">
+          <h3 className="stg:text-xs stg:font-semibold stg:text-foreground">
             Refine with AI
           </h3>
           {flow.isStreaming && (
-            <span className="inline-flex items-center gap-1 text-[0.65rem] text-muted-foreground">
+            <span className="stg:inline-flex stg:items-center stg:gap-1 stg:text-[0.65rem] stg:text-muted-foreground">
               <SpinnerIcon size={10} />
               Working…
             </span>
@@ -150,7 +150,7 @@ export function WorkflowRefinePanel({
         <button
           type="button"
           onClick={onClose}
-          className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="stg:rounded stg:p-0.5 stg:text-muted-foreground stg:hover:bg-muted stg:hover:text-foreground"
           aria-label="Close refinement panel"
         >
           <CloseIcon />
@@ -158,12 +158,12 @@ export function WorkflowRefinePanel({
       </div>
 
       {/* Scrollable content area */}
-      <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div ref={scrollRef} className="stg:flex stg:min-h-0 stg:flex-1 stg:flex-col stg:overflow-y-auto">
         {/* Empty state */}
         {!hasConversation && flow.phase === "idle" && (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+          <div className="stg:flex stg:flex-1 stg:flex-col stg:items-center stg:justify-center stg:gap-2 stg:px-4 stg:py-8 stg:text-center">
             <SparklesIcon />
-            <p className="text-xs text-muted-foreground">
+            <p className="stg:text-xs stg:text-muted-foreground">
               Describe the changes you want and the Workflow Architect agent
               will refine your workflow definition.
             </p>
@@ -172,9 +172,9 @@ export function WorkflowRefinePanel({
 
         {/* Starting indicator (before stream connects) */}
         {flow.phase === "starting" && (
-          <div className="flex flex-col items-center justify-center gap-2 py-8">
+          <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:gap-2 stg:py-8">
             <SpinnerIcon />
-            <p className="text-xs text-muted-foreground">
+            <p className="stg:text-xs stg:text-muted-foreground">
               Starting Workflow Architect…
             </p>
           </div>
@@ -188,14 +188,14 @@ export function WorkflowRefinePanel({
             pendingUserMessage={
               flow.phase === "starting" ? instruction || undefined : undefined
             }
-            className="flex-1"
+            className="stg:flex-1"
           />
         )}
 
         {/* Error */}
         {flow.error && flow.phase === "error" && (
           <div
-            className="mx-3 mt-3 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive"
+            className="stg:mx-3 stg:mt-3 stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive/5 stg:px-3 stg:py-2 stg:text-xs stg:text-destructive"
             role="alert"
           >
             {flow.error}
@@ -215,7 +215,7 @@ export function WorkflowRefinePanel({
       )}
 
       {/* Composer (pinned to bottom) */}
-      <div className="border-t border-border p-3">
+      <div className="stg:border-t stg:border-border stg:p-3">
         <textarea
           value={instruction}
           onChange={(e) => setInstruction(e.target.value)}
@@ -224,14 +224,14 @@ export function WorkflowRefinePanel({
           disabled={!composerEnabled}
           rows={3}
           className={cn(
-            "w-full resize-none rounded-md border border-input bg-background px-2.5 py-1.5 text-sm text-foreground",
-            "placeholder:text-muted-foreground",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:w-full stg:resize-none stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-sm stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         />
-        <div className="mt-2 flex items-center justify-between">
-          <p className="text-[0.65rem] text-muted-foreground">
+        <div className="stg:mt-2 stg:flex stg:items-center stg:justify-between">
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
             {"\u2318"}+Enter to submit
           </p>
           <button
@@ -239,10 +239,10 @@ export function WorkflowRefinePanel({
             onClick={handleSend}
             disabled={!composerEnabled || instruction.trim().length < 5}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-              "bg-primary text-primary-foreground hover:bg-primary/90",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-40",
+              "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:transition-colors",
+              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary/90",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-40",
             )}
           >
             Send
@@ -276,16 +276,16 @@ function ResultStrip({
 
   return (
     <div
-      className="border-t border-border px-3 py-3"
+      className="stg:border-t stg:border-border stg:px-3 stg:py-3"
       aria-live="polite"
     >
       {/* Explanation */}
       {explanation && (
-        <div className="mb-3">
-          <h4 className="mb-1 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">
+        <div className="stg:mb-3">
+          <h4 className="stg:mb-1 stg:text-[0.65rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
             Changes
           </h4>
-          <p className="text-xs leading-relaxed text-foreground">
+          <p className="stg:text-xs stg:leading-relaxed stg:text-foreground">
             {explanation}
           </p>
         </div>
@@ -293,8 +293,8 @@ function ResultStrip({
 
       {/* Visual graph diff */}
       {hasChanges && (
-        <div className="mb-3">
-          <div className="h-[200px] overflow-hidden rounded-md border border-border">
+        <div className="stg:mb-3">
+          <div className="stg:h-[200px] stg:overflow-hidden stg:rounded-md stg:border stg:border-border">
             <WorkflowDiffGraph
               beforeYaml={beforeYaml}
               afterYaml={extractedYaml}
@@ -305,16 +305,16 @@ function ResultStrip({
 
       {/* Collapsible YAML diff toggle */}
       {hasChanges && (
-        <div className="mb-3">
+        <div className="stg:mb-3">
           <button
             type="button"
             onClick={() => setShowYamlDiff((v) => !v)}
-            className="text-[0.65rem] font-medium text-muted-foreground hover:text-foreground"
+            className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground stg:hover:text-foreground"
           >
             {showYamlDiff ? "▾ Hide YAML diff" : "▸ View YAML diff"}
           </button>
           {showYamlDiff && (
-            <div className="mt-1">
+            <div className="stg:mt-1">
               <DiffPreview lines={diffLines} />
             </div>
           )}
@@ -322,14 +322,14 @@ function ResultStrip({
       )}
 
       {/* Actions */}
-      <div className="flex gap-2">
+      <div className="stg:flex stg:gap-2">
         <button
           type="button"
           onClick={onAccept}
           className={cn(
-            "flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:flex-1 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:transition-colors",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary/90",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           Accept
@@ -338,10 +338,10 @@ function ResultStrip({
           type="button"
           onClick={onDiscard}
           className={cn(
-            "flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-            "border border-input bg-background text-foreground",
-            "hover:bg-accent hover:text-accent-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:flex-1 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:transition-colors",
+            "stg:border stg:border-input stg:bg-background stg:text-foreground",
+            "stg:hover:bg-accent stg:hover:text-accent-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           Discard
@@ -362,25 +362,25 @@ function DiffPreview({ lines }: { readonly lines: readonly DiffLine[] }) {
 
   if (filteredLines.length > 200) {
     return (
-      <p className="text-[0.7rem] text-muted-foreground">
+      <p className="stg:text-[0.7rem] stg:text-muted-foreground">
         Diff is too large to display. Accept to see the updated YAML.
       </p>
     );
   }
 
   return (
-    <pre className="max-h-60 overflow-auto rounded-md border border-border text-[0.7rem] leading-relaxed">
+    <pre className="stg:max-h-60 stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:text-[0.7rem] stg:leading-relaxed">
       {lines.map((line, i) => (
         <div
           key={i}
           className={cn(
-            "px-2",
-            line.type === "added" && "bg-success/10 text-success",
-            line.type === "removed" && "bg-destructive/10 text-destructive",
-            line.type === "equal" && "text-muted-foreground",
+            "stg:px-2",
+            line.type === "added" && "stg:bg-success/10 stg:text-success",
+            line.type === "removed" && "stg:bg-destructive/10 stg:text-destructive",
+            line.type === "equal" && "stg:text-muted-foreground",
           )}
         >
-          <span className="mr-2 inline-block w-3 select-none text-right opacity-60">
+          <span className="stg:mr-2 stg:inline-block stg:w-3 stg:select-none stg:text-right stg:opacity-60">
             {line.type === "added" ? "+" : line.type === "removed" ? "-" : " "}
           </span>
           {line.content}
@@ -439,7 +439,7 @@ function SpinnerIcon({ size = 14 }: { readonly size?: number }) {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

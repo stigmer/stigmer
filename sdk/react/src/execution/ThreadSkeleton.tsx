@@ -31,38 +31,38 @@ const AI_LINE_WIDTHS = [
 export function ThreadSkeleton({ className }: ThreadSkeletonProps) {
   return (
     <div
-      className={cn("flex flex-col gap-4 pt-6 pb-4", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-4 stg:pt-6 stg:pb-4", className)}
       aria-busy="true"
       aria-label="Loading conversation"
     >
-      <div className="animate-pulse space-y-4">
+      <div className="stg:animate-pulse stg:space-y-4">
         {/* Turn 1: Human bubble */}
-        <div className="ms-[20%] rounded-lg bg-muted-subtle px-4 py-3">
-          <div className="h-4 w-3/5 rounded bg-muted" />
+        <div className="stg:ms-[20%] stg:rounded-lg stg:bg-muted-subtle stg:px-4 stg:py-3">
+          <div className="stg:h-4 stg:w-3/5 stg:rounded stg:bg-muted" />
         </div>
 
         {/* Turn 1: AI response */}
-        <div className="space-y-2 px-4">
+        <div className="stg:space-y-2 stg:px-4">
           {AI_LINE_WIDTHS[0].map((w, i) => (
             <div
               key={i}
-              className="h-4 rounded bg-muted"
+              className="stg:h-4 stg:rounded stg:bg-muted"
               style={{ width: `${w}%` }}
             />
           ))}
         </div>
 
         {/* Turn 2: Human bubble */}
-        <div className="ms-[20%] rounded-lg bg-muted-subtle px-4 py-3">
-          <div className="h-4 w-2/5 rounded bg-muted" />
+        <div className="stg:ms-[20%] stg:rounded-lg stg:bg-muted-subtle stg:px-4 stg:py-3">
+          <div className="stg:h-4 stg:w-2/5 stg:rounded stg:bg-muted" />
         </div>
 
         {/* Turn 2: AI response */}
-        <div className="space-y-2 px-4">
+        <div className="stg:space-y-2 stg:px-4">
           {AI_LINE_WIDTHS[1].map((w, i) => (
             <div
               key={i}
-              className="h-4 rounded bg-muted"
+              className="stg:h-4 stg:rounded stg:bg-muted"
               style={{ width: `${w}%` }}
             />
           ))}

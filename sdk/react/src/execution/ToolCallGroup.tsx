@@ -140,7 +140,7 @@ export const ToolCallGroup = memo(function ToolCallGroup({
         // self-contained card; the turn's tools stack with a small gap between
         // them rather than sharing a left rail, so the thread reads as a column
         // of discrete cards.
-        "flex flex-col gap-2",
+        "stg:flex stg:flex-col stg:gap-2",
         className,
       )}
     >

@@ -41,8 +41,8 @@ export function ProviderBadge({ principal, className }: ProviderBadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded px-1.5 py-0.5 text-[0.6rem] font-medium",
-        "bg-muted-subtle text-muted-foreground",
+        "stg:inline-flex stg:items-center stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium",
+        "stg:bg-muted-subtle stg:text-muted-foreground",
         className,
       )}
       title={`Identity provider: ${label}`}

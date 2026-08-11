@@ -39,15 +39,15 @@ export const PendingApprovalsWidget = memo(function PendingApprovalsWidget({
 }: PendingApprovalsWidgetProps) {
   if (isLoading) {
     return (
-      <div className={cn("space-y-2", className)} aria-busy="true">
-        <div className="flex items-center justify-between">
-          <div className="h-4 w-32 animate-pulse rounded bg-muted" />
-          <div className="h-4 w-8 animate-pulse rounded bg-muted" />
+      <div className={cn("stg:space-y-2", className)} aria-busy="true">
+        <div className="stg:flex stg:items-center stg:justify-between">
+          <div className="stg:h-4 stg:w-32 stg:animate-pulse stg:rounded stg:bg-muted" />
+          <div className="stg:h-4 stg:w-8 stg:animate-pulse stg:rounded stg:bg-muted" />
         </div>
         {Array.from({ length: 3 }, (_, i) => (
           <div
             key={i}
-            className="h-14 animate-pulse rounded-lg border border-border bg-muted/50"
+            className="stg:h-14 stg:animate-pulse stg:rounded-lg stg:border stg:border-border stg:bg-muted/50"
           />
         ))}
       </div>
@@ -55,24 +55,24 @@ export const PendingApprovalsWidget = memo(function PendingApprovalsWidget({
   }
 
   return (
-    <div className={cn("space-y-3", className)}>
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">
+    <div className={cn("stg:space-y-3", className)}>
+      <div className="stg:flex stg:items-center stg:justify-between">
+        <h3 className="stg:text-sm stg:font-semibold stg:text-foreground">
           Pending Approvals
         </h3>
         {totalCount > 0 && (
-          <span className="rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
+          <span className="stg:rounded-full stg:bg-warning/10 stg:px-2 stg:py-0.5 stg:text-xs stg:font-medium stg:text-warning">
             {totalCount}
           </span>
         )}
       </div>
 
       {approvals.length === 0 ? (
-        <p className="py-4 text-center text-xs text-muted-foreground">
+        <p className="stg:py-4 stg:text-center stg:text-xs stg:text-muted-foreground">
           No approvals pending
         </p>
       ) : (
-        <ul className="space-y-2" role="list">
+        <ul className="stg:space-y-2" role="list">
           {approvals.map((approval) => {
             const requestedAt = approval.requestedAt
               ? timestampDate(approval.requestedAt)
@@ -81,21 +81,21 @@ export const PendingApprovalsWidget = memo(function PendingApprovalsWidget({
             return (
               <li
                 key={`${approval.executionId}-${approval.taskName}`}
-                className="rounded-lg border border-border px-3 py-2.5"
+                className="stg:rounded-lg stg:border stg:border-border stg:px-3 stg:py-2.5"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <p className="truncate text-sm font-medium text-foreground">
+                <div className="stg:flex stg:items-start stg:justify-between stg:gap-2">
+                  <div className="stg:min-w-0 stg:flex-1">
+                    <div className="stg:flex stg:items-center stg:gap-1.5">
+                      <p className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
                         {approval.workflowName || approval.executionId}
                       </p>
                       {approval.uiHint && (
-                        <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground">
                           {approval.uiHint}
                         </span>
                       )}
                     </div>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    <p className="stg:mt-0.5 stg:truncate stg:text-xs stg:text-muted-foreground">
                       Task: {approval.taskName}
                       {requestedAt && (
                         <> &middot; {formatTimeAgo(requestedAt)}</>
@@ -106,7 +106,7 @@ export const PendingApprovalsWidget = memo(function PendingApprovalsWidget({
                     <button
                       type="button"
                       onClick={() => onReviewClick(approval.executionId)}
-                      className="shrink-0 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="stg:shrink-0 stg:rounded-md stg:bg-primary stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:text-primary-foreground stg:transition-colors stg:hover:bg-primary-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
                     >
                       Review
                     </button>

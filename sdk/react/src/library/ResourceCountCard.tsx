@@ -119,28 +119,28 @@ export function ResourceCountCard({
   const showSkeleton = isLoading && count === undefined;
 
   const rootClasses = cn(
-    "flex flex-col rounded-lg border border-border bg-card p-4 text-left no-underline",
+    "stg:flex stg:flex-col stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4 stg:text-left stg:no-underline",
     isInteractive && [
-      "cursor-pointer transition-colors hover:bg-accent-hover",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      "stg:cursor-pointer stg:transition-colors stg:hover:bg-accent-hover",
+      "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
     ],
     className,
   );
 
   const content = (
     <>
-      <div className="text-muted-foreground">{icon}</div>
+      <div className="stg:text-muted-foreground">{icon}</div>
       {showSkeleton ? (
         <div
-          className="mt-3 h-7 w-12 animate-pulse rounded bg-muted"
+          className="stg:mt-3 stg:h-7 stg:w-12 stg:animate-pulse stg:rounded stg:bg-muted"
           aria-hidden="true"
         />
       ) : (
-        <div className="mt-3 text-2xl font-semibold tabular-nums text-foreground">
+        <div className="stg:mt-3 stg:text-2xl stg:font-semibold stg:tabular-nums stg:text-foreground">
           {count !== undefined ? count.toLocaleString() : "\u2014"}
         </div>
       )}
-      <div className="mt-1 text-sm text-muted-foreground">{label}</div>
+      <div className="stg:mt-1 stg:text-sm stg:text-muted-foreground">{label}</div>
     </>
   );
 

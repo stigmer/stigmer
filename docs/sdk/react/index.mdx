@@ -61,7 +61,11 @@ function App() {
 ```
 
 `StigmerProvider` renders a `<div class="stgm">` wrapper that scopes all
-Stigmer styles. The CSS does not leak into the host application.
+Stigmer styles. The stylesheet cannot leak into the host application: every
+utility class it ships is namespaced under a `stg:` prefix (`.stg\:flex`,
+never `.flex`), so it shares no class names — and no Tailwind theme
+variables — with your own CSS, wherever you mount the provider. See
+[Theming](/docs/sdk/theme/theming) for the full isolation model.
 
 ### Browser authentication
 

@@ -93,39 +93,39 @@ export function WorkflowArtifactDocument({
     <div
       role="article"
       aria-label={`Artifact ${displayName}`}
-      className={cn("flex min-h-0 min-w-0 flex-1 flex-col", className)}
+      className={cn("stg:flex stg:min-h-0 stg:min-w-0 stg:flex-1 stg:flex-col", className)}
     >
       {/* Toolbar sticks to the top of the editor pane's scroll container so the
           file identity and actions stay visible while the body scrolls. Rows
           wrap on narrow panes (min-w-0 + flex-wrap) rather than forcing a
           horizontal scrollbar — the DD-20 reflow contract. */}
-      <div className="sticky top-0 z-10 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-border bg-background px-4 py-2">
-        <span className="shrink-0 text-muted-foreground">
+      <div className="stg:sticky stg:top-0 stg:z-10 stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-x-3 stg:gap-y-1.5 stg:border-b stg:border-border stg:bg-background stg:px-4 stg:py-2">
+        <span className="stg:shrink-0 stg:text-muted-foreground">
           <FileIcon />
         </span>
-        <span className="truncate text-sm font-medium text-foreground">
+        <span className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
           {displayName}
         </span>
-        <span className="shrink-0 text-[0.65rem] tabular-nums text-muted-foreground-faint">
+        <span className="stg:shrink-0 stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground-faint">
           {formatArtifactSize(sizeBytes)}
         </span>
         {specContentType && (
-          <span className="shrink-0 text-[0.65rem] text-muted-foreground">
+          <span className="stg:shrink-0 stg:text-[0.65rem] stg:text-muted-foreground">
             {specContentType}
           </span>
         )}
 
-        <div className="ml-auto flex min-w-0 flex-wrap items-center gap-3">
+        <div className="stg:ml-auto stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-3">
           {showCopy && (
             <button
               type="button"
               onClick={copy}
               aria-label={copied ? "Copied to clipboard" : "Copy content"}
               className={cn(
-                "inline-flex items-center gap-1.5 text-xs font-medium transition-colors",
+                "stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:transition-colors",
                 copied
-                  ? "text-success"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? "stg:text-success"
+                  : "stg:text-muted-foreground stg:hover:text-foreground",
                 FOCUS_RING_CLASSES,
               )}
             >
@@ -138,7 +138,7 @@ export function WorkflowArtifactDocument({
             onClick={() => download(id)}
             disabled={isDownloading || !id}
             className={cn(
-              "inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50",
+              "stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:disabled:opacity-50",
               FOCUS_RING_CLASSES,
             )}
           >
@@ -148,7 +148,7 @@ export function WorkflowArtifactDocument({
         </div>
       </div>
 
-      <div className="min-w-0">
+      <div className="stg:min-w-0">
         <ArtifactFileContent
           fileName={displayName}
           content={content}
@@ -159,7 +159,7 @@ export function WorkflowArtifactDocument({
         />
       </div>
 
-      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+      <div role="status" aria-live="polite" aria-atomic="true" className="stg:sr-only">
         {copied && "Content copied to clipboard"}
       </div>
     </div>
@@ -171,7 +171,7 @@ export function WorkflowArtifactDocument({
 // ---------------------------------------------------------------------------
 
 const FOCUS_RING_CLASSES =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm";
+  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm";
 
 // ---------------------------------------------------------------------------
 // Inline SVG icons (SDK independence — no lucide dependency)
@@ -207,7 +207,7 @@ function CopyIcon() {
       strokeWidth="1.2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <rect x="4" y="4" width="6.5" height="6.5" rx="1" />
@@ -227,7 +227,7 @@ function DownloadIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <path d="M6 1.5V8.5" />
@@ -248,7 +248,7 @@ function CheckIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <path d="M2 6.5L4.5 9L10 3" />

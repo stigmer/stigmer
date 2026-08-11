@@ -65,14 +65,14 @@ export function ApiKeyListPanel({
   if (isLoading) {
     return (
       <div
-        className={cn("space-y-2", className)}
+        className={cn("stg:space-y-2", className)}
         aria-busy="true"
         aria-label="Loading API keys"
       >
         {Array.from({ length: 2 }, (_, i) => (
           <div
             key={i}
-            className="bg-muted-subtle h-14 animate-pulse rounded-lg"
+            className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg"
           />
         ))}
       </div>
@@ -81,7 +81,7 @@ export function ApiKeyListPanel({
 
   if (error) {
     return (
-      <p className={cn("text-destructive text-xs", className)} role="alert">
+      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
         {getUserMessage(error)}
       </p>
     );
@@ -91,7 +91,7 @@ export function ApiKeyListPanel({
     return (
       <p
         className={cn(
-          "text-muted-foreground py-4 text-center text-xs",
+          "stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs",
           className,
         )}
       >
@@ -102,7 +102,7 @@ export function ApiKeyListPanel({
 
   return (
     <div
-      className={cn("space-y-2", className)}
+      className={cn("stg:space-y-2", className)}
       role="list"
       aria-label="API keys"
     >
@@ -169,34 +169,34 @@ function ApiKeyRow({
     return (
       <div
         role="listitem"
-        className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive-subtle px-3 py-2.5"
+        className="stg:flex stg:items-center stg:justify-between stg:rounded-lg stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2.5"
       >
-        <div className="min-w-0 flex-1">
-          <p className="text-xs text-foreground">
-            Delete <span className="font-medium">{name}</span>?
+        <div className="stg:min-w-0 stg:flex-1">
+          <p className="stg:text-xs stg:text-foreground">
+            Delete <span className="stg:font-medium">{name}</span>?
             {fingerprint && (
-              <span className="text-muted-foreground">
+              <span className="stg:text-muted-foreground">
                 {" "}
                 (…{fingerprint})
               </span>
             )}
           </p>
           {error && (
-            <p className="mt-0.5 text-[0.65rem] text-destructive">
+            <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-destructive">
               {getUserMessage(error)}
             </p>
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
           <button
             type="button"
             onClick={handleDelete}
             disabled={isDeleting}
             className={cn(
-              "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-              "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+              "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             {isDeleting && <SpinnerIcon />}
@@ -207,9 +207,9 @@ function ApiKeyRow({
             onClick={onCancelDelete}
             disabled={isDeleting}
             className={cn(
-              "rounded-md px-2.5 py-1 text-xs",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             Cancel
@@ -222,25 +222,25 @@ function ApiKeyRow({
   return (
     <div
       role="listitem"
-      className="flex items-center gap-3 rounded-lg border border-border-muted px-3 py-2.5 hover:border-border transition-colors"
+      className="stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border-muted stg:px-3 stg:py-2.5 stg:hover:border-border stg:transition-colors"
     >
       {/* Key icon */}
       <KeyIcon />
 
       {/* Name + fingerprint */}
-      <div className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium text-foreground">
+      <div className="stg:min-w-0 stg:flex-1">
+        <span className="stg:block stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
           {name}
         </span>
         {fingerprint && (
-          <span className="block text-xs text-muted-foreground font-mono">
+          <span className="stg:block stg:text-xs stg:text-muted-foreground stg:font-mono">
             …{fingerprint}
           </span>
         )}
       </div>
 
       {/* Metadata columns */}
-      <div className="hidden sm:flex shrink-0 items-center gap-4 text-xs text-muted-foreground">
+      <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-4 stg:text-xs stg:text-muted-foreground">
         {createdAt && (
           <span title={`Created ${timestampDate(createdAt).toISOString()}`}>
             {formatShortDate(timestampDate(createdAt))}
@@ -266,9 +266,9 @@ function ApiKeyRow({
         onClick={onConfirmDelete}
         aria-label={`Delete ${name}`}
         className={cn(
-          "shrink-0 rounded p-1",
-          "text-muted-foreground hover:text-destructive hover:bg-destructive-subtle",
-          "transition-colors",
+          "stg:shrink-0 stg:rounded stg:p-1",
+          "stg:text-muted-foreground stg:hover:text-destructive stg:hover:bg-destructive-subtle",
+          "stg:transition-colors",
         )}
       >
         <TrashIcon />
@@ -326,7 +326,7 @@ function KeyIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
     >
       <circle cx="5.5" cy="10.5" r="3" />
       <path d="M8 8l5.5-5.5M11 5l2-2M10.5 2.5l2 2" />
@@ -365,7 +365,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

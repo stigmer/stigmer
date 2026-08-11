@@ -24,7 +24,7 @@ const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
     {
       label: "Pending",
       icon: PulseDotIcon,
-      colorClass: "text-muted-foreground",
+      colorClass: "stg:text-muted-foreground",
     },
   ],
   [
@@ -32,7 +32,7 @@ const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
     {
       label: "Running",
       icon: PulseDotIcon,
-      colorClass: "text-foreground",
+      colorClass: "stg:text-foreground",
     },
   ],
   [
@@ -40,7 +40,7 @@ const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
     {
       label: "Completed",
       icon: CheckIcon,
-      colorClass: "text-success",
+      colorClass: "stg:text-success",
     },
   ],
   [
@@ -48,7 +48,7 @@ const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
     {
       label: "Failed",
       icon: XIcon,
-      colorClass: "text-destructive",
+      colorClass: "stg:text-destructive",
     },
   ],
   [
@@ -56,7 +56,7 @@ const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
     {
       label: "Cancelled",
       icon: XIcon,
-      colorClass: "text-muted-foreground",
+      colorClass: "stg:text-muted-foreground",
     },
   ],
   [
@@ -64,7 +64,7 @@ const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
     {
       label: "Terminated",
       icon: StopIcon,
-      colorClass: "text-destructive",
+      colorClass: "stg:text-destructive",
     },
   ],
   [
@@ -72,7 +72,7 @@ const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
     {
       label: "Waiting for approval",
       icon: ClockIcon,
-      colorClass: "text-warning",
+      colorClass: "stg:text-warning",
     },
   ],
   [
@@ -80,7 +80,7 @@ const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
     {
       label: "Paused",
       icon: PauseIcon,
-      colorClass: "text-muted-foreground",
+      colorClass: "stg:text-muted-foreground",
     },
   ],
 ]);
@@ -112,7 +112,7 @@ export const ExecutionPhaseBadge = memo(function ExecutionPhaseBadge({
       role="status"
       aria-label={config.label}
       className={cn(
-        "inline-flex items-center gap-1.5 text-xs font-medium",
+        "stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium",
         config.colorClass,
         className,
       )}
@@ -140,9 +140,9 @@ function DotIcon() {
 
 function PulseDotIcon() {
   return (
-    <span className="relative flex h-2 w-2">
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-75" />
-      <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
+    <span className="stg:relative stg:flex stg:h-2 stg:w-2">
+      <span className="stg:absolute stg:inline-flex stg:h-full stg:w-full stg:animate-ping stg:rounded-full stg:bg-current stg:opacity-75" />
+      <span className="stg:relative stg:inline-flex stg:h-2 stg:w-2 stg:rounded-full stg:bg-current" />
     </span>
   );
 }

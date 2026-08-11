@@ -79,24 +79,24 @@ export function SkillFileBrowser({
   if (isLoading) {
     return (
       <div
-        className={cn("rounded-lg border border-border", className)}
+        className={cn("stg:rounded-lg stg:border stg:border-border", className)}
         aria-busy="true"
         aria-label="Loading skill package files"
       >
-        <div className="p-4">
-          <div className="h-3 w-32 animate-pulse rounded bg-muted" />
+        <div className="stg:p-4">
+          <div className="stg:h-3 stg:w-32 stg:animate-pulse stg:rounded stg:bg-muted" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] border-t border-border">
-          <div className="space-y-2 p-3 border-b md:border-b-0 md:border-r border-border">
+        <div className="stg:grid stg:grid-cols-1 stg:md:grid-cols-[200px_1fr] stg:border-t stg:border-border">
+          <div className="stg:space-y-2 stg:p-3 stg:border-b stg:md:border-b-0 stg:md:border-r stg:border-border">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-4 w-full animate-pulse rounded bg-muted" />
+              <div key={i} className="stg:h-4 stg:w-full stg:animate-pulse stg:rounded stg:bg-muted" />
             ))}
           </div>
-          <div className="p-4">
-            <div className="space-y-2">
-              <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
-              <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
-              <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
+          <div className="stg:p-4">
+            <div className="stg:space-y-2">
+              <div className="stg:h-4 stg:w-3/4 stg:animate-pulse stg:rounded stg:bg-muted" />
+              <div className="stg:h-4 stg:w-1/2 stg:animate-pulse stg:rounded stg:bg-muted" />
+              <div className="stg:h-4 stg:w-2/3 stg:animate-pulse stg:rounded stg:bg-muted" />
             </div>
           </div>
         </div>
@@ -106,8 +106,8 @@ export function SkillFileBrowser({
 
   if (error) {
     return (
-      <div className={cn("rounded-lg border border-border p-4", className)}>
-        <p className="text-sm text-destructive">
+      <div className={cn("stg:rounded-lg stg:border stg:border-border stg:p-4", className)}>
+        <p className="stg:text-sm stg:text-destructive">
           Failed to load skill package: {error.message}
         </p>
       </div>
@@ -117,22 +117,22 @@ export function SkillFileBrowser({
   if (!files || files.length === 0) return null;
 
   return (
-    <div className={cn("rounded-lg border border-border overflow-hidden", className)}>
+    <div className={cn("stg:rounded-lg stg:border stg:border-border stg:overflow-hidden", className)}>
       {/* Header */}
-      <div className="border-b border-border px-4 py-2">
-        <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="stg:border-b stg:border-border stg:px-4 stg:py-2">
+        <h3 className="stg:text-xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
           Package Files
         </h3>
       </div>
 
       {/* Split pane */}
-      <div className="grid grid-cols-1 md:grid-cols-[220px_1fr]">
+      <div className="stg:grid stg:grid-cols-1 stg:md:grid-cols-[220px_1fr]">
         {/* File tree */}
         <nav
-          className="border-b border-border md:border-b-0 md:border-r overflow-y-auto"
+          className="stg:border-b stg:border-border stg:md:border-b-0 stg:md:border-r stg:overflow-y-auto"
           aria-label="Skill package file tree"
         >
-          <ul className="py-1" role="tree">
+          <ul className="stg:py-1" role="tree">
             {treeNodes.map((node) => (
               <FileTreeNode
                 key={node.path}
@@ -146,11 +146,11 @@ export function SkillFileBrowser({
         </nav>
 
         {/* Content viewer */}
-        <div className="min-h-[200px] max-h-[400px] overflow-y-auto p-4">
+        <div className="stg:min-h-[200px] stg:max-h-[400px] stg:overflow-y-auto stg:p-4">
           {selectedPath !== null && content !== null ? (
             <FileContentViewer path={selectedPath} content={content} />
           ) : (
-            <p className="text-sm text-muted-foreground-subtle italic">
+            <p className="stg:text-sm stg:text-muted-foreground-subtle stg:italic">
               Select a file to view its contents
             </p>
           )}
@@ -182,7 +182,7 @@ function FileContentViewer({
   }
 
   return (
-    <pre className="overflow-x-auto font-mono text-xs leading-relaxed text-foreground whitespace-pre-wrap">
+    <pre className="stg:overflow-x-auto stg:font-mono stg:text-xs stg:leading-relaxed stg:text-foreground stg:whitespace-pre-wrap">
       {content}
     </pre>
   );

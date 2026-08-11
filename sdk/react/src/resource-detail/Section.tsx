@@ -39,17 +39,17 @@ export function Section({
 }: SectionProps) {
   return (
     <section className={className} data-scroll-target={scrollTarget}>
-      <div className="mb-2 flex items-center gap-2">
-        <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="stg:mb-2 stg:flex stg:items-center stg:gap-2">
+        <h3 className="stg:text-xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
           {title}
         </h3>
         {count != null && count > 0 && (
-          <span className="inline-flex size-5 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
+          <span className="stg:inline-flex stg:size-5 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:text-[10px] stg:font-semibold stg:text-muted-foreground">
             {count}
           </span>
         )}
         {(headerActions || onEdit) && (
-          <div className="ml-auto flex items-center gap-1">
+          <div className="stg:ml-auto stg:flex stg:items-center stg:gap-1">
             {headerActions}
             {onEdit && (
               <button
@@ -57,19 +57,19 @@ export function Section({
                 onClick={onEdit}
                 aria-label={`Edit ${title.toLowerCase()}`}
                 className={cn(
-                  "inline-flex size-6 items-center justify-center rounded-md text-muted-foreground",
-                  "hover:bg-accent-hover hover:text-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  "transition-colors",
+                  "stg:inline-flex stg:size-6 stg:items-center stg:justify-center stg:rounded-md stg:text-muted-foreground",
+                  "stg:hover:bg-accent-hover stg:hover:text-foreground",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                  "stg:transition-colors",
                 )}
               >
-                <PencilIcon className="size-3.5" />
+                <PencilIcon className="stg:size-3.5" />
               </button>
             )}
           </div>
         )}
       </div>
-      <div className="overflow-hidden rounded-lg border border-border">
+      <div className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border">
         {children}
       </div>
     </section>

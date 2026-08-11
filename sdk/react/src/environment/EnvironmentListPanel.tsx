@@ -133,14 +133,14 @@ export function EnvironmentListPanel({
   if (isLoading) {
     return (
       <div
-        className={cn("space-y-2", className)}
+        className={cn("stg:space-y-2", className)}
         aria-busy="true"
         aria-label="Loading environments"
       >
         {Array.from({ length: 2 }, (_, i) => (
           <div
             key={i}
-            className="bg-muted-subtle h-14 animate-pulse rounded-lg"
+            className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg"
           />
         ))}
       </div>
@@ -149,7 +149,7 @@ export function EnvironmentListPanel({
 
   if (error) {
     return (
-      <p className={cn("text-destructive text-xs", className)} role="alert">
+      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
         {getUserMessage(error)}
       </p>
     );
@@ -157,7 +157,7 @@ export function EnvironmentListPanel({
 
   if (filtered.length === 0) {
     return (
-      <p className={cn("text-muted-foreground py-4 text-center text-xs", className)}>
+      <p className={cn("stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs", className)}>
         No environments found.
       </p>
     );
@@ -165,7 +165,7 @@ export function EnvironmentListPanel({
 
   return (
     <div
-      className={cn("space-y-2", className)}
+      className={cn("stg:space-y-2", className)}
       role="list"
       aria-label="Environments"
     >
@@ -232,30 +232,30 @@ function EnvironmentCard({
     <div
       role="listitem"
       className={cn(
-        "rounded-lg border transition-colors",
+        "stg:rounded-lg stg:border stg:transition-colors",
         isExpanded
-          ? "border-border bg-card"
-          : "border-border-muted hover:border-border",
+          ? "stg:border-border stg:bg-card"
+          : "stg:border-border-muted stg:hover:border-border",
       )}
     >
       {/* Header — always visible. The expand toggle and the visibility
           control are sibling interactive elements (nesting the selector
           inside the toggle button would be invalid markup). */}
-      <div className="flex w-full items-center gap-3 px-3 py-2.5">
+      <div className="stg:flex stg:w-full stg:items-center stg:gap-3 stg:px-3 stg:py-2.5">
         <button
           type="button"
           onClick={onToggle}
           aria-expanded={isExpanded}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          className="stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-3 stg:text-left"
         >
           <ChevronIcon expanded={isExpanded} />
 
-          <div className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-medium text-foreground">
+          <div className="stg:min-w-0 stg:flex-1">
+            <span className="stg:block stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
               {name}
             </span>
             {description && (
-              <span className="block truncate text-xs text-muted-foreground">
+              <span className="stg:block stg:truncate stg:text-xs stg:text-muted-foreground">
                 {description}
               </span>
             )}
@@ -267,7 +267,7 @@ function EnvironmentCard({
             type="button"
             onClick={onEditYaml}
             aria-label={`Edit ${name} as YAML`}
-            className="shrink-0 rounded px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="stg:shrink-0 stg:rounded stg:px-1.5 stg:py-0.5 stg:text-xs stg:text-muted-foreground stg:transition-colors stg:hover:bg-accent stg:hover:text-accent-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
           >
             Edit YAML
           </button>
@@ -282,18 +282,18 @@ function EnvironmentCard({
               ApiResourceVisibility.visibility_private
             }
             onChanged={onVisibilityChanged}
-            className="shrink-0"
+            className="stg:shrink-0"
           />
         )}
 
-        <span className="shrink-0 text-xs text-muted-foreground">
+        <span className="stg:shrink-0 stg:text-xs stg:text-muted-foreground">
           {variableCount} {variableCount === 1 ? "variable" : "variables"}
         </span>
       </div>
 
       {/* Expanded content — variable editor */}
       {isExpanded && environmentId && (
-        <div className="border-border-muted border-t px-3 pb-3 pt-2">
+        <div className="stg:border-border-muted stg:border-t stg:px-3 stg:pb-3 stg:pt-2">
           <EnvironmentVariableEditor
             environmentId={environmentId}
             readOnly={readOnly}
@@ -321,8 +321,8 @@ function ChevronIcon({ expanded }: { expanded: boolean }) {
       strokeLinejoin="round"
       aria-hidden="true"
       className={cn(
-        "shrink-0 text-muted-foreground transition-transform duration-150",
-        expanded && "rotate-90",
+        "stg:shrink-0 stg:text-muted-foreground stg:transition-transform stg:duration-150",
+        expanded && "stg:rotate-90",
       )}
     >
       <path d="M6 4l4 4-4 4" />

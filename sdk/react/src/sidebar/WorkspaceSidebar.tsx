@@ -196,9 +196,9 @@ export function WorkspaceSidebar({
       <SidebarSeparator />
 
       {/* Scrollable recents */}
-      <ScrollArea className="flex-1">
-        <div className="p-3">
-          <p className="text-sidebar-muted-foreground mb-2 px-1 text-[11px] font-semibold tracking-wider uppercase">
+      <ScrollArea className="stg:flex-1">
+        <div className="stg:p-3">
+          <p className="stg:text-sidebar-muted-foreground stg:mb-2 stg:px-1 stg:text-[11px] stg:font-semibold stg:tracking-wider stg:uppercase">
             Recents
           </p>
           {isLoading ? (
@@ -246,7 +246,7 @@ function PrimaryNavRow({
   readonly accessory?: ReactNode;
 }) {
   return (
-    <div className="flex-none px-3 py-1">
+    <div className="stg:flex-none stg:px-3 stg:py-1">
       {renderLink({
         id,
         href,
@@ -255,7 +255,7 @@ function PrimaryNavRow({
         "aria-current": active ? "page" : undefined,
         children: (
           <>
-            <Icon className="size-4 shrink-0" />
+            <Icon className="stg:size-4 stg:shrink-0" />
             {label}
             {accessory}
           </>
@@ -274,14 +274,14 @@ function PrimaryNavRow({
  */
 function WantsHumanBadge({ count }: { readonly count: number }) {
   return (
-    <span className="ml-auto flex shrink-0 items-center">
+    <span className="stg:ml-auto stg:flex stg:shrink-0 stg:items-center">
       <span
         aria-hidden="true"
-        className="bg-sidebar-primary text-sidebar-primary-foreground rounded-full px-1.5 py-0.5 text-[10px] leading-none font-semibold tabular-nums"
+        className="stg:bg-sidebar-primary stg:text-sidebar-primary-foreground stg:rounded-full stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:leading-none stg:font-semibold stg:tabular-nums"
       >
         {count > 99 ? "99+" : count}
       </span>
-      <span className="sr-only">
+      <span className="stg:sr-only">
         {count === 1
           ? "1 conversation needs a human"
           : `${count} conversations need a human`}
@@ -307,13 +307,13 @@ function ActivityGroupList({
 }) {
   return (
     <TooltipProvider>
-      <div className="space-y-4">
+      <div className="stg:space-y-4">
         {groups.map((group) => (
           <div key={group.label}>
-            <p className="text-sidebar-muted-foreground mb-1 px-2 text-[10px] font-medium tracking-wider uppercase">
+            <p className="stg:text-sidebar-muted-foreground stg:mb-1 stg:px-2 stg:text-[10px] stg:font-medium stg:tracking-wider stg:uppercase">
               {group.label}
             </p>
-            <ul className="space-y-0.5" role="list">
+            <ul className="stg:space-y-0.5" role="list">
               {group.entries.map((entry) => (
                 <ActivityEntry
                   key={entry.id}
@@ -365,21 +365,21 @@ const ActivityEntry = memo(function ActivityEntry({
     className: cnActivityRow(isActive),
     children: (
       <>
-        <TypeIcon className="mt-0.5 size-3 shrink-0 opacity-50" aria-hidden="true" />
-        <span className="line-clamp-2 flex-1">{entry.subject}</span>
+        <TypeIcon className="stg:mt-0.5 stg:size-3 stg:shrink-0 stg:opacity-50" aria-hidden="true" />
+        <span className="stg:line-clamp-2 stg:flex-1">{entry.subject}</span>
         {/* Last-activity stamp + noteworthy status: the list sorts by
             activity while execution names embed creation time, so the row
             must say WHY it is here ("failed · 2h"). */}
-        <span className="flex shrink-0 flex-col items-end gap-0.5 text-[10px] leading-tight">
-          <span className="text-sidebar-muted-foreground tabular-nums">
+        <span className="stg:flex stg:shrink-0 stg:flex-col stg:items-end stg:gap-0.5 stg:text-[10px] stg:leading-tight">
+          <span className="stg:text-sidebar-muted-foreground stg:tabular-nums">
             {formatRelativeTime(entry.updatedAt, now)}
           </span>
           {statusBadge && (
             <span
               className={
                 statusBadge.tone === "destructive"
-                  ? "text-destructive"
-                  : "text-sidebar-muted-foreground"
+                  ? "stg:text-destructive"
+                  : "stg:text-sidebar-muted-foreground"
               }
             >
               {statusBadge.label}
@@ -406,17 +406,17 @@ const ActivityEntry = memo(function ActivityEntry({
 /** Recents rows are denser than primary nav: 12px text, top-aligned icon. */
 function cnActivityRow(active: boolean): string {
   return active
-    ? "flex items-start gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-    : "flex items-start gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
+    ? "stg:flex stg:items-start stg:gap-2 stg:rounded-lg stg:px-2 stg:py-1.5 stg:text-xs stg:transition-colors stg:bg-sidebar-accent stg:text-sidebar-accent-foreground stg:font-medium"
+    : "stg:flex stg:items-start stg:gap-2 stg:rounded-lg stg:px-2 stg:py-1.5 stg:text-xs stg:transition-colors stg:text-sidebar-foreground stg:hover:bg-sidebar-accent stg:hover:text-sidebar-accent-foreground";
 }
 
 function RecentsSkeletons() {
   return (
-    <div className="space-y-2 px-2" aria-busy="true" aria-label="Loading sessions">
+    <div className="stg:space-y-2 stg:px-2" aria-busy="true" aria-label="Loading sessions">
       {Array.from({ length: 5 }, (_, i) => (
         <div
           key={i}
-          className="bg-sidebar-muted h-5 animate-pulse rounded"
+          className="stg:bg-sidebar-muted stg:h-5 stg:animate-pulse stg:rounded"
           style={{ width: `${70 + Math.sin(i * 1.5) * 20}%` }}
         />
       ))}
@@ -427,7 +427,7 @@ function RecentsSkeletons() {
 function RecentsError({ message }: { readonly message: string }) {
   return (
     <>
-      <p className="text-destructive mb-4 px-2 text-xs" role="alert">
+      <p className="stg:text-destructive stg:mb-4 stg:px-2 stg:text-xs" role="alert">
         {message}
       </p>
       <RecentsEmptyState />
@@ -437,9 +437,9 @@ function RecentsError({ message }: { readonly message: string }) {
 
 function RecentsEmptyState() {
   return (
-    <div className="flex flex-col items-center gap-2 py-8 text-center">
-      <MessageSquare className="text-sidebar-muted-foreground size-8" />
-      <p className="text-sidebar-muted-foreground text-xs">No recent activity</p>
+    <div className="stg:flex stg:flex-col stg:items-center stg:gap-2 stg:py-8 stg:text-center">
+      <MessageSquare className="stg:text-sidebar-muted-foreground stg:size-8" />
+      <p className="stg:text-sidebar-muted-foreground stg:text-xs">No recent activity</p>
     </div>
   );
 }

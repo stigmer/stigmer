@@ -43,32 +43,32 @@ export function ExportButton({
   }, [open]);
 
   return (
-    <div ref={ref} className={cn("relative", className)}>
+    <div ref={ref} className={cn("stg:relative", className)}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
         disabled={disabled || isExporting}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-medium transition-colors",
-          "text-muted-foreground hover:text-foreground hover:bg-accent",
-          "disabled:pointer-events-none disabled:opacity-50",
+          "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
+          "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent",
+          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         )}
         aria-expanded={open}
         aria-haspopup="true"
       >
-        <DownloadIcon className="size-3.5" />
+        <DownloadIcon className="stg:size-3.5" />
         {isExporting ? "Exporting…" : "Export"}
       </button>
 
       {open && (
         <div
-          className="absolute right-0 top-full z-10 mt-1 w-44 rounded-md border border-border bg-popover py-1 shadow-md"
+          className="stg:absolute stg:right-0 stg:top-full stg:z-10 stg:mt-1 stg:w-44 stg:rounded-md stg:border stg:border-border stg:bg-popover stg:py-1 stg:shadow-md"
           role="menu"
         >
           <button
             type="button"
             role="menuitem"
-            className="w-full px-3 py-1.5 text-left text-xs text-popover-foreground hover:bg-accent"
+            className="stg:w-full stg:px-3 stg:py-1.5 stg:text-left stg:text-xs stg:text-popover-foreground stg:hover:bg-accent"
             onClick={() => {
               onExport("daily_summary");
               setOpen(false);
@@ -79,7 +79,7 @@ export function ExportButton({
           <button
             type="button"
             role="menuitem"
-            className="w-full px-3 py-1.5 text-left text-xs text-popover-foreground hover:bg-accent"
+            className="stg:w-full stg:px-3 stg:py-1.5 stg:text-left stg:text-xs stg:text-popover-foreground stg:hover:bg-accent"
             onClick={() => {
               onExport("model_breakdown");
               setOpen(false);

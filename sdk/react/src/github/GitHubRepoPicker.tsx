@@ -126,7 +126,7 @@ function HighlightMatch({ text, query }: { text: string; query: string }) {
   return (
     <>
       {text.slice(0, idx)}
-      <span className="text-foreground font-medium">
+      <span className="stg:text-foreground stg:font-medium">
         {text.slice(idx, idx + query.length)}
       </span>
       {text.slice(idx + query.length)}
@@ -381,8 +381,8 @@ export function GitHubRepoPicker({
   // --- Branch selection view ---
   if (selectedRepo) {
     return (
-      <div className={["space-y-2", className].filter(Boolean).join(" ")}>
-        <div className="flex items-center gap-2 text-xs text-foreground">
+      <div className={["stg:space-y-2", className].filter(Boolean).join(" ")}>
+        <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground">
           <button
             type="button"
             onClick={() => {
@@ -390,29 +390,29 @@ export function GitHubRepoPicker({
               setBranches([]);
               setTimeout(() => searchRef.current?.focus(), 0);
             }}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="stg:text-muted-foreground stg:hover:text-foreground stg:transition-colors"
             aria-label="Back to repo list"
           >
             <ChevronLeftIcon />
           </button>
-          <span className="font-medium truncate">
+          <span className="stg:font-medium stg:truncate">
             {selectedRepo.owner}/{selectedRepo.name}
           </span>
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-[0.65rem] text-muted-foreground">
+        <div className="stg:space-y-1.5">
+          <label className="stg:text-[0.65rem] stg:text-muted-foreground">
             Branch
           </label>
           {loadingBranches ? (
-            <div className="text-xs text-muted-foreground">
+            <div className="stg:text-xs stg:text-muted-foreground">
               Loading branches...
             </div>
           ) : (
             <select
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
             >
               {branches.map((b) => (
                 <option key={b.name} value={b.name}>
@@ -423,12 +423,12 @@ export function GitHubRepoPicker({
           )}
         </div>
 
-        <div className="flex justify-end">
+        <div className="stg:flex stg:justify-end">
           <button
             type="button"
             onClick={handleAdd}
             disabled={!selectedBranch}
-            className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary-hover transition-colors disabled:opacity-40"
+            className="stg:rounded-md stg:bg-primary stg:px-2.5 stg:py-1 stg:text-xs stg:text-primary-foreground stg:hover:bg-primary-hover stg:transition-colors stg:disabled:opacity-40"
           >
             Add
           </button>
@@ -440,20 +440,20 @@ export function GitHubRepoPicker({
   // --- Manual URL entry view ---
   if (showManualEntry) {
     return (
-      <div className={["space-y-2", className].filter(Boolean).join(" ")}>
-        <div className="flex items-center gap-2 text-xs text-foreground">
+      <div className={["stg:space-y-2", className].filter(Boolean).join(" ")}>
+        <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground">
           <button
             type="button"
             onClick={() => {
               setShowManualEntry(false);
               setTimeout(() => searchRef.current?.focus(), 0);
             }}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="stg:text-muted-foreground stg:hover:text-foreground stg:transition-colors"
             aria-label="Back to repo list"
           >
             <ChevronLeftIcon />
           </button>
-          <span className="font-medium">Paste a repository URL</span>
+          <span className="stg:font-medium">Paste a repository URL</span>
         </div>
 
         <input
@@ -462,7 +462,7 @@ export function GitHubRepoPicker({
           value={manualUrl}
           onChange={(e) => setManualUrl(e.target.value)}
           onKeyDown={handleManualKeyDown}
-          className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
           autoFocus
         />
         <input
@@ -471,15 +471,15 @@ export function GitHubRepoPicker({
           value={manualBranch}
           onChange={(e) => setManualBranch(e.target.value)}
           onKeyDown={handleManualKeyDown}
-          className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
         />
 
-        <div className="flex justify-end">
+        <div className="stg:flex stg:justify-end">
           <button
             type="button"
             onClick={handleManualAdd}
             disabled={!manualUrl.trim()}
-            className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary-hover transition-colors disabled:opacity-40"
+            className="stg:rounded-md stg:bg-primary stg:px-2.5 stg:py-1 stg:text-xs stg:text-primary-foreground stg:hover:bg-primary-hover stg:transition-colors stg:disabled:opacity-40"
           >
             Add
           </button>
@@ -499,18 +499,18 @@ export function GitHubRepoPicker({
   // --- Main repo list view ---
   return (
     <div
-      className={["space-y-1.5", className].filter(Boolean).join(" ")}
+      className={["stg:space-y-1.5", className].filter(Boolean).join(" ")}
     >
       {/* Mode toggle */}
-      <div className="flex rounded-md border border-border bg-muted-faint p-0.5">
+      <div className="stg:flex stg:rounded-md stg:border stg:border-border stg:bg-muted-faint stg:p-0.5">
         <button
           type="button"
           onClick={() => handleModeSwitch("my-repos")}
           className={[
-            "flex-1 rounded px-2 py-1 text-[0.65rem] font-medium transition-colors",
+            "stg:flex-1 stg:rounded stg:px-2 stg:py-1 stg:text-[0.65rem] stg:font-medium stg:transition-colors",
             mode === "my-repos"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground",
+              ? "stg:bg-background stg:text-foreground stg:shadow-sm"
+              : "stg:text-muted-foreground stg:hover:text-foreground",
           ].join(" ")}
         >
           My Repos
@@ -519,10 +519,10 @@ export function GitHubRepoPicker({
           type="button"
           onClick={() => handleModeSwitch("all-github")}
           className={[
-            "flex-1 rounded px-2 py-1 text-[0.65rem] font-medium transition-colors",
+            "stg:flex-1 stg:rounded stg:px-2 stg:py-1 stg:text-[0.65rem] stg:font-medium stg:transition-colors",
             mode === "all-github"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground",
+              ? "stg:bg-background stg:text-foreground stg:shadow-sm"
+              : "stg:text-muted-foreground stg:hover:text-foreground",
           ].join(" ")}
         >
           All GitHub
@@ -547,21 +547,21 @@ export function GitHubRepoPicker({
         value={activeSearch}
         onChange={(e) => setActiveSearch(e.target.value)}
         onKeyDown={handleSearchKeyDown}
-        className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
         autoFocus
       />
 
       {activeError && (
-        <p className="text-xs text-destructive">
+        <p className="stg:text-xs stg:text-destructive">
           {activeError}
         </p>
       )}
 
       {/* Scrollable repo list with scroll shadows */}
-      <div className="relative">
+      <div className="stg:relative">
         {canScrollUp && (
           <div
-            className="absolute inset-x-0 top-0 h-3 z-10 pointer-events-none"
+            className="stg:absolute stg:inset-x-0 stg:top-0 stg:h-3 stg:z-10 stg:pointer-events-none"
             style={{
               background:
                 "linear-gradient(to bottom, var(--color-card, hsl(0 0% 9%)), transparent)",
@@ -574,7 +574,7 @@ export function GitHubRepoPicker({
           id={LIST_ID}
           role="listbox"
           aria-label="Repositories"
-          className="max-h-64 overflow-y-auto"
+          className="stg:max-h-64 stg:overflow-y-auto"
         >
           {mode === "my-repos" ? (
             <MyReposList
@@ -603,7 +603,7 @@ export function GitHubRepoPicker({
 
         {canScrollDown && (
           <div
-            className="absolute inset-x-0 bottom-0 h-3 z-10 pointer-events-none"
+            className="stg:absolute stg:inset-x-0 stg:bottom-0 stg:h-3 stg:z-10 stg:pointer-events-none"
             style={{
               background:
                 "linear-gradient(to top, var(--color-card, hsl(0 0% 9%)), transparent)",
@@ -613,20 +613,20 @@ export function GitHubRepoPicker({
       </div>
 
       {/* Footer: manual URL + manage access */}
-      <div className="flex items-center gap-3 border-t border-border pt-1.5 text-[0.65rem] text-muted-foreground">
+      <div className="stg:flex stg:items-center stg:gap-3 stg:border-t stg:border-border stg:pt-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
         <button
           type="button"
           onClick={() => setShowManualEntry(true)}
-          className="hover:text-foreground transition-colors"
+          className="stg:hover:text-foreground stg:transition-colors"
         >
           Paste a URL
         </button>
-        <span className="opacity-30">·</span>
+        <span className="stg:opacity-30">·</span>
         <a
           href={GITHUB_INSTALLATIONS_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-foreground transition-colors"
+          className="stg:hover:text-foreground stg:transition-colors"
         >
           Manage access
         </a>
@@ -662,7 +662,7 @@ function MyReposList({
 
   if (flatItems.length === 0) {
     return (
-      <div className="py-4 text-center text-xs text-muted-foreground">
+      <div className="stg:py-4 stg:text-center stg:text-xs stg:text-muted-foreground">
         {search ? "No repos match your search" : "No repositories found"}
       </div>
     );
@@ -672,10 +672,10 @@ function MyReposList({
     <>
       {groups.map((group, gi) => (
         <div key={group.key}>
-          <div className="sticky top-0 z-[1] bg-card px-2 py-1 text-[0.65rem] font-medium text-muted-foreground backdrop-blur-sm">
+          <div className="stg:sticky stg:top-0 stg:z-[1] stg:bg-card stg:px-2 stg:py-1 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground stg:backdrop-blur-sm">
             {group.label}
             {!group.isRecent && (
-              <span className="ml-1 opacity-50">
+              <span className="stg:ml-1 stg:opacity-50">
                 ({group.repos.length})
               </span>
             )}
@@ -699,7 +699,7 @@ function MyReposList({
       ))}
 
       {isBackgroundLoading && (
-        <div className="py-1 text-center text-[0.6rem] text-muted-foreground">
+        <div className="stg:py-1 stg:text-center stg:text-[0.6rem] stg:text-muted-foreground">
           Loading more...
         </div>
       )}
@@ -732,7 +732,7 @@ function SearchResultsList({
 }) {
   if (!query) {
     return (
-      <div className="py-6 text-center text-xs text-muted-foreground">
+      <div className="stg:py-6 stg:text-center stg:text-xs stg:text-muted-foreground">
         Type to search all of GitHub
       </div>
     );
@@ -744,7 +744,7 @@ function SearchResultsList({
 
   if (results.length === 0) {
     return (
-      <div className="py-4 text-center text-xs text-muted-foreground">
+      <div className="stg:py-4 stg:text-center stg:text-xs stg:text-muted-foreground">
         No repositories found
       </div>
     );
@@ -753,7 +753,7 @@ function SearchResultsList({
   return (
     <>
       {totalCount > 0 && (
-        <div className="px-2 py-1 text-[0.6rem] text-muted-foreground">
+        <div className="stg:px-2 stg:py-1 stg:text-[0.6rem] stg:text-muted-foreground">
           {totalCount.toLocaleString()} {totalCount === 1 ? "result" : "results"}
         </div>
       )}
@@ -771,7 +771,7 @@ function SearchResultsList({
       ))}
 
       {isSearching && (
-        <div className="py-1 text-center text-[0.6rem] text-muted-foreground">
+        <div className="stg:py-1 stg:text-center stg:text-[0.6rem] stg:text-muted-foreground">
           Searching...
         </div>
       )}
@@ -780,7 +780,7 @@ function SearchResultsList({
         <button
           type="button"
           onClick={onLoadMore}
-          className="w-full py-1.5 text-center text-[0.65rem] text-muted-foreground hover:text-foreground transition-colors"
+          className="stg:w-full stg:py-1.5 stg:text-center stg:text-[0.65rem] stg:text-muted-foreground stg:hover:text-foreground stg:transition-colors"
         >
           Load more results
         </button>
@@ -815,18 +815,18 @@ function RepoRow({
       data-idx={flatIdx}
       onClick={() => onClick(repo)}
       className={[
-        "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
+        "stg:flex stg:w-full stg:items-center stg:gap-2 stg:rounded-md stg:px-2 stg:py-1.5 stg:text-left stg:text-xs stg:transition-colors",
         flatIdx === focusIndex
-          ? "bg-accent text-foreground"
-          : "text-foreground hover:bg-accent-hover",
+          ? "stg:bg-accent stg:text-foreground"
+          : "stg:text-foreground stg:hover:bg-accent-hover",
       ].join(" ")}
       role="option"
       aria-selected={flatIdx === focusIndex}
     >
-      <span className="min-w-0 flex-1 truncate">
+      <span className="stg:min-w-0 stg:flex-1 stg:truncate">
         <HighlightMatch text={displayName} query={query} />
       </span>
-      <span className="shrink-0 rounded px-1 py-0.5 text-[0.6rem] bg-muted text-muted-foreground">
+      <span className="stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-[0.6rem] stg:bg-muted stg:text-muted-foreground">
         {repo.isPrivate ? "private" : "public"}
       </span>
     </button>
@@ -839,25 +839,25 @@ function RepoRow({
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-1 py-1">
-      <div className="px-2 py-1">
-        <div className="h-2.5 w-16 rounded bg-muted animate-pulse" />
+    <div className="stg:space-y-1 stg:py-1">
+      <div className="stg:px-2 stg:py-1">
+        <div className="stg:h-2.5 stg:w-16 stg:rounded stg:bg-muted stg:animate-pulse" />
       </div>
       {[55, 70, 40, 62].map((w, i) => (
-        <div key={i} className="flex items-center gap-2 px-2 py-1.5">
+        <div key={i} className="stg:flex stg:items-center stg:gap-2 stg:px-2 stg:py-1.5">
           <div
-            className="h-3 rounded bg-muted animate-pulse"
+            className="stg:h-3 stg:rounded stg:bg-muted stg:animate-pulse"
             style={{ width: `${w}%` }}
           />
         </div>
       ))}
-      <div className="px-2 py-1">
-        <div className="h-2.5 w-20 rounded bg-muted animate-pulse" />
+      <div className="stg:px-2 stg:py-1">
+        <div className="stg:h-2.5 stg:w-20 stg:rounded stg:bg-muted stg:animate-pulse" />
       </div>
       {[48, 65, 53].map((w, i) => (
-        <div key={i + 4} className="flex items-center gap-2 px-2 py-1.5">
+        <div key={i + 4} className="stg:flex stg:items-center stg:gap-2 stg:px-2 stg:py-1.5">
           <div
-            className="h-3 rounded bg-muted animate-pulse"
+            className="stg:h-3 stg:rounded stg:bg-muted stg:animate-pulse"
             style={{ width: `${w}%` }}
           />
         </div>

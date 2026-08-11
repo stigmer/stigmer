@@ -73,27 +73,27 @@ export const CatchTab = memo(function CatchTab({ node, mutations }: CatchTabProp
   }, [mutations, node.id]);
 
   return (
-    <div className="flex flex-col gap-4 px-3 py-3">
+    <div className="stg:flex stg:flex-col stg:gap-4 stg:px-3 stg:py-3">
       {/* Protected (try) tasks */}
       <section>
-        <h3 className="text-xs font-semibold text-[var(--stgm-foreground,#1a1a2e)] mb-1.5">
+        <h3 className="stg:text-xs stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)] stg:mb-1.5">
           Protected tasks ({tryTasks.length})
         </h3>
         {tryTasks.length === 0 ? (
-          <p className="text-[11px] text-[var(--stgm-muted-foreground,#737373)]">
+          <p className="stg:text-[11px] stg:text-[var(--stgm-muted-foreground,#737373)]">
             No tasks in the try block.
           </p>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="stg:flex stg:flex-col stg:gap-1">
             {tryTasks.map((task, idx) => (
               <div
                 key={`${task.name}-${idx}`}
-                className="flex items-center gap-2 rounded border border-[var(--stgm-border,#e5e5e5)] px-2 py-1"
+                className="stg:flex stg:items-center stg:gap-2 stg:rounded stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:px-2 stg:py-1"
               >
-                <span className="text-[10px] font-mono text-[var(--stgm-muted-foreground,#737373)]">
+                <span className="stg:text-[10px] stg:font-mono stg:text-[var(--stgm-muted-foreground,#737373)]">
                   {task.kind}
                 </span>
-                <span className="text-[11px] text-[var(--stgm-foreground,#1a1a2e)] truncate">
+                <span className="stg:text-[11px] stg:text-[var(--stgm-foreground,#1a1a2e)] stg:truncate">
                   {task.name}
                 </span>
               </div>
@@ -105,14 +105,14 @@ export const CatchTab = memo(function CatchTab({ node, mutations }: CatchTabProp
       {/* Catch configuration */}
       {catchBlock ? (
         <section>
-          <h3 className="text-xs font-semibold text-[var(--stgm-foreground,#1a1a2e)] mb-1.5">
+          <h3 className="stg:text-xs stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)] stg:mb-1.5">
             Catch handler
           </h3>
 
-          <div className="flex flex-col gap-2.5">
+          <div className="stg:flex stg:flex-col stg:gap-2.5">
             {/* Error variable */}
             <div>
-              <label className="mb-1 block text-[10px] font-medium text-[var(--stgm-muted-foreground,#737373)]">
+              <label className="stg:mb-1 stg:block stg:text-[10px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)]">
                 Error variable name
               </label>
               <input
@@ -121,45 +121,45 @@ export const CatchTab = memo(function CatchTab({ node, mutations }: CatchTabProp
                 onChange={(e) => setErrorVar(e.target.value)}
                 onBlur={handleErrorVarBlur}
                 onKeyDown={(e) => { if (e.key === "Enter") handleErrorVarBlur(); }}
-                className="w-full rounded border border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] px-2 py-1.5 text-xs font-mono text-[var(--stgm-foreground,#1a1a2e)] outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+                className="stg:w-full stg:rounded stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] stg:px-2 stg:py-1.5 stg:text-xs stg:font-mono stg:text-[var(--stgm-foreground,#1a1a2e)] stg:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
                 placeholder="error"
               />
-              <p className="mt-0.5 text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
-                Access in catch block as <code className="font-mono">${"${"}$context.{errorVar}{"}"}</code>
+              <p className="stg:mt-0.5 stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
+                Access in catch block as <code className="stg:font-mono">${"${"}$context.{errorVar}{"}"}</code>
               </p>
             </div>
 
             {/* Compensate toggle */}
-            <label className="flex items-center gap-2 text-[11px] text-[var(--stgm-foreground,#1a1a2e)] cursor-pointer">
+            <label className="stg:flex stg:items-center stg:gap-2 stg:text-[11px] stg:text-[var(--stgm-foreground,#1a1a2e)] stg:cursor-pointer">
               <input
                 type="checkbox"
                 checked={catchBlock.compensate}
                 onChange={handleCompensateToggle}
-                className="h-3 w-3 accent-[var(--stgm-primary,#6366f1)]"
+                className="stg:h-3 stg:w-3 stg:accent-[var(--stgm-primary,#6366f1)]"
               />
               Run compensation before catch block
             </label>
 
             {/* Catch tasks */}
             <div>
-              <h4 className="text-[10px] font-medium text-[var(--stgm-muted-foreground,#737373)] mb-1">
+              <h4 className="stg:text-[10px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)] stg:mb-1">
                 Catch tasks ({catchBlock.tasks.length})
               </h4>
               {catchBlock.tasks.length === 0 ? (
-                <p className="text-[10px] text-[var(--stgm-muted-foreground,#737373)] italic">
+                <p className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)] stg:italic">
                   No tasks in catch block
                 </p>
               ) : (
-                <div className="flex flex-col gap-1">
+                <div className="stg:flex stg:flex-col stg:gap-1">
                   {catchBlock.tasks.map((task, idx) => (
                     <div
                       key={`${task.name}-${idx}`}
-                      className="flex items-center gap-2 rounded border border-dashed border-[var(--stgm-border,#e5e5e5)] px-2 py-1"
+                      className="stg:flex stg:items-center stg:gap-2 stg:rounded stg:border stg:border-dashed stg:border-[var(--stgm-border,#e5e5e5)] stg:px-2 stg:py-1"
                     >
-                      <span className="text-[10px] font-mono text-[var(--stgm-muted-foreground,#737373)]">
+                      <span className="stg:text-[10px] stg:font-mono stg:text-[var(--stgm-muted-foreground,#737373)]">
                         {task.kind}
                       </span>
-                      <span className="text-[11px] text-[var(--stgm-foreground,#1a1a2e)] truncate">
+                      <span className="stg:text-[11px] stg:text-[var(--stgm-foreground,#1a1a2e)] stg:truncate">
                         {task.name}
                       </span>
                     </div>
@@ -172,7 +172,7 @@ export const CatchTab = memo(function CatchTab({ node, mutations }: CatchTabProp
             <button
               type="button"
               onClick={handleRemoveCatch}
-              className="mt-1 w-full rounded border border-[var(--stgm-destructive,#ef4444)]/30 px-2 py-1.5 text-[11px] font-medium text-[var(--stgm-destructive,#ef4444)] transition-colors hover:bg-[var(--stgm-destructive,#ef4444)]/10"
+              className="stg:mt-1 stg:w-full stg:rounded stg:border stg:border-[var(--stgm-destructive,#ef4444)]/30 stg:px-2 stg:py-1.5 stg:text-[11px] stg:font-medium stg:text-[var(--stgm-destructive,#ef4444)] stg:transition-colors stg:hover:bg-[var(--stgm-destructive,#ef4444)]/10"
             >
               Remove catch handler
             </button>
@@ -180,7 +180,7 @@ export const CatchTab = memo(function CatchTab({ node, mutations }: CatchTabProp
         </section>
       ) : (
         <section>
-          <p className="text-[11px] text-[var(--stgm-muted-foreground,#737373)]">
+          <p className="stg:text-[11px] stg:text-[var(--stgm-muted-foreground,#737373)]">
             No catch handler configured. Add one using the + button on the node.
           </p>
         </section>

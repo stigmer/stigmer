@@ -91,13 +91,13 @@ export function CreateApiKeyForm({
   );
 
   return (
-    <form onSubmit={handleSubmit} className={cn("space-y-3", className)}>
-      <div className="space-y-3">
+    <form onSubmit={handleSubmit} className={cn("stg:space-y-3", className)}>
+      <div className="stg:space-y-3">
         {/* Name */}
-        <div className="space-y-1">
+        <div className="stg:space-y-1">
           <label
             htmlFor="stgm-new-apikey-name"
-            className="text-xs font-medium text-foreground"
+            className="stg:text-xs stg:font-medium stg:text-foreground"
           >
             Name
           </label>
@@ -111,20 +111,20 @@ export function CreateApiKeyForm({
             autoFocus
             required
             className={cn(
-              "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           />
         </div>
 
         {/* Expiry */}
-        <fieldset className="space-y-1.5">
-          <legend className="text-xs font-medium text-foreground">
+        <fieldset className="stg:space-y-1.5">
+          <legend className="stg:text-xs stg:font-medium stg:text-foreground">
             Expiration
           </legend>
-          <div className="flex flex-wrap gap-2">
+          <div className="stg:flex stg:flex-wrap stg:gap-2">
             {EXPIRY_OPTIONS.map(({ value, label }) => (
               <ExpiryRadio
                 key={value}
@@ -140,19 +140,19 @@ export function CreateApiKeyForm({
       </div>
 
       {error && (
-        <p className="text-destructive text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
           {getUserMessage(error)}
         </p>
       )}
 
-      <div className="flex items-center gap-2">
+      <div className="stg:flex stg:items-center stg:gap-2">
         <button
           type="submit"
           disabled={!canSubmit}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-40",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
           {isCreating && <SpinnerIcon />}
@@ -165,9 +165,9 @@ export function CreateApiKeyForm({
             onClick={onCancel}
             disabled={isCreating}
             className={cn(
-              "rounded-md px-3 py-1.5 text-xs",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             Cancel
@@ -215,11 +215,11 @@ function ExpiryRadio({
   return (
     <label
       className={cn(
-        "inline-flex cursor-pointer items-center rounded-md border px-2.5 py-1 text-xs transition-colors",
+        "stg:inline-flex stg:cursor-pointer stg:items-center stg:rounded-md stg:border stg:px-2.5 stg:py-1 stg:text-xs stg:transition-colors",
         checked
-          ? "border-primary bg-primary-subtle text-primary font-medium"
-          : "border-input bg-background text-muted-foreground hover:border-border hover:text-foreground",
-        disabled && "pointer-events-none opacity-50",
+          ? "stg:border-primary stg:bg-primary-subtle stg:text-primary stg:font-medium"
+          : "stg:border-input stg:bg-background stg:text-muted-foreground stg:hover:border-border stg:hover:text-foreground",
+        disabled && "stg:pointer-events-none stg:opacity-50",
       )}
     >
       <input
@@ -229,7 +229,7 @@ function ExpiryRadio({
         checked={checked}
         disabled={disabled}
         onChange={() => onChange(value)}
-        className="sr-only"
+        className="stg:sr-only"
       />
       {label}
     </label>
@@ -250,7 +250,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

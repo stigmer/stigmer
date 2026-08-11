@@ -77,7 +77,7 @@ export function ToolCallDetail({
   );
 
   return (
-    <div className={cn("space-y-2 text-xs", className)}>
+    <div className={cn("stg:space-y-2 stg:text-xs", className)}>
       <CategoryDetail
         toolCall={toolCall}
         category={category}
@@ -248,9 +248,9 @@ function SearchQueryBlock({
 }) {
   const label = category === "list" ? "Path" : "Query";
   return (
-    <div className="space-y-1">
-      <span className="font-medium text-muted-foreground">{label}</span>
-      <code className="block whitespace-pre-wrap break-words rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+    <div className="stg:space-y-1">
+      <span className="stg:font-medium stg:text-muted-foreground">{label}</span>
+      <code className="stg:block stg:whitespace-pre-wrap stg:break-words stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-foreground">
         {value}
       </code>
     </div>
@@ -274,10 +274,10 @@ function ThinkToolDetail({ toolCall }: { toolCall: ToolCall }) {
   if (!thought) return null;
 
   return (
-    <div className="rounded-md border border-border-muted bg-muted-faint p-3">
+    <div className="stg:rounded-md stg:border stg:border-border-muted stg:bg-muted-faint stg:p-3">
       <CollapsiblePre
         content={thought}
-        className="italic text-muted-foreground whitespace-pre-wrap"
+        className="stg:italic stg:text-muted-foreground stg:whitespace-pre-wrap"
       />
     </div>
   );
@@ -313,7 +313,7 @@ function ProvenanceNote({ toolCall }: { toolCall: ToolCall }) {
 
   return (
     <p
-      className="text-[11px] italic text-muted-foreground"
+      className="stg:text-[11px] stg:italic stg:text-muted-foreground"
       title={provenance}
     >
       {provenance}

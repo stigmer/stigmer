@@ -22,20 +22,20 @@ export interface ResourceAvatarProps {
 }
 
 const AVATAR_COLORS = [
-  "bg-[#6366f1]",
-  "bg-[#8b5cf6]",
-  "bg-[#a855f7]",
-  "bg-[#d946ef]",
-  "bg-[#ec4899]",
-  "bg-[#f43f5e]",
-  "bg-[#ef4444]",
-  "bg-[#f97316]",
-  "bg-[#eab308]",
-  "bg-[#22c55e]",
-  "bg-[#14b8a6]",
-  "bg-[#06b6d4]",
-  "bg-[#3b82f6]",
-  "bg-[#2563eb]",
+  "stg:bg-[#6366f1]",
+  "stg:bg-[#8b5cf6]",
+  "stg:bg-[#a855f7]",
+  "stg:bg-[#d946ef]",
+  "stg:bg-[#ec4899]",
+  "stg:bg-[#f43f5e]",
+  "stg:bg-[#ef4444]",
+  "stg:bg-[#f97316]",
+  "stg:bg-[#eab308]",
+  "stg:bg-[#22c55e]",
+  "stg:bg-[#14b8a6]",
+  "stg:bg-[#06b6d4]",
+  "stg:bg-[#3b82f6]",
+  "stg:bg-[#2563eb]",
 ] as const;
 
 function hashSlug(slug: string): number {
@@ -47,8 +47,8 @@ function hashSlug(slug: string): number {
 }
 
 const SIZE_CLASSES = {
-  sm: "size-6 text-[10px]",
-  md: "size-8 text-xs",
+  sm: "stg:size-6 stg:text-[10px]",
+  md: "stg:size-8 stg:text-xs",
 } as const;
 
 /**
@@ -76,7 +76,7 @@ export function ResourceAvatar({
     return (
       <span
         className={cn(
-          "inline-flex shrink-0 items-center justify-center rounded-full bg-muted",
+          "stg:inline-flex stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted",
           sizeClass,
           className,
         )}
@@ -84,7 +84,7 @@ export function ResourceAvatar({
         <img
           src={iconUrl}
           alt=""
-          className="size-4/5 object-contain"
+          className="stg:size-4/5 stg:object-contain"
         />
       </span>
     );
@@ -97,7 +97,7 @@ export function ResourceAvatar({
     <span
       aria-hidden="true"
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full font-medium text-white",
+        "stg:inline-flex stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:font-medium stg:text-white",
         sizeClass,
         colorClass,
         className,

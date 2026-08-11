@@ -7,7 +7,7 @@
     "node": "^20.11.0 || ^22.0.0"
   },
   "scripts": {
-    "dev": "tsx scripts/copy-narration-to-public.ts && next dev",
+    "dev": "tsx scripts/copy-narration-to-public.ts && tsx ../sdk/react/scripts/build-styles.ts && next dev",
     "generate-images": "tsx scripts/generate-images.ts",
     "build": "tsx scripts/copy-narration-to-public.ts && tsx scripts/generate-images.ts && next build && tsx scripts/generate-llms-txt.ts",
     "generate-llms": "tsx scripts/generate-llms-txt.ts",

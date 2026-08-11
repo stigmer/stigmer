@@ -71,7 +71,7 @@ describe("WorkspaceContentSearch", () => {
     typeQuery("a");
     // Assert the visible message, not the parallel sr-only live-region copy.
     expect(
-      screen.getByText(/type at least 2 characters/i, { ignore: ".sr-only" }),
+      screen.getByText(/type at least 2 characters/i, { ignore: ".stg\\:sr-only" }),
     ).toBeTruthy();
     expect(searcher).not.toHaveBeenCalled();
   });
@@ -128,7 +128,7 @@ describe("WorkspaceContentSearch", () => {
     );
     typeQuery("foo");
     await screen.findByRole("option");
-    const highlights = container.querySelectorAll(".font-semibold");
+    const highlights = container.querySelectorAll(".stg\\:font-semibold");
     expect(Array.from(highlights).map((el) => el.textContent)).toEqual(["foo", "foo"]);
   });
 
@@ -142,7 +142,7 @@ describe("WorkspaceContentSearch", () => {
     );
     typeQuery("zzz");
     expect(
-      await screen.findByText(/no files containing/i, { ignore: ".sr-only" }),
+      await screen.findByText(/no files containing/i, { ignore: ".stg\\:sr-only" }),
     ).toBeTruthy();
   });
 
@@ -185,7 +185,7 @@ describe("WorkspaceContentSearch", () => {
     expect(screen.getAllByRole("option")).toHaveLength(200);
     expect(
       screen.getByText(/showing the first 200 of 250 matches/i, {
-        ignore: ".sr-only",
+        ignore: ".stg\\:sr-only",
       }),
     ).toBeTruthy();
   });
@@ -210,7 +210,7 @@ describe("WorkspaceContentSearch", () => {
     expect(status.textContent).toMatch(/match/i);
 
     typeQuery("zzz");
-    await screen.findByText(/no files containing/i, { ignore: ".sr-only" });
+    await screen.findByText(/no files containing/i, { ignore: ".stg\\:sr-only" });
     expect(status.textContent).toMatch(/no files containing/i);
   });
 

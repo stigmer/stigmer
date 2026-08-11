@@ -69,7 +69,7 @@ export function TodoList({
   return (
     <ul
       role="list"
-      className={cn("flex flex-col gap-1", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-1", className)}
       aria-label="Tasks"
     >
       {sortedTodos.map((item) => (
@@ -132,18 +132,18 @@ export interface TodoRowProps {
  */
 export function TodoRow({ item }: TodoRowProps) {
   const Icon = TODO_ICONS[item.status] ?? TodoPendingIcon;
-  const colorClass = TODO_COLORS[item.status] ?? "text-muted-foreground";
+  const colorClass = TODO_COLORS[item.status] ?? "stg:text-muted-foreground";
   const cancelled = item.status === TodoStatus.TODO_CANCELLED;
 
   return (
-    <li className="flex items-start gap-1.5 text-xs">
-      <span className={cn("mt-0.5 shrink-0", colorClass)} aria-hidden="true">
+    <li className="stg:flex stg:items-start stg:gap-1.5 stg:text-xs">
+      <span className={cn("stg:mt-0.5 stg:shrink-0", colorClass)} aria-hidden="true">
         <Icon />
       </span>
       <span
         className={cn(
-          "min-w-0 break-words",
-          cancelled ? "text-muted-foreground line-through" : "text-foreground",
+          "stg:min-w-0 stg:break-words",
+          cancelled ? "stg:text-muted-foreground stg:line-through" : "stg:text-foreground",
         )}
       >
         {item.content}
@@ -164,10 +164,10 @@ const TODO_ICONS: Partial<Record<TodoStatus, () => React.JSX.Element>> = {
 };
 
 const TODO_COLORS: Partial<Record<TodoStatus, string>> = {
-  [TodoStatus.TODO_PENDING]: "text-muted-foreground",
-  [TodoStatus.TODO_IN_PROGRESS]: "text-foreground",
-  [TodoStatus.TODO_COMPLETED]: "text-success",
-  [TodoStatus.TODO_CANCELLED]: "text-muted-foreground",
+  [TodoStatus.TODO_PENDING]: "stg:text-muted-foreground",
+  [TodoStatus.TODO_IN_PROGRESS]: "stg:text-foreground",
+  [TodoStatus.TODO_COMPLETED]: "stg:text-success",
+  [TodoStatus.TODO_CANCELLED]: "stg:text-muted-foreground",
 };
 
 // ---------------------------------------------------------------------------
@@ -192,9 +192,9 @@ function TodoPendingIcon() {
 /** Exported for reuse in SubAgentSection collapsed preview. */
 export function TodoInProgressIcon() {
   return (
-    <span className="relative flex h-3 w-3 items-center justify-center">
-      <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-current opacity-75" />
-      <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
+    <span className="stg:relative stg:flex stg:h-3 stg:w-3 stg:items-center stg:justify-center">
+      <span className="stg:absolute stg:inline-flex stg:h-2 stg:w-2 stg:animate-ping stg:rounded-full stg:bg-current stg:opacity-75" />
+      <span className="stg:relative stg:inline-flex stg:h-2 stg:w-2 stg:rounded-full stg:bg-current" />
     </span>
   );
 }

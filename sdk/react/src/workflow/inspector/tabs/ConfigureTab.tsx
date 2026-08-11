@@ -53,7 +53,7 @@ export const ConfigureTab = memo(function ConfigureTab({
 
   if (isSwitchCase && mutations.onUpdateBranchRouting && mutations.onMigrateBranchHandle && mutations.onRemoveBranchEdges) {
     return (
-      <div className="px-3 py-3">
+      <div className="stg:px-3 stg:py-3">
         <BranchConditionBuilder
           nodeId={node.id}
           config={node.config}
@@ -76,7 +76,7 @@ export const ConfigureTab = memo(function ConfigureTab({
 
   if (isHumanInput && mutations.onUpdateBranchRouting && mutations.onMigrateBranchHandle && mutations.onRemoveBranchEdges) {
     return (
-      <div className="px-3 py-3">
+      <div className="stg:px-3 stg:py-3">
         <ApprovalFormBuilder
           nodeId={node.id}
           config={node.config}
@@ -109,7 +109,7 @@ export const ConfigureTab = memo(function ConfigureTab({
   }
 
   return (
-    <div className="px-3 py-4 text-xs text-[var(--stgm-muted-foreground,#737373)]">
+    <div className="stg:px-3 stg:py-4 stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">
       No configurable fields for this task kind.
     </div>
   );

@@ -54,10 +54,10 @@ export const WorkflowVersionBadge = memo(function WorkflowVersionBadge({
   }, [versionHash]);
 
   return (
-    <span className={cn("inline-flex items-center gap-1.5", className)}>
+    <span className={cn("stg:inline-flex stg:items-center stg:gap-1.5", className)}>
       {isCurrent && (
         <span
-          className="size-2 shrink-0 rounded-full bg-status-ready"
+          className="stg:size-2 stg:shrink-0 stg:rounded-full stg:bg-status-ready"
           aria-label="Current version"
           title="Current version"
         />
@@ -68,17 +68,17 @@ export const WorkflowVersionBadge = memo(function WorkflowVersionBadge({
         onClick={handleCopy}
         title={copied ? "Copied!" : `Copy full hash: ${versionHash}`}
         className={cn(
-          "shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-medium text-foreground transition-colors",
-          "hover:bg-accent-hover",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          copied && "bg-status-ready-subtle text-status-ready",
+          "stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-[11px] stg:font-medium stg:text-foreground stg:transition-colors",
+          "stg:hover:bg-accent-hover",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+          copied && "stg:bg-status-ready-subtle stg:text-status-ready",
         )}
       >
         {copied ? "copied" : truncated}
       </button>
 
       {tag && (
-        <span className="shrink-0 rounded-full bg-primary-subtle px-1.5 py-0.5 text-[10px] font-medium text-primary">
+        <span className="stg:shrink-0 stg:rounded-full stg:bg-primary-subtle stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-primary">
           {tag}
         </span>
       )}

@@ -24,13 +24,13 @@ export interface TemplateCardProps<TData> {
 // ---------------------------------------------------------------------------
 
 const CATEGORY_COLORS: Record<TemplateCategory, string> = {
-  "customer-support": "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-  "code-review": "bg-violet-500/10 text-violet-700 dark:text-violet-400",
-  "data-analysis": "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  devops: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-  content: "bg-pink-500/10 text-pink-700 dark:text-pink-400",
-  integration: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400",
-  general: "bg-muted text-muted-foreground",
+  "customer-support": "stg:bg-blue-500/10 stg:text-blue-700 stg:dark:text-blue-400",
+  "code-review": "stg:bg-violet-500/10 stg:text-violet-700 stg:dark:text-violet-400",
+  "data-analysis": "stg:bg-amber-500/10 stg:text-amber-700 stg:dark:text-amber-400",
+  devops: "stg:bg-emerald-500/10 stg:text-emerald-700 stg:dark:text-emerald-400",
+  content: "stg:bg-pink-500/10 stg:text-pink-700 stg:dark:text-pink-400",
+  integration: "stg:bg-cyan-500/10 stg:text-cyan-700 stg:dark:text-cyan-400",
+  general: "stg:bg-muted stg:text-muted-foreground",
 };
 
 // ---------------------------------------------------------------------------
@@ -38,13 +38,13 @@ const CATEGORY_COLORS: Record<TemplateCategory, string> = {
 // ---------------------------------------------------------------------------
 
 const AVATAR_COLORS = [
-  "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  "bg-violet-500/15 text-violet-700 dark:text-violet-400",
-  "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  "bg-pink-500/15 text-pink-700 dark:text-pink-400",
-  "bg-cyan-500/15 text-cyan-700 dark:text-cyan-400",
-  "bg-rose-500/15 text-rose-700 dark:text-rose-400",
+  "stg:bg-blue-500/15 stg:text-blue-700 stg:dark:text-blue-400",
+  "stg:bg-violet-500/15 stg:text-violet-700 stg:dark:text-violet-400",
+  "stg:bg-emerald-500/15 stg:text-emerald-700 stg:dark:text-emerald-400",
+  "stg:bg-amber-500/15 stg:text-amber-700 stg:dark:text-amber-400",
+  "stg:bg-pink-500/15 stg:text-pink-700 stg:dark:text-pink-400",
+  "stg:bg-cyan-500/15 stg:text-cyan-700 stg:dark:text-cyan-400",
+  "stg:bg-rose-500/15 stg:text-rose-700 stg:dark:text-rose-400",
 ] as const;
 
 function hashCode(str: string): number {
@@ -104,17 +104,17 @@ export function TemplateCard<TData>({
       onKeyDown={handleKeyDown}
       aria-label={`Use ${template.name} template`}
       className={cn(
-        "group flex cursor-pointer flex-col gap-3 rounded-lg border border-border bg-card p-4",
-        "transition-colors hover:border-primary hover:bg-accent",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "stg:group stg:flex stg:cursor-pointer stg:flex-col stg:gap-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4",
+        "stg:transition-colors stg:hover:border-primary stg:hover:bg-accent",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         className,
       )}
     >
-      <div className="flex items-start gap-3">
+      <div className="stg:flex stg:items-start stg:gap-3">
         {/* Initial avatar */}
         <span
           className={cn(
-            "inline-flex size-9 shrink-0 items-center justify-center rounded-md text-sm font-semibold",
+            "stg:inline-flex stg:size-9 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-md stg:text-sm stg:font-semibold",
             avatarColor,
           )}
           aria-hidden="true"
@@ -122,11 +122,11 @@ export function TemplateCard<TData>({
           {initial}
         </span>
 
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-foreground">{template.name}</p>
+        <div className="stg:min-w-0 stg:flex-1">
+          <p className="stg:text-sm stg:font-medium stg:text-foreground">{template.name}</p>
           <span
             className={cn(
-              "mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
+              "stg:mt-1 stg:inline-block stg:rounded-full stg:px-2 stg:py-0.5 stg:text-[10px] stg:font-medium",
               CATEGORY_COLORS[template.category] ?? CATEGORY_COLORS.general,
             )}
           >
@@ -135,7 +135,7 @@ export function TemplateCard<TData>({
         </div>
       </div>
 
-      <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+      <p className="stg:line-clamp-2 stg:text-xs stg:leading-relaxed stg:text-muted-foreground">
         {template.description}
       </p>
     </div>

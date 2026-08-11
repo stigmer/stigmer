@@ -73,20 +73,20 @@ export function InlineEditImage({
     [handleConfirm, handleCancel],
   );
 
-  const sizeClasses = size === "sm" ? "size-6" : "size-8";
+  const sizeClasses = size === "sm" ? "stg:size-6" : "stg:size-8";
   const displayError = localError || error;
 
   if (disabled || !isEditing) {
     return (
-      <div className={cn("group/inline-edit inline-flex", className)}>
+      <div className={cn("stg:group/inline-edit stg:inline-flex", className)}>
         <button
           type="button"
           onClick={() => { if (!disabled) setIsEditing(true); }}
           disabled={disabled}
           className={cn(
-            "relative rounded-md p-0.5 transition-colors",
-            !disabled && "hover:bg-accent-hover cursor-pointer",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:relative stg:rounded-md stg:p-0.5 stg:transition-colors",
+            !disabled && "stg:hover:bg-accent-hover stg:cursor-pointer",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
           aria-label="Change icon"
         >
@@ -94,14 +94,14 @@ export function InlineEditImage({
             <img
               src={value}
               alt=""
-              className={cn(sizeClasses, "shrink-0 rounded object-cover")}
+              className={cn(sizeClasses, "stg:shrink-0 stg:rounded stg:object-cover")}
             />
           ) : (
-            fallback ?? <ImagePlaceholder className={cn(sizeClasses, "text-muted-foreground")} />
+            fallback ?? <ImagePlaceholder className={cn(sizeClasses, "stg:text-muted-foreground")} />
           )}
           {!disabled && (
-            <span className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-muted text-muted-foreground opacity-0 transition-opacity group-hover/inline-edit:opacity-100">
-              <PencilIcon className="size-2.5" />
+            <span className="stg:absolute stg:-bottom-0.5 stg:-right-0.5 stg:flex stg:size-4 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:text-muted-foreground stg:opacity-0 stg:transition-opacity stg:group-hover/inline-edit:opacity-100">
+              <PencilIcon className="stg:size-2.5" />
             </span>
           )}
         </button>
@@ -110,8 +110,8 @@ export function InlineEditImage({
   }
 
   return (
-    <div className={cn("flex flex-col gap-1", className)}>
-      <div className="flex items-center gap-1.5">
+    <div className={cn("stg:flex stg:flex-col stg:gap-1", className)}>
+      <div className="stg:flex stg:items-center stg:gap-1.5">
         <input
           ref={inputRef}
           type="url"
@@ -121,37 +121,37 @@ export function InlineEditImage({
           disabled={isSaving}
           placeholder="https://example.com/icon.png"
           className={cn(
-            "flex-1 rounded-md border border-border bg-input-bg px-2 py-1 text-sm text-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-ring",
-            "disabled:opacity-50",
-            displayError && "border-destructive",
+            "stg:flex-1 stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1 stg:text-sm stg:text-foreground",
+            "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
+            "stg:disabled:opacity-50",
+            displayError && "stg:border-destructive",
           )}
         />
         <button type="button" onClick={handleConfirm} disabled={isSaving} aria-label="Save"
           className={cn(
-            "inline-flex size-7 items-center justify-center rounded-md",
-            "bg-primary text-primary-foreground hover:bg-primary-hover disabled:opacity-50",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:inline-flex stg:size-7 stg:items-center stg:justify-center stg:rounded-md",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover stg:disabled:opacity-50",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}>
-          {isSaving ? <Spinner /> : <CheckIcon className="size-3.5" />}
+          {isSaving ? <Spinner /> : <CheckIcon className="stg:size-3.5" />}
         </button>
         <button type="button" onClick={handleCancel} disabled={isSaving} aria-label="Cancel"
           className={cn(
-            "inline-flex size-7 items-center justify-center rounded-md",
-            "border border-border bg-background text-foreground hover:bg-accent disabled:opacity-50",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:inline-flex stg:size-7 stg:items-center stg:justify-center stg:rounded-md",
+            "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent stg:disabled:opacity-50",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}>
-          <XIcon className="size-3.5" />
+          <XIcon className="stg:size-3.5" />
         </button>
         {draft && (
           <button type="button" onClick={() => setDraft("")} disabled={isSaving} aria-label="Clear"
-            className="text-xs text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground">
+            className="stg:text-xs stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground">
             Clear
           </button>
         )}
       </div>
       {displayError && (
-        <p className="px-1 text-xs text-destructive" role="alert">{displayError}</p>
+        <p className="stg:px-1 stg:text-xs stg:text-destructive" role="alert">{displayError}</p>
       )}
     </div>
   );
@@ -201,7 +201,7 @@ function ImagePlaceholder({ className }: { readonly className?: string }) {
 
 function Spinner() {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="animate-spin" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="stg:animate-spin" aria-hidden="true">
       <path d="M8 2a6 6 0 1 0 6 6" />
     </svg>
   );

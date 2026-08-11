@@ -123,24 +123,24 @@ function MediaImageThumbnail({
         aria-label={`Preview ${name}`}
         className={cn(
           UNSTYLED_BUTTON,
-          "block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "stg:block stg:rounded-md stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           className,
         )}
       >
-        <span className="relative block h-40 w-56 max-w-full overflow-hidden rounded-md">
+        <span className="stg:relative stg:block stg:h-40 stg:w-56 stg:max-w-full stg:overflow-hidden stg:rounded-md">
           {url ? (
             <img
               src={url}
               alt=""
               aria-hidden="true"
               loading="lazy"
-              className="h-full w-full object-cover"
+              className="stg:h-full stg:w-full stg:object-cover"
             />
           ) : (
             // Pulse placeholder while the presigned URL is minted; same
             // footprint as the image, so no layout shift.
             <span
-              className="block h-full w-full animate-pulse bg-muted"
+              className="stg:block stg:h-full stg:w-full stg:animate-pulse stg:bg-muted"
               aria-hidden="true"
             />
           )}
@@ -192,7 +192,7 @@ function MediaDocumentChip({
     <div className={className}>
       <span
         title={name}
-        className="inline-flex max-w-[240px] items-center rounded-md bg-muted-subtle px-2 py-1 text-xs text-foreground"
+        className="stg:inline-flex stg:max-w-[240px] stg:items-center stg:rounded-md stg:bg-muted-subtle stg:px-2 stg:py-1 stg:text-xs stg:text-foreground"
       >
         <button
           type="button"
@@ -201,19 +201,19 @@ function MediaDocumentChip({
           aria-label={`Open ${name}`}
           className={cn(
             UNSTYLED_BUTTON,
-            "flex min-w-0 items-center gap-1.5 rounded-sm hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            isOpening && "opacity-70",
+            "stg:flex stg:min-w-0 stg:items-center stg:gap-1.5 stg:rounded-sm stg:hover:text-accent-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            isOpening && "stg:opacity-70",
           )}
         >
           <FileGlyph />
-          <span className="min-w-0 truncate">{name}</span>
+          <span className="stg:min-w-0 stg:truncate">{name}</span>
           {size !== null && (
-            <span className="shrink-0 text-muted-foreground">{size}</span>
+            <span className="stg:shrink-0 stg:text-muted-foreground">{size}</span>
           )}
         </button>
       </span>
       {error !== null && (
-        <p className="mt-1 break-words text-xs text-destructive">
+        <p className="stg:mt-1 stg:break-words stg:text-xs stg:text-destructive">
           {getUserMessage(error)}
         </p>
       )}
@@ -298,7 +298,7 @@ function FileGlyph() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
       aria-hidden="true"
     >
       <path d="M8 1H4C3.45 1 3 1.45 3 2V12C3 12.55 3.45 13 4 13H10C10.55 13 11 12.55 11 12V4L8 1Z" />

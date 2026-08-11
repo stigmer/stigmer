@@ -52,7 +52,7 @@ export function EmptyChangeNotice({ kind, className }: EmptyChangeNoticeProps) {
       role="status"
       data-cursor-target="empty-change-notice"
       className={cn(
-        "rounded-md border border-border bg-muted-subtle px-3 py-2 text-xs text-muted-foreground",
+        "stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:px-3 stg:py-2 stg:text-xs stg:text-muted-foreground",
         className,
       )}
     >

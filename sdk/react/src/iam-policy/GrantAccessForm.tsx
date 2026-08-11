@@ -115,8 +115,8 @@ export function GrantAccessForm({
   );
 
   return (
-    <form onSubmit={handleSubmit} className={cn("space-y-3", className)}>
-      <div className="space-y-3">
+    <form onSubmit={handleSubmit} className={cn("stg:space-y-3", className)}>
+      <div className="stg:space-y-3">
         {/* Principal picker (org-member typeahead) */}
         <PrincipalPicker
           orgId={orgId}
@@ -136,19 +136,19 @@ export function GrantAccessForm({
       </div>
 
       {error && (
-        <p className="text-destructive text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
           {getUserMessage(error)}
         </p>
       )}
 
-      <div className="flex items-center gap-2">
+      <div className="stg:flex stg:items-center stg:gap-2">
         <button
           type="submit"
           disabled={!canSubmit}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-40",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
           {isCreating && <SpinnerIcon />}
@@ -161,9 +161,9 @@ export function GrantAccessForm({
             onClick={onCancel}
             disabled={isCreating}
             className={cn(
-              "rounded-md px-3 py-1.5 text-xs",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             Cancel
@@ -184,7 +184,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

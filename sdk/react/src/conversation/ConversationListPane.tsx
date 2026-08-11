@@ -120,16 +120,16 @@ export function ConversationListPane({
   return (
     <div
       aria-label="Conversation list"
-      className={cn("flex min-h-0 flex-col", className)}
+      className={cn("stg:flex stg:min-h-0 stg:flex-col", className)}
     >
       {(onFilterChange !== undefined || channels.length > 1) && (
-        <div className="flex flex-col gap-2 border-b border-border px-3 py-2">
+        <div className="stg:flex stg:flex-col stg:gap-2 stg:border-b stg:border-border stg:px-3 stg:py-2">
           {onFilterChange !== undefined && (
             <ConversationFilterToggle value={filter} onChange={onFilterChange} />
           )}
           {channels.length > 1 && (
             <>
-              <label className="sr-only" htmlFor="stgm-conversation-channel-filter">
+              <label className="stg:sr-only" htmlFor="stgm-conversation-channel-filter">
                 Filter by channel
               </label>
               <select
@@ -137,9 +137,9 @@ export function ConversationListPane({
                 value={channelFilter}
                 onChange={(e) => onChannelFilterChange(e.target.value)}
                 className={cn(
-                  "w-full rounded-md border border-border bg-background px-2 py-1.5",
-                  "text-sm text-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "stg:w-full stg:rounded-md stg:border stg:border-border stg:bg-background stg:px-2 stg:py-1.5",
+                  "stg:text-sm stg:text-foreground",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 )}
               >
                 <option value="">All channels</option>
@@ -154,18 +154,18 @@ export function ConversationListPane({
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+      <div className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:p-2">
         {isLoading ? (
           <ListSkeleton />
         ) : error ? (
-          <p className="px-2 py-6 text-center text-sm text-destructive">
+          <p className="stg:px-2 stg:py-6 stg:text-center stg:text-sm stg:text-destructive">
             {getUserMessage(error)}
           </p>
         ) : conversations.length === 0 ? (
           channels.length === 0 ? (
             <EmptyState
               variant="first-use"
-              icon={<MessageSquare className="size-8" />}
+              icon={<MessageSquare className="stg:size-8" />}
               title="No channels to watch"
               description="Conversations arrive through an agent's channels. Connect a channel — or ask a channel owner for access — and customer conversations appear here."
             />
@@ -175,14 +175,14 @@ export function ConversationListPane({
             // to an org with a full inbox and nothing needing a person.
             <EmptyState
               variant="first-use"
-              icon={<MessageSquare className="size-8" />}
+              icon={<MessageSquare className="stg:size-8" />}
               title="Nothing needs a human right now"
               description="Conversations appear here when the agent asks for attention, or when a human-held conversation has a customer message awaiting a reply."
             />
           ) : (
             <EmptyState
               variant="first-use"
-              icon={<MessageSquare className="size-8" />}
+              icon={<MessageSquare className="stg:size-8" />}
               title="No conversations yet"
               description="When a customer messages one of your channels, their conversation appears here."
             />
@@ -192,7 +192,7 @@ export function ConversationListPane({
             {/* One context-only provider arms every row's attention
                 tooltip (the WorkspaceSidebar recents-list precedent). */}
             <TooltipProvider>
-              <ul className="space-y-0.5">
+              <ul className="stg:space-y-0.5">
                 {conversations.map((conversation) => (
                   <ConversationRow
                     key={`${conversation.agentChannelId}:${conversation.conversationKey}`}
@@ -216,7 +216,7 @@ export function ConversationListPane({
               </ul>
             </TooltipProvider>
             {hasMore && (
-              <div className="flex justify-center py-2">
+              <div className="stg:flex stg:justify-center stg:py-2">
                 <Button
                   variant="ghost"
                   size="xs"
@@ -299,7 +299,7 @@ function ConversationFilterToggle({
     <div
       role="radiogroup"
       aria-label="Conversation filter"
-      className="inline-flex self-start rounded-md bg-muted p-0.5"
+      className="stg:inline-flex stg:self-start stg:rounded-md stg:bg-muted stg:p-0.5"
     >
       {FILTER_OPTIONS.map((option, index) => {
         const isSelected = value === option.value;
@@ -317,11 +317,11 @@ function ConversationFilterToggle({
             onClick={() => handleSelect(option.value)}
             onKeyDown={(e) => handleKeyDown(e, index)}
             className={cn(
-              "inline-flex cursor-pointer items-center rounded-sm px-2 py-1 text-xs font-medium transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:inline-flex stg:cursor-pointer stg:items-center stg:rounded-sm stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
               isSelected
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
+                ? "stg:bg-background stg:text-foreground stg:shadow-sm"
+                : "stg:text-muted-foreground stg:hover:text-foreground",
             )}
           >
             {option.label}
@@ -364,17 +364,17 @@ const ConversationRow = memo(function ConversationRow({
         onClick={() => onSelect(conversation)}
         aria-current={isSelected ? "true" : undefined}
         className={cn(
-          "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          isSelected ? "bg-primary-subtle" : "hover:bg-accent",
+          "stg:flex stg:w-full stg:items-center stg:gap-2.5 stg:rounded-md stg:px-2.5 stg:py-2 stg:text-left",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+          isSelected ? "stg:bg-primary-subtle" : "stg:hover:bg-accent",
         )}
       >
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
+        <div className="stg:min-w-0 stg:flex-1">
+          <div className="stg:flex stg:items-center stg:gap-1.5">
             {/* No truncation title on the label (F-18): the full name
                 renders in the open conversation's header, so a native
                 tooltip here added noise without adding reach. */}
-            <p className="truncate text-sm font-medium text-foreground">{label}</p>
+            <p className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">{label}</p>
             {conversation.needsAttention && (
               // The reason rides the house tooltip (F-18). The trigger
               // renders as a span — it sits INSIDE the row button, so a
@@ -383,12 +383,12 @@ const ConversationRow = memo(function ConversationRow({
               // accessible name. The full reason is also always visible
               // in the open conversation's attention banner.
               <Tooltip>
-                <TooltipTrigger render={<span className="shrink-0" />}>
+                <TooltipTrigger render={<span className="stg:shrink-0" />}>
                   <TriangleAlert
                     aria-hidden="true"
-                    className="size-3.5 text-destructive"
+                    className="stg:size-3.5 stg:text-destructive"
                   />
-                  <span className="sr-only">
+                  <span className="stg:sr-only">
                     {conversation.attentionReason
                       ? `Needs attention: ${conversation.attentionReason}`
                       : "Needs attention"}
@@ -401,21 +401,21 @@ const ConversationRow = memo(function ConversationRow({
             )}
           </div>
           {contact !== null && (
-            <p className="mt-0.5 truncate text-xs text-muted-foreground-faint">
+            <p className="stg:mt-0.5 stg:truncate stg:text-xs stg:text-muted-foreground-faint">
               {contact}
             </p>
           )}
           {humanHeld && (
-            <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-              <User aria-hidden="true" className="size-3" />
+            <p className="stg:mt-0.5 stg:flex stg:items-center stg:gap-1 stg:text-xs stg:text-muted-foreground">
+              <User aria-hidden="true" className="stg:size-3" />
               Human has the conversation
             </p>
           )}
         </div>
         {(lastActivity !== null || awaiting !== null) && (
-          <span className="flex shrink-0 flex-col items-end gap-1">
+          <span className="stg:flex stg:shrink-0 stg:flex-col stg:items-end stg:gap-1">
             {lastActivity && (
-              <span className="text-xs text-muted-foreground-faint">
+              <span className="stg:text-xs stg:text-muted-foreground-faint">
                 {formatRelativeTime(lastActivity, now)}
               </span>
             )}
@@ -426,15 +426,15 @@ const ConversationRow = memo(function ConversationRow({
               // agent will not answer, a person must — muted when the
               // agent does. No tooltip and no tab stop (the F-18
               // discipline); the sr-only text is the accessible meaning.
-              <span className="flex">
+              <span className="stg:flex">
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "size-2 rounded-full",
-                    awaiting === "strong" ? "bg-primary" : "bg-muted-foreground",
+                    "stg:size-2 stg:rounded-full",
+                    awaiting === "strong" ? "stg:bg-primary" : "stg:bg-muted-foreground",
                   )}
                 />
-                <span className="sr-only">
+                <span className="stg:sr-only">
                   {awaiting === "strong"
                     ? "Customer awaiting reply — the conversation is human-held"
                     : "Customer awaiting reply"}
@@ -450,9 +450,9 @@ const ConversationRow = memo(function ConversationRow({
 
 function ListSkeleton() {
   return (
-    <div className="space-y-1 p-1" aria-hidden="true">
+    <div className="stg:space-y-1 stg:p-1" aria-hidden="true">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="h-11 animate-pulse rounded-md bg-muted-faint" />
+        <div key={i} className="stg:h-11 stg:animate-pulse stg:rounded-md stg:bg-muted-faint" />
       ))}
     </div>
   );

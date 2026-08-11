@@ -12,17 +12,17 @@ export function UsageSection() {
     <section aria-labelledby="usage-heading">
       <h2
         id="usage-heading"
-        className="text-foreground mb-1 text-sm font-semibold"
+        className="stg:text-foreground stg:mb-1 stg:text-sm stg:font-semibold"
       >
         Usage
       </h2>
-      <p className="text-muted-foreground mb-4 text-xs">
+      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
         Monitor token consumption, cost, and execution activity across
         your organization.
       </p>
 
       {!orgId ? (
-        <p className="text-muted-foreground py-4 text-center text-xs">
+        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
           Select an organization to view usage.
         </p>
       ) : (

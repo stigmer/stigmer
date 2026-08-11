@@ -72,7 +72,7 @@ export function WorkflowTemplatePreview({
   );
 
   if (!template || !meta) {
-    return <dialog ref={dialogRef} className="hidden" />;
+    return <dialog ref={dialogRef} className="stg:hidden" />;
   }
 
   const categoryLabel =
@@ -82,18 +82,18 @@ export function WorkflowTemplatePreview({
     <dialog
       ref={dialogRef}
       className={cn(
-        "stgm m-auto max-h-[85vh] w-full max-w-3xl rounded-lg border border-border bg-background p-0 shadow-lg",
-        "backdrop:bg-black/50",
+        "stgm stg:m-auto stg:max-h-[85vh] stg:w-full stg:max-w-3xl stg:rounded-lg stg:border stg:border-border stg:bg-background stg:p-0 stg:shadow-lg",
+        "stg:backdrop:bg-black/50",
       )}
     >
-      <div className="flex flex-col">
+      <div className="stg:flex stg:flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+        <div className="stg:flex stg:items-center stg:justify-between stg:border-b stg:border-border stg:px-5 stg:py-4">
           <div>
-            <h2 className="text-base font-semibold text-foreground">
+            <h2 className="stg:text-base stg:font-semibold stg:text-foreground">
               {template.name}
             </h2>
-            <span className="text-xs text-muted-foreground">
+            <span className="stg:text-xs stg:text-muted-foreground">
               {categoryLabel}
             </span>
           </div>
@@ -102,9 +102,9 @@ export function WorkflowTemplatePreview({
             onClick={onClose}
             aria-label="Close preview"
             className={cn(
-              "rounded-md p-1.5 text-muted-foreground transition-colors",
-              "hover:bg-accent hover:text-accent-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:rounded-md stg:p-1.5 stg:text-muted-foreground stg:transition-colors",
+              "stg:hover:bg-accent stg:hover:text-accent-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           >
             <CloseIcon />
@@ -112,14 +112,14 @@ export function WorkflowTemplatePreview({
         </div>
 
         {/* Body */}
-        <div className="flex flex-col gap-4 px-5 py-4">
+        <div className="stg:flex stg:flex-col stg:gap-4 stg:px-5 stg:py-4">
           {/* Description */}
-          <p className="text-sm leading-relaxed text-muted-foreground">
+          <p className="stg:text-sm stg:leading-relaxed stg:text-muted-foreground">
             {template.description}
           </p>
 
           {/* Metadata row */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-3">
             <MetaChip label={`${meta.taskCount} tasks`} />
             <MetaChip label={`${meta.taskKinds.length} task types`} />
             {meta.envVarCount > 0 && (
@@ -130,11 +130,11 @@ export function WorkflowTemplatePreview({
 
           {/* Pattern badges */}
           {meta.patterns.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="stg:flex stg:flex-wrap stg:gap-1.5">
               {meta.patterns.map((pattern) => (
                 <span
                   key={pattern}
-                  className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
+                  className="stg:rounded-full stg:bg-muted stg:px-2.5 stg:py-0.5 stg:text-xs stg:font-medium stg:text-muted-foreground"
                 >
                   {PATTERN_LABELS[pattern]}
                 </span>
@@ -144,14 +144,14 @@ export function WorkflowTemplatePreview({
 
           {/* Task kinds */}
           <div>
-            <h3 className="mb-1.5 text-xs font-medium text-foreground">
+            <h3 className="stg:mb-1.5 stg:text-xs stg:font-medium stg:text-foreground">
               Task types used
             </h3>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="stg:flex stg:flex-wrap stg:gap-1.5">
               {meta.taskKinds.map((kind) => (
                 <code
                   key={kind}
-                  className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground"
+                  className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[11px] stg:text-muted-foreground"
                 >
                   {kind}
                 </code>
@@ -160,7 +160,7 @@ export function WorkflowTemplatePreview({
           </div>
 
           {/* Graph preview */}
-          <div className="h-64 overflow-hidden rounded-md border border-border bg-muted/30">
+          <div className="stg:h-64 stg:overflow-hidden stg:rounded-md stg:border stg:border-border stg:bg-muted/30">
             <ReactFlowProvider>
               <TemplateGraphPreview yaml={template.data.yaml ?? ""} />
             </ReactFlowProvider>
@@ -168,14 +168,14 @@ export function WorkflowTemplatePreview({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">
+        <div className="stg:flex stg:items-center stg:justify-end stg:gap-2 stg:border-t stg:border-border stg:px-5 stg:py-3">
           <button
             type="button"
             onClick={onClose}
             className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors",
-              "hover:bg-accent hover:text-accent-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:text-muted-foreground stg:transition-colors",
+              "stg:hover:bg-accent stg:hover:text-accent-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           >
             Cancel
@@ -184,9 +184,9 @@ export function WorkflowTemplatePreview({
             type="button"
             onClick={handleSelect}
             className={cn(
-              "rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-colors",
-              "hover:bg-primary/90",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:rounded-md stg:bg-primary stg:px-4 stg:py-1.5 stg:text-sm stg:font-medium stg:text-primary-foreground stg:transition-colors",
+              "stg:hover:bg-primary/90",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           >
             Use this template
@@ -269,7 +269,7 @@ function TemplateGraphPreview({ yaml }: { readonly yaml: string }) {
 
   if (elements.nodes.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+      <div className="stg:flex stg:h-full stg:items-center stg:justify-center stg:text-xs stg:text-muted-foreground">
         No preview available
       </div>
     );
@@ -294,7 +294,7 @@ function TemplateGraphPreview({ yaml }: { readonly yaml: string }) {
 
 function MetaChip({ label }: { readonly label: string }) {
   return (
-    <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+    <span className="stg:rounded-md stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[11px] stg:font-medium stg:text-muted-foreground">
       {label}
     </span>
   );
@@ -303,7 +303,7 @@ function MetaChip({ label }: { readonly label: string }) {
 function CloseIcon() {
   return (
     <svg
-      className="size-4"
+      className="stg:size-4"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"

@@ -119,8 +119,8 @@ export function ConnectSlackDialog({
       open={modal ? undefined : open}
       onClose={handleClose}
       className={cn(
-        "w-full max-w-md rounded-xl border border-border bg-popover p-0 shadow-xl",
-        modal ? "fixed inset-0 m-auto backdrop:bg-black/50" : "relative",
+        "stg:w-full stg:max-w-md stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
+        modal ? "stg:fixed stg:inset-0 stg:m-auto stg:backdrop:bg-black/50" : "stg:relative",
       )}
       aria-labelledby="connect-slack-title"
     >
@@ -271,12 +271,12 @@ function ConnectSlackDialogBody({
   const busy = isCreating || slack.isInProgress;
 
   return (
-    <div className="flex flex-col">
+    <div className="stg:flex stg:flex-col">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
-        <div className="flex items-center gap-2.5">
-          <SlackMarkIcon className="size-5 text-foreground" />
-          <h2 id="connect-slack-title" className="text-sm font-semibold text-foreground">
+      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3 stg:border-b stg:border-border stg:px-5 stg:py-4">
+        <div className="stg:flex stg:items-center stg:gap-2.5">
+          <SlackMarkIcon className="stg:size-5 stg:text-foreground" />
+          <h2 id="connect-slack-title" className="stg:text-sm stg:font-semibold stg:text-foreground">
             {channel ? "Reconnect to Slack" : "Connect to Slack"}
           </h2>
         </div>
@@ -285,16 +285,16 @@ function ConnectSlackDialogBody({
           onClick={onClose}
           aria-label="Close dialog"
           className={cn(
-            "rounded p-1 text-muted-foreground",
-            "hover:bg-accent-hover hover:text-foreground",
-            "focus:outline-none focus:ring-1 focus:ring-ring",
+            "stg:rounded stg:p-1 stg:text-muted-foreground",
+            "stg:hover:bg-accent-hover stg:hover:text-foreground",
+            "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
           )}
         >
           <CloseIcon />
         </button>
       </div>
 
-      <div className="space-y-4 px-5 py-4">
+      <div className="stg:space-y-4 stg:px-5 stg:py-4">
         {deploymentMode === "local" ? (
           // Preempt the doomed flow: the OSS backend answers every install
           // with FAILED_PRECONDITION, so don't open a popup destined to fail.
@@ -314,8 +314,8 @@ function ConnectSlackDialogBody({
         ) : (
           <>
             {!channel && (
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-medium text-foreground">
+              <label className="stg:block">
+                <span className="stg:mb-1.5 stg:block stg:text-xs stg:font-medium stg:text-foreground">
                   Channel name
                 </span>
                 <input
@@ -324,12 +324,12 @@ function ConnectSlackDialogBody({
                   onChange={(e) => setName(e.target.value)}
                   disabled={busy}
                   className={cn(
-                    "w-full rounded-md border border-input bg-background px-3 py-1.5",
-                    "text-sm text-foreground placeholder:text-muted-foreground",
-                    "focus:outline-none focus:ring-1 focus:ring-ring",
+                    "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-3 stg:py-1.5",
+                    "stg:text-sm stg:text-foreground stg:placeholder:text-muted-foreground",
+                    "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
                   )}
                 />
-                <span className="mt-1 block text-xs text-muted-foreground">
+                <span className="stg:mt-1 stg:block stg:text-xs stg:text-muted-foreground">
                   Names the connection in Stigmer — pick something that
                   identifies the workspace if you connect more than one.
                 </span>
@@ -351,9 +351,9 @@ function ConnectSlackDialogBody({
                 }}
                 appHint="Your app — your bot name and icon"
                 emptyBody={
-                  <p className="text-xs text-muted-foreground">
+                  <p className="stg:text-xs stg:text-muted-foreground">
                     The platform{" "}
-                    <span className="font-medium text-foreground">Stigmer</span>{" "}
+                    <span className="stg:font-medium stg:text-foreground">Stigmer</span>{" "}
                     app — no setup needed. Want the bot to carry your own name
                     and icon, or several agents in one workspace?{" "}
                     <RegisterChannelAppAffordance channelAppsHref={channelAppsHref}>
@@ -379,21 +379,21 @@ function ConnectSlackDialogBody({
               />
             )}
 
-            <p className="text-sm text-muted-foreground">
+            <p className="stg:text-sm stg:text-muted-foreground">
               When you continue, Slack asks which workspace to add the bot
               to — pick the one where your team should chat with this agent.
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="stg:text-sm stg:text-muted-foreground">
               Members reach the agent by opening a direct message with{" "}
-              <span className="font-medium text-foreground">{botName}</span>,
+              <span className="stg:font-medium stg:text-foreground">{botName}</span>,
               or typing @ in a channel and picking{" "}
-              <span className="font-medium text-foreground">{botName}</span>{" "}
+              <span className="stg:font-medium stg:text-foreground">{botName}</span>{" "}
               from the list — it answers as{" "}
-              <span className="font-medium text-foreground">{agentName}</span>.
+              <span className="stg:font-medium stg:text-foreground">{agentName}</span>.
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="stg:text-xs stg:text-muted-foreground">
               Conversations from Slack are billed to{" "}
-              <span className="font-medium">{org}</span>. A workspace can
+              <span className="stg:font-medium">{org}</span>. A workspace can
               host one agent per Slack app.
             </p>
 
@@ -405,7 +405,7 @@ function ConnectSlackDialogBody({
       </div>
 
       {/* Footer */}
-      <div className="flex justify-end gap-2 border-t border-border px-5 py-3">
+      <div className="stg:flex stg:justify-end stg:gap-2 stg:border-t stg:border-border stg:px-5 stg:py-3">
         {installed || deploymentMode === "local" ? (
           <Button variant="outline" size="sm" onClick={onClose}>
             {installed ? "Done" : "Close"}
@@ -420,7 +420,7 @@ function ConnectSlackDialogBody({
               size="sm"
               onClick={() => void handleConnect()}
               disabled={busy}
-              icon={<SlackMarkIcon className="size-3.5" />}
+              icon={<SlackMarkIcon className="stg:size-3.5" />}
               data-cursor-target="dialog-connect-slack"
             >
               {error ? "Try again" : channel ? "Reconnect to Slack" : "Connect to Slack"}
@@ -467,7 +467,7 @@ function InstallRefusal({
   return (
     <RefusalBox>
       <p>
-        <span className="font-medium">{team}</span> already hosts an agent
+        <span className="stg:font-medium">{team}</span> already hosts an agent
         through this app — a workspace hosts one agent per Slack app.
       </p>
       <p>
@@ -497,7 +497,7 @@ function AlreadyServedNote({
   readonly channels: readonly AgentChannel[];
 }) {
   return (
-    <div role="status" className="space-y-0.5 text-xs text-warning">
+    <div role="status" className="stg:space-y-0.5 stg:text-xs stg:text-warning">
       {channels.map((c) => {
         const slack =
           c.status?.providerStatus?.case === "slack"
@@ -507,8 +507,8 @@ function AlreadyServedNote({
         const agent = c.spec?.agentRef?.slug || "another agent";
         return (
           <p key={c.metadata?.id ?? team}>
-            <span className="font-medium">{botName}</span> already serves{" "}
-            <span className="font-medium">{team}</span> via {agent} — a
+            <span className="stg:font-medium">{botName}</span> already serves{" "}
+            <span className="stg:font-medium">{team}</span> via {agent} — a
             workspace hosts one agent per app, so connect through a
             different channel app to reach it.
           </p>
@@ -538,8 +538,8 @@ function FlowProgress({
   const activeIndex = FLOW_STEPS.findIndex((s) => s.phase === phase);
 
   return (
-    <div className="space-y-3" aria-live="polite">
-      <ul className="space-y-2">
+    <div className="stg:space-y-3" aria-live="polite">
+      <ul className="stg:space-y-2">
         {FLOW_STEPS.map((step, i) => {
           const isActive = i === activeIndex;
           const isDone = activeIndex > i;
@@ -547,20 +547,20 @@ function FlowProgress({
             <li
               key={step.phase}
               className={cn(
-                "flex items-center gap-2 text-sm",
+                "stg:flex stg:items-center stg:gap-2 stg:text-sm",
                 isActive
-                  ? "text-foreground"
+                  ? "stg:text-foreground"
                   : isDone
-                    ? "text-muted-foreground"
-                    : "text-muted-foreground-subtle",
+                    ? "stg:text-muted-foreground"
+                    : "stg:text-muted-foreground-subtle",
               )}
             >
               {isDone ? (
-                <CheckIcon className="size-3.5 shrink-0 text-success" />
+                <CheckIcon className="stg:size-3.5 stg:shrink-0 stg:text-success" />
               ) : isActive ? (
-                <Spinner className="size-3.5 shrink-0" />
+                <Spinner className="stg:size-3.5 stg:shrink-0" />
               ) : (
-                <span className="size-3.5 shrink-0 rounded-full border border-border" aria-hidden="true" />
+                <span className="stg:size-3.5 stg:shrink-0 stg:rounded-full stg:border stg:border-border" aria-hidden="true" />
               )}
               {step.label}
             </li>
@@ -592,18 +592,18 @@ function InstalledSummary({
     : null;
 
   return (
-    <div className="space-y-2" role="status">
-      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-        <CheckIcon className="size-4 text-success" />
+    <div className="stg:space-y-2" role="status">
+      <div className="stg:flex stg:items-center stg:gap-2 stg:text-sm stg:font-medium stg:text-foreground">
+        <CheckIcon className="stg:size-4 stg:text-success" />
         Connected{slack?.teamName ? ` to ${slack.teamName}` : ""}
       </div>
-      <p className="text-sm text-muted-foreground">
+      <p className="stg:text-sm stg:text-muted-foreground">
         In Slack, open a direct message with{" "}
-        <span className="font-medium text-foreground">{botName}</span> — or
+        <span className="stg:font-medium stg:text-foreground">{botName}</span> — or
         type @ in any channel and pick{" "}
-        <span className="font-medium text-foreground">{botName}</span> from
+        <span className="stg:font-medium stg:text-foreground">{botName}</span> from
         the list — then ask your question. Answers come from{" "}
-        <span className="font-medium text-foreground">{agentName}</span>.
+        <span className="stg:font-medium stg:text-foreground">{agentName}</span>.
       </p>
     </div>
   );

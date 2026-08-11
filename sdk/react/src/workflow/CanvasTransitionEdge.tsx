@@ -25,25 +25,25 @@ interface EdgeVisualStyle {
 
 const EDGE_EXECUTION_STYLES: Record<EdgeExecutionState, EdgeVisualStyle> = {
   taken: {
-    strokeClass: "!stroke-[var(--stgm-success,#22c55e)]",
+    strokeClass: "stg:!stroke-[var(--stgm-success,#22c55e)]",
     opacity: 1,
     labelDimmed: false,
   },
   not_taken: {
-    strokeClass: "!stroke-[var(--stgm-muted-foreground,#737373)]",
+    strokeClass: "stg:!stroke-[var(--stgm-muted-foreground,#737373)]",
     opacity: 0.3,
     dashArray: "5 5",
     labelDimmed: true,
   },
   active: {
-    strokeClass: "!stroke-[var(--stgm-primary,#6366f1)]",
+    strokeClass: "stg:!stroke-[var(--stgm-primary,#6366f1)]",
     opacity: 1,
     dashArray: "8 4",
     animate: true,
     labelDimmed: false,
   },
   not_reached: {
-    strokeClass: "!stroke-[var(--stgm-muted-foreground,#737373)]",
+    strokeClass: "stg:!stroke-[var(--stgm-muted-foreground,#737373)]",
     opacity: 0.25,
     labelDimmed: true,
   },
@@ -51,18 +51,18 @@ const EDGE_EXECUTION_STYLES: Record<EdgeExecutionState, EdgeVisualStyle> = {
 
 const EDGE_DIFF_STYLES: Record<EdgeDiffStatus, EdgeVisualStyle> = {
   added: {
-    strokeClass: "!stroke-[var(--stgm-success,#22c55e)]",
+    strokeClass: "stg:!stroke-[var(--stgm-success,#22c55e)]",
     opacity: 1,
     labelDimmed: false,
   },
   removed: {
-    strokeClass: "!stroke-[var(--stgm-destructive,#ef4444)]",
+    strokeClass: "stg:!stroke-[var(--stgm-destructive,#ef4444)]",
     opacity: 0.3,
     dashArray: "5 5",
     labelDimmed: true,
   },
   unchanged: {
-    strokeClass: "!stroke-[var(--stgm-muted-foreground,#737373)]",
+    strokeClass: "stg:!stroke-[var(--stgm-muted-foreground,#737373)]",
     opacity: 0.6,
     labelDimmed: false,
   },
@@ -165,9 +165,9 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
         className={cn(
           execVisual
             ? execVisual.strokeClass
-            : "!stroke-[var(--stgm-border-prominent,#a3a3a3)]",
-          selected && "!stroke-[var(--stgm-ring,#3b82f6)]",
-          !isDesignMode && !execVisual && "!opacity-60",
+            : "stg:!stroke-[var(--stgm-border-prominent,#a3a3a3)]",
+          selected && "stg:!stroke-[var(--stgm-ring,#3b82f6)]",
+          !isDesignMode && !execVisual && "stg:!opacity-60",
           execVisual?.animate && "stgm-edge-active",
         )}
         style={{
@@ -179,7 +179,7 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
       />
       <EdgeLabelRenderer>
         <div
-          className="pointer-events-auto absolute"
+          className="stg:pointer-events-auto stg:absolute"
           style={{
             transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
           }}
@@ -189,8 +189,8 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
           {label && (
             <div
               className={cn(
-                "stgm mb-1 rounded-full border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] px-2 py-0.5 text-center text-[10px] font-medium text-[var(--stgm-foreground,#1a1a2e)] shadow-sm",
-                execVisual?.labelDimmed && "opacity-30",
+                "stgm stg:mb-1 stg:rounded-full stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:px-2 stg:py-0.5 stg:text-center stg:text-[10px] stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)] stg:shadow-sm",
+                execVisual?.labelDimmed && "stg:opacity-30",
               )}
               aria-label={
                 execState
@@ -210,9 +210,9 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
                 type="button"
                 onClick={handleOpenPicker}
                 className={cn(
-                  "flex h-5 w-5 items-center justify-center rounded-full border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] text-[var(--stgm-muted-foreground,#737373)] shadow-sm transition-all",
-                  "hover:border-[var(--stgm-primary,#6366f1)] hover:bg-[var(--stgm-primary,#6366f1)] hover:text-[var(--stgm-primary-foreground,#fff)]",
-                  hovered || selected || pickerOpen ? "scale-100 opacity-100" : "scale-75 opacity-0",
+                  "stg:flex stg:h-5 stg:w-5 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:text-[var(--stgm-muted-foreground,#737373)] stg:shadow-sm stg:transition-all",
+                  "stg:hover:border-[var(--stgm-primary,#6366f1)] stg:hover:bg-[var(--stgm-primary,#6366f1)] stg:hover:text-[var(--stgm-primary-foreground,#fff)]",
+                  hovered || selected || pickerOpen ? "stg:scale-100 stg:opacity-100" : "stg:scale-75 stg:opacity-0",
                 )}
                 aria-label="Insert task here"
                 title="Insert task"

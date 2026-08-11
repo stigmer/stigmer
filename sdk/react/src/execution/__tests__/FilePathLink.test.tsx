@@ -41,7 +41,7 @@ describe("FilePathLink filename-first display", () => {
     // path that hid the file name.
     render(<FilePathLink path="/Users/me/scm/very/deep/notes.md" dirDisplay="dim" />);
     const base = screen.getByText("notes.md");
-    expect(base.className).toContain("shrink-0");
+    expect(base.className).toContain("stg:shrink-0");
     expect(base.className).not.toContain("truncate");
   });
 });

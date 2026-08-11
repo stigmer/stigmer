@@ -158,7 +158,7 @@ export function CreatePlatformClientForm({
   );
 
   return (
-    <form onSubmit={handleSubmit} className={cn("space-y-3", className)}>
+    <form onSubmit={handleSubmit} className={cn("stg:space-y-3", className)}>
       <FormField
         id="stgm-pc-name"
         label="Name"
@@ -170,8 +170,8 @@ export function CreatePlatformClientForm({
       />
 
       {/* Expiry */}
-      <fieldset className="space-y-2" disabled={isCreating}>
-        <legend className="text-xs font-medium text-foreground">
+      <fieldset className="stg:space-y-2" disabled={isCreating}>
+        <legend className="stg:text-xs stg:font-medium stg:text-foreground">
           Expiry
         </legend>
         <ToggleSwitch
@@ -181,10 +181,10 @@ export function CreatePlatformClientForm({
           disabled={isCreating}
         />
         {!neverExpires && (
-          <div className="space-y-1">
+          <div className="stg:space-y-1">
             <label
               htmlFor="stgm-pc-expires-at"
-              className="text-xs font-medium text-foreground"
+              className="stg:text-xs stg:font-medium stg:text-foreground"
             >
               Expires at
             </label>
@@ -195,9 +195,9 @@ export function CreatePlatformClientForm({
               onChange={(e) => setExpiresAt(e.target.value)}
               disabled={isCreating}
               className={cn(
-                "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                "disabled:pointer-events-none disabled:opacity-50",
+                "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               )}
             />
           </div>
@@ -205,12 +205,12 @@ export function CreatePlatformClientForm({
       </fieldset>
 
       {/* JIT provisioning */}
-      <fieldset className="space-y-2.5" disabled={isCreating}>
-        <hr className="border-border-muted" />
-        <legend className="text-xs font-medium text-foreground">
+      <fieldset className="stg:space-y-2.5" disabled={isCreating}>
+        <hr className="stg:border-border-muted" />
+        <legend className="stg:text-xs stg:font-medium stg:text-foreground">
           JIT provisioning
         </legend>
-        <p className="text-[0.65rem] text-muted-foreground">
+        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
           Configure automatic account creation and role assignment for
           users authenticated via this platform client.
         </p>
@@ -232,10 +232,10 @@ export function CreatePlatformClientForm({
         />
 
         {autoGrant && (
-          <div className="space-y-1">
+          <div className="stg:space-y-1">
             <label
               htmlFor="stgm-pc-grant-role"
-              className="text-xs font-medium text-foreground"
+              className="stg:text-xs stg:font-medium stg:text-foreground"
             >
               Auto-grant role
             </label>
@@ -247,9 +247,9 @@ export function CreatePlatformClientForm({
               }
               disabled={isCreating}
               className={cn(
-                "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                "disabled:pointer-events-none disabled:opacity-50",
+                "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               )}
             >
               {JIT_ROLE_OPTIONS.map((opt) => (
@@ -258,7 +258,7 @@ export function CreatePlatformClientForm({
                 </option>
               ))}
             </select>
-            <p className="text-[0.65rem] text-muted-foreground">
+            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
               Role granted automatically — org admins can upgrade later
             </p>
           </div>
@@ -266,17 +266,17 @@ export function CreatePlatformClientForm({
       </fieldset>
 
       {/* Allowed origins */}
-      <fieldset className="space-y-2" disabled={isCreating}>
-        <hr className="border-border-muted" />
-        <legend className="text-xs font-medium text-foreground">
+      <fieldset className="stg:space-y-2" disabled={isCreating}>
+        <hr className="stg:border-border-muted" />
+        <legend className="stg:text-xs stg:font-medium stg:text-foreground">
           Allowed origins
         </legend>
-        <p className="text-[0.65rem] text-muted-foreground">
+        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
           Browser origins permitted to use tokens minted by this client.
           Leave empty to allow all origins.
         </p>
 
-        <div className="flex items-center gap-2">
+        <div className="stg:flex stg:items-center stg:gap-2">
           <input
             type="text"
             value={originInput}
@@ -288,10 +288,10 @@ export function CreatePlatformClientForm({
             placeholder="https://example.com"
             disabled={isCreating}
             className={cn(
-              "min-w-0 flex-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:min-w-0 stg:flex-1 stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           />
           <button
@@ -299,10 +299,10 @@ export function CreatePlatformClientForm({
             onClick={addOrigin}
             disabled={isCreating || !originInput.trim()}
             className={cn(
-              "shrink-0 rounded-md px-2.5 py-1.5 text-xs font-medium",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
-              "transition-colors",
+              "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+              "stg:transition-colors",
             )}
           >
             Add
@@ -310,11 +310,11 @@ export function CreatePlatformClientForm({
         </div>
 
         {origins.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="stg:flex stg:flex-wrap stg:gap-1.5">
             {origins.map((origin) => (
               <span
                 key={origin}
-                className="inline-flex items-center gap-1 rounded-full border border-border-muted bg-muted-subtle px-2 py-0.5 text-[0.65rem] font-mono text-foreground"
+                className="stg:inline-flex stg:items-center stg:gap-1 stg:rounded-full stg:border stg:border-border-muted stg:bg-muted-subtle stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-mono stg:text-foreground"
               >
                 {origin}
                 <button
@@ -322,7 +322,7 @@ export function CreatePlatformClientForm({
                   onClick={() => removeOrigin(origin)}
                   disabled={isCreating}
                   aria-label={`Remove ${origin}`}
-                  className="text-muted-foreground hover:text-destructive transition-colors"
+                  className="stg:text-muted-foreground stg:hover:text-destructive stg:transition-colors"
                 >
                   <XIcon />
                 </button>
@@ -333,19 +333,19 @@ export function CreatePlatformClientForm({
       </fieldset>
 
       {error && (
-        <p className="text-destructive text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
           {getUserMessage(error)}
         </p>
       )}
 
-      <div className="flex items-center gap-2 pt-1">
+      <div className="stg:flex stg:items-center stg:gap-2 stg:pt-1">
         <button
           type="submit"
           disabled={!canSubmit}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-40",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
           {isCreating && <SpinnerIcon />}
@@ -358,9 +358,9 @@ export function CreatePlatformClientForm({
             onClick={onCancel}
             disabled={isCreating}
             className={cn(
-              "rounded-md px-3 py-1.5 text-xs",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             Cancel
@@ -409,8 +409,8 @@ function FormField({
   required?: boolean;
 }) {
   return (
-    <div className="space-y-1">
-      <label htmlFor={id} className="text-xs font-medium text-foreground">
+    <div className="stg:space-y-1">
+      <label htmlFor={id} className="stg:text-xs stg:font-medium stg:text-foreground">
         {label}
       </label>
       <input
@@ -422,14 +422,14 @@ function FormField({
         disabled={disabled}
         required={required}
         className={cn(
-          "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-          "placeholder:text-muted-foreground",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-          "disabled:pointer-events-none disabled:opacity-50",
+          "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+          "stg:placeholder:text-muted-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         )}
       />
       {hint && (
-        <p className="text-[0.65rem] text-muted-foreground">{hint}</p>
+        <p className="stg:text-[0.65rem] stg:text-muted-foreground">{hint}</p>
       )}
     </div>
   );
@@ -449,8 +449,8 @@ function ToggleSwitch({
   disabled?: boolean;
 }) {
   return (
-    <div className="space-y-0.5">
-      <div className="flex items-center gap-2">
+    <div className="stg:space-y-0.5">
+      <div className="stg:flex stg:items-center stg:gap-2">
         <button
           type="button"
           role="switch"
@@ -458,22 +458,22 @@ function ToggleSwitch({
           onClick={() => onChange(!checked)}
           disabled={disabled}
           className={cn(
-            "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
-            checked ? "bg-primary" : "bg-muted",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:relative stg:inline-flex stg:h-5 stg:w-9 stg:shrink-0 stg:cursor-pointer stg:rounded-full stg:border-2 stg:border-transparent stg:transition-colors",
+            checked ? "stg:bg-primary" : "stg:bg-muted",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           <span
             className={cn(
-              "pointer-events-none inline-block h-4 w-4 rounded-full bg-background shadow-sm ring-0 transition-transform",
-              checked ? "translate-x-4" : "translate-x-0",
+              "stg:pointer-events-none stg:inline-block stg:h-4 stg:w-4 stg:rounded-full stg:bg-background stg:shadow-sm stg:ring-0 stg:transition-transform",
+              checked ? "stg:translate-x-4" : "stg:translate-x-0",
             )}
           />
         </button>
-        <span className="text-xs font-medium text-foreground">{label}</span>
+        <span className="stg:text-xs stg:font-medium stg:text-foreground">{label}</span>
       </div>
       {hint && (
-        <p className="pl-11 text-[0.65rem] text-muted-foreground">{hint}</p>
+        <p className="stg:pl-11 stg:text-[0.65rem] stg:text-muted-foreground">{hint}</p>
       )}
     </div>
   );
@@ -510,7 +510,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

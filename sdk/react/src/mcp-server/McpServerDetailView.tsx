@@ -488,10 +488,10 @@ export function McpServerDetailView({
         value={spec?.iconUrl ?? ""}
         onSave={(v) => saveMcpField("iconUrl", v || undefined)}
         isSaving={isUpdating}
-        fallback={<McpServerIcon className="size-6 text-muted-foreground" />}
+        fallback={<McpServerIcon className="stg:size-6 stg:text-muted-foreground" />}
         size="md"
       />
-    ) : spec?.iconUrl ? undefined : <McpServerIcon className="size-6 text-muted-foreground" />,
+    ) : spec?.iconUrl ? undefined : <McpServerIcon className="stg:size-6 stg:text-muted-foreground" />,
     iconUrl: editable ? undefined : spec?.iconUrl || undefined,
     createdAt: specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null,
     updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
@@ -543,7 +543,7 @@ export function McpServerDetailView({
       {(editable || spec?.description) && (
         <Section title="Description">
           {editable && saveMcpField ? (
-            <div className="max-h-20 overflow-y-auto p-3">
+            <div className="stg:max-h-20 stg:overflow-y-auto stg:p-3">
               <InlineEditTextarea
                 value={spec?.description || ""}
                 onSave={(v) => saveMcpField("description", v || undefined)}
@@ -553,8 +553,8 @@ export function McpServerDetailView({
               />
             </div>
           ) : (
-            <div className="p-3">
-              <pre className="whitespace-pre-wrap break-words text-sm text-foreground font-sans">
+            <div className="stg:p-3">
+              <pre className="stg:whitespace-pre-wrap stg:break-words stg:text-sm stg:text-foreground stg:font-sans">
                 {spec?.description}
               </pre>
             </div>
@@ -586,8 +586,8 @@ export function McpServerDetailView({
       {/* scrollTarget: guided tours/demos bring the connect flow into view
           (see IdentityTransportStep's "mcp-transport" for the convention). */}
       <Section title="Connection" scrollTarget="mcp-connection">
-        <StdioSandboxNotice serverType={spec?.serverType} className="mb-3" />
-        <OAuthRequiredNotice oauthOnly={spec?.auth?.oauthOnly} className="mb-3" />
+        <StdioSandboxNotice serverType={spec?.serverType} className="stg:mb-3" />
+        <OAuthRequiredNotice oauthOnly={spec?.auth?.oauthOnly} className="stg:mb-3" />
         <ConnectBar
           manualEntrySupported={credentials.manualEntrySupported}
           isConnecting={connection.isConnecting || oauth.isInProgress}
@@ -634,7 +634,7 @@ export function McpServerDetailView({
 
         {showCredentialForm && credentials.missingVariables.length > 0 && (
           <div
-            className="border-b border-border p-4"
+            className="stg:border-b stg:border-border stg:p-4"
             data-cursor-target="credential-form"
           >
             <EnvVarForm
@@ -645,7 +645,7 @@ export function McpServerDetailView({
               onCancel={() => setShowCredentialForm(false)}
               isSubmitting={credentials.isSaving}
               poolValues={credentialPoolValues}
-              className="w-full max-w-md"
+              className="stg:w-full stg:max-w-md"
             />
           </div>
         )}
@@ -656,11 +656,11 @@ export function McpServerDetailView({
         ref={byoaDialogRef}
         onCancel={handleByoaDialogCancel}
         className={cn(
-          "m-auto w-full max-w-md rounded-lg border border-border bg-background p-6 shadow-lg",
-          "backdrop:bg-black/50",
+          "stg:m-auto stg:w-full stg:max-w-md stg:rounded-lg stg:border stg:border-border stg:bg-background stg:p-6 stg:shadow-lg",
+          "stg:backdrop:bg-black/50",
         )}
       >
-        <h3 className="mb-4 text-base font-semibold text-foreground">
+        <h3 className="stg:mb-4 stg:text-base stg:font-semibold stg:text-foreground">
           Use your own OAuth app
         </h3>
         <OAuthAppForm
@@ -727,34 +727,34 @@ function healthPillProps(
 ): { pillClass: string; dotClass: string; label: string } {
   if (isVendorApprovalPending) {
     return {
-      pillClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-      dotClass: "bg-amber-500",
+      pillClass: "stg:bg-amber-500/10 stg:text-amber-600 stg:dark:text-amber-400",
+      dotClass: "stg:bg-amber-500",
       label: "Pending approval",
     };
   }
   switch (health) {
     case OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY:
       return {
-        pillClass: "bg-success/10 text-success",
-        dotClass: "bg-success",
+        pillClass: "stg:bg-success/10 stg:text-success",
+        dotClass: "stg:bg-success",
         label: "Connected",
       };
     case OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE:
       return {
-        pillClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-        dotClass: "bg-amber-500",
+        pillClass: "stg:bg-amber-500/10 stg:text-amber-600 stg:dark:text-amber-400",
+        dotClass: "stg:bg-amber-500",
         label: "Token expired",
       };
     case OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED:
       return {
-        pillClass: "bg-destructive-subtle text-destructive",
-        dotClass: "bg-destructive",
+        pillClass: "stg:bg-destructive-subtle stg:text-destructive",
+        dotClass: "stg:bg-destructive",
         label: "Re-auth needed",
       };
     default:
       return {
-        pillClass: "bg-muted text-muted-foreground",
-        dotClass: "bg-muted-foreground",
+        pillClass: "stg:bg-muted stg:text-muted-foreground",
+        dotClass: "stg:bg-muted-foreground",
         label: "Not connected",
       };
   }
@@ -897,9 +897,9 @@ function ConnectBar({
 
   const buttonIcon = (() => {
     if (isOAuthBusy || isConnecting) return <Spinner />;
-    if (showOAuthPrimary || needsReAuth) return <OAuthIcon className="size-3.5" />;
-    if (hasDiscoveredTools) return <RefreshIcon className="size-3.5" />;
-    return <ConnectIcon className="size-3.5" />;
+    if (showOAuthPrimary || needsReAuth) return <OAuthIcon className="stg:size-3.5" />;
+    if (hasDiscoveredTools) return <RefreshIcon className="stg:size-3.5" />;
+    return <ConnectIcon className="stg:size-3.5" />;
   })();
 
   const statusText = (() => {
@@ -927,14 +927,14 @@ function ConnectBar({
   // Inline disconnect confirmation replaces the main bar content
   if (disconnectPhase === "confirming" || disconnectPhase === "disconnecting") {
     return (
-      <div className="flex flex-col">
-        <div className="flex items-center gap-2 px-3 py-2">
-          <WarningIcon className="size-3.5 shrink-0 text-destructive" />
-          <p className="flex-1 text-xs text-foreground">
-            Remove OAuth credentials for <span className="font-medium">{serverName}</span>?
+      <div className="stg:flex stg:flex-col">
+        <div className="stg:flex stg:items-center stg:gap-2 stg:px-3 stg:py-2">
+          <WarningIcon className="stg:size-3.5 stg:shrink-0 stg:text-destructive" />
+          <p className="stg:flex-1 stg:text-xs stg:text-foreground">
+            Remove OAuth credentials for <span className="stg:font-medium">{serverName}</span>?
             You can reconnect at any time.
           </p>
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
             <button
               type="button"
               disabled={isDisconnecting}
@@ -948,9 +948,9 @@ function ConnectBar({
                 }
               }}
               className={cn(
-                "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-                "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
-                "disabled:pointer-events-none disabled:opacity-50",
+                "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+                "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               )}
             >
               {isDisconnecting && <Spinner />}
@@ -964,9 +964,9 @@ function ConnectBar({
                 onClearDisconnectError();
               }}
               className={cn(
-                "inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium",
-                "border border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground",
-                "disabled:pointer-events-none disabled:opacity-50",
+                "stg:inline-flex stg:items-center stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+                "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent stg:hover:text-accent-foreground",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               )}
             >
               Cancel
@@ -974,15 +974,15 @@ function ConnectBar({
           </div>
         </div>
         {disconnectError && (
-          <div className="flex items-start gap-2 border-t border-destructive/20 bg-destructive-subtle px-3 py-2">
-            <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
-            <p className="flex-1 text-xs text-destructive">
+          <div className="stg:flex stg:items-start stg:gap-2 stg:border-t stg:border-destructive/20 stg:bg-destructive-subtle stg:px-3 stg:py-2">
+            <WarningIcon className="stg:mt-0.5 stg:size-3.5 stg:shrink-0 stg:text-destructive" />
+            <p className="stg:flex-1 stg:text-xs stg:text-destructive">
               {getUserMessage(disconnectError)}
             </p>
             <button
               type="button"
               onClick={onClearDisconnectError}
-              className="shrink-0 text-xs text-destructive-muted hover:text-destructive"
+              className="stg:shrink-0 stg:text-xs stg:text-destructive-muted stg:hover:text-destructive"
               aria-label="Dismiss error"
             >
               Dismiss
@@ -996,15 +996,15 @@ function ConnectBar({
   // Inline "remove custom app" confirmation
   if (removeOrgAppPhase === "confirming" || removeOrgAppPhase === "removing") {
     return (
-      <div className="flex flex-col">
-        <div className="flex items-center gap-2 px-3 py-2">
-          <WarningIcon className="size-3.5 shrink-0 text-destructive" />
-          <p className="flex-1 text-xs text-foreground">
+      <div className="stg:flex stg:flex-col">
+        <div className="stg:flex stg:items-center stg:gap-2 stg:px-3 stg:py-2">
+          <WarningIcon className="stg:size-3.5 stg:shrink-0 stg:text-destructive" />
+          <p className="stg:flex-1 stg:text-xs stg:text-foreground">
             Remove your custom OAuth app for{" "}
-            <span className="font-medium">{serverName}</span>? The server
+            <span className="stg:font-medium">{serverName}</span>? The server
             will revert to the platform&apos;s OAuth app.
           </p>
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
             <button
               type="button"
               disabled={isRemovingOrgApp}
@@ -1018,9 +1018,9 @@ function ConnectBar({
                 }
               }}
               className={cn(
-                "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-                "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
-                "disabled:pointer-events-none disabled:opacity-50",
+                "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+                "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               )}
             >
               {isRemovingOrgApp && <Spinner />}
@@ -1034,9 +1034,9 @@ function ConnectBar({
                 onClearRemoveOrgAppError();
               }}
               className={cn(
-                "inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium",
-                "border border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground",
-                "disabled:pointer-events-none disabled:opacity-50",
+                "stg:inline-flex stg:items-center stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+                "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent stg:hover:text-accent-foreground",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               )}
             >
               Cancel
@@ -1044,15 +1044,15 @@ function ConnectBar({
           </div>
         </div>
         {removeOrgAppError && (
-          <div className="flex items-start gap-2 border-t border-destructive/20 bg-destructive-subtle px-3 py-2">
-            <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
-            <p className="flex-1 text-xs text-destructive">
+          <div className="stg:flex stg:items-start stg:gap-2 stg:border-t stg:border-destructive/20 stg:bg-destructive-subtle stg:px-3 stg:py-2">
+            <WarningIcon className="stg:mt-0.5 stg:size-3.5 stg:shrink-0 stg:text-destructive" />
+            <p className="stg:flex-1 stg:text-xs stg:text-destructive">
               {getUserMessage(removeOrgAppError)}
             </p>
             <button
               type="button"
               onClick={onClearRemoveOrgAppError}
-              className="shrink-0 text-xs text-destructive-muted hover:text-destructive"
+              className="stg:shrink-0 stg:text-xs stg:text-destructive-muted stg:hover:text-destructive"
               aria-label="Dismiss error"
             >
               Dismiss
@@ -1064,31 +1064,31 @@ function ConnectBar({
   }
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between px-3 py-2">
-        <div className="flex items-center gap-2">
+    <div className="stg:flex stg:flex-col">
+      <div className="stg:flex stg:items-center stg:justify-between stg:px-3 stg:py-2">
+        <div className="stg:flex stg:items-center stg:gap-2">
           {authMode === "oauth" && !manualOverride && (
             <span
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-full stg:px-2 stg:py-0.5 stg:text-[10px] stg:font-medium",
                 pill.pillClass,
               )}
             >
               <span
-                className={cn("size-1.5 rounded-full", pill.dotClass)}
+                className={cn("stg:size-1.5 stg:rounded-full", pill.dotClass)}
                 aria-hidden="true"
               />
               {pill.label}
             </span>
           )}
-          <span className="text-xs text-muted-foreground">
+          <span className="stg:text-xs stg:text-muted-foreground">
             {oauthSignInDisabled ? "OAuth sign-in is pending vendor approval" : statusText}
           </span>
           {showDisconnectLink && (
             <button
               type="button"
               onClick={() => setDisconnectPhase("confirming")}
-              className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+              className="stg:text-[11px] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
             >
               Disconnect
             </button>
@@ -1097,7 +1097,7 @@ function ConnectBar({
             <button
               type="button"
               onClick={() => setRemoveOrgAppPhase("confirming")}
-              className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+              className="stg:text-[11px] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
             >
               Remove custom app
             </button>
@@ -1109,11 +1109,11 @@ function ConnectBar({
           disabled={anyBusy || credentialsLoading || oauthSignInDisabled}
           data-cursor-target="connect-button"
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
             showOAuthPrimary || needsReAuth
-              ? "bg-primary text-primary-foreground hover:bg-primary-hover"
-              : "border border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground",
-            "disabled:pointer-events-none disabled:opacity-50",
+              ? "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover"
+              : "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent stg:hover:text-accent-foreground",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           {buttonIcon}
@@ -1122,11 +1122,11 @@ function ConnectBar({
       </div>
 
       {oauthPhase === "awaiting-callback" && (
-        <div className="flex items-center gap-3 border-t border-border px-3 py-1.5">
+        <div className="stg:flex stg:items-center stg:gap-3 stg:border-t stg:border-border stg:px-3 stg:py-1.5">
           <button
             type="button"
             onClick={onCancelOAuth}
-            className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+            className="stg:text-[11px] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
           >
             Cancel sign-in
           </button>
@@ -1135,9 +1135,9 @@ function ConnectBar({
 
       {/* Vendor approval blocked banner with BYOA CTA */}
       {oauthSignInDisabled && (
-        <div className="flex items-start gap-2 border-t border-amber-500/20 bg-amber-500/5 px-3 py-2">
-          <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
-          <div className="flex-1 text-xs text-amber-700 dark:text-amber-300">
+        <div className="stg:flex stg:items-start stg:gap-2 stg:border-t stg:border-amber-500/20 stg:bg-amber-500/5 stg:px-3 stg:py-2">
+          <WarningIcon className="stg:mt-0.5 stg:size-3.5 stg:shrink-0 stg:text-amber-600 stg:dark:text-amber-400" />
+          <div className="stg:flex-1 stg:text-xs stg:text-amber-700 stg:dark:text-amber-300">
             <p>
               The platform&apos;s OAuth app is awaiting vendor approval.
               {canBringOwnApp
@@ -1149,7 +1149,7 @@ function ConnectBar({
                 type="button"
                 onClick={onBringOwnApp}
                 data-cursor-target="byoa-cta-button"
-                className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-amber-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-amber-700 dark:bg-amber-500 dark:text-amber-950 dark:hover:bg-amber-400"
+                className="stg:mt-1.5 stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:bg-amber-600 stg:px-2.5 stg:py-1 stg:text-[11px] stg:font-medium stg:text-white stg:hover:bg-amber-700 stg:dark:bg-amber-500 stg:dark:text-amber-950 stg:dark:hover:bg-amber-400"
               >
                 Use your own OAuth app
               </button>
@@ -1159,10 +1159,10 @@ function ConnectBar({
                 href={vendorApprovalDocsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-1 inline-flex items-center gap-1 underline decoration-amber-600/40 underline-offset-2 hover:decoration-amber-600 dark:decoration-amber-400/40 dark:hover:decoration-amber-400"
+                className="stg:mt-1 stg:inline-flex stg:items-center stg:gap-1 stg:underline stg:decoration-amber-600/40 stg:underline-offset-2 stg:hover:decoration-amber-600 stg:dark:decoration-amber-400/40 stg:dark:hover:decoration-amber-400"
               >
                 Learn how to bring your own token
-                <ExternalLinkIcon className="size-3 shrink-0" />
+                <ExternalLinkIcon className="stg:size-3 stg:shrink-0" />
               </a>
             )}
           </div>
@@ -1174,12 +1174,12 @@ function ConnectBar({
           action bar renders. */}
       {authMode === "oauth" && !isOAuthConnected && !isOAuthBusy && !isConnecting &&
         (manualOverride || manualEntrySupported || canBringOwnApp) && (
-        <div className="flex items-center gap-3 border-t border-border px-3 py-1.5">
+        <div className="stg:flex stg:items-center stg:gap-3 stg:border-t stg:border-border stg:px-3 stg:py-1.5">
           {manualOverride ? (
             <button
               type="button"
               onClick={onBackToOAuth}
-              className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+              className="stg:text-[11px] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
             >
               {isVendorApprovalPending ? "Back to OAuth status" : "Sign in with OAuth instead"}
             </button>
@@ -1189,7 +1189,7 @@ function ConnectBar({
                 <button
                   type="button"
                   onClick={onManualOverride}
-                  className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+                  className="stg:text-[11px] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
                 >
                   Enter token manually
                 </button>
@@ -1198,7 +1198,7 @@ function ConnectBar({
                 <button
                   type="button"
                   onClick={onBringOwnApp}
-                  className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+                  className="stg:text-[11px] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
                 >
                   Use your own OAuth app
                 </button>
@@ -1210,14 +1210,14 @@ function ConnectBar({
 
       {connectionError && (
         <div
-          className="flex items-start gap-2 border-t border-destructive/20 bg-destructive-subtle px-3 py-2"
+          className="stg:flex stg:items-start stg:gap-2 stg:border-t stg:border-destructive/20 stg:bg-destructive-subtle stg:px-3 stg:py-2"
           role="alert"
         >
-          <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
-          <p className="flex-1 text-xs text-destructive">
+          <WarningIcon className="stg:mt-0.5 stg:size-3.5 stg:shrink-0 stg:text-destructive" />
+          <p className="stg:flex-1 stg:text-xs stg:text-destructive">
             {connectionErrorMessage ?? getUserMessage(connectionError)}
           </p>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-2">
             {isRetryableError(connectionError) && (
               <button
                 type="button"
@@ -1225,7 +1225,7 @@ function ConnectBar({
                   onClearConnectionError();
                   onConnect();
                 }}
-                className="text-xs font-medium text-destructive underline underline-offset-2 hover:no-underline"
+                className="stg:text-xs stg:font-medium stg:text-destructive stg:underline stg:underline-offset-2 stg:hover:no-underline"
               >
                 Try again
               </button>
@@ -1233,7 +1233,7 @@ function ConnectBar({
             <button
               type="button"
               onClick={onClearConnectionError}
-              className="text-xs text-destructive-muted hover:text-destructive"
+              className="stg:text-xs stg:text-destructive-muted stg:hover:text-destructive"
               aria-label="Dismiss error"
             >
               Dismiss
@@ -1282,14 +1282,14 @@ function ValidationBanner({ message }: { readonly message: string }) {
   return (
     <div
       role="alert"
-      className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive-subtle px-4 py-3"
+      className="stg:flex stg:items-start stg:gap-2.5 stg:rounded-lg stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-4 stg:py-3"
     >
-      <WarningIcon className="mt-0.5 size-4 shrink-0 text-destructive" />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-destructive">
+      <WarningIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0 stg:text-destructive" />
+      <div className="stg:min-w-0 stg:flex-1">
+        <p className="stg:text-sm stg:font-medium stg:text-destructive">
           Invalid Configuration
         </p>
-        <p className="mt-0.5 text-xs text-destructive-muted">{message}</p>
+        <p className="stg:mt-0.5 stg:text-xs stg:text-destructive-muted">{message}</p>
       </div>
     </div>
   );
@@ -1306,8 +1306,8 @@ function ValidationStateBadge({
       return (
         <>
           <Dot />
-          <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-            <CheckIcon className="size-3" />
+          <span className="stg:inline-flex stg:items-center stg:gap-1 stg:text-emerald-600 stg:dark:text-emerald-400">
+            <CheckIcon className="stg:size-3" />
             Valid
           </span>
         </>
@@ -1316,7 +1316,7 @@ function ValidationStateBadge({
       return (
         <>
           <Dot />
-          <span className="text-destructive">Invalid</span>
+          <span className="stg:text-destructive">Invalid</span>
         </>
       );
     default:
@@ -1414,9 +1414,9 @@ function ServerConfigSection({
 
   return (
     <Section title="Server Configuration">
-      <div className="flex flex-col gap-2 p-3">
-        <div className="flex items-baseline gap-2">
-          <span className="text-xs font-medium text-muted-foreground">
+      <div className="stg:flex stg:flex-col stg:gap-2 stg:p-3">
+        <div className="stg:flex stg:items-baseline stg:gap-2">
+          <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">
             Type
           </span>
           {editable && saveMcpField ? (
@@ -1427,7 +1427,7 @@ function ServerConfigSection({
               isSaving={isSaving}
             />
           ) : (
-            <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-foreground">
+            <span className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-xs stg:font-medium stg:text-foreground">
               {serverType?.case ?? "none"}
             </span>
           )}
@@ -1435,8 +1435,8 @@ function ServerConfigSection({
 
         {serverType?.case === "stdio" && (
           <>
-            <div className="flex items-baseline gap-2">
-              <span className="text-xs font-medium text-muted-foreground">
+            <div className="stg:flex stg:items-baseline stg:gap-2">
+              <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">
                 Command
               </span>
               {editable && saveMcpField ? (
@@ -1453,7 +1453,7 @@ function ServerConfigSection({
                   placeholder="e.g. npx -y @modelcontextprotocol/server"
                 />
               ) : (
-                <code className="font-mono text-sm text-foreground">
+                <code className="stg:font-mono stg:text-sm stg:text-foreground">
                   {serverType.value.command}
                   {serverType.value.args.length > 0 &&
                     ` ${serverType.value.args.join(" ")}`}
@@ -1461,8 +1461,8 @@ function ServerConfigSection({
               )}
             </div>
             {(editable || serverType.value.workingDir) && (
-              <div className="flex items-baseline gap-2">
-                <span className="text-xs font-medium text-muted-foreground">
+              <div className="stg:flex stg:items-baseline stg:gap-2">
+                <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">
                   Working Dir
                 </span>
                 {editable && saveMcpField ? (
@@ -1479,7 +1479,7 @@ function ServerConfigSection({
                     placeholder="/path/to/working/dir"
                   />
                 ) : (
-                  <code className="font-mono text-xs text-foreground">
+                  <code className="stg:font-mono stg:text-xs stg:text-foreground">
                     {serverType.value.workingDir}
                   </code>
                 )}
@@ -1490,8 +1490,8 @@ function ServerConfigSection({
 
         {serverType?.case === "http" && (
           <>
-            <div className="flex items-baseline gap-2">
-              <span className="text-xs font-medium text-muted-foreground">
+            <div className="stg:flex stg:items-baseline stg:gap-2">
+              <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">
                 URL
               </span>
               {editable && saveMcpField ? (
@@ -1504,14 +1504,14 @@ function ServerConfigSection({
                   placeholder="https://example.com/mcp"
                 />
               ) : (
-                <code className="break-all font-mono text-sm text-foreground">
+                <code className="stg:break-all stg:font-mono stg:text-sm stg:text-foreground">
                   {serverType.value.url}
                 </code>
               )}
             </div>
             {(editable || serverType.value.timeoutSeconds > 0) && (
-              <div className="flex items-baseline gap-2">
-                <span className="text-xs font-medium text-muted-foreground">
+              <div className="stg:flex stg:items-baseline stg:gap-2">
+                <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">
                   Timeout
                 </span>
                 {editable && saveMcpField ? (
@@ -1531,7 +1531,7 @@ function ServerConfigSection({
                     }}
                   />
                 ) : (
-                  <span className="text-xs text-foreground">
+                  <span className="stg:text-xs stg:text-foreground">
                     {serverType.value.timeoutSeconds}s
                   </span>
                 )}
@@ -1595,12 +1595,12 @@ function HttpKeyValueSubsection({
   readonly keyLabel: string;
 }) {
   return (
-    <div className="border-t border-border">
-      <div className="flex items-center justify-between px-3 py-2">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">{title}</span>
+    <div className="stg:border-t stg:border-border">
+      <div className="stg:flex stg:items-center stg:justify-between stg:px-3 stg:py-2">
+        <div className="stg:flex stg:items-center stg:gap-1.5">
+          <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">{title}</span>
           {count > 0 && (
-            <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-muted px-1 py-px text-[10px] font-medium leading-none text-muted-foreground">
+            <span className="stg:inline-flex stg:min-w-[1.25rem] stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:px-1 stg:py-px stg:text-[10px] stg:font-medium stg:leading-none stg:text-muted-foreground">
               {count}
             </span>
           )}
@@ -1609,7 +1609,7 @@ function HttpKeyValueSubsection({
           <button
             type="button"
             onClick={() => onEditingChange(!editing)}
-            className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+            className="stg:text-[11px] stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground stg:hover:decoration-foreground"
           >
             {editing ? "Done" : "Edit"}
           </button>
@@ -1627,13 +1627,13 @@ function HttpKeyValueSubsection({
           valueLabel="Value"
         />
       ) : (
-        <div className="flex flex-col divide-y divide-border">
+        <div className="stg:flex stg:flex-col stg:divide-y stg:divide-border">
           {rows.map((row) => (
-            <div key={row.key} className="flex items-start gap-2 px-3 py-1.5">
-              <code className="shrink-0 font-mono text-xs font-medium text-foreground">
+            <div key={row.key} className="stg:flex stg:items-start stg:gap-2 stg:px-3 stg:py-1.5">
+              <code className="stg:shrink-0 stg:font-mono stg:text-xs stg:font-medium stg:text-foreground">
                 {row.key}
               </code>
-              <span className="min-w-0 break-all font-mono text-xs text-muted-foreground">
+              <span className="stg:min-w-0 stg:break-all stg:font-mono stg:text-xs stg:text-muted-foreground">
                 {renderHeaderValue(row.value)}
               </span>
             </div>
@@ -1662,7 +1662,7 @@ function renderHeaderValue(value: string): React.ReactNode {
     parts.push(
       <span
         key={match.index}
-        className="inline-flex items-center gap-0.5 rounded bg-primary-subtle px-1 py-px text-[10px] font-medium text-primary"
+        className="stg:inline-flex stg:items-center stg:gap-0.5 stg:rounded stg:bg-primary-subtle stg:px-1 stg:py-px stg:text-[10px] stg:font-medium stg:text-primary"
         title={`Resolved from environment variable: ${match[1]}`}
       >
         {match[0]}
@@ -1685,29 +1685,29 @@ function SourceSection({
 }) {
   return (
     <Section title="Source">
-      <div className="flex flex-col gap-2 p-3">
+      <div className="stg:flex stg:flex-col stg:gap-2 stg:p-3">
         {spec.repositoryUrl && (
-          <div className="flex items-baseline gap-2">
-            <span className="shrink-0 text-xs font-medium text-muted-foreground">
+          <div className="stg:flex stg:items-baseline stg:gap-2">
+            <span className="stg:shrink-0 stg:text-xs stg:font-medium stg:text-muted-foreground">
               Repository
             </span>
             <a
               href={spec.repositoryUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 break-all font-mono text-xs text-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:decoration-foreground"
+              className="stg:inline-flex stg:items-center stg:gap-1 stg:break-all stg:font-mono stg:text-xs stg:text-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:decoration-foreground"
             >
               {spec.repositoryUrl}
-              <ExternalLinkIcon className="size-3 shrink-0" />
+              <ExternalLinkIcon className="stg:size-3 stg:shrink-0" />
             </a>
           </div>
         )}
         {spec.githubStars > 0 && (
-          <div className="flex items-baseline gap-2">
-            <span className="shrink-0 text-xs font-medium text-muted-foreground">
+          <div className="stg:flex stg:items-baseline stg:gap-2">
+            <span className="stg:shrink-0 stg:text-xs stg:font-medium stg:text-muted-foreground">
               Stars
             </span>
-            <span className="text-xs text-foreground">
+            <span className="stg:text-xs stg:text-foreground">
               {spec.githubStars.toLocaleString()}
             </span>
           </div>
@@ -1725,19 +1725,19 @@ function ResourceTemplatesList({
   if (templates.length === 0) return null;
 
   return (
-    <div className="flex flex-col divide-y divide-border">
+    <div className="stg:flex stg:flex-col stg:divide-y stg:divide-border">
       {templates.map((tpl) => (
-        <div key={tpl.uriTemplate || tpl.name} className="px-3 py-2.5">
-          <div className="flex items-baseline gap-2">
-            <span className="text-sm font-medium text-foreground">
+        <div key={tpl.uriTemplate || tpl.name} className="stg:px-3 stg:py-2.5">
+          <div className="stg:flex stg:items-baseline stg:gap-2">
+            <span className="stg:text-sm stg:font-medium stg:text-foreground">
               {tpl.name}
             </span>
-            <code className="font-mono text-[10px] text-muted-foreground">
+            <code className="stg:font-mono stg:text-[10px] stg:text-muted-foreground">
               {tpl.uriTemplate}
             </code>
           </div>
           {tpl.description && (
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
               {tpl.description}
             </p>
           )}
@@ -1814,29 +1814,29 @@ function EnvSection({
           keyLabel="Variable name"
         />
       ) : (
-        <div className="flex flex-col divide-y divide-border">
+        <div className="stg:flex stg:flex-col stg:divide-y stg:divide-border">
           {entries.map(([name, env]) => {
             const isOAuthManaged = name === oauthTargetEnvVar;
             return (
-              <div key={name} className="flex items-start gap-3 px-3 py-2">
-                <code className="shrink-0 font-mono text-sm font-medium text-foreground">
+              <div key={name} className="stg:flex stg:items-start stg:gap-3 stg:px-3 stg:py-2">
+                <code className="stg:shrink-0 stg:font-mono stg:text-sm stg:font-medium stg:text-foreground">
                   {name}
                 </code>
-                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground">
                   {env.isSecret ? "secret" : "config"}
                 </span>
                 {isOAuthManaged && (
-                  <span className="shrink-0 rounded bg-primary-subtle px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                  <span className="stg:shrink-0 stg:rounded stg:bg-primary-subtle stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-primary">
                     oauth
                   </span>
                 )}
                 {env.optional && (
-                  <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground-subtle">
+                  <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground-subtle">
                     optional
                   </span>
                 )}
                 {env.description && (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="stg:text-xs stg:text-muted-foreground">
                     {env.description}
                   </span>
                 )}
@@ -1882,17 +1882,17 @@ function TagsSection({
 
   return (
     <Section title="Tags" count={tags.length}>
-      <div className="flex flex-wrap gap-1.5 p-3">
+      <div className="stg:flex stg:flex-wrap stg:gap-1.5 stg:p-3">
         {tags.map((tag) => (
           <span
             key={tag}
-            className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
+            className="stg:rounded-full stg:bg-muted stg:px-2.5 stg:py-0.5 stg:text-xs stg:font-medium stg:text-muted-foreground"
           >
             {tag}
           </span>
         ))}
         {editable && tags.length === 0 && (
-          <p className="text-xs text-muted-foreground italic">No tags</p>
+          <p className="stg:text-xs stg:text-muted-foreground stg:italic">No tags</p>
         )}
       </div>
     </Section>
@@ -1936,11 +1936,11 @@ function ToolsTabContent({
     // latter must carry its own recovery action, because the user already
     // did the thing the informational copy asks for.
     return (
-      <div className="px-3 py-8 text-center">
-        <ConnectIcon className="mx-auto mb-2 size-6 text-muted-foreground-faint" />
+      <div className="stg:px-3 stg:py-8 stg:text-center">
+        <ConnectIcon className="stg:mx-auto stg:mb-2 stg:size-6 stg:text-muted-foreground-faint" />
         {isOAuthStranded ? (
           <>
-            <p className="text-xs text-muted-foreground">
+            <p className="stg:text-xs stg:text-muted-foreground">
               Signed in, but tools haven&apos;t been discovered yet.
             </p>
             <button
@@ -1948,9 +1948,9 @@ function ToolsTabContent({
               onClick={onDiscover}
               disabled={isDiscovering}
               className={cn(
-                "mt-3 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
-                "bg-primary text-primary-foreground hover:bg-primary-hover",
-                "disabled:pointer-events-none disabled:opacity-50",
+                "stg:mt-3 stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+                "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               )}
             >
               {isDiscovering && <Spinner />}
@@ -1958,7 +1958,7 @@ function ToolsTabContent({
             </button>
           </>
         ) : (
-          <p className="text-xs text-muted-foreground">
+          <p className="stg:text-xs stg:text-muted-foreground">
             Connect to this MCP server to discover its available tools.
           </p>
         )}
@@ -1969,43 +1969,43 @@ function ToolsTabContent({
   const isFiltered = search.trim().length > 0;
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center gap-2 px-3 pb-2">
-        <div className="relative flex-1">
-          <SearchIcon className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+    <div className="stg:flex stg:flex-col">
+      <div className="stg:flex stg:items-center stg:gap-2 stg:px-3 stg:pb-2">
+        <div className="stg:relative stg:flex-1">
+          <SearchIcon className="stg:pointer-events-none stg:absolute stg:left-2 stg:top-1/2 stg:size-3.5 stg:-translate-y-1/2 stg:text-muted-foreground" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search tools…"
             aria-label="Search tools"
-            className="w-full rounded-md border border-border bg-background py-1.5 pl-7 pr-7 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="stg:w-full stg:rounded-md stg:border stg:border-border stg:bg-background stg:py-1.5 stg:pl-7 stg:pr-7 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring"
           />
           {isFiltered && (
             <button
               type="button"
               onClick={() => setSearch("")}
               aria-label="Clear search"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="stg:absolute stg:right-2 stg:top-1/2 stg:-translate-y-1/2 stg:text-muted-foreground stg:hover:text-foreground"
             >
-              <CloseIcon className="size-3" />
+              <CloseIcon className="stg:size-3" />
             </button>
           )}
         </div>
-        <span className="shrink-0 text-[10px] text-muted-foreground">
+        <span className="stg:shrink-0 stg:text-[10px] stg:text-muted-foreground">
           {isFiltered ? `${filtered.length} of ${tools.length}` : tools.length}
         </span>
       </div>
 
       {filtered.length === 0 ? (
-        <div className="px-3 py-6 text-center">
-          <p className="text-xs text-muted-foreground">
+        <div className="stg:px-3 stg:py-6 stg:text-center">
+          <p className="stg:text-xs stg:text-muted-foreground">
             No tools matching &ldquo;{search}&rdquo;
           </p>
         </div>
       ) : (
-        <div className="max-h-96 overflow-y-auto">
-          <div className="flex flex-col divide-y divide-border">
+        <div className="stg:max-h-96 stg:overflow-y-auto">
+          <div className="stg:flex stg:flex-col stg:divide-y stg:divide-border">
             {filtered.map((tool) => {
               const isExpanded = expandedTool === tool.name;
               const hasSchema =
@@ -2019,34 +2019,34 @@ function ToolsTabContent({
                     onClick={() =>
                       setExpandedTool(isExpanded ? null : tool.name)
                     }
-                    className="flex w-full items-start gap-2 px-3 py-2.5 text-left transition-colors hover:bg-muted-faint"
+                    className="stg:flex stg:w-full stg:items-start stg:gap-2 stg:px-3 stg:py-2.5 stg:text-left stg:transition-colors stg:hover:bg-muted-faint"
                     aria-expanded={isExpanded}
                   >
                     <ChevronIcon
                       className={cn(
-                        "mt-0.5 size-3 shrink-0 text-muted-foreground transition-transform",
-                        isExpanded && "rotate-90",
+                        "stg:mt-0.5 stg:size-3 stg:shrink-0 stg:text-muted-foreground stg:transition-transform",
+                        isExpanded && "stg:rotate-90",
                       )}
                     />
-                    <div className="min-w-0 flex-1">
-                      <code className="font-mono text-sm font-medium text-foreground">
+                    <div className="stg:min-w-0 stg:flex-1">
+                      <code className="stg:font-mono stg:text-sm stg:font-medium stg:text-foreground">
                         {tool.name}
                       </code>
                       {tool.description && (
-                        <p className="mt-0.5 text-xs text-muted-foreground">
+                        <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
                           {tool.description}
                         </p>
                       )}
                     </div>
                     {hasSchema && (
-                      <span className="mt-0.5 shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      <span className="stg:mt-0.5 stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground">
                         schema
                       </span>
                     )}
                   </button>
                   {isExpanded && hasSchema && (
-                    <div className="border-t border-border bg-muted-faint px-3 py-2">
-                      <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded border border-border bg-background p-2 font-mono text-[11px] text-foreground">
+                    <div className="stg:border-t stg:border-border stg:bg-muted-faint stg:px-3 stg:py-2">
+                      <pre className="stg:max-h-64 stg:overflow-auto stg:whitespace-pre-wrap stg:break-words stg:rounded stg:border stg:border-border stg:bg-background stg:p-2 stg:font-mono stg:text-[11px] stg:text-foreground">
                         {JSON.stringify(tool.inputSchema, null, 2)}
                       </pre>
                     </div>
@@ -2103,9 +2103,9 @@ function PoliciesTabContent({
 
   if (!hasAnyPolicies) {
     return (
-      <div className="px-3 py-8 text-center">
-        <ShieldIcon className="mx-auto mb-2 size-6 text-muted-foreground-faint" />
-        <p className="text-xs text-muted-foreground">
+      <div className="stg:px-3 stg:py-8 stg:text-center">
+        <ShieldIcon className="stg:mx-auto stg:mb-2 stg:size-6 stg:text-muted-foreground-faint" />
+        <p className="stg:text-xs stg:text-muted-foreground">
           {hasDiscoveredTools
             ? "No approval policies yet. Reconnect to reclassify tools."
             : isOAuthStranded
@@ -2117,52 +2117,52 @@ function PoliciesTabContent({
   }
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center gap-2 px-3 pb-2">
-        <div className="relative flex-1">
-          <SearchIcon className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+    <div className="stg:flex stg:flex-col">
+      <div className="stg:flex stg:items-center stg:gap-2 stg:px-3 stg:pb-2">
+        <div className="stg:relative stg:flex-1">
+          <SearchIcon className="stg:pointer-events-none stg:absolute stg:left-2 stg:top-1/2 stg:size-3.5 stg:-translate-y-1/2 stg:text-muted-foreground" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search policies…"
             aria-label="Search policies"
-            className="w-full rounded-md border border-border bg-background py-1.5 pl-7 pr-7 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="stg:w-full stg:rounded-md stg:border stg:border-border stg:bg-background stg:py-1.5 stg:pl-7 stg:pr-7 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring"
           />
           {isFiltered && (
             <button
               type="button"
               onClick={() => setSearch("")}
               aria-label="Clear search"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="stg:absolute stg:right-2 stg:top-1/2 stg:-translate-y-1/2 stg:text-muted-foreground stg:hover:text-foreground"
             >
-              <CloseIcon className="size-3" />
+              <CloseIcon className="stg:size-3" />
             </button>
           )}
         </div>
-        <span className="shrink-0 text-[10px] text-muted-foreground">
+        <span className="stg:shrink-0 stg:text-[10px] stg:text-muted-foreground">
           {isFiltered ? `${filteredTotal} of ${totalCount}` : totalCount}
         </span>
       </div>
 
       {filteredTotal === 0 ? (
-        <div className="px-3 py-6 text-center">
-          <p className="text-xs text-muted-foreground">
+        <div className="stg:px-3 stg:py-6 stg:text-center">
+          <p className="stg:text-xs stg:text-muted-foreground">
             No policies matching &ldquo;{search}&rdquo;
           </p>
         </div>
       ) : (
-        <div className="max-h-96 overflow-y-auto">
+        <div className="stg:max-h-96 stg:overflow-y-auto">
           {filteredPinned.length > 0 && (
             <PolicyGroup
-              icon={<PinIcon className="size-3.5" />}
+              icon={<PinIcon className="stg:size-3.5" />}
               label="Pinned"
               policies={filteredPinned}
             />
           )}
           {filteredClassified.length > 0 && (
             <PolicyGroup
-              icon={<SparklesIcon className="size-3.5" />}
+              icon={<SparklesIcon className="stg:size-3.5" />}
               label="Auto-classified"
               policies={filteredClassified}
             />
@@ -2183,30 +2183,30 @@ function PolicyGroup({
   readonly policies: readonly ToolApprovalPolicy[];
 }) {
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center gap-1.5 border-b border-border bg-muted-faint px-3 py-1.5">
-        <span className="text-muted-foreground">{icon}</span>
-        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+    <div className="stg:flex stg:flex-col">
+      <div className="stg:flex stg:items-center stg:gap-1.5 stg:border-b stg:border-border stg:bg-muted-faint stg:px-3 stg:py-1.5">
+        <span className="stg:text-muted-foreground">{icon}</span>
+        <span className="stg:text-[10px] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
           {label}
         </span>
-        <span className="text-[10px] text-muted-foreground">
+        <span className="stg:text-[10px] stg:text-muted-foreground">
           ({policies.length})
         </span>
       </div>
-      <div className="flex flex-col divide-y divide-border">
+      <div className="stg:flex stg:flex-col stg:divide-y stg:divide-border">
         {policies.map((policy) => (
-          <div key={policy.toolName} className="px-3 py-2.5">
-            <div className="flex items-baseline gap-2">
-              <code className="font-mono text-sm font-medium text-foreground">
+          <div key={policy.toolName} className="stg:px-3 stg:py-2.5">
+            <div className="stg:flex stg:items-baseline stg:gap-2">
+              <code className="stg:font-mono stg:text-sm stg:font-medium stg:text-foreground">
                 {policy.toolName}
               </code>
-              <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
-                <ShieldIcon className="size-2.5" />
+              <span className="stg:inline-flex stg:items-center stg:gap-1 stg:rounded stg:bg-amber-500/10 stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-amber-600 stg:dark:text-amber-400">
+                <ShieldIcon className="stg:size-2.5" />
                 requires approval
               </span>
             </div>
             {policy.message && (
-              <p className="mt-0.5 text-xs text-muted-foreground">
+              <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
                 {policy.message}
               </p>
             )}
@@ -2224,7 +2224,7 @@ function PolicyGroup({
 
 function Dot() {
   return (
-    <span className="shrink-0" aria-hidden="true">
+    <span className="stg:shrink-0" aria-hidden="true">
       {"\u00B7"}
     </span>
   );
@@ -2237,23 +2237,23 @@ function Dot() {
 function LoadingSkeleton({ className }: { readonly className?: string }) {
   return (
     <div
-      className={cn("flex flex-col gap-6", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-6", className)}
       aria-busy="true"
       aria-label="Loading MCP server details"
     >
-      <div className="flex items-start gap-3">
-        <div className="mt-1 size-6 shrink-0 animate-pulse rounded bg-muted" />
-        <div className="flex-1 space-y-2">
-          <div className="h-5 w-48 animate-pulse rounded bg-muted" />
-          <div className="h-3 w-64 animate-pulse rounded bg-muted" />
-          <div className="h-4 w-full max-w-md animate-pulse rounded bg-muted" />
+      <div className="stg:flex stg:items-start stg:gap-3">
+        <div className="stg:mt-1 stg:size-6 stg:shrink-0 stg:animate-pulse stg:rounded stg:bg-muted" />
+        <div className="stg:flex-1 stg:space-y-2">
+          <div className="stg:h-5 stg:w-48 stg:animate-pulse stg:rounded stg:bg-muted" />
+          <div className="stg:h-3 stg:w-64 stg:animate-pulse stg:rounded stg:bg-muted" />
+          <div className="stg:h-4 stg:w-full stg:max-w-md stg:animate-pulse stg:rounded stg:bg-muted" />
         </div>
       </div>
       {[24, 48, 16, 12].map((h, i) => (
-        <div key={i} className="space-y-2">
-          <div className="h-3 w-28 animate-pulse rounded bg-muted" />
+        <div key={i} className="stg:space-y-2">
+          <div className="stg:h-3 stg:w-28 stg:animate-pulse stg:rounded stg:bg-muted" />
           <div
-            className="animate-pulse rounded-lg border border-border bg-muted-faint"
+            className="stg:animate-pulse stg:rounded-lg stg:border stg:border-border stg:bg-muted-faint"
             style={{ height: `${h * 4}px` }}
           />
         </div>
@@ -2267,15 +2267,15 @@ function NotFoundState({ className }: { readonly className?: string }) {
     <div
       role="status"
       className={cn(
-        "flex flex-col items-center gap-2 py-12 text-center",
+        "stg:flex stg:flex-col stg:items-center stg:gap-2 stg:py-12 stg:text-center",
         className,
       )}
     >
-      <McpServerIcon className="size-10 text-muted-foreground-faint" />
-      <p className="text-sm font-medium text-muted-foreground">
+      <McpServerIcon className="stg:size-10 stg:text-muted-foreground-faint" />
+      <p className="stg:text-sm stg:font-medium stg:text-muted-foreground">
         MCP Server not found
       </p>
-      <p className="text-xs text-muted-foreground-subtle">
+      <p className="stg:text-xs stg:text-muted-foreground-subtle">
         This MCP server doesn&apos;t exist or you don&apos;t have access to it.
       </p>
     </div>
@@ -2549,7 +2549,7 @@ function Spinner() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

@@ -185,7 +185,7 @@ export const FileViewer = forwardRef<FileViewerHandle, FileViewerProps>(
       <div
         role="region"
         aria-label="File viewer"
-        className={cn("flex h-full flex-col", className)}
+        className={cn("stg:flex stg:h-full stg:flex-col", className)}
         onKeyDown={handleKeyDown}
       >
         {showHeader && (
@@ -196,7 +196,7 @@ export const FileViewer = forwardRef<FileViewerHandle, FileViewerProps>(
             onClose={onClose}
           />
         )}
-        <div className="flex flex-1 items-center justify-center p-8 text-center text-xs text-muted-foreground">
+        <div className="stg:flex stg:flex-1 stg:items-center stg:justify-center stg:p-8 stg:text-center stg:text-xs stg:text-muted-foreground">
           This file is no longer in the workspace.
         </div>
       </div>
@@ -210,7 +210,7 @@ export const FileViewer = forwardRef<FileViewerHandle, FileViewerProps>(
       // Focusable (programmatically / on click) so the Escape-to-close handler
       // fires even when the read-only body holds no natively focusable element.
       tabIndex={-1}
-      className={cn("flex h-full flex-col focus:outline-none", className)}
+      className={cn("stg:flex stg:h-full stg:flex-col stg:focus:outline-none", className)}
       onKeyDown={handleKeyDown}
     >
       {showHeader && (
@@ -224,9 +224,9 @@ export const FileViewer = forwardRef<FileViewerHandle, FileViewerProps>(
       {showViewToggle && (
         <ViewerModeToggle value={viewMode} onChange={setViewMode} />
       )}
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto">
         {effectiveView === "diff" && change ? (
-          <div className="p-3">
+          <div className="stg:p-3">
             <FileChangeDiff change={change} showFileName={false} showStats />
           </div>
         ) : (
@@ -293,11 +293,11 @@ function ViewerModeToggle({
   );
 
   return (
-    <div className="border-b border-border px-3 py-1.5">
+    <div className="stg:border-b stg:border-border stg:px-3 stg:py-1.5">
       <div
         role="radiogroup"
         aria-label="File view"
-        className="inline-flex rounded-md bg-muted p-0.5"
+        className="stg:inline-flex stg:rounded-md stg:bg-muted stg:p-0.5"
       >
         {options.map((option, index) => {
           const isSelected = value === option.value;
@@ -314,11 +314,11 @@ function ViewerModeToggle({
               onClick={() => onChange(option.value)}
               onKeyDown={handleKeyDown}
               className={cn(
-                "inline-flex cursor-pointer items-center rounded-sm px-2 py-0.5 text-xs font-medium transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "stg:inline-flex stg:cursor-pointer stg:items-center stg:rounded-sm stg:px-2 stg:py-0.5 stg:text-xs stg:font-medium stg:transition-colors",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 isSelected
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? "stg:bg-background stg:text-foreground stg:shadow-sm"
+                  : "stg:text-muted-foreground stg:hover:text-foreground",
               )}
             >
               {option.label}
@@ -399,15 +399,15 @@ function FileViewerBody({
     // Expected while the agent's write-back is still syncing to the ref —
     // a calm notice (DD-006), not a failure.
     return (
-      <div className="flex flex-col items-center justify-center gap-2 p-8 text-center">
-        <p className="text-xs text-muted-foreground">
+      <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:gap-2 stg:p-8 stg:text-center">
+        <p className="stg:text-xs stg:text-muted-foreground">
           This file isn&rsquo;t available in the workspace source yet. The
           agent&rsquo;s latest changes may still be syncing.
         </p>
         <button
           type="button"
           onClick={onRetry}
-          className="text-xs font-medium text-foreground underline underline-offset-2 hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm"
+          className="stg:text-xs stg:font-medium stg:text-foreground stg:underline stg:underline-offset-2 stg:hover:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm"
         >
           Check again
         </button>
@@ -417,13 +417,13 @@ function FileViewerBody({
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 p-8 text-center">
+      <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:gap-2 stg:p-8 stg:text-center">
         <ErrorAlertIcon />
-        <p className="text-sm text-destructive">{error.message}</p>
+        <p className="stg:text-sm stg:text-destructive">{error.message}</p>
         <button
           type="button"
           onClick={onRetry}
-          className="text-xs font-medium text-foreground underline underline-offset-2 hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm"
+          className="stg:text-xs stg:font-medium stg:text-foreground stg:underline stg:underline-offset-2 stg:hover:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm"
         >
           Retry
         </button>
@@ -477,7 +477,7 @@ function FileViewerBody({
   return (
     <>
       {change && (
-        <p className="border-b border-border-muted px-4 py-1.5 text-[0.65rem] text-muted-foreground">
+        <p className="stg:border-b stg:border-border-muted stg:px-4 stg:py-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
           Live — may differ from the reviewed change.
         </p>
       )}
@@ -532,11 +532,11 @@ function ImageFileContent({
   return (
     <>
       {change && (
-        <p className="border-b border-border-muted px-4 py-1.5 text-[0.65rem] text-muted-foreground">
+        <p className="stg:border-b stg:border-border-muted stg:px-4 stg:py-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
           Live — may differ from the reviewed change.
         </p>
       )}
-      <div className="flex flex-col items-center gap-2 p-4">
+      <div className="stg:flex stg:flex-col stg:items-center stg:gap-2 stg:p-4">
         {url ? (
           // UNSTYLED_BUTTON adds the pointer cursor — the image preview
           // carries no other clickability cue.
@@ -546,24 +546,24 @@ function ImageFileContent({
             aria-label={`Preview ${basename} at full size`}
             className={cn(
               UNSTYLED_BUTTON,
-              "max-w-full rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:max-w-full stg:rounded-md stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           >
             <img
               src={url}
               alt={basename}
               onError={() => setLoadFailed(true)}
-              className="max-h-[70vh] max-w-full rounded-md border border-border object-contain"
+              className="stg:max-h-[70vh] stg:max-w-full stg:rounded-md stg:border stg:border-border stg:object-contain"
             />
           </button>
         ) : (
           // One-frame placeholder until the object-URL effect runs.
           <div
-            className="h-48 w-72 max-w-full animate-pulse rounded-md bg-muted"
+            className="stg:h-48 stg:w-72 stg:max-w-full stg:animate-pulse stg:rounded-md stg:bg-muted"
             aria-hidden="true"
           />
         )}
-        <p className="text-[0.65rem] tabular-nums text-muted-foreground">
+        <p className="stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground">
           {mime}
           {size ? ` · ${formatBytes(size)}` : ""}
         </p>
@@ -609,7 +609,7 @@ function CapturedFileContent({
 
   return (
     <>
-      <p className="border-b border-border-muted px-4 py-1.5 text-[0.65rem] text-muted-foreground">
+      <p className="stg:border-b stg:border-border-muted stg:px-4 stg:py-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
         As of the agent&rsquo;s last change — not yet in the workspace source.
       </p>
       <ArtifactContentRenderer
@@ -625,14 +625,14 @@ function LoadingSkeleton() {
   return (
     <div
       role="status"
-      className="space-y-2 p-4"
+      className="stg:space-y-2 stg:p-4"
       aria-busy="true"
       aria-label="Loading file"
     >
       {SKELETON_LINE_WIDTHS.map((width, i) => (
         <div
           key={i}
-          className="h-4 animate-pulse rounded bg-muted"
+          className="stg:h-4 stg:animate-pulse stg:rounded stg:bg-muted"
           style={{ width: `${width}%` }}
           aria-hidden="true"
         />
@@ -657,14 +657,14 @@ function ViewerHeader({
   readonly onClose?: () => void;
 }) {
   return (
-    <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+    <div className="stg:flex stg:items-center stg:gap-2 stg:border-b stg:border-border stg:px-3 stg:py-2">
       <FileIcon />
-      <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
-        <span className="truncate text-xs font-semibold text-foreground" title={dir ? `${dir}/${basename}` : basename}>
+      <div className="stg:flex stg:min-w-0 stg:flex-1 stg:items-baseline stg:gap-1.5">
+        <span className="stg:truncate stg:text-xs stg:font-semibold stg:text-foreground" title={dir ? `${dir}/${basename}` : basename}>
           {basename}
         </span>
         {dir && (
-          <span className="truncate text-[0.65rem] text-muted-foreground">{dir}</span>
+          <span className="stg:truncate stg:text-[0.65rem] stg:text-muted-foreground">{dir}</span>
         )}
       </div>
       {onRefresh && (
@@ -672,7 +672,7 @@ function ViewerHeader({
           type="button"
           onClick={onRefresh}
           aria-label={`Reload ${basename}`}
-          className="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="stg:shrink-0 stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
         >
           <RefreshIcon />
         </button>
@@ -682,7 +682,7 @@ function ViewerHeader({
           type="button"
           onClick={onClose}
           aria-label="Close file viewer"
-          className="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="stg:shrink-0 stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
         >
           <CloseIcon />
         </button>
@@ -693,7 +693,7 @@ function ViewerHeader({
 
 function MessageState({ children }: { readonly children: React.ReactNode }) {
   return (
-    <div className="flex h-full items-center justify-center p-8 text-center text-xs text-muted-foreground">
+    <div className="stg:flex stg:h-full stg:items-center stg:justify-center stg:p-8 stg:text-center stg:text-xs stg:text-muted-foreground">
       {children}
     </div>
   );
@@ -716,7 +716,7 @@ function formatBytes(n: number): string {
 
 function FileIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
       <path d="M9.5 1.5H5C4.17 1.5 3.5 2.17 3.5 3V13C3.5 13.83 4.17 14.5 5 14.5H11C11.83 14.5 12.5 13.83 12.5 13V4.5L9.5 1.5Z" />
       <path d="M9.5 1.5V4.5H12.5" />
     </svg>
@@ -743,7 +743,7 @@ function RefreshIcon() {
 
 function ErrorAlertIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-destructive" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="stg:text-destructive" aria-hidden="true">
       <circle cx="8" cy="8" r="6.5" />
       <path d="M8 5.5V8.5" />
       <circle cx="8" cy="11" r="0.5" fill="currentColor" stroke="none" />

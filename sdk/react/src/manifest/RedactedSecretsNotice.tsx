@@ -19,11 +19,11 @@ export function RedactedSecretsNotice({ className }: RedactedSecretsNoticeProps)
   return (
     <p
       className={cn(
-        "rounded-md border border-border bg-muted px-3 py-2 text-xs text-muted-foreground",
+        "stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-3 stg:py-2 stg:text-xs stg:text-muted-foreground",
         className,
       )}
     >
-      Secret values are shown as <code className="font-mono">***REDACTED***</code>.
+      Secret values are shown as <code className="stg:font-mono">***REDACTED***</code>.
       Applying keeps the stored secrets; replace a marker to set a new value.
     </p>
   );

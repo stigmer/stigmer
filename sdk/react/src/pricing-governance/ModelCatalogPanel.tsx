@@ -108,10 +108,10 @@ export function ModelCatalogPanel({ className }: ModelCatalogPanelProps) {
 
   if (isLoading) {
     return (
-      <div className={cn("space-y-2", className)} aria-busy="true">
-        <div className="h-4 w-40 animate-pulse rounded bg-muted-subtle" />
+      <div className={cn("stg:space-y-2", className)} aria-busy="true">
+        <div className="stg:h-4 stg:w-40 stg:animate-pulse stg:rounded stg:bg-muted-subtle" />
         {Array.from({ length: 4 }, (_, i) => (
-          <div key={i} className="h-10 animate-pulse rounded-lg bg-muted-subtle" />
+          <div key={i} className="stg:h-10 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
         ))}
       </div>
     );
@@ -124,18 +124,18 @@ export function ModelCatalogPanel({ className }: ModelCatalogPanelProps) {
       return <OperatorAccessNotice className={className} />;
     }
     return (
-      <p className={cn("text-destructive text-xs", className)} role="alert">
+      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
         {getUserMessage(error)}
       </p>
     );
   }
 
   return (
-    <section className={cn("space-y-3", className)} aria-label="Model catalog">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold text-foreground">Model Catalog</h3>
-        <div className="flex items-center gap-3">
-          <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
+    <section className={cn("stg:space-y-3", className)} aria-label="Model catalog">
+      <div className="stg:flex stg:items-center stg:justify-between">
+        <h3 className="stg:text-xs stg:font-semibold stg:text-foreground">Model Catalog</h3>
+        <div className="stg:flex stg:items-center stg:gap-3">
+          <label className="stg:flex stg:cursor-pointer stg:items-center stg:gap-1.5 stg:text-[11px] stg:text-muted-foreground">
             <input
               type="checkbox"
               checked={showHistory}
@@ -172,20 +172,20 @@ export function ModelCatalogPanel({ className }: ModelCatalogPanelProps) {
         />
       )}
 
-      <div className="rounded-lg border border-border bg-card" role="table" aria-label="Baseline catalog">
+      <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card" role="table" aria-label="Baseline catalog">
         <div
           role="row"
-          className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-2 border-b border-border px-3 py-2 text-[11px] font-medium text-muted-foreground"
+          className="stg:grid stg:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] stg:gap-2 stg:border-b stg:border-border stg:px-3 stg:py-2 stg:text-[11px] stg:font-medium stg:text-muted-foreground"
         >
           <span role="columnheader">Model</span>
           <span role="columnheader">Harness</span>
-          <span role="columnheader" className="text-right">Input</span>
-          <span role="columnheader" className="text-right">Output</span>
-          <span role="columnheader" className="text-right">Variants</span>
-          <span role="columnheader" className="sr-only">Actions</span>
+          <span role="columnheader" className="stg:text-right">Input</span>
+          <span role="columnheader" className="stg:text-right">Output</span>
+          <span role="columnheader" className="stg:text-right">Variants</span>
+          <span role="columnheader" className="stg:sr-only">Actions</span>
         </div>
         {activeBaselines.length === 0 ? (
-          <p className="px-3 py-2 text-xs text-muted-foreground">
+          <p className="stg:px-3 stg:py-2 stg:text-xs stg:text-muted-foreground">
             The catalog is empty — has the baseline seed migration run?
           </p>
         ) : (
@@ -226,33 +226,33 @@ function CatalogRow({
 }) {
   const variantCount = Object.keys(baseline.pricingVariants).length;
   return (
-    <div className="border-b border-border last:border-b-0">
+    <div className="stg:border-b stg:border-border stg:last:border-b-0">
       <div
         role="row"
-        className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] items-center gap-2 px-3 py-2 text-xs"
+        className="stg:grid stg:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] stg:items-center stg:gap-2 stg:px-3 stg:py-2 stg:text-xs"
       >
-        <span role="cell" className="min-w-0">
-          <span className="block truncate font-medium text-foreground" title={baseline.modelId}>
+        <span role="cell" className="stg:min-w-0">
+          <span className="stg:block stg:truncate stg:font-medium stg:text-foreground" title={baseline.modelId}>
             {baseline.displayName || baseline.modelId}
           </span>
-          <span className="block truncate text-[11px] text-muted-foreground">
+          <span className="stg:block stg:truncate stg:text-[11px] stg:text-muted-foreground">
             {baseline.modelId}
             {baseline.featured ? " · featured" : ""}
           </span>
         </span>
-        <span role="cell" className="text-muted-foreground">
+        <span role="cell" className="stg:text-muted-foreground">
           {baseline.harness}
         </span>
-        <span role="cell" className="text-right text-foreground">
+        <span role="cell" className="stg:text-right stg:text-foreground">
           {formatRate(baseline.pricing?.inputPriceMicrosPerMillion ?? ZERO)}
         </span>
-        <span role="cell" className="text-right text-foreground">
+        <span role="cell" className="stg:text-right stg:text-foreground">
           {formatRate(baseline.pricing?.outputPriceMicrosPerMillion ?? ZERO)}
         </span>
-        <span role="cell" className="text-right text-muted-foreground">
+        <span role="cell" className="stg:text-right stg:text-muted-foreground">
           {variantCount > 0 ? variantCount : "—"}
         </span>
-        <span role="cell" className="flex shrink-0 justify-end gap-2">
+        <span role="cell" className="stg:flex stg:shrink-0 stg:justify-end stg:gap-2">
           <Button size="sm" variant="outline" disabled={disabled} onClick={onEdit}>
             Edit
           </Button>
@@ -262,9 +262,9 @@ function CatalogRow({
         </span>
       </div>
       {history && history.length > 0 && (
-        <div className="space-y-1 px-3 pb-2">
+        <div className="stg:space-y-1 stg:px-3 stg:pb-2">
           {history.map((revision) => (
-            <p key={revision.baselineId} className="text-[11px] text-muted-foreground">
+            <p key={revision.baselineId} className="stg:text-[11px] stg:text-muted-foreground">
               {revision.status === ModelPricingBaselineStatus.pricing_baseline_retired
                 ? "Retired"
                 : "Superseded"}

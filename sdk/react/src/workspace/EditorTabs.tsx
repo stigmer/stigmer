@@ -78,7 +78,7 @@ export function EditorTabs({
       aria-label="Open editors"
       aria-orientation="horizontal"
       className={cn(
-        "flex shrink-0 items-stretch overflow-x-auto border-b border-border",
+        "stg:flex stg:shrink-0 stg:items-stretch stg:overflow-x-auto stg:border-b stg:border-border",
         className,
       )}
     >
@@ -127,14 +127,14 @@ export function EditorTabs({
             onAuxClick={handleAuxClick}
             onKeyDown={handleKeyDown}
             className={cn(
-              "group flex max-w-[12rem] shrink-0 cursor-pointer items-center gap-1.5 border-r border-border px-3 py-1.5 text-xs transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+              "stg:group stg:flex stg:max-w-[12rem] stg:shrink-0 stg:cursor-pointer stg:items-center stg:gap-1.5 stg:border-r stg:border-border stg:px-3 stg:py-1.5 stg:text-xs stg:transition-colors",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
               isActive
-                ? "bg-background text-foreground"
-                : "bg-muted-faint text-muted-foreground hover:bg-muted hover:text-foreground",
+                ? "stg:bg-background stg:text-foreground"
+                : "stg:bg-muted-faint stg:text-muted-foreground stg:hover:bg-muted stg:hover:text-foreground",
             )}
           >
-            <span className={cn("truncate", editor.preview && "italic")}>
+            <span className={cn("stg:truncate", editor.preview && "stg:italic")}>
               {basename}
             </span>
             {/* The visual close "X" is a presentational mouse affordance, NOT a
@@ -151,8 +151,8 @@ export function EditorTabs({
                 onClose(editor.entryId, editor.path);
               }}
               className={cn(
-                "shrink-0 cursor-pointer rounded p-0.5 text-muted-foreground transition-opacity hover:bg-accent-hover hover:text-foreground",
-                isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+                "stg:shrink-0 stg:cursor-pointer stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-opacity stg:hover:bg-accent-hover stg:hover:text-foreground",
+                isActive ? "stg:opacity-100" : "stg:opacity-0 stg:group-hover:opacity-100",
               )}
             >
               <CloseIcon />

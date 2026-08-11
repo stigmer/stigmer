@@ -82,7 +82,7 @@ function WorkflowCodePreviewGraphInner({
 
   if (!yaml?.trim() || nodes.length === 0) {
     return (
-      <div className={cn("flex h-full items-center justify-center text-sm text-[var(--stgm-muted-foreground,#737373)]", className)}>
+      <div className={cn("stg:flex stg:h-full stg:items-center stg:justify-center stg:text-sm stg:text-[var(--stgm-muted-foreground,#737373)]", className)}>
         No tasks to visualize
       </div>
     );
@@ -90,7 +90,7 @@ function WorkflowCodePreviewGraphInner({
 
   return (
     <WorkflowGraphModeProvider mode="overview">
-      <div className={cn("h-full w-full", className)}>
+      <div className={cn("stg:h-full stg:w-full", className)}>
         <ReactFlow
           nodes={nodes}
           edges={edges}

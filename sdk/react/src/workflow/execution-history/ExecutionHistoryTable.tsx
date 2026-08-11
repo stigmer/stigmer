@@ -33,7 +33,7 @@ const COLUMNS: readonly ColumnDef[] = [
     header: "Name",
     sortField: "name",
     cell: (row) => (
-      <span className="font-medium text-foreground truncate max-w-[12rem] inline-block" title={row.name}>
+      <span className="stg:font-medium stg:text-foreground stg:truncate stg:max-w-[12rem] stg:inline-block" title={row.name}>
         {row.name || "\u2014"}
       </span>
     ),
@@ -124,8 +124,8 @@ const COLUMNS: readonly ColumnDef[] = [
       return (
         <span
           className={cn(
-            "truncate max-w-[10rem] inline-block text-xs",
-            isFailed ? "text-destructive" : "text-muted-foreground",
+            "stg:truncate stg:max-w-[10rem] stg:inline-block stg:text-xs",
+            isFailed ? "stg:text-destructive" : "stg:text-muted-foreground",
           )}
           title={label}
         >
@@ -229,7 +229,7 @@ export const ExecutionHistoryTable = memo(function ExecutionHistoryTable({
     return (
       <div
         role="alert"
-        className={cn("rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center text-sm text-destructive", className)}
+        className={cn("stg:rounded-lg stg:border stg:border-destructive/20 stg:bg-destructive/5 stg:p-6 stg:text-center stg:text-sm stg:text-destructive", className)}
       >
         Failed to load executions{error.message ? `: ${error.message}` : ""}
       </div>
@@ -242,21 +242,21 @@ export const ExecutionHistoryTable = memo(function ExecutionHistoryTable({
 
   if (rows.length === 0) {
     return (
-      <div className={cn("rounded-lg border border-border p-8 text-center text-sm text-muted-foreground", className)}>
+      <div className={cn("stg:rounded-lg stg:border stg:border-border stg:p-8 stg:text-center stg:text-sm stg:text-muted-foreground", className)}>
         No executions yet
       </div>
     );
   }
 
   return (
-    <div className={cn("overflow-x-auto rounded-lg border border-border", className)}>
+    <div className={cn("stg:overflow-x-auto stg:rounded-lg stg:border stg:border-border", className)}>
       <table
         role="table"
         aria-label="Execution history"
-        className="w-full border-collapse text-sm"
+        className="stg:w-full stg:border-collapse stg:text-sm"
       >
         <thead>
-          <tr className="border-b border-border bg-[var(--stgm-muted,#f4f4f5)]/50">
+          <tr className="stg:border-b stg:border-border stg:bg-[var(--stgm-muted,#f4f4f5)]/50">
             {activeColumns.map((col) => {
               const isSorted = col.sortField === sortField;
               const ariaSortValue = isSorted
@@ -270,9 +270,9 @@ export const ExecutionHistoryTable = memo(function ExecutionHistoryTable({
                   key={col.id}
                   scope="col"
                   className={cn(
-                    "px-3 py-2 text-xs font-medium text-muted-foreground whitespace-nowrap",
-                    col.align === "right" ? "text-right" : "text-left",
-                    col.sortField && "cursor-pointer select-none hover:text-foreground transition-colors",
+                    "stg:px-3 stg:py-2 stg:text-xs stg:font-medium stg:text-muted-foreground stg:whitespace-nowrap",
+                    col.align === "right" ? "stg:text-right" : "stg:text-left",
+                    col.sortField && "stg:cursor-pointer stg:select-none stg:hover:text-foreground stg:transition-colors",
                   )}
                   style={{ minWidth: col.minWidth }}
                   aria-sort={ariaSortValue}
@@ -290,7 +290,7 @@ export const ExecutionHistoryTable = memo(function ExecutionHistoryTable({
                   tabIndex={col.sortField ? 0 : undefined}
                   role={col.sortField ? "columnheader" : undefined}
                 >
-                  <span className="inline-flex items-center gap-1">
+                  <span className="stg:inline-flex stg:items-center stg:gap-1">
                     {col.header}
                     {col.sortField && isSorted && (
                       <SortIndicator direction={sortDir} />
@@ -334,8 +334,8 @@ const ExecutionTableRow = memo(function ExecutionTableRow({
   return (
     <tr
       className={cn(
-        "border-b border-border-muted transition-colors",
-        clickable && "cursor-pointer hover:bg-[var(--stgm-accent-hover,#f5f5f5)]",
+        "stg:border-b stg:border-border-muted stg:transition-colors",
+        clickable && "stg:cursor-pointer stg:hover:bg-[var(--stgm-accent-hover,#f5f5f5)]",
       )}
       onClick={clickable ? () => onRowClick(row.id) : undefined}
       onKeyDown={
@@ -355,8 +355,8 @@ const ExecutionTableRow = memo(function ExecutionTableRow({
         <td
           key={col.id}
           className={cn(
-            "px-3 py-2.5 text-sm tabular-nums",
-            col.align === "right" ? "text-right" : "text-left",
+            "stg:px-3 stg:py-2.5 stg:text-sm stg:tabular-nums",
+            col.align === "right" ? "stg:text-right" : "stg:text-left",
           )}
         >
           {col.cell(row)}
@@ -378,7 +378,7 @@ function SortIndicator({ direction }: { readonly direction: SortDirection }) {
       viewBox="0 0 10 10"
       fill="currentColor"
       aria-hidden="true"
-      className="opacity-60"
+      className="stg:opacity-60"
     >
       {direction === "asc" ? (
         <path d="M5 2L8.5 7H1.5L5 2Z" />
@@ -401,23 +401,23 @@ function LoadingSkeleton({
   readonly className?: string;
 }) {
   return (
-    <div className={cn("overflow-hidden rounded-lg border border-border", className)}>
-      <table className="w-full border-collapse text-sm" aria-label="Loading execution history">
+    <div className={cn("stg:overflow-hidden stg:rounded-lg stg:border stg:border-border", className)}>
+      <table className="stg:w-full stg:border-collapse stg:text-sm" aria-label="Loading execution history">
         <thead>
-          <tr className="border-b border-border bg-[var(--stgm-muted,#f4f4f5)]/50">
+          <tr className="stg:border-b stg:border-border stg:bg-[var(--stgm-muted,#f4f4f5)]/50">
             {Array.from({ length: columnCount }, (_, i) => (
-              <th key={i} className="px-3 py-2">
-                <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+              <th key={i} className="stg:px-3 stg:py-2">
+                <div className="stg:h-3 stg:w-16 stg:animate-pulse stg:rounded stg:bg-muted" />
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
           {Array.from({ length: 5 }, (_, rowIdx) => (
-            <tr key={rowIdx} className="border-b border-border-muted">
+            <tr key={rowIdx} className="stg:border-b stg:border-border-muted">
               {Array.from({ length: columnCount }, (_, colIdx) => (
-                <td key={colIdx} className="px-3 py-2.5">
-                  <div className="h-4 animate-pulse rounded bg-muted" style={{ width: `${40 + (colIdx * 12) % 40}%` }} />
+                <td key={colIdx} className="stg:px-3 stg:py-2.5">
+                  <div className="stg:h-4 stg:animate-pulse stg:rounded stg:bg-muted" style={{ width: `${40 + (colIdx * 12) % 40}%` }} />
                 </td>
               ))}
             </tr>

@@ -80,14 +80,14 @@ export function OrgMembersPanel({
   if (isLoading) {
     return (
       <div
-        className={cn("space-y-2", className)}
+        className={cn("stg:space-y-2", className)}
         aria-busy="true"
         aria-label="Loading members"
       >
         {Array.from({ length: 3 }, (_, i) => (
           <div
             key={i}
-            className="bg-muted-subtle h-14 animate-pulse rounded-lg"
+            className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg"
           />
         ))}
       </div>
@@ -96,19 +96,19 @@ export function OrgMembersPanel({
 
   if (error) {
     return (
-      <p className={cn("text-destructive text-xs", className)} role="alert">
+      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
         {getUserMessage(error)}
       </p>
     );
   }
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("stg:space-y-3", className)}>
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-foreground">Members</span>
+      <div className="stg:flex stg:items-center stg:gap-2">
+        <span className="stg:text-sm stg:font-semibold stg:text-foreground">Members</span>
         {count > 0 && (
-          <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[0.65rem] font-medium text-muted-foreground">
+          <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
             {count}
           </span>
         )}
@@ -116,11 +116,11 @@ export function OrgMembersPanel({
 
       {/* Members list */}
       {members.length === 0 ? (
-        <p className="text-muted-foreground py-4 text-center text-xs">
+        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
           No members found.
         </p>
       ) : (
-        <div role="list" aria-label="Organization members" className="space-y-2">
+        <div role="list" aria-label="Organization members" className="stg:space-y-2">
           {members.map((entry) => {
             const memberId = entry.principal?.id ?? "";
             return (
@@ -216,35 +216,35 @@ function MemberRow({
   return (
     <div
       role="listitem"
-      className="flex items-center gap-3 rounded-lg border border-border-muted px-3 py-2.5 hover:border-border transition-colors"
+      className="stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border-muted stg:px-3 stg:py-2.5 stg:hover:border-border stg:transition-colors"
     >
       {/* Avatar */}
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
+      <div className="stg:flex stg:size-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:text-xs stg:font-medium stg:text-muted-foreground">
         {initial}
       </div>
 
       {/* Name + email */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="truncate text-sm font-medium text-foreground">
+      <div className="stg:min-w-0 stg:flex-1">
+        <div className="stg:flex stg:items-center stg:gap-1.5">
+          <span className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
             {name}
           </span>
           {isSelf && (
-            <span className="rounded bg-muted px-1.5 py-0.5 text-[0.6rem] font-medium text-muted-foreground">
+            <span className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:text-muted-foreground">
               You
             </span>
           )}
           <ProviderBadge principal={principal} />
         </div>
         {email && email !== name && (
-          <span className="block truncate text-xs text-muted-foreground">
+          <span className="stg:block stg:truncate stg:text-xs stg:text-muted-foreground">
             {email}
           </span>
         )}
       </div>
 
       {/* Role badges */}
-      <div className="hidden sm:flex shrink-0 items-center gap-1.5">
+      <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-1.5">
         {directRoles.map((grant) => (
           <RoleBadge key={grant.role?.code ?? ""} grant={grant} />
         ))}
@@ -252,12 +252,12 @@ function MemberRow({
 
       {/* Actions */}
       {!isSelf && (
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
           <button
             type="button"
             onClick={() => startAction("change-role")}
             aria-label={`Change role for ${name}`}
-            className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground hover:bg-accent-hover transition-colors"
+            className="stg:shrink-0 stg:rounded stg:p-1 stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover stg:transition-colors"
           >
             <EditIcon />
           </button>
@@ -265,7 +265,7 @@ function MemberRow({
             type="button"
             onClick={() => startAction("remove")}
             aria-label={`Remove ${name}`}
-            className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive-subtle transition-colors"
+            className="stg:shrink-0 stg:rounded stg:p-1 stg:text-muted-foreground stg:hover:text-destructive stg:hover:bg-destructive-subtle stg:transition-colors"
           >
             <TrashIcon />
           </button>
@@ -284,10 +284,10 @@ function RoleBadge({ grant }: { grant: RoleGrant }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md border px-2 py-0.5 text-[0.65rem] font-medium",
+        "stg:inline-flex stg:items-center stg:rounded-md stg:border stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
         grant.isInherited
-          ? "border-border-muted text-muted-foreground bg-muted-subtle italic"
-          : "border-border bg-muted text-foreground",
+          ? "stg:border-border-muted stg:text-muted-foreground stg:bg-muted-subtle stg:italic"
+          : "stg:border-border stg:bg-muted stg:text-foreground",
       )}
       title={
         grant.isInherited
@@ -297,7 +297,7 @@ function RoleBadge({ grant }: { grant: RoleGrant }) {
     >
       {roleName}
       {grant.isInherited && (
-        <span className="ml-1 text-[0.55rem] text-muted-foreground">
+        <span className="stg:ml-1 stg:text-[0.55rem] stg:text-muted-foreground">
           (inherited)
         </span>
       )}
@@ -336,29 +336,29 @@ function RemoveConfirmation({
   return (
     <div
       role="listitem"
-      className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive-subtle px-3 py-2.5"
+      className="stg:flex stg:items-center stg:justify-between stg:rounded-lg stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2.5"
     >
-      <div className="min-w-0 flex-1">
-        <p className="text-xs text-foreground">
-          Remove <span className="font-medium">{memberName}</span> from this
+      <div className="stg:min-w-0 stg:flex-1">
+        <p className="stg:text-xs stg:text-foreground">
+          Remove <span className="stg:font-medium">{memberName}</span> from this
           organization? This revokes all their access.
         </p>
         {error && (
-          <p className="mt-0.5 text-[0.65rem] text-destructive">
+          <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-destructive">
             {getUserMessage(error)}
           </p>
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-1.5 ml-3">
+      <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:ml-3">
         <button
           type="button"
           onClick={handleConfirm}
           disabled={isRevoking}
           className={cn(
-            "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-            "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+            "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           {isRevoking && <SpinnerIcon />}
@@ -369,9 +369,9 @@ function RemoveConfirmation({
           onClick={onCancel}
           disabled={isRevoking}
           className={cn(
-            "rounded-md px-2.5 py-1 text-xs",
-            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs",
+            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           Cancel
@@ -462,10 +462,10 @@ function ChangeRoleRow({
   return (
     <div
       role="listitem"
-      className="rounded-lg border border-primary/30 bg-primary-subtle px-3 py-2.5 space-y-2"
+      className="stg:rounded-lg stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-3 stg:py-2.5 stg:space-y-2"
     >
-      <p className="text-xs text-foreground">
-        Change role for <span className="font-medium">{memberName}</span>
+      <p className="stg:text-xs stg:text-foreground">
+        Change role for <span className="stg:font-medium">{memberName}</span>
       </p>
 
       <RoleSelector
@@ -476,20 +476,20 @@ function ChangeRoleRow({
       />
 
       {error && (
-        <p className="text-[0.65rem] text-destructive" role="alert">
+        <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
           {getUserMessage(error)}
         </p>
       )}
 
-      <div className="flex items-center gap-1.5">
+      <div className="stg:flex stg:items-center stg:gap-1.5">
         <button
           type="button"
           onClick={handleConfirm}
           disabled={!canConfirm}
           className={cn(
-            "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-40",
+            "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
           {isWorking && <SpinnerIcon />}
@@ -500,9 +500,9 @@ function ChangeRoleRow({
           onClick={onCancel}
           disabled={isWorking}
           className={cn(
-            "rounded-md px-2.5 py-1 text-xs",
-            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs",
+            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           Cancel
@@ -565,7 +565,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

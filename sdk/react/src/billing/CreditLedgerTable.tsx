@@ -54,12 +54,12 @@ export function CreditLedgerTable({
 
   if (isLoading) {
     return (
-      <div className={cn("space-y-2", className)} aria-busy="true">
-        <div className="h-4 w-32 animate-pulse rounded bg-muted-subtle" />
+      <div className={cn("stg:space-y-2", className)} aria-busy="true">
+        <div className="stg:h-4 stg:w-32 stg:animate-pulse stg:rounded stg:bg-muted-subtle" />
         {Array.from({ length: 5 }, (_, i) => (
           <div
             key={i}
-            className="h-10 animate-pulse rounded-lg bg-muted-subtle"
+            className="stg:h-10 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle"
           />
         ))}
       </div>
@@ -68,7 +68,7 @@ export function CreditLedgerTable({
 
   if (error) {
     return (
-      <p className={cn("text-destructive text-xs", className)} role="alert">
+      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
         {getUserMessage(error)}
       </p>
     );
@@ -79,7 +79,7 @@ export function CreditLedgerTable({
 
   return (
     <div className={className}>
-      <h3 className="mb-2 text-xs font-semibold text-foreground">
+      <h3 className="stg:mb-2 stg:text-xs stg:font-semibold stg:text-foreground">
         Transaction History
       </h3>
 
@@ -88,7 +88,7 @@ export function CreditLedgerTable({
       ) : (
         <>
           <div
-            className="rounded-lg border border-border bg-card"
+            className="stg:rounded-lg stg:border stg:border-border stg:bg-card"
             role="table"
             aria-label="Credit ledger"
           >
@@ -104,7 +104,7 @@ export function CreditLedgerTable({
               totalPages={totalPages}
               onPageChange={setPageNum}
               ariaLabel="Ledger pagination"
-              className="mt-3"
+              className="stg:mt-3"
             />
           )}
         </>
@@ -121,13 +121,13 @@ function LedgerHeader() {
   return (
     <div
       role="row"
-      className="grid grid-cols-[1fr_auto] gap-x-4 border-b border-border px-3.5 py-2 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground sm:grid-cols-[auto_1fr_auto]"
+      className="stg:grid stg:grid-cols-[1fr_auto] stg:gap-x-4 stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-[0.65rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground stg:sm:grid-cols-[auto_1fr_auto]"
     >
-      <span role="columnheader" className="hidden sm:block">
+      <span role="columnheader" className="stg:hidden stg:sm:block">
         Date
       </span>
       <span role="columnheader">Type</span>
-      <span role="columnheader" className="text-right">
+      <span role="columnheader" className="stg:text-right">
         Amount
       </span>
     </div>
@@ -146,37 +146,37 @@ function LedgerRow({ entry }: { entry: CreditLedgerEntry }) {
   return (
     <div
       role="row"
-      className="grid grid-cols-[1fr_auto] items-center gap-x-4 border-b border-border-muted px-3.5 py-2.5 last:border-b-0 sm:grid-cols-[auto_1fr_auto]"
+      className="stg:grid stg:grid-cols-[1fr_auto] stg:items-center stg:gap-x-4 stg:border-b stg:border-border-muted stg:px-3.5 stg:py-2.5 stg:last:border-b-0 stg:sm:grid-cols-[auto_1fr_auto]"
     >
       <span
         role="cell"
-        className="hidden text-xs tabular-nums text-muted-foreground sm:block sm:w-36"
+        className="stg:hidden stg:text-xs stg:tabular-nums stg:text-muted-foreground stg:sm:block stg:sm:w-36"
       >
         {entry.createdAt
           ? formatLedgerDate(entry.createdAt.seconds)
           : "\u2014"}
       </span>
 
-      <div role="cell" className="min-w-0">
+      <div role="cell" className="stg:min-w-0">
         <span
           className={cn(
-            "inline-block rounded-full px-2 py-0.5 text-[0.65rem] font-medium",
+            "stg:inline-block stg:rounded-full stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
             credit
-              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              ? "stg:bg-emerald-500/10 stg:text-emerald-600 stg:dark:text-emerald-400"
               : hold
-                ? "bg-muted text-muted-foreground"
-                : "bg-destructive-subtle text-destructive",
+                ? "stg:bg-muted stg:text-muted-foreground"
+                : "stg:bg-destructive-subtle stg:text-destructive",
           )}
         >
           {ledgerEntryLabel(entryType)}
         </span>
         {entry.source?.description && (
-          <span className="ml-2 text-xs text-muted-foreground">
+          <span className="stg:ml-2 stg:text-xs stg:text-muted-foreground">
             {entry.source.description}
           </span>
         )}
         {entry.createdAt && (
-          <span className="mt-0.5 block text-[0.6rem] tabular-nums text-muted-foreground sm:hidden">
+          <span className="stg:mt-0.5 stg:block stg:text-[0.6rem] stg:tabular-nums stg:text-muted-foreground stg:sm:hidden">
             {formatLedgerDate(entry.createdAt.seconds)}
           </span>
         )}
@@ -185,12 +185,12 @@ function LedgerRow({ entry }: { entry: CreditLedgerEntry }) {
       <span
         role="cell"
         className={cn(
-          "text-right text-xs font-medium tabular-nums",
+          "stg:text-right stg:text-xs stg:font-medium stg:tabular-nums",
           credit
-            ? "text-emerald-600 dark:text-emerald-400"
+            ? "stg:text-emerald-600 stg:dark:text-emerald-400"
             : hold
-              ? "text-muted-foreground"
-              : "text-destructive",
+              ? "stg:text-muted-foreground"
+              : "stg:text-destructive",
         )}
       >
         {formatLedgerAmount(entry.amountMicros)}
@@ -205,12 +205,12 @@ function LedgerRow({ entry }: { entry: CreditLedgerEntry }) {
 
 function EmptyLedger() {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-card py-10 text-center">
-      <ReceiptIcon className="text-muted-foreground mb-3 size-8" />
-      <p className="text-sm font-medium text-foreground">
+    <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:rounded-lg stg:border stg:border-border stg:bg-card stg:py-10 stg:text-center">
+      <ReceiptIcon className="stg:text-muted-foreground stg:mb-3 stg:size-8" />
+      <p className="stg:text-sm stg:font-medium stg:text-foreground">
         No transactions yet
       </p>
-      <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+      <p className="stg:mt-1 stg:max-w-xs stg:text-xs stg:text-muted-foreground">
         Credit purchases, auto-recharges, and refunds will appear here as
         your organization funds its account.
       </p>

@@ -73,9 +73,9 @@ export function ManageAccessButton({
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
-          "border border-border text-foreground hover:bg-accent-hover",
-          "focus:outline-none focus:ring-2 focus:ring-ring",
+          "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+          "stg:border stg:border-border stg:text-foreground stg:hover:bg-accent-hover",
+          "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
           className,
         )}
       >

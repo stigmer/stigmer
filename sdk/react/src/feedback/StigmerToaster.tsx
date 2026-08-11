@@ -27,16 +27,19 @@ export function StigmerToaster(props: StigmerToasterProps) {
       theme={colorMode}
       position="top-right"
       richColors
-      className="toaster group"
+      className="toaster stg:group"
       toastOptions={{
         classNames: {
           toast:
-            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
-          description: "group-[.toast]:text-muted-foreground",
+            // `toast` is sonner's own class (referenced by the group-[.toast]
+            // variants below); `stg:group` is OUR marker so those variants
+            // resolve against `.stg\:group` in the prefixed build.
+            "stg:group toast stg:group-[.toaster]:bg-background stg:group-[.toaster]:text-foreground stg:group-[.toaster]:border-border stg:group-[.toaster]:shadow-lg",
+          description: "stg:group-[.toast]:text-muted-foreground",
           actionButton:
-            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
+            "stg:group-[.toast]:bg-primary stg:group-[.toast]:text-primary-foreground",
           cancelButton:
-            "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+            "stg:group-[.toast]:bg-muted stg:group-[.toast]:text-muted-foreground",
         },
       }}
       {...props}

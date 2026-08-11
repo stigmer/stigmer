@@ -312,13 +312,13 @@ export function ResourceWorkbench<TData = SearchResult>({
   return (
     <div
       aria-label={ariaLabel}
-      className={cn("flex flex-col gap-3", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-3", className)}
     >
       {/* --- Toolbar: search + filters + view switcher --- */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
         {searchable ? (
-          <div className="relative flex-1">
-            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground-subtle" />
+          <div className="stg:relative stg:flex-1">
+            <SearchIcon className="stg:pointer-events-none stg:absolute stg:left-2.5 stg:top-1/2 stg:h-3.5 stg:w-3.5 stg:-translate-y-1/2 stg:text-muted-foreground-subtle" />
             <input
               type="text"
               value={filtersHook.query}
@@ -326,16 +326,16 @@ export function ResourceWorkbench<TData = SearchResult>({
               placeholder={searchPlaceholder}
               aria-label={searchPlaceholder}
               className={cn(
-                "w-full rounded-md border border-input bg-background py-1.5 pl-8 pr-3 text-sm",
-                "placeholder:text-muted-foreground-subtle",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:py-1.5 stg:pl-8 stg:pr-3 stg:text-sm",
+                "stg:placeholder:text-muted-foreground-subtle",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
               )}
             />
           </div>
         ) : (
           // Spacer keeps the scope toggle / view switcher / header action
           // right-aligned, matching the searchable layout.
-          <div className="flex-1" aria-hidden="true" />
+          <div className="stg:flex-1" aria-hidden="true" />
         )}
         {onScopeChange && (
           <ScopeToggle value={controlledScope} onChange={onScopeChange} />
@@ -359,12 +359,12 @@ export function ResourceWorkbench<TData = SearchResult>({
       />
 
       {/* --- Main content area with optional inspector --- */}
-      <div className="flex min-h-0 flex-1">
+      <div className="stg:flex stg:min-h-0 stg:flex-1">
         <div
           className={cn(
-            "min-w-0 flex-1",
+            "stg:min-w-0 stg:flex-1",
             collection.isRefetching &&
-              "pointer-events-none opacity-60 transition-opacity",
+              "stg:pointer-events-none stg:opacity-60 stg:transition-opacity",
           )}
         >
           {showSkeletons && <SkeletonPlaceholder viewMode={viewMode} />}
@@ -503,22 +503,22 @@ function defaultGetId(item: unknown): string {
 function DefaultCardContent({ item }: { readonly item: SearchResult }) {
   const isSkill = item.kind === ApiResourceKind.skill;
   return (
-    <div className="flex items-start gap-3">
+    <div className="stg:flex stg:items-start stg:gap-3">
       <ResourceAvatar
         name={item.name || item.slug}
         slug={item.slug}
         iconUrl={item.iconUrl || undefined}
         hidden={isSkill}
       />
-      <div className="min-w-0 flex-1">
-        <span className="text-sm font-medium text-foreground">
+      <div className="stg:min-w-0 stg:flex-1">
+        <span className="stg:text-sm stg:font-medium stg:text-foreground">
           {item.name || item.slug}
         </span>
         {item.org && (
-          <p className="text-xs text-muted-foreground">{item.org}</p>
+          <p className="stg:text-xs stg:text-muted-foreground">{item.org}</p>
         )}
         {item.description && (
-          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+          <p className="stg:mt-0.5 stg:line-clamp-2 stg:text-xs stg:text-muted-foreground">
             {item.description}
           </p>
         )}
@@ -530,7 +530,7 @@ function DefaultCardContent({ item }: { readonly item: SearchResult }) {
 function DefaultRowContent({ item }: { readonly item: SearchResult }) {
   const isSkill = item.kind === ApiResourceKind.skill;
   return (
-    <div className="flex items-center gap-2">
+    <div className="stg:flex stg:items-center stg:gap-2">
       <ResourceAvatar
         name={item.name || item.slug}
         slug={item.slug}
@@ -538,18 +538,18 @@ function DefaultRowContent({ item }: { readonly item: SearchResult }) {
         hidden={isSkill}
         size="sm"
       />
-      <span className="text-sm font-medium text-foreground">
+      <span className="stg:text-sm stg:font-medium stg:text-foreground">
         {item.name || item.slug}
       </span>
       {item.org && (
-        <span className="text-xs text-muted-foreground">{item.org}</span>
+        <span className="stg:text-xs stg:text-muted-foreground">{item.org}</span>
       )}
       {item.description && (
         <>
-          <span className="text-muted-foreground-subtle" aria-hidden="true">
+          <span className="stg:text-muted-foreground-subtle" aria-hidden="true">
             {"\u00B7"}
           </span>
-          <span className="truncate text-xs text-muted-foreground">
+          <span className="stg:truncate stg:text-xs stg:text-muted-foreground">
             {item.description}
           </span>
         </>
@@ -570,18 +570,18 @@ function SkeletonPlaceholder({
   if (viewMode === "cards") {
     return (
       <div
-        className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+        className="stg:grid stg:grid-cols-1 stg:gap-3 stg:sm:grid-cols-2 stg:lg:grid-cols-3"
         aria-busy="true"
       >
         {Array.from({ length: 6 }, (_, i) => (
           <div
             key={i}
-            className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4"
+            className="stg:flex stg:flex-col stg:gap-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4"
             aria-hidden="true"
           >
-            <div className="h-4 w-3/5 animate-pulse rounded bg-muted" />
-            <div className="h-3 w-2/5 animate-pulse rounded bg-muted" />
-            <div className="h-3 w-full animate-pulse rounded bg-muted" />
+            <div className="stg:h-4 stg:w-3/5 stg:animate-pulse stg:rounded stg:bg-muted" />
+            <div className="stg:h-3 stg:w-2/5 stg:animate-pulse stg:rounded stg:bg-muted" />
+            <div className="stg:h-3 stg:w-full stg:animate-pulse stg:rounded stg:bg-muted" />
           </div>
         ))}
       </div>
@@ -593,17 +593,17 @@ function SkeletonPlaceholder({
       {Array.from({ length: 5 }, (_, i) => (
         <div
           key={i}
-          className="flex items-center gap-3 px-3 py-2.5"
+          className="stg:flex stg:items-center stg:gap-3 stg:px-3 stg:py-2.5"
           aria-hidden="true"
         >
-          <div className="h-4 w-4 shrink-0 animate-pulse rounded bg-muted" />
-          <div className="flex-1 space-y-2">
+          <div className="stg:h-4 stg:w-4 stg:shrink-0 stg:animate-pulse stg:rounded stg:bg-muted" />
+          <div className="stg:flex-1 stg:space-y-2">
             <div
-              className="h-4 animate-pulse rounded bg-muted"
+              className="stg:h-4 stg:animate-pulse stg:rounded stg:bg-muted"
               style={{ width: `${30 + (i * 7) % 25}%` }}
             />
             <div
-              className="h-3 animate-pulse rounded bg-muted"
+              className="stg:h-3 stg:animate-pulse stg:rounded stg:bg-muted"
               style={{ width: `${55 + (i * 5) % 20}%` }}
             />
           </div>
@@ -629,23 +629,23 @@ function PaginationBar({
   readonly onPageChange: (page: number) => void;
 }) {
   const navBtnClass = cn(
-    "inline-flex items-center rounded-md p-1.5",
-    "border border-input bg-background text-foreground",
-    "hover:bg-accent hover:text-accent-foreground",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-    "disabled:pointer-events-none disabled:opacity-50",
+    "stg:inline-flex stg:items-center stg:rounded-md stg:p-1.5",
+    "stg:border stg:border-input stg:bg-background stg:text-foreground",
+    "stg:hover:bg-accent stg:hover:text-accent-foreground",
+    "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+    "stg:disabled:pointer-events-none stg:disabled:opacity-50",
   );
 
   return (
     <nav
       aria-label="Pagination"
-      className="flex items-center justify-between border-t border-border pt-3"
+      className="stg:flex stg:items-center stg:justify-between stg:border-t stg:border-border stg:pt-3"
     >
-      <span className="text-xs text-muted-foreground">
+      <span className="stg:text-xs stg:text-muted-foreground">
         {totalCount.toLocaleString()}{" "}
         {totalCount === 1 ? "result" : "results"}
       </span>
-      <div className="flex items-center gap-2">
+      <div className="stg:flex stg:items-center stg:gap-2">
         <button
           type="button"
           onClick={() => onPageChange(currentPage - 1)}
@@ -655,7 +655,7 @@ function PaginationBar({
         >
           <ChevronLeftIcon />
         </button>
-        <span className="text-xs text-muted-foreground">
+        <span className="stg:text-xs stg:text-muted-foreground">
           Page {currentPage} of {totalPages}
         </span>
         <button
@@ -697,7 +697,7 @@ function SearchIcon({ className }: { readonly className?: string }) {
 function ChevronLeftIcon() {
   return (
     <svg
-      className="h-3.5 w-3.5"
+      className="stg:h-3.5 stg:w-3.5"
       viewBox="0 0 16 16"
       fill="none"
       stroke="currentColor"
@@ -714,7 +714,7 @@ function ChevronLeftIcon() {
 function ChevronRightIcon() {
   return (
     <svg
-      className="h-3.5 w-3.5"
+      className="stg:h-3.5 stg:w-3.5"
       viewBox="0 0 16 16"
       fill="none"
       stroke="currentColor"

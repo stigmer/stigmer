@@ -98,7 +98,7 @@ describe("AttachmentChipList — image miniature", () => {
 
     await waitFor(() => expect(chipImage(container)).toBeTruthy());
     // Spinner present alongside the image, not instead of it.
-    expect(container.querySelector("svg.animate-spin")).toBeTruthy();
+    expect(container.querySelector("svg.stg\\:animate-spin")).toBeTruthy();
   });
 
   it("renders image chips preview-only: no visible filename or size text", async () => {

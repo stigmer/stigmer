@@ -93,13 +93,13 @@ export function OAuthAppForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className={cn("flex flex-col gap-4", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-4", className)}
     >
       {/* Instructions */}
-      <div className="space-y-1.5">
-        <p className="text-sm text-foreground">
+      <div className="stg:space-y-1.5">
+        <p className="stg:text-sm stg:text-foreground">
           Register an OAuth app with{" "}
-          <span className="font-medium">{providerName}</span> and enter your
+          <span className="stg:font-medium">{providerName}</span> and enter your
           credentials below.
         </p>
         {vendorDocsUrl && (
@@ -107,18 +107,18 @@ export function OAuthAppForm({
             href={vendorDocsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary"
+            className="stg:inline-flex stg:items-center stg:gap-1 stg:text-xs stg:text-primary stg:underline stg:decoration-primary/40 stg:underline-offset-2 stg:hover:decoration-primary"
           >
             {providerName} OAuth app registration
-            <ExternalLinkIcon className="size-3 shrink-0" />
+            <ExternalLinkIcon className="stg:size-3 stg:shrink-0" />
           </a>
         )}
       </div>
 
       {/* Fields */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={clientIdId} className="text-xs font-medium text-foreground">
+      <div className="stg:flex stg:flex-col stg:gap-3">
+        <div className="stg:flex stg:flex-col stg:gap-1.5">
+          <label htmlFor={clientIdId} className="stg:text-xs stg:font-medium stg:text-foreground">
             Client ID
           </label>
           <input
@@ -133,19 +133,19 @@ export function OAuthAppForm({
             autoFocus
             placeholder="e.g. 1234567890abcdef"
             className={cn(
-              "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           />
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={clientSecretId} className="text-xs font-medium text-foreground">
+        <div className="stg:flex stg:flex-col stg:gap-1.5">
+          <label htmlFor={clientSecretId} className="stg:text-xs stg:font-medium stg:text-foreground">
             Client Secret
           </label>
-          <div className="relative">
+          <div className="stg:relative">
             <input
               id={clientSecretId}
               type={secretRevealed ? "text" : "password"}
@@ -157,10 +157,10 @@ export function OAuthAppForm({
               autoComplete="off"
               placeholder="Your client secret"
               className={cn(
-                "w-full rounded-md border border-input bg-background px-2.5 py-1.5 pr-8 text-xs text-foreground",
-                "placeholder:text-muted-foreground",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                "disabled:pointer-events-none disabled:opacity-50",
+                "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:pr-8 stg:text-xs stg:text-foreground",
+                "stg:placeholder:text-muted-foreground",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               )}
             />
             <button
@@ -168,9 +168,9 @@ export function OAuthAppForm({
               onClick={() => setSecretRevealed((v) => !v)}
               disabled={isDisabled}
               className={cn(
-                "absolute right-2 top-1/2 -translate-y-1/2",
-                "text-muted-foreground hover:text-foreground",
-                "disabled:pointer-events-none disabled:opacity-50",
+                "stg:absolute stg:right-2 stg:top-1/2 stg:-translate-y-1/2",
+                "stg:text-muted-foreground stg:hover:text-foreground",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               )}
               aria-label={secretRevealed ? "Hide client secret" : "Show client secret"}
               tabIndex={-1}
@@ -185,22 +185,22 @@ export function OAuthAppForm({
       {error && (
         <div
           role="alert"
-          className="rounded-md border border-destructive/30 bg-destructive-subtle px-2.5 py-2 text-xs text-destructive"
+          className="stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-2.5 stg:py-2 stg:text-xs stg:text-destructive"
         >
           {getUserMessage(error)}
         </div>
       )}
 
       {/* Actions */}
-      <div className="flex items-center justify-end gap-2">
+      <div className="stg:flex stg:items-center stg:justify-end stg:gap-2">
         <button
           type="button"
           onClick={onCancel}
           disabled={isDisabled}
           className={cn(
-            "rounded-md px-3 py-1.5 text-xs",
-            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs",
+            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           Cancel
@@ -209,9 +209,9 @@ export function OAuthAppForm({
           type="submit"
           disabled={!canSubmit || isDisabled}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-40",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
           {isSubmitting && <SpinnerIcon />}
@@ -295,7 +295,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

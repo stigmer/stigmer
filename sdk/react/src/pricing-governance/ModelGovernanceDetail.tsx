@@ -81,11 +81,11 @@ export function ModelGovernanceDetail({
   ];
 
   return (
-    <div className="space-y-4 rounded-lg border border-border bg-card px-4 py-3">
+    <div className="stg:space-y-4 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-4 stg:py-3">
       {/* ── header: identity + actions ──────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h4 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
+      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
+        <div className="stg:min-w-0">
+          <h4 className="stg:flex stg:flex-wrap stg:items-center stg:gap-2 stg:text-sm stg:font-semibold stg:text-foreground">
             {baseline.displayName || baseline.modelId}
             {governance && (
               <GovernanceBadge
@@ -94,17 +94,17 @@ export function ModelGovernanceDetail({
               />
             )}
             {baseline.featured && (
-              <span className="rounded bg-accent px-1.5 py-0.5 text-[10px] font-medium text-primary">
+              <span className="stg:rounded stg:bg-accent stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-primary">
                 Featured
               </span>
             )}
           </h4>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
+          <p className="stg:mt-0.5 stg:text-[11px] stg:text-muted-foreground">
             {baseline.modelId} · {baseline.provider} · {baseline.harness}
             {baseline.shortDescription ? ` — ${baseline.shortDescription}` : ""}
           </p>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="stg:flex stg:shrink-0 stg:gap-2">
           <Button size="sm" variant="outline" onClick={onBack}>
             Back
           </Button>
@@ -119,17 +119,17 @@ export function ModelGovernanceDetail({
 
       {/* ── rate card: baseline vs effective ────────────────────────────── */}
       <section aria-label="Rates">
-        <h5 className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <h5 className="stg:mb-1.5 stg:text-[11px] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
           Rates ($ per million tokens)
         </h5>
-        <div className="rounded-md border border-border-muted" role="table" aria-label="Baseline vs effective rates">
+        <div className="stg:rounded-md stg:border stg:border-border-muted" role="table" aria-label="Baseline vs effective rates">
           <div
             role="row"
-            className="grid grid-cols-[1.5fr_1fr_1fr] gap-2 border-b border-border-muted px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground"
+            className="stg:grid stg:grid-cols-[1.5fr_1fr_1fr] stg:gap-2 stg:border-b stg:border-border-muted stg:px-2.5 stg:py-1.5 stg:text-[11px] stg:font-medium stg:text-muted-foreground"
           >
             <span role="columnheader">Rate</span>
-            <span role="columnheader" className="text-right">Baseline</span>
-            <span role="columnheader" className="text-right">Effective</span>
+            <span role="columnheader" className="stg:text-right">Baseline</span>
+            <span role="columnheader" className="stg:text-right">Effective</span>
           </div>
           {baseRates.map((rate) => {
             const overridden = rate.effective !== null && rate.effective !== rate.baseline;
@@ -137,16 +137,16 @@ export function ModelGovernanceDetail({
               <div
                 key={rate.label}
                 role="row"
-                className="grid grid-cols-[1.5fr_1fr_1fr] gap-2 border-b border-border-muted px-2.5 py-1.5 text-xs last:border-b-0"
+                className="stg:grid stg:grid-cols-[1.5fr_1fr_1fr] stg:gap-2 stg:border-b stg:border-border-muted stg:px-2.5 stg:py-1.5 stg:text-xs stg:last:border-b-0"
               >
-                <span role="cell" className="text-muted-foreground">{rate.label}</span>
+                <span role="cell" className="stg:text-muted-foreground">{rate.label}</span>
                 <span
                   role="cell"
-                  className={cn("text-right text-foreground", overridden && "line-through text-muted-foreground")}
+                  className={cn("stg:text-right stg:text-foreground", overridden && "stg:line-through stg:text-muted-foreground")}
                 >
                   {formatRate(rate.baseline)}
                 </span>
-                <span role="cell" className={cn("text-right text-foreground", overridden && "font-medium")}>
+                <span role="cell" className={cn("stg:text-right stg:text-foreground", overridden && "stg:font-medium")}>
                   {rate.effective !== null ? formatRate(rate.effective) : "—"}
                 </span>
               </div>
@@ -158,13 +158,13 @@ export function ModelGovernanceDetail({
       {/* ── active overrides with provenance ────────────────────────────── */}
       {hasOverrides && governance && (
         <section aria-label="Active pricing overrides">
-          <h5 className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          <h5 className="stg:mb-1.5 stg:text-[11px] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
             Active Overrides
           </h5>
-          <div className="space-y-1">
+          <div className="stg:space-y-1">
             {governance.activeOverrides.map((override) => (
-              <p key={override.overrideId} className="text-[11px] text-muted-foreground">
-                <span className="font-medium text-foreground">
+              <p key={override.overrideId} className="stg:text-[11px] stg:text-muted-foreground">
+                <span className="stg:font-medium stg:text-foreground">
                   {RATE_FIELD_LABELS[override.rateField] ?? "Rate"}
                   {override.variant ? ` (${override.variant})` : ""}
                 </span>
@@ -189,19 +189,19 @@ export function ModelGovernanceDetail({
       {/* ── variants ─────────────────────────────────────────────────────── */}
       {Object.keys(baseline.pricingVariants).length > 0 && (
         <section aria-label="Pricing variants">
-          <h5 className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          <h5 className="stg:mb-1.5 stg:text-[11px] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
             Variants
           </h5>
-          <div className="space-y-2">
+          <div className="stg:space-y-2">
             {Object.entries(baseline.pricingVariants).map(([key, variant]) => {
               const variantEntry =
                 row.variantGovernance.find((entry) => entry.variant === key) ?? null;
               return (
-                <div key={key} className="rounded-md border border-border-muted px-2.5 py-2">
-                  <p className="text-xs font-medium text-foreground">
+                <div key={key} className="stg:rounded-md stg:border stg:border-border-muted stg:px-2.5 stg:py-2">
+                  <p className="stg:text-xs stg:font-medium stg:text-foreground">
                     {key}
                     {variantEntry && (
-                      <span className="ml-2 align-middle">
+                      <span className="stg:ml-2 stg:align-middle">
                         <GovernanceBadge
                           ledgerReconcilable={variantEntry.ledgerReconcilable}
                           hasOverrides={variantEntry.activeOverrides.length > 0}
@@ -209,14 +209,14 @@ export function ModelGovernanceDetail({
                       </span>
                     )}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  <p className="stg:mt-0.5 stg:text-[11px] stg:text-muted-foreground">
                     {blockRates(variant.pricing)
                       .filter(([, micros]) => micros > ZERO)
                       .map(([label, micros]) => `${label} ${formatRate(micros)}`)
                       .join(" · ") || "No rates set"}
                   </p>
                   {variant.wireIds.length > 0 && (
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    <p className="stg:mt-0.5 stg:text-[11px] stg:text-muted-foreground">
                       Wire ids: {variant.wireIds.join(", ")}
                     </p>
                   )}
@@ -229,10 +229,10 @@ export function ModelGovernanceDetail({
 
       {/* ── catalog metadata ─────────────────────────────────────────────── */}
       <section aria-label="Catalog metadata">
-        <h5 className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <h5 className="stg:mb-1.5 stg:text-[11px] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
           Catalog
         </h5>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
+        <dl className="stg:grid stg:grid-cols-2 stg:gap-x-4 stg:gap-y-1 stg:text-xs stg:sm:grid-cols-3">
           <MetaItem label="Provider API id" value={baseline.apiModelId || "—"} />
           <MetaItem label="Speed tier" value={baseline.speedTier || "—"} />
           <MetaItem label="Cost tier" value={baseline.costTier || "—"} />
@@ -250,17 +250,17 @@ export function ModelGovernanceDetail({
 
       {/* ── revision history ─────────────────────────────────────────────── */}
       <section aria-label="Revision history">
-        <h5 className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <h5 className="stg:mb-1.5 stg:text-[11px] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
           Revision History
         </h5>
         {row.history.length === 0 ? (
-          <p className="text-[11px] text-muted-foreground">
+          <p className="stg:text-[11px] stg:text-muted-foreground">
             No previous revisions — this is the original entry.
           </p>
         ) : (
-          <div className="space-y-1">
+          <div className="stg:space-y-1">
             {row.history.map((revision) => (
-              <p key={revision.baselineId} className="text-[11px] text-muted-foreground">
+              <p key={revision.baselineId} className="stg:text-[11px] stg:text-muted-foreground">
                 {revision.status === ModelPricingBaselineStatus.pricing_baseline_retired
                   ? "Retired"
                   : "Superseded"}
@@ -282,8 +282,8 @@ export function ModelGovernanceDetail({
 function MetaItem({ label, value }: { readonly label: string; readonly value: string }) {
   return (
     <div>
-      <dt className="text-[11px] text-muted-foreground">{label}</dt>
-      <dd className="text-foreground">{value}</dd>
+      <dt className="stg:text-[11px] stg:text-muted-foreground">{label}</dt>
+      <dd className="stg:text-foreground">{value}</dd>
     </div>
   );
 }

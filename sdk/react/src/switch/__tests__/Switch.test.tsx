@@ -79,13 +79,13 @@ describe("Switch", () => {
     );
 
     const el = screen.getByRole("switch");
-    expect(el.className).toContain("bg-input");
-    expect(el.className).not.toContain("bg-muted");
+    expect(el.className).toContain("stg:bg-input");
+    expect(el.className).not.toContain("stg:bg-muted");
 
     rerender(
       <Switch checked onCheckedChange={() => {}} aria-label="Enable sharing" />,
     );
-    expect(el.className).toContain("bg-primary");
+    expect(el.className).toContain("stg:bg-primary");
   });
 
   it("supports aria-labelledby for external labels", () => {

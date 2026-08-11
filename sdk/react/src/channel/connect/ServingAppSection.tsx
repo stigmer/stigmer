@@ -58,7 +58,7 @@ export function ServingAppSection({
   if (apps.length === 0) {
     return (
       <section aria-label="Connect as">
-        <h3 className="mb-1.5 text-xs font-medium text-foreground">
+        <h3 className="stg:mb-1.5 stg:text-xs stg:font-medium stg:text-foreground">
           Connect as
         </h3>
         {emptyBody}
@@ -68,10 +68,10 @@ export function ServingAppSection({
 
   return (
     <fieldset>
-      <legend className="mb-1.5 block text-xs font-medium text-foreground">
+      <legend className="stg:mb-1.5 stg:block stg:text-xs stg:font-medium stg:text-foreground">
         Connect as
       </legend>
-      <div role="radiogroup" className="space-y-1.5">
+      <div role="radiogroup" className="stg:space-y-1.5">
         {platformOption && (
           <ServingAppOption
             id={`${idPrefix}-platform`}
@@ -100,7 +100,7 @@ export function ServingAppSection({
           );
         })}
       </div>
-      <p className="mt-1.5 text-xs text-muted-foreground">
+      <p className="stg:mt-1.5 stg:text-xs stg:text-muted-foreground">
         <RegisterChannelAppAffordance channelAppsHref={channelAppsHref}>
           Register a channel app
         </RegisterChannelAppAffordance>
@@ -131,9 +131,9 @@ export function RegisterChannelAppAffordance({
     <a
       href={channelAppsHref}
       className={cn(
-        "font-medium underline underline-offset-2",
-        "hover:no-underline",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
+        "stg:font-medium stg:underline stg:underline-offset-2",
+        "stg:hover:no-underline",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded",
       )}
     >
       {children}
@@ -162,9 +162,9 @@ function ServingAppOption({
     <label
       htmlFor={id}
       className={cn(
-        "flex cursor-pointer items-start gap-2 rounded-md border px-2.5 py-1.5",
-        checked ? "border-ring bg-accent" : "border-border hover:bg-accent-hover",
-        disabled && "pointer-events-none opacity-50",
+        "stg:flex stg:cursor-pointer stg:items-start stg:gap-2 stg:rounded-md stg:border stg:px-2.5 stg:py-1.5",
+        checked ? "stg:border-ring stg:bg-accent" : "stg:border-border stg:hover:bg-accent-hover",
+        disabled && "stg:pointer-events-none stg:opacity-50",
       )}
     >
       <input
@@ -174,11 +174,11 @@ function ServingAppOption({
         checked={checked}
         onChange={onSelect}
         disabled={disabled}
-        className="mt-0.5 accent-current"
+        className="stg:mt-0.5 stg:accent-current"
       />
-      <span className="min-w-0">
-        <span className="block text-xs font-medium text-foreground">{label}</span>
-        <span className="block text-[0.65rem] text-muted-foreground">{hint}</span>
+      <span className="stg:min-w-0">
+        <span className="stg:block stg:text-xs stg:font-medium stg:text-foreground">{label}</span>
+        <span className="stg:block stg:text-[0.65rem] stg:text-muted-foreground">{hint}</span>
       </span>
     </label>
   );

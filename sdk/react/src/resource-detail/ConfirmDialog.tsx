@@ -80,29 +80,29 @@ export function ConfirmDialog({
       ref={dialogRef}
       onCancel={handleDialogCancel}
       className={cn(
-        "fixed inset-0 z-50 m-auto w-full max-w-sm rounded-lg border border-border bg-popover p-0 text-popover-foreground shadow-lg",
-        "backdrop:bg-black/50",
-        "open:animate-in open:fade-in-0 open:zoom-in-95",
+        "stg:fixed stg:inset-0 stg:z-50 stg:m-auto stg:w-full stg:max-w-sm stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:p-0 stg:text-popover-foreground stg:shadow-lg",
+        "stg:backdrop:bg-black/50",
+        "stg:open:animate-in stg:open:fade-in-0 stg:open:zoom-in-95",
       )}
     >
-      <div className="flex flex-col gap-4 p-6">
-        <div className="flex flex-col gap-1.5">
-          <h3 className="text-base font-semibold text-foreground">
+      <div className="stg:flex stg:flex-col stg:gap-4 stg:p-6">
+        <div className="stg:flex stg:flex-col stg:gap-1.5">
+          <h3 className="stg:text-base stg:font-semibold stg:text-foreground">
             {state.title}
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="stg:text-sm stg:text-muted-foreground">
             {state.description}
           </p>
         </div>
-        <div className="flex justify-end gap-2">
+        <div className="stg:flex stg:justify-end stg:gap-2">
           <button
             type="button"
             onClick={onCancel}
             className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-              "border border-input bg-background text-foreground",
-              "hover:bg-accent hover:text-accent-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+              "stg:border stg:border-input stg:bg-background stg:text-foreground",
+              "stg:hover:bg-accent stg:hover:text-accent-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           >
             {state.cancelLabel ?? "Cancel"}
@@ -111,11 +111,11 @@ export function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
               isDestructive
-                ? "bg-destructive text-destructive-foreground hover:bg-destructive-hover"
-                : "bg-primary text-primary-foreground hover:bg-primary-hover",
+                ? "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover"
+                : "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
             )}
           >
             {state.confirmLabel ?? "Confirm"}

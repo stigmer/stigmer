@@ -52,30 +52,30 @@ export function IdentityStep({
       : null;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="stg:flex stg:flex-col stg:gap-6">
       <div>
-        <h2 className="text-lg font-semibold text-foreground">
+        <h2 className="stg:text-lg stg:font-semibold stg:text-foreground">
           Identity & Instructions
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">
           Define what this agent is and what it does.
         </p>
       </div>
 
       {validationError && (
-        <p className="text-sm text-destructive" role="alert">
+        <p className="stg:text-sm stg:text-destructive" role="alert">
           {validationError}
         </p>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="stg:grid stg:gap-4 stg:sm:grid-cols-2">
         {/* Name */}
-        <div className="space-y-1.5">
+        <div className="stg:space-y-1.5">
           <label
             htmlFor="stgm-wizard-agent-name"
-            className="text-sm font-medium text-foreground"
+            className="stg:text-sm stg:font-medium stg:text-foreground"
           >
-            Name <span className="text-destructive">*</span>
+            Name <span className="stg:text-destructive">*</span>
           </label>
           <input
             id="stgm-wizard-agent-name"
@@ -85,18 +85,18 @@ export function IdentityStep({
             placeholder="e.g. PR Review Bot"
             autoFocus
             className={cn(
-              "w-full rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           />
         </div>
 
         {/* Slug */}
-        <div className="space-y-1.5">
+        <div className="stg:space-y-1.5">
           <label
             htmlFor="stgm-wizard-agent-slug"
-            className="text-sm font-medium text-foreground"
+            className="stg:text-sm stg:font-medium stg:text-foreground"
           >
             Slug
           </label>
@@ -107,30 +107,30 @@ export function IdentityStep({
             onChange={(e) => handleSlugChange(e.target.value)}
             placeholder="auto-generated"
             className={cn(
-              "w-full rounded-md border px-3 py-2 font-mono text-sm text-foreground",
+              "stg:w-full stg:rounded-md stg:border stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
               slugError
-                ? "border-destructive bg-input-bg"
-                : "border-input bg-input-bg",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                ? "stg:border-destructive stg:bg-input-bg"
+                : "stg:border-input stg:bg-input-bg",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           />
           {slugError && (
-            <p className="text-xs text-destructive">{slugError}</p>
+            <p className="stg:text-xs stg:text-destructive">{slugError}</p>
           )}
           {!slugError && data.slug && (
-            <p className="text-xs text-muted-foreground">
-              Referenced as <code className="font-mono">{data.slug}</code>
+            <p className="stg:text-xs stg:text-muted-foreground">
+              Referenced as <code className="stg:font-mono">{data.slug}</code>
             </p>
           )}
         </div>
       </div>
 
       {/* Description */}
-      <div className="space-y-1.5">
+      <div className="stg:space-y-1.5">
         <label
           htmlFor="stgm-wizard-agent-description"
-          className="text-sm font-medium text-foreground"
+          className="stg:text-sm stg:font-medium stg:text-foreground"
         >
           Description
         </label>
@@ -142,19 +142,19 @@ export function IdentityStep({
           placeholder="A brief description of what this agent does"
           maxLength={200}
           className={cn(
-            "w-full rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
-            "placeholder:text-muted-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         />
       </div>
 
       {/* Icon URL + Visibility (same row) */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5">
+      <div className="stg:grid stg:gap-4 stg:sm:grid-cols-2">
+        <div className="stg:space-y-1.5">
           <label
             htmlFor="stgm-wizard-agent-icon"
-            className="text-sm font-medium text-foreground"
+            className="stg:text-sm stg:font-medium stg:text-foreground"
           >
             Icon URL
           </label>
@@ -165,18 +165,18 @@ export function IdentityStep({
             onChange={(e) => updateData({ iconUrl: e.target.value })}
             placeholder="https://example.com/icon.png"
             className={cn(
-              "w-full rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           />
         </div>
 
-        <fieldset className="space-y-1.5">
-          <legend className="text-sm font-medium text-foreground">
+        <fieldset className="stg:space-y-1.5">
+          <legend className="stg:text-sm stg:font-medium stg:text-foreground">
             Visibility
           </legend>
-          <div className="flex gap-2">
+          <div className="stg:flex stg:gap-2">
             <VisibilityOption
               value="private"
               label="Private"
@@ -194,14 +194,14 @@ export function IdentityStep({
       </div>
 
       {/* Instructions */}
-      <div className="space-y-1.5">
+      <div className="stg:space-y-1.5">
         <label
           htmlFor="stgm-wizard-agent-instructions"
-          className="text-sm font-medium text-foreground"
+          className="stg:text-sm stg:font-medium stg:text-foreground"
         >
           Instructions
         </label>
-        <p className="text-xs text-muted-foreground">
+        <p className="stg:text-xs stg:text-muted-foreground">
           The system prompt that defines this agent&apos;s behavior.
         </p>
         <textarea
@@ -211,9 +211,9 @@ export function IdentityStep({
           placeholder="You are a helpful assistant that..."
           rows={12}
           className={cn(
-            "w-full resize-y rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
-            "placeholder:text-muted-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:w-full stg:resize-y stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         />
       </div>
@@ -239,10 +239,10 @@ function VisibilityOption({
   return (
     <label
       className={cn(
-        "inline-flex cursor-pointer items-center rounded-md border px-3 py-1.5 text-sm transition-colors",
+        "stg:inline-flex stg:cursor-pointer stg:items-center stg:rounded-md stg:border stg:px-3 stg:py-1.5 stg:text-sm stg:transition-colors",
         checked
-          ? "border-primary bg-primary-subtle text-primary font-medium"
-          : "border-input bg-input-bg text-muted-foreground hover:border-border hover:text-foreground",
+          ? "stg:border-primary stg:bg-primary-subtle stg:text-primary stg:font-medium"
+          : "stg:border-input stg:bg-input-bg stg:text-muted-foreground stg:hover:border-border stg:hover:text-foreground",
       )}
     >
       <input
@@ -251,7 +251,7 @@ function VisibilityOption({
         value={value}
         checked={checked}
         onChange={onChange}
-        className="sr-only"
+        className="stg:sr-only"
       />
       {label}
     </label>

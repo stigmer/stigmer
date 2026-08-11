@@ -2,14 +2,18 @@
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
 @import "@stigmer/theme/tokens.css";
+/* The COMPILED SDK stylesheet (dist/styles.css, `stg:`-prefixed utilities;
+   #454) — the same prebuilt artifact npm consumers get. This site's Tailwind
+   build no longer scans SDK sources or inherits SDK build directives. */
 @import "@stigmer/react/styles.css";
 @import "@scenar/react/theme.css";
 
-/* The SDK stylesheet above declares `dark` as `[data-stgm-color-mode="dark"] *`,
-   which would hijack every `dark:` utility on the site (fumadocs, streamdown)
-   to key off an attribute that only exists inside demo scopes. Re-declare the
-   combined variant (same as the web console) so `dark:` responds to the docs
-   `.dark` class AND the SDK color-mode attribute. */
+/* `dark:` responds to the docs `.dark` class AND the SDK color-mode attribute
+   (same combined variant as the web console), so site utilities react to both
+   the hardcoded dark shell and demo-scoped SDK color modes. (Historical note:
+   before #454 this ALSO had to override the SDK source's own `dark` variant,
+   which used to flow into this compile; the compiled stylesheet no longer
+   leaks build directives.) */
 @custom-variant dark (&:is(.dark *, [data-stgm-color-mode="dark"] *));
 
 /*

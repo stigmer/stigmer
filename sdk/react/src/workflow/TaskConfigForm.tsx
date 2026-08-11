@@ -45,14 +45,14 @@ export const TaskConfigForm = memo(function TaskConfigForm({
 
   if (fields.length === 0) {
     return (
-      <div className={cn("px-3 py-4 text-xs text-[var(--stgm-muted-foreground,#737373)]", className)}>
+      <div className={cn("stg:px-3 stg:py-4 stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]", className)}>
         No configurable fields for this task kind.
       </div>
     );
   }
 
   return (
-    <div className={cn("flex flex-col gap-1", className)}>
+    <div className={cn("stg:flex stg:flex-col stg:gap-1", className)}>
       {groupedFields.map((group) => (
         <FieldGroupSection
           key={group.id}
@@ -90,20 +90,20 @@ function FieldGroupSection({
   const toggle = useCallback(() => setCollapsed((c) => !c), []);
 
   return (
-    <div className="border-b border-[var(--stgm-border,#e5e5e5)] last:border-b-0">
+    <div className="stg:border-b stg:border-[var(--stgm-border,#e5e5e5)] stg:last:border-b-0">
       <button
         type="button"
         onClick={toggle}
-        className="flex w-full items-center gap-1.5 px-3 py-2 text-left text-xs font-semibold text-[var(--stgm-foreground,#1a1a2e)] hover:bg-[var(--stgm-muted,#f5f5f5)]"
+        className="stg:flex stg:w-full stg:items-center stg:gap-1.5 stg:px-3 stg:py-2 stg:text-left stg:text-xs stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)] stg:hover:bg-[var(--stgm-muted,#f5f5f5)]"
         aria-expanded={!collapsed}
       >
         <ChevronIcon collapsed={collapsed} />
         {group.displayName}
       </button>
       {!collapsed && (
-        <div className="flex flex-col gap-3 px-3 pb-3">
+        <div className="stg:flex stg:flex-col stg:gap-3 stg:px-3 stg:pb-3">
           {group.description && (
-            <p className="text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+            <p className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
               {group.description}
             </p>
           )}
@@ -138,20 +138,20 @@ function FieldRenderer({
   depth: number;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <label className="flex items-center gap-1 text-[11px] font-medium text-[var(--stgm-foreground,#1a1a2e)]">
+    <div className="stg:flex stg:flex-col stg:gap-1">
+      <label className="stg:flex stg:items-center stg:gap-1 stg:text-[11px] stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]">
         {field.displayName}
         {field.required && (
-          <span className="text-[var(--stgm-destructive,#ef4444)]" aria-label="required">*</span>
+          <span className="stg:text-[var(--stgm-destructive,#ef4444)]" aria-label="required">*</span>
         )}
         {field.isExpression && (
-          <span className="rounded bg-[var(--stgm-accent,#e5e5e5)] px-1 text-[9px] font-normal text-[var(--stgm-muted-foreground,#737373)]">
+          <span className="stg:rounded stg:bg-[var(--stgm-accent,#e5e5e5)] stg:px-1 stg:text-[9px] stg:font-normal stg:text-[var(--stgm-muted-foreground,#737373)]">
             expr
           </span>
         )}
       </label>
       {field.description && (
-        <p className="text-[10px] leading-tight text-[var(--stgm-muted-foreground,#737373)]">
+        <p className="stg:text-[10px] stg:leading-tight stg:text-[var(--stgm-muted-foreground,#737373)]">
           {field.description}
         </p>
       )}
@@ -205,7 +205,7 @@ function FieldControl({
 // ---------------------------------------------------------------------------
 
 const inputClass =
-  "w-full rounded-md border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 py-1.5 text-xs text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]";
+  "stg:w-full stg:rounded-md stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-2 stg:py-1.5 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)] stg:placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]";
 
 function StringField({
   field,
@@ -234,7 +234,7 @@ function StringField({
         onChange={handleChange}
         placeholder={placeholder}
         rows={4}
-        className={cn(inputClass, "resize-y font-mono", field.isExpression && "border-[var(--stgm-chart-purple,#8b5cf6)]/40")}
+        className={cn(inputClass, "stg:resize-y stg:font-mono", field.isExpression && "stg:border-[var(--stgm-chart-purple,#8b5cf6)]/40")}
       />
     );
   }
@@ -245,7 +245,7 @@ function StringField({
       value={strValue}
       onChange={handleChange}
       placeholder={placeholder}
-      className={cn(inputClass, field.isExpression && "border-[var(--stgm-chart-purple,#8b5cf6)]/40")}
+      className={cn(inputClass, field.isExpression && "stg:border-[var(--stgm-chart-purple,#8b5cf6)]/40")}
     />
   );
 }
@@ -303,14 +303,14 @@ function BoolField({
   );
 
   return (
-    <label className="flex cursor-pointer items-center gap-2">
+    <label className="stg:flex stg:cursor-pointer stg:items-center stg:gap-2">
       <input
         type="checkbox"
         checked={checked}
         onChange={handleChange}
-        className="h-4 w-4 rounded border-[var(--stgm-border,#d4d4d8)] text-[var(--stgm-primary,#6366f1)] focus:ring-[var(--stgm-ring,#3b82f6)]"
+        className="stg:h-4 stg:w-4 stg:rounded stg:border-[var(--stgm-border,#d4d4d8)] stg:text-[var(--stgm-primary,#6366f1)] stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
       />
-      <span className="text-xs text-[var(--stgm-muted-foreground,#737373)]">
+      <span className="stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">
         {checked ? "Enabled" : "Disabled"}
       </span>
     </label>
@@ -379,16 +379,16 @@ function JsonField({
   );
 
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="stg:flex stg:flex-col stg:gap-0.5">
       <textarea
         value={localValue}
         onChange={handleChange}
         rows={4}
-        className={cn(inputClass, "resize-y font-mono text-[11px]")}
+        className={cn(inputClass, "stg:resize-y stg:font-mono stg:text-[11px]")}
         placeholder="{}"
       />
       {parseError && (
-        <span className="text-[10px] text-[var(--stgm-destructive,#ef4444)]">{parseError}</span>
+        <span className="stg:text-[10px] stg:text-[var(--stgm-destructive,#ef4444)]">{parseError}</span>
       )}
     </div>
   );
@@ -426,19 +426,19 @@ function RepeatedField({
   );
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="stg:flex stg:flex-col stg:gap-1.5">
       {items.map((item, idx) => (
-        <div key={idx} className="flex items-start gap-1">
+        <div key={idx} className="stg:flex stg:items-start stg:gap-1">
           <input
             type="text"
             value={typeof item === "string" ? item : JSON.stringify(item ?? "")}
             onChange={(e) => updateItem(idx, e.target.value || undefined)}
-            className={cn(inputClass, "flex-1")}
+            className={cn(inputClass, "stg:flex-1")}
           />
           <button
             type="button"
             onClick={() => removeItem(idx)}
-            className="mt-1 text-[10px] text-[var(--stgm-destructive,#ef4444)] hover:underline"
+            className="stg:mt-1 stg:text-[10px] stg:text-[var(--stgm-destructive,#ef4444)] stg:hover:underline"
             aria-label={`Remove item ${idx + 1}`}
           >
             ✕
@@ -448,7 +448,7 @@ function RepeatedField({
       <button
         type="button"
         onClick={addItem}
-        className="self-start text-[11px] font-medium text-[var(--stgm-primary,#6366f1)] hover:underline"
+        className="stg:self-start stg:text-[11px] stg:font-medium stg:text-[var(--stgm-primary,#6366f1)] stg:hover:underline"
       >
         + Add item
       </button>
@@ -496,27 +496,27 @@ function MapField({
   );
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="stg:flex stg:flex-col stg:gap-1.5">
       {entries.map(([key, val], idx) => (
-        <div key={idx} className="flex items-start gap-1">
+        <div key={idx} className="stg:flex stg:items-start stg:gap-1">
           <input
             type="text"
             value={key}
             onChange={(e) => updateEntry(key, e.target.value, val)}
             placeholder="key"
-            className={cn(inputClass, "w-1/3")}
+            className={cn(inputClass, "stg:w-1/3")}
           />
           <input
             type="text"
             value={typeof val === "string" ? val : JSON.stringify(val ?? "")}
             onChange={(e) => updateEntry(key, key, e.target.value || undefined)}
             placeholder="value"
-            className={cn(inputClass, "flex-1")}
+            className={cn(inputClass, "stg:flex-1")}
           />
           <button
             type="button"
             onClick={() => removeEntry(key)}
-            className="mt-1 text-[10px] text-[var(--stgm-destructive,#ef4444)] hover:underline"
+            className="stg:mt-1 stg:text-[10px] stg:text-[var(--stgm-destructive,#ef4444)] stg:hover:underline"
             aria-label={`Remove entry ${key}`}
           >
             ✕
@@ -526,7 +526,7 @@ function MapField({
       <button
         type="button"
         onClick={addEntry}
-        className="self-start text-[11px] font-medium text-[var(--stgm-primary,#6366f1)] hover:underline"
+        className="stg:self-start stg:text-[11px] stg:font-medium stg:text-[var(--stgm-primary,#6366f1)] stg:hover:underline"
       >
         + Add entry
       </button>
@@ -549,7 +549,7 @@ function ChevronIcon({ collapsed }: { collapsed: boolean }) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={cn("transition-transform", !collapsed && "rotate-90")}
+      className={cn("stg:transition-transform", !collapsed && "stg:rotate-90")}
     >
       <path d="M6 4l4 4-4 4" />
     </svg>

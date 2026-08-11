@@ -82,8 +82,8 @@ export function HarnessSelector({
       aria-label="Execution engine"
       onKeyDown={handleKeyDown}
       className={[
-        "inline-flex items-center rounded-md border border-border bg-background p-0.5",
-        disabled ? "pointer-events-none opacity-50" : undefined,
+        "stg:inline-flex stg:items-center stg:rounded-md stg:border stg:border-border stg:bg-background stg:p-0.5",
+        disabled ? "stg:pointer-events-none stg:opacity-50" : undefined,
         className,
       ]
         .filter(Boolean)
@@ -105,19 +105,19 @@ export function HarnessSelector({
               if (!isActive) onValueChange(option);
             }}
             className={[
-              "inline-flex items-center gap-1 rounded-[5px] px-2 py-1 text-xs transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "disabled:pointer-events-none",
+              "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-[5px] stg:px-2 stg:py-1 stg:text-xs stg:transition-colors",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none",
               isActive
-                ? "bg-accent font-medium text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
+                ? "stg:bg-accent stg:font-medium stg:text-foreground stg:shadow-sm"
+                : "stg:text-muted-foreground stg:hover:text-foreground",
             ].join(" ")}
           >
             {HARNESS_LABELS[option]}
             {option === "cursor" && (
               <span
                 aria-label="premium"
-                className="text-[0.6rem] text-muted-foreground"
+                className="stg:text-[0.6rem] stg:text-muted-foreground"
               >
                 $$$
               </span>

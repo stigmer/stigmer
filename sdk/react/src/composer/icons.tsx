@@ -8,7 +8,7 @@ export function ChipSpinner() {
       stroke="currentColor"
       strokeWidth="2.5"
       strokeLinecap="round"
-      className="shrink-0 animate-spin text-muted-foreground"
+      className="stg:shrink-0 stg:animate-spin stg:text-muted-foreground"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />
@@ -64,7 +64,7 @@ export function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />
@@ -251,7 +251,7 @@ export function ConfigureIcon() {
 
 export function ResolveSpinner() {
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="stg:flex stg:flex-col stg:items-center stg:gap-1.5">
       <svg
         width="16"
         height="16"
@@ -260,12 +260,12 @@ export function ResolveSpinner() {
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
-        className="animate-spin text-muted-foreground"
+        className="stg:animate-spin stg:text-muted-foreground"
         aria-hidden="true"
       >
         <path d="M8 2a6 6 0 1 0 6 6" />
       </svg>
-      <span className="text-[0.6rem] text-muted-foreground">
+      <span className="stg:text-[0.6rem] stg:text-muted-foreground">
         Checking agent requirements...
       </span>
     </div>

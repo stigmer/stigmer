@@ -62,10 +62,10 @@ export function SidebarChrome({
     <nav
       id="sidebar"
       aria-label={ariaLabel}
-      className="bg-sidebar text-sidebar-foreground flex h-full flex-col"
+      className="stg:bg-sidebar stg:text-sidebar-foreground stg:flex stg:h-full stg:flex-col"
     >
       {/* Top row: collapse toggle + org context */}
-      <div className="flex flex-none items-center gap-1 px-2 py-2">
+      <div className="stg:flex stg:flex-none stg:items-center stg:gap-1 stg:px-2 stg:py-2">
         <button
           type="button"
           onClick={onCollapse}
@@ -73,16 +73,16 @@ export function SidebarChrome({
           aria-controls="sidebar"
           aria-label="Collapse sidebar"
           className={cn(
-            "inline-flex size-7 shrink-0 items-center justify-center rounded-md",
-            "text-sidebar-foreground transition-colors motion-reduce:transition-none",
-            "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-            "aria-expanded:bg-sidebar-accent aria-expanded:text-sidebar-accent-foreground",
-            "focus-visible:ring-sidebar-ring focus-visible:ring-2 focus-visible:outline-none",
+            "stg:inline-flex stg:size-7 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-md",
+            "stg:text-sidebar-foreground stg:transition-colors stg:motion-reduce:transition-none",
+            "stg:hover:bg-sidebar-accent stg:hover:text-sidebar-accent-foreground",
+            "stg:aria-expanded:bg-sidebar-accent stg:aria-expanded:text-sidebar-accent-foreground",
+            "stg:focus-visible:ring-sidebar-ring stg:focus-visible:ring-2 stg:focus-visible:outline-none",
           )}
         >
-          <PanelLeft className="size-4" />
+          <PanelLeft className="stg:size-4" />
         </button>
-        <div className="min-w-0 flex-1">
+        <div className="stg:min-w-0 stg:flex-1">
           <OrgSwitcher onOrgChanged={onOrgChanged} />
         </div>
       </div>
@@ -90,7 +90,7 @@ export function SidebarChrome({
       {children}
 
       {/* Bottom: user menu */}
-      <div className="border-sidebar-border flex-none border-t px-3 py-2">
+      <div className="stg:border-sidebar-border stg:flex-none stg:border-t stg:px-3 stg:py-2">
         {footer}
       </div>
     </nav>
@@ -100,8 +100,8 @@ export function SidebarChrome({
 /** Hairline separator between sidebar sections. */
 export function SidebarSeparator() {
   return (
-    <div className="px-3 py-1">
-      <div className="bg-sidebar-border h-px" />
+    <div className="stg:px-3 stg:py-1">
+      <div className="stg:bg-sidebar-border stg:h-px" />
     </div>
   );
 }
@@ -118,12 +118,12 @@ export function navRowClassName(
   { muted = false }: { muted?: boolean } = {},
 ): string {
   return cn(
-    "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
+    "stg:flex stg:items-center stg:gap-2 stg:rounded-lg stg:px-2 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
     active
-      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+      ? "stg:bg-sidebar-accent stg:text-sidebar-accent-foreground"
       : cn(
-          muted ? "text-sidebar-muted-foreground" : "text-sidebar-foreground",
-          "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          muted ? "stg:text-sidebar-muted-foreground" : "stg:text-sidebar-foreground",
+          "stg:hover:bg-sidebar-accent stg:hover:text-sidebar-accent-foreground",
         ),
   );
 }

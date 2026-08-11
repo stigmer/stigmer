@@ -21,27 +21,27 @@ export const DocsTab = memo(function DocsTab({ descriptor }: DocsTabProps) {
   const hasDocsUrl = !!descriptor.documentationUrl;
 
   return (
-    <div className="flex flex-col gap-4 px-3 py-3">
+    <div className="stg:flex stg:flex-col stg:gap-4 stg:px-3 stg:py-3">
       {descriptor.description && (
-        <section className="flex flex-col gap-1">
-          <h4 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--stgm-muted-foreground,#737373)]">
+        <section className="stg:flex stg:flex-col stg:gap-1">
+          <h4 className="stg:text-[11px] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-[var(--stgm-muted-foreground,#737373)]">
             Description
           </h4>
-          <p className="text-xs leading-relaxed text-[var(--stgm-foreground,#1a1a2e)]">
+          <p className="stg:text-xs stg:leading-relaxed stg:text-[var(--stgm-foreground,#1a1a2e)]">
             {descriptor.description}
           </p>
         </section>
       )}
 
       {hasExamples && (
-        <section className="flex flex-col gap-2">
-          <h4 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--stgm-muted-foreground,#737373)]">
+        <section className="stg:flex stg:flex-col stg:gap-2">
+          <h4 className="stg:text-[11px] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-[var(--stgm-muted-foreground,#737373)]">
             YAML examples
           </h4>
           {descriptor.yamlExamples!.map((example, i) => (
             <pre
               key={i}
-              className="overflow-x-auto rounded-md border border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-muted,#f5f5f5)] p-2 text-[11px] leading-relaxed text-[var(--stgm-foreground,#1a1a2e)]"
+              className="stg:overflow-x-auto stg:rounded-md stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-muted,#f5f5f5)] stg:p-2 stg:text-[11px] stg:leading-relaxed stg:text-[var(--stgm-foreground,#1a1a2e)]"
             >
               <code>{example}</code>
             </pre>
@@ -50,15 +50,15 @@ export const DocsTab = memo(function DocsTab({ descriptor }: DocsTabProps) {
       )}
 
       {hasDocsUrl && (
-        <section className="flex flex-col gap-1">
-          <h4 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--stgm-muted-foreground,#737373)]">
+        <section className="stg:flex stg:flex-col stg:gap-1">
+          <h4 className="stg:text-[11px] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-[var(--stgm-muted-foreground,#737373)]">
             Documentation
           </h4>
           <a
             href={descriptor.documentationUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs font-medium text-[var(--stgm-primary,#6366f1)] hover:underline"
+            className="stg:text-xs stg:font-medium stg:text-[var(--stgm-primary,#6366f1)] stg:hover:underline"
           >
             View full documentation →
           </a>
@@ -66,7 +66,7 @@ export const DocsTab = memo(function DocsTab({ descriptor }: DocsTabProps) {
       )}
 
       {!hasExamples && !hasDocsUrl && !descriptor.description && (
-        <p className="text-xs text-[var(--stgm-muted-foreground,#737373)]">
+        <p className="stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">
           No documentation available for this task kind.
         </p>
       )}

@@ -32,7 +32,7 @@ export interface ProviderPickerProps {
 export function ProviderPicker({ onSelect, className }: ProviderPickerProps) {
   return (
     <div
-      className={cn("grid grid-cols-2 gap-2 sm:grid-cols-3", className)}
+      className={cn("stg:grid stg:grid-cols-2 stg:gap-2 stg:sm:grid-cols-3", className)}
       role="listbox"
       aria-label="Choose an identity provider"
     >
@@ -44,20 +44,20 @@ export function ProviderPicker({ onSelect, className }: ProviderPickerProps) {
           aria-selected={false}
           onClick={() => onSelect(preset)}
           className={cn(
-            "flex flex-col items-start gap-2 rounded-lg px-3 py-3 text-left transition-colors",
-            "border hover:border-primary/60 hover:bg-accent-hover",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+            "stg:flex stg:flex-col stg:items-start stg:gap-2 stg:rounded-lg stg:px-3 stg:py-3 stg:text-left stg:transition-colors",
+            "stg:border stg:hover:border-primary/60 stg:hover:bg-accent-hover",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
             preset.id === "custom"
-              ? "border-dashed border-border"
-              : "border-border-muted",
+              ? "stg:border-dashed stg:border-border"
+              : "stg:border-border-muted",
           )}
         >
           <ProviderIcon presetId={preset.id} />
-          <div className="min-w-0">
-            <span className="block text-sm font-medium text-foreground">
+          <div className="stg:min-w-0">
+            <span className="stg:block stg:text-sm stg:font-medium stg:text-foreground">
               {preset.label}
             </span>
-            <span className="block text-[0.65rem] leading-tight text-muted-foreground">
+            <span className="stg:block stg:text-[0.65rem] stg:leading-tight stg:text-muted-foreground">
               {preset.description}
             </span>
           </div>
@@ -74,7 +74,7 @@ export function ProviderPicker({ onSelect, className }: ProviderPickerProps) {
 function ProviderIcon({ presetId }: { presetId: string }) {
   const Icon = ICON_MAP[presetId] ?? DefaultIcon;
   return (
-    <span className="flex size-8 items-center justify-center rounded-lg bg-muted">
+    <span className="stg:flex stg:size-8 stg:items-center stg:justify-center stg:rounded-lg stg:bg-muted">
       <Icon />
     </span>
   );
@@ -91,7 +91,7 @@ const ICON_MAP: Record<string, React.ComponentType> = {
 
 function LockIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-muted-foreground">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="stg:text-muted-foreground">
       <rect x="3.5" y="7" width="9" height="7" rx="1.5" />
       <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
     </svg>
@@ -100,7 +100,7 @@ function LockIcon() {
 
 function KeyIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-muted-foreground">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="stg:text-muted-foreground">
       <circle cx="5.5" cy="10" r="3" />
       <path d="M8 8l5.5-5.5M11 5l2-0.5L13.5 2.5" />
     </svg>
@@ -109,7 +109,7 @@ function KeyIcon() {
 
 function GlobeIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-muted-foreground">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="stg:text-muted-foreground">
       <circle cx="8" cy="8" r="6" />
       <path d="M2 8h12M8 2c2 2 2.5 4 2.5 6S10 14 8 14c-2-2-2.5-4-2.5-6S6 2 8 2z" />
     </svg>
@@ -118,7 +118,7 @@ function GlobeIcon() {
 
 function CloudIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-muted-foreground">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="stg:text-muted-foreground">
       <path d="M4 12.5h8.5a3 3 0 0 0 0-6 .5.5 0 0 1-.5-.4A4.5 4.5 0 0 0 3.5 8v.5a3 3 0 0 0 .5 6z" />
     </svg>
   );
@@ -126,7 +126,7 @@ function CloudIcon() {
 
 function UsersIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-muted-foreground">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="stg:text-muted-foreground">
       <circle cx="6" cy="5" r="2.5" />
       <path d="M1.5 14c0-2.5 2-4.5 4.5-4.5S10.5 11.5 10.5 14" />
       <circle cx="11.5" cy="5.5" r="1.5" />
@@ -137,7 +137,7 @@ function UsersIcon() {
 
 function CodeIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-muted-foreground">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="stg:text-muted-foreground">
       <path d="M5 4.5L1.5 8 5 11.5M11 4.5l3.5 3.5-3.5 3.5M9 2.5l-2 11" />
     </svg>
   );
@@ -145,7 +145,7 @@ function CodeIcon() {
 
 function DefaultIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-muted-foreground">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="stg:text-muted-foreground">
       <circle cx="8" cy="8" r="6" />
     </svg>
   );

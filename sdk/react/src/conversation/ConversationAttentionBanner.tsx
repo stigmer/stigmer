@@ -39,15 +39,15 @@ export function ConversationAttentionBanner({
   return (
     <div
       className={cn(
-        "border-b border-border bg-destructive-subtle px-4 py-2",
+        "stg:border-b stg:border-border stg:bg-destructive-subtle stg:px-4 stg:py-2",
         className,
       )}
       role="status"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="flex min-w-0 items-start gap-1.5 text-sm text-destructive">
-          <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          <span className="min-w-0 break-words">
+      <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-2">
+        <p className="stg:flex stg:min-w-0 stg:items-start stg:gap-1.5 stg:text-sm stg:text-destructive">
+          <TriangleAlert aria-hidden="true" className="stg:mt-0.5 stg:size-4 stg:shrink-0" />
+          <span className="stg:min-w-0 stg:break-words">
             The agent asked for a human
             {conversation.attentionReason ? (
               <> — &ldquo;{conversation.attentionReason}&rdquo;</>
@@ -70,7 +70,7 @@ export function ConversationAttentionBanner({
         </Button>
       </div>
       {error && (
-        <p className="mt-1 text-xs text-destructive">{getUserMessage(error)}</p>
+        <p className="stg:mt-1 stg:text-xs stg:text-destructive">{getUserMessage(error)}</p>
       )}
     </div>
   );

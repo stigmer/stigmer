@@ -110,14 +110,14 @@ export function InteractionModePicker({
       <Popover.Trigger
         disabled={disabled}
         className={cn(
-          "inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors",
-          "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          "disabled:pointer-events-none disabled:opacity-50",
+          "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2 stg:py-1.5 stg:text-xs stg:transition-colors",
+          "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           className,
         )}
       >
-        <span className="font-medium text-foreground">
+        <span className="stg:font-medium stg:text-foreground">
           {MODE_META[value].label}
         </span>
         <ChevronIcon />
@@ -130,8 +130,8 @@ export function InteractionModePicker({
             aria-label="Interaction mode"
             onKeyDown={handleKeyDown}
             className={cn(
-              "z-50 w-56 rounded-lg border border-border bg-popover p-1 shadow-md",
-              "animate-in fade-in-0 zoom-in-95",
+              "stg:z-50 stg:w-56 stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:p-1 stg:shadow-md",
+              "stg:animate-in stg:fade-in-0 stg:zoom-in-95",
             )}
           >
             {OPTIONS.map((option) => {
@@ -146,15 +146,15 @@ export function InteractionModePicker({
                   aria-selected={isActive}
                   onClick={() => select(option)}
                   className={cn(
-                    "flex w-full flex-col gap-0.5 rounded-md px-2.5 py-2 text-left transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    "stg:flex stg:w-full stg:flex-col stg:gap-0.5 stg:rounded-md stg:px-2.5 stg:py-2 stg:text-left stg:transition-colors",
+                    "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                     isActive
-                      ? "bg-accent text-foreground"
-                      : "text-foreground hover:bg-accent-hover",
+                      ? "stg:bg-accent stg:text-foreground"
+                      : "stg:text-foreground stg:hover:bg-accent-hover",
                   )}
                 >
-                  <span className="text-xs font-medium">{meta.label}</span>
-                  <span className="text-[0.65rem] leading-snug text-muted-foreground">
+                  <span className="stg:text-xs stg:font-medium">{meta.label}</span>
+                  <span className="stg:text-[0.65rem] stg:leading-snug stg:text-muted-foreground">
                     {meta.description}
                   </span>
                 </button>
@@ -174,7 +174,7 @@ function ChevronIcon() {
       height="12"
       viewBox="0 0 12 12"
       fill="none"
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
       aria-hidden="true"
     >
       <path

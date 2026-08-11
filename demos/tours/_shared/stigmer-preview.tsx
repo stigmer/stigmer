@@ -23,12 +23,13 @@
 // wherever that stylesheet is.
 import "./fonts/fonts.css";
 
-// The COMPILED stylesheet, not `@stigmer/react/styles.css`: the in-repo
-// workspace export points at the uncompiled Tailwind source, and `scenar pack`
-// deliberately does not run Tailwind (scenar-cloud DD-003). The dist artifact
-// is byte-identical to what npm consumers receive; `npm run build:css -w
-// @stigmer/react` produces it (pack-all runs that automatically).
-import "../../../sdk/react/dist/styles.css";
+// The COMPILED stylesheet — since #454 the workspace export
+// `@stigmer/react/styles.css` points at the same dist artifact npm consumers
+// receive (the export used to point at the uncompiled Tailwind source, which
+// `scenar pack` cannot process — it deliberately does not run Tailwind,
+// scenar-cloud DD-003). `npm run build:css -w @stigmer/react` produces it
+// (pack-all runs that automatically).
+import "@stigmer/react/styles.css";
 
 import type { ReactNode } from "react";
 import { createRouterTransport, type ConnectRouter } from "@connectrpc/connect";

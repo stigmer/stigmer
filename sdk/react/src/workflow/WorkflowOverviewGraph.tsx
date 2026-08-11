@@ -198,7 +198,7 @@ function WorkflowOverviewGraphInner({
 
   if (!workflow?.spec?.tasks?.length) {
     return (
-      <div className={cn("flex h-full items-center justify-center text-sm text-[var(--stgm-muted-foreground,#737373)]", className)}>
+      <div className={cn("stg:flex stg:h-full stg:items-center stg:justify-center stg:text-sm stg:text-[var(--stgm-muted-foreground,#737373)]", className)}>
         No tasks to visualize
       </div>
     );
@@ -206,7 +206,7 @@ function WorkflowOverviewGraphInner({
 
   if (nodesWithSelection.length === 0) {
     return (
-      <div className={cn("flex h-full items-center justify-center", className)}>
+      <div className={cn("stg:flex stg:h-full stg:items-center stg:justify-center", className)}>
         <GraphLoadingSkeleton />
       </div>
     );
@@ -214,7 +214,7 @@ function WorkflowOverviewGraphInner({
 
   return (
     <WorkflowGraphModeProvider mode="overview">
-      <div ref={containerRef} className={cn("relative h-full w-full", className)}>
+      <div ref={containerRef} className={cn("stg:relative stg:h-full stg:w-full", className)}>
         <ReactFlow
           nodes={displayNodes}
           edges={edges}
@@ -255,12 +255,12 @@ function WorkflowOverviewGraphInner({
 
 function GraphLoadingSkeleton() {
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="h-8 w-8 animate-pulse rounded-full bg-[var(--stgm-muted,#e5e5e5)]" />
-      <div className="h-3 w-24 animate-pulse rounded bg-[var(--stgm-muted,#e5e5e5)]" />
-      <div className="mt-2 flex gap-4">
-        <div className="h-10 w-32 animate-pulse rounded-md bg-[var(--stgm-muted,#e5e5e5)]" />
-        <div className="h-10 w-32 animate-pulse rounded-md bg-[var(--stgm-muted,#e5e5e5)]" />
+    <div className="stg:flex stg:flex-col stg:items-center stg:gap-3">
+      <div className="stg:h-8 stg:w-8 stg:animate-pulse stg:rounded-full stg:bg-[var(--stgm-muted,#e5e5e5)]" />
+      <div className="stg:h-3 stg:w-24 stg:animate-pulse stg:rounded stg:bg-[var(--stgm-muted,#e5e5e5)]" />
+      <div className="stg:mt-2 stg:flex stg:gap-4">
+        <div className="stg:h-10 stg:w-32 stg:animate-pulse stg:rounded-md stg:bg-[var(--stgm-muted,#e5e5e5)]" />
+        <div className="stg:h-10 stg:w-32 stg:animate-pulse stg:rounded-md stg:bg-[var(--stgm-muted,#e5e5e5)]" />
       </div>
     </div>
   );

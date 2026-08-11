@@ -38,9 +38,9 @@ describe("ApprovalCard chrome", () => {
     // old amber background fill. (Class presence only; that the line actually
     // RENDERS is proven by the layer-invariant + e2e computed-style guards —
     // happy-dom cannot resolve `@layer`.)
-    expect(card.className).toContain("border-border-prominent");
-    expect(card.className).toContain("border-l-warning");
-    expect(card.className).not.toContain("bg-warning");
+    expect(card.className).toContain("stg:border-border-prominent");
+    expect(card.className).toContain("stg:border-l-warning");
+    expect(card.className).not.toContain("stg:bg-warning");
   });
 
   it("keeps a destructive red accent for a delete approval (hard safety signal)", () => {
@@ -53,8 +53,8 @@ describe("ApprovalCard chrome", () => {
     render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
 
     const card = screen.getByRole("alert");
-    expect(card.className).toContain("border-l-destructive");
-    expect(card.className).not.toContain("bg-destructive-subtle");
+    expect(card.className).toContain("stg:border-l-destructive");
+    expect(card.className).not.toContain("stg:bg-destructive-subtle");
   });
 
   it("shows a shell gate's command in the body terminal session, once, not in the header", () => {
@@ -127,28 +127,28 @@ describe("ApprovalCard quiet decision buttons", () => {
   it("Approve is the neutral chip, never the loud success green", () => {
     renderGate();
     const approve = screen.getByRole("button", { name: "Approve" });
-    expect(approve.className).toContain("bg-accent");
+    expect(approve.className).toContain("stg:bg-accent");
     expect(approve.className).toContain("border");
-    expect(approve.className).not.toContain("bg-success");
+    expect(approve.className).not.toContain("stg:bg-success");
   });
 
   it("Skip and Reject are quiet ghosts with no resting fill", () => {
     renderGate();
     const skip = screen.getByRole("button", { name: "Skip" });
     const reject = screen.getByRole("button", { name: "Reject" });
-    expect(skip.className).toContain("text-muted-foreground");
+    expect(skip.className).toContain("stg:text-muted-foreground");
     expect(skip.className).not.toMatch(/(?:^|\s)bg-/); // hover-only wash, no rest fill
     // Reject reveals its danger affordance on hover/focus, not as a red fill.
-    expect(reject.className).toContain("hover:text-destructive");
+    expect(reject.className).toContain("stg:hover:text-destructive");
     expect(reject.className).not.toMatch(/(?:^|\s)bg-/);
-    expect(reject.className).not.toContain("bg-destructive text-destructive-foreground");
+    expect(reject.className).not.toContain("stg:bg-destructive stg:text-destructive-foreground");
   });
 
   it("demotes Approve-all to the far right (ml-auto) at the lowest weight", () => {
     renderGate();
     const approveAll = screen.getByRole("button", { name: "Approve all file edits" });
-    expect(approveAll.className).toContain("ml-auto");
-    expect(approveAll.className).toContain("text-muted-foreground");
+    expect(approveAll.className).toContain("stg:ml-auto");
+    expect(approveAll.className).toContain("stg:text-muted-foreground");
   });
 
   it("uses no `bg-token/NN` opacity modifiers on any decision button", () => {

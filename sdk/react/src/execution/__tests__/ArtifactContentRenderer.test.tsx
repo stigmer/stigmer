@@ -82,8 +82,8 @@ describe("ArtifactContentRenderer — reveal (jump-to-line)", () => {
     // Every line is addressable; exactly the target row carries the highlight.
     expect(container.querySelectorAll("[data-line]").length).toBe(3);
     const target = container.querySelector('[data-line="2"]');
-    expect(target?.className).toContain("bg-primary-subtle");
-    expect(container.querySelectorAll(".bg-primary-subtle").length).toBe(1);
+    expect(target?.className).toContain("stg:bg-primary-subtle");
+    expect(container.querySelectorAll(".stg\\:bg-primary-subtle").length).toBe(1);
   });
 
   it("does not highlight anything when the target line is out of range", () => {
@@ -94,7 +94,7 @@ describe("ArtifactContentRenderer — reveal (jump-to-line)", () => {
         reveal={{ line: 99, nonce: 1 }}
       />,
     );
-    expect(container.querySelectorAll(".bg-primary-subtle").length).toBe(0);
+    expect(container.querySelectorAll(".stg\\:bg-primary-subtle").length).toBe(0);
   });
 
   it("forces Markdown to its Source (line-faithful) view when revealing", () => {

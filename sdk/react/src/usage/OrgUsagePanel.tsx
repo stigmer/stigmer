@@ -60,34 +60,34 @@ export function OrgUsagePanel({ orgId, className }: OrgUsagePanelProps) {
   if (isLoading) {
     return (
       <div
-        className={cn("space-y-4", className)}
+        className={cn("stg:space-y-4", className)}
         aria-busy="true"
         aria-label="Loading usage data"
       >
-        <div className="flex gap-2">
+        <div className="stg:flex stg:gap-2">
           {DATE_RANGE_PRESETS.map((p) => (
             <div
               key={p}
-              className="h-7 w-16 animate-pulse rounded-md bg-muted-subtle"
+              className="stg:h-7 stg:w-16 stg:animate-pulse stg:rounded-md stg:bg-muted-subtle"
             />
           ))}
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="stg:grid stg:grid-cols-3 stg:gap-3">
           {Array.from({ length: 3 }, (_, i) => (
             <div
               key={i}
-              className="h-[72px] animate-pulse rounded-lg bg-muted-subtle"
+              className="stg:h-[72px] stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle"
             />
           ))}
         </div>
-        <div className="h-40 animate-pulse rounded-lg bg-muted-subtle" />
+        <div className="stg:h-40 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <p className={cn("text-destructive text-xs", className)} role="alert">
+      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
         {getUserMessage(error)}
       </p>
     );
@@ -96,8 +96,8 @@ export function OrgUsagePanel({ orgId, className }: OrgUsagePanelProps) {
   if (!report) return null;
 
   return (
-    <div className={cn("space-y-6", className)}>
-      <div className="flex items-center justify-between gap-3">
+    <div className={cn("stg:space-y-6", className)}>
+      <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
         <DateRangeSelector
           activePreset={preset}
           onPresetChange={setPreset}
@@ -151,11 +151,11 @@ function DateRangeSelector({
 }) {
   return (
     <div
-      className="flex items-center gap-3"
+      className="stg:flex stg:items-center stg:gap-3"
       role="group"
       aria-label="Date range"
     >
-      <div className="flex gap-1.5">
+      <div className="stg:flex stg:gap-1.5">
         {DATE_RANGE_PRESETS.map((p) => (
           <button
             key={p}
@@ -163,17 +163,17 @@ function DateRangeSelector({
             onClick={() => onPresetChange(p)}
             aria-pressed={p === activePreset}
             className={cn(
-              "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+              "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
               p === activePreset
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:text-foreground hover:bg-accent",
+                ? "stg:bg-primary stg:text-primary-foreground"
+                : "stg:bg-muted stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent",
             )}
           >
             {presetLabel(p)}
           </button>
         ))}
       </div>
-      <span className="text-xs tabular-nums text-muted-foreground">
+      <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
         {formatDateRange(dateRange)}
       </span>
     </div>
@@ -209,53 +209,53 @@ function SummaryCards({
   );
 
   return (
-    <div role="group" aria-label="Usage summary" className="space-y-2">
+    <div role="group" aria-label="Usage summary" className="stg:space-y-2">
       {/* Primary row */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-lg border border-border bg-card px-3.5 py-3">
-          <div className="text-lg font-semibold tabular-nums text-foreground">
+      <div className="stg:grid stg:grid-cols-3 stg:gap-3">
+        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3.5 stg:py-3">
+          <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
             {formatCost(microsToUsd(report.totalBillableCostMicros))}
           </div>
-          <div className="text-xs text-muted-foreground">Total Cost</div>
+          <div className="stg:text-xs stg:text-muted-foreground">Total Cost</div>
           <CreditRunwayIndicator
             totalBillableCostMicros={report.totalBillableCostMicros}
             daysInRange={daysInRange}
-            className="mt-0.5 block"
+            className="stg:mt-0.5 stg:block"
           />
         </div>
-        <div className="rounded-lg border border-border bg-card px-3.5 py-3">
-          <div className="text-lg font-semibold tabular-nums text-foreground">
+        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3.5 stg:py-3">
+          <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
             {formatCompactNumber(totalLlmCalls)}
           </div>
-          <div className="text-xs text-muted-foreground">LLM Calls</div>
+          <div className="stg:text-xs stg:text-muted-foreground">LLM Calls</div>
         </div>
-        <div className="rounded-lg border border-border bg-card px-3.5 py-3">
-          <div className="text-lg font-semibold tabular-nums text-foreground">
+        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3.5 stg:py-3">
+          <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
             {formatCompactNumber(totalTokens)}
           </div>
-          <div className="text-xs text-muted-foreground">Tokens</div>
+          <div className="stg:text-xs stg:text-muted-foreground">Tokens</div>
         </div>
       </div>
 
       {/* Secondary row */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-lg border border-border-muted bg-muted-subtle px-3.5 py-2.5">
-          <div className="text-sm font-semibold tabular-nums text-foreground">
+      <div className="stg:grid stg:grid-cols-3 stg:gap-3">
+        <div className="stg:rounded-lg stg:border stg:border-border-muted stg:bg-muted-subtle stg:px-3.5 stg:py-2.5">
+          <div className="stg:text-sm stg:font-semibold stg:tabular-nums stg:text-foreground">
             {formatCompactNumber(report.totalExecutions)}
           </div>
-          <div className="text-[0.65rem] text-muted-foreground">Executions</div>
+          <div className="stg:text-[0.65rem] stg:text-muted-foreground">Executions</div>
         </div>
-        <div className="rounded-lg border border-border-muted bg-muted-subtle px-3.5 py-2.5">
-          <div className="text-sm font-semibold tabular-nums text-foreground">
+        <div className="stg:rounded-lg stg:border stg:border-border-muted stg:bg-muted-subtle stg:px-3.5 stg:py-2.5">
+          <div className="stg:text-sm stg:font-semibold stg:tabular-nums stg:text-foreground">
             {formatCompactNumber(report.totalAgents)}
           </div>
-          <div className="text-[0.65rem] text-muted-foreground">Agents</div>
+          <div className="stg:text-[0.65rem] stg:text-muted-foreground">Agents</div>
         </div>
-        <div className="rounded-lg border border-border-muted bg-muted-subtle px-3.5 py-2.5">
-          <div className="text-sm font-semibold tabular-nums text-foreground">
+        <div className="stg:rounded-lg stg:border stg:border-border-muted stg:bg-muted-subtle stg:px-3.5 stg:py-2.5">
+          <div className="stg:text-sm stg:font-semibold stg:tabular-nums stg:text-foreground">
             {formatCompactNumber(report.totalSessions)}
           </div>
-          <div className="text-[0.65rem] text-muted-foreground">Sessions</div>
+          <div className="stg:text-[0.65rem] stg:text-muted-foreground">Sessions</div>
         </div>
       </div>
     </div>
@@ -274,14 +274,14 @@ function DailyCostChart({ entries }: { entries: readonly DailyCostEntry[] }) {
 
   return (
     <div>
-      <h3 className="mb-2 text-xs font-semibold text-foreground">
+      <h3 className="stg:mb-2 stg:text-xs stg:font-semibold stg:text-foreground">
         Daily Cost
       </h3>
-      <div className="rounded-lg border border-border bg-card px-3 pb-2 pt-3">
+      <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3 stg:pb-2 stg:pt-3">
         {/* Tooltip */}
-        <div className="mb-1 h-4">
+        <div className="stg:mb-1 stg:h-4">
           {hoveredIdx !== null && entries[hoveredIdx] && (
-            <span className="text-xs tabular-nums text-muted-foreground">
+            <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
               {formatChartDate(entries[hoveredIdx].date)}
               {" \u00B7 "}
               {formatCost(microsToUsd(entries[hoveredIdx].billableCostMicros))}
@@ -293,7 +293,7 @@ function DailyCostChart({ entries }: { entries: readonly DailyCostEntry[] }) {
 
         {/* Bars */}
         <div
-          className="flex items-end gap-px"
+          className="stg:flex stg:items-end stg:gap-px"
           style={{ height: CHART_HEIGHT_PX }}
           role="img"
           aria-label="Daily cost bar chart"
@@ -306,17 +306,17 @@ function DailyCostChart({ entries }: { entries: readonly DailyCostEntry[] }) {
             return (
               <div
                 key={entry.date}
-                className="group relative flex-1"
+                className="stg:group stg:relative stg:flex-1"
                 style={{ height: CHART_HEIGHT_PX }}
                 onMouseEnter={() => setHoveredIdx(i)}
                 onMouseLeave={() => setHoveredIdx(null)}
               >
                 <div
                   className={cn(
-                    "absolute inset-x-0 bottom-0 rounded-t-sm transition-colors",
+                    "stg:absolute stg:inset-x-0 stg:bottom-0 stg:rounded-t-sm stg:transition-colors",
                     hoveredIdx === i
-                      ? "bg-chart-1"
-                      : "bg-chart-1/70",
+                      ? "stg:bg-chart-1"
+                      : "stg:bg-chart-1/70",
                   )}
                   style={{ height: heightPx }}
                 />
@@ -327,19 +327,19 @@ function DailyCostChart({ entries }: { entries: readonly DailyCostEntry[] }) {
 
         {/* X-axis labels — show first, middle, and last */}
         {entries.length > 0 && (
-          <div className="mt-1.5 flex justify-between">
-            <span className="text-[0.6rem] tabular-nums text-muted-foreground">
+          <div className="stg:mt-1.5 stg:flex stg:justify-between">
+            <span className="stg:text-[0.6rem] stg:tabular-nums stg:text-muted-foreground">
               {formatChartDate(entries[0].date)}
             </span>
             {entries.length > 2 && (
-              <span className="text-[0.6rem] tabular-nums text-muted-foreground">
+              <span className="stg:text-[0.6rem] stg:tabular-nums stg:text-muted-foreground">
                 {formatChartDate(
                   entries[Math.floor(entries.length / 2)].date,
                 )}
               </span>
             )}
             {entries.length > 1 && (
-              <span className="text-[0.6rem] tabular-nums text-muted-foreground">
+              <span className="stg:text-[0.6rem] stg:tabular-nums stg:text-muted-foreground">
                 {formatChartDate(entries[entries.length - 1].date)}
               </span>
             )}
@@ -361,29 +361,29 @@ function ModelBreakdownList({
 }) {
   return (
     <div>
-      <h3 className="mb-2 text-xs font-semibold text-foreground">
+      <h3 className="stg:mb-2 stg:text-xs stg:font-semibold stg:text-foreground">
         Model Breakdown
       </h3>
       <div
-        className="rounded-lg border border-border bg-card"
+        className="stg:rounded-lg stg:border stg:border-border stg:bg-card"
         role="table"
         aria-label="Model usage breakdown"
       >
         <div
           role="row"
-          className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-4 border-b border-border px-3.5 py-2 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground"
+          className="stg:grid stg:grid-cols-[1fr_auto_auto_auto_auto] stg:gap-x-4 stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-[0.65rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground"
         >
           <span role="columnheader">Model</span>
-          <span role="columnheader" className="text-right">
+          <span role="columnheader" className="stg:text-right">
             Calls
           </span>
-          <span role="columnheader" className="text-right">
+          <span role="columnheader" className="stg:text-right">
             Input
           </span>
-          <span role="columnheader" className="text-right">
+          <span role="columnheader" className="stg:text-right">
             Output
           </span>
-          <span role="columnheader" className="text-right">
+          <span role="columnheader" className="stg:text-right">
             Cost
           </span>
         </div>
@@ -397,47 +397,47 @@ function ModelBreakdownList({
           return (
             <div
               key={`${m.model}\0${m.provider}`}
-              className="border-b border-border-muted px-3.5 py-2 last:border-b-0"
+              className="stg:border-b stg:border-border-muted stg:px-3.5 stg:py-2 stg:last:border-b-0"
             >
               <div
                 role="row"
-                className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-4"
+                className="stg:grid stg:grid-cols-[1fr_auto_auto_auto_auto] stg:gap-x-4"
               >
-                <div role="cell" className="min-w-0">
-                  <span className="block truncate text-xs font-medium text-foreground">
+                <div role="cell" className="stg:min-w-0">
+                  <span className="stg:block stg:truncate stg:text-xs stg:font-medium stg:text-foreground">
                     {m.model}
                   </span>
-                  <span className="text-[0.65rem] text-muted-foreground">
+                  <span className="stg:text-[0.65rem] stg:text-muted-foreground">
                     {m.provider}
                   </span>
                 </div>
                 <span
                   role="cell"
-                  className="self-center text-right text-xs tabular-nums text-muted-foreground"
+                  className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-muted-foreground"
                 >
                   {formatCompactNumber(m.callCount)}
                 </span>
                 <span
                   role="cell"
-                  className="self-center text-right text-xs tabular-nums text-muted-foreground"
+                  className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-muted-foreground"
                 >
                   {formatCompactNumber(totalInput)}
                 </span>
                 <span
                   role="cell"
-                  className="self-center text-right text-xs tabular-nums text-muted-foreground"
+                  className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-muted-foreground"
                 >
                   {formatCompactNumber(Number(m.outputTokens))}
                 </span>
                 <span
                   role="cell"
-                  className="self-center text-right text-xs tabular-nums text-foreground"
+                  className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-foreground"
                 >
                   {formatCost(microsToUsd(m.billableCostMicros))}
                 </span>
               </div>
               {hasCache && (
-                <div className="mt-0.5 text-[0.6rem] tabular-nums text-muted-foreground">
+                <div className="stg:mt-0.5 stg:text-[0.6rem] stg:tabular-nums stg:text-muted-foreground">
                   cache{" "}
                   {cacheRead > 0 &&
                     `${formatCompactNumber(cacheRead)} read`}
@@ -461,10 +461,10 @@ function ModelBreakdownList({
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <ChartIcon className="text-muted-foreground mb-3 size-8" />
-      <p className="text-sm font-medium text-foreground">No usage data yet</p>
-      <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+    <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:py-12 stg:text-center">
+      <ChartIcon className="stg:text-muted-foreground stg:mb-3 stg:size-8" />
+      <p className="stg:text-sm stg:font-medium stg:text-foreground">No usage data yet</p>
+      <p className="stg:mt-1 stg:max-w-xs stg:text-xs stg:text-muted-foreground">
         Usage data will appear here once agents start running executions
         in this organization.
       </p>

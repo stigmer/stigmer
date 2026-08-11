@@ -48,7 +48,7 @@ export function ChangesTab({
     // Dense row groups matching the Artifacts facet's list — gap separates
     // entries only in multi-repo sessions (single-entry lists stay seamless).
     return (
-      <ul role="list" className="flex flex-col gap-3">
+      <ul role="list" className="stg:flex stg:flex-col stg:gap-3">
         {writeBacks.map((entry) => (
           <li key={entry.writeBack.workspaceEntryName}>
             <WriteBackCard writeBack={entry.writeBack} />
@@ -60,8 +60,8 @@ export function ChangesTab({
 
   if (expectsWriteBack) {
     return (
-      <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
-        <p className="text-xs text-muted-foreground">
+      <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:px-4 stg:py-8 stg:text-center">
+        <p className="stg:text-xs stg:text-muted-foreground">
           {isSettled
             ? "No changes have been pushed yet. When the agent changes files " +
               "and you approve them, they are pushed to a branch and pull " +
@@ -74,8 +74,8 @@ export function ChangesTab({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
-      <p className="text-xs text-muted-foreground">
+    <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:px-4 stg:py-8 stg:text-center">
+      <p className="stg:text-xs stg:text-muted-foreground">
         No changes yet. Pull requests will appear here once the agent pushes
         its work back to your repository.
       </p>

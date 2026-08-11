@@ -30,9 +30,9 @@ export interface PaginationProps {
 }
 
 const buttonClasses = cn(
-  "rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors",
-  "hover:bg-accent hover:text-foreground",
-  "disabled:pointer-events-none disabled:opacity-40",
+  "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors",
+  "stg:hover:bg-accent stg:hover:text-foreground",
+  "stg:disabled:pointer-events-none stg:disabled:opacity-40",
 );
 
 export function Pagination({
@@ -44,7 +44,7 @@ export function Pagination({
 }: PaginationProps) {
   return (
     <div
-      className={cn("flex items-center justify-between", className)}
+      className={cn("stg:flex stg:items-center stg:justify-between", className)}
       role="navigation"
       aria-label={ariaLabel}
     >
@@ -56,7 +56,7 @@ export function Pagination({
       >
         Previous
       </button>
-      <span className="text-xs tabular-nums text-muted-foreground">
+      <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
         Page {pageNum} of {totalPages}
       </span>
       <button

@@ -76,25 +76,25 @@ export function SessionVariablesInput({
 
   return (
     <div
-      className={cn("w-80 space-y-3", className)}
+      className={cn("stg:w-80 stg:space-y-3", className)}
       aria-label="Session variables"
     >
       {/* Header */}
-      <div className="space-y-0.5">
-        <h3 className="text-xs font-medium text-foreground">
+      <div className="stg:space-y-0.5">
+        <h3 className="stg:text-xs stg:font-medium stg:text-foreground">
           Session variables
         </h3>
-        <p className="text-[0.65rem] text-muted-foreground">
+        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
           Additional environment variables for this session.
         </p>
       </div>
 
       {/* Entries */}
       {sessionVariables.entries.length > 0 ? (
-        <div className="relative">
+        <div className="stg:relative">
           {entries.canScrollUp && <ScrollFade position="top" />}
 
-          <div ref={entries.scrollRef} className="max-h-64 space-y-2.5 overflow-y-auto">
+          <div ref={entries.scrollRef} className="stg:max-h-64 stg:space-y-2.5 stg:overflow-y-auto">
             {sessionVariables.entries.map((entry) => {
               const isDuplicate = duplicateKeys.has(entry.key.trim());
 
@@ -123,7 +123,7 @@ export function SessionVariablesInput({
           {entries.canScrollDown && <ScrollFade position="bottom" />}
         </div>
       ) : (
-        <p className="py-2 text-center text-[0.65rem] text-muted-foreground-subtle">
+        <p className="stg:py-2 stg:text-center stg:text-[0.65rem] stg:text-muted-foreground-subtle">
           No variables added.
         </p>
       )}
@@ -134,10 +134,10 @@ export function SessionVariablesInput({
         onClick={sessionVariables.addEntry}
         disabled={disabled}
         className={cn(
-          "inline-flex w-full items-center justify-center gap-1 rounded-md py-1.5 text-xs",
-          "border border-dashed border-border text-muted-foreground",
-          "hover:border-border hover:bg-accent-hover hover:text-foreground",
-          "disabled:pointer-events-none disabled:opacity-50",
+          "stg:inline-flex stg:w-full stg:items-center stg:justify-center stg:gap-1 stg:rounded-md stg:py-1.5 stg:text-xs",
+          "stg:border stg:border-dashed stg:border-border stg:text-muted-foreground",
+          "stg:hover:border-border stg:hover:bg-accent-hover stg:hover:text-foreground",
+          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         )}
       >
         <PlusIcon />
@@ -179,9 +179,9 @@ function VariableEntryRow({
   const removeLabel = entryKey.trim() || "entry";
 
   return (
-    <div className="space-y-1.5">
+    <div className="stg:space-y-1.5">
       {/* Key row */}
-      <div className="flex items-center gap-1.5">
+      <div className="stg:flex stg:items-center stg:gap-1.5">
         <input
           id={keyInputId}
           type="text"
@@ -193,11 +193,11 @@ function VariableEntryRow({
           spellCheck={false}
           aria-label="Variable name"
           className={cn(
-            "min-w-0 flex-1 rounded-md border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground",
-            "placeholder:text-muted-foreground-faint",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
-            isDuplicate && "border-warning",
+            "stg:min-w-0 stg:flex-1 stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:font-mono stg:text-xs stg:text-foreground",
+            "stg:placeholder:text-muted-foreground-faint",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+            isDuplicate && "stg:border-warning",
           )}
         />
 
@@ -211,7 +211,7 @@ function VariableEntryRow({
           type="button"
           onClick={() => onRemove(id)}
           disabled={disabled}
-          className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive disabled:pointer-events-none disabled:opacity-50"
+          className="stg:shrink-0 stg:rounded stg:p-0.5 stg:text-muted-foreground stg:hover:text-destructive stg:disabled:pointer-events-none stg:disabled:opacity-50"
           aria-label={`Remove ${removeLabel}`}
         >
           <XIcon />
@@ -219,7 +219,7 @@ function VariableEntryRow({
       </div>
 
       {/* Value row */}
-      <div className="relative">
+      <div className="stg:relative">
         <input
           id={valInputId}
           type={isSecret ? "password" : "text"}
@@ -230,16 +230,16 @@ function VariableEntryRow({
           autoComplete="off"
           aria-label={`Variable value${entryKey.trim() ? ` for ${entryKey.trim()}` : ""}`}
           className={cn(
-            "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-            "placeholder:text-muted-foreground-faint",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+            "stg:placeholder:text-muted-foreground-faint",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         />
       </div>
 
       {/* Save-for-future toggle */}
-      <div className="flex items-center gap-1.5">
+      <div className="stg:flex stg:items-center stg:gap-1.5">
         <button
           type="button"
           role="switch"
@@ -248,34 +248,34 @@ function VariableEntryRow({
           disabled={disabled}
           onClick={() => onUpdate(id, { saveForFuture: !saveForFuture })}
           className={cn(
-            "relative inline-flex h-3.5 w-6 shrink-0 cursor-pointer rounded-full transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-            "disabled:pointer-events-none disabled:opacity-50",
-            saveForFuture ? "bg-primary" : "bg-input",
+            "stg:relative stg:inline-flex stg:h-3.5 stg:w-6 stg:shrink-0 stg:cursor-pointer stg:rounded-full stg:transition-colors",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-1",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+            saveForFuture ? "stg:bg-primary" : "stg:bg-input",
           )}
         >
           <span
             className={cn(
-              "pointer-events-none block h-2.5 w-2.5 translate-y-0.5 rounded-full bg-background shadow-sm ring-0 transition-transform",
-              saveForFuture ? "translate-x-3" : "translate-x-0.5",
+              "stg:pointer-events-none stg:block stg:h-2.5 stg:w-2.5 stg:translate-y-0.5 stg:rounded-full stg:bg-background stg:shadow-sm stg:ring-0 stg:transition-transform",
+              saveForFuture ? "stg:translate-x-3" : "stg:translate-x-0.5",
             )}
           />
         </button>
-        <span className="text-[0.6rem] text-muted-foreground">
+        <span className="stg:text-[0.6rem] stg:text-muted-foreground">
           {saveForFuture ? "Save for future runs" : "This run only"}
         </span>
       </div>
 
       {/* Required-by indicator */}
       {requiredBy && requiredBy.length > 0 && (
-        <p className="text-[0.55rem] text-primary-muted">
+        <p className="stg:text-[0.55rem] stg:text-primary-muted">
           Used by: {requiredBy.join(", ")}
         </p>
       )}
 
       {/* Duplicate warning */}
       {isDuplicate && (
-        <p className="text-[0.6rem] text-warning" role="alert">
+        <p className="stg:text-[0.6rem] stg:text-warning" role="alert">
           Duplicate key — last value wins.
         </p>
       )}
@@ -305,11 +305,11 @@ function SecretToggle({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "inline-flex shrink-0 items-center gap-0.5 rounded-md px-1.5 py-1 text-[0.55rem] font-medium uppercase tracking-wider transition-colors",
-        "disabled:pointer-events-none disabled:opacity-50",
+        "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-0.5 stg:rounded-md stg:px-1.5 stg:py-1 stg:text-[0.55rem] stg:font-medium stg:uppercase stg:tracking-wider stg:transition-colors",
+        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         checked
-          ? "bg-primary-subtle text-primary"
-          : "bg-muted-subtle text-muted-foreground hover:bg-muted",
+          ? "stg:bg-primary-subtle stg:text-primary"
+          : "stg:bg-muted-subtle stg:text-muted-foreground stg:hover:bg-muted",
       )}
     >
       <LockIcon />

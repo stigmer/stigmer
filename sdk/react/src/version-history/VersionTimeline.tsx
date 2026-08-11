@@ -77,7 +77,7 @@ export function VersionTimeline({
     : null;
 
   return (
-    <div className={cn("flex flex-col pt-2", className)}>
+    <div className={cn("stg:flex stg:flex-col stg:pt-2", className)}>
       {compareSelection && (
         <CompareInfoBar
           selectedLabel={compareLabel!}
@@ -116,12 +116,12 @@ function CompareInfoBar({
     <div
       role="status"
       aria-live="polite"
-      className="mb-3 flex items-center gap-2 rounded-md border border-dashed border-primary bg-primary-subtle px-3 py-2 text-xs"
+      className="stg:mb-3 stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:border stg:border-dashed stg:border-primary stg:bg-primary-subtle stg:px-3 stg:py-2 stg:text-xs"
     >
-      <CompareIcon className="size-3.5 shrink-0 text-primary" />
-      <span className="flex-1 text-foreground">
+      <CompareIcon className="stg:size-3.5 stg:shrink-0 stg:text-primary" />
+      <span className="stg:flex-1 stg:text-foreground">
         Select another version to compare with{" "}
-        <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px] font-medium">
+        <code className="stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:font-mono stg:text-[10px] stg:font-medium">
           {selectedLabel}
         </code>
       </span>
@@ -129,9 +129,9 @@ function CompareInfoBar({
         type="button"
         onClick={onCancel}
         className={cn(
-          "rounded px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors",
-          "hover:bg-accent-hover hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "stg:rounded stg:px-2 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground stg:transition-colors",
+          "stg:hover:bg-accent-hover stg:hover:text-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         )}
       >
         Cancel
@@ -164,22 +164,22 @@ function CompareIcon({ className }: { readonly className?: string }) {
 function TimelineSkeleton({ className }: { readonly className?: string }) {
   return (
     <div
-      className={cn("flex flex-col gap-4 pt-2", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-4 stg:pt-2", className)}
       aria-busy="true"
       aria-label="Loading version history"
     >
       {[1, 2, 3].map((i) => (
-        <div key={i} className="flex gap-3">
-          <div className="flex flex-col items-center">
-            <div className="size-2.5 animate-pulse rounded-full bg-muted" />
-            {i < 3 && <div className="mt-1 w-px flex-1 bg-border" />}
+        <div key={i} className="stg:flex stg:gap-3">
+          <div className="stg:flex stg:flex-col stg:items-center">
+            <div className="stg:size-2.5 stg:animate-pulse stg:rounded-full stg:bg-muted" />
+            {i < 3 && <div className="stg:mt-1 stg:w-px stg:flex-1 stg:bg-border" />}
           </div>
-          <div className="mb-4 flex-1 space-y-2 px-2.5 py-2">
-            <div className="flex gap-2">
-              <div className="h-4 w-20 animate-pulse rounded bg-muted" />
-              <div className="h-4 w-12 animate-pulse rounded-full bg-muted" />
+          <div className="stg:mb-4 stg:flex-1 stg:space-y-2 stg:px-2.5 stg:py-2">
+            <div className="stg:flex stg:gap-2">
+              <div className="stg:h-4 stg:w-20 stg:animate-pulse stg:rounded stg:bg-muted" />
+              <div className="stg:h-4 stg:w-12 stg:animate-pulse stg:rounded-full stg:bg-muted" />
             </div>
-            <div className="h-3 w-32 animate-pulse rounded bg-muted" />
+            <div className="stg:h-3 stg:w-32 stg:animate-pulse stg:rounded stg:bg-muted" />
           </div>
         </div>
       ))}
@@ -198,12 +198,12 @@ function EmptyState({
     <div
       role="status"
       className={cn(
-        "flex flex-col items-center gap-2 py-8 text-center",
+        "stg:flex stg:flex-col stg:items-center stg:gap-2 stg:py-8 stg:text-center",
         className,
       )}
     >
-      <HistoryIcon className="size-8 text-muted-foreground-faint" />
-      <p className="text-sm text-muted-foreground">{message}</p>
+      <HistoryIcon className="stg:size-8 stg:text-muted-foreground-faint" />
+      <p className="stg:text-sm stg:text-muted-foreground">{message}</p>
     </div>
   );
 }

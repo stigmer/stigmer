@@ -108,8 +108,8 @@ describe("toolCallGroupPropsEqual", () => {
 
   it("returns false when className changes", () => {
     const tc1 = makeToolCall("shell", "tc-1");
-    const prev: ToolCallGroupProps = { toolCalls: [tc1], className: "mx-4" };
-    const next: ToolCallGroupProps = { toolCalls: [tc1], className: "mx-6" };
+    const prev: ToolCallGroupProps = { toolCalls: [tc1], className: "stg:mx-4" };
+    const next: ToolCallGroupProps = { toolCalls: [tc1], className: "stg:mx-6" };
     expect(toolCallGroupPropsEqual(prev, next)).toBe(false);
   });
 

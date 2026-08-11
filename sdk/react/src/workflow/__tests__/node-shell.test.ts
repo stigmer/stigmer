@@ -183,6 +183,8 @@ describe("getShapePath", () => {
 // ---------------------------------------------------------------------------
 
 describe("getContentInsets", () => {
+  // prefix-classnames-ignore: VisualClass is the node-shape taxonomy, not
+  // CSS — "container" collides with the Tailwind utility name.
   const ALL_VISUAL_CLASSES: VisualClass[] = [
     "task-card",
     "subworkflow-card",

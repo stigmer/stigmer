@@ -72,10 +72,10 @@ export function PlatformClientsSection() {
 
   return (
     <section aria-labelledby="platform-clients-heading">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
         <h2
           id="platform-clients-heading"
-          className="text-foreground text-sm font-semibold"
+          className="stg:text-foreground stg:text-sm stg:font-semibold"
         >
           Platform Clients
         </h2>
@@ -84,13 +84,13 @@ export function PlatformClientsSection() {
           <button
             type="button"
             onClick={() => setFlow({ phase: "creating" })}
-            className="text-primary hover:text-foreground text-xs font-medium transition-colors"
+            className="stg:text-primary stg:hover:text-foreground stg:text-xs stg:font-medium stg:transition-colors"
           >
             + New platform client
           </button>
         )}
       </div>
-      <p className="text-muted-foreground mb-4 text-xs">
+      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
         Platform clients let your backend mint Stigmer user tokens so you
         can embed Stigmer components in your application without requiring
         OIDC federation.
@@ -102,7 +102,7 @@ export function PlatformClientsSection() {
           requires Stigmer Cloud.
         </CloudFeatureNotice>
       ) : flow.phase === "creating" ? (
-        <div className="border-border bg-card rounded-lg border p-4">
+        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
           <CreatePlatformClientForm
             org={org}
             onCreated={handleCreated}
@@ -110,7 +110,7 @@ export function PlatformClientsSection() {
           />
         </div>
       ) : flow.phase === "revealing" ? (
-        <div className="space-y-4">
+        <div className="stg:space-y-4">
           <PlatformClientSecretAlert
             clientId={flow.clientId}
             clientSecret={flow.clientSecret}
@@ -126,7 +126,7 @@ export function PlatformClientsSection() {
           />
         </div>
       ) : flow.phase === "editing" ? (
-        <div className="border-border bg-card rounded-lg border p-4">
+        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
           <PlatformClientDetailPanel
             platformClient={flow.platformClient}
             onUpdated={handleUpdated}

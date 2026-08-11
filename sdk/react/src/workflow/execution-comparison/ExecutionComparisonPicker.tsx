@@ -118,22 +118,22 @@ export const ExecutionComparisonPicker = memo(function ExecutionComparisonPicker
     <dialog
       ref={dialogRef}
       className={cn(
-        "stgm m-auto max-h-[70vh] w-full max-w-md rounded-lg border border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-background,#fff)] p-0 shadow-xl",
-        "backdrop:bg-black/40",
+        "stgm stg:m-auto stg:max-h-[70vh] stg:w-full stg:max-w-md stg:rounded-lg stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-background,#fff)] stg:p-0 stg:shadow-xl",
+        "stg:backdrop:bg-black/40",
       )}
       onClick={handleBackdropClick}
       aria-label="Select execution to compare"
     >
-      <div className="flex flex-col">
+      <div className="stg:flex stg:flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--stgm-border,#e5e5e5)] px-4 py-3">
-          <span className="text-sm font-semibold text-[var(--stgm-foreground,#1a1a2e)]">
+        <div className="stg:flex stg:items-center stg:justify-between stg:border-b stg:border-[var(--stgm-border,#e5e5e5)] stg:px-4 stg:py-3">
+          <span className="stg:text-sm stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)]">
             Compare with...
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-6 w-6 items-center justify-center rounded text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-muted,#f5f5f5)] hover:text-[var(--stgm-foreground,#1a1a2e)]"
+            className="stg:flex stg:h-6 stg:w-6 stg:items-center stg:justify-center stg:rounded stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:bg-[var(--stgm-muted,#f5f5f5)] stg:hover:text-[var(--stgm-foreground,#1a1a2e)]"
             aria-label="Close"
           >
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
@@ -143,14 +143,14 @@ export const ExecutionComparisonPicker = memo(function ExecutionComparisonPicker
         </div>
 
         {/* Execution list */}
-        <div className="max-h-[50vh] overflow-y-auto p-2" role="listbox" aria-label="Recent executions">
+        <div className="stg:max-h-[50vh] stg:overflow-y-auto stg:p-2" role="listbox" aria-label="Recent executions">
           {isLoading && (
-            <div className="flex items-center justify-center py-8 text-xs text-[var(--stgm-muted-foreground,#737373)]">
+            <div className="stg:flex stg:items-center stg:justify-center stg:py-8 stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">
               Loading executions...
             </div>
           )}
           {!isLoading && candidates.length === 0 && (
-            <div className="flex items-center justify-center py-8 text-xs text-[var(--stgm-muted-foreground,#737373)]">
+            <div className="stg:flex stg:items-center stg:justify-center stg:py-8 stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">
               No other completed executions found.
             </div>
           )}
@@ -171,18 +171,18 @@ export const ExecutionComparisonPicker = memo(function ExecutionComparisonPicker
                 aria-selected={isSelected}
                 onClick={() => setSelectedId(id)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors",
+                  "stg:flex stg:w-full stg:items-center stg:gap-3 stg:rounded-md stg:px-3 stg:py-2 stg:text-left stg:text-sm stg:transition-colors",
                   isSelected
-                    ? "bg-[var(--stgm-primary,#4f46e5)]/10 ring-1 ring-[var(--stgm-primary,#4f46e5)]"
-                    : "hover:bg-[var(--stgm-muted,#f5f5f5)]",
+                    ? "stg:bg-[var(--stgm-primary,#4f46e5)]/10 stg:ring-1 stg:ring-[var(--stgm-primary,#4f46e5)]"
+                    : "stg:hover:bg-[var(--stgm-muted,#f5f5f5)]",
                 )}
               >
                 <WorkflowExecutionPhaseBadge phase={phase} />
-                <div className="flex flex-1 flex-col gap-0.5 overflow-hidden">
-                  <span className="truncate text-xs font-medium text-[var(--stgm-foreground,#1a1a2e)]">
+                <div className="stg:flex stg:flex-1 stg:flex-col stg:gap-0.5 stg:overflow-hidden">
+                  <span className="stg:truncate stg:text-xs stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]">
                     {name}
                   </span>
-                  <span className="text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+                  <span className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
                     {startedAt ? formatRelative(startedAt) : "—"}
                     {durationMs != null && ` · ${formatDuration(durationMs)}`}
                   </span>
@@ -193,11 +193,11 @@ export const ExecutionComparisonPicker = memo(function ExecutionComparisonPicker
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t border-[var(--stgm-border,#e5e5e5)] px-4 py-3">
+        <div className="stg:flex stg:items-center stg:justify-end stg:gap-2 stg:border-t stg:border-[var(--stgm-border,#e5e5e5)] stg:px-4 stg:py-3">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md px-3 py-1.5 text-xs font-medium text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-muted,#f5f5f5)] hover:text-[var(--stgm-foreground,#1a1a2e)]"
+            className="stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:bg-[var(--stgm-muted,#f5f5f5)] stg:hover:text-[var(--stgm-foreground,#1a1a2e)]"
           >
             Cancel
           </button>
@@ -206,10 +206,10 @@ export const ExecutionComparisonPicker = memo(function ExecutionComparisonPicker
             onClick={handleConfirm}
             disabled={!selectedId}
             className={cn(
-              "rounded-md px-3 py-1.5 text-xs font-medium",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
               selectedId
-                ? "bg-[var(--stgm-primary,#4f46e5)] text-[var(--stgm-primary-foreground,#fff)] hover:bg-[var(--stgm-primary,#4f46e5)]/90"
-                : "cursor-not-allowed bg-[var(--stgm-muted,#f5f5f5)] text-[var(--stgm-muted-foreground,#737373)]",
+                ? "stg:bg-[var(--stgm-primary,#4f46e5)] stg:text-[var(--stgm-primary-foreground,#fff)] stg:hover:bg-[var(--stgm-primary,#4f46e5)]/90"
+                : "stg:cursor-not-allowed stg:bg-[var(--stgm-muted,#f5f5f5)] stg:text-[var(--stgm-muted-foreground,#737373)]",
             )}
           >
             Compare

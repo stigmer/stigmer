@@ -28,15 +28,15 @@ export function ContextPopover({
         title={label}
         aria-label={label}
         className={cn(
-          "inline-flex h-8 w-8 items-center justify-center rounded-md text-xs transition-colors",
-          "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-          "disabled:pointer-events-none disabled:opacity-50",
+          "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
+          "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         )}
       >
-        <span className="relative">
+        <span className="stg:relative">
           {icon}
           {count > 0 && (
-            <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-0.5 text-[0.5rem] font-medium leading-none text-primary-foreground">
+            <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-[0.5rem] stg:font-medium stg:leading-none stg:text-primary-foreground">
               {count}
             </span>
           )}
@@ -46,9 +46,9 @@ export function ContextPopover({
         <Popover.Positioner sideOffset={8} align="start">
           <Popover.Popup
             className={[
-              "z-popover overflow-x-hidden overflow-y-auto rounded-lg border border-border",
-              "bg-popover p-3 shadow-md text-popover-foreground",
-              "max-h-[80vh]",
+              "stg:z-popover stg:overflow-x-hidden stg:overflow-y-auto stg:rounded-lg stg:border stg:border-border",
+              "stg:bg-popover stg:p-3 stg:shadow-md stg:text-popover-foreground",
+              "stg:max-h-[80vh]",
             ].join(" ")}
           >
             {children}

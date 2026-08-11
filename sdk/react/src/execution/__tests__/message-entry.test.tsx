@@ -99,8 +99,8 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
     const article = queryArticle(container, "AI response");
     const p = article!.querySelector("p");
     expect(p).not.toBeNull();
-    expect(p!.className).toContain("text-sm");
-    expect(p!.className).toContain("text-foreground");
+    expect(p!.className).toContain("stg:text-sm");
+    expect(p!.className).toContain("stg:text-foreground");
   });
 
   it("applies MARKDOWN_COMPONENTS overrides (link styling)", () => {
@@ -113,7 +113,7 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
     const article = queryArticle(container, "AI response");
     const a = article!.querySelector("a");
     expect(a).not.toBeNull();
-    expect(a!.className).toContain("text-primary");
+    expect(a!.className).toContain("stg:text-primary");
     expect(a!.getAttribute("target")).toBe("_blank");
     expect(a!.getAttribute("rel")).toContain("noopener");
   });
@@ -128,8 +128,8 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
     const article = queryArticle(container, "AI response");
     const pre = article!.querySelector("pre");
     expect(pre).not.toBeNull();
-    expect(pre!.className).toContain("rounded-md");
-    expect(pre!.className).toContain("bg-muted");
+    expect(pre!.className).toContain("stg:rounded-md");
+    expect(pre!.className).toContain("stg:bg-muted");
   });
 
   it("wraps content in stgm-prose container", () => {
@@ -238,7 +238,7 @@ describe("MessageEntry — Human messages", () => {
     const { container } = render(<MessageEntry message={msg} />);
 
     const article = queryArticle(container, "User message");
-    expect(article!.className).toContain("bg-muted-subtle");
+    expect(article!.className).toContain("stg:bg-muted-subtle");
   });
 });
 
@@ -281,7 +281,7 @@ describe("MessageEntry — System messages", () => {
     const p = article!.querySelector("p");
     expect(p).not.toBeNull();
     expect(p!.className).toContain("italic");
-    expect(p!.className).toContain("text-muted-foreground");
+    expect(p!.className).toContain("stg:text-muted-foreground");
   });
 });
 
@@ -308,7 +308,7 @@ describe("MessageEntry — Thinking messages", () => {
     const { container } = render(<MessageEntry message={msg} />);
 
     const article = queryArticle(container, "Model thinking");
-    const svg = article!.querySelector("svg.animate-spin");
+    const svg = article!.querySelector("svg.stg\\:animate-spin");
     expect(svg).not.toBeNull();
   });
 

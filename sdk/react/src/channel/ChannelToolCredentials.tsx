@@ -54,8 +54,8 @@ export function ChannelToolCredentials({
   );
 
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-[0.65rem] text-muted-foreground">
+    <div className="stg:flex stg:flex-col stg:gap-2">
+      <p className="stg:text-[0.65rem] stg:text-muted-foreground">
         Environments whose values workspace conversations can use — bind
         one holding the credentials this agent&apos;s tools need (a
         read-only token is safest). Only environments shared with your
@@ -95,7 +95,7 @@ function ChannelToolReadinessHint({
 
   if (readiness.status === "needs-credentials") {
     return (
-      <p className="text-xs text-warning" role="status">
+      <p className="stg:text-xs stg:text-warning" role="status">
         Workspace conversations can&apos;t use this agent&apos;s tools yet:
         no credentials are bound to this channel. Bind an org-shared
         environment above.
@@ -111,10 +111,10 @@ function ChannelToolReadinessHint({
   const plural = readiness.privateEnvironments.length > 1;
 
   return (
-    <p className="text-xs text-warning" role="status">
+    <p className="stg:text-xs stg:text-warning" role="status">
       Workspace conversations can&apos;t use this agent&apos;s tools yet:
       the environment{plural ? "s" : ""}{" "}
-      <span className="font-medium">{envList}</span>{" "}
+      <span className="stg:font-medium">{envList}</span>{" "}
       {plural ? "are" : "is"} private. Share {plural ? "them" : "it"} with
       your organization (Settings &rarr; Environments) so channel
       conversations can use the credentials. Secret values stay hidden

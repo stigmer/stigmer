@@ -295,8 +295,8 @@ export function ResizableSplit({
   // Cleanup rAF on unmount
   useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
 
-  const fixedPaneClass = "shrink-0 overflow-hidden";
-  const flexPaneClass = "min-w-0 flex-1";
+  const fixedPaneClass = "stg:shrink-0 stg:overflow-hidden";
+  const flexPaneClass = "stg:min-w-0 stg:flex-1";
 
   // A collapsed pane hides entirely and its sibling flexes to fill the row,
   // overriding the fixed/flex split. Width state is untouched, so expanding
@@ -318,7 +318,7 @@ export function ResizableSplit({
     <div
       ref={containerRef}
       className={cn(
-        "flex min-h-0 flex-1",
+        "stg:flex stg:min-h-0 stg:flex-1",
         // The responsive collapse queries the split's OWN width, so the root
         // must be a CSS container (stigmer/stigmer#301). Applied ONLY while a
         // collapse is requested: `container-type: inline-size` imposes layout
@@ -329,7 +329,7 @@ export function ResizableSplit({
         // consumer (the session layout) has no in-tree fixed descendants:
         // its dialogs are native <dialog> (top layer) and its floating UI
         // portals out.
-        responsiveCollapse !== "none" && "@container/resizable-split",
+        responsiveCollapse !== "none" && "stg:@container/resizable-split",
         className,
       )}
     >
@@ -338,7 +338,7 @@ export function ResizableSplit({
         className={cn(
           primaryPaneClass,
           responsiveCollapse === "primary" &&
-            "@max-3xl/resizable-split:hidden",
+            "stg:@max-3xl/resizable-split:hidden",
         )}
         style={
           isPrimaryResizable && !isCollapsed ? { width: panelWidth } : undefined
@@ -363,18 +363,18 @@ export function ResizableSplit({
         onPointerUp={handlePointerUp}
         onKeyDown={handleKeyDown}
         className={cn(
-          "group relative z-10 w-1 shrink-0 cursor-col-resize touch-none select-none",
-          "bg-[var(--stgm-border,#e5e5e5)]",
-          "hover:bg-[var(--stgm-primary,#6366f1)]",
-          "focus-visible:bg-[var(--stgm-primary,#6366f1)] focus-visible:outline-none",
-          "active:bg-[var(--stgm-primary,#6366f1)]",
-          "transition-colors duration-100",
-          responsiveCollapse !== "none" && "@max-3xl/resizable-split:hidden",
-          isCollapsed && "hidden",
+          "stg:group stg:relative stg:z-10 stg:w-1 stg:shrink-0 stg:cursor-col-resize stg:touch-none stg:select-none",
+          "stg:bg-[var(--stgm-border,#e5e5e5)]",
+          "stg:hover:bg-[var(--stgm-primary,#6366f1)]",
+          "stg:focus-visible:bg-[var(--stgm-primary,#6366f1)] stg:focus-visible:outline-none",
+          "stg:active:bg-[var(--stgm-primary,#6366f1)]",
+          "stg:transition-colors stg:duration-100",
+          responsiveCollapse !== "none" && "stg:@max-3xl/resizable-split:hidden",
+          isCollapsed && "stg:hidden",
         )}
       >
         {/* Wider invisible hit target (12px) for easier grabbing */}
-        <div className="absolute inset-y-0 -left-1.5 -right-1.5" />
+        <div className="stg:absolute stg:inset-y-0 stg:-left-1.5 stg:-right-1.5" />
       </div>
 
       {/* Secondary region (second child, order-stable across flips/collapses) */}
@@ -382,7 +382,7 @@ export function ResizableSplit({
         className={cn(
           secondaryPaneClass,
           responsiveCollapse === "secondary" &&
-            "@max-3xl/resizable-split:hidden",
+            "stg:@max-3xl/resizable-split:hidden",
         )}
         style={
           !isPrimaryResizable && !isCollapsed ? { width: panelWidth } : undefined

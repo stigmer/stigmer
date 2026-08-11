@@ -143,22 +143,22 @@ export const BranchAddPopover = memo(function BranchAddPopover({
         >
           <Popover.Popup
             className={cn(
-              "stgm z-popover w-60 overflow-hidden rounded-lg border border-border bg-popover shadow-md text-popover-foreground",
+              "stgm stg:z-popover stg:w-60 stg:overflow-hidden stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:shadow-md stg:text-popover-foreground",
             )}
           >
-            <div className="flex flex-col" onKeyDown={handleKeyDown}>
+            <div className="stg:flex stg:flex-col" onKeyDown={handleKeyDown}>
               {/* Header */}
-              <div className="border-b border-border px-3 py-2">
-                <p className="text-xs font-semibold text-[var(--stgm-foreground,#1a1a2e)]">
+              <div className="stg:border-b stg:border-border stg:px-3 stg:py-2">
+                <p className="stg:text-xs stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)]">
                   {config.title}
                 </p>
               </div>
 
               {/* Form fields */}
-              <div className="space-y-2.5 p-3">
+              <div className="stg:space-y-2.5 stg:p-3">
                 {/* Name field */}
                 <div>
-                  <label className="mb-1 block text-[10px] font-medium text-[var(--stgm-muted-foreground,#737373)]">
+                  <label className="stg:mb-1 stg:block stg:text-[10px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)]">
                     {config.nameLabel}
                   </label>
                   <input
@@ -171,8 +171,8 @@ export const BranchAddPopover = memo(function BranchAddPopover({
                     }}
                     placeholder={config.namePlaceholder}
                     className={cn(
-                      "w-full rounded border bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] px-2 py-1.5 text-xs text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#737373)] outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]",
-                      nameError ? "border-[var(--stgm-destructive,#ef4444)]" : "border-border",
+                      "stg:w-full stg:rounded stg:border stg:bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] stg:px-2 stg:py-1.5 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)] stg:placeholder:text-[var(--stgm-muted-foreground,#737373)] stg:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]",
+                      nameError ? "stg:border-[var(--stgm-destructive,#ef4444)]" : "stg:border-border",
                     )}
                     aria-invalid={!!nameError}
                     aria-describedby={nameError ? "branch-name-error" : undefined}
@@ -180,7 +180,7 @@ export const BranchAddPopover = memo(function BranchAddPopover({
                   {nameError && (
                     <p
                       id="branch-name-error"
-                      className="mt-0.5 text-[10px] text-[var(--stgm-destructive,#ef4444)]"
+                      className="stg:mt-0.5 stg:text-[10px] stg:text-[var(--stgm-destructive,#ef4444)]"
                     >
                       {nameError}
                     </p>
@@ -190,16 +190,16 @@ export const BranchAddPopover = memo(function BranchAddPopover({
                 {/* Condition field (switch-case only) */}
                 {config.showCondition && (
                   <div>
-                    <label className="mb-1 block text-[10px] font-medium text-[var(--stgm-muted-foreground,#737373)]">
+                    <label className="stg:mb-1 stg:block stg:text-[10px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)]">
                       Condition
-                      <span className="ml-1 font-normal">(optional)</span>
+                      <span className="stg:ml-1 stg:font-normal">(optional)</span>
                     </label>
                     <input
                       type="text"
                       value={condition}
                       onChange={(e) => setCondition(e.target.value)}
                       placeholder='e.g. $.plan == "enterprise"'
-                      className="w-full rounded border border-border bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] px-2 py-1.5 text-xs font-mono text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#737373)] outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+                      className="stg:w-full stg:rounded stg:border stg:border-border stg:bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] stg:px-2 stg:py-1.5 stg:text-xs stg:font-mono stg:text-[var(--stgm-foreground,#1a1a2e)] stg:placeholder:text-[var(--stgm-muted-foreground,#737373)] stg:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
                     />
                   </div>
                 )}
@@ -207,16 +207,16 @@ export const BranchAddPopover = memo(function BranchAddPopover({
                 {/* Error type field (catch-handler only) */}
                 {config.showErrorType && (
                   <div>
-                    <label className="mb-1 block text-[10px] font-medium text-[var(--stgm-muted-foreground,#737373)]">
+                    <label className="stg:mb-1 stg:block stg:text-[10px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)]">
                       Error type filter
-                      <span className="ml-1 font-normal">(optional)</span>
+                      <span className="stg:ml-1 stg:font-normal">(optional)</span>
                     </label>
                     <input
                       type="text"
                       value={errorType}
                       onChange={(e) => setErrorType(e.target.value)}
                       placeholder="e.g. TimeoutError"
-                      className="w-full rounded border border-border bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] px-2 py-1.5 text-xs text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#737373)] outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+                      className="stg:w-full stg:rounded stg:border stg:border-border stg:bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] stg:px-2 stg:py-1.5 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)] stg:placeholder:text-[var(--stgm-muted-foreground,#737373)] stg:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
                     />
                   </div>
                 )}
@@ -225,7 +225,7 @@ export const BranchAddPopover = memo(function BranchAddPopover({
                 <button
                   type="button"
                   onClick={validateAndSubmit}
-                  className="w-full rounded bg-[var(--stgm-primary,#3b82f6)] px-3 py-1.5 text-xs font-medium text-[var(--stgm-primary-foreground,#fff)] transition-colors hover:bg-[var(--stgm-primary,#3b82f6)]/90 focus:outline-none focus:ring-2 focus:ring-[var(--stgm-ring,#3b82f6)] focus:ring-offset-1"
+                  className="stg:w-full stg:rounded stg:bg-[var(--stgm-primary,#3b82f6)] stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-[var(--stgm-primary-foreground,#fff)] stg:transition-colors stg:hover:bg-[var(--stgm-primary,#3b82f6)]/90 stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-[var(--stgm-ring,#3b82f6)] stg:focus:ring-offset-1"
                 >
                   {config.title}
                 </button>

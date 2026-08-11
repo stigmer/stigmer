@@ -71,12 +71,12 @@ export function PaymentMethodCard({
   return (
     <div
       className={cn(
-        "rounded-lg border border-border bg-card px-4 py-4",
+        "stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-4 stg:py-4",
         className,
       )}
     >
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold text-foreground">
+      <div className="stg:flex stg:items-center stg:justify-between">
+        <h3 className="stg:text-xs stg:font-semibold stg:text-foreground">
           Payment Method
         </h3>
         {hasPm && (
@@ -85,9 +85,9 @@ export function PaymentMethodCard({
             disabled={!isAccountActive || isPortalLoading}
             onClick={onManage}
             className={cn(
-              "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-              "text-muted-foreground hover:bg-accent hover:text-foreground",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
+              "stg:text-muted-foreground stg:hover:bg-accent stg:hover:text-foreground",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
             aria-busy={isPortalLoading}
           >
@@ -97,22 +97,22 @@ export function PaymentMethodCard({
       </div>
 
       {hasPm ? (
-        <div className="mt-2 flex items-center gap-3">
+        <div className="stg:mt-2 stg:flex stg:items-center stg:gap-3">
           <CardBrandIcon brand={paymentMethod.brand} />
           <div>
-            <div className="text-sm font-medium text-foreground">
+            <div className="stg:text-sm stg:font-medium stg:text-foreground">
               {formatBrand(paymentMethod.brand)} ····{" "}
               {paymentMethod.last4}
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="stg:text-xs stg:text-muted-foreground">
               Expires{" "}
               {formatExpiry(paymentMethod.expMonth, paymentMethod.expYear)}
             </div>
           </div>
         </div>
       ) : (
-        <div className="mt-2">
-          <p className="text-xs text-muted-foreground">
+        <div className="stg:mt-2">
+          <p className="stg:text-xs stg:text-muted-foreground">
             No payment method on file. A card will be saved automatically
             when you purchase your first credit pack.
           </p>
@@ -124,8 +124,8 @@ export function PaymentMethodCard({
 
 function CardBrandIcon({ brand }: { brand: string }) {
   return (
-    <div className="flex size-9 items-center justify-center rounded-md border border-border bg-background">
-      <span className="text-[0.6rem] font-bold uppercase text-muted-foreground">
+    <div className="stg:flex stg:size-9 stg:items-center stg:justify-center stg:rounded-md stg:border stg:border-border stg:bg-background">
+      <span className="stg:text-[0.6rem] stg:font-bold stg:uppercase stg:text-muted-foreground">
         {brand.slice(0, 4)}
       </span>
     </div>

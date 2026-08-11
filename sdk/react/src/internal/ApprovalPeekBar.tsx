@@ -35,16 +35,16 @@ export function ApprovalPeekBar({ visible, count, onClick }: ApprovalPeekBarProp
       aria-hidden={!visible}
       tabIndex={visible ? 0 : -1}
       className={cn(
-        "absolute bottom-3 left-1/2 z-10 -translate-x-1/2",
-        "flex items-center gap-1.5 rounded-full",
-        "border border-warning/40 bg-warning/10 px-3 py-1.5",
-        "text-xs font-medium text-warning shadow-md",
-        "transition-[opacity,transform] duration-[var(--stgm-motion-duration)]",
-        "hover:bg-warning/20",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "stg:absolute stg:bottom-3 stg:left-1/2 stg:z-10 stg:-translate-x-1/2",
+        "stg:flex stg:items-center stg:gap-1.5 stg:rounded-full",
+        "stg:border stg:border-warning/40 stg:bg-warning/10 stg:px-3 stg:py-1.5",
+        "stg:text-xs stg:font-medium stg:text-warning stg:shadow-md",
+        "stg:transition-[opacity,transform] stg:duration-[var(--stgm-motion-duration)]",
+        "stg:hover:bg-warning/20",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         visible
-          ? "pointer-events-auto translate-y-0 opacity-100"
-          : "pointer-events-none translate-y-2 opacity-0",
+          ? "stg:pointer-events-auto stg:translate-y-0 stg:opacity-100"
+          : "stg:pointer-events-none stg:translate-y-2 stg:opacity-0",
       )}
     >
       <ClockIcon />

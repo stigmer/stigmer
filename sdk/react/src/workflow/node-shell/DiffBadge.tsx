@@ -32,7 +32,7 @@ export const DiffBadge = memo(function DiffBadge({
   return (
     <span
       className={cn(
-        "absolute -right-1.5 -top-1.5 z-20 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none shadow-sm",
+        "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-5 stg:min-w-5 stg:items-center stg:justify-center stg:rounded-full stg:px-1 stg:text-[10px] stg:font-semibold stg:leading-none stg:shadow-sm",
         className,
       )}
       title={label}
@@ -57,16 +57,16 @@ const DIFF_BADGE_CONFIG: Record<
   added: {
     icon: "+",
     label: "Added",
-    className: "bg-[var(--stgm-success,#22c55e)] text-[var(--stgm-success-foreground,#fff)]",
+    className: "stg:bg-[var(--stgm-success,#22c55e)] stg:text-[var(--stgm-success-foreground,#fff)]",
   },
   removed: {
     icon: "−",
     label: "Removed",
-    className: "bg-[var(--stgm-destructive,#ef4444)] text-[var(--stgm-destructive-foreground,#fff)]",
+    className: "stg:bg-[var(--stgm-destructive,#ef4444)] stg:text-[var(--stgm-destructive-foreground,#fff)]",
   },
   modified: {
     icon: "~",
     label: "Modified",
-    className: "bg-[var(--stgm-warning,#f59e0b)] text-[var(--stgm-warning-foreground,#fff)]",
+    className: "stg:bg-[var(--stgm-warning,#f59e0b)] stg:text-[var(--stgm-warning-foreground,#fff)]",
   },
 };

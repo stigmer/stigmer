@@ -40,12 +40,12 @@ export function OAuthRequiredNotice({
     <div
       role="status"
       className={cn(
-        "bg-muted-subtle text-muted-foreground flex items-start gap-2.5 rounded-lg border border-transparent px-4 py-3",
+        "stg:bg-muted-subtle stg:text-muted-foreground stg:flex stg:items-start stg:gap-2.5 stg:rounded-lg stg:border stg:border-transparent stg:px-4 stg:py-3",
         className,
       )}
     >
-      <KeyIcon className="mt-0.5 size-4 shrink-0" />
-      <p className="text-xs leading-relaxed">
+      <KeyIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0" />
+      <p className="stg:text-xs stg:leading-relaxed">
         This server requires OAuth. Sign in to connect — its hosted endpoint
         rejects manually-entered API tokens, so a pasted token won&apos;t work
         here.

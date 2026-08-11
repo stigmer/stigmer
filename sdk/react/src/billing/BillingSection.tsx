@@ -61,11 +61,11 @@ export function BillingSection({
     <section aria-labelledby="billing-heading" className={className}>
       <h2
         id="billing-heading"
-        className="text-foreground mb-1 text-sm font-semibold"
+        className="stg:text-foreground stg:mb-1 stg:text-sm stg:font-semibold"
       >
         Billing
       </h2>
-      <p className="text-muted-foreground mb-4 text-xs">
+      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
         Manage credits, purchase credit packs, and view transaction history.
       </p>
 
@@ -76,7 +76,7 @@ export function BillingSection({
           needed.
         </CloudFeatureNotice>
       ) : !orgId ? (
-        <p className="text-muted-foreground py-4 text-center text-xs">
+        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
           Select an organization to view billing.
         </p>
       ) : (
@@ -130,24 +130,24 @@ function BillingContent({
 
   if (isLoading) {
     return (
-      <div className="space-y-4" aria-busy="true" aria-label="Loading billing">
-        <div className="h-24 animate-pulse rounded-lg bg-muted-subtle" />
-        <div className="grid grid-cols-3 gap-3">
+      <div className="stg:space-y-4" aria-busy="true" aria-label="Loading billing">
+        <div className="stg:h-24 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
+        <div className="stg:grid stg:grid-cols-3 stg:gap-3">
           {Array.from({ length: 3 }, (_, i) => (
             <div
               key={i}
-              className="h-36 animate-pulse rounded-lg bg-muted-subtle"
+              className="stg:h-36 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle"
             />
           ))}
         </div>
-        <div className="h-48 animate-pulse rounded-lg bg-muted-subtle" />
+        <div className="stg:h-48 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <p className="text-destructive text-xs" role="alert">
+      <p className="stg:text-destructive stg:text-xs" role="alert">
         {getUserMessage(error)}
       </p>
     );
@@ -162,7 +162,7 @@ function BillingContent({
     balance.availableMicros < account.lowBalanceThresholdMicros;
 
   return (
-    <div className="space-y-6">
+    <div className="stg:space-y-6">
       {checkoutSuccess && (
         <CheckoutSuccessBanner onDismiss={onDismissCheckoutSuccess} />
       )}
@@ -199,7 +199,7 @@ function BillingContent({
       />
 
       {checkoutError && (
-        <p className="text-destructive text-xs" role="alert">
+        <p className="stg:text-destructive stg:text-xs" role="alert">
           {getUserMessage(checkoutError)}
         </p>
       )}
@@ -221,10 +221,10 @@ function CheckoutSuccessBanner({
   return (
     <div
       role="status"
-      className="flex items-center justify-between gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-3 text-xs text-emerald-700 dark:text-emerald-300"
+      className="stg:flex stg:items-center stg:justify-between stg:gap-3 stg:rounded-lg stg:border stg:border-emerald-500/30 stg:bg-emerald-500/5 stg:px-3.5 stg:py-3 stg:text-xs stg:text-emerald-700 stg:dark:text-emerald-300"
     >
       <p>
-        <span className="font-medium">Payment received</span>
+        <span className="stg:font-medium">Payment received</span>
         {" \u2014 "}
         credits will appear in your balance shortly.
       </p>
@@ -232,7 +232,7 @@ function CheckoutSuccessBanner({
         <button
           type="button"
           onClick={onDismiss}
-          className="shrink-0 rounded p-0.5 transition-colors hover:bg-emerald-500/10"
+          className="stg:shrink-0 stg:rounded stg:p-0.5 stg:transition-colors stg:hover:bg-emerald-500/10"
           aria-label="Dismiss"
         >
           <svg

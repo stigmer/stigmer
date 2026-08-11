@@ -36,32 +36,32 @@ export const ComparisonSummaryCards = memo(function ComparisonSummaryCards({
 
   return (
     <div
-      className={cn("grid grid-cols-2 gap-3 lg:grid-cols-4", className)}
+      className={cn("stg:grid stg:grid-cols-2 stg:gap-3 stg:lg:grid-cols-4", className)}
       aria-label="Comparison summary"
     >
       {cards.map((card) => (
         <div
           key={card.label}
-          className="rounded-lg border border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-card,#fff)] p-3"
+          className="stg:rounded-lg stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-card,#fff)] stg:p-3"
         >
-          <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--stgm-muted-foreground,#737373)]">
+          <span className="stg:text-[10px] stg:font-medium stg:uppercase stg:tracking-wide stg:text-[var(--stgm-muted-foreground,#737373)]">
             {card.label}
           </span>
-          <div className="mt-1.5 flex items-baseline gap-2">
-            <span className="text-sm font-semibold text-[var(--stgm-foreground,#1a1a2e)]">
+          <div className="stg:mt-1.5 stg:flex stg:items-baseline stg:gap-2">
+            <span className="stg:text-sm stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)]">
               {card.baseValue}
             </span>
-            <span className="text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+            <span className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
               vs {card.compareValue}
             </span>
           </div>
-          <div className="mt-1">
+          <div className="stg:mt-1">
             <span
               className={cn(
-                "text-xs font-medium",
-                card.deltaDirection === "better" && "text-[var(--stgm-success,#16a34a)]",
-                card.deltaDirection === "worse" && "text-[var(--stgm-destructive,#dc2626)]",
-                card.deltaDirection === "neutral" && "text-[var(--stgm-muted-foreground,#737373)]",
+                "stg:text-xs stg:font-medium",
+                card.deltaDirection === "better" && "stg:text-[var(--stgm-success,#16a34a)]",
+                card.deltaDirection === "worse" && "stg:text-[var(--stgm-destructive,#dc2626)]",
+                card.deltaDirection === "neutral" && "stg:text-[var(--stgm-muted-foreground,#737373)]",
               )}
             >
               {card.delta}

@@ -29,7 +29,7 @@ export const WorkflowOverviewSummary = memo(function WorkflowOverviewSummary({
 }: WorkflowOverviewSummaryProps) {
   if (isLoading) {
     return (
-      <div className={cn("grid grid-cols-2 gap-3 sm:grid-cols-4", className)}>
+      <div className={cn("stg:grid stg:grid-cols-2 stg:gap-3 stg:sm:grid-cols-4", className)}>
         {Array.from({ length: 4 }, (_, i) => (
           <SkeletonCard key={i} />
         ))}
@@ -42,7 +42,7 @@ export const WorkflowOverviewSummary = memo(function WorkflowOverviewSummary({
   if (!summary || totalCount === 0) {
     return (
       <div className={cn(
-        "rounded-lg border border-[var(--stgm-border,#d4d4d8)] px-4 py-6 text-center text-sm text-[var(--stgm-muted-foreground,#737373)]",
+        "stg:rounded-lg stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:px-4 stg:py-6 stg:text-center stg:text-sm stg:text-[var(--stgm-muted-foreground,#737373)]",
         className,
       )}>
         No executions yet
@@ -53,10 +53,10 @@ export const WorkflowOverviewSummary = memo(function WorkflowOverviewSummary({
   const successRate = typeof summary.successRate === "number" ? summary.successRate : -1;
   const successPct = successRate >= 0 ? `${Math.round(successRate * 100)}%` : "—";
   const successColor = successRate >= 0.9
-    ? "text-[var(--stgm-success,#22c55e)]"
+    ? "stg:text-[var(--stgm-success,#22c55e)]"
     : successRate >= 0.7
-      ? "text-[var(--stgm-warning,#f59e0b)]"
-      : "text-[var(--stgm-destructive,#ef4444)]";
+      ? "stg:text-[var(--stgm-warning,#f59e0b)]"
+      : "stg:text-[var(--stgm-destructive,#ef4444)]";
 
   const avgDuration = summary.avgDuration
     ? formatProtoSeconds(Number(summary.avgDuration.seconds))
@@ -67,7 +67,7 @@ export const WorkflowOverviewSummary = memo(function WorkflowOverviewSummary({
     : "$0.00";
 
   return (
-    <div className={cn("grid grid-cols-2 gap-3 sm:grid-cols-4", className)}>
+    <div className={cn("stg:grid stg:grid-cols-2 stg:gap-3 stg:sm:grid-cols-4", className)}>
       <StatCard label="Total Executions" value={String(totalCount)} />
       <StatCard label="Success Rate" value={successPct} valueClassName={successRate >= 0 ? successColor : undefined} />
       <StatCard label="Avg Duration" value={avgDuration} />
@@ -86,11 +86,11 @@ function StatCard({
   readonly valueClassName?: string;
 }) {
   return (
-    <div className="rounded-lg border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-4 py-3">
-      <dt className="text-[11px] font-medium uppercase tracking-wider text-[var(--stgm-muted-foreground,#737373)]">
+    <div className="stg:rounded-lg stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-4 stg:py-3">
+      <dt className="stg:text-[11px] stg:font-medium stg:uppercase stg:tracking-wider stg:text-[var(--stgm-muted-foreground,#737373)]">
         {label}
       </dt>
-      <dd className={cn("mt-1 text-xl font-semibold text-[var(--stgm-foreground,#1a1a2e)]", valueClassName)}>
+      <dd className={cn("stg:mt-1 stg:text-xl stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)]", valueClassName)}>
         {value}
       </dd>
     </div>
@@ -99,9 +99,9 @@ function StatCard({
 
 function SkeletonCard() {
   return (
-    <div className="rounded-lg border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-4 py-3">
-      <div className="h-3 w-20 animate-pulse rounded bg-[var(--stgm-muted,#e5e5e5)]" />
-      <div className="mt-2 h-6 w-16 animate-pulse rounded bg-[var(--stgm-muted,#e5e5e5)]" />
+    <div className="stg:rounded-lg stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-4 stg:py-3">
+      <div className="stg:h-3 stg:w-20 stg:animate-pulse stg:rounded stg:bg-[var(--stgm-muted,#e5e5e5)]" />
+      <div className="stg:mt-2 stg:h-6 stg:w-16 stg:animate-pulse stg:rounded stg:bg-[var(--stgm-muted,#e5e5e5)]" />
     </div>
   );
 }

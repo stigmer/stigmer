@@ -49,7 +49,7 @@ export function FilterBar({
     <div
       role="toolbar"
       aria-label="Active filters"
-      className={cn("flex flex-wrap items-center gap-1.5", className)}
+      className={cn("stg:flex stg:flex-wrap stg:items-center stg:gap-1.5", className)}
     >
       {filters.map((filter) => {
         const def = defMap.get(filter.filterId);
@@ -71,9 +71,9 @@ export function FilterBar({
           type="button"
           onClick={onClearAll}
           className={cn(
-            "text-xs text-muted-foreground transition-colors",
-            "hover:text-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm",
+            "stg:text-xs stg:text-muted-foreground stg:transition-colors",
+            "stg:hover:text-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm",
           )}
         >
           Clear all
@@ -99,19 +99,19 @@ function FilterChip({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground",
+        "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:bg-muted stg:px-2 stg:py-0.5 stg:text-xs stg:text-muted-foreground",
       )}
     >
-      <span className="font-medium">{label}:</span>
+      <span className="stg:font-medium">{label}:</span>
       <span>{value}</span>
       <button
         type="button"
         onClick={onRemove}
         aria-label={`Remove ${label} filter`}
         className={cn(
-          "ml-0.5 inline-flex items-center justify-center rounded-sm p-0.5",
-          "text-muted-foreground-subtle hover:text-foreground hover:bg-accent-hover",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "stg:ml-0.5 stg:inline-flex stg:items-center stg:justify-center stg:rounded-sm stg:p-0.5",
+          "stg:text-muted-foreground-subtle stg:hover:text-foreground stg:hover:bg-accent-hover",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         )}
       >
         <XIcon />

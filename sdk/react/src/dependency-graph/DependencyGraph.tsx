@@ -98,13 +98,13 @@ export function DependencyGraph({
   const { root } = tree;
 
   return (
-    <div className={cn("py-2", className)}>
-      <div className="mb-3 flex items-center gap-2 px-2">
-        <TreeIcon className="size-4 text-muted-foreground" />
-        <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+    <div className={cn("stg:py-2", className)}>
+      <div className="stg:mb-3 stg:flex stg:items-center stg:gap-2 stg:px-2">
+        <TreeIcon className="stg:size-4 stg:text-muted-foreground" />
+        <h3 className="stg:text-xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
           Dependency Tree
         </h3>
-        <span className="text-xs text-muted-foreground">
+        <span className="stg:text-xs stg:text-muted-foreground">
           {tree.nodeCount} {tree.nodeCount === 1 ? "node" : "nodes"}
         </span>
       </div>
@@ -114,7 +114,7 @@ export function DependencyGraph({
         role="tree"
         aria-label={`Dependencies of ${root.label}`}
         onKeyDown={handleKeyDown}
-        className="rounded-lg border border-border p-2"
+        className="stg:rounded-lg stg:border stg:border-border stg:p-2"
       >
         <DependencyTreeNode
           node={root}

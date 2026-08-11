@@ -58,22 +58,22 @@ export function InlineEditSelect({
 
   if (disabled || !isEditing) {
     return (
-      <div className={cn("group/inline-edit", className)}>
+      <div className={cn("stg:group/inline-edit", className)}>
         <button
           type="button"
           onClick={() => { if (!disabled) setIsEditing(true); }}
           disabled={disabled}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left transition-colors",
-            !disabled && "hover:bg-accent-hover cursor-pointer",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-1.5 stg:py-0.5 stg:text-left stg:transition-colors",
+            !disabled && "stg:hover:bg-accent-hover stg:cursor-pointer",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
           )}
         >
-          <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-foreground">
+          <span className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-xs stg:font-medium stg:text-foreground">
             {currentLabel}
           </span>
           {!disabled && (
-            <ChevronDownIcon className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/inline-edit:opacity-100" />
+            <ChevronDownIcon className="stg:size-3 stg:shrink-0 stg:text-muted-foreground stg:opacity-0 stg:transition-opacity stg:group-hover/inline-edit:opacity-100" />
           )}
         </button>
       </div>
@@ -81,8 +81,8 @@ export function InlineEditSelect({
   }
 
   return (
-    <div ref={containerRef} className={cn("flex flex-col gap-1", className)}>
-      <div className="rounded-lg border border-border bg-background p-1" role="radiogroup">
+    <div ref={containerRef} className={cn("stg:flex stg:flex-col stg:gap-1", className)}>
+      <div className="stg:rounded-lg stg:border stg:border-border stg:bg-background stg:p-1" role="radiogroup">
         {options.map((option) => (
           <button
             key={option.value}
@@ -92,28 +92,28 @@ export function InlineEditSelect({
             disabled={isSaving}
             onClick={() => handleSelect(option.value)}
             className={cn(
-              "flex w-full items-start gap-2 rounded-md px-2.5 py-1.5 text-left transition-colors",
+              "stg:flex stg:w-full stg:items-start stg:gap-2 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-left stg:transition-colors",
               option.value === value
-                ? "bg-muted-subtle text-foreground"
-                : "hover:bg-accent-hover text-foreground",
-              "disabled:opacity-50",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                ? "stg:bg-muted-subtle stg:text-foreground"
+                : "stg:hover:bg-accent-hover stg:text-foreground",
+              "stg:disabled:opacity-50",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
             )}
           >
             <div className={cn(
-              "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border",
+              "stg:mt-0.5 stg:flex stg:size-4 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:border",
               option.value === value
-                ? "border-primary bg-primary"
-                : "border-muted-foreground",
+                ? "stg:border-primary stg:bg-primary"
+                : "stg:border-muted-foreground",
             )}>
               {option.value === value && (
-                <div className="size-1.5 rounded-full bg-primary-foreground" />
+                <div className="stg:size-1.5 stg:rounded-full stg:bg-primary-foreground" />
               )}
             </div>
-            <div className="min-w-0 flex-1">
-              <span className="text-sm font-medium">{option.label}</span>
+            <div className="stg:min-w-0 stg:flex-1">
+              <span className="stg:text-sm stg:font-medium">{option.label}</span>
               {option.description && (
-                <p className="mt-0.5 text-xs text-muted-foreground">{option.description}</p>
+                <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">{option.description}</p>
               )}
             </div>
             {isSaving && option.value !== value && (
@@ -123,7 +123,7 @@ export function InlineEditSelect({
         ))}
       </div>
       {error && (
-        <p className="px-1 text-xs text-destructive" role="alert">{error}</p>
+        <p className="stg:px-1 stg:text-xs stg:text-destructive" role="alert">{error}</p>
       )}
     </div>
   );
@@ -143,7 +143,7 @@ function ChevronDownIcon({ className }: { readonly className?: string }) {
 
 function Spinner() {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="animate-spin" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="stg:animate-spin" aria-hidden="true">
       <path d="M8 2a6 6 0 1 0 6 6" />
     </svg>
   );

@@ -153,14 +153,14 @@ export function OrgProfilePanel({
   if (isFetching && !organization) {
     return (
       <div
-        className={cn("space-y-4", className)}
+        className={cn("stg:space-y-4", className)}
         aria-busy="true"
         aria-label="Loading organization profile"
       >
         {Array.from({ length: 4 }, (_, i) => (
           <div
             key={i}
-            className="bg-muted-subtle h-10 animate-pulse rounded"
+            className="stg:bg-muted-subtle stg:h-10 stg:animate-pulse stg:rounded"
             style={{ width: `${90 - i * 12}%` }}
           />
         ))}
@@ -174,16 +174,16 @@ export function OrgProfilePanel({
 
   if (fetchError) {
     return (
-      <div className={cn("space-y-3", className)} role="alert">
-        <p className="text-destructive text-sm">
+      <div className={cn("stg:space-y-3", className)} role="alert">
+        <p className="stg:text-destructive stg:text-sm">
           {getUserMessage(fetchError)}
         </p>
         <button
           type="button"
           onClick={refetch}
           className={cn(
-            "rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
+            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
           )}
         >
           Retry
@@ -201,30 +201,30 @@ export function OrgProfilePanel({
   return (
     <form
       onSubmit={handleSubmit}
-      className={cn("space-y-6", className)}
+      className={cn("stg:space-y-6", className)}
     >
       {/* -- Read-only identifiers -- */}
-      <div className="space-y-3">
+      <div className="stg:space-y-3">
         <ReadOnlyField label="Slug" value={serverSlug} mono />
         <ReadOnlyField label="Organization ID" value={serverOrgId} />
         {isPersonal && (
           <div>
-            <span className="bg-primary-subtle text-primary rounded-full px-2 py-0.5 text-[0.6rem] font-medium uppercase tracking-wider">
+            <span className="stg:bg-primary-subtle stg:text-primary stg:rounded-full stg:px-2 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wider">
               Personal
             </span>
           </div>
         )}
       </div>
 
-      <hr className="border-border" />
+      <hr className="stg:border-border" />
 
       {/* -- Editable fields -- */}
-      <div className="space-y-4">
+      <div className="stg:space-y-4">
         {/* Name */}
-        <div className="space-y-1">
+        <div className="stg:space-y-1">
           <label
             htmlFor="stgm-org-profile-name"
-            className="text-xs font-medium text-foreground"
+            className="stg:text-xs stg:font-medium stg:text-foreground"
           >
             Name
           </label>
@@ -236,22 +236,22 @@ export function OrgProfilePanel({
             disabled={isUpdating}
             required
             className={cn(
-              "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           />
-          <p className="text-[0.65rem] text-muted-foreground">
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
             The display name shown in the sidebar and across the platform.
           </p>
         </div>
 
         {/* Description */}
-        <div className="space-y-1">
+        <div className="stg:space-y-1">
           <label
             htmlFor="stgm-org-profile-desc"
-            className="text-xs font-medium text-foreground"
+            className="stg:text-xs stg:font-medium stg:text-foreground"
           >
             Description
           </label>
@@ -264,22 +264,22 @@ export function OrgProfilePanel({
             disabled={isUpdating}
             placeholder="What is this organization for?"
             className={cn(
-              "w-full resize-y rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:w-full stg:resize-y stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           />
-          <p className="text-[0.65rem] text-muted-foreground">
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
             {description.length}/{DESCRIPTION_MAX_LEN} characters
           </p>
         </div>
 
         {/* Logo URL */}
-        <div className="space-y-1">
+        <div className="stg:space-y-1">
           <label
             htmlFor="stgm-org-profile-logo"
-            className="text-xs font-medium text-foreground"
+            className="stg:text-xs stg:font-medium stg:text-foreground"
           >
             Logo URL
           </label>
@@ -292,13 +292,13 @@ export function OrgProfilePanel({
             disabled={isUpdating}
             placeholder="https://example.com/logo.png"
             className={cn(
-              "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           />
-          <p className="text-[0.65rem] text-muted-foreground">
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
             A public URL to your organization&apos;s logo image.
           </p>
           <LogoPreview url={logoUrl.trim()} />
@@ -307,20 +307,20 @@ export function OrgProfilePanel({
 
       {/* -- Error feedback -- */}
       {updateError && (
-        <p className="text-destructive text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
           {getUserMessage(updateError)}
         </p>
       )}
 
       {/* -- Actions -- */}
-      <div className="flex items-center gap-2">
+      <div className="stg:flex stg:items-center stg:gap-2">
         <button
           type="submit"
           disabled={!canSubmit}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-40",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
           {isUpdating && <SpinnerIcon />}
@@ -332,8 +332,8 @@ export function OrgProfilePanel({
             type="button"
             onClick={handleDiscard}
             className={cn(
-              "rounded-md px-3 py-1.5 text-xs",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
             )}
           >
             Discard
@@ -361,26 +361,26 @@ function IdentityProvidersSummary({ orgSlug }: { orgSlug: string }) {
 
   return (
     <>
-      <hr className="border-border" />
-      <div className="space-y-2">
-        <p className="text-[0.65rem] font-medium text-muted-foreground uppercase tracking-wider">
+      <hr className="stg:border-border" />
+      <div className="stg:space-y-2">
+        <p className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground stg:uppercase stg:tracking-wider">
           Identity Providers
         </p>
 
         {isLoading ? (
-          <div className="bg-muted-subtle h-8 animate-pulse rounded" />
+          <div className="stg:bg-muted-subtle stg:h-8 stg:animate-pulse stg:rounded" />
         ) : identityProviders.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="stg:text-xs stg:text-muted-foreground">
             No identity providers configured.{" "}
             <a
               href="/settings/identity-providers"
-              className="text-primary hover:text-primary-hover underline underline-offset-2"
+              className="stg:text-primary stg:hover:text-primary-hover stg:underline stg:underline-offset-2"
             >
               Set up federated authentication
             </a>
           </p>
         ) : (
-          <div className="space-y-1.5">
+          <div className="stg:space-y-1.5">
             {identityProviders.map((idp) => {
               const spec = idp.spec;
               const displayName =
@@ -391,17 +391,17 @@ function IdentityProvidersSummary({ orgSlug }: { orgSlug: string }) {
               return (
                 <div
                   key={idp.metadata?.id}
-                  className="flex items-center gap-2 text-xs"
+                  className="stg:flex stg:items-center stg:gap-2 stg:text-xs"
                 >
                   <ShieldSmallIcon />
-                  <span className="text-foreground truncate">{displayName}</span>
+                  <span className="stg:text-foreground stg:truncate">{displayName}</span>
                   {isSso && (
-                    <span className="rounded-full border border-primary/30 bg-primary-subtle px-1.5 py-px text-[0.6rem] font-medium text-primary">
+                    <span className="stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-1.5 stg:py-px stg:text-[0.6rem] stg:font-medium stg:text-primary">
                       SSO
                     </span>
                   )}
                   {isJit && (
-                    <span className="rounded-full border border-primary/30 bg-primary-subtle px-1.5 py-px text-[0.6rem] font-medium text-primary">
+                    <span className="stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-1.5 stg:py-px stg:text-[0.6rem] stg:font-medium stg:text-primary">
                       JIT
                     </span>
                   )}
@@ -410,7 +410,7 @@ function IdentityProvidersSummary({ orgSlug }: { orgSlug: string }) {
             })}
             <a
               href="/settings/identity-providers"
-              className="inline-block text-[0.65rem] text-primary hover:text-primary-hover underline underline-offset-2"
+              className="stg:inline-block stg:text-[0.65rem] stg:text-primary stg:hover:text-primary-hover stg:underline stg:underline-offset-2"
             >
               Manage
             </a>
@@ -433,7 +433,7 @@ function ShieldSmallIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
     >
       <path d="M8 1.5L2 4v4c0 3.5 2.5 5.5 6 7 3.5-1.5 6-3.5 6-7V4L8 1.5z" />
     </svg>
@@ -465,15 +465,15 @@ function ReadOnlyField({
   if (!value) return null;
 
   return (
-    <div className="space-y-0.5">
-      <p className="text-[0.65rem] font-medium text-muted-foreground uppercase tracking-wider">
+    <div className="stg:space-y-0.5">
+      <p className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground stg:uppercase stg:tracking-wider">
         {label}
       </p>
-      <div className="flex items-center gap-2">
+      <div className="stg:flex stg:items-center stg:gap-2">
         <span
           className={cn(
-            "text-xs text-foreground select-all",
-            mono && "font-mono",
+            "stg:text-xs stg:text-foreground stg:select-all",
+            mono && "stg:font-mono",
           )}
         >
           {value}
@@ -482,9 +482,9 @@ function ReadOnlyField({
           type="button"
           onClick={handleCopy}
           className={cn(
-            "rounded px-1.5 py-0.5 text-[0.6rem]",
-            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-            "transition-colors",
+            "stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[0.6rem]",
+            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+            "stg:transition-colors",
           )}
           aria-label={`Copy ${label}`}
         >
@@ -509,16 +509,16 @@ function LogoPreview({ url }: { url: string }) {
   if (!url || status === "error") return null;
 
   return (
-    <div className="mt-2">
+    <div className="stg:mt-2">
       <img
         src={url}
         alt="Organization logo preview"
         onLoad={() => setStatus("loaded")}
         onError={() => setStatus("error")}
         className={cn(
-          "h-10 w-10 rounded-md border border-border object-contain bg-background",
-          status === "idle" && "opacity-0",
-          status === "loaded" && "opacity-100",
+          "stg:h-10 stg:w-10 stg:rounded-md stg:border stg:border-border stg:object-contain stg:bg-background",
+          status === "idle" && "stg:opacity-0",
+          status === "loaded" && "stg:opacity-100",
         )}
       />
     </div>
@@ -539,7 +539,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

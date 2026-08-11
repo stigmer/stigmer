@@ -28,12 +28,12 @@ export function EnvironmentAuthStep({
   const [envExpanded, setEnvExpanded] = useState(data.env.length > 0);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="stg:flex stg:flex-col stg:gap-6">
       <div>
-        <h2 className="text-lg font-semibold text-foreground">
+        <h2 className="stg:text-lg stg:font-semibold stg:text-foreground">
           Environment & Auth
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">
           Declare environment variables and configure authentication.
           Both sections are optional.
         </p>
@@ -62,12 +62,12 @@ export function EnvironmentAuthStep({
         expanded={data.authEnabled}
         onToggle={() => updateData({ authEnabled: !data.authEnabled })}
       >
-        <div className="flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
+        <div className="stg:flex stg:flex-col stg:gap-4">
+          <div className="stg:grid stg:gap-4 stg:sm:grid-cols-2">
+            <div className="stg:space-y-1.5">
               <label
                 htmlFor="stgm-wizard-mcp-auth-app-org"
-                className="text-sm font-medium text-foreground"
+                className="stg:text-sm stg:font-medium stg:text-foreground"
               >
                 OAuth App Organization
               </label>
@@ -80,17 +80,17 @@ export function EnvironmentAuthStep({
                 }
                 placeholder="e.g. stigmer"
                 className={cn(
-                  "w-full rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
-                  "placeholder:text-muted-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
+                  "stg:placeholder:text-muted-foreground",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 )}
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="stg:space-y-1.5">
               <label
                 htmlFor="stgm-wizard-mcp-auth-app-slug"
-                className="text-sm font-medium text-foreground"
+                className="stg:text-sm stg:font-medium stg:text-foreground"
               >
                 OAuth App Slug
               </label>
@@ -103,18 +103,18 @@ export function EnvironmentAuthStep({
                 }
                 placeholder="e.g. github-oauth"
                 className={cn(
-                  "w-full rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
-                  "placeholder:text-muted-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
+                  "stg:placeholder:text-muted-foreground",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 )}
               />
             </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="stg:space-y-1.5">
             <label
               htmlFor="stgm-wizard-mcp-auth-target-var"
-              className="text-sm font-medium text-foreground"
+              className="stg:text-sm stg:font-medium stg:text-foreground"
             >
               Target Environment Variable
             </label>
@@ -127,21 +127,21 @@ export function EnvironmentAuthStep({
               }
               placeholder="e.g. GITHUB_TOKEN"
               className={cn(
-                "w-full rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
-                "placeholder:text-muted-foreground",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
+                "stg:placeholder:text-muted-foreground",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
               )}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="stg:text-xs stg:text-muted-foreground">
               The env var that receives the OAuth access token.
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
+          <div className="stg:grid stg:gap-4 stg:sm:grid-cols-2">
+            <div className="stg:space-y-1.5">
               <label
                 htmlFor="stgm-wizard-mcp-auth-lifetime"
-                className="text-sm font-medium text-foreground"
+                className="stg:text-sm stg:font-medium stg:text-foreground"
               >
                 Token Lifetime Hint
               </label>
@@ -154,17 +154,17 @@ export function EnvironmentAuthStep({
                 }
                 placeholder="e.g. 1h, 8h, never"
                 className={cn(
-                  "w-full rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
-                  "placeholder:text-muted-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
+                  "stg:placeholder:text-muted-foreground",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 )}
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="stg:space-y-1.5">
               <label
                 htmlFor="stgm-wizard-mcp-auth-scopes"
-                className="text-sm font-medium text-foreground"
+                className="stg:text-sm stg:font-medium stg:text-foreground"
               >
                 Scope Hints
               </label>
@@ -177,21 +177,21 @@ export function EnvironmentAuthStep({
                 }
                 placeholder="e.g. repo, read:org"
                 className={cn(
-                  "w-full rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
-                  "placeholder:text-muted-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
+                  "stg:placeholder:text-muted-foreground",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 )}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="stg:text-xs stg:text-muted-foreground">
                 Comma-separated OAuth scopes.
               </p>
             </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="stg:space-y-1.5">
             <label
               htmlFor="stgm-wizard-mcp-auth-discovery"
-              className="text-sm font-medium text-foreground"
+              className="stg:text-sm stg:font-medium stg:text-foreground"
             >
               Discovery URL
             </label>
@@ -204,9 +204,9 @@ export function EnvironmentAuthStep({
               }
               placeholder="https://provider.com/.well-known/openid-configuration"
               className={cn(
-                "w-full rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
-                "placeholder:text-muted-foreground",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-3 stg:py-2 stg:font-mono stg:text-sm stg:text-foreground",
+                "stg:placeholder:text-muted-foreground",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
               )}
             />
           </div>
@@ -238,31 +238,31 @@ function CollapsibleSection({
   readonly children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
+    <div className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
         aria-controls={`stgm-wizard-section-${id}`}
         className={cn(
-          "flex w-full items-center justify-between px-4 py-3 text-left transition-colors",
-          "hover:bg-accent-hover",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          "stg:flex stg:w-full stg:items-center stg:justify-between stg:px-4 stg:py-3 stg:text-left stg:transition-colors",
+          "stg:hover:bg-accent-hover",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
         )}
       >
         <div>
-          <span className="text-sm font-medium text-foreground">{title}</span>
+          <span className="stg:text-sm stg:font-medium stg:text-foreground">{title}</span>
           {count != null && count > 0 && (
-            <span className="ml-2 inline-flex items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
+            <span className="stg:ml-2 stg:inline-flex stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-primary-foreground">
               {count}
             </span>
           )}
-          <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+          <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">{subtitle}</p>
         </div>
         <ChevronIcon
           className={cn(
-            "size-4 shrink-0 text-muted-foreground transition-transform",
-            expanded && "rotate-180",
+            "stg:size-4 stg:shrink-0 stg:text-muted-foreground stg:transition-transform",
+            expanded && "stg:rotate-180",
           )}
         />
       </button>
@@ -270,7 +270,7 @@ function CollapsibleSection({
       {expanded && (
         <div
           id={`stgm-wizard-section-${id}`}
-          className="border-t border-border px-4 py-4"
+          className="stg:border-t stg:border-border stg:px-4 stg:py-4"
         >
           {children}
         </div>
@@ -315,14 +315,14 @@ function EnvVarEditor({
   );
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="stg:flex stg:flex-col stg:gap-3">
       {entries.map((entry, index) => (
         <div
           key={index}
-          className="flex flex-col gap-2 rounded-md border border-border p-3"
+          className="stg:flex stg:flex-col stg:gap-2 stg:rounded-md stg:border stg:border-border stg:p-3"
         >
-          <div className="flex items-start gap-2">
-            <div className="flex-1 space-y-1.5">
+          <div className="stg:flex stg:items-start stg:gap-2">
+            <div className="stg:flex-1 stg:space-y-1.5">
               <input
                 type="text"
                 value={entry.key}
@@ -334,9 +334,9 @@ function EnvVarEditor({
                 placeholder="VARIABLE_NAME"
                 aria-label={`Environment variable name ${index + 1}`}
                 className={cn(
-                  "w-full rounded-md border border-input bg-input-bg px-2.5 py-1.5 font-mono text-xs text-foreground",
-                  "placeholder:text-muted-foreground",
-                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-2.5 stg:py-1.5 stg:font-mono stg:text-xs stg:text-foreground",
+                  "stg:placeholder:text-muted-foreground",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
                 )}
               />
               <input
@@ -348,9 +348,9 @@ function EnvVarEditor({
                 placeholder="Description (optional)"
                 aria-label={`Description for ${entry.key || `variable ${index + 1}`}`}
                 className={cn(
-                  "w-full rounded-md border border-input bg-input-bg px-2.5 py-1.5 text-xs text-foreground",
-                  "placeholder:text-muted-foreground",
-                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-input-bg stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+                  "stg:placeholder:text-muted-foreground",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
                 )}
               />
             </div>
@@ -359,35 +359,35 @@ function EnvVarEditor({
               onClick={() => removeEntry(index)}
               aria-label={`Remove ${entry.key || "variable"}`}
               className={cn(
-                "mt-1 rounded p-1 text-muted-foreground transition-colors",
-                "hover:bg-accent-hover hover:text-destructive",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "stg:mt-1 stg:rounded stg:p-1 stg:text-muted-foreground stg:transition-colors",
+                "stg:hover:bg-accent-hover stg:hover:text-destructive",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
               )}
             >
-              <RemoveIcon className="size-3.5" />
+              <RemoveIcon className="stg:size-3.5" />
             </button>
           </div>
 
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="stg:flex stg:items-center stg:gap-4">
+            <label className="stg:flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground">
               <input
                 type="checkbox"
                 checked={entry.isSecret}
                 onChange={(e) =>
                   updateEntry(index, { isSecret: e.target.checked })
                 }
-                className="size-3.5 rounded border-input"
+                className="stg:size-3.5 stg:rounded stg:border-input"
               />
               Secret
             </label>
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <label className="stg:flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground">
               <input
                 type="checkbox"
                 checked={entry.optional}
                 onChange={(e) =>
                   updateEntry(index, { optional: e.target.checked })
                 }
-                className="size-3.5 rounded border-input"
+                className="stg:size-3.5 stg:rounded stg:border-input"
               />
               Optional
             </label>
@@ -399,12 +399,12 @@ function EnvVarEditor({
         type="button"
         onClick={addEntry}
         className={cn(
-          "inline-flex w-fit items-center gap-1.5 rounded-md border border-dashed border-input px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors",
-          "hover:border-border hover:text-foreground hover:bg-accent-hover",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "stg:inline-flex stg:w-fit stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-dashed stg:border-input stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors",
+          "stg:hover:border-border stg:hover:text-foreground stg:hover:bg-accent-hover",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         )}
       >
-        <PlusIcon className="size-3" />
+        <PlusIcon className="stg:size-3" />
         Add variable
       </button>
     </div>

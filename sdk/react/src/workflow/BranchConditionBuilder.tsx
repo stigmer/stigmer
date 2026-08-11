@@ -150,9 +150,9 @@ export const BranchConditionBuilder = memo(function BranchConditionBuilder({
   }, []);
 
   return (
-    <div className="flex flex-col gap-2 px-3 pb-3">
+    <div className="stg:flex stg:flex-col stg:gap-2 stg:px-3 stg:pb-3">
       {cases.length === 0 && (
-        <p className="py-2 text-xs text-[var(--stgm-muted-foreground,#737373)]">
+        <p className="stg:py-2 stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">
           No cases defined. Add a case to start branching.
         </p>
       )}
@@ -190,7 +190,7 @@ export const BranchConditionBuilder = memo(function BranchConditionBuilder({
       <button
         type="button"
         onClick={handleAddCase}
-        className="self-start text-[11px] font-medium text-[var(--stgm-primary,#6366f1)] hover:underline"
+        className="stg:self-start stg:text-[11px] stg:font-medium stg:text-[var(--stgm-primary,#6366f1)] stg:hover:underline"
       >
         + Add case
       </button>
@@ -280,15 +280,15 @@ function CaseEntry({
       onDragOver={handleDragOverEvent}
       onDrop={onDrop}
       className={cn(
-        "flex flex-col gap-1.5 rounded-md border p-2 transition-[border-color]",
+        "stg:flex stg:flex-col stg:gap-1.5 stg:rounded-md stg:border stg:p-2 stg:transition-[border-color]",
         isDefault
-          ? "border-[var(--stgm-chart-amber,#f59e0b)]/30 bg-[var(--stgm-chart-amber,#f59e0b)]/5"
-          : "border-[var(--stgm-border,#e5e5e5)]",
-        isDragOver && "border-[var(--stgm-primary,#6366f1)]",
+          ? "stg:border-[var(--stgm-chart-amber,#f59e0b)]/30 stg:bg-[var(--stgm-chart-amber,#f59e0b)]/5"
+          : "stg:border-[var(--stgm-border,#e5e5e5)]",
+        isDragOver && "stg:border-[var(--stgm-primary,#6366f1)]",
       )}
     >
       {/* Header row: grip + name + controls */}
-      <div className="flex items-center gap-1">
+      <div className="stg:flex stg:items-center stg:gap-1">
         <DragGrip onDragStart={onDragStart} onDragEnd={onDragEnd} />
         <input
           type="text"
@@ -297,23 +297,23 @@ function CaseEntry({
           onBlur={validateAndCommitName}
           onKeyDown={(e) => { if (e.key === "Enter") validateAndCommitName(); }}
           placeholder="case_name"
-          className="min-w-0 flex-1 rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-1.5 py-1 text-xs font-medium text-[var(--stgm-foreground,#1a1a2e)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+          className="stg:min-w-0 stg:flex-1 stg:rounded stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-1.5 stg:py-1 stg:text-xs stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
           aria-label={`Case ${index + 1} name`}
         />
         {isDefault && (
-          <span className="shrink-0 rounded bg-[var(--stgm-chart-amber,#f59e0b)]/15 px-1 py-px text-[9px] font-medium text-[var(--stgm-chart-amber,#f59e0b)]">
+          <span className="stg:shrink-0 stg:rounded stg:bg-[var(--stgm-chart-amber,#f59e0b)]/15 stg:px-1 stg:py-px stg:text-[9px] stg:font-medium stg:text-[var(--stgm-chart-amber,#f59e0b)]">
             default
           </span>
         )}
 
-        <div className="flex shrink-0 items-center">
+        <div className="stg:flex stg:shrink-0 stg:items-center">
           <ArrowButton direction="up" disabled={index === 0} onClick={onMoveUp} />
           <ArrowButton direction="down" disabled={index === total - 1} onClick={onMoveDown} />
           <button
             type="button"
             onClick={onRemove}
             disabled={!canRemove}
-            className="ml-0.5 text-[10px] text-[var(--stgm-destructive,#ef4444)] hover:underline disabled:opacity-30"
+            className="stg:ml-0.5 stg:text-[10px] stg:text-[var(--stgm-destructive,#ef4444)] stg:hover:underline stg:disabled:opacity-30"
             aria-label={`Remove case ${caseDef.name}`}
           >
             ✕
@@ -322,12 +322,12 @@ function CaseEntry({
       </div>
 
       {nameError && (
-        <span className="text-[10px] text-[var(--stgm-destructive,#ef4444)]">{nameError}</span>
+        <span className="stg:text-[10px] stg:text-[var(--stgm-destructive,#ef4444)]">{nameError}</span>
       )}
 
       {/* Condition */}
-      <div className="flex flex-col gap-0.5">
-        <label className="text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+      <div className="stg:flex stg:flex-col stg:gap-0.5">
+        <label className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
           Condition
         </label>
         <textarea
@@ -335,20 +335,20 @@ function CaseEntry({
           onChange={(e) => onWhenChange(e.target.value)}
           placeholder={isDefault ? "(no condition — default case)" : "${ $context.value > 5 }"}
           rows={2}
-          className="w-full resize-y rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-1.5 py-1 font-mono text-[11px] text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+          className="stg:w-full stg:resize-y stg:rounded stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-1.5 stg:py-1 stg:font-mono stg:text-[11px] stg:text-[var(--stgm-foreground,#1a1a2e)] stg:placeholder:text-[var(--stgm-muted-foreground,#a3a3a3)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
           aria-label={`Condition for case ${caseDef.name}`}
         />
       </div>
 
       {/* Target task */}
-      <div className="flex flex-col gap-0.5">
-        <label className="text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+      <div className="stg:flex stg:flex-col stg:gap-0.5">
+        <label className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
           Then go to
         </label>
         <select
           value={routeTarget}
           onChange={(e) => onThenChange(e.target.value)}
-          className="w-full rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-1.5 py-1 text-xs text-[var(--stgm-foreground,#1a1a2e)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+          className="stg:w-full stg:rounded stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-1.5 stg:py-1 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
           aria-label={`Target task for case ${caseDef.name}`}
         >
           <option value="">— Not connected —</option>
@@ -377,7 +377,7 @@ function DragGrip({
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      className="flex shrink-0 cursor-grab items-center text-[var(--stgm-muted-foreground,#a3a3a3)] hover:text-[var(--stgm-foreground,#1a1a2e)] active:cursor-grabbing"
+      className="stg:flex stg:shrink-0 stg:cursor-grab stg:items-center stg:text-[var(--stgm-muted-foreground,#a3a3a3)] stg:hover:text-[var(--stgm-foreground,#1a1a2e)] stg:active:cursor-grabbing"
       aria-label="Drag to reorder"
     >
       <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor">
@@ -410,7 +410,7 @@ function ArrowButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="px-0.5 py-0.5 text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-foreground,#1a1a2e)] disabled:opacity-30"
+      className="stg:px-0.5 stg:py-0.5 stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:text-[var(--stgm-foreground,#1a1a2e)] stg:disabled:opacity-30"
       aria-label={`Move ${direction}`}
     >
       <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

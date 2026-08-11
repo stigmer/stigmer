@@ -45,22 +45,22 @@ export function WizardNav({
   return (
     <div
       className={cn(
-        "flex items-center justify-between border-t border-border px-6 py-4",
+        "stg:flex stg:items-center stg:justify-between stg:border-t stg:border-border stg:px-6 stg:py-4",
         className,
       )}
     >
-      <div className="flex items-center gap-2">
+      <div className="stg:flex stg:items-center stg:gap-2">
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
             disabled={isSubmitting}
             className={cn(
-              "rounded-md px-3 py-1.5 text-sm",
-              "text-muted-foreground transition-colors",
-              "hover:text-foreground hover:bg-accent-hover",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm",
+              "stg:text-muted-foreground stg:transition-colors",
+              "stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             Cancel
@@ -68,20 +68,20 @@ export function WizardNav({
         )}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="stg:flex stg:items-center stg:gap-2">
         {showBack && (
           <button
             type="button"
             onClick={onBack}
             disabled={isSubmitting}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium text-foreground transition-colors",
-              "hover:bg-accent-hover",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:text-foreground stg:transition-colors",
+              "stg:hover:bg-accent-hover",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
-            <ArrowLeftIcon className="size-3.5" />
+            <ArrowLeftIcon className="stg:size-3.5" />
             Back
           </button>
         )}
@@ -92,15 +92,15 @@ export function WizardNav({
           disabled={nextDisabled || isSubmitting}
           data-cursor-target="wizard-next"
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-colors",
-            "hover:bg-primary-hover",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-40",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:bg-primary stg:px-4 stg:py-1.5 stg:text-sm stg:font-medium stg:text-primary-foreground stg:transition-colors",
+            "stg:hover:bg-primary-hover",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
           {isSubmitting && <SpinnerIcon />}
           {nextLabel}
-          {!isSubmitting && <ArrowRightIcon className="size-3.5" />}
+          {!isSubmitting && <ArrowRightIcon className="stg:size-3.5" />}
         </button>
       </div>
     </div>
@@ -155,7 +155,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

@@ -52,7 +52,7 @@ export function WorkflowVersionDiffViewer({
       <div
         role="alert"
         className={cn(
-          "rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive",
+          "stg:rounded-lg stg:border stg:border-destructive/30 stg:bg-destructive/5 stg:px-4 stg:py-3 stg:text-sm stg:text-destructive",
           className,
         )}
       >
@@ -66,7 +66,7 @@ export function WorkflowVersionDiffViewer({
       <div
         role="status"
         className={cn(
-          "flex items-center justify-center rounded-lg border border-border py-8 text-sm text-muted-foreground",
+          "stg:flex stg:items-center stg:justify-center stg:rounded-lg stg:border stg:border-border stg:py-8 stg:text-sm stg:text-muted-foreground",
           className,
         )}
       >
@@ -78,20 +78,20 @@ export function WorkflowVersionDiffViewer({
   return (
     <div
       className={cn(
-        "overflow-auto rounded-lg border border-border font-mono text-[13px] leading-[1.6]",
+        "stg:overflow-auto stg:rounded-lg stg:border stg:border-border stg:font-mono stg:text-[13px] stg:leading-[1.6]",
         className,
       )}
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
-        <code className="rounded bg-diff-removed-bg px-1 py-0.5">{hashA.slice(0, 8)}</code>
-        <ArrowIcon className="size-3 shrink-0" />
-        <code className="rounded bg-diff-added-bg px-1 py-0.5">{hashB.slice(0, 8)}</code>
+      <div className="stg:sticky stg:top-0 stg:z-10 stg:flex stg:items-center stg:gap-2 stg:border-b stg:border-border stg:bg-muted stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground">
+        <code className="stg:rounded stg:bg-diff-removed-bg stg:px-1 stg:py-0.5">{hashA.slice(0, 8)}</code>
+        <ArrowIcon className="stg:size-3 stg:shrink-0" />
+        <code className="stg:rounded stg:bg-diff-added-bg stg:px-1 stg:py-0.5">{hashB.slice(0, 8)}</code>
       </div>
 
       {/* Diff content */}
-      <table className="w-full border-collapse" role="table">
-        <thead className="sr-only">
+      <table className="stg:w-full stg:border-collapse" role="table">
+        <thead className="stg:sr-only">
           <tr>
             <th scope="col">Line</th>
             <th scope="col">Change</th>
@@ -113,8 +113,8 @@ export function WorkflowVersionDiffViewer({
 // ---------------------------------------------------------------------------
 
 const LINE_NUM_CLASSES =
-  "w-[1px] min-w-8 select-none whitespace-nowrap px-2 text-right text-[11px] text-muted-foreground-faint";
-const MARKER_CLASSES = "w-[1px] select-none px-1 text-center";
+  "stg:w-[1px] stg:min-w-8 stg:select-none stg:whitespace-nowrap stg:px-2 stg:text-right stg:text-[11px] stg:text-muted-foreground-faint";
+const MARKER_CLASSES = "stg:w-[1px] stg:select-none stg:px-1 stg:text-center";
 
 function DiffLineRow({
   line,
@@ -127,17 +127,17 @@ function DiffLineRow({
 
   const rowClass =
     line.type === "added"
-      ? "bg-diff-added-bg"
+      ? "stg:bg-diff-added-bg"
       : line.type === "removed"
-        ? "bg-diff-removed-bg"
+        ? "stg:bg-diff-removed-bg"
         : "";
 
   const markerColor =
     line.type === "added"
-      ? "text-diff-added-fg"
+      ? "stg:text-diff-added-fg"
       : line.type === "removed"
-        ? "text-diff-removed-fg"
-        : "text-muted-foreground-faint";
+        ? "stg:text-diff-removed-fg"
+        : "stg:text-muted-foreground-faint";
 
   const ariaLabel =
     line.type === "added"
@@ -152,7 +152,7 @@ function DiffLineRow({
       <td className={cn(MARKER_CLASSES, markerColor)} aria-hidden="true">
         {marker}
       </td>
-      <td className="whitespace-pre-wrap break-all px-2">{line.content}</td>
+      <td className="stg:whitespace-pre-wrap stg:break-all stg:px-2">{line.content}</td>
     </tr>
   );
 }
@@ -165,21 +165,21 @@ function DiffSkeleton({ className }: { readonly className?: string }) {
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-lg border border-border",
+        "stg:overflow-hidden stg:rounded-lg stg:border stg:border-border",
         className,
       )}
       aria-busy="true"
       aria-label="Loading diff"
     >
-      <div className="border-b border-border bg-muted px-3 py-2">
-        <div className="h-4 w-48 animate-pulse rounded bg-muted-foreground/20" />
+      <div className="stg:border-b stg:border-border stg:bg-muted stg:px-3 stg:py-2">
+        <div className="stg:h-4 stg:w-48 stg:animate-pulse stg:rounded stg:bg-muted-foreground/20" />
       </div>
-      <div className="space-y-1 p-3">
+      <div className="stg:space-y-1 stg:p-3">
         {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="flex gap-2">
-            <div className="h-4 w-6 animate-pulse rounded bg-muted" />
+          <div key={i} className="stg:flex stg:gap-2">
+            <div className="stg:h-4 stg:w-6 stg:animate-pulse stg:rounded stg:bg-muted" />
             <div
-              className="h-4 animate-pulse rounded bg-muted"
+              className="stg:h-4 stg:animate-pulse stg:rounded stg:bg-muted"
               style={{ width: `${40 + (i % 3) * 20}%` }}
             />
           </div>

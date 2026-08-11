@@ -83,7 +83,7 @@ export function MessageAttachments({
           (~h-6) share this row, and flexbox's default stretch alignment
           would balloon the document chips to tile height. */}
       <div
-        className={cn("flex flex-wrap items-center gap-1.5", className)}
+        className={cn("stg:flex stg:flex-wrap stg:items-center stg:gap-1.5", className)}
         role="list"
         aria-label="Submitted attachments"
       >
@@ -172,7 +172,7 @@ function ImagePreviewChip({
   }
 
   return (
-    <span role="listitem" aria-label={name} title={name} className="inline-flex">
+    <span role="listitem" aria-label={name} title={name} className="stg:inline-flex">
       {/* The whole tile is the preview target. UNSTYLED_BUTTON adds the
           pointer cursor — the image tile carries no other clickability
           cue. */}
@@ -182,7 +182,7 @@ function ImagePreviewChip({
         aria-label={`Preview ${name}`}
         className={cn(
           UNSTYLED_BUTTON,
-          "relative block h-14 w-14 overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "stg:relative stg:block stg:h-14 stg:w-14 stg:overflow-hidden stg:rounded-md stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         )}
       >
         {url ? (
@@ -191,14 +191,14 @@ function ImagePreviewChip({
             alt=""
             aria-hidden="true"
             loading="lazy"
-            className="h-full w-full object-cover"
+            className="stg:h-full stg:w-full stg:object-cover"
           />
         ) : (
           // Pulse placeholder while the presigned URL is minted — pulse
           // means work is genuinely in flight (contrast ImageGlyphTile).
           // Same footprint as the image, so no layout shift.
           <span
-            className="block h-full w-full animate-pulse bg-muted"
+            className="stg:block stg:h-full stg:w-full stg:animate-pulse stg:bg-muted"
             aria-hidden="true"
           />
         )}
@@ -219,7 +219,7 @@ function ImageGlyphTile({ name }: { readonly name: string }) {
       role="listitem"
       aria-label={name}
       title={name}
-      className="inline-flex h-14 w-14 items-center justify-center rounded-md bg-muted-subtle"
+      className="stg:inline-flex stg:h-14 stg:w-14 stg:items-center stg:justify-center stg:rounded-md stg:bg-muted-subtle"
     >
       <ImageGlyph />
     </span>
@@ -251,7 +251,7 @@ function DocumentChip({
   const content = (
     <>
       <FileGlyph />
-      <span className="min-w-0 truncate">{name}</span>
+      <span className="stg:min-w-0 stg:truncate">{name}</span>
     </>
   );
 
@@ -260,7 +260,7 @@ function DocumentChip({
       role="listitem"
       aria-label={name}
       title={name}
-      className="inline-flex max-w-[200px] items-center rounded-md bg-muted-subtle px-2 py-0.5 text-xs text-foreground"
+      className="stg:inline-flex stg:max-w-[200px] stg:items-center stg:rounded-md stg:bg-muted-subtle stg:px-2 stg:py-0.5 stg:text-xs stg:text-foreground"
     >
       {downloadable ? (
         <button
@@ -270,14 +270,14 @@ function DocumentChip({
           aria-label={`Download ${name}`}
           className={cn(
             UNSTYLED_BUTTON,
-            "flex min-w-0 items-center gap-1 rounded-sm hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            isDownloading && "opacity-70",
+            "stg:flex stg:min-w-0 stg:items-center stg:gap-1 stg:rounded-sm stg:hover:text-accent-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            isDownloading && "stg:opacity-70",
           )}
         >
           {content}
         </button>
       ) : (
-        <span className="flex min-w-0 items-center gap-1">{content}</span>
+        <span className="stg:flex stg:min-w-0 stg:items-center stg:gap-1">{content}</span>
       )}
     </span>
   );
@@ -329,7 +329,7 @@ function ImageGlyph() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
       aria-hidden="true"
     >
       <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -354,7 +354,7 @@ function FileGlyph() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
       aria-hidden="true"
     >
       <path d="M8 1H4C3.45 1 3 1.45 3 2V12C3 12.55 3.45 13 4 13H10C10.55 13 11 12.55 11 12V4L8 1Z" />

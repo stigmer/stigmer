@@ -31,18 +31,18 @@ export function RetireConfirm({
   const confirmed = typed === target.modelId;
 
   return (
-    <div className="space-y-2 rounded-lg border border-destructive bg-card px-3 py-3">
-      <h4 className="text-xs font-semibold text-foreground">
+    <div className="stg:space-y-2 stg:rounded-lg stg:border stg:border-destructive stg:bg-card stg:px-3 stg:py-3">
+      <h4 className="stg:text-xs stg:font-semibold stg:text-foreground">
         Retire {target.displayName || target.modelId}?
       </h4>
-      <p className="text-xs text-muted-foreground">
+      <p className="stg:text-xs stg:text-muted-foreground">
         The model disappears from every price surface (billing lookups, model
         pickers, the served registry) and any active pricing overrides on it are
         archived. The revision history is kept, and the key can be revived by a
-        later upsert. Type <span className="font-medium text-foreground">{target.modelId}</span>{" "}
+        later upsert. Type <span className="stg:font-medium stg:text-foreground">{target.modelId}</span>{" "}
         to confirm.
       </p>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="stg:grid stg:grid-cols-2 stg:gap-2">
         <input
           className={INPUT_CLASSES}
           value={typed}
@@ -60,11 +60,11 @@ export function RetireConfirm({
         />
       </div>
       {submitError && (
-        <p className="text-destructive text-xs" role="alert">
+        <p className="stg:text-destructive stg:text-xs" role="alert">
           {getUserMessage(submitError)}
         </p>
       )}
-      <div className="flex gap-2">
+      <div className="stg:flex stg:gap-2">
         <Button
           size="sm"
           variant="destructive"

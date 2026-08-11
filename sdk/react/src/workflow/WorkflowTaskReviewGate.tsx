@@ -150,11 +150,11 @@ function PayloadLoadingState({
       role="status"
       aria-label={`Loading review material for ${taskName}`}
       className={cn(
-        "mt-2 rounded-lg border border-border-prominent border-l-2 border-l-warning p-3",
+        "stg:mt-2 stg:rounded-lg stg:border stg:border-border-prominent stg:border-l-2 stg:border-l-warning stg:p-3",
         className,
       )}
     >
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-muted-foreground">
         <Spinner />
         Loading review material…
       </div>
@@ -177,24 +177,24 @@ function PayloadErrorState({
     <div
       role="alert"
       className={cn(
-        "mt-2 rounded-lg border border-border-prominent border-l-2 border-l-destructive p-3",
+        "stg:mt-2 stg:rounded-lg stg:border stg:border-border-prominent stg:border-l-2 stg:border-l-destructive stg:p-3",
         className,
       )}
     >
-      <p className="text-xs font-medium text-foreground">
+      <p className="stg:text-xs stg:font-medium stg:text-foreground">
         Could not load the review material for {taskName}
       </p>
-      <p className="mt-1 break-words text-xs text-muted-foreground">{error.message}</p>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <p className="stg:mt-1 stg:break-words stg:text-xs stg:text-muted-foreground">{error.message}</p>
+      <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
         The gate stays pending — retry to load the material before deciding.
       </p>
       <button
         type="button"
         onClick={onRetry}
         className={cn(
-          "mt-2 rounded border border-border px-2 py-1 text-xs font-medium text-foreground",
-          "transition-colors hover:bg-muted",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "stg:mt-2 stg:rounded stg:border stg:border-border stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:text-foreground",
+          "stg:transition-colors stg:hover:bg-muted",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         )}
       >
         Retry
@@ -210,7 +210,7 @@ function Spinner() {
       height="12"
       viewBox="0 0 12 12"
       fill="none"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <circle

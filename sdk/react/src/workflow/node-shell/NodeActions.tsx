@@ -157,7 +157,7 @@ export const NodeActions = memo(function NodeActions({
       {/* Selection toolbar — auto-shown by React Flow when selected */}
       <NodeToolbar position={Position.Top} offset={8} align="center">
         <div
-          className="stgm flex items-center gap-0.5 rounded-md border border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-popover,var(--stgm-background,#fff))] p-0.5 shadow-md"
+          className="stgm stg:flex stg:items-center stg:gap-0.5 stg:rounded-md stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-popover,var(--stgm-background,#fff))] stg:p-0.5 stg:shadow-md"
           role="toolbar"
           aria-label="Task actions"
           aria-orientation="horizontal"
@@ -175,7 +175,7 @@ export const NodeActions = memo(function NodeActions({
             title="Add task after"
             onClick={handleToolbarAddClick}
           />
-          <div className="mx-0.5 h-4 w-px bg-[var(--stgm-border,#e5e5e5)]" aria-hidden="true" />
+          <div className="stg:mx-0.5 stg:h-4 stg:w-px stg:bg-[var(--stgm-border,#e5e5e5)]" aria-hidden="true" />
           <ToolbarButton
             icon={<TrashIcon />}
             label={`Delete task ${taskName}`}
@@ -191,9 +191,9 @@ export const NodeActions = memo(function NodeActions({
         type="button"
         onClick={handleDelete}
         className={cn(
-          "absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] text-[var(--stgm-muted-foreground,#737373)] shadow-sm transition-all",
-          "hover:border-[var(--stgm-destructive,#ef4444)] hover:bg-[var(--stgm-destructive,#ef4444)] hover:text-[var(--stgm-primary-foreground,#fff)]",
-          "scale-75 opacity-0 group-hover:scale-100 group-hover:opacity-100",
+          "stg:absolute stg:-right-2 stg:-top-2 stg:z-10 stg:flex stg:h-5 stg:w-5 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:text-[var(--stgm-muted-foreground,#737373)] stg:shadow-sm stg:transition-all",
+          "stg:hover:border-[var(--stgm-destructive,#ef4444)] stg:hover:bg-[var(--stgm-destructive,#ef4444)] stg:hover:text-[var(--stgm-primary-foreground,#fff)]",
+          "stg:scale-75 stg:opacity-0 stg:group-hover:scale-100 stg:group-hover:opacity-100",
         )}
         aria-label={`Delete task ${taskName}`}
         title="Delete task"
@@ -209,9 +209,9 @@ export const NodeActions = memo(function NodeActions({
         type="button"
         onClick={handleHoverAddClick}
         className={cn(
-          "absolute -bottom-3 left-1/2 z-10 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] text-[var(--stgm-muted-foreground,#737373)] shadow-sm transition-all",
-          "hover:border-[var(--stgm-primary,#6366f1)] hover:bg-[var(--stgm-primary,#6366f1)] hover:text-[var(--stgm-primary-foreground,#fff)]",
-          "scale-75 opacity-0 group-hover:scale-100 group-hover:opacity-100",
+          "stg:absolute stg:-bottom-3 stg:left-1/2 stg:z-10 stg:flex stg:h-5 stg:w-5 stg:-translate-x-1/2 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:text-[var(--stgm-muted-foreground,#737373)] stg:shadow-sm stg:transition-all",
+          "stg:hover:border-[var(--stgm-primary,#6366f1)] stg:hover:bg-[var(--stgm-primary,#6366f1)] stg:hover:text-[var(--stgm-primary-foreground,#fff)]",
+          "stg:scale-75 stg:opacity-0 stg:group-hover:scale-100 stg:group-hover:opacity-100",
         )}
         aria-label={`Add task after ${taskName}`}
         title="Add task"
@@ -238,9 +238,9 @@ export const NodeActions = memo(function NodeActions({
             type="button"
             onClick={() => setBranchPopoverOpen(true)}
             className={cn(
-              "absolute -bottom-3 left-1/2 z-10 flex h-5 -translate-x-1/2 items-center justify-center rounded-full border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] px-2 text-[9px] font-medium text-[var(--stgm-muted-foreground,#737373)] shadow-sm transition-all",
-              "hover:border-[var(--stgm-primary,#6366f1)] hover:bg-[var(--stgm-primary,#6366f1)] hover:text-[var(--stgm-primary-foreground,#fff)]",
-              "scale-75 opacity-0 group-hover:scale-100 group-hover:opacity-100",
+              "stg:absolute stg:-bottom-3 stg:left-1/2 stg:z-10 stg:flex stg:h-5 stg:-translate-x-1/2 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:px-2 stg:text-[9px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)] stg:shadow-sm stg:transition-all",
+              "stg:hover:border-[var(--stgm-primary,#6366f1)] stg:hover:bg-[var(--stgm-primary,#6366f1)] stg:hover:text-[var(--stgm-primary-foreground,#fff)]",
+              "stg:scale-75 stg:opacity-0 stg:group-hover:scale-100 stg:group-hover:opacity-100",
             )}
             aria-label={
               branchMode === "switch-case"
@@ -279,13 +279,13 @@ export const NodeActions = memo(function NodeActions({
 // ---------------------------------------------------------------------------
 
 const TOOLBAR_BTN_CLASS = cn(
-  "flex h-7 w-7 items-center justify-center rounded text-[var(--stgm-popover-foreground,var(--stgm-foreground,#1a1a2e))] outline-none transition-colors",
-  "hover:bg-[var(--stgm-accent,#e5e5e5)] focus-visible:ring-1 focus-visible:ring-[var(--stgm-ring,#3b82f6)]",
+  "stg:flex stg:h-7 stg:w-7 stg:items-center stg:justify-center stg:rounded stg:text-[var(--stgm-popover-foreground,var(--stgm-foreground,#1a1a2e))] stg:outline-none stg:transition-colors",
+  "stg:hover:bg-[var(--stgm-accent,#e5e5e5)] stg:focus-visible:ring-1 stg:focus-visible:ring-[var(--stgm-ring,#3b82f6)]",
 );
 
 const TOOLBAR_BTN_DESTRUCTIVE_CLASS = cn(
-  "flex h-7 w-7 items-center justify-center rounded text-[var(--stgm-popover-foreground,var(--stgm-foreground,#1a1a2e))] outline-none transition-colors",
-  "hover:bg-[var(--stgm-destructive,#ef4444)]/10 hover:text-[var(--stgm-destructive,#ef4444)] focus-visible:ring-1 focus-visible:ring-[var(--stgm-ring,#3b82f6)]",
+  "stg:flex stg:h-7 stg:w-7 stg:items-center stg:justify-center stg:rounded stg:text-[var(--stgm-popover-foreground,var(--stgm-foreground,#1a1a2e))] stg:outline-none stg:transition-colors",
+  "stg:hover:bg-[var(--stgm-destructive,#ef4444)]/10 stg:hover:text-[var(--stgm-destructive,#ef4444)] stg:focus-visible:ring-1 stg:focus-visible:ring-[var(--stgm-ring,#3b82f6)]",
 );
 
 interface ToolbarButtonProps {

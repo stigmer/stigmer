@@ -41,10 +41,10 @@ export function PricingGovernancePanel({ className }: PricingGovernancePanelProp
 
   if (isLoading) {
     return (
-      <div className={cn("space-y-2", className)} aria-busy="true">
-        <div className="h-4 w-40 animate-pulse rounded bg-muted-subtle" />
+      <div className={cn("stg:space-y-2", className)} aria-busy="true">
+        <div className="stg:h-4 stg:w-40 stg:animate-pulse stg:rounded stg:bg-muted-subtle" />
         {Array.from({ length: 4 }, (_, i) => (
-          <div key={i} className="h-10 animate-pulse rounded-lg bg-muted-subtle" />
+          <div key={i} className="stg:h-10 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
         ))}
       </div>
     );
@@ -57,7 +57,7 @@ export function PricingGovernancePanel({ className }: PricingGovernancePanelProp
       return <OperatorAccessNotice className={className} />;
     }
     return (
-      <p className={cn("text-destructive text-xs", className)} role="alert">
+      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
         {getUserMessage(error)}
       </p>
     );
@@ -77,22 +77,22 @@ export function PricingGovernancePanel({ className }: PricingGovernancePanelProp
   };
 
   return (
-    <div className={cn("space-y-6", className)}>
+    <div className={cn("stg:space-y-6", className)}>
       <section aria-label="Pending pricing override proposals">
-        <h3 className="mb-2 text-xs font-semibold text-foreground">
+        <h3 className="stg:mb-2 stg:text-xs stg:font-semibold stg:text-foreground">
           Pending Sign-Offs
         </h3>
         {decisionError && (
-          <p className="mb-2 text-destructive text-xs" role="alert">
+          <p className="stg:mb-2 stg:text-destructive stg:text-xs" role="alert">
             {getUserMessage(decisionError)}
           </p>
         )}
         {governance.pendingOverrides.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="stg:text-xs stg:text-muted-foreground">
             No pricing overrides awaiting a decision.
           </p>
         ) : (
-          <div className="space-y-2">
+          <div className="stg:space-y-2">
             {governance.pendingOverrides.map((override) => (
               <PendingOverrideCard
                 key={override.overrideId}
@@ -106,18 +106,18 @@ export function PricingGovernancePanel({ className }: PricingGovernancePanelProp
       </section>
 
       <section aria-label="Model pricing state">
-        <h3 className="mb-2 text-xs font-semibold text-foreground">
+        <h3 className="stg:mb-2 stg:text-xs stg:font-semibold stg:text-foreground">
           Model Pricing
         </h3>
-        <div className="rounded-lg border border-border bg-card" role="table"
+        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card" role="table"
              aria-label="Model pricing governance">
           <div role="row"
-               className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-2 border-b border-border px-3 py-2 text-[11px] font-medium text-muted-foreground">
+               className="stg:grid stg:grid-cols-[2fr_1fr_1fr_1fr_1fr] stg:gap-2 stg:border-b stg:border-border stg:px-3 stg:py-2 stg:text-[11px] stg:font-medium stg:text-muted-foreground">
             <span role="columnheader">Model</span>
             <span role="columnheader">Harness</span>
-            <span role="columnheader" className="text-right">Input</span>
-            <span role="columnheader" className="text-right">Output</span>
-            <span role="columnheader" className="text-right">Governance</span>
+            <span role="columnheader" className="stg:text-right">Input</span>
+            <span role="columnheader" className="stg:text-right">Output</span>
+            <span role="columnheader" className="stg:text-right">Governance</span>
           </div>
           {governance.entries.map((entry) => (
             <GovernanceRow
@@ -139,12 +139,12 @@ function GovernanceRow({ entry }: { readonly entry: ModelPricingGovernanceEntry 
   const hasOverrides = entry.activeOverrides.length > 0;
   return (
     <div role="row"
-         className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] items-center gap-2 border-b border-border px-3 py-2 text-xs last:border-b-0">
-      <span role="cell" className="truncate font-medium text-foreground"
+         className="stg:grid stg:grid-cols-[2fr_1fr_1fr_1fr_1fr] stg:items-center stg:gap-2 stg:border-b stg:border-border stg:px-3 stg:py-2 stg:text-xs stg:last:border-b-0">
+      <span role="cell" className="stg:truncate stg:font-medium stg:text-foreground"
             title={entry.modelId}>
         {entry.displayName || entry.modelId}
       </span>
-      <span role="cell" className="text-muted-foreground">{entry.harness}</span>
+      <span role="cell" className="stg:text-muted-foreground">{entry.harness}</span>
       <RateCell
         role="cell"
         baseline={entry.baselineInputMicrosPerMillion}
@@ -155,7 +155,7 @@ function GovernanceRow({ entry }: { readonly entry: ModelPricingGovernanceEntry 
         baseline={entry.baselineOutputMicrosPerMillion}
         effective={entry.effectiveOutputMicrosPerMillion}
       />
-      <span role="cell" className="text-right">
+      <span role="cell" className="stg:text-right">
         <GovernanceBadge
           ledgerReconcilable={entry.ledgerReconcilable}
           hasOverrides={hasOverrides}

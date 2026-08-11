@@ -124,7 +124,7 @@ export function SharedAgentChat({
   if (isLoading) {
     return (
       <div
-        className={cn("flex h-full w-full items-center justify-center", className)}
+        className={cn("stg:flex stg:h-full stg:w-full stg:items-center stg:justify-center", className)}
         aria-busy="true"
         aria-label="Loading agent"
       >
@@ -135,7 +135,7 @@ export function SharedAgentChat({
 
   if (error) {
     return (
-      <div className={cn("flex h-full w-full items-center justify-center", className)}>
+      <div className={cn("stg:flex stg:h-full stg:w-full stg:items-center stg:justify-center", className)}>
         <StateCard
           title="Something went wrong"
           message={getUserMessage(error)}
@@ -151,7 +151,7 @@ export function SharedAgentChat({
   // no deployment to chat with, so it presents as the same state.
   if (!profile || !profile.defaultInstanceId) {
     return (
-      <div className={cn("flex h-full w-full items-center justify-center", className)}>
+      <div className={cn("stg:flex stg:h-full stg:w-full stg:items-center stg:justify-center", className)}>
         <StateCard
           title="This agent isn't available"
           message="The link may be incorrect, or sharing may have been turned off."
@@ -161,35 +161,35 @@ export function SharedAgentChat({
   }
 
   return (
-    <div className={cn("flex h-full w-full flex-col", className)}>
-      <header className="flex items-center gap-3 border-b border-border px-4 py-3">
+    <div className={cn("stg:flex stg:h-full stg:w-full stg:flex-col", className)}>
+      <header className="stg:flex stg:items-center stg:gap-3 stg:border-b stg:border-border stg:px-4 stg:py-3">
         {profile.iconUrl ? (
           <img
             src={profile.iconUrl}
             alt=""
-            className="size-8 rounded-md object-cover"
+            className="stg:size-8 stg:rounded-md stg:object-cover"
           />
         ) : (
           <div
             aria-hidden="true"
-            className="flex size-8 items-center justify-center rounded-md bg-muted text-sm font-semibold text-muted-foreground"
+            className="stg:flex stg:size-8 stg:items-center stg:justify-center stg:rounded-md stg:bg-muted stg:text-sm stg:font-semibold stg:text-muted-foreground"
           >
             {(profile.name || slug).charAt(0).toUpperCase()}
           </div>
         )}
-        <div className="min-w-0">
-          <h1 className="truncate text-sm font-semibold text-foreground">
+        <div className="stg:min-w-0">
+          <h1 className="stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">
             {profile.name || slug}
           </h1>
           {profile.description && (
-            <p className="truncate text-xs text-muted-foreground">
+            <p className="stg:truncate stg:text-xs stg:text-muted-foreground">
               {profile.description}
             </p>
           )}
         </div>
       </header>
 
-      <div className="min-h-0 flex-1">
+      <div className="stg:min-h-0 stg:flex-1">
         {sessionId ? (
           <SessionViewer
             sessionId={sessionId}
@@ -212,7 +212,7 @@ export function SharedAgentChat({
               submitError ? (
                 <p
                   role="alert"
-                  className="text-center text-xs text-destructive"
+                  className="stg:text-center stg:text-xs stg:text-destructive"
                 >
                   {submitError}
                 </p>
@@ -223,12 +223,12 @@ export function SharedAgentChat({
       </div>
 
       {showPoweredBy && (
-        <footer className="border-t border-border px-4 py-2 text-center">
+        <footer className="stg:border-t stg:border-border stg:px-4 stg:py-2 stg:text-center">
           <a
             href="https://stigmer.ai"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[0.65rem] text-muted-foreground hover:text-foreground transition-colors"
+            className="stg:text-[0.65rem] stg:text-muted-foreground stg:hover:text-foreground stg:transition-colors"
           >
             Powered by Stigmer
           </a>
@@ -244,10 +244,10 @@ export function SharedAgentChat({
 
 function LoadingSkeleton() {
   return (
-    <div className="w-full max-w-sm space-y-3 px-6">
-      <div className="mx-auto h-8 w-8 animate-pulse rounded-md bg-muted" />
-      <div className="mx-auto h-4 w-2/3 animate-pulse rounded bg-muted" />
-      <div className="mx-auto h-3 w-1/2 animate-pulse rounded bg-muted" />
+    <div className="stg:w-full stg:max-w-sm stg:space-y-3 stg:px-6">
+      <div className="stg:mx-auto stg:h-8 stg:w-8 stg:animate-pulse stg:rounded-md stg:bg-muted" />
+      <div className="stg:mx-auto stg:h-4 stg:w-2/3 stg:animate-pulse stg:rounded stg:bg-muted" />
+      <div className="stg:mx-auto stg:h-3 stg:w-1/2 stg:animate-pulse stg:rounded stg:bg-muted" />
     </div>
   );
 }
@@ -262,17 +262,17 @@ function StateCard({
   readonly onRetry?: () => void;
 }) {
   return (
-    <div className="mx-6 w-full max-w-sm rounded-lg border border-border bg-card p-6 text-center shadow-sm">
-      <h2 className="text-base font-semibold text-foreground">{title}</h2>
-      <p className="mt-1 text-sm text-muted-foreground">{message}</p>
+    <div className="stg:mx-6 stg:w-full stg:max-w-sm stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-6 stg:text-center stg:shadow-sm">
+      <h2 className="stg:text-base stg:font-semibold stg:text-foreground">{title}</h2>
+      <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">{message}</p>
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
           className={cn(
-            "mt-4 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "transition-colors",
+            "stg:mt-4 stg:inline-flex stg:items-center stg:justify-center stg:rounded-md stg:px-4 stg:py-2 stg:text-sm stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:transition-colors",
           )}
         >
           Try again

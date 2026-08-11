@@ -240,15 +240,15 @@ export function EnvVarForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className={cn("w-72 space-y-3", className)}
+      className={cn("stg:w-72 stg:space-y-3", className)}
       aria-label={resolvedAriaLabel}
     >
       {/* Header */}
       {title && (
-        <div className="space-y-0.5">
-          <h3 className="text-xs font-medium text-foreground">{title}</h3>
+        <div className="stg:space-y-0.5">
+          <h3 className="stg:text-xs stg:font-medium stg:text-foreground">{title}</h3>
           {description && (
-            <p className="text-[0.65rem] text-muted-foreground">
+            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
               {description}
             </p>
           )}
@@ -256,10 +256,10 @@ export function EnvVarForm({
       )}
 
       {/* Fields */}
-      <div className="relative">
+      <div className="stg:relative">
         {fields.canScrollUp && <ScrollFade position="top" />}
 
-        <div ref={fields.scrollRef} className="max-h-64 space-y-2.5 overflow-y-auto">
+        <div ref={fields.scrollRef} className="stg:max-h-64 stg:space-y-2.5 stg:overflow-y-auto">
           {variables.map((variable, idx) => {
             const inputId = `${instanceId}-env-${variable.key}`;
             const descId = variable.description
@@ -268,20 +268,20 @@ export function EnvVarForm({
             const isRevealed = revealedKeys.has(variable.key);
 
             return (
-              <div key={variable.key} className="space-y-1">
+              <div key={variable.key} className="stg:space-y-1">
                 <label
                   htmlFor={inputId}
-                  className="flex items-baseline gap-1.5 text-[0.65rem] font-medium text-muted-foreground"
+                  className="stg:flex stg:items-baseline stg:gap-1.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground"
                 >
-                  <span className="font-mono">{variable.key}</span>
+                  <span className="stg:font-mono">{variable.key}</span>
                   {variable.isSecret && (
-                    <span className="text-[0.55rem] uppercase tracking-wider text-muted-foreground-subtle">
+                    <span className="stg:text-[0.55rem] stg:uppercase stg:tracking-wider stg:text-muted-foreground-subtle">
                       secret
                     </span>
                   )}
                 </label>
 
-                <div className="relative">
+                <div className="stg:relative">
                   <input
                     ref={idx === 0 ? firstInputRef : undefined}
                     id={inputId}
@@ -297,11 +297,11 @@ export function EnvVarForm({
                     autoComplete="off"
                     autoFocus={idx === 0}
                     className={cn(
-                      "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-                      "placeholder:text-muted-foreground",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      "disabled:pointer-events-none disabled:opacity-50",
-                      variable.isSecret && "pr-8",
+                      "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+                      "stg:placeholder:text-muted-foreground",
+                      "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                      "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+                      variable.isSecret && "stg:pr-8",
                     )}
                   />
 
@@ -311,9 +311,9 @@ export function EnvVarForm({
                       onClick={() => toggleReveal(variable.key)}
                       disabled={isDisabled}
                       className={cn(
-                        "absolute right-2 top-1/2 -translate-y-1/2",
-                        "text-muted-foreground hover:text-foreground",
-                        "disabled:pointer-events-none disabled:opacity-50",
+                        "stg:absolute stg:right-2 stg:top-1/2 stg:-translate-y-1/2",
+                        "stg:text-muted-foreground stg:hover:text-foreground",
+                        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
                       )}
                       aria-label={
                         isRevealed ? `Hide ${variable.key}` : `Show ${variable.key}`
@@ -328,13 +328,13 @@ export function EnvVarForm({
                 {variable.description && (
                   <p
                     id={descId}
-                    className="text-[0.6rem] leading-relaxed text-muted-foreground-subtle"
+                    className="stg:text-[0.6rem] stg:leading-relaxed stg:text-muted-foreground-subtle"
                   >
                     {variable.description}
                   </p>
                 )}
                 {prefilledKeys.has(variable.key) && (
-                  <p className="text-[0.55rem] text-primary-muted">
+                  <p className="stg:text-[0.55rem] stg:text-primary-muted">
                     Pre-filled from session variables
                   </p>
                 )}
@@ -348,7 +348,7 @@ export function EnvVarForm({
 
       {/* Save toggle */}
       {!hideSaveToggle && (
-        <div className="flex items-start gap-2 pt-0.5">
+        <div className="stg:flex stg:items-start stg:gap-2 stg:pt-0.5">
           <button
             id={toggleId}
             type="button"
@@ -357,28 +357,28 @@ export function EnvVarForm({
             onClick={() => setSaveForFuture((prev) => !prev)}
             disabled={isDisabled}
             className={cn(
-              "relative mt-0.5 inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              "disabled:pointer-events-none disabled:opacity-50",
-              saveForFuture ? "bg-primary" : "bg-input",
+              "stg:relative stg:mt-0.5 stg:inline-flex stg:h-4 stg:w-7 stg:shrink-0 stg:cursor-pointer stg:rounded-full stg:transition-colors",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-2",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+              saveForFuture ? "stg:bg-primary" : "stg:bg-input",
             )}
           >
             <span
               className={cn(
-                "pointer-events-none block h-3 w-3 translate-y-0.5 rounded-full bg-background shadow-sm ring-0 transition-transform",
-                saveForFuture ? "translate-x-3.5" : "translate-x-0.5",
+                "stg:pointer-events-none stg:block stg:h-3 stg:w-3 stg:translate-y-0.5 stg:rounded-full stg:bg-background stg:shadow-sm stg:ring-0 stg:transition-transform",
+                saveForFuture ? "stg:translate-x-3.5" : "stg:translate-x-0.5",
               )}
             />
           </button>
           <label
             htmlFor={toggleId}
-            className="cursor-pointer select-none space-y-0.5"
+            className="stg:cursor-pointer stg:select-none stg:space-y-0.5"
           >
-            <span className="block text-[0.65rem] font-medium text-muted-foreground">
+            <span className="stg:block stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
               Save for future runs
             </span>
             {!saveForFuture && (
-              <span className="block text-[0.6rem] leading-relaxed text-muted-foreground-subtle">
+              <span className="stg:block stg:text-[0.6rem] stg:leading-relaxed stg:text-muted-foreground-subtle">
                 These values will only be used for this run.
               </span>
             )}
@@ -387,16 +387,16 @@ export function EnvVarForm({
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-end gap-2 pt-1">
+      <div className="stg:flex stg:items-center stg:justify-end stg:gap-2 stg:pt-1">
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
             disabled={isDisabled}
             className={cn(
-              "rounded-md px-3 py-1.5 text-xs",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             {cancelLabel}
@@ -408,10 +408,10 @@ export function EnvVarForm({
           disabled={!allFilled || isDisabled}
           data-cursor-target="env-form-submit"
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground",
-            "hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-40",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground",
+            "stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
           {isSubmitting && <SpinnerIcon />}
@@ -476,7 +476,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

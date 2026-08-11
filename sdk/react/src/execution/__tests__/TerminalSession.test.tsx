@@ -36,7 +36,7 @@ describe("TerminalSession", () => {
   it("renders stderr in the destructive color", () => {
     render(<TerminalSession command="oops" stderr="bad things" exitCode={1} />);
     const stderr = screen.getByText("bad things");
-    expect(stderr.className).toContain("text-destructive");
+    expect(stderr.className).toContain("stg:text-destructive");
   });
 
   it("preserves a multi-line (heredoc) command in full", () => {

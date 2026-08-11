@@ -52,9 +52,9 @@ export function RevealToggle({
       aria-expanded={expanded}
       data-cursor-target={cursorTarget}
       className={cn(
-        "mt-1 flex w-full items-center justify-center gap-1 rounded py-0.5",
-        "text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "stg:mt-1 stg:flex stg:w-full stg:items-center stg:justify-center stg:gap-1 stg:rounded stg:py-0.5",
+        "stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         className,
       )}
     >
@@ -80,8 +80,8 @@ function ChevronIcon({ expanded }: { expanded: boolean }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={cn(
-        "shrink-0 transition-transform duration-150",
-        expanded && "rotate-180",
+        "stg:shrink-0 stg:transition-transform stg:duration-150",
+        expanded && "stg:rotate-180",
       )}
       aria-hidden="true"
     >

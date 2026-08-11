@@ -490,7 +490,7 @@ describe("MessageThread", () => {
     expect(pendingText).toBeTruthy();
 
     const article = pendingText.closest("[role='article']");
-    expect(article?.className).toContain("opacity-70");
+    expect(article?.className).toContain("stg:opacity-70");
   });
 
   it("renders approval card when onApprovalSubmit is provided and execution has pending approvals", () => {

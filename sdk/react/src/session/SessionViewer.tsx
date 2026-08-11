@@ -134,7 +134,7 @@ async function fetchPlanText(
  * block's children carry their own edge padding, so only width and
  * anchoring live here.
  */
-const CONVERSATION_COLUMN_CLASS = "mx-auto w-full max-w-3xl";
+const CONVERSATION_COLUMN_CLASS = "stg:mx-auto stg:w-full stg:max-w-3xl";
 
 /** Props for {@link SessionViewer}. */
 export interface SessionViewerProps {
@@ -538,8 +538,8 @@ export function SessionViewer({
 
   if (conv.isLoading) {
     return (
-      <div className={cn("flex h-full w-full flex-col", className)}>
-        <ThreadSkeleton className="flex-1 px-0" />
+      <div className={cn("stg:flex stg:h-full stg:w-full stg:flex-col", className)}>
+        <ThreadSkeleton className="stg:flex-1 stg:px-0" />
       </div>
     );
   }
@@ -790,7 +790,7 @@ const ConversationColumn = memo(function ConversationColumn({
   );
 
   return (
-    <div className="flex h-full min-w-0 flex-col">
+    <div className="stg:flex stg:h-full stg:min-w-0 stg:flex-col">
       <MessageThread
         executions={conv.completedExecutions}
         activeStreamExecution={conv.activeStreamExecution}
@@ -828,7 +828,7 @@ const ConversationColumn = memo(function ConversationColumn({
         planBuildPending={isBuildingFromPlan}
         contentColumn="center"
         slots={threadSlots}
-        className="flex-1"
+        className="stg:flex-1"
       />
       <div className={CONVERSATION_COLUMN_CLASS}>
         {planAttachFailed && (
@@ -911,7 +911,7 @@ const ConversationColumn = memo(function ConversationColumn({
             skillRefs={isCurated ? undefined : flow.skillRefs}
             onSkillRefsChange={isCurated ? undefined : flow.setSkillRefs}
             sessionVariables={isCurated ? undefined : flow.sessionVariables}
-            className="px-4 py-3"
+            className="stg:px-4 stg:py-3"
           />
         )}
       </div>
@@ -1243,7 +1243,7 @@ function SessionPanelRegion({
       onCollapse={panel.closePanel}
       change={openFileChange ?? undefined}
       reveal={activeReveal}
-      className="h-full"
+      className="stg:h-full"
     />
   );
 }
@@ -1254,19 +1254,19 @@ function SessionPanelRegion({
 
 function SessionLoadError({ error }: { error: Error }) {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-6 text-center">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive-subtle">
+    <div className="stg:flex stg:min-h-[60vh] stg:flex-col stg:items-center stg:justify-center stg:px-4">
+      <div className="stg:w-full stg:max-w-sm stg:space-y-6 stg:text-center">
+        <div className="stg:mx-auto stg:flex stg:size-12 stg:items-center stg:justify-center stg:rounded-full stg:bg-destructive-subtle">
           <ErrorTriangleIcon />
         </div>
-        <div className="space-y-2">
-          <h1 className="text-lg font-semibold">Failed to load session</h1>
-          <p className="text-sm text-muted-foreground">{getUserMessage(error)}</p>
+        <div className="stg:space-y-2">
+          <h1 className="stg:text-lg stg:font-semibold">Failed to load session</h1>
+          <p className="stg:text-sm stg:text-muted-foreground">{getUserMessage(error)}</p>
         </div>
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium hover:bg-muted"
+          className="stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:hover:bg-muted"
         >
           Try again
         </button>
@@ -1277,10 +1277,10 @@ function SessionLoadError({ error }: { error: Error }) {
 
 function SessionStarting() {
   return (
-    <div className="flex h-full items-center justify-center">
-      <div className="space-y-2 text-center">
+    <div className="stg:flex stg:h-full stg:items-center stg:justify-center">
+      <div className="stg:space-y-2 stg:text-center">
         <LoaderIcon />
-        <p className="text-sm text-muted-foreground">Starting session…</p>
+        <p className="stg:text-sm stg:text-muted-foreground">Starting session…</p>
       </div>
     </div>
   );
@@ -1296,16 +1296,16 @@ function AutoApproveIndicator({ onTurnOff }: { onTurnOff: () => void }) {
   return (
     <div
       role="status"
-      className="flex items-center gap-2 border-t border-border-muted px-4 py-1.5 text-xs text-muted-foreground"
+      className="stg:flex stg:items-center stg:gap-2 stg:border-t stg:border-border-muted stg:px-4 stg:py-1.5 stg:text-xs stg:text-muted-foreground"
     >
       <ShieldCheckIcon />
-      <span className="min-w-0 flex-1 truncate">
+      <span className="stg:min-w-0 stg:flex-1 stg:truncate">
         Auto-approving tool calls for this session
       </span>
       <button
         type="button"
         onClick={onTurnOff}
-        className="shrink-0 rounded font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="stg:shrink-0 stg:rounded stg:font-medium stg:text-foreground stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
       >
         Turn off
       </button>
@@ -1324,12 +1324,12 @@ function PlanUnavailableNotice() {
   return (
     <div
       role="status"
-      className="mx-auto flex w-full max-w-3xl flex-col items-center gap-1 px-4 py-8 text-center"
+      className="stg:mx-auto stg:flex stg:w-full stg:max-w-3xl stg:flex-col stg:items-center stg:gap-1 stg:px-4 stg:py-8 stg:text-center"
     >
-      <p className="text-xs font-medium text-foreground">
+      <p className="stg:text-xs stg:font-medium stg:text-foreground">
         This turn ended before a plan was completed.
       </p>
-      <p className="text-xs text-muted-foreground">
+      <p className="stg:text-xs stg:text-muted-foreground">
         Any partial plan text remains in the conversation.
       </p>
     </div>
@@ -1346,12 +1346,12 @@ function ArtifactUnavailableNotice() {
   return (
     <div
       role="status"
-      className="mx-auto flex w-full max-w-3xl flex-col items-center gap-1 px-4 py-8 text-center"
+      className="stg:mx-auto stg:flex stg:w-full stg:max-w-3xl stg:flex-col stg:items-center stg:gap-1 stg:px-4 stg:py-8 stg:text-center"
     >
-      <p className="text-xs font-medium text-foreground">
+      <p className="stg:text-xs stg:font-medium stg:text-foreground">
         This artifact is no longer available.
       </p>
-      <p className="text-xs text-muted-foreground">
+      <p className="stg:text-xs stg:text-muted-foreground">
         It may have been replaced by a newer version of this session.
       </p>
     </div>
@@ -1368,16 +1368,16 @@ function PlanAttachFailedNotice({ onDismiss }: { onDismiss: () => void }) {
   return (
     <div
       role="status"
-      className="flex items-center gap-2 border-t border-border-muted px-4 py-1.5 text-xs text-muted-foreground"
+      className="stg:flex stg:items-center stg:gap-2 stg:border-t stg:border-border-muted stg:px-4 stg:py-1.5 stg:text-xs stg:text-muted-foreground"
     >
-      <span className="min-w-0 flex-1 truncate">
+      <span className="stg:min-w-0 stg:flex-1 stg:truncate">
         Couldn&rsquo;t attach plan.md — the agent will follow the plan from the
         conversation instead.
       </span>
       <button
         type="button"
         onClick={onDismiss}
-        className="shrink-0 rounded font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="stg:shrink-0 stg:rounded stg:font-medium stg:text-foreground stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
       >
         Dismiss
       </button>
@@ -1387,10 +1387,10 @@ function PlanAttachFailedNotice({ onDismiss }: { onDismiss: () => void }) {
 
 function SendErrorBanner({ error }: { error: Error }) {
   if (isSecretFlowError(error)) {
-    return <SecretFlowErrorGuide error={error} className="mx-4 my-2" />;
+    return <SecretFlowErrorGuide error={error} className="stg:mx-4 stg:my-2" />;
   }
   return (
-    <div role="alert" className="border-t border-border px-4 py-2 text-xs text-destructive">
+    <div role="alert" className="stg:border-t stg:border-border stg:px-4 stg:py-2 stg:text-xs stg:text-destructive">
       {getUserMessage(error)}
     </div>
   );
@@ -1401,7 +1401,7 @@ function ReconnectingIndicator() {
     <div
       role="status"
       aria-live="polite"
-      className="flex items-center gap-2 border-t border-border bg-muted px-4 py-2 text-sm text-muted-foreground"
+      className="stg:flex stg:items-center stg:gap-2 stg:border-t stg:border-border stg:bg-muted stg:px-4 stg:py-2 stg:text-sm stg:text-muted-foreground"
     >
       <svg
         width="14"
@@ -1412,12 +1412,12 @@ function ReconnectingIndicator() {
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="shrink-0 animate-spin motion-reduce:animate-none"
+        className="stg:shrink-0 stg:animate-spin stg:motion-reduce:animate-none"
         aria-hidden="true"
       >
         <path d="M21 12a9 9 0 1 1-6.219-8.56" />
       </svg>
-      <span className="truncate">Reconnecting…</span>
+      <span className="stg:truncate">Reconnecting…</span>
     </div>
   );
 }
@@ -1430,14 +1430,14 @@ function ReconnectingIndicator() {
  */
 function ConnectTimedOutBanner({ onRetry }: { onRetry: () => void }) {
   return (
-    <div role="alert" className="flex items-center gap-3 border-t border-border bg-muted px-4 py-2.5">
-      <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+    <div role="alert" className="stg:flex stg:items-center stg:gap-3 stg:border-t stg:border-border stg:bg-muted stg:px-4 stg:py-2.5">
+      <p className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-sm stg:text-muted-foreground">
         The agent hasn&rsquo;t started yet.
       </p>
       <button
         type="button"
         onClick={onRetry}
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs font-medium hover:bg-card"
+        className="stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:hover:bg-card"
       >
         Retry
       </button>
@@ -1455,13 +1455,13 @@ function SlowIndicator() {
     <div
       role="status"
       aria-live="polite"
-      className="flex items-center gap-2 border-t border-border-muted px-4 py-1.5 text-xs text-muted-foreground"
+      className="stg:flex stg:items-center stg:gap-2 stg:border-t stg:border-border-muted stg:px-4 stg:py-1.5 stg:text-xs stg:text-muted-foreground"
     >
-      <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-muted-foreground opacity-75 motion-reduce:animate-none" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-muted-foreground" />
+      <span className="stg:relative stg:flex stg:h-2 stg:w-2 stg:shrink-0" aria-hidden="true">
+        <span className="stg:absolute stg:inline-flex stg:h-full stg:w-full stg:animate-ping stg:rounded-full stg:bg-muted-foreground stg:opacity-75 stg:motion-reduce:animate-none" />
+        <span className="stg:relative stg:inline-flex stg:h-2 stg:w-2 stg:rounded-full stg:bg-muted-foreground" />
       </span>
-      <span className="min-w-0 flex-1 truncate">
+      <span className="stg:min-w-0 stg:flex-1 stg:truncate">
         Still working — this is taking longer than usual.
       </span>
     </div>
@@ -1476,14 +1476,14 @@ function StreamErrorBanner({
   onReconnect: () => void;
 }) {
   return (
-    <div role="alert" className="flex items-center gap-3 border-t border-border bg-muted px-4 py-2.5">
-      <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+    <div role="alert" className="stg:flex stg:items-center stg:gap-3 stg:border-t stg:border-border stg:bg-muted stg:px-4 stg:py-2.5">
+      <p className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-sm stg:text-muted-foreground">
         {getUserMessage(error)}
       </p>
       <button
         type="button"
         onClick={onReconnect}
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs font-medium hover:bg-card"
+        className="stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:hover:bg-card"
       >
         Reconnect
       </button>
@@ -1497,7 +1497,7 @@ function StreamErrorBanner({
 
 function ErrorTriangleIcon() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-destructive">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="stg:text-destructive">
       <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
       <line x1="12" y1="9" x2="12" y2="13" />
       <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -1507,7 +1507,7 @@ function ErrorTriangleIcon() {
 
 function LoaderIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" className="mx-auto animate-spin text-muted-foreground">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" className="stg:mx-auto stg:animate-spin stg:text-muted-foreground">
       <path d="M10 2a8 8 0 0 1 0 16" strokeLinecap="round" />
     </svg>
   );
@@ -1515,7 +1515,7 @@ function LoaderIcon() {
 
 function ShieldCheckIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-success" aria-hidden="true">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="stg:shrink-0 stg:text-success" aria-hidden="true">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
       <path d="m9 12 2 2 4-4" />
     </svg>

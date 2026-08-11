@@ -28,15 +28,15 @@ export interface ContextGaugeProps {
 }
 
 const HEALTH_BAR_COLORS: Record<ContextHealth, string> = {
-  healthy: "bg-success",
-  warning: "bg-warning",
-  critical: "bg-destructive",
+  healthy: "stg:bg-success",
+  warning: "stg:bg-warning",
+  critical: "stg:bg-destructive",
 };
 
 const HEALTH_TEXT_COLORS: Record<ContextHealth, string> = {
-  healthy: "text-success",
-  warning: "text-warning",
-  critical: "text-destructive",
+  healthy: "stg:text-success",
+  warning: "stg:text-warning",
+  critical: "stg:text-destructive",
 };
 
 const HEALTH_LABELS: Record<ContextHealth, string> = {
@@ -108,12 +108,12 @@ const CompactGauge = memo(function CompactGauge({
       aria-valuemin={0}
       aria-valuemax={ctx.contextWindowLimit}
       aria-valuetext={`${Math.round(ctx.utilizationPercent)}% context used`}
-      className={cn("flex items-center gap-2", className)}
+      className={cn("stg:flex stg:items-center stg:gap-2", className)}
     >
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+      <div className="stg:h-1.5 stg:flex-1 stg:overflow-hidden stg:rounded-full stg:bg-muted">
         <div
           className={cn(
-            "h-full rounded-full transition-colors",
+            "stg:h-full stg:rounded-full stg:transition-colors",
             HEALTH_BAR_COLORS[ctx.health],
           )}
           style={{ width: `${barPercent}%` }}
@@ -121,7 +121,7 @@ const CompactGauge = memo(function CompactGauge({
       </div>
       <span
         className={cn(
-          "shrink-0 text-xs tabular-nums",
+          "stg:shrink-0 stg:text-xs stg:tabular-nums",
           HEALTH_TEXT_COLORS[ctx.health],
         )}
       >
@@ -152,16 +152,16 @@ const FullGauge = memo(function FullGauge({
       aria-valuemin={0}
       aria-valuemax={ctx.contextWindowLimit}
       aria-valuetext={`${formatCompactTokens(ctx.currentTokenCount)} of ${formatCompactTokens(ctx.contextWindowLimit)} tokens used, ${Math.round(ctx.utilizationPercent)}%`}
-      className={cn("flex flex-col gap-1.5", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-1.5", className)}
     >
       {/* Header: label + percentage */}
-      <div className="flex items-baseline justify-between">
-        <span className="text-xs font-medium text-foreground">
+      <div className="stg:flex stg:items-baseline stg:justify-between">
+        <span className="stg:text-xs stg:font-medium stg:text-foreground">
           Context
         </span>
         <span
           className={cn(
-            "text-xs tabular-nums font-medium",
+            "stg:text-xs stg:tabular-nums stg:font-medium",
             HEALTH_TEXT_COLORS[ctx.health],
           )}
         >
@@ -170,11 +170,11 @@ const FullGauge = memo(function FullGauge({
       </div>
 
       {/* Progress bar with threshold marker */}
-      <div className="relative">
-        <div className="h-2 overflow-hidden rounded-full bg-muted">
+      <div className="stg:relative">
+        <div className="stg:h-2 stg:overflow-hidden stg:rounded-full stg:bg-muted">
           <div
             className={cn(
-              "h-full rounded-full transition-colors",
+              "stg:h-full stg:rounded-full stg:transition-colors",
               HEALTH_BAR_COLORS[ctx.health],
             )}
             style={{ width: `${barPercent}%` }}
@@ -182,7 +182,7 @@ const FullGauge = memo(function FullGauge({
         </div>
         {triggerPercent > 0 && triggerPercent < 100 && (
           <div
-            className="absolute top-0 h-2 w-px bg-muted-foreground/40"
+            className="stg:absolute stg:top-0 stg:h-2 stg:w-px stg:bg-muted-foreground/40"
             style={{ left: `${triggerPercent}%` }}
             aria-hidden="true"
           />
@@ -190,25 +190,25 @@ const FullGauge = memo(function FullGauge({
       </div>
 
       {/* Token counts */}
-      <div className="text-xs tabular-nums text-muted-foreground">
+      <div className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
         {formatCompactTokens(ctx.currentTokenCount)} /{" "}
         {formatCompactTokens(ctx.contextWindowLimit)} tokens
       </div>
 
       {/* Health status + summarization count */}
-      <div className="flex items-center gap-1.5">
+      <div className="stg:flex stg:items-center stg:gap-1.5">
         <span
           className={cn(
-            "inline-flex h-1.5 w-1.5 rounded-full",
+            "stg:inline-flex stg:h-1.5 stg:w-1.5 stg:rounded-full",
             HEALTH_BAR_COLORS[ctx.health],
           )}
           aria-hidden="true"
         />
-        <span className="text-xs text-muted-foreground">
+        <span className="stg:text-xs stg:text-muted-foreground">
           {HEALTH_LABELS[ctx.health]}
         </span>
         {ctx.summarizationEvents.length > 0 && (
-          <span className="text-xs text-muted-foreground">
+          <span className="stg:text-xs stg:text-muted-foreground">
             · {ctx.summarizationEvents.length}{" "}
             {ctx.summarizationEvents.length === 1
               ? "summarization"
@@ -234,7 +234,7 @@ function SummarizationSummary({
   if (!latest) return null;
 
   return (
-    <div className="pl-3 text-xs tabular-nums text-muted-foreground">
+    <div className="stg:pl-3 stg:text-xs stg:tabular-nums stg:text-muted-foreground">
       Last: {formatTokenCount(latest.tokensBefore)} →{" "}
       {formatTokenCount(latest.tokensAfter)} tokens (
       {Math.round(latest.compressionRatio * 100)}% reduction)

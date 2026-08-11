@@ -69,12 +69,12 @@ export function WriteBackCard({ writeBack, className }: WriteBackCardProps) {
     <div
       role="article"
       aria-label={`Write-back: ${displayName}`}
-      className={cn("flex flex-col", className)}
+      className={cn("stg:flex stg:flex-col", className)}
     >
       {/* Header: workspace name + quiet phase caption */}
-      <div className="flex items-center gap-2 px-2 py-1">
+      <div className="stg:flex stg:items-center stg:gap-2 stg:px-2 stg:py-1">
         <span
-          className="min-w-0 flex-1 truncate text-xs font-medium text-foreground"
+          className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-xs stg:font-medium stg:text-foreground"
           title={displayName}
         >
           {displayName}
@@ -107,10 +107,10 @@ export function WriteBackCard({ writeBack, className }: WriteBackCardProps) {
       {writeBack.error && (
         <div
           className={cn(
-            "mx-2 my-1 rounded px-2 py-1 text-xs",
+            "stg:mx-2 stg:my-1 stg:rounded stg:px-2 stg:py-1 stg:text-xs",
             isFailed
-              ? "bg-destructive-subtle text-destructive"
-              : "bg-status-degraded-subtle text-status-degraded",
+              ? "stg:bg-destructive-subtle stg:text-destructive"
+              : "stg:bg-status-degraded-subtle stg:text-status-degraded",
           )}
         >
           {writeBack.error}
@@ -155,10 +155,10 @@ function PhaseCaption({
   return (
     <span
       className={cn(
-        "shrink-0 text-[10px] font-medium tabular-nums",
+        "stg:shrink-0 stg:text-[10px] stg:font-medium stg:tabular-nums",
         phase === WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_FAILED
-          ? "text-destructive"
-          : "text-muted-foreground",
+          ? "stg:text-destructive"
+          : "stg:text-muted-foreground",
       )}
     >
       {label}
@@ -177,19 +177,19 @@ function PullRequestRow({ url, number }: { url: string; number: number }) {
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        "group flex items-center gap-2 px-2 py-1 text-xs text-muted-foreground transition-colors",
-        "hover:bg-muted hover:text-foreground",
+        "stg:group stg:flex stg:items-center stg:gap-2 stg:px-2 stg:py-1 stg:text-xs stg:text-muted-foreground stg:transition-colors",
+        "stg:hover:bg-muted stg:hover:text-foreground",
         FOCUS_RING_CLASSES,
       )}
     >
-      <span className="shrink-0">
+      <span className="stg:shrink-0">
         <PullRequestIcon />
       </span>
-      <span className="min-w-0 flex-1 truncate text-foreground">
+      <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground">
         {number > 0 ? `Pull Request #${number}` : "Pull Request"}
       </span>
       <span
-        className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+        className="stg:shrink-0 stg:opacity-0 stg:transition-opacity stg:group-hover:opacity-100 stg:group-focus-visible:opacity-100"
         aria-hidden="true"
       >
         <ExternalLinkIcon />
@@ -235,19 +235,19 @@ function BranchRow({
   }, [branchName]);
 
   return (
-    <div className="group flex items-stretch">
+    <div className="stg:group stg:flex stg:items-stretch">
       <div
-        className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1 text-xs"
+        className="stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-2 stg:px-2 stg:py-1 stg:text-xs"
         title={baseBranch ? `${branchName} \u2190 ${baseBranch}` : branchName}
       >
-        <span className="shrink-0 text-muted-foreground">
+        <span className="stg:shrink-0 stg:text-muted-foreground">
           <GitBranchIcon />
         </span>
-        <span className="min-w-0 truncate font-mono text-foreground">
+        <span className="stg:min-w-0 stg:truncate stg:font-mono stg:text-foreground">
           {branchName}
         </span>
         {baseBranch && (
-          <span className="shrink-0 font-mono text-muted-foreground-faint">
+          <span className="stg:shrink-0 stg:font-mono stg:text-muted-foreground-faint">
             {"\u2190 "}
             {baseBranch}
           </span>
@@ -259,12 +259,12 @@ function BranchRow({
         aria-label={copied ? "Branch name copied" : `Copy branch name ${branchName}`}
         title={copied ? "Copied" : "Copy branch name"}
         className={cn(
-          "flex shrink-0 items-center px-2 text-muted-foreground transition-opacity",
+          "stg:flex stg:shrink-0 stg:items-center stg:px-2 stg:text-muted-foreground stg:transition-opacity",
           copied
-            ? "opacity-100"
-            : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
-          "hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+            ? "stg:opacity-100"
+            : "stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
+          "stg:hover:text-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
         )}
       >
         {copied ? <CheckIcon /> : <CopyIcon />}
@@ -286,7 +286,7 @@ function StatLine({ diffSummary }: { diffSummary: string }) {
         fileCount={stats.filesChanged}
         additions={stats.insertions}
         deletions={stats.deletions}
-        className="px-2 py-1"
+        className="stg:px-2 stg:py-1"
       />
     );
   }
@@ -297,7 +297,7 @@ function StatLine({ diffSummary }: { diffSummary: string }) {
   if (!raw) return null;
 
   return (
-    <div className="px-2 py-1 font-mono text-xs text-muted-foreground">
+    <div className="stg:px-2 stg:py-1 stg:font-mono stg:text-xs stg:text-muted-foreground">
       {raw}
     </div>
   );
@@ -308,7 +308,7 @@ function StatLine({ diffSummary }: { diffSummary: string }) {
 // ---------------------------------------------------------------------------
 
 const FOCUS_RING_CLASSES =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
+  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring";
 
 // ---------------------------------------------------------------------------
 // Inline SVG icons — monochrome, `currentColor`-tinted (DD-005; SDK
@@ -372,7 +372,7 @@ function ExternalLinkIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <path d="M9 3L3 9" />
@@ -393,7 +393,7 @@ function CopyIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <rect x="4" y="4" width="6.5" height="6.5" rx="1" />
@@ -413,7 +413,7 @@ function CheckIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <path d="M2.5 6.5L5 9L9.5 3.5" />

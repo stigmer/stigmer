@@ -55,8 +55,8 @@ export const ExecutionComparisonView = memo(function ExecutionComparisonView({
 
   if (isLoading) {
     return (
-      <div className={cn("flex items-center justify-center py-16", className)}>
-        <span className="text-sm text-[var(--stgm-muted-foreground,#737373)]">
+      <div className={cn("stg:flex stg:items-center stg:justify-center stg:py-16", className)}>
+        <span className="stg:text-sm stg:text-[var(--stgm-muted-foreground,#737373)]">
           Loading comparison...
         </span>
       </div>
@@ -65,11 +65,11 @@ export const ExecutionComparisonView = memo(function ExecutionComparisonView({
 
   if (error) {
     return (
-      <div className={cn("flex flex-col items-center justify-center gap-2 py-16", className)}>
-        <span className="text-sm text-[var(--stgm-destructive,#dc2626)]">
+      <div className={cn("stg:flex stg:flex-col stg:items-center stg:justify-center stg:gap-2 stg:py-16", className)}>
+        <span className="stg:text-sm stg:text-[var(--stgm-destructive,#dc2626)]">
           Failed to load executions
         </span>
-        <span className="text-xs text-[var(--stgm-muted-foreground,#737373)]">
+        <span className="stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">
           {error.message}
         </span>
       </div>
@@ -80,15 +80,15 @@ export const ExecutionComparisonView = memo(function ExecutionComparisonView({
 
   return (
     <section
-      className={cn("flex flex-col gap-4", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-4", className)}
       aria-label="Execution comparison"
     >
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="stg:flex stg:items-center stg:gap-3">
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-muted,#f5f5f5)] hover:text-[var(--stgm-foreground,#1a1a2e)]"
+          className="stg:flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:bg-[var(--stgm-muted,#f5f5f5)] stg:hover:text-[var(--stgm-foreground,#1a1a2e)]"
           aria-label="Back to execution"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -97,13 +97,13 @@ export const ExecutionComparisonView = memo(function ExecutionComparisonView({
           Back
         </button>
 
-        <div className="flex flex-1 items-center gap-2">
+        <div className="stg:flex stg:flex-1 stg:items-center stg:gap-2">
           <ExecutionLabel
             name={comparison.baseRow.name || baseExecutionId}
             phase={comparison.baseRow.phase}
             label="Base"
           />
-          <span className="text-xs text-[var(--stgm-muted-foreground,#737373)]">vs</span>
+          <span className="stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">vs</span>
           <ExecutionLabel
             name={comparison.compareRow.name || compareExecutionId}
             phase={comparison.compareRow.phase}
@@ -114,9 +114,9 @@ export const ExecutionComparisonView = memo(function ExecutionComparisonView({
 
       {/* Divergence callout */}
       {comparison.divergencePoint && (
-        <div className="flex items-center gap-2 rounded-md border border-[var(--stgm-warning,#f59e0b)]/30 bg-[var(--stgm-warning,#f59e0b)]/5 px-3 py-2">
-          <span className="inline-block h-2 w-2 rounded-full bg-[var(--stgm-warning,#f59e0b)]" aria-hidden="true" />
-          <span className="text-xs text-[var(--stgm-foreground,#1a1a2e)]">
+        <div className="stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:border stg:border-[var(--stgm-warning,#f59e0b)]/30 stg:bg-[var(--stgm-warning,#f59e0b)]/5 stg:px-3 stg:py-2">
+          <span className="stg:inline-block stg:h-2 stg:w-2 stg:rounded-full stg:bg-[var(--stgm-warning,#f59e0b)]" aria-hidden="true" />
+          <span className="stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)]">
             First divergence at <strong>{comparison.divergencePoint}</strong>
           </span>
         </div>
@@ -141,12 +141,12 @@ function ExecutionLabel({
   label: string;
 }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--stgm-muted-foreground,#737373)]">
+    <div className="stg:flex stg:items-center stg:gap-1.5">
+      <span className="stg:text-[10px] stg:font-medium stg:uppercase stg:tracking-wide stg:text-[var(--stgm-muted-foreground,#737373)]">
         {label}:
       </span>
       <WorkflowExecutionPhaseBadge phase={phase} />
-      <span className="max-w-[10rem] truncate text-xs font-medium text-[var(--stgm-foreground,#1a1a2e)]" title={name}>
+      <span className="stg:max-w-[10rem] stg:truncate stg:text-xs stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]" title={name}>
         {name}
       </span>
     </div>

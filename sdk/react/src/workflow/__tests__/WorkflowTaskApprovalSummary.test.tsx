@@ -104,7 +104,7 @@ describe("WorkflowTaskApprovalSummary", () => {
         <WorkflowTaskApprovalSummary {...baseProps} decision={makeDecision({ reviewer: "bob" })} />,
       );
       const raw = screen.getByText("bob");
-      expect(raw.className).toContain("font-mono");
+      expect(raw.className).toContain("stg:font-mono");
     });
 
     it("omits the 'by' segment entirely for unattributed decisions", () => {

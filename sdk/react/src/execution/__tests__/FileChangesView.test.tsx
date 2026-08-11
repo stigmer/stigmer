@@ -108,7 +108,7 @@ describe("FileChangeDiff", () => {
       <FileChangeDiff change={wholeFile("src/full.ts", "alpha\n", "beta\n")} />,
     );
     // No shared preview clamp: the Changes review surface shows the whole diff.
-    expect(container.querySelector(".overflow-hidden.max-h-48")).toBeNull();
+    expect(container.querySelector(".stg\\:overflow-hidden.stg\\:max-h-48")).toBeNull();
     expect(container.querySelector("table")).not.toBeNull();
   });
 
@@ -118,7 +118,7 @@ describe("FileChangeDiff", () => {
       <FileChangeDiff change={wholeFile("src/bound.ts", "alpha\n", "beta\n")} bounded />,
     );
     // Opt-in clamp wraps the diff body via the shared BoundedContent primitive.
-    const clamp = container.querySelector(".overflow-hidden.max-h-48");
+    const clamp = container.querySelector(".stg\\:overflow-hidden.stg\\:max-h-48");
     expect(clamp).not.toBeNull();
     expect(clamp!.querySelector("table")).not.toBeNull();
   });

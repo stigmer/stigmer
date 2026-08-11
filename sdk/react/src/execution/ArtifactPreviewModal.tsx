@@ -120,7 +120,7 @@ export function ArtifactPreviewContent({
   }, [onImplement, onClose]);
 
   return (
-    <div className={cn("flex max-h-[80vh] flex-col", className)}>
+    <div className={cn("stg:flex stg:max-h-[80vh] stg:flex-col", className)}>
       <ContentHeader
         artifact={artifact}
         isDirectory={inspection.isDirectory}
@@ -137,7 +137,7 @@ export function ArtifactPreviewContent({
         error={inspection.error}
         isTruncated={inspection.isTruncated}
         skillDetection={inspection.skillDetection}
-        className="min-h-0 flex-1 overflow-y-auto border-t border-border"
+        className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:border-t stg:border-border"
       />
 
       <ActionBar
@@ -161,7 +161,7 @@ export function ArtifactPreviewContent({
         role="status"
         aria-live="polite"
         aria-atomic="true"
-        className="sr-only"
+        className="stg:sr-only"
       >
         {inspection.copied && "Content copied to clipboard"}
       </div>
@@ -280,8 +280,8 @@ export function ArtifactPreviewModal({
       onCancel={handleCancel}
       aria-label={`Preview ${artifact.name}`}
       className={cn(
-        "fixed inset-0 m-auto w-full max-w-3xl rounded-lg border border-border bg-background p-0 text-foreground shadow-lg outline-none",
-        "[&::backdrop]:bg-black/50",
+        "stg:fixed stg:inset-0 stg:m-auto stg:w-full stg:max-w-3xl stg:rounded-lg stg:border stg:border-border stg:bg-background stg:p-0 stg:text-foreground stg:shadow-lg stg:outline-none",
+        "stg:[&::backdrop]:bg-black/50",
         className,
       )}
     >
@@ -305,7 +305,7 @@ export function ArtifactPreviewModal({
 // ---------------------------------------------------------------------------
 
 const FOCUS_RING_CLASSES =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm";
+  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm";
 
 // ---------------------------------------------------------------------------
 // ContentHeader (internal)
@@ -325,28 +325,28 @@ function ContentHeader({
   readonly onClose: () => void;
 }) {
   return (
-    <div className="flex items-start gap-3 p-4 pb-3">
-      <span className="mt-0.5 shrink-0 text-muted-foreground">
+    <div className="stg:flex stg:items-start stg:gap-3 stg:p-4 stg:pb-3">
+      <span className="stg:mt-0.5 stg:shrink-0 stg:text-muted-foreground">
         {isDirectory ? <FolderIcon /> : <FileIcon />}
       </span>
 
-      <div className="min-w-0 flex-1">
-        <h2 className="truncate text-sm font-semibold text-foreground">
+      <div className="stg:min-w-0 stg:flex-1">
+        <h2 className="stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">
           {artifact.name}
           {isDirectory && "/"}
         </h2>
-        <div className="mt-0.5 flex flex-wrap items-center gap-2">
-          <span className="text-xs tabular-nums text-muted-foreground">
+        <div className="stg:mt-0.5 stg:flex stg:flex-wrap stg:items-center stg:gap-2">
+          <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
             {formatArtifactSize(artifact.sizeBytes)}
           </span>
           {isDetecting && !detectionLabel && (
             <span
-              className="h-4 w-24 animate-pulse rounded-full bg-muted"
+              className="stg:h-4 stg:w-24 stg:animate-pulse stg:rounded-full stg:bg-muted"
               aria-hidden="true"
             />
           )}
           {detectionLabel && (
-            <span className="inline-flex items-center rounded-full bg-primary-subtle px-2 py-0.5 text-xs font-medium text-primary">
+            <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-xs stg:font-medium stg:text-primary">
               {detectionLabel}
             </span>
           )}
@@ -358,7 +358,7 @@ function ContentHeader({
         onClick={onClose}
         aria-label="Close preview"
         className={cn(
-          "shrink-0 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground",
+          "stg:shrink-0 stg:rounded-sm stg:p-1 stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground",
           FOCUS_RING_CLASSES,
         )}
       >
@@ -405,18 +405,18 @@ function ActionBar({
 }) {
   const { download, isDownloading } = useArtifactDownload(executionId);
   return (
-    <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
-      <div className="flex items-center gap-3">
+    <div className="stg:flex stg:items-center stg:justify-between stg:gap-3 stg:border-t stg:border-border stg:px-4 stg:py-3">
+      <div className="stg:flex stg:items-center stg:gap-3">
         {!isDirectory && hasContent && (
           <button
             type="button"
             onClick={onCopy}
             aria-label={copied ? "Copied to clipboard" : "Copy content"}
             className={cn(
-              "inline-flex items-center gap-1.5 text-xs font-medium transition-colors",
+              "stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:transition-colors",
               copied
-                ? "text-success"
-                : "text-muted-foreground hover:text-foreground",
+                ? "stg:text-success"
+                : "stg:text-muted-foreground stg:hover:text-foreground",
               FOCUS_RING_CLASSES,
             )}
           >
@@ -430,7 +430,7 @@ function ActionBar({
           onClick={() => download(artifact.storageKey, artifact.name)}
           disabled={isDownloading}
           className={cn(
-            "inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:disabled:opacity-50",
             FOCUS_RING_CLASSES,
           )}
         >
@@ -439,15 +439,15 @@ function ActionBar({
         </button>
       </div>
 
-      <div className="flex shrink-0 items-center gap-3">
+      <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-3">
         {onImplement && (
           <button
             type="button"
             onClick={onImplement}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-4 py-1.5 text-xs font-medium transition-colors",
-              "bg-primary text-primary-foreground hover:bg-primary-hover",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-4 stg:py-1.5 stg:text-xs stg:font-medium stg:transition-colors",
+              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-2",
             )}
           >
             <ImplementIcon />
@@ -455,20 +455,20 @@ function ActionBar({
           </button>
         )}
         {applyResult ? (
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success">
+          <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-success">
             <CheckIcon />
             Applied {"\u00B7"} {applyResult.name || applyResult.kind}
           </span>
         ) : applyError ? (
-          <span className="inline-flex items-center gap-2" role="alert">
-            <span className="text-xs text-destructive">
+          <span className="stg:inline-flex stg:items-center stg:gap-2" role="alert">
+            <span className="stg:text-xs stg:text-destructive">
               {applyError.message}
             </span>
             <button
               type="button"
               onClick={onApply}
               className={cn(
-                "text-xs font-medium text-destructive underline transition-colors hover:text-destructive-muted",
+                "stg:text-xs stg:font-medium stg:text-destructive stg:underline stg:transition-colors stg:hover:text-destructive-muted",
                 FOCUS_RING_CLASSES,
               )}
             >
@@ -561,7 +561,7 @@ function CopyIcon() {
       strokeWidth="1.2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <rect x="4" y="4" width="6.5" height="6.5" rx="1" />
@@ -581,7 +581,7 @@ function DownloadIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <path d="M6 1.5V8.5" />
@@ -602,7 +602,7 @@ function ImplementIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <path d="M2 6h8M7 3l3 3-3 3" />
@@ -621,7 +621,7 @@ function CheckIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <path d="M2 6.5L4.5 9L10 3" />

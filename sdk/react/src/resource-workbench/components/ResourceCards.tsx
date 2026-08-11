@@ -58,7 +58,7 @@ export function ResourceCards<TData>({
       role="list"
       aria-label={ariaLabel}
       className={cn(
-        "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3",
+        "stg:grid stg:grid-cols-1 stg:gap-3 stg:sm:grid-cols-2 stg:lg:grid-cols-3",
         className,
       )}
     >
@@ -88,14 +88,14 @@ export function ResourceCards<TData>({
                 : undefined
             }
             className={cn(
-              "relative flex rounded-lg border border-border bg-card p-4 transition-colors",
-              isSelected && "border-primary/40 bg-primary-subtle",
-              isClickable && "cursor-pointer hover:border-primary/40 hover:bg-accent-hover",
-              isClickable && "focus-within:ring-2 focus-within:ring-ring",
+              "stg:relative stg:flex stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4 stg:transition-colors",
+              isSelected && "stg:border-primary/40 stg:bg-primary-subtle",
+              isClickable && "stg:cursor-pointer stg:hover:border-primary/40 stg:hover:bg-accent-hover",
+              isClickable && "stg:focus-within:ring-2 stg:focus-within:ring-ring",
             )}
           >
             {enableSelection && onToggleSelection && (
-              <div className="absolute left-2 top-2">
+              <div className="stg:absolute stg:left-2 stg:top-2">
                 <SelectionCheckbox
                   checked={isSelected}
                   onChange={() => onToggleSelection(id)}
@@ -103,11 +103,11 @@ export function ResourceCards<TData>({
                 />
               </div>
             )}
-            <div className={cn("min-w-0 flex-1", enableSelection && "pl-5")}>
+            <div className={cn("stg:min-w-0 stg:flex-1", enableSelection && "stg:pl-5")}>
               {renderCard(item, index)}
             </div>
             {renderCardAction && (
-              <div className="ml-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+              <div className="stg:ml-2 stg:shrink-0" onClick={(e) => e.stopPropagation()}>
                 {renderCardAction(item)}
               </div>
             )}

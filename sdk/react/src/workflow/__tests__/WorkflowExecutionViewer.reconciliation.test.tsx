@@ -327,8 +327,8 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
     const { container } = renderViewer();
     const { graph, thread } = centerWrappers(container);
 
-    expect(thread.classList.contains("hidden")).toBe(false);
-    expect(graph.classList.contains("hidden")).toBe(true);
+    expect(thread.classList.contains("stg:hidden")).toBe(false);
+    expect(graph.classList.contains("stg:hidden")).toBe(true);
     // Mounted, never conditionally rendered (DD-009).
     expect(screen.getByTestId("graph-stub")).toBeTruthy();
     expect(
@@ -343,7 +343,7 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
     const { container } = renderViewer();
 
     const { thread } = centerWrappers(container);
-    expect(thread.classList.contains("hidden")).toBe(false);
+    expect(thread.classList.contains("stg:hidden")).toBe(false);
     // The legacy key is cleaned up on mount.
     expect(localStorage.getItem("stgm-wf-exec-center-view")).toBeNull();
   });
@@ -354,8 +354,8 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
     fireEvent.click(screen.getByRole("radio", { name: "Graph" }));
 
     const { graph, thread } = centerWrappers(container);
-    expect(graph.classList.contains("hidden")).toBe(false);
-    expect(thread.classList.contains("hidden")).toBe(true);
+    expect(graph.classList.contains("stg:hidden")).toBe(false);
+    expect(thread.classList.contains("stg:hidden")).toBe(true);
     expect(localStorage.getItem("stgm-wf-exec-center-view.v2")).toBe("graph");
   });
 
@@ -364,7 +364,7 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
     const { container } = renderViewer();
 
     const { graph } = centerWrappers(container);
-    expect(graph.classList.contains("hidden")).toBe(false);
+    expect(graph.classList.contains("stg:hidden")).toBe(false);
     expect(
       screen.getByRole("radio", { name: "Graph" }).getAttribute("aria-checked"),
     ).toBe("true");

@@ -54,17 +54,17 @@ export function ResourceActionBar({
   if (!primaryAction && !hasOverflow) return null;
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn("stg:flex stg:items-center stg:gap-2", className)}>
       {primaryAction && (
         <button
           type="button"
           onClick={primaryAction.onAction}
           disabled={primaryAction.disabled}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           {primaryAction.icon}
@@ -90,7 +90,7 @@ function OverflowMenu({
   return (
     <ActionMenu>
       <ActionMenu.Trigger aria-label="More actions">
-        <KebabIcon className="size-4" />
+        <KebabIcon className="stg:size-4" />
       </ActionMenu.Trigger>
       <ActionMenu.Content>
         {grouped.map((group, groupIndex) => (

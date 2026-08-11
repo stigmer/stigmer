@@ -108,9 +108,9 @@ export function SessionViewerLayout({
   const isPanelOpen = panel != null;
 
   return (
-    <div className={cn("relative flex h-full w-full flex-col", className)}>
+    <div className={cn("stg:relative stg:flex stg:h-full stg:w-full stg:flex-col", className)}>
       {(headerActions != null || chip != null) && (
-        <div className="absolute top-2 right-6 z-10 flex items-center gap-2">
+        <div className="stg:absolute stg:top-2 stg:right-6 stg:z-10 stg:flex stg:items-center stg:gap-2">
           {headerActions}
           {chip}
         </div>
@@ -125,7 +125,7 @@ export function SessionViewerLayout({
         storageKey={splitStorageKey}
         responsiveCollapse={responsive && isPanelOpen ? "primary" : "none"}
         ariaLabel={resizeAriaLabel}
-        className="min-h-0 flex-1"
+        className="stg:min-h-0 stg:flex-1"
         primary={conversation}
         secondary={panel}
       />

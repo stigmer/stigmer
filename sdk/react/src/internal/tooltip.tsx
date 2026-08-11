@@ -45,16 +45,16 @@ function TooltipContent({
     // `container` semantics — see `useStigmerPortalContainer`.
     <TooltipPrimitive.Portal container={portalContainer}>
       <TooltipPrimitive.Positioner
-        className="isolate z-50 outline-none"
+        className="stg:isolate stg:z-50 stg:outline-none"
         side={side}
         sideOffset={sideOffset}
       >
         <TooltipPrimitive.Popup
           className={cn(
-            "bg-popover text-popover-foreground ring-foreground/10 z-50 max-w-64 rounded-lg px-2.5 py-1.5 text-sm shadow-md ring-1",
-            "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
-            "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-            "duration-100",
+            "stg:bg-popover stg:text-popover-foreground stg:ring-foreground/10 stg:z-50 stg:max-w-64 stg:rounded-lg stg:px-2.5 stg:py-1.5 stg:text-sm stg:shadow-md stg:ring-1",
+            "stg:data-open:animate-in stg:data-open:fade-in-0 stg:data-open:zoom-in-95",
+            "stg:data-closed:animate-out stg:data-closed:fade-out-0 stg:data-closed:zoom-out-95",
+            "stg:duration-100",
             className,
           )}
           {...props}

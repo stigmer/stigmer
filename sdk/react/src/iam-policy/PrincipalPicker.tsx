@@ -151,23 +151,23 @@ export function PrincipalPicker({
   // Selected state: show a chip with a clear affordance instead of the input.
   if (value) {
     return (
-      <div className={cn("space-y-1", className)}>
-        <span className="block text-xs font-medium text-foreground">Person</span>
-        <div className="flex items-center justify-between gap-2 rounded-md border border-input bg-background px-2.5 py-1.5">
-          <div className="flex min-w-0 items-center gap-2">
+      <div className={cn("stg:space-y-1", className)}>
+        <span className="stg:block stg:text-xs stg:font-medium stg:text-foreground">Person</span>
+        <div className="stg:flex stg:items-center stg:justify-between stg:gap-2 stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5">
+          <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2">
             <div
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-[0.6rem] font-medium text-muted-foreground"
+              className="stg:flex stg:h-6 stg:w-6 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:text-[0.6rem] stg:font-medium stg:text-muted-foreground"
               aria-hidden="true"
             >
               {(value.name[0] ?? "?").toUpperCase()}
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="truncate text-xs text-foreground">{value.name}</span>
+            <div className="stg:min-w-0">
+              <div className="stg:flex stg:items-center stg:gap-1.5">
+                <span className="stg:truncate stg:text-xs stg:text-foreground">{value.name}</span>
                 <ProviderBadge principal={value.view} />
               </div>
               {value.email && value.email !== value.name && (
-                <span className="block truncate text-[0.6rem] text-muted-foreground">
+                <span className="stg:block stg:truncate stg:text-[0.6rem] stg:text-muted-foreground">
                   {value.email}
                 </span>
               )}
@@ -179,9 +179,9 @@ export function PrincipalPicker({
             disabled={disabled}
             aria-label="Clear selected person"
             className={cn(
-              "shrink-0 rounded p-0.5 text-muted-foreground",
-              "hover:text-foreground hover:bg-accent-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:shrink-0 stg:rounded stg:p-0.5 stg:text-muted-foreground",
+              "stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             <ClearIcon />
@@ -192,14 +192,14 @@ export function PrincipalPicker({
   }
 
   return (
-    <div className={cn("space-y-1", className)}>
+    <div className={cn("stg:space-y-1", className)}>
       <label
         htmlFor={`${listboxId}-input`}
-        className="block text-xs font-medium text-foreground"
+        className="stg:block stg:text-xs stg:font-medium stg:text-foreground"
       >
         Person
       </label>
-      <div className="relative">
+      <div className="stg:relative">
         <input
           id={`${listboxId}-input`}
           ref={inputRef}
@@ -225,10 +225,10 @@ export function PrincipalPicker({
           disabled={disabled || isLoading}
           autoFocus
           className={cn(
-            "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-            "placeholder:text-muted-foreground",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         />
 
@@ -238,23 +238,23 @@ export function PrincipalPicker({
             role="listbox"
             aria-label="Organization members"
             className={cn(
-              "absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-border bg-popover py-1 shadow-md",
+              "stg:absolute stg:z-10 stg:mt-1 stg:max-h-56 stg:w-full stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-popover stg:py-1 stg:shadow-md",
             )}
           >
             {isLoading && (
-              <li className="px-2.5 py-2 text-xs text-muted-foreground">
+              <li className="stg:px-2.5 stg:py-2 stg:text-xs stg:text-muted-foreground">
                 Loading members…
               </li>
             )}
 
             {!isLoading && error && (
-              <li className="px-2.5 py-2 text-[0.65rem] text-destructive" role="alert">
+              <li className="stg:px-2.5 stg:py-2 stg:text-[0.65rem] stg:text-destructive" role="alert">
                 {getUserMessage(error)}
               </li>
             )}
 
             {!isLoading && !error && filtered.length === 0 && (
-              <li className="px-2.5 py-2 text-xs text-muted-foreground">
+              <li className="stg:px-2.5 stg:py-2 stg:text-xs stg:text-muted-foreground">
                 {query.trim()
                   ? "No members match your search."
                   : "No members to share with."}
@@ -286,36 +286,36 @@ export function PrincipalPicker({
                       if (!isExcluded) commitSelection(c);
                     }}
                     className={cn(
-                      "flex items-center justify-between gap-2 px-2.5 py-1.5",
+                      "stg:flex stg:items-center stg:justify-between stg:gap-2 stg:px-2.5 stg:py-1.5",
                       isExcluded
-                        ? "cursor-not-allowed opacity-50"
-                        : "cursor-pointer",
-                      isActive && !isExcluded && "bg-accent-hover",
+                        ? "stg:cursor-not-allowed stg:opacity-50"
+                        : "stg:cursor-pointer",
+                      isActive && !isExcluded && "stg:bg-accent-hover",
                     )}
                   >
-                    <div className="flex min-w-0 items-center gap-2">
+                    <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2">
                       <div
-                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-[0.6rem] font-medium text-muted-foreground"
+                        className="stg:flex stg:h-6 stg:w-6 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:text-[0.6rem] stg:font-medium stg:text-muted-foreground"
                         aria-hidden="true"
                       >
                         {(name[0] ?? "?").toUpperCase()}
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="truncate text-xs text-foreground">
+                      <div className="stg:min-w-0">
+                        <div className="stg:flex stg:items-center stg:gap-1.5">
+                          <span className="stg:truncate stg:text-xs stg:text-foreground">
                             {name}
                           </span>
                           {showBadge && <ProviderBadge principal={c} />}
                         </div>
                         {c.email && c.email !== name && (
-                          <span className="block truncate text-[0.6rem] text-muted-foreground">
+                          <span className="stg:block stg:truncate stg:text-[0.6rem] stg:text-muted-foreground">
                             {c.email}
                           </span>
                         )}
                       </div>
                     </div>
                     {isExcluded && (
-                      <span className="shrink-0 text-[0.6rem] text-muted-foreground">
+                      <span className="stg:shrink-0 stg:text-[0.6rem] stg:text-muted-foreground">
                         Has access
                       </span>
                     )}

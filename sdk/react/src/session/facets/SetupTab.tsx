@@ -70,7 +70,7 @@ export function SetupTab({
   const hasSessionVars = sessionVariables != null && !sessionVariables.isEmpty;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="stg:flex stg:flex-col stg:gap-5">
       <RunConfigSection
         harness={harness}
         executionTarget={executionTarget}
@@ -108,7 +108,7 @@ export function SetupTab({
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground">
+    <h3 className="stg:text-[0.65rem] stg:font-semibold stg:uppercase stg:tracking-wider stg:text-muted-foreground">
       {children}
     </h3>
   );
@@ -116,14 +116,14 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 
 function EmptyHint({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-xs text-muted-foreground/70">{children}</p>
+    <p className="stg:text-xs stg:text-muted-foreground/70">{children}</p>
   );
 }
 
 function ItemPill({ children, className: cls }: { children: React.ReactNode; className?: string }) {
   return (
     <span className={cn(
-      "inline-flex items-center gap-1.5 rounded-md bg-muted-subtle px-2 py-1 text-xs text-foreground",
+      "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:bg-muted-subtle stg:px-2 stg:py-1 stg:text-xs stg:text-foreground",
       cls,
     )}>
       {children}
@@ -136,7 +136,7 @@ function RemoveButton({ onClick, label }: { onClick: () => void; label: string }
     <button
       type="button"
       onClick={onClick}
-      className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+      className="stg:shrink-0 stg:text-muted-foreground stg:hover:text-destructive stg:transition-colors"
       aria-label={label}
     >
       <XIcon />
@@ -158,22 +158,22 @@ function RunConfigSection({
   modelId: string | undefined;
 }) {
   return (
-    <section className="flex flex-col gap-1.5">
+    <section className="stg:flex stg:flex-col stg:gap-1.5">
       <SectionHeading>Run Config</SectionHeading>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="stg:flex stg:flex-wrap stg:gap-1.5">
         <ItemPill>
-          <span className="text-muted-foreground">Harness</span>
+          <span className="stg:text-muted-foreground">Harness</span>
           {HARNESS_META[harness]?.label ?? harness}
         </ItemPill>
         {modelId && (
           <ItemPill>
-            <span className="text-muted-foreground">Model</span>
+            <span className="stg:text-muted-foreground">Model</span>
             {modelId}
           </ItemPill>
         )}
         {executionTarget && (
           <ItemPill>
-            <span className="text-muted-foreground">Target</span>
+            <span className="stg:text-muted-foreground">Target</span>
             {executionTarget === "local" ? "Local" : "Cloud"}
           </ItemPill>
         )}
@@ -196,10 +196,10 @@ function AgentSection({
   onRemove?: () => void;
 }) {
   return (
-    <section className="flex flex-col gap-1.5">
+    <section className="stg:flex stg:flex-col stg:gap-1.5">
       <SectionHeading>Agent</SectionHeading>
       {agentRef ? (
-        <div className="flex items-center gap-1.5">
+        <div className="stg:flex stg:items-center stg:gap-1.5">
           <ItemPill>
             {agentRef.slug}
             {onRemove && !isDefaultAgent && (
@@ -207,7 +207,7 @@ function AgentSection({
             )}
           </ItemPill>
           {isDefaultAgent && (
-            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[0.6rem] font-medium text-primary">
+            <span className="stg:rounded stg:bg-primary/10 stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:text-primary">
               default
             </span>
           )}
@@ -231,15 +231,15 @@ function McpSection({
   onRemove?: (ref: ResourceRef) => void;
 }) {
   return (
-    <section className="flex flex-col gap-1.5">
+    <section className="stg:flex stg:flex-col stg:gap-1.5">
       <SectionHeading>
         MCP Servers
         {mcpServerUsages.length > 0 && (
-          <span className="ml-1 text-muted-foreground/60">({mcpServerUsages.length})</span>
+          <span className="stg:ml-1 stg:text-muted-foreground/60">({mcpServerUsages.length})</span>
         )}
       </SectionHeading>
       {mcpServerUsages.length > 0 ? (
-        <div className="flex flex-col gap-1">
+        <div className="stg:flex stg:flex-col stg:gap-1">
           {mcpServerUsages.map((usage) => {
             const slug = usage.mcpServerRef.slug;
             const enabledCount = usage.enabledTools?.length;
@@ -247,7 +247,7 @@ function McpSection({
               <ItemPill key={`${usage.mcpServerRef.org}/${slug}`}>
                 <span>{slug}</span>
                 {enabledCount != null && enabledCount > 0 && (
-                  <span className="text-muted-foreground">
+                  <span className="stg:text-muted-foreground">
                     {enabledCount} tool{enabledCount !== 1 ? "s" : ""}
                   </span>
                 )}
@@ -280,15 +280,15 @@ function SkillsSection({
   onRemove?: (ref: ResourceRef) => void;
 }) {
   return (
-    <section className="flex flex-col gap-1.5">
+    <section className="stg:flex stg:flex-col stg:gap-1.5">
       <SectionHeading>
         Skills
         {skillRefs.length > 0 && (
-          <span className="ml-1 text-muted-foreground/60">({skillRefs.length})</span>
+          <span className="stg:ml-1 stg:text-muted-foreground/60">({skillRefs.length})</span>
         )}
       </SectionHeading>
       {skillRefs.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="stg:flex stg:flex-wrap stg:gap-1.5">
           {skillRefs.map((ref) => (
             <ItemPill key={`${ref.org}/${ref.slug}`}>
               {ref.slug}
@@ -318,21 +318,21 @@ function SessionVarsSection({
   entries: UseSessionVariablesReturn["entries"];
 }) {
   return (
-    <section className="flex flex-col gap-1.5">
+    <section className="stg:flex stg:flex-col stg:gap-1.5">
       <SectionHeading>
         Session Variables
-        <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/60">
+        <span className="stg:ml-1 stg:font-normal stg:normal-case stg:tracking-normal stg:text-muted-foreground/60">
           (next message only)
         </span>
       </SectionHeading>
-      <div className="flex flex-col gap-1">
+      <div className="stg:flex stg:flex-col stg:gap-1">
         {entries.map((entry) => (
           <ItemPill key={entry.id}>
-            <span className="font-medium">{entry.key || "(unnamed)"}</span>
+            <span className="stg:font-medium">{entry.key || "(unnamed)"}</span>
             {entry.isSecret ? (
-              <span className="text-muted-foreground">********</span>
+              <span className="stg:text-muted-foreground">********</span>
             ) : (
-              <span className="max-w-[140px] truncate text-muted-foreground">{entry.value}</span>
+              <span className="stg:max-w-[140px] stg:truncate stg:text-muted-foreground">{entry.value}</span>
             )}
           </ItemPill>
         ))}

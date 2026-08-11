@@ -64,14 +64,14 @@ export function PlatformClientListPanel({
   if (isLoading) {
     return (
       <div
-        className={cn("space-y-2", className)}
+        className={cn("stg:space-y-2", className)}
         aria-busy="true"
         aria-label="Loading platform clients"
       >
         {Array.from({ length: 2 }, (_, i) => (
           <div
             key={i}
-            className="bg-muted-subtle h-14 animate-pulse rounded-lg"
+            className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg"
           />
         ))}
       </div>
@@ -80,7 +80,7 @@ export function PlatformClientListPanel({
 
   if (error) {
     return (
-      <p className={cn("text-destructive text-xs", className)} role="alert">
+      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
         {getUserMessage(error)}
       </p>
     );
@@ -90,7 +90,7 @@ export function PlatformClientListPanel({
     return (
       <p
         className={cn(
-          "text-muted-foreground py-4 text-center text-xs",
+          "stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs",
           className,
         )}
       >
@@ -101,7 +101,7 @@ export function PlatformClientListPanel({
 
   return (
     <div
-      className={cn("space-y-2", className)}
+      className={cn("stg:space-y-2", className)}
       role="list"
       aria-label="Platform clients"
     >
@@ -169,34 +169,34 @@ function PlatformClientRow({
     return (
       <div
         role="listitem"
-        className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive-subtle px-3 py-2.5"
+        className="stg:flex stg:items-center stg:justify-between stg:rounded-lg stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2.5"
       >
-        <div className="min-w-0 flex-1">
-          <p className="text-xs text-foreground">
-            Delete <span className="font-medium">{name}</span>?
+        <div className="stg:min-w-0 stg:flex-1">
+          <p className="stg:text-xs stg:text-foreground">
+            Delete <span className="stg:font-medium">{name}</span>?
             {clientId && (
-              <span className="ml-1 text-muted-foreground">
+              <span className="stg:ml-1 stg:text-muted-foreground">
                 This will invalidate client ID{" "}
-                <code className="font-mono">{clientId}</code>.
+                <code className="stg:font-mono">{clientId}</code>.
               </span>
             )}
           </p>
           {error && (
-            <p className="mt-0.5 text-[0.65rem] text-destructive">
+            <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-destructive">
               {getUserMessage(error)}
             </p>
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
           <button
             type="button"
             onClick={handleDelete}
             disabled={isDeleting}
             className={cn(
-              "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-              "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+              "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             {isDeleting && <SpinnerIcon />}
@@ -207,9 +207,9 @@ function PlatformClientRow({
             onClick={onCancelDelete}
             disabled={isDeleting}
             className={cn(
-              "rounded-md px-2.5 py-1 text-xs",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             Cancel
@@ -222,25 +222,25 @@ function PlatformClientRow({
   return (
     <div
       role="listitem"
-      className="flex items-center gap-3 rounded-lg border border-border-muted px-3 py-2.5 hover:border-border transition-colors"
+      className="stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border-muted stg:px-3 stg:py-2.5 stg:hover:border-border stg:transition-colors"
     >
       <KeyIcon />
 
-      <div className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium text-foreground">
+      <div className="stg:min-w-0 stg:flex-1">
+        <span className="stg:block stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
           {name}
         </span>
         {clientId && (
-          <span className="block truncate text-xs text-muted-foreground font-mono">
+          <span className="stg:block stg:truncate stg:text-xs stg:text-muted-foreground stg:font-mono">
             {clientId}
           </span>
         )}
       </div>
 
-      <div className="hidden sm:flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
+      <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-3 stg:text-xs stg:text-muted-foreground">
         {fingerprint && (
           <span
-            className="font-mono"
+            className="stg:font-mono"
             title={`Secret fingerprint: ${fingerprint}`}
           >
             ••••{fingerprint.slice(-4)}
@@ -248,7 +248,7 @@ function PlatformClientRow({
         )}
         <ExpiryBadge spec={spec} />
         {spec?.autoProvisionAccounts && (
-          <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary-subtle px-2 py-0.5 text-[0.65rem] font-medium text-primary">
+          <span className="stg:inline-flex stg:items-center stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-primary">
             JIT
           </span>
         )}
@@ -259,16 +259,16 @@ function PlatformClientRow({
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
         {onEdit && (
           <button
             type="button"
             onClick={onEdit}
             aria-label={`Edit ${name}`}
             className={cn(
-              "shrink-0 rounded p-1",
-              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-              "transition-colors",
+              "stg:shrink-0 stg:rounded stg:p-1",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:transition-colors",
             )}
           >
             <PencilIcon />
@@ -279,9 +279,9 @@ function PlatformClientRow({
           onClick={onConfirmDelete}
           aria-label={`Delete ${name}`}
           className={cn(
-            "shrink-0 rounded p-1",
-            "text-muted-foreground hover:text-destructive hover:bg-destructive-subtle",
-            "transition-colors",
+            "stg:shrink-0 stg:rounded stg:p-1",
+            "stg:text-muted-foreground stg:hover:text-destructive stg:hover:bg-destructive-subtle",
+            "stg:transition-colors",
           )}
         >
           <TrashIcon />
@@ -298,7 +298,7 @@ function PlatformClientRow({
 function ExpiryBadge({ spec }: { spec: PlatformClient["spec"] }) {
   if (spec?.neverExpires) {
     return (
-      <span className="text-[0.65rem] text-muted-foreground">No expiry</span>
+      <span className="stg:text-[0.65rem] stg:text-muted-foreground">No expiry</span>
     );
   }
   if (spec?.expiresAt) {
@@ -307,8 +307,8 @@ function ExpiryBadge({ spec }: { spec: PlatformClient["spec"] }) {
     return (
       <span
         className={cn(
-          "text-[0.65rem]",
-          isExpired ? "text-destructive font-medium" : "text-muted-foreground",
+          "stg:text-[0.65rem]",
+          isExpired ? "stg:text-destructive stg:font-medium" : "stg:text-muted-foreground",
         )}
         title={`Expires ${date.toISOString()}`}
       >
@@ -347,7 +347,7 @@ function KeyIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className="shrink-0 text-muted-foreground"
+      className="stg:shrink-0 stg:text-muted-foreground"
     >
       <circle cx="10.5" cy="5.5" r="3" />
       <path d="M8.5 7.5L3 13l-.5-2.5L5 10l1-1-1-1 3.5.5z" />
@@ -404,7 +404,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

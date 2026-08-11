@@ -70,7 +70,7 @@ export function FileTypeIcon({ fileName }: { readonly fileName: string }): React
       strokeWidth="1.3"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       {/* Every category shares a document outline for a consistent silhouette. */}
@@ -124,7 +124,7 @@ export function FolderTypeIcon({ open = false }: { readonly open?: boolean }): R
       strokeWidth="1.3"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       {open ? (

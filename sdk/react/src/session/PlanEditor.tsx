@@ -109,14 +109,14 @@ export function PlanEditor({
   if (error || effectiveText === null) {
     return (
       <PlanEditorFrame>
-        <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
-          <p className="text-xs text-muted-foreground">
+        <div className="stg:flex stg:flex-col stg:items-center stg:gap-2 stg:px-4 stg:py-8 stg:text-center">
+          <p className="stg:text-xs stg:text-muted-foreground">
             Couldn&rsquo;t load the plan{error ? `: ${error.message}` : "."}
           </p>
           <button
             type="button"
             onClick={refetch}
-            className="rounded text-xs font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="stg:rounded stg:text-xs stg:font-medium stg:text-foreground stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
           >
             Retry
           </button>
@@ -131,9 +131,9 @@ export function PlanEditor({
           Narrow panes are first-class: rows wrap (flex-wrap) and every item
           can shrink (min-w-0 + truncating labels), so the toolbar reflows
           instead of forcing the document pane to scroll sideways. */}
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <div className="stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-2">
         <div
-          className="inline-flex shrink-0 rounded-md bg-muted p-0.5"
+          className="stg:inline-flex stg:shrink-0 stg:rounded-md stg:bg-muted stg:p-0.5"
           role="tablist"
           aria-label="Plan view"
         >
@@ -161,20 +161,20 @@ export function PlanEditor({
             />
           )}
         </div>
-        <span className="text-[0.65rem] tabular-nums text-muted-foreground-faint">
+        <span className="stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground-faint">
           {formatArtifactSize(plan.artifact.sizeBytes)}
         </span>
 
-        <div className="ml-auto flex min-w-0 flex-wrap items-center gap-3">
+        <div className="stg:ml-auto stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-3">
           {activeDraft?.isEdited && (
-            <span className="inline-flex items-center gap-2">
-              <span className="rounded-md bg-accent px-1.5 py-0.5 text-[0.65rem] font-medium text-muted-foreground">
+            <span className="stg:inline-flex stg:items-center stg:gap-2">
+              <span className="stg:rounded-md stg:bg-accent stg:px-1.5 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
                 Edited
               </span>
               <button
                 type="button"
                 onClick={() => activeDraft.setDraft(null)}
-                className="rounded text-[0.65rem] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="stg:rounded stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground stg:underline-offset-2 stg:hover:text-foreground stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
               >
                 Revert
               </button>
@@ -183,7 +183,7 @@ export function PlanEditor({
           {readOnly ? (
             <span
               role="status"
-              className="rounded-md bg-muted px-2 py-0.5 text-[0.65rem] font-medium text-muted-foreground"
+              className="stg:rounded-md stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground"
             >
               Superseded by a newer plan
             </span>
@@ -194,15 +194,15 @@ export function PlanEditor({
                 disabled={buildDisabled}
                 onClick={onBuildFromPlan}
                 className={cn(
-                  "inline-flex min-w-0 items-center gap-1.5 rounded-md px-3 py-1.5",
-                  "text-xs font-medium transition-colors",
-                  "bg-primary text-primary-foreground hover:bg-primary-hover",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  "disabled:pointer-events-none disabled:opacity-50",
+                  "stg:inline-flex stg:min-w-0 stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5",
+                  "stg:text-xs stg:font-medium stg:transition-colors",
+                  "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
                 )}
               >
                 <ImplementIcon />
-                <span className="truncate">
+                <span className="stg:truncate">
                   {buildDisabled ? "Starting build…" : "Build"}
                 </span>
               </button>
@@ -213,7 +213,7 @@ export function PlanEditor({
 
       {activeView === "rendered" && <RenderedPlan text={effectiveText} />}
       {activeView === "source" && (
-        <pre className="overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap text-foreground">
+        <pre className="stg:overflow-x-auto stg:rounded-md stg:bg-muted stg:p-3 stg:font-mono stg:text-xs stg:whitespace-pre-wrap stg:text-foreground">
           {effectiveText}
         </pre>
       )}
@@ -225,15 +225,15 @@ export function PlanEditor({
           spellCheck={false}
           rows={28}
           className={cn(
-            "w-full flex-1 resize-y rounded-md border border-border bg-card p-3",
-            "font-mono text-xs leading-relaxed text-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:w-full stg:flex-1 stg:resize-y stg:rounded-md stg:border stg:border-border stg:bg-card stg:p-3",
+            "stg:font-mono stg:text-xs stg:leading-relaxed stg:text-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         />
       )}
 
       {isTruncated && (
-        <p role="status" className="text-[0.65rem] text-muted-foreground">
+        <p role="status" className="stg:text-[0.65rem] stg:text-muted-foreground">
           Preview truncated — download the artifact for the full plan.
         </p>
       )}
@@ -257,7 +257,7 @@ function PlanEditorFrame({
       role="article"
       aria-label="Plan document"
       onKeyDown={onKeyDown}
-      className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-4 py-3"
+      className="stg:mx-auto stg:flex stg:w-full stg:max-w-3xl stg:flex-col stg:gap-3 stg:px-4 stg:py-3"
     >
       {children}
     </div>
@@ -276,15 +276,15 @@ function RenderedPlan({ text }: { readonly text: string }) {
   );
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border-muted bg-card">
+    <div className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border-muted stg:bg-card">
       {title && (
-        <header className="border-b border-border-muted bg-muted-faint px-4 py-2.5">
-          <span className="block truncate text-sm font-semibold text-foreground">
+        <header className="stg:border-b stg:border-border-muted stg:bg-muted-faint stg:px-4 stg:py-2.5">
+          <span className="stg:block stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">
             {title}
           </span>
         </header>
       )}
-      <div className="stgm-prose px-4 py-4">
+      <div className="stgm-prose stg:px-4 stg:py-4">
         <Markdown
           remarkPlugins={REMARK_PLUGINS}
           components={PLAN_DOCUMENT_MARKDOWN_COMPONENTS}
@@ -298,11 +298,11 @@ function RenderedPlan({ text }: { readonly text: string }) {
 
 function PlanEditorSkeleton() {
   return (
-    <div className="space-y-2 py-2" aria-hidden="true">
-      <div className="h-8 w-full animate-pulse rounded-md bg-muted" />
-      <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
-      <div className="h-4 w-full animate-pulse rounded bg-muted" />
-      <div className="h-4 w-5/6 animate-pulse rounded bg-muted" />
+    <div className="stg:space-y-2 stg:py-2" aria-hidden="true">
+      <div className="stg:h-8 stg:w-full stg:animate-pulse stg:rounded-md stg:bg-muted" />
+      <div className="stg:h-4 stg:w-2/3 stg:animate-pulse stg:rounded stg:bg-muted" />
+      <div className="stg:h-4 stg:w-full stg:animate-pulse stg:rounded stg:bg-muted" />
+      <div className="stg:h-4 stg:w-5/6 stg:animate-pulse stg:rounded stg:bg-muted" />
     </div>
   );
 }
@@ -329,12 +329,12 @@ function ViewTab({
       disabled={disabled}
       title={title}
       className={cn(
-        "rounded px-2 py-0.5 text-[0.65rem] font-medium transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "stg:rounded stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:transition-colors",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         active
-          ? "bg-card text-foreground shadow-sm"
-          : "text-muted-foreground hover:text-foreground",
-        "disabled:pointer-events-none disabled:opacity-50",
+          ? "stg:bg-card stg:text-foreground stg:shadow-sm"
+          : "stg:text-muted-foreground stg:hover:text-foreground",
+        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
       )}
     >
       {label}

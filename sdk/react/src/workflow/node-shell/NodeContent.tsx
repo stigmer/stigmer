@@ -35,7 +35,7 @@ export const NodeContent = memo(function NodeContent({
 
   if (visualClass === "terminal-pill") {
     return (
-      <span className="text-xs font-medium text-[var(--stgm-foreground,#1a1a2e)]">
+      <span className="stg:text-xs stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]">
         {taskName}
       </span>
     );
@@ -43,7 +43,7 @@ export const NodeContent = memo(function NodeContent({
 
   if (visualClass === "parallel-bar") {
     return (
-      <span className="truncate text-[11px] font-medium text-[var(--stgm-foreground,#1a1a2e)]">
+      <span className="stg:truncate stg:text-[11px] stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]">
         {taskName}
       </span>
     );
@@ -55,10 +55,10 @@ export const NodeContent = memo(function NodeContent({
     const contentWidth = `calc(100% - ${insets.left + insets.right}px)`;
     return (
       <div
-        className="flex items-center justify-center overflow-hidden text-center"
+        className="stg:flex stg:items-center stg:justify-center stg:overflow-hidden stg:text-center"
         style={{ maxWidth: contentWidth }}
       >
-        <span className="truncate text-xs font-medium leading-tight text-[var(--stgm-foreground,#1a1a2e)]">
+        <span className="stg:truncate stg:text-xs stg:font-medium stg:leading-tight stg:text-[var(--stgm-foreground,#1a1a2e)]">
           {taskName}
         </span>
       </div>
@@ -67,13 +67,13 @@ export const NodeContent = memo(function NodeContent({
 
   // Rectangular shapes: full text inside
   return (
-    <div className="flex flex-1 flex-col gap-0.5 overflow-hidden">
-      <span className="truncate text-sm font-medium text-[var(--stgm-foreground,#1a1a2e)]">
+    <div className="stg:flex stg:flex-1 stg:flex-col stg:gap-0.5 stg:overflow-hidden">
+      <span className="stg:truncate stg:text-sm stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]">
         {taskName}
       </span>
-      <div className="flex items-center gap-1.5">
+      <div className="stg:flex stg:items-center stg:gap-1.5">
         <span
-          className="inline-block rounded px-1 py-px text-[10px] font-medium leading-tight"
+          className="stg:inline-block stg:rounded stg:px-1 stg:py-px stg:text-[10px] stg:font-medium stg:leading-tight"
           style={{
             color: categoryColor,
             backgroundColor: `color-mix(in srgb, ${categoryColor} 12%, transparent)`,
@@ -82,7 +82,7 @@ export const NodeContent = memo(function NodeContent({
           {displayName}
         </span>
         {isNested && (
-          <span className="text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+          <span className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
             (nested)
           </span>
         )}

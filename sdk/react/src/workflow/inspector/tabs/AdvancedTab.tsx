@@ -38,19 +38,19 @@ export const AdvancedTab = memo(function AdvancedTab({
   );
 
   return (
-    <div className="flex flex-col gap-4 px-3 py-3">
+    <div className="stg:flex stg:flex-col stg:gap-4 stg:px-3 stg:py-3">
       {!isBranching && (
-        <section className="flex flex-col gap-1.5">
-          <h4 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--stgm-muted-foreground,#737373)]">
+        <section className="stg:flex stg:flex-col stg:gap-1.5">
+          <h4 className="stg:text-[11px] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-[var(--stgm-muted-foreground,#737373)]">
             Flow control
           </h4>
-          <p className="text-[10px] leading-tight text-[var(--stgm-muted-foreground,#737373)]">
+          <p className="stg:text-[10px] stg:leading-tight stg:text-[var(--stgm-muted-foreground,#737373)]">
             Override the default sequential execution order.
           </p>
           <select
             value={currentFlow}
             onChange={handleFlowChange}
-            className="w-full rounded-md border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 py-1.5 text-xs text-[var(--stgm-foreground,#1a1a2e)] focus:outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+            className="stg:w-full stg:rounded-md stg:border stg:border-[var(--stgm-border,#d4d4d8)] stg:bg-[var(--stgm-background,#fff)] stg:px-2 stg:py-1.5 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)] stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-[var(--stgm-ring,#3b82f6)]"
           >
             <option value="">Next (implicit sequential)</option>
             <option value="end">End workflow</option>
@@ -64,16 +64,16 @@ export const AdvancedTab = memo(function AdvancedTab({
       )}
 
       {isBranching && (
-        <p className="text-xs text-[var(--stgm-muted-foreground,#737373)]">
+        <p className="stg:text-xs stg:text-[var(--stgm-muted-foreground,#737373)]">
           Flow routing for this task is managed through its branch configuration in the Configure tab.
         </p>
       )}
 
-      <section className="flex flex-col gap-1.5">
-        <h4 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--stgm-muted-foreground,#737373)]">
+      <section className="stg:flex stg:flex-col stg:gap-1.5">
+        <h4 className="stg:text-[11px] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-[var(--stgm-muted-foreground,#737373)]">
           Task metadata
         </h4>
-        <div className="flex flex-col gap-1 text-[11px]">
+        <div className="stg:flex stg:flex-col stg:gap-1 stg:text-[11px]">
           <MetadataRow label="ID" value={node.id} />
           <MetadataRow label="Kind" value={kindString} />
           <MetadataRow label="Category" value={node.category} />
@@ -87,9 +87,9 @@ export const AdvancedTab = memo(function AdvancedTab({
 
 function MetadataRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline gap-2">
-      <span className="shrink-0 text-[var(--stgm-muted-foreground,#737373)]">{label}:</span>
-      <span className="min-w-0 break-all font-mono text-[var(--stgm-foreground,#1a1a2e)]">{value}</span>
+    <div className="stg:flex stg:items-baseline stg:gap-2">
+      <span className="stg:shrink-0 stg:text-[var(--stgm-muted-foreground,#737373)]">{label}:</span>
+      <span className="stg:min-w-0 stg:break-all stg:font-mono stg:text-[var(--stgm-foreground,#1a1a2e)]">{value}</span>
     </div>
   );
 }

@@ -72,34 +72,34 @@ export function DependencyTreeNode({
   );
 
   const content = (
-    <div className="flex min-w-0 items-center gap-2">
+    <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2">
       {isCollapsible && (
         <ChevronIcon
           className={cn(
-            "size-3.5 shrink-0 text-muted-foreground transition-transform",
-            expanded && "rotate-90",
+            "stg:size-3.5 stg:shrink-0 stg:text-muted-foreground stg:transition-transform",
+            expanded && "stg:rotate-90",
           )}
         />
       )}
-      <NodeIcon kind={node.kind} className="size-4 shrink-0 text-muted-foreground" />
+      <NodeIcon kind={node.kind} className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" />
       {!isRoot && (
         <span
           className={cn(
-            "shrink-0 rounded px-1.5 py-px text-[10px] font-medium leading-tight",
+            "stg:shrink-0 stg:rounded stg:px-1.5 stg:py-px stg:text-[10px] stg:font-medium stg:leading-tight",
             kindBadgeClasses(node.kind),
           )}
         >
           {KIND_LABELS[node.kind]}
         </span>
       )}
-      <span className="min-w-0 truncate text-sm font-medium text-foreground">
+      <span className="stg:min-w-0 stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
         {node.qualifiedLabel ?? node.label}
       </span>
       {node.metadata &&
         Object.entries(node.metadata).map(([key, value]) => (
           <span
             key={key}
-            className="shrink-0 text-xs text-muted-foreground"
+            className="stg:shrink-0 stg:text-xs stg:text-muted-foreground"
           >
             {value}
           </span>
@@ -116,8 +116,8 @@ export function DependencyTreeNode({
       role="treeitem"
       aria-expanded={isCollapsible ? expanded : isAlwaysExpanded ? true : undefined}
       className={cn(
-        "list-none",
-        isChild && "relative before:absolute before:left-[-12px] before:top-[14px] before:h-px before:w-3 before:bg-border before:content-['']",
+        "stg:list-none",
+        isChild && "stg:relative stg:before:absolute stg:before:left-[-12px] stg:before:top-[14px] stg:before:h-px stg:before:w-3 stg:before:bg-border stg:before:content-['']",
       )}
     >
       {isInteractive ? (
@@ -127,15 +127,15 @@ export function DependencyTreeNode({
           onKeyDown={handleKeyDown}
           tabIndex={-1}
           className={cn(
-            "flex w-full items-center rounded-md px-2 py-1.5 text-left transition-colors",
-            "hover:bg-accent-hover",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+            "stg:flex stg:w-full stg:items-center stg:rounded-md stg:px-2 stg:py-1.5 stg:text-left stg:transition-colors",
+            "stg:hover:bg-accent-hover",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
           )}
         >
           {content}
         </button>
       ) : (
-        <div className="flex items-center px-2 py-1.5">
+        <div className="stg:flex stg:items-center stg:px-2 stg:py-1.5">
           {content}
         </div>
       )}
@@ -143,8 +143,8 @@ export function DependencyTreeNode({
       {node.description && !isRoot && (
         <p
           className={cn(
-            "px-2 pb-1 text-xs text-muted-foreground",
-            isCollapsible ? "ml-[calc(0.5rem+14px+0.5rem)]" : "ml-2",
+            "stg:px-2 stg:pb-1 stg:text-xs stg:text-muted-foreground",
+            isCollapsible ? "stg:ml-[calc(0.5rem+14px+0.5rem)]" : "stg:ml-2",
           )}
         >
           {node.description}
@@ -154,7 +154,7 @@ export function DependencyTreeNode({
       {showChildren && (
         <ul
           role="group"
-          className="relative ml-[11px] border-l border-border pl-3"
+          className="stg:relative stg:ml-[11px] stg:border-l stg:border-border stg:pl-3"
         >
           {node.children.map((child) => (
             <DependencyTreeNode
@@ -178,17 +178,17 @@ export function DependencyTreeNode({
 function kindBadgeClasses(kind: NodeKind): string {
   switch (kind) {
     case "mcp-server":
-      return "bg-[var(--stgm-status-running-subtle)] text-[var(--stgm-status-running)]";
+      return "stg:bg-[var(--stgm-status-running-subtle)] stg:text-[var(--stgm-status-running)]";
     case "skill":
-      return "bg-[var(--stgm-status-pending-subtle)] text-[var(--stgm-status-pending)]";
+      return "stg:bg-[var(--stgm-status-pending-subtle)] stg:text-[var(--stgm-status-pending)]";
     // Badges borrow status hues as category colors (skill=pending,
     // sub-agent=ready); datastore takes the remaining distinct hue.
     case "datastore":
-      return "bg-[var(--stgm-status-degraded-subtle)] text-[var(--stgm-status-degraded)]";
+      return "stg:bg-[var(--stgm-status-degraded-subtle)] stg:text-[var(--stgm-status-degraded)]";
     case "sub-agent":
-      return "bg-[var(--stgm-status-ready-subtle)] text-[var(--stgm-status-ready)]";
+      return "stg:bg-[var(--stgm-status-ready-subtle)] stg:text-[var(--stgm-status-ready)]";
     case "agent":
-      return "bg-muted text-muted-foreground";
+      return "stg:bg-muted stg:text-muted-foreground";
   }
 }
 

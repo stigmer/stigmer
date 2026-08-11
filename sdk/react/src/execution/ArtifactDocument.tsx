@@ -78,36 +78,36 @@ export function ArtifactDocument({
     <div
       role="article"
       aria-label={`Artifact ${artifact.name}`}
-      className={cn("flex min-h-0 min-w-0 flex-1 flex-col", className)}
+      className={cn("stg:flex stg:min-h-0 stg:min-w-0 stg:flex-1 stg:flex-col", className)}
     >
       {/* Toolbar sticks to the top of the editor pane's scroll container so the
           file identity and actions stay visible while the body scrolls. Rows
           wrap on narrow panes (min-w-0 + flex-wrap) rather than forcing a
           horizontal scrollbar — the DD-20 reflow contract. */}
-      <div className="sticky top-0 z-10 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-border bg-background px-4 py-2">
-        <span className="shrink-0 text-muted-foreground">
+      <div className="stg:sticky stg:top-0 stg:z-10 stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-x-3 stg:gap-y-1.5 stg:border-b stg:border-border stg:bg-background stg:px-4 stg:py-2">
+        <span className="stg:shrink-0 stg:text-muted-foreground">
           {inspection.isDirectory ? <FolderIcon /> : <FileIcon />}
         </span>
-        <span className="truncate text-sm font-medium text-foreground">
+        <span className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
           {artifact.name}
           {inspection.isDirectory && "/"}
         </span>
-        <span className="shrink-0 text-[0.65rem] tabular-nums text-muted-foreground-faint">
+        <span className="stg:shrink-0 stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground-faint">
           {formatArtifactSize(artifact.sizeBytes)}
         </span>
         {inspection.isDetecting && !inspection.detectionLabel && (
           <span
-            className="h-4 w-24 shrink-0 animate-pulse rounded-full bg-muted"
+            className="stg:h-4 stg:w-24 stg:shrink-0 stg:animate-pulse stg:rounded-full stg:bg-muted"
             aria-hidden="true"
           />
         )}
         {inspection.detectionLabel && (
-          <span className="inline-flex shrink-0 items-center rounded-full bg-primary-subtle px-2 py-0.5 text-xs font-medium text-primary">
+          <span className="stg:inline-flex stg:shrink-0 stg:items-center stg:rounded-full stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-xs stg:font-medium stg:text-primary">
             {inspection.detectionLabel}
           </span>
         )}
 
-        <div className="ml-auto flex min-w-0 flex-wrap items-center gap-3">
+        <div className="stg:ml-auto stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-3">
           {showCopy && (
             <button
               type="button"
@@ -116,10 +116,10 @@ export function ArtifactDocument({
                 inspection.copied ? "Copied to clipboard" : "Copy content"
               }
               className={cn(
-                "inline-flex items-center gap-1.5 text-xs font-medium transition-colors",
+                "stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:transition-colors",
                 inspection.copied
-                  ? "text-success"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? "stg:text-success"
+                  : "stg:text-muted-foreground stg:hover:text-foreground",
                 FOCUS_RING_CLASSES,
               )}
             >
@@ -132,7 +132,7 @@ export function ArtifactDocument({
             onClick={() => download(artifact.storageKey, artifact.name)}
             disabled={isDownloading}
             className={cn(
-              "inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50",
+              "stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:disabled:opacity-50",
               FOCUS_RING_CLASSES,
             )}
           >
@@ -163,10 +163,10 @@ export function ArtifactDocument({
         error={inspection.error}
         isTruncated={inspection.isTruncated}
         skillDetection={inspection.skillDetection}
-        className="min-w-0"
+        className="stg:min-w-0"
       />
 
-      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+      <div role="status" aria-live="polite" aria-atomic="true" className="stg:sr-only">
         {inspection.copied && "Content copied to clipboard"}
       </div>
     </div>
@@ -197,7 +197,7 @@ function ApplyCluster({
 }) {
   if (applyResult) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success">
+      <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-success">
         <CheckIcon />
         Applied {"\u00B7"} {applyResult.name || applyResult.kind}
       </span>
@@ -205,13 +205,13 @@ function ApplyCluster({
   }
   if (applyError) {
     return (
-      <span className="inline-flex items-center gap-2" role="alert">
-        <span className="text-xs text-destructive">{applyError.message}</span>
+      <span className="stg:inline-flex stg:items-center stg:gap-2" role="alert">
+        <span className="stg:text-xs stg:text-destructive">{applyError.message}</span>
         <button
           type="button"
           onClick={onApply}
           className={cn(
-            "text-xs font-medium text-destructive underline transition-colors hover:text-destructive-muted",
+            "stg:text-xs stg:font-medium stg:text-destructive stg:underline stg:transition-colors stg:hover:text-destructive-muted",
             FOCUS_RING_CLASSES,
           )}
         >
@@ -240,7 +240,7 @@ function ApplyCluster({
 // ---------------------------------------------------------------------------
 
 const FOCUS_RING_CLASSES =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm";
+  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm";
 
 // ---------------------------------------------------------------------------
 // Inline SVG icons (SDK independence — no lucide dependency)
@@ -294,7 +294,7 @@ function CopyIcon() {
       strokeWidth="1.2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <rect x="4" y="4" width="6.5" height="6.5" rx="1" />
@@ -314,7 +314,7 @@ function DownloadIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <path d="M6 1.5V8.5" />
@@ -335,7 +335,7 @@ function CheckIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0"
+      className="stg:shrink-0"
       aria-hidden="true"
     >
       <path d="M2 6.5L4.5 9L10 3" />

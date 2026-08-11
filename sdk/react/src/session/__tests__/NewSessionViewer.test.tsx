@@ -133,8 +133,8 @@ describe("NewSessionViewer — composer stays centered", () => {
 
   it("centers the composer with zero attached context", () => {
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
-    expect(composerWrapper()?.className).toContain("my-auto");
-    expect(composerWrapper()?.className).not.toContain("my-6");
+    expect(composerWrapper()?.className).toContain("stg:my-auto");
+    expect(composerWrapper()?.className).not.toContain("stg:my-6");
   });
 
   it("keeps the composer centered when context is attached (no position flip)", () => {
@@ -142,7 +142,7 @@ describe("NewSessionViewer — composer stays centered", () => {
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
     // Regression guard: attaching a workspace previously top-anchored the
     // composer. Centering must now hold irrespective of attached context.
-    expect(composerWrapper()?.className).toContain("my-auto");
-    expect(composerWrapper()?.className).not.toContain("my-6");
+    expect(composerWrapper()?.className).toContain("stg:my-auto");
+    expect(composerWrapper()?.className).not.toContain("stg:my-6");
   });
 });

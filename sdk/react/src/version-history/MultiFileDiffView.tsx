@@ -55,13 +55,13 @@ export function MultiFileDiffView({
       <div
         role="status"
         className={cn(
-          "flex flex-col items-center gap-2 py-12 text-center",
+          "stg:flex stg:flex-col stg:items-center stg:gap-2 stg:py-12 stg:text-center",
           className,
         )}
       >
-        <NoDiffIcon className="size-8 text-muted-foreground-faint" />
-        <p className="text-sm text-muted-foreground">No differences found</p>
-        <p className="text-xs text-muted-foreground-subtle">
+        <NoDiffIcon className="stg:size-8 stg:text-muted-foreground-faint" />
+        <p className="stg:text-sm stg:text-muted-foreground">No differences found</p>
+        <p className="stg:text-xs stg:text-muted-foreground-subtle">
           These two versions have identical content.
         </p>
       </div>
@@ -69,7 +69,7 @@ export function MultiFileDiffView({
   }
 
   return (
-    <div className={cn("flex flex-col gap-3", className)}>
+    <div className={cn("stg:flex stg:flex-col stg:gap-3", className)}>
       <DiffSummary
         fileCount={diff.files.length}
         additions={diff.totalAdditions}
@@ -77,7 +77,7 @@ export function MultiFileDiffView({
       />
 
       {diff.files.length > 1 && (
-        <div className="overflow-hidden rounded-lg border border-border">
+        <div className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border">
           <DiffFileList
             files={diff.files}
             selectedPath={selectedPath}

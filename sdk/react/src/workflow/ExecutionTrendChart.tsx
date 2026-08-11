@@ -24,31 +24,31 @@ const PHASE_DISPLAY: ReadonlyMap<
 > = new Map([
   [
     ExecutionPhase.EXECUTION_COMPLETED,
-    { label: "Completed", colorClass: "text-success", bgColorClass: "bg-success" },
+    { label: "Completed", colorClass: "stg:text-success", bgColorClass: "stg:bg-success" },
   ],
   [
     ExecutionPhase.EXECUTION_FAILED,
-    { label: "Failed", colorClass: "text-destructive", bgColorClass: "bg-destructive" },
+    { label: "Failed", colorClass: "stg:text-destructive", bgColorClass: "stg:bg-destructive" },
   ],
   [
     ExecutionPhase.EXECUTION_IN_PROGRESS,
-    { label: "Running", colorClass: "text-primary", bgColorClass: "bg-primary" },
+    { label: "Running", colorClass: "stg:text-primary", bgColorClass: "stg:bg-primary" },
   ],
   [
     ExecutionPhase.EXECUTION_PENDING,
-    { label: "Pending", colorClass: "text-muted-foreground", bgColorClass: "bg-muted-foreground" },
+    { label: "Pending", colorClass: "stg:text-muted-foreground", bgColorClass: "stg:bg-muted-foreground" },
   ],
   [
     ExecutionPhase.EXECUTION_PAUSED,
-    { label: "Paused", colorClass: "text-muted-foreground", bgColorClass: "bg-muted-foreground/60" },
+    { label: "Paused", colorClass: "stg:text-muted-foreground", bgColorClass: "stg:bg-muted-foreground/60" },
   ],
   [
     ExecutionPhase.EXECUTION_CANCELLED,
-    { label: "Cancelled", colorClass: "text-muted-foreground", bgColorClass: "bg-muted-foreground/40" },
+    { label: "Cancelled", colorClass: "stg:text-muted-foreground", bgColorClass: "stg:bg-muted-foreground/40" },
   ],
   [
     ExecutionPhase.EXECUTION_TERMINATED,
-    { label: "Terminated", colorClass: "text-destructive", bgColorClass: "bg-destructive/60" },
+    { label: "Terminated", colorClass: "stg:text-destructive", bgColorClass: "stg:bg-destructive/60" },
   ],
 ]);
 
@@ -83,12 +83,12 @@ export const ExecutionTrendChart = memo(function ExecutionTrendChart({
 
   if (isLoading) {
     return (
-      <div className={cn("space-y-3", className)} aria-busy="true">
-        <div className="h-4 w-36 animate-pulse rounded bg-muted" />
-        <div className="h-8 animate-pulse rounded-full bg-muted/50" />
-        <div className="flex gap-4">
+      <div className={cn("stg:space-y-3", className)} aria-busy="true">
+        <div className="stg:h-4 stg:w-36 stg:animate-pulse stg:rounded stg:bg-muted" />
+        <div className="stg:h-8 stg:animate-pulse stg:rounded-full stg:bg-muted/50" />
+        <div className="stg:flex stg:gap-4">
           {Array.from({ length: 3 }, (_, i) => (
-            <div key={i} className="h-3 w-16 animate-pulse rounded bg-muted" />
+            <div key={i} className="stg:h-3 stg:w-16 stg:animate-pulse stg:rounded stg:bg-muted" />
           ))}
         </div>
       </div>
@@ -97,11 +97,11 @@ export const ExecutionTrendChart = memo(function ExecutionTrendChart({
 
   if (!summary || total === 0) {
     return (
-      <div className={cn("space-y-3", className)}>
-        <h3 className="text-sm font-semibold text-foreground">
+      <div className={cn("stg:space-y-3", className)}>
+        <h3 className="stg:text-sm stg:font-semibold stg:text-foreground">
           Execution Distribution
         </h3>
-        <p className="py-6 text-center text-xs text-muted-foreground">
+        <p className="stg:py-6 stg:text-center stg:text-xs stg:text-muted-foreground">
           No execution data available
         </p>
       </div>
@@ -109,44 +109,44 @@ export const ExecutionTrendChart = memo(function ExecutionTrendChart({
   }
 
   return (
-    <div className={cn("space-y-3", className)}>
-      <div className="flex items-baseline justify-between">
-        <h3 className="text-sm font-semibold text-foreground">
+    <div className={cn("stg:space-y-3", className)}>
+      <div className="stg:flex stg:items-baseline stg:justify-between">
+        <h3 className="stg:text-sm stg:font-semibold stg:text-foreground">
           Execution Distribution
         </h3>
-        <span className="text-xs tabular-nums text-muted-foreground">
+        <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
           {total} total
         </span>
       </div>
 
       <div
-        className="flex h-3 overflow-hidden rounded-full bg-muted"
+        className="stg:flex stg:h-3 stg:overflow-hidden stg:rounded-full stg:bg-muted"
         role="img"
         aria-label="Execution phase distribution"
       >
         {segments.map((seg) => (
           <div
             key={seg.label}
-            className={cn("h-full transition-all duration-500", seg.bgColorClass)}
+            className={cn("stg:h-full stg:transition-all stg:duration-500", seg.bgColorClass)}
             style={{ width: `${(seg.count / total) * 100}%` }}
           />
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+      <div className="stg:flex stg:flex-wrap stg:gap-x-4 stg:gap-y-1.5">
         {segments.map((seg) => (
           <span
             key={seg.label}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground"
+            className="stg:flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground"
           >
             <span
               className={cn(
-                "inline-block h-2.5 w-2.5 rounded-sm",
+                "stg:inline-block stg:h-2.5 stg:w-2.5 stg:rounded-sm",
                 seg.bgColorClass,
               )}
             />
             <span>{seg.label}</span>
-            <span className={cn("font-semibold tabular-nums", seg.colorClass)}>
+            <span className={cn("stg:font-semibold stg:tabular-nums", seg.colorClass)}>
               {seg.count}
             </span>
           </span>

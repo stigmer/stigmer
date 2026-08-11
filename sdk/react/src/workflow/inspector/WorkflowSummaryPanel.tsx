@@ -56,14 +56,14 @@ export const WorkflowSummaryPanel = memo(function WorkflowSummaryPanel({
   }, [validationErrors]);
 
   return (
-    <div className={cn("flex h-full flex-col overflow-y-auto", className)}>
+    <div className={cn("stg:flex stg:h-full stg:flex-col stg:overflow-y-auto", className)}>
       {/* Workflow identity */}
-      <section className="flex flex-col gap-1.5 px-3 py-3">
+      <section className="stg:flex stg:flex-col stg:gap-1.5 stg:px-3 stg:py-3">
         <SectionHeader>Workflow</SectionHeader>
-        <h3 className="text-sm font-semibold text-[var(--stgm-foreground,#1a1a2e)]">
+        <h3 className="stg:text-sm stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)]">
           {doc.name}
         </h3>
-        <div className="flex flex-wrap gap-1.5 text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
+        <div className="stg:flex stg:flex-wrap stg:gap-1.5 stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
           <span>{doc.namespace}</span>
           <span>·</span>
           <span>v{doc.version}</span>
@@ -71,7 +71,7 @@ export const WorkflowSummaryPanel = memo(function WorkflowSummaryPanel({
           <span>DSL {doc.dsl}</span>
         </div>
         {doc.description && (
-          <p className="text-xs leading-relaxed text-[var(--stgm-muted-foreground,#737373)]">
+          <p className="stg:text-xs stg:leading-relaxed stg:text-[var(--stgm-muted-foreground,#737373)]">
             {doc.description}
           </p>
         )}
@@ -79,24 +79,24 @@ export const WorkflowSummaryPanel = memo(function WorkflowSummaryPanel({
 
       {/* Validation issues */}
       {totalErrors > 0 && validationErrors && (
-        <section className="border-t border-[var(--stgm-border,#e5e5e5)] px-3 py-3">
+        <section className="stg:border-t stg:border-[var(--stgm-border,#e5e5e5)] stg:px-3 stg:py-3">
           <ValidationSection errors={validationErrors} totalCount={totalErrors} />
         </section>
       )}
 
       {/* Task statistics */}
-      <section className="border-t border-[var(--stgm-border,#e5e5e5)] px-3 py-3">
+      <section className="stg:border-t stg:border-[var(--stgm-border,#e5e5e5)] stg:px-3 stg:py-3">
         <SectionHeader>Tasks</SectionHeader>
-        <div className="mt-1 flex flex-col gap-1">
-          <span className="text-xs text-[var(--stgm-foreground,#1a1a2e)]">
+        <div className="stg:mt-1 stg:flex stg:flex-col stg:gap-1">
+          <span className="stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)]">
             {stats.taskCount} task{stats.taskCount !== 1 ? "s" : ""}
           </span>
           {stats.byCategory.size > 0 && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="stg:flex stg:flex-wrap stg:gap-1.5">
               {Array.from(stats.byCategory.entries()).map(([cat, count]) => (
                 <span
                   key={cat}
-                  className="rounded bg-[var(--stgm-muted,#f5f5f5)] px-1.5 py-0.5 text-[10px] text-[var(--stgm-muted-foreground,#737373)]"
+                  className="stg:rounded stg:bg-[var(--stgm-muted,#f5f5f5)] stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]"
                 >
                   {CATEGORY_DISPLAY_NAMES[cat as keyof typeof CATEGORY_DISPLAY_NAMES] ?? cat} ({count})
                 </span>
@@ -108,14 +108,14 @@ export const WorkflowSummaryPanel = memo(function WorkflowSummaryPanel({
 
       {/* Environment variables */}
       {envEntries.length > 0 && (
-        <section className="border-t border-[var(--stgm-border,#e5e5e5)] px-3 py-3">
+        <section className="stg:border-t stg:border-[var(--stgm-border,#e5e5e5)] stg:px-3 stg:py-3">
           <EnvVarsSection entries={envEntries} />
         </section>
       )}
 
       {/* Budget */}
       {graph.budget && (
-        <section className="border-t border-[var(--stgm-border,#e5e5e5)] px-3 py-3">
+        <section className="stg:border-t stg:border-[var(--stgm-border,#e5e5e5)] stg:px-3 stg:py-3">
           <BudgetSection budget={graph.budget} />
         </section>
       )}
@@ -138,33 +138,33 @@ function ValidationSection({
   const toggle = useCallback(() => setExpanded((v) => !v), []);
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="stg:flex stg:flex-col stg:gap-1.5">
       <button
         type="button"
         onClick={toggle}
-        className="flex items-center gap-1.5 text-left"
+        className="stg:flex stg:items-center stg:gap-1.5 stg:text-left"
         aria-expanded={expanded}
       >
         <SectionHeader>
           Validation
         </SectionHeader>
-        <span className="rounded-full bg-[var(--stgm-destructive,#ef4444)]/10 px-1.5 py-0.5 text-[10px] font-medium text-[var(--stgm-destructive,#ef4444)]">
+        <span className="stg:rounded-full stg:bg-[var(--stgm-destructive,#ef4444)]/10 stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-[var(--stgm-destructive,#ef4444)]">
           {totalCount} issue{totalCount !== 1 ? "s" : ""}
         </span>
       </button>
 
       {expanded && (
-        <ul className="flex flex-col gap-1" role="list">
+        <ul className="stg:flex stg:flex-col stg:gap-1" role="list">
           {Array.from(errors.entries()).map(([nodeId, nodeErrors]) =>
             nodeErrors.map((error, i) => (
               <li
                 key={`${nodeId}-${i}`}
-                className="flex items-start gap-1.5 text-[11px]"
+                className="stg:flex stg:items-start stg:gap-1.5 stg:text-[11px]"
               >
-                <span className="shrink-0 font-medium text-[var(--stgm-foreground,#1a1a2e)]">
+                <span className="stg:shrink-0 stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]">
                   {nodeId}:
                 </span>
-                <span className="text-[var(--stgm-destructive,#ef4444)]">{error}</span>
+                <span className="stg:text-[var(--stgm-destructive,#ef4444)]">{error}</span>
               </li>
             )),
           )}
@@ -184,24 +184,24 @@ function EnvVarsSection({
   entries: [string, WorkflowGraphEnvVar][];
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="stg:flex stg:flex-col stg:gap-1.5">
       <SectionHeader>Environment variables</SectionHeader>
-      <div className="flex flex-col gap-1">
+      <div className="stg:flex stg:flex-col stg:gap-1">
         {entries.map(([name, env]) => (
-          <div key={name} className="flex items-baseline gap-2 text-[11px]">
-            <span className="shrink-0 font-mono font-medium text-[var(--stgm-foreground,#1a1a2e)]">
+          <div key={name} className="stg:flex stg:items-baseline stg:gap-2 stg:text-[11px]">
+            <span className="stg:shrink-0 stg:font-mono stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]">
               {name}
             </span>
             {env.isSecret && (
-              <span className="rounded bg-[var(--stgm-warning,#f59e0b)]/10 px-1 text-[9px] font-medium text-[var(--stgm-warning,#f59e0b)]">
+              <span className="stg:rounded stg:bg-[var(--stgm-warning,#f59e0b)]/10 stg:px-1 stg:text-[9px] stg:font-medium stg:text-[var(--stgm-warning,#f59e0b)]">
                 secret
               </span>
             )}
             {env.optional && (
-              <span className="text-[var(--stgm-muted-foreground,#737373)]">optional</span>
+              <span className="stg:text-[var(--stgm-muted-foreground,#737373)]">optional</span>
             )}
             {env.description && (
-              <span className="truncate text-[var(--stgm-muted-foreground,#737373)]" title={env.description}>
+              <span className="stg:truncate stg:text-[var(--stgm-muted-foreground,#737373)]" title={env.description}>
                 {env.description}
               </span>
             )}
@@ -237,13 +237,13 @@ function BudgetSection({ budget }: { budget: WorkflowGraphBudget }) {
   if (items.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="stg:flex stg:flex-col stg:gap-1.5">
       <SectionHeader>Budget</SectionHeader>
-      <div className="flex flex-col gap-1">
+      <div className="stg:flex stg:flex-col stg:gap-1">
         {items.map((item) => (
-          <div key={item.label} className="flex items-baseline gap-2 text-[11px]">
-            <span className="shrink-0 text-[var(--stgm-muted-foreground,#737373)]">{item.label}:</span>
-            <span className="font-medium text-[var(--stgm-foreground,#1a1a2e)]">{item.value}</span>
+          <div key={item.label} className="stg:flex stg:items-baseline stg:gap-2 stg:text-[11px]">
+            <span className="stg:shrink-0 stg:text-[var(--stgm-muted-foreground,#737373)]">{item.label}:</span>
+            <span className="stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]">{item.value}</span>
           </div>
         ))}
       </div>
@@ -257,7 +257,7 @@ function BudgetSection({ budget }: { budget: WorkflowGraphBudget }) {
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <h4 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--stgm-muted-foreground,#737373)]">
+    <h4 className="stg:text-[11px] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-[var(--stgm-muted-foreground,#737373)]">
       {children}
     </h4>
   );

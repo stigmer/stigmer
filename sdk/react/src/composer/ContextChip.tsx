@@ -53,18 +53,18 @@ export function ContextChip({
       {isTransient && <ChipSpinner />}
       {isWarning && (
         <span
-          className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-warning"
+          className="stg:inline-block stg:h-1.5 stg:w-1.5 stg:shrink-0 stg:rounded-full stg:bg-warning"
           aria-hidden="true"
         />
       )}
-      <span className="text-[0.55rem] font-medium uppercase tracking-wider text-muted-foreground">
+      <span className="stg:text-[0.55rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
         {CHIP_TYPE_LABELS[type]}
       </span>
-      <span className="max-w-[120px] truncate" title={label}>
+      <span className="stg:max-w-[120px] stg:truncate" title={label}>
         {label}
       </span>
       {detail != null && (
-        <span className="shrink-0 text-[0.6rem] font-medium text-muted-foreground">
+        <span className="stg:shrink-0 stg:text-[0.6rem] stg:font-medium stg:text-muted-foreground">
           {detail}
         </span>
       )}
@@ -74,12 +74,12 @@ export function ContextChip({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs text-foreground",
+        "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2 stg:py-0.5 stg:text-xs stg:text-foreground",
         isWarning
-          ? "border border-warning/30 bg-warning/10"
-          : "bg-muted-subtle",
-        isTransient && "opacity-70",
-        isReadonly && "opacity-80",
+          ? "stg:border stg:border-warning/30 stg:bg-warning/10"
+          : "stg:bg-muted-subtle",
+        isTransient && "stg:opacity-70",
+        isReadonly && "stg:opacity-80",
       )}
     >
       {onClick ? (
@@ -87,13 +87,13 @@ export function ContextChip({
           type="button"
           onClick={onClick}
           disabled={disabled}
-          className="inline-flex items-center gap-1 hover:opacity-80 disabled:pointer-events-none"
+          className="stg:inline-flex stg:items-center stg:gap-1 stg:hover:opacity-80 stg:disabled:pointer-events-none"
           aria-label={`Configure ${label}`}
         >
           {labelContent}
         </button>
       ) : (
-        <span className="inline-flex items-center gap-1">
+        <span className="stg:inline-flex stg:items-center stg:gap-1">
           {labelContent}
         </span>
       )}
@@ -102,7 +102,7 @@ export function ContextChip({
           type="button"
           onClick={onRemove}
           disabled={disabled}
-          className="ml-0.5 shrink-0 text-muted-foreground hover:text-destructive disabled:pointer-events-none"
+          className="stg:ml-0.5 stg:shrink-0 stg:text-muted-foreground stg:hover:text-destructive stg:disabled:pointer-events-none"
           aria-label={`Remove ${label}`}
         >
           <XIcon />

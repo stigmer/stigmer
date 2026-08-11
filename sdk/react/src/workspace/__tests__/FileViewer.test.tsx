@@ -619,7 +619,7 @@ describe("FileViewer — reveal (jump-to-line)", () => {
     );
     await waitFor(() => expect(container.querySelector('[data-line="2"]')).not.toBeNull());
     expect(container.querySelector('[data-line="2"]')?.className).toContain(
-      "bg-primary-subtle",
+      "stg:bg-primary-subtle",
     );
     expect(scrollIntoView).toHaveBeenCalled();
   });

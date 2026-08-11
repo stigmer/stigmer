@@ -88,32 +88,32 @@ export const WorkflowExecutionHeader = memo(function WorkflowExecutionHeader({
     streamState.stage === "reconnecting";
 
   return (
-    <header className={cn("flex items-center gap-3 border-b border-border px-4 py-3", className)}>
+    <header className={cn("stg:flex stg:items-center stg:gap-3 stg:border-b stg:border-border stg:px-4 stg:py-3", className)}>
       <WorkflowExecutionPhaseBadge phase={phase} />
 
-      <h2 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
+      <h2 className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">
         {name}
       </h2>
 
       {duration && (
-        <span className="shrink-0 text-xs text-muted-foreground">{duration}</span>
+        <span className="stg:shrink-0 stg:text-xs stg:text-muted-foreground">{duration}</span>
       )}
 
       {costDisplay && (
-        <span className="shrink-0 text-xs text-muted-foreground">{costDisplay}</span>
+        <span className="stg:shrink-0 stg:text-xs stg:text-muted-foreground">{costDisplay}</span>
       )}
 
       {isLive && (
-        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
+        <span className="stg:flex stg:items-center stg:gap-1 stg:text-xs stg:text-muted-foreground">
+          <span className="stg:relative stg:flex stg:h-1.5 stg:w-1.5">
+            <span className="stg:absolute stg:inline-flex stg:h-full stg:w-full stg:animate-ping stg:rounded-full stg:bg-success stg:opacity-75" />
+            <span className="stg:relative stg:inline-flex stg:h-1.5 stg:w-1.5 stg:rounded-full stg:bg-success" />
           </span>
           Live
         </span>
       )}
 
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
         {onCompare && TERMINAL_PHASES.has(phase) && (
           <ActionButton
             label="Compare with…"
@@ -172,7 +172,7 @@ export const WorkflowExecutionHeader = memo(function WorkflowExecutionHeader({
         )}
 
         {headerActions && (
-          <div className="relative flex items-center">{headerActions}</div>
+          <div className="stg:relative stg:flex stg:items-center">{headerActions}</div>
         )}
       </div>
     </header>
@@ -196,11 +196,11 @@ function ActionButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "rounded px-2 py-1 text-xs font-medium transition-colors",
-        "disabled:pointer-events-none disabled:opacity-50",
+        "stg:rounded stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
+        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         variant === "destructive"
-          ? "border border-destructive/30 text-destructive hover:bg-destructive/10"
-          : "border border-border text-foreground hover:bg-muted",
+          ? "stg:border stg:border-destructive/30 stg:text-destructive stg:hover:bg-destructive/10"
+          : "stg:border stg:border-border stg:text-foreground stg:hover:bg-muted",
       )}
     >
       {label}

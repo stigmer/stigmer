@@ -315,22 +315,22 @@ export const FileReviewCard = memo(function FileReviewCard({
           : `${total} file change${total === 1 ? "" : "s"}`
       }
       className={cn(
-        "rounded-lg border border-border-prominent",
-        interactive && "border-l-2 border-l-warning",
+        "stg:rounded-lg stg:border stg:border-border-prominent",
+        interactive && "stg:border-l-2 stg:border-l-warning",
         className,
       )}
     >
       {/* The bar: summary + whole-set verdict + the detail expander, one line. */}
-      <div className="flex flex-wrap items-center gap-2 px-2.5 py-1.5 text-xs">
-        <span className="shrink-0 font-medium text-foreground">
+      <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2 stg:px-2.5 stg:py-1.5 stg:text-xs">
+        <span className="stg:shrink-0 stg:font-medium stg:text-foreground">
           {interactive ? "Review file changes" : "File changes"}
         </span>
         {/* The flexible middle: the summary (truncating) plus the set's
             aggregate +N −M, visible even while collapsed so the bar carries
             the magnitude of what is being decided, not just the file count.
             Hidden when no file has counts (FileLineStats). */}
-        <span className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="min-w-0 truncate text-muted-foreground">{summary}</span>
+        <span className="stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-2">
+          <span className="stg:min-w-0 stg:truncate stg:text-muted-foreground">{summary}</span>
           <FileLineStats
             linesAdded={totals.additions}
             linesRemoved={totals.deletions}
@@ -367,10 +367,10 @@ export const FileReviewCard = memo(function FileReviewCard({
           onClick={() => setExpanded((v) => !v)}
           data-cursor-target="file-review-expander"
           className={cn(
-            "inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1",
-            "text-xs font-medium text-muted-foreground transition-colors",
-            "hover:bg-accent-hover hover:text-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1 stg:rounded-md stg:border stg:border-border stg:px-2 stg:py-1",
+            "stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors",
+            "stg:hover:bg-accent-hover stg:hover:text-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
           {/* The closed label states what expanding reveals: the reviewable
@@ -386,7 +386,7 @@ export const FileReviewCard = memo(function FileReviewCard({
       {interactive && incomplete && showBulkControls && (
         <p
           id={incompleteNoticeId}
-          className="px-2.5 pb-1.5 text-[11px] italic text-muted-foreground"
+          className="stg:px-2.5 stg:pb-1.5 stg:text-[11px] stg:italic stg:text-muted-foreground"
         >
           {incompleteNotice(showPerFile, blockSummary, binaryOnly)}
         </p>
@@ -398,7 +398,7 @@ export const FileReviewCard = memo(function FileReviewCard({
           control it belongs to — something a single global banner cannot do.
           Rendered on the bar so it is visible regardless of expansion. */}
       {interactive && wholeSetError && (
-        <div className="px-2.5 pb-1.5">
+        <div className="stg:px-2.5 stg:pb-1.5">
           <InCardDecisionError
             error={wholeSetError}
             leadIn="submit decision"
@@ -410,7 +410,7 @@ export const FileReviewCard = memo(function FileReviewCard({
       {expanded && (
         <div
           id={bodyId}
-          className="space-y-2 border-t border-border-muted px-3 py-2.5"
+          className="stg:space-y-2 stg:border-t stg:border-border-muted stg:px-3 stg:py-2.5"
         >
           {/* The list body carries no summary header: the bar already shows
               the file count and the aggregate +N −M (per-file counts are
@@ -456,7 +456,7 @@ export const FileReviewCard = memo(function FileReviewCard({
                 // its detail is informational, with no per-file control.
                 changes.map((change) =>
                   showDiffs ? (
-                    <div key={change.id} className="space-y-1.5">
+                    <div key={change.id} className="stg:space-y-1.5">
                       <CaptureBadge change={change} />
                       <CapturedChangeDiff change={change} />
                     </div>
@@ -528,8 +528,8 @@ function ExpanderChevron({ expanded }: { expanded: boolean }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={cn(
-        "shrink-0 transition-transform duration-150",
-        expanded && "rotate-90",
+        "stg:shrink-0 stg:transition-transform stg:duration-150",
+        expanded && "stg:rotate-90",
       )}
       aria-hidden="true"
     >
@@ -585,7 +585,7 @@ const FileChangeReviewRow = memo(function FileChangeReviewRow({
     />
   );
   return (
-    <div className="space-y-1.5">
+    <div className="stg:space-y-1.5">
       {showDiffs ? (
         <>
           <CaptureBadge change={change} />
@@ -635,8 +635,8 @@ const SettledFileRow = memo(function SettledFileRow({
     return <FileListRow change={change} trailing={<VerdictBadge verdict={verdict} />} />;
   }
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-2">
+    <div className="stg:space-y-1.5">
+      <div className="stg:flex stg:items-center stg:gap-2">
         <CaptureBadge change={change} />
         <VerdictBadge verdict={verdict} />
       </div>
@@ -690,16 +690,16 @@ function FileListRow({
       : "";
   return (
     <div
-      className="flex flex-wrap items-center gap-x-2 gap-y-1"
+      className="stg:flex stg:flex-wrap stg:items-center stg:gap-x-2 stg:gap-y-1"
       data-cursor-target="file-review-list-row"
     >
       <FileKindBadge kind={change.kind} />
       {renamedFrom && (
-        <span className="min-w-0 truncate font-mono text-xs text-muted-foreground-faint">
+        <span className="stg:min-w-0 stg:truncate stg:font-mono stg:text-xs stg:text-muted-foreground-faint">
           {renamedFrom}&nbsp;→&nbsp;
         </span>
       )}
-      <FilePathLink path={path} dirDisplay="dim" className="min-w-0 flex-1 text-xs" />
+      <FilePathLink path={path} dirDisplay="dim" className="stg:min-w-0 stg:flex-1 stg:text-xs" />
       <FileLineStats
         linesAdded={change.linesAdded}
         linesRemoved={change.linesRemoved}
@@ -720,18 +720,18 @@ function FileListRow({
 function VerdictBadge({ verdict }: { verdict: FileDecisionAction | null }) {
   if (verdict === FileDecisionAction.APPROVE) {
     return (
-      <span className="shrink-0 text-[11px] font-medium text-diff-added-fg">Kept</span>
+      <span className="stg:shrink-0 stg:text-[11px] stg:font-medium stg:text-diff-added-fg">Kept</span>
     );
   }
   if (verdict === FileDecisionAction.REJECT) {
     return (
-      <span className="shrink-0 text-[11px] font-medium text-diff-removed-fg">
+      <span className="stg:shrink-0 stg:text-[11px] stg:font-medium stg:text-diff-removed-fg">
         Discarded
       </span>
     );
   }
   return (
-    <span className="shrink-0 text-[11px] italic text-muted-foreground">
+    <span className="stg:shrink-0 stg:text-[11px] stg:italic stg:text-muted-foreground">
       Not reviewed
     </span>
   );
@@ -806,7 +806,7 @@ function FileVerdictControl({
       role="radiogroup"
       aria-label={`Decision for ${path}`}
       aria-describedby={describedById}
-      className="flex items-center gap-1.5"
+      className="stg:flex stg:items-center stg:gap-1.5"
     >
       <VerdictOption
         label={keepLabel}
@@ -844,17 +844,17 @@ interface VerdictOptionProps {
 // fill AND tone (not color alone), and every property flows through `--stgm-*`
 // tokens with no opacity modifiers.
 const VERDICT_BASE = cn(
-  "inline-flex items-center justify-center gap-1.5 rounded-md border px-2.5 py-1",
-  "text-xs font-medium transition-colors",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-  "disabled:cursor-not-allowed disabled:opacity-50",
+  "stg:inline-flex stg:items-center stg:justify-center stg:gap-1.5 stg:rounded-md stg:border stg:px-2.5 stg:py-1",
+  "stg:text-xs stg:font-medium stg:transition-colors",
+  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-2",
+  "stg:disabled:cursor-not-allowed stg:disabled:opacity-50",
 );
 
-const VERDICT_REST = "border-border text-muted-foreground hover:bg-accent-hover hover:text-foreground";
+const VERDICT_REST = "stg:border-border stg:text-muted-foreground stg:hover:bg-accent-hover stg:hover:text-foreground";
 
 const VERDICT_SELECTED: Record<VerdictOptionProps["tone"], string> = {
-  keep: "border-success bg-success-subtle text-success",
-  discard: "border-destructive bg-destructive-subtle text-destructive",
+  keep: "stg:border-success stg:bg-success-subtle stg:text-success",
+  discard: "stg:border-destructive stg:bg-destructive-subtle stg:text-destructive",
 };
 
 function VerdictOption({
@@ -910,7 +910,7 @@ function CaptureBadge({ change }: { change: CapturedFileChange }) {
   if (!provenance) return null;
   return (
     <span
-      className="inline-flex w-fit items-center rounded border border-border bg-muted-subtle px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
+      className="stg:inline-flex stg:w-fit stg:items-center stg:rounded stg:border stg:border-border stg:bg-muted-subtle stg:px-1.5 stg:py-0.5 stg:text-[11px] stg:font-medium stg:text-muted-foreground"
       aria-label={provenance.aria}
       data-cursor-target="file-review-capture"
     >
@@ -943,7 +943,7 @@ function BlockReasonNote({
   return (
     <p
       id={id}
-      className="text-[11px] italic text-muted-foreground"
+      className="stg:text-[11px] stg:italic stg:text-muted-foreground"
       data-cursor-target="file-review-block-reason"
     >
       {text}
@@ -1015,7 +1015,7 @@ function incompleteNotice(
 
 function ReviewProgress({ decided, total }: { decided: number; total: number }) {
   return (
-    <p role="status" className="text-[11px] text-muted-foreground">
+    <p role="status" className="stg:text-[11px] stg:text-muted-foreground">
       {decided} of {total} files reviewed
       {decided > 0 && decided < total && " — decide the rest to continue"}
     </p>
@@ -1076,7 +1076,7 @@ function SpinnerIcon() {
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />

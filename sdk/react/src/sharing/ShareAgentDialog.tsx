@@ -166,8 +166,8 @@ export function ShareAgentDialog({
       open={modal ? undefined : open}
       onClose={handleClose}
       className={cn(
-        "w-full max-w-lg rounded-xl border border-border bg-popover p-0 shadow-xl",
-        modal ? "fixed inset-0 m-auto backdrop:bg-black/50" : "relative",
+        "stg:w-full stg:max-w-lg stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
+        modal ? "stg:fixed stg:inset-0 stg:m-auto stg:backdrop:bg-black/50" : "stg:relative",
       )}
       aria-labelledby="share-agent-title"
     >
@@ -223,17 +223,17 @@ function ShareAgentDialogBody({
   const isCrossOrg = resolvedShareOrg !== (agent.metadata?.org ?? "");
 
   return (
-    <div className="flex flex-col">
+    <div className="stg:flex stg:flex-col">
       {/* Header */}
-      <div className="flex items-start justify-between border-b border-border px-6 py-4">
-        <div className="min-w-0">
+      <div className="stg:flex stg:items-start stg:justify-between stg:border-b stg:border-border stg:px-6 stg:py-4">
+        <div className="stg:min-w-0">
           <h2
             id="share-agent-title"
-            className="text-base font-semibold text-foreground"
+            className="stg:text-base stg:font-semibold stg:text-foreground"
           >
             {isCreating ? "Create share" : "Share"}
           </h2>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+          <p className="stg:mt-0.5 stg:truncate stg:text-xs stg:text-muted-foreground">
             {/* Cross-org: qualify the agent so it's clear whose blueprint
                 this channel serves — the URL and billing are still yours. */}
             {isCrossOrg
@@ -246,9 +246,9 @@ function ShareAgentDialogBody({
           onClick={onClose}
           aria-label="Close"
           className={cn(
-            "rounded-md p-1 text-muted-foreground",
-            "hover:text-foreground hover:bg-accent-hover",
-            "focus:outline-none focus:ring-2 focus:ring-ring",
+            "stg:rounded-md stg:p-1 stg:text-muted-foreground",
+            "stg:hover:text-foreground stg:hover:bg-accent-hover",
+            "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
           )}
         >
           <CloseIcon />
@@ -274,16 +274,16 @@ function ShareAgentDialogBody({
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-end border-t border-border px-6 py-3">
+      <div className="stg:flex stg:items-center stg:justify-end stg:border-t stg:border-border stg:px-6 stg:py-3">
         <button
           type="button"
           onClick={onClose}
           className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium",
+            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium",
             isCreating
-              ? "border border-border text-foreground hover:bg-accent-hover"
-              : "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+              ? "stg:border stg:border-border stg:text-foreground stg:hover:bg-accent-hover"
+              : "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring stg:focus:ring-offset-2",
           )}
         >
           {isCreating ? "Cancel" : "Done"}
@@ -400,28 +400,28 @@ function CreateShareForm({
   );
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-6 py-4">
-      <p className="text-xs text-muted-foreground">
+    <form onSubmit={handleSubmit} className="stg:flex stg:flex-col stg:gap-4 stg:px-6 stg:py-4">
+      <p className="stg:text-xs stg:text-muted-foreground">
         A share is its own channel to this agent: a hosted chat link with
         its own audience, embed origins, tool credentials, and visitor
         messages.{" "}
         {isCrossOrg && (
           <>
             This one lives in your organization{" "}
-            <span className="font-medium">{shareOrg}</span> while the agent
-            stays in <span className="font-medium">{agent.metadata?.org}</span>{" "}
+            <span className="stg:font-medium">{shareOrg}</span> while the agent
+            stays in <span className="stg:font-medium">{agent.metadata?.org}</span>{" "}
             — updates to the agent apply live.{" "}
           </>
         )}
-        Visitors chat on <span className="font-medium">{shareOrg}</span>&apos;s
+        Visitors chat on <span className="stg:font-medium">{shareOrg}</span>&apos;s
         credits.
       </p>
 
       {/* ---- Name ---- */}
-      <div className="space-y-1">
+      <div className="stg:space-y-1">
         <label
           htmlFor="stgm-new-share-name"
-          className="text-xs font-medium text-foreground"
+          className="stg:text-xs stg:font-medium stg:text-foreground"
         >
           Name
         </label>
@@ -434,19 +434,19 @@ function CreateShareForm({
           required
           maxLength={63}
           className={cn(
-            "w-full rounded-md border bg-input-bg px-2.5 py-1.5 text-xs text-foreground",
-            "placeholder:text-muted-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
-            nameError ? "border-destructive" : "border-border",
+            "stg:w-full stg:rounded-md stg:border stg:bg-input-bg stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+            nameError ? "stg:border-destructive" : "stg:border-border",
           )}
         />
         {nameError ? (
-          <p className="text-[0.65rem] text-destructive" role="alert">
+          <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
             {nameError}
           </p>
         ) : (
-          <p className="text-[0.65rem] text-muted-foreground">
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
             A display name for this share — e.g. the site or campaign it
             serves.
           </p>
@@ -454,10 +454,10 @@ function CreateShareForm({
       </div>
 
       {/* ---- Slug ---- */}
-      <div className="space-y-1">
+      <div className="stg:space-y-1">
         <label
           htmlFor="stgm-new-share-slug"
-          className="text-xs font-medium text-foreground"
+          className="stg:text-xs stg:font-medium stg:text-foreground"
         >
           Slug
         </label>
@@ -469,21 +469,21 @@ function CreateShareForm({
           disabled={isPending}
           required
           className={cn(
-            "w-full rounded-md border bg-input-bg px-2.5 py-1.5 font-mono text-xs text-foreground",
-            "placeholder:text-muted-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
-            slugError ? "border-destructive" : "border-border",
+            "stg:w-full stg:rounded-md stg:border stg:bg-input-bg stg:px-2.5 stg:py-1.5 stg:font-mono stg:text-xs stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+            slugError ? "stg:border-destructive" : "stg:border-border",
           )}
         />
         {slugError ? (
-          <p className="text-[0.65rem] text-destructive" role="alert">
+          <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
             {slugError}
           </p>
         ) : (
-          <p className="text-[0.65rem] text-muted-foreground">
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
             Becomes the share&apos;s address:{" "}
-            <code className="font-mono">
+            <code className="stg:font-mono">
               /chat/{shareOrg}/{slug || "…"}
             </code>
             . Can&apos;t be changed later.
@@ -492,20 +492,20 @@ function CreateShareForm({
       </div>
 
       {submitError && (
-        <p className="text-xs text-destructive" role="alert">
+        <p className="stg:text-xs stg:text-destructive" role="alert">
           {submitError}
         </p>
       )}
 
-      <div className="flex items-center justify-end">
+      <div className="stg:flex stg:items-center stg:justify-end">
         <button
           type="submit"
           disabled={!canSubmit}
           className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring stg:focus:ring-offset-2",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           {isPending ? "Creating…" : "Create share"}
@@ -639,12 +639,12 @@ function ShareAgentForm({
   return (
     <>
       {/* Sharing master switch — governs every tab, so it sits above them. */}
-      <div className="border-b border-border px-6 py-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
+      <div className="stg:border-b stg:border-border stg:px-6 stg:py-4">
+        <div className="stg:flex stg:items-start stg:justify-between stg:gap-4">
+          <div className="stg:min-w-0">
             <span
               id="share-enabled-label"
-              className="text-sm font-medium text-foreground"
+              className="stg:text-sm stg:font-medium stg:text-foreground"
             >
               {isOrgAudience
                 ? "Organization members can chat"
@@ -670,14 +670,14 @@ function ShareAgentForm({
       </div>
 
       {/* Tabs */}
-      <div className="px-6 pb-2 pt-3">
+      <div className="stg:px-6 stg:pb-2 stg:pt-3">
         <Tabs
           tabs={SHARE_TABS}
           activeTab={activeTab}
           onTabChange={setActiveTab}
           aria-label="Sharing options"
         >
-          <div className="pt-4">
+          <div className="stg:pt-4">
             {activeTab === "link" && (
               <LinkTab
                 shareUrl={shareUrl}
@@ -736,10 +736,10 @@ function ToolReadinessHint({
 
   if (readiness.status === "needs-credentials") {
     return (
-      <p className="mt-2 text-xs text-warning" role="status">
+      <p className="stg:mt-2 stg:text-xs stg:text-warning" role="status">
         Visitors&apos; chats can&apos;t use this agent&apos;s tools yet: no
         credentials are bound to this share. Bind an org-shared environment
-        under <span className="font-medium">Tool credentials</span> in the
+        under <span className="stg:font-medium">Tool credentials</span> in the
         Link tab below.
       </p>
     );
@@ -753,9 +753,9 @@ function ToolReadinessHint({
   const plural = readiness.privateEnvironments.length > 1;
 
   return (
-    <p className="mt-2 text-xs text-warning" role="status">
+    <p className="stg:mt-2 stg:text-xs stg:text-warning" role="status">
       Visitors&apos; chats can&apos;t use this agent&apos;s tools yet: the
-      environment{plural ? "s" : ""} <span className="font-medium">{envList}</span>{" "}
+      environment{plural ? "s" : ""} <span className="stg:font-medium">{envList}</span>{" "}
       {plural ? "are" : "is"} private. Share {plural ? "them" : "it"} with your
       organization (Settings &rarr; Environments) so visitor runs can use the
       credentials. Secret values stay hidden either way.
@@ -793,7 +793,7 @@ function AudienceSelector({
     <div
       role="radiogroup"
       aria-label="Who can chat"
-      className="mt-3 inline-flex rounded-md border border-border p-0.5"
+      className="stg:mt-3 stg:inline-flex stg:rounded-md stg:border stg:border-border stg:p-0.5"
     >
       {AUDIENCE_OPTIONS.map(({ value, label }) => {
         const selected = audience === value;
@@ -806,12 +806,12 @@ function AudienceSelector({
             onClick={() => onChange(value)}
             disabled={disabled}
             className={cn(
-              "rounded px-2.5 py-1 text-xs font-medium",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:rounded stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               selected
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground",
+                ? "stg:bg-primary stg:text-primary-foreground"
+                : "stg:text-muted-foreground stg:hover:text-foreground",
             )}
           >
             {label}
@@ -845,9 +845,9 @@ function WhoPaysLine({
       : null;
 
   return (
-    <p className="mt-0.5 text-xs text-muted-foreground">
+    <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
       {audience === "org" ? "Members" : "Visitors"} chat on{" "}
-      <span className="font-medium">{org}</span>&apos;s credits
+      <span className="stg:font-medium">{org}</span>&apos;s credits
       {balance !== null && <> ({balance} available)</>}.
     </p>
   );
@@ -865,7 +865,7 @@ function WhoPaysLine({
  */
 function SharingOffHint({ subject }: { readonly subject: string }) {
   return (
-    <p className="text-xs text-muted-foreground" role="status">
+    <p className="stg:text-xs stg:text-muted-foreground" role="status">
       Sharing is off, so {subject} doesn&apos;t work yet — turn on the switch
       above to activate it.
     </p>
@@ -901,7 +901,7 @@ function LinkTab({
   const isOrgAudience = draft.audience === "org";
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="stg:flex stg:flex-col stg:gap-4">
       <CopyField
         label={isOrgAudience ? "Member chat link" : "Public chat link"}
         value={shareUrl}
@@ -912,14 +912,14 @@ function LinkTab({
       {!enabled && <SharingOffHint subject="this link" />}
 
       {isOrgAudience ? (
-        <p className="text-xs text-muted-foreground">
-          Only signed-in members of <span className="font-medium">{org}</span>{" "}
+        <p className="stg:text-xs stg:text-muted-foreground">
+          Only signed-in members of <span className="stg:font-medium">{org}</span>{" "}
           can chat. Access is checked on every message, so it ends the moment
           someone leaves the organization. The link is safe to forward — it
           shows nothing to anyone else.
         </p>
       ) : (
-        <p className="text-xs text-warning">
+        <p className="stg:text-xs stg:text-warning">
           Public links can be forwarded and indexed by search engines.
           Don&apos;t share agents that know internal or confidential
           information — or switch the audience to org members.
@@ -967,13 +967,13 @@ function ResetLinkControl({
   readonly onResetLink: () => void;
 }) {
   return (
-    <section className={cn(!enabled && "opacity-50")}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h3 className="text-xs font-medium text-muted-foreground">
+    <section className={cn(!enabled && "stg:opacity-50")}>
+      <div className="stg:flex stg:items-start stg:justify-between stg:gap-4">
+        <div className="stg:min-w-0">
+          <h3 className="stg:text-xs stg:font-medium stg:text-muted-foreground">
             Reset link
           </h3>
-          <p className="mt-0.5 text-[0.65rem] text-muted-foreground">
+          <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-muted-foreground">
             {hasLinkToken
               ? "Generates a new link and kills the current one immediately — even mid-conversation. Re-share the new link with the people who should keep access."
               : "Got forwarded further than you wanted? Resetting locks the link behind a secret and kills the plain address immediately."}
@@ -984,10 +984,10 @@ function ResetLinkControl({
           onClick={onResetLink}
           disabled={!enabled || isRotating}
           className={cn(
-            "shrink-0 rounded-md px-2.5 py-1.5 text-xs font-medium",
-            "border border-border text-foreground hover:bg-accent-hover",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:border stg:border-border stg:text-foreground stg:hover:bg-accent-hover",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           {isRotating ? "Resetting…" : "Reset link"}
@@ -1059,20 +1059,20 @@ function ToolCredentialsSection({
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
         className={cn(
-          "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground",
-          "hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
+          "stg:inline-flex stg:items-center stg:gap-1 stg:text-xs stg:font-medium stg:text-muted-foreground",
+          "stg:hover:text-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded",
         )}
       >
         <ChevronIcon
-          className={cn("size-3 transition-transform", expanded && "rotate-90")}
+          className={cn("stg:size-3 stg:transition-transform", expanded && "stg:rotate-90")}
         />
         Tool credentials
       </button>
 
       {expanded && (
-        <div className="mt-2 flex flex-col gap-2">
-          <p className="text-[0.65rem] text-muted-foreground">
+        <div className="stg:mt-2 stg:flex stg:flex-col stg:gap-2">
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
             Environments whose values visitors&apos; chats can use — bind one
             holding the credentials this agent&apos;s tools need (a read-only
             token is safest). Only environments shared with your organization
@@ -1159,18 +1159,18 @@ function EmbedTab({
   // snippets that would render nothing.
   if (draft.audience === "org") {
     return (
-      <p className="text-xs text-muted-foreground" role="status">
+      <p className="stg:text-xs stg:text-muted-foreground" role="status">
         Embedding isn&apos;t available for org-members-only sharing: embeds
         serve anonymous visitors, and this agent requires a signed-in
         organization member. Switch the audience to{" "}
-        <span className="font-medium">Public link</span> to embed it on a
+        <span className="stg:font-medium">Public link</span> to embed it on a
         site.
       </p>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="stg:flex stg:flex-col stg:gap-4">
       <CopyField
         label="Embed on your site"
         value={scriptSnippet}
@@ -1179,7 +1179,7 @@ function EmbedTab({
         multiline
       />
       {!enabled && <SharingOffHint subject="this embed" />}
-      <p className="text-xs text-muted-foreground">
+      <p className="stg:text-xs stg:text-muted-foreground">
         The widget hides itself on sites that aren&apos;t allowed to embed
         this agent. Free embeds show a &quot;Powered by Stigmer&quot; badge.
       </p>
@@ -1222,20 +1222,20 @@ function IframeAlternative({
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
         className={cn(
-          "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground",
-          "hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
+          "stg:inline-flex stg:items-center stg:gap-1 stg:text-xs stg:font-medium stg:text-muted-foreground",
+          "stg:hover:text-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded",
         )}
       >
         <ChevronIcon
-          className={cn("size-3 transition-transform", expanded && "rotate-90")}
+          className={cn("stg:size-3 stg:transition-transform", expanded && "stg:rotate-90")}
         />
         No-JavaScript alternative
       </button>
 
       {expanded && (
-        <div className="mt-2 flex flex-col gap-2">
-          <p className="text-[0.65rem] text-muted-foreground">
+        <div className="stg:mt-2 stg:flex stg:flex-col stg:gap-2">
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
             For sites that can&apos;t run scripts. A blocked embed shows an
             empty frame instead of hiding.
           </p>
@@ -1309,23 +1309,23 @@ function OriginsEditor({
 
   return (
     <section>
-      <h3 className="text-xs font-medium text-muted-foreground">
+      <h3 className="stg:text-xs stg:font-medium stg:text-muted-foreground">
         Allowed embed origins
       </h3>
-      <p className="mt-0.5 text-[0.65rem] text-muted-foreground">
+      <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-muted-foreground">
         Sites allowed to embed this agent. An empty list allows any site;
         adding origins restricts embedding to those sites. The hosted link
         works either way.
       </p>
 
       {draft.allowedOrigins.length > 0 && (
-        <ul className="mt-2 flex flex-col divide-y divide-border rounded-md border border-border">
+        <ul className="stg:mt-2 stg:flex stg:flex-col stg:divide-y stg:divide-border stg:rounded-md stg:border stg:border-border">
           {draft.allowedOrigins.map((origin) => (
             <li
               key={origin}
-              className="flex items-center justify-between gap-2 px-2.5 py-1.5"
+              className="stg:flex stg:items-center stg:justify-between stg:gap-2 stg:px-2.5 stg:py-1.5"
             >
-              <code className="truncate font-mono text-xs text-foreground">
+              <code className="stg:truncate stg:font-mono stg:text-xs stg:text-foreground">
                 {origin}
               </code>
               <button
@@ -1334,10 +1334,10 @@ function OriginsEditor({
                 disabled={isPending}
                 aria-label={`Remove ${origin}`}
                 className={cn(
-                  "inline-flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground",
-                  "hover:bg-destructive-subtle hover:text-destructive",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  "disabled:pointer-events-none disabled:opacity-50",
+                  "stg:inline-flex stg:size-5 stg:shrink-0 stg:items-center stg:justify-center stg:rounded stg:text-muted-foreground",
+                  "stg:hover:bg-destructive-subtle stg:hover:text-destructive",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
                 )}
               >
                 <RemoveIcon />
@@ -1347,8 +1347,8 @@ function OriginsEditor({
         </ul>
       )}
 
-      <div className="mt-2 flex items-start gap-1.5">
-        <div className="min-w-0 flex-1">
+      <div className="stg:mt-2 stg:flex stg:items-start stg:gap-1.5">
+        <div className="stg:min-w-0 stg:flex-1">
           <input
             type="text"
             value={newOrigin}
@@ -1366,12 +1366,12 @@ function OriginsEditor({
             aria-label="Add allowed origin"
             aria-invalid={inputError != null}
             className={cn(
-              "w-full rounded-md border border-border bg-input-bg px-2 py-1.5 font-mono text-xs text-foreground",
-              "focus:outline-none focus:ring-2 focus:ring-ring",
+              "stg:w-full stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1.5 stg:font-mono stg:text-xs stg:text-foreground",
+              "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
             )}
           />
           {inputError && (
-            <p role="alert" className="mt-1 text-xs text-destructive">
+            <p role="alert" className="stg:mt-1 stg:text-xs stg:text-destructive">
               {inputError}
             </p>
           )}
@@ -1381,10 +1381,10 @@ function OriginsEditor({
           onClick={() => void handleAdd()}
           disabled={isPending || !newOrigin.trim()}
           className={cn(
-            "shrink-0 rounded-md px-2.5 py-1.5 text-xs font-medium",
-            "border border-border text-foreground hover:bg-accent-hover",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:border stg:border-border stg:text-foreground stg:hover:bg-accent-hover",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           Add
@@ -1447,20 +1447,20 @@ function MessagesEditor({
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
         className={cn(
-          "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground",
-          "hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
+          "stg:inline-flex stg:items-center stg:gap-1 stg:text-xs stg:font-medium stg:text-muted-foreground",
+          "stg:hover:text-foreground",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded",
         )}
       >
         <ChevronIcon
-          className={cn("size-3 transition-transform", expanded && "rotate-90")}
+          className={cn("stg:size-3 stg:transition-transform", expanded && "stg:rotate-90")}
         />
         Customize visitor messages
       </button>
 
       {expanded && (
-        <div className="mt-2 flex flex-col gap-3">
-          <p className="text-[0.65rem] text-muted-foreground">
+        <div className="stg:mt-2 stg:flex stg:flex-col stg:gap-3">
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
             Shown to visitors when a limit is reached. Leave empty to use the
             platform defaults.
           </p>
@@ -1476,15 +1476,15 @@ function MessagesEditor({
             />
           ))}
           {isDirty && (
-            <div className="flex items-center justify-end gap-1.5">
+            <div className="stg:flex stg:items-center stg:justify-end stg:gap-1.5">
               <button
                 type="button"
                 onClick={() => setLocalMessages(draft.messages)}
                 disabled={isPending}
                 className={cn(
-                  "rounded-md px-2.5 py-1 text-xs font-medium",
-                  "border border-border text-foreground hover:bg-accent-hover",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+                  "stg:border stg:border-border stg:text-foreground stg:hover:bg-accent-hover",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 )}
               >
                 Reset
@@ -1494,10 +1494,10 @@ function MessagesEditor({
                 onClick={handleSave}
                 disabled={isPending}
                 className={cn(
-                  "rounded-md px-2.5 py-1 text-xs font-medium",
-                  "bg-primary text-primary-foreground hover:bg-primary-hover",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  "disabled:pointer-events-none disabled:opacity-50",
+                  "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
+                  "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
                 )}
               >
                 Save messages
@@ -1522,10 +1522,10 @@ function MessageField({
   readonly onChange: (value: string) => void;
 }) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+    <label className="stg:flex stg:flex-col stg:gap-1">
+      <span className="stg:flex stg:items-center stg:justify-between stg:text-xs stg:font-medium stg:text-muted-foreground">
         {label}
-        <span className="tabular-nums text-[0.65rem]">
+        <span className="stg:tabular-nums stg:text-[0.65rem]">
           {value.length}/{MAX_MESSAGE_LENGTH}
         </span>
       </span>
@@ -1536,8 +1536,8 @@ function MessageField({
         rows={2}
         maxLength={MAX_MESSAGE_LENGTH}
         className={cn(
-          "w-full resize-y rounded-md border border-border bg-input-bg px-2 py-1.5 text-xs text-foreground",
-          "focus:outline-none focus:ring-2 focus:ring-ring",
+          "stg:w-full stg:resize-y stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1.5 stg:text-xs stg:text-foreground",
+          "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
         )}
       />
     </label>
@@ -1575,8 +1575,8 @@ function DeveloperTab({
   const snippet = useMemo(() => buildDeveloperSnippet(org, slug), [org, slug]);
 
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-xs text-muted-foreground">
+    <div className="stg:flex stg:flex-col stg:gap-3">
+      <p className="stg:text-xs stg:text-muted-foreground">
         Need your own auth, branding, or UI? Create a platform client and
         integrate this agent with the Stigmer SDK — the same runtime, full
         control.
@@ -1592,8 +1592,8 @@ function DeveloperTab({
         target="_blank"
         rel="noreferrer"
         className={cn(
-          "text-xs font-medium text-primary hover:text-primary-muted",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
+          "stg:text-xs stg:font-medium stg:text-primary stg:hover:text-primary-muted",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded",
         )}
       >
         Read the platform client guide →
@@ -1624,14 +1624,14 @@ function CopyField({
   const { copy } = useCopyResource();
 
   return (
-    <section className={cn(disabled && "opacity-50")}>
-      <h3 className="text-xs font-medium text-muted-foreground">{label}</h3>
-      <div className="mt-1.5 flex items-start gap-1.5">
+    <section className={cn(disabled && "stg:opacity-50")}>
+      <h3 className="stg:text-xs stg:font-medium stg:text-muted-foreground">{label}</h3>
+      <div className="stg:mt-1.5 stg:flex stg:items-start stg:gap-1.5">
         {multiline ? (
           <pre
             className={cn(
-              "min-w-0 flex-1 overflow-x-auto rounded-md border border-border bg-muted-subtle px-2.5 py-2",
-              "font-mono text-xs leading-relaxed text-foreground",
+              "stg:min-w-0 stg:flex-1 stg:overflow-x-auto stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:px-2.5 stg:py-2",
+              "stg:font-mono stg:text-xs stg:leading-relaxed stg:text-foreground",
             )}
           >
             {value}
@@ -1639,24 +1639,24 @@ function CopyField({
         ) : (
           <code
             className={cn(
-              "min-w-0 flex-1 truncate rounded-md border border-border bg-muted-subtle px-2.5 py-1.5",
-              "font-mono text-xs text-foreground",
+              "stg:min-w-0 stg:flex-1 stg:truncate stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:px-2.5 stg:py-1.5",
+              "stg:font-mono stg:text-xs stg:text-foreground",
             )}
             title={value}
           >
             {value}
           </code>
         )}
-        <div className="flex shrink-0 flex-col gap-1.5">
+        <div className="stg:flex stg:shrink-0 stg:flex-col stg:gap-1.5">
           <button
             type="button"
             onClick={() => void copy(value, copyLabel)}
             disabled={disabled}
             className={cn(
-              "rounded-md px-2.5 py-1.5 text-xs font-medium",
-              "border border-border text-foreground hover:bg-accent-hover",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
+              "stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
+              "stg:border stg:border-border stg:text-foreground stg:hover:bg-accent-hover",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             Copy
@@ -1667,9 +1667,9 @@ function CopyField({
               target="_blank"
               rel="noreferrer"
               className={cn(
-                "rounded-md px-2.5 py-1.5 text-center text-xs font-medium",
-                "border border-border text-foreground hover:bg-accent-hover",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-center stg:text-xs stg:font-medium",
+                "stg:border stg:border-border stg:text-foreground stg:hover:bg-accent-hover",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
               )}
             >
               Open

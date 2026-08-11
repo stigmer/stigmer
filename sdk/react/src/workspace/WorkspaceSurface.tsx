@@ -248,7 +248,7 @@ export function WorkspaceSurface({
   const activeExtraView = extraViews?.find((v) => v.id === activeView);
 
   return (
-    <div className={cn("flex h-full min-h-0", className)}>
+    <div className={cn("stg:flex stg:h-full stg:min-h-0", className)}>
       <ActivityRail
         view={activeView}
         onViewChange={handleViewChange}
@@ -265,7 +265,7 @@ export function WorkspaceSurface({
         // min-w-0: the split is a flex-row child of the surface; without it,
         // the fixed-width sidebar sub-pane gives the whole surface a hard
         // minimum width and content overflow escapes to the session panel.
-        className="min-h-0 min-w-0 flex-1"
+        className="stg:min-h-0 stg:min-w-0 stg:flex-1"
         primary={
           activeExtraView ? (
             <ExtraViewSidebar view={activeExtraView} />
@@ -375,7 +375,7 @@ function ActivityRail({
       role="radiogroup"
       aria-label="Workspace view"
       aria-orientation="vertical"
-      className="flex w-11 shrink-0 flex-col items-center gap-1 border-r border-border bg-muted-faint py-2"
+      className="stg:flex stg:w-11 stg:shrink-0 stg:flex-col stg:items-center stg:gap-1 stg:border-r stg:border-border stg:bg-muted-faint stg:py-2"
     >
       {items.map((item, index) => {
         const isSelected = view === item.id;
@@ -395,18 +395,18 @@ function ActivityRail({
             onClick={() => onViewChange(item.id)}
             onKeyDown={(e) => handleKeyDown(e, index)}
             className={cn(
-              "relative flex h-9 w-9 items-center justify-center rounded-md transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "stg:relative stg:flex stg:h-9 stg:w-9 stg:items-center stg:justify-center stg:rounded-md stg:transition-colors",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
               isSelected
-                ? "bg-accent text-foreground"
-                : "text-muted-foreground hover:bg-accent-hover hover:text-foreground",
+                ? "stg:bg-accent stg:text-foreground"
+                : "stg:text-muted-foreground stg:hover:bg-accent-hover stg:hover:text-foreground",
             )}
           >
             {item.icon}
             {showBadge && (
               <span
                 aria-hidden="true"
-                className="absolute -right-0.5 -top-0.5 inline-flex min-w-[0.875rem] items-center justify-center rounded-full bg-primary px-1 py-px text-[9px] font-medium leading-none text-primary-foreground"
+                className="stg:absolute stg:-right-0.5 stg:-top-0.5 stg:inline-flex stg:min-w-[0.875rem] stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-1 stg:py-px stg:text-[9px] stg:font-medium stg:leading-none stg:text-primary-foreground"
               >
                 {item.badge}
               </span>
@@ -440,9 +440,9 @@ function ExplorerSidebar({
   readonly onAddLocalFolder?: () => void;
 }) {
   return (
-    <div className="flex h-full min-h-0 flex-col border-r border-border">
+    <div className="stg:flex stg:h-full stg:min-h-0 stg:flex-col stg:border-r stg:border-border">
       <SidebarHeader title="Explorer" />
-      <div className="min-h-0 flex-1 overflow-y-auto py-1.5">
+      <div className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:py-1.5">
         {!lister || entries.length === 0 ? (
           <SidebarEmpty>No workspace attached.</SidebarEmpty>
         ) : (
@@ -457,14 +457,14 @@ function ExplorerSidebar({
         )}
       </div>
       {onAddLocalFolder && (
-        <div className="shrink-0 border-t border-border-muted p-1.5">
+        <div className="stg:shrink-0 stg:border-t stg:border-border-muted stg:p-1.5">
           <button
             type="button"
             onClick={onAddLocalFolder}
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-foreground transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="stg:flex stg:w-full stg:items-center stg:gap-2 stg:rounded-md stg:px-2 stg:py-1.5 stg:text-xs stg:text-foreground stg:transition-colors stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
           >
             <FolderPlusIcon />
-            <span className="flex-1 text-left">Add Folder</span>
+            <span className="stg:flex-1 stg:text-left">Add Folder</span>
           </button>
         </div>
       )}
@@ -500,7 +500,7 @@ function SearchSidebar({
   const [mode, setMode] = useState<SearchMode>("name");
 
   return (
-    <div className="flex h-full min-h-0 flex-col border-r border-border">
+    <div className="stg:flex stg:h-full stg:min-h-0 stg:flex-col stg:border-r stg:border-border">
       <SidebarHeader title="Search" />
       {searcher && <SearchModeToggle value={mode} onChange={setMode} />}
       {searcher && mode === "text" ? (
@@ -509,7 +509,7 @@ function SearchSidebar({
           searcher={searcher}
           onOpenFile={onOpenFile}
           selectedFile={selectedFile}
-          className="min-h-0 flex-1"
+          className="stg:min-h-0 stg:flex-1"
         />
       ) : (
         <WorkspaceFileSearch
@@ -517,7 +517,7 @@ function SearchSidebar({
           lister={lister}
           onOpenFile={onOpenFile}
           selectedFile={selectedFile}
-          className="min-h-0 flex-1"
+          className="stg:min-h-0 stg:flex-1"
         />
       )}
     </div>
@@ -564,11 +564,11 @@ function SearchModeToggle({
   );
 
   return (
-    <div className="shrink-0 border-b border-border px-2 py-1.5">
+    <div className="stg:shrink-0 stg:border-b stg:border-border stg:px-2 stg:py-1.5">
       <div
         role="radiogroup"
         aria-label="Search mode"
-        className="inline-flex rounded-md bg-muted p-0.5"
+        className="stg:inline-flex stg:rounded-md stg:bg-muted stg:p-0.5"
       >
         {options.map((option, index) => {
           const isSelected = value === option.value;
@@ -585,11 +585,11 @@ function SearchModeToggle({
               onClick={() => onChange(option.value)}
               onKeyDown={handleKeyDown}
               className={cn(
-                "rounded px-2.5 py-0.5 text-[0.7rem] font-medium transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "stg:rounded stg:px-2.5 stg:py-0.5 stg:text-[0.7rem] stg:font-medium stg:transition-colors",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 isSelected
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? "stg:bg-background stg:text-foreground stg:shadow-sm"
+                  : "stg:text-muted-foreground stg:hover:text-foreground",
               )}
             >
               {option.label}
@@ -612,17 +612,17 @@ function ExtraViewSidebar({ view }: { readonly view: SurfaceRailView }) {
     // double the header and nest scroll containers around a component that
     // already manages both.
     return (
-      <div className="flex h-full min-h-0 flex-col border-r border-border">
+      <div className="stg:flex stg:h-full stg:min-h-0 stg:flex-col stg:border-r stg:border-border">
         {view.content}
       </div>
     );
   }
   return (
-    <div className="flex h-full min-h-0 flex-col border-r border-border">
+    <div className="stg:flex stg:h-full stg:min-h-0 stg:flex-col stg:border-r stg:border-border">
       <SidebarHeader title={view.label} />
       {/* Same scroll + padding envelope the inspector gave these components,
           so facet content drops in unchanged. */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+      <div className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:px-3 stg:py-3">
         {view.content}
       </div>
     </div>
@@ -679,17 +679,17 @@ function EditorArea({
     : undefined;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="stg:flex stg:h-full stg:min-h-0 stg:flex-col">
       {/* Collapse control + tab strip. The far right is kept clear (pr-24):
           the session viewer floats its top-right controls (host
           `headerActions` and the panel chip) over this region. */}
-      <div className="flex shrink-0 items-stretch border-b border-border pr-24">
+      <div className="stg:flex stg:shrink-0 stg:items-stretch stg:border-b stg:border-border stg:pr-24">
         <button
           type="button"
           onClick={onCollapse}
           aria-label="Back to chat"
           title="Back to chat"
-          className="flex shrink-0 items-center border-r border-border px-2 text-muted-foreground transition-colors hover:bg-accent-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+          className="stg:flex stg:shrink-0 stg:items-center stg:border-r stg:border-border stg:px-2 stg:text-muted-foreground stg:transition-colors stg:hover:bg-accent-hover stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring"
         >
           <ChevronLeftIcon />
         </button>
@@ -702,7 +702,7 @@ function EditorArea({
             onClose={onCloseEditor}
             panelId={panelId}
             tabIdPrefix={tabIdPrefix}
-            className="min-w-0 flex-1 border-b-0"
+            className="stg:min-w-0 stg:flex-1 stg:border-b-0"
           />
         )}
       </div>
@@ -712,7 +712,7 @@ function EditorArea({
           flex/min-w-0 chain as the branches so the DD-20 reflow is preserved:
           the wrapper is just a labelled passthrough, not a new layout context. */}
       <div
-        className="flex min-h-0 min-w-0 flex-1 flex-col"
+        className="stg:flex stg:min-h-0 stg:min-w-0 stg:flex-1 stg:flex-col"
         {...(activeKey
           ? {
               role: "tabpanel",
@@ -730,7 +730,7 @@ function EditorArea({
           // moment any child refuses to shrink — documents must reflow instead.
           <div
             key={activeKey ?? undefined}
-            className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden"
+            className="stg:min-h-0 stg:min-w-0 stg:flex-1 stg:overflow-y-auto stg:overflow-x-hidden"
           >
             {activeVirtualDocument.content}
           </div>
@@ -754,11 +754,11 @@ function EditorArea({
               reveal={reveal}
               onClose={onCollapse}
               showHeader={false}
-              className="min-h-0 flex-1"
+              className="stg:min-h-0 stg:flex-1"
             />
           </>
         ) : (
-          <div className="flex flex-1 items-center justify-center p-8 text-center text-xs text-muted-foreground">
+          <div className="stg:flex stg:flex-1 stg:items-center stg:justify-center stg:p-8 stg:text-center stg:text-xs stg:text-muted-foreground">
             Select a file to view its contents.
           </div>
         )}
@@ -785,14 +785,14 @@ function Breadcrumbs({
   const crumbs = entryName ? [entryName, ...segments] : segments;
 
   return (
-    <div className="flex shrink-0 items-center gap-1 border-b border-border-muted px-3 py-1 text-[0.65rem] text-muted-foreground">
-      <nav aria-label="File location" className="flex min-w-0 flex-1 items-center gap-1">
+    <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1 stg:border-b stg:border-border-muted stg:px-3 stg:py-1 stg:text-[0.65rem] stg:text-muted-foreground">
+      <nav aria-label="File location" className="stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-1">
         {crumbs.map((crumb, i) => {
           const isLast = i === crumbs.length - 1;
           return (
-            <span key={i} className="flex min-w-0 items-center gap-1">
-              {i > 0 && <span className="text-muted-foreground-subtle" aria-hidden="true">›</span>}
-              <span className={cn("truncate", isLast && "text-foreground")}>
+            <span key={i} className="stg:flex stg:min-w-0 stg:items-center stg:gap-1">
+              {i > 0 && <span className="stg:text-muted-foreground-subtle" aria-hidden="true">›</span>}
+              <span className={cn("stg:truncate", isLast && "stg:text-foreground")}>
                 {crumb}
               </span>
             </span>
@@ -805,7 +805,7 @@ function Breadcrumbs({
           onClick={onRefresh}
           aria-label="Reload file"
           title="Reload file"
-          className="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="stg:shrink-0 stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
         >
           <RefreshIcon />
         </button>
@@ -820,7 +820,7 @@ function Breadcrumbs({
 
 function SidebarHeader({ title }: { readonly title: string }) {
   return (
-    <div className="shrink-0 border-b border-border px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className="stg:shrink-0 stg:border-b stg:border-border stg:px-3 stg:py-2 stg:text-[0.65rem] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-muted-foreground">
       {title}
     </div>
   );
@@ -828,7 +828,7 @@ function SidebarHeader({ title }: { readonly title: string }) {
 
 function SidebarEmpty({ children }: { readonly children: React.ReactNode }) {
   return (
-    <div className="px-2 py-6 text-center text-xs text-muted-foreground">
+    <div className="stg:px-2 stg:py-6 stg:text-center stg:text-xs stg:text-muted-foreground">
       {children}
     </div>
   );
@@ -858,7 +858,7 @@ function SearchIcon() {
 
 function FolderPlusIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
       <path d="M1.5 3.5V11a1 1 0 001 1h9a1 1 0 001-1V5.5a1 1 0 00-1-1H7L5.5 3H2.5a1 1 0 00-1 .5z" />
       <path d="M7 7v3M5.5 8.5h3" />
     </svg>

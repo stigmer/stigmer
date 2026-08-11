@@ -35,22 +35,22 @@ export function StepIndicator({
   return (
     <nav
       aria-label="Wizard progress"
-      className={cn("flex flex-col gap-1", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-1", className)}
     >
-      <ol className="flex flex-col gap-1" role="list">
+      <ol className="stg:flex stg:flex-col stg:gap-1" role="list">
         {steps.map((step, index) => {
           const state = getStepState(index, currentStepIndex);
           const isClickable = state === "completed" && onStepClick != null;
 
           const content = (
-            <div className="flex items-center gap-3">
+            <div className="stg:flex stg:items-center stg:gap-3">
               <StepCircle index={index} state={state} />
               <span
                 className={cn(
-                  "text-sm font-medium transition-colors",
-                  state === "active" && "text-foreground",
-                  state === "completed" && "text-foreground",
-                  state === "pending" && "text-muted-foreground",
+                  "stg:text-sm stg:font-medium stg:transition-colors",
+                  state === "active" && "stg:text-foreground",
+                  state === "completed" && "stg:text-foreground",
+                  state === "pending" && "stg:text-muted-foreground",
                 )}
               >
                 {step.label}
@@ -65,9 +65,9 @@ export function StepIndicator({
                   type="button"
                   onClick={() => onStepClick(index)}
                   className={cn(
-                    "w-full rounded-md px-2 py-2 text-left transition-colors",
-                    "hover:bg-accent-hover",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                    "stg:w-full stg:rounded-md stg:px-2 stg:py-2 stg:text-left stg:transition-colors",
+                    "stg:hover:bg-accent-hover",
+                    "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
                   )}
                   aria-label={`Go back to step ${index + 1}: ${step.label}`}
                   aria-current={undefined}
@@ -76,7 +76,7 @@ export function StepIndicator({
                 </button>
               ) : (
                 <div
-                  className="px-2 py-2"
+                  className="stg:px-2 stg:py-2"
                   aria-current={state === "active" ? "step" : undefined}
                 >
                   {content}
@@ -84,7 +84,7 @@ export function StepIndicator({
               )}
               {index < steps.length - 1 && (
                 <div
-                  className="ml-[18px] h-4 w-px bg-border"
+                  className="stg:ml-[18px] stg:h-4 stg:w-px stg:bg-border"
                   aria-hidden="true"
                 />
               )}
@@ -118,15 +118,15 @@ function StepCircle({
   return (
     <div
       className={cn(
-        "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-medium transition-colors",
-        state === "completed" && "bg-primary text-primary-foreground",
-        state === "active" && "border-2 border-primary text-primary",
-        state === "pending" && "border border-border text-muted-foreground",
+        "stg:flex stg:size-7 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:text-xs stg:font-medium stg:transition-colors",
+        state === "completed" && "stg:bg-primary stg:text-primary-foreground",
+        state === "active" && "stg:border-2 stg:border-primary stg:text-primary",
+        state === "pending" && "stg:border stg:border-border stg:text-muted-foreground",
       )}
       aria-hidden="true"
     >
       {state === "completed" ? (
-        <CheckIcon className="size-3.5" />
+        <CheckIcon className="stg:size-3.5" />
       ) : (
         <span>{index + 1}</span>
       )}

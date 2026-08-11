@@ -12,15 +12,15 @@ export function InvitationsSection() {
 
   return (
     <section aria-labelledby="invitations-heading">
-      <div className="mb-3">
+      <div className="stg:mb-3">
         <h2
           id="invitations-heading"
-          className="text-foreground text-sm font-semibold"
+          className="stg:text-foreground stg:text-sm stg:font-semibold"
         >
           Invitations
         </h2>
       </div>
-      <p className="text-muted-foreground mb-4 text-xs">
+      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
         Shareable invite links that grant organization membership with a
         configurable role. Create single-use links for specific people or
         multi-use links for public sharing.
@@ -31,7 +31,7 @@ export function InvitationsSection() {
           Invitations are not available in local mode.
         </CloudFeatureNotice>
       ) : !org ? (
-        <p className="text-muted-foreground py-4 text-center text-xs">
+        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
           Select an organization to manage invitations.
         </p>
       ) : (

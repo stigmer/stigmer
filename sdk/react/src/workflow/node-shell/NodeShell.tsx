@@ -95,11 +95,11 @@ function CssShell({
   return (
     <div
       className={cn(
-        "stgm group relative flex items-center transition-shadow",
+        "stgm stg:group stg:relative stg:flex stg:items-center stg:transition-shadow",
         shellClass,
-        selected && "ring-2 ring-[var(--stgm-ring,#3b82f6)]",
+        selected && "stg:ring-2 stg:ring-[var(--stgm-ring,#3b82f6)]",
         diffStatus && DIFF_STATUS_CSS[diffStatus],
-        !diffStatus && errorCount > 0 && "!border-[var(--stgm-destructive,#ef4444)]",
+        !diffStatus && errorCount > 0 && "stg:!border-[var(--stgm-destructive,#ef4444)]",
         !diffStatus && executionStatus && EXECUTION_STATUS_CSS[executionStatus],
       )}
       style={
@@ -117,20 +117,20 @@ function CssShell({
 
 const CSS_VARIANTS: Partial<Record<VisualClass, string>> = {
   "task-card": cn(
-    "min-w-[200px] gap-2 rounded-md border border-[var(--stgm-border-prominent,#d4d4d8)]",
-    "bg-[var(--stgm-card,var(--stgm-background,#fff))] px-3 py-2 shadow-sm",
+    "stg:min-w-[200px] stg:gap-2 stg:rounded-md stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)]",
+    "stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:px-3 stg:py-2 stg:shadow-sm",
   ),
   "subworkflow-card": cn(
-    "min-w-[200px] gap-2 rounded-md border-2 border-[var(--stgm-border-prominent,#d4d4d8)]",
-    "bg-[var(--stgm-card,var(--stgm-background,#fff))] px-3 py-2 shadow-sm",
+    "stg:min-w-[200px] stg:gap-2 stg:rounded-md stg:border-2 stg:border-[var(--stgm-border-prominent,#d4d4d8)]",
+    "stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:px-3 stg:py-2 stg:shadow-sm",
   ),
   "container": cn(
-    "min-w-[240px] gap-2 rounded-lg border-2 border-dashed border-[var(--stgm-border-prominent,#d4d4d8)]",
-    "bg-[var(--stgm-card,var(--stgm-background,#fff))] px-3 py-2.5 shadow-sm",
+    "stg:min-w-[240px] stg:gap-2 stg:rounded-lg stg:border-2 stg:border-dashed stg:border-[var(--stgm-border-prominent,#d4d4d8)]",
+    "stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:px-3 stg:py-2.5 stg:shadow-sm",
   ),
   "terminal-pill": cn(
-    "items-center justify-center rounded-full border-2 px-4 py-1.5",
-    "bg-[var(--stgm-muted,#f5f5f5)]",
+    "stg:items-center stg:justify-center stg:rounded-full stg:border-2 stg:px-4 stg:py-1.5",
+    "stg:bg-[var(--stgm-muted,#f5f5f5)]",
   ),
 };
 
@@ -165,11 +165,11 @@ function SvgShell({
   return (
     <div
       className={cn(
-        "stgm group relative flex flex-col items-center transition-shadow",
-        selected && "ring-2 ring-[var(--stgm-ring,#3b82f6)]",
-        visualClass === "decision-diamond" && "rounded-sm",
-        visualClass === "event-circle" && "rounded-full",
-        visualClass === "gate-octagon" && "rounded",
+        "stgm stg:group stg:relative stg:flex stg:flex-col stg:items-center stg:transition-shadow",
+        selected && "stg:ring-2 stg:ring-[var(--stgm-ring,#3b82f6)]",
+        visualClass === "decision-diamond" && "stg:rounded-sm",
+        visualClass === "event-circle" && "stg:rounded-full",
+        visualClass === "gate-octagon" && "stg:rounded",
         diffStatus && DIFF_STATUS_CSS[diffStatus],
         !diffStatus && executionStatus && EXECUTION_STATUS_CSS[executionStatus],
       )}
@@ -178,9 +178,9 @@ function SvgShell({
       data-diff-status={diffStatus}
     >
       {/* Shape area */}
-      <div className="relative flex items-center justify-center" style={{ width, height: shapeHeight }}>
+      <div className="stg:relative stg:flex stg:items-center stg:justify-center" style={{ width, height: shapeHeight }}>
         <svg
-          className="pointer-events-none absolute inset-0"
+          className="stg:pointer-events-none stg:absolute stg:inset-0"
           width={width}
           height={shapeHeight}
           viewBox={`0 0 ${width} ${shapeHeight}`}
@@ -194,7 +194,7 @@ function SvgShell({
             strokeDasharray={diffStatus === "removed" ? "6 4" : undefined}
           />
         </svg>
-        <div className="relative z-10 flex items-center justify-center overflow-hidden">
+        <div className="stg:relative stg:z-10 stg:flex stg:items-center stg:justify-center stg:overflow-hidden">
           {children}
         </div>
       </div>
@@ -212,14 +212,14 @@ function SvgShell({
  * Never uses color alone — badges provide text/icon differentiation.
  */
 const EXECUTION_STATUS_CSS: Record<NodeExecutionStatus, string> = {
-  not_reached: "opacity-40",
+  not_reached: "stg:opacity-40",
   pending: "",
   running: "stgm-exec-running border-[var(--stgm-primary,#6366f1)]",
-  completed: "border-[var(--stgm-success,#22c55e)]",
-  failed: "!border-[var(--stgm-destructive,#ef4444)]",
-  skipped: "opacity-50",
+  completed: "stg:border-[var(--stgm-success,#22c55e)]",
+  failed: "stg:!border-[var(--stgm-destructive,#ef4444)]",
+  skipped: "stg:opacity-50",
   retrying: "",
-  waiting_approval: "border-[var(--stgm-warning,#f59e0b)]",
+  waiting_approval: "stg:border-[var(--stgm-warning,#f59e0b)]",
 };
 
 function svgStrokeForStatus(status: NodeExecutionStatus, fallback: string): string {
@@ -246,9 +246,9 @@ function svgStrokeForStatus(status: NodeExecutionStatus, fallback: string): stri
  * styling — diffStatus > executionStatus > errorCount > categoryColor.
  */
 const DIFF_STATUS_CSS: Record<NodeDiffStatus, string> = {
-  added: "border-[var(--stgm-success,#22c55e)] bg-[var(--stgm-success,#22c55e)]/5",
-  removed: "opacity-50 border-dashed border-[var(--stgm-destructive,#ef4444)]",
-  modified: "border-[var(--stgm-warning,#f59e0b)]",
+  added: "stg:border-[var(--stgm-success,#22c55e)] stg:bg-[var(--stgm-success,#22c55e)]/5",
+  removed: "stg:opacity-50 stg:border-dashed stg:border-[var(--stgm-destructive,#ef4444)]",
+  modified: "stg:border-[var(--stgm-warning,#f59e0b)]",
   unchanged: "",
 };
 

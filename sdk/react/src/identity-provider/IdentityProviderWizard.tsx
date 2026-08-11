@@ -205,19 +205,19 @@ export function IdentityProviderWizard({
   // -- Render ----------------------------------------------------------
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("stg:space-y-4", className)}>
       {/* Step indicator */}
       <StepIndicator current={step} />
 
       {step === "pick" && (
         <>
-          <p className="text-muted-foreground text-xs">
+          <p className="stg:text-muted-foreground stg:text-xs">
             Choose your identity provider to get started. Known providers
             will have their OIDC configuration auto-populated.
           </p>
           <ProviderPicker onSelect={handlePickProvider} />
           {onCancel && (
-            <div className="pt-1">
+            <div className="stg:pt-1">
               <CancelButton onClick={onCancel} />
             </div>
           )}
@@ -301,28 +301,28 @@ const STEPS: { key: WizardStep; label: string }[] = [
 function StepIndicator({ current }: { current: WizardStep }) {
   const currentIdx = STEPS.findIndex((s) => s.key === current);
   return (
-    <nav aria-label="Wizard progress" className="flex items-center gap-1.5">
+    <nav aria-label="Wizard progress" className="stg:flex stg:items-center stg:gap-1.5">
       {STEPS.map((s, i) => {
         const state =
           i < currentIdx ? "done" : i === currentIdx ? "active" : "upcoming";
         return (
-          <span key={s.key} className="flex items-center gap-1.5">
+          <span key={s.key} className="stg:flex stg:items-center stg:gap-1.5">
             {i > 0 && (
               <span
                 className={cn(
-                  "h-px w-4",
-                  state === "upcoming" ? "bg-border" : "bg-primary-subtle",
+                  "stg:h-px stg:w-4",
+                  state === "upcoming" ? "stg:bg-border" : "stg:bg-primary-subtle",
                 )}
               />
             )}
             <span
               className={cn(
-                "text-[0.65rem] font-medium",
+                "stg:text-[0.65rem] stg:font-medium",
                 state === "active"
-                  ? "text-primary"
+                  ? "stg:text-primary"
                   : state === "done"
-                    ? "text-muted-foreground"
-                    : "text-muted-foreground-faint",
+                    ? "stg:text-muted-foreground"
+                    : "stg:text-muted-foreground-faint",
               )}
             >
               {s.label}
@@ -375,8 +375,8 @@ function ConfigureStep({
     !isLoading;
 
   return (
-    <div className="space-y-3">
-      <p className="text-muted-foreground text-xs">
+    <div className="stg:space-y-3">
+      <p className="stg:text-muted-foreground stg:text-xs">
         {preset.variables.length > 0
           ? `Enter your ${preset.label} details to auto-populate the OIDC configuration.`
           : `${preset.label} configuration is fully automatic — just provide a name and audience.`}
@@ -398,7 +398,7 @@ function ConfigureStep({
         />
       ))}
 
-      <hr className="border-border-muted" />
+      <hr className="stg:border-border-muted" />
 
       {/* Common fields */}
       <FieldInput
@@ -422,20 +422,20 @@ function ConfigureStep({
       />
 
       {discoveryError && (
-        <p className="text-destructive text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
           {getUserMessage(discoveryError)}
         </p>
       )}
 
-      <div className="flex items-center gap-2 pt-1">
+      <div className="stg:flex stg:items-center stg:gap-2 stg:pt-1">
         <button
           type="button"
           onClick={onContinue}
           disabled={!canContinue}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-40",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
           {isLoading && <SpinnerIcon />}
@@ -514,10 +514,10 @@ function ReviewStep({
     !isCreating;
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3">
+    <form onSubmit={onSubmit} className="stg:space-y-3">
       {discoveryFailed && (
         <div
-          className="rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning-foreground"
+          className="stg:rounded-md stg:border stg:border-warning/30 stg:bg-warning/5 stg:px-3 stg:py-2 stg:text-xs stg:text-warning-foreground"
           role="alert"
         >
           Auto-discovery could not reach the provider. Enter the
@@ -525,7 +525,7 @@ function ReviewStep({
         </div>
       )}
 
-      <p className="text-muted-foreground text-xs">
+      <p className="stg:text-muted-foreground stg:text-xs">
         Review the OIDC configuration. All fields are editable.
       </p>
 
@@ -596,19 +596,19 @@ function ReviewStep({
       />
 
       {createError && (
-        <p className="text-destructive text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
           {getUserMessage(createError)}
         </p>
       )}
 
-      <div className="flex items-center gap-2 pt-1">
+      <div className="stg:flex stg:items-center stg:gap-2 stg:pt-1">
         <button
           type="submit"
           disabled={!canSubmit}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "disabled:pointer-events-none disabled:opacity-40",
+            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
           {isCreating && <SpinnerIcon />}
@@ -657,47 +657,47 @@ function SuccessStep({
       : "viewer";
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-md border border-primary/30 bg-primary-subtle px-3 py-2.5">
-        <p className="text-xs font-medium text-foreground">
+    <div className="stg:space-y-4">
+      <div className="stg:rounded-md stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-3 stg:py-2.5">
+        <p className="stg:text-xs stg:font-medium stg:text-foreground">
           {displayName} created successfully
         </p>
       </div>
 
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-foreground">What happens next</p>
+      <div className="stg:space-y-2">
+        <p className="stg:text-xs stg:font-medium stg:text-foreground">What happens next</p>
 
         {isSso ? (
-          <p className="text-[0.65rem] text-muted-foreground">
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
             Users can sign in via SSO at{" "}
-            <span className="font-mono text-foreground">
+            <span className="stg:font-mono stg:text-foreground">
               /login?org={org}
             </span>
             . Accounts are auto-provisioned and granted the{" "}
-            <span className="font-medium text-foreground">viewer</span> role on
+            <span className="stg:font-medium stg:text-foreground">viewer</span> role on
             this organization.
           </p>
         ) : autoProvision && autoGrant ? (
-          <p className="text-[0.65rem] text-muted-foreground">
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
             Users authenticating with JWTs from this provider will be
             automatically provisioned and granted the{" "}
-            <span className="font-medium text-foreground">{roleName}</span> role
+            <span className="stg:font-medium stg:text-foreground">{roleName}</span> role
             on this organization. No additional setup is required.
           </p>
         ) : autoProvision ? (
-          <p className="text-[0.65rem] text-muted-foreground">
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
             Accounts are auto-provisioned on first authentication, but no
             organization role is granted automatically. Use the Members page to
             grant access.
           </p>
         ) : (
-          <p className="text-[0.65rem] text-muted-foreground">
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
             The trust relationship is configured. Accounts must be created
             manually before users can authenticate.
           </p>
         )}
 
-        <p className="text-[0.65rem] text-muted-foreground">
+        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
           To verify the setup, have a user authenticate with a JWT from this
           provider and confirm they can access the organization&apos;s resources.
         </p>
@@ -707,8 +707,8 @@ function SuccessStep({
         type="button"
         onClick={onDone}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-          "bg-primary text-primary-foreground hover:bg-primary-hover",
+          "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+          "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
         )}
       >
         Done
@@ -745,8 +745,8 @@ function FieldInput({
   options?: readonly { readonly value: string; readonly label: string }[];
 }) {
   return (
-    <div className="space-y-1">
-      <label htmlFor={id} className="text-xs font-medium text-foreground">
+    <div className="stg:space-y-1">
+      <label htmlFor={id} className="stg:text-xs stg:font-medium stg:text-foreground">
         {label}
       </label>
       {type === "select" && options ? (
@@ -756,9 +756,9 @@ function FieldInput({
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
           className={cn(
-            "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           {options.map((opt) => (
@@ -777,15 +777,15 @@ function FieldInput({
           disabled={disabled}
           required={required}
           className={cn(
-            "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-            "placeholder:text-muted-foreground",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         />
       )}
       {hint && (
-        <p className="text-[0.65rem] text-muted-foreground">{hint}</p>
+        <p className="stg:text-[0.65rem] stg:text-muted-foreground">{hint}</p>
       )}
     </div>
   );
@@ -827,10 +827,10 @@ function JitProvisioningSection({
 }) {
   if (isSso) {
     return (
-      <div className="rounded-md border border-border-muted bg-muted-faint px-3 py-2">
-        <p className="text-[0.65rem] text-muted-foreground">
+      <div className="stg:rounded-md stg:border stg:border-border-muted stg:bg-muted-faint stg:px-3 stg:py-2">
+        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
           SSO providers automatically provision accounts and grant the{" "}
-          <span className="font-medium text-foreground">viewer</span> role on
+          <span className="stg:font-medium stg:text-foreground">viewer</span> role on
           the owning organization. JIT provisioning settings are not applicable.
         </p>
       </div>
@@ -838,12 +838,12 @@ function JitProvisioningSection({
   }
 
   return (
-    <fieldset className="space-y-2.5" disabled={disabled}>
-      <hr className="border-border-muted" />
-      <legend className="text-xs font-medium text-foreground">
+    <fieldset className="stg:space-y-2.5" disabled={disabled}>
+      <hr className="stg:border-border-muted" />
+      <legend className="stg:text-xs stg:font-medium stg:text-foreground">
         JIT provisioning
       </legend>
-      <p className="text-[0.65rem] text-muted-foreground">
+      <p className="stg:text-[0.65rem] stg:text-muted-foreground">
         Configure automatic account creation and role assignment for users
         authenticating with this provider.
       </p>
@@ -911,8 +911,8 @@ function ToggleSwitch({
   disabled?: boolean;
 }) {
   return (
-    <div className="space-y-0.5">
-      <div className="flex items-center gap-2">
+    <div className="stg:space-y-0.5">
+      <div className="stg:flex stg:items-center stg:gap-2">
         <button
           type="button"
           role="switch"
@@ -920,22 +920,22 @@ function ToggleSwitch({
           onClick={() => onChange(!checked)}
           disabled={disabled}
           className={cn(
-            "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
-            checked ? "bg-primary" : "bg-muted",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "stg:relative stg:inline-flex stg:h-5 stg:w-9 stg:shrink-0 stg:cursor-pointer stg:rounded-full stg:border-2 stg:border-transparent stg:transition-colors",
+            checked ? "stg:bg-primary" : "stg:bg-muted",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
           <span
             className={cn(
-              "pointer-events-none inline-block h-4 w-4 rounded-full bg-background shadow-sm ring-0 transition-transform",
-              checked ? "translate-x-4" : "translate-x-0",
+              "stg:pointer-events-none stg:inline-block stg:h-4 stg:w-4 stg:rounded-full stg:bg-background stg:shadow-sm stg:ring-0 stg:transition-transform",
+              checked ? "stg:translate-x-4" : "stg:translate-x-0",
             )}
           />
         </button>
-        <span className="text-xs font-medium text-foreground">{label}</span>
+        <span className="stg:text-xs stg:font-medium stg:text-foreground">{label}</span>
       </div>
       {hint && (
-        <p className="pl-11 text-[0.65rem] text-muted-foreground">{hint}</p>
+        <p className="stg:pl-11 stg:text-[0.65rem] stg:text-muted-foreground">{hint}</p>
       )}
     </div>
   );
@@ -956,9 +956,9 @@ function TextButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "rounded-md px-2.5 py-1.5 text-xs",
-        "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-        "disabled:pointer-events-none disabled:opacity-50",
+        "stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs",
+        "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
       )}
     >
       {children}
@@ -990,7 +990,7 @@ function SpinnerIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      className="animate-spin"
+      className="stg:animate-spin"
       aria-hidden="true"
     >
       <path d="M8 2a6 6 0 1 0 6 6" />

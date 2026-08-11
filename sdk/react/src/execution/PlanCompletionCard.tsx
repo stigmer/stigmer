@@ -44,13 +44,13 @@ export const PlanCompletionCard = memo(function PlanCompletionCard({
       aria-label="Plan complete"
       onKeyDown={handleKeyDown}
       className={cn(
-        "mx-4 flex items-center gap-3 rounded-md border border-border-muted",
-        "bg-muted-faint px-3 py-2.5",
+        "stg:mx-4 stg:flex stg:items-center stg:gap-3 stg:rounded-md stg:border stg:border-border-muted",
+        "stg:bg-muted-faint stg:px-3 stg:py-2.5",
         className,
       )}
     >
       <PlanCompleteIcon />
-      <span className="min-w-0 flex-1 text-xs font-medium text-muted-foreground">
+      <span className="stg:min-w-0 stg:flex-1 stg:text-xs stg:font-medium stg:text-muted-foreground">
         Plan complete — ready to build?
       </span>
       <button
@@ -58,12 +58,12 @@ export const PlanCompletionCard = memo(function PlanCompletionCard({
         disabled={disabled}
         onClick={onImplement}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5",
-          "text-xs font-medium transition-colors",
-          "bg-primary text-primary-foreground",
-          "hover:bg-primary-hover",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          "disabled:pointer-events-none disabled:opacity-50",
+          "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5",
+          "stg:text-xs stg:font-medium stg:transition-colors",
+          "stg:bg-primary stg:text-primary-foreground",
+          "stg:hover:bg-primary-hover",
+          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         )}
       >
         <ImplementIcon />
@@ -84,7 +84,7 @@ function PlanCompleteIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-muted-foreground/70"
+      className="stg:shrink-0 stg:text-muted-foreground/70"
       aria-hidden="true"
     >
       <path d="M3 4h10M3 8h7M3 12h8" />

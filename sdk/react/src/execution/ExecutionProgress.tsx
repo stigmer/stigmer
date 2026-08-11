@@ -64,7 +64,7 @@ export function ExecutionProgress({
 
   return (
     <div
-      className={cn("flex flex-col gap-2", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-2", className)}
       role="region"
       aria-label="Execution progress"
     >
@@ -72,7 +72,7 @@ export function ExecutionProgress({
       {error && (
         <p
           role="alert"
-          className="text-xs whitespace-pre-wrap break-words text-destructive"
+          className="stg:text-xs stg:whitespace-pre-wrap stg:break-words stg:text-destructive"
         >
           {error}
         </p>

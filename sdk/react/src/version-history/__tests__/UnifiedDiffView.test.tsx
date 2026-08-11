@@ -44,7 +44,7 @@ describe("UnifiedDiffView", () => {
 
   it("forwards className to the rendered container (e.g. a height cap)", () => {
     const patch = "@@ -1 +1 @@\n-a\n+b\n";
-    const { container } = render(<UnifiedDiffView patch={patch} className="max-h-80" />);
-    expect(container.querySelector(".max-h-80")).not.toBeNull();
+    const { container } = render(<UnifiedDiffView patch={patch} className="stg:max-h-80" />);
+    expect(container.querySelector(".stg\\:max-h-80")).not.toBeNull();
   });
 });
