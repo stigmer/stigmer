@@ -125,11 +125,12 @@ interface SessionViewProps {
  *
  * Two deliberate departures from the shipped viewers, both determinism
  * seams the layout exposes for exactly this host class (DD-006):
- * `responsive={false}` (the embed iframe's viewport sits below `lg`, where
- * the default would hide the conversation on open-panel beats) and no
- * `splitStorageKey` (a persisted pane width would make replays
- * reader-dependent). Everything else enters as props from step data; the
- * root is `inert`, so the depicted page is non-interactive during playback.
+ * `responsive={false}` (the tour canvas is a narrow fixed box, where the
+ * default container-width collapse would hide the conversation on exactly
+ * the open-panel beats the tour is narrating) and no `splitStorageKey` (a
+ * persisted pane width would make replays reader-dependent). Everything
+ * else enters as props from step data; the root is `inert`, so the
+ * depicted page is non-interactive during playback.
  */
 export function SessionView({
   execution,

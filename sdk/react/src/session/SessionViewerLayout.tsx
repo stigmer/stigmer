@@ -44,15 +44,18 @@ export interface SessionViewerLayoutProps {
    */
   readonly splitStorageKey?: string;
   /**
-   * Whether the conversation pane collapses below the `lg` breakpoint
-   * while the panel is open, leaving the panel full-width — the shipped
-   * console behavior on narrow windows.
+   * Whether the conversation pane collapses while the panel is open and
+   * the layout's own box is narrower than 48rem, leaving the panel
+   * full-width — the shipped console behavior in tight quarters.
    *
-   * Pass `false` in fixed-canvas hosts, where the media query is
-   * meaningless or actively wrong: a documentation embed renders in an
-   * iframe whose viewport is the docs column (below `lg` on most pages),
-   * so the default would hide the conversation on exactly the beats that
-   * open the panel.
+   * The narrowness check is a CSS container query against the layout's
+   * box, never the viewport (stigmer/stigmer#301), so it is equally
+   * correct full-window and docked in a narrow pane of a wide window.
+   *
+   * Pass `false` in hosts that must never trade the conversation for the
+   * panel regardless of available space — e.g. a scripted documentation
+   * tour rendered on a narrow fixed canvas, where the collapse would hide
+   * the conversation on exactly the beats that open the panel.
    *
    * @default true
    */

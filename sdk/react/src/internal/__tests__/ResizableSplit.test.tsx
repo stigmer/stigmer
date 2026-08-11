@@ -72,6 +72,53 @@ describe("ResizableSplit", () => {
     });
   });
 
+  // Class-name pins only; the collapse behavior itself is a container query
+  // that needs a real layout engine, proven by ResizableSplit.layout.test.tsx
+  // (stigmer/stigmer#301).
+  describe("responsiveCollapse", () => {
+    it("marks the root as a named CSS container only while a collapse is requested", () => {
+      const { container, rerender } = render(
+        <ResizableSplit
+          responsiveCollapse="primary"
+          primary={<div data-testid="primary">Primary</div>}
+          secondary={<div data-testid="secondary">Secondary</div>}
+        />,
+      );
+      const root = container.firstElementChild as HTMLElement;
+      expect(root.className).toContain("@container/resizable-split");
+
+      // Without a collapse to decide, the container marker must be absent —
+      // `container-type` imposes layout containment (re-parents fixed
+      // descendants, adds a stacking context), which the workflow splits'
+      // pane content must never inherit.
+      rerender(
+        <ResizableSplit
+          responsiveCollapse="none"
+          primary={<div data-testid="primary">Primary</div>}
+          secondary={<div data-testid="secondary">Secondary</div>}
+        />,
+      );
+      expect(root.className).not.toContain("@container");
+    });
+
+    it("tags the collapsing pane and the separator with the container-query variant", () => {
+      render(
+        <ResizableSplit
+          responsiveCollapse="primary"
+          primary={<div data-testid="primary">Primary</div>}
+          secondary={<div data-testid="secondary">Secondary</div>}
+        />,
+      );
+      const pane = screen.getByTestId("primary").parentElement as HTMLElement;
+      const separator = screen.getByRole("separator");
+      expect(pane.className).toContain("@max-3xl/resizable-split:hidden");
+      expect(separator.className).toContain("@max-3xl/resizable-split:hidden");
+      const sibling = screen.getByTestId("secondary")
+        .parentElement as HTMLElement;
+      expect(sibling.className).not.toContain("@max-3xl");
+    });
+  });
+
   describe("collapsedPane", () => {
     /** The pane wrapper div for a rendered probe. */
     function paneOf(testId: string): HTMLElement {

@@ -13,11 +13,17 @@ import { cn } from "@stigmer/theme";
 export type ResizablePane = "primary" | "secondary";
 
 /**
- * Which pane (if any) collapses below the `lg` breakpoint, leaving its sibling
- * full-width. Use this to hide the pixel-sized pane on narrow screens — always
- * pair it with {@link ResizableSplitProps.resizablePane} (hide the fixed pane so
- * the visible sibling is the flexing one and fills the row). `"none"` keeps both
+ * Which pane (if any) collapses when the split's own box is narrower than
+ * 48rem, leaving its sibling full-width. Use this to hide the pixel-sized
+ * pane in tight quarters — always pair it with
+ * {@link ResizableSplitProps.resizablePane} (hide the fixed pane so the
+ * visible sibling is the flexing one and fills the row). `"none"` keeps both
  * panes at every width.
+ *
+ * The narrowness check is a CSS container query against the split root —
+ * never a viewport media query — so an embedded dock inside a wide window
+ * collapses exactly like a narrow window does (stigmer/stigmer#301). See
+ * {@link ResizableSplitProps.responsiveCollapse} for the threshold rationale.
  */
 export type ResizableCollapse = "primary" | "secondary" | "none";
 
@@ -52,7 +58,22 @@ export interface ResizableSplitProps {
    * a distinct persisted width per mode.
    */
   readonly storageKey?: string;
-  /** Which pane collapses below the `lg` breakpoint. @default "none" */
+  /**
+   * Which pane collapses when the split's own box is narrower than 48rem
+   * (768px, Tailwind's `--container-3xl`).
+   *
+   * The threshold is fixed and keys on the split root via a CSS container
+   * query. 48rem clears the session layout's content minimums (320px min
+   * chat + drag handle + a usable workspace panel) and approximately
+   * preserves the console's previous viewport-`lg` trigger point, where the
+   * viewer's box is the ~1024px window minus the ~280px sidebar. It is
+   * deliberately not a prop: container-query conditions cannot read CSS
+   * custom properties, so a runtime threshold would need an inline-`<style>`
+   * or ResizeObserver mechanism — heavier than the static utility this is,
+   * with no consumer needing it.
+   *
+   * @default "none"
+   */
   readonly responsiveCollapse?: ResizableCollapse;
   /**
    * Which pane (if any) is collapsed at every width, hiding the drag handle and
@@ -126,7 +147,8 @@ function readInitialWidth(
  *   so the pane always grows toward its own side
  * - Optional `localStorage` persistence via `storageKey`, re-initialized when
  *   the key or resizable side changes (no remount required)
- * - Optional responsive collapse of the pixel pane below `lg`
+ * - Optional responsive collapse of the pixel pane when the split's own box
+ *   is narrow (container query, not viewport — see `responsiveCollapse`)
  * - Styled with `--stgm-*` tokens; no hardcoded colors
  *
  * @example
@@ -293,12 +315,30 @@ export function ResizableSplit({
         : fixedPaneClass;
 
   return (
-    <div ref={containerRef} className={cn("flex min-h-0 flex-1", className)}>
+    <div
+      ref={containerRef}
+      className={cn(
+        "flex min-h-0 flex-1",
+        // The responsive collapse queries the split's OWN width, so the root
+        // must be a CSS container (stigmer/stigmer#301). Applied ONLY while a
+        // collapse is requested: `container-type: inline-size` imposes layout
+        // containment, which re-parents `position: fixed` descendants and
+        // creates a stacking context — the workflow inspector's in-tree
+        // viewport-covering backdrop (InspectorHeader) lives inside a split
+        // pane and must not be captured. The one `responsiveCollapse`
+        // consumer (the session layout) has no in-tree fixed descendants:
+        // its dialogs are native <dialog> (top layer) and its floating UI
+        // portals out.
+        responsiveCollapse !== "none" && "@container/resizable-split",
+        className,
+      )}
+    >
       {/* Primary region (first child, order-stable across flips/collapses) */}
       <div
         className={cn(
           primaryPaneClass,
-          responsiveCollapse === "primary" && "max-lg:hidden",
+          responsiveCollapse === "primary" &&
+            "@max-3xl/resizable-split:hidden",
         )}
         style={
           isPrimaryResizable && !isCollapsed ? { width: panelWidth } : undefined
@@ -329,7 +369,7 @@ export function ResizableSplit({
           "focus-visible:bg-[var(--stgm-primary,#6366f1)] focus-visible:outline-none",
           "active:bg-[var(--stgm-primary,#6366f1)]",
           "transition-colors duration-100",
-          responsiveCollapse !== "none" && "max-lg:hidden",
+          responsiveCollapse !== "none" && "@max-3xl/resizable-split:hidden",
           isCollapsed && "hidden",
         )}
       >
@@ -341,7 +381,8 @@ export function ResizableSplit({
       <div
         className={cn(
           secondaryPaneClass,
-          responsiveCollapse === "secondary" && "max-lg:hidden",
+          responsiveCollapse === "secondary" &&
+            "@max-3xl/resizable-split:hidden",
         )}
         style={
           !isPrimaryResizable && !isCollapsed ? { width: panelWidth } : undefined
