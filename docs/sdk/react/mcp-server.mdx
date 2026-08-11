@@ -443,6 +443,7 @@ function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn
   type={{
     clearError: { type: "() => void", description: "Reset the hook to idle state, clearing any error." },
     error: { type: "Error | null", description: "Error from the most recent unsuccessful attempt, or `null`." },
+    failedPhase: { type: "OAuthConnectPhase | null", description: "The phase the flow was in when error was thrown, or `null` when there is no error.  The load-bearing value is `\"connecting\"`: it means OAuth sign-in completed (the grant is stored server-side) and only the chained tool-discovery `connect` failed. Consumers should branch on it to (a) render honest copy via getOAuthConnectErrorMessage and (b) retry with a bare `connect` instead of relaunching the popup." },
     isInProgress: { type: "boolean", description: "`true` while any phase of the OAuth flow is in progress." },
     phase: { type: "OAuthConnectPhase", description: "Current phase of the OAuth flow.", typeDescriptionLink: "#oauthconnectphase" },
     startOAuth: { type: "(mcpServerId: string, org: string, declaredEnvKeys?: readonly string[]) => Promise<McpServer>", description: "Start the OAuth connect flow for an MCP server.  Opens a popup for the OAuth consent screen, waits for the callback, exchanges the authorization code for tokens, then chains to the `connect` RPC for tool discovery.  **Must be called from a synchronous user-gesture handler** (e.g., an `onClick` callback) so the browser allows the popup. The popup is opened synchronously before any async work to avoid popup blockers." },
@@ -1093,6 +1094,29 @@ Creates the initial empty wizard data.
 
 ```tsx
 function createInitialMcpServerWizardData(): McpServerWizardData
+```
+
+
+### getOAuthConnectErrorMessage
+
+User-facing message for an OAuth connect failure, honest about *where*
+the chain broke.
+
+The flow persists state in two acts: `completeOAuthConnect` stores the
+grant ("Connected" from then on), and only afterwards does the chained
+`connect` run tool discovery. A failure in the `"connecting"` phase
+therefore means sign-in itself SUCCEEDED — presenting the raw RPC error
+alone reads as if OAuth failed and sends users back through the popup
+for nothing (stigmer/stigmer#229). Every surface that renders
+`UseMcpServerOAuthConnectReturn.error` should compose its copy
+through this helper.
+
+The error object is never wrapped or mutated: `classifyError` /
+`isRetryableError` dispatch on the original `StigmerError`/`ConnectError`
+instance, so retry affordances keep working on the error as thrown.
+
+```tsx
+function getOAuthConnectErrorMessage(error: Error, failedPhase: OAuthConnectPhase | null): string
 ```
 
 
