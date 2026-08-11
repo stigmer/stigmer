@@ -11,6 +11,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	pipelinesteps "github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -58,6 +59,14 @@ func (s *mergeVariablesAndPersistStep) Execute(ctx *pipeline.RequestContext[*env
 			}
 			return grpclib.InvalidArgumentError(
 				"variable '%s': cannot use the redaction marker as a secret value", key)
+		}
+		// Ciphertext-shaped client input is rejected at every secret write
+		// boundary (oss#395); see preserveRedactedSecretsStep for the full
+		// rationale. Non-secret values are deliberately exempt (inert).
+		if val.GetIsSecret() && encryption.IsCiphertextShaped(val.GetValue()) {
+			return grpclib.InvalidArgumentError(
+				"variable '%s' must be plaintext — values carrying the 'enc:' "+
+					"encryption prefix are not accepted from clients", key)
 		}
 		env.Spec.Data[key] = val
 	}

@@ -6,6 +6,7 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	pipelinesteps "github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption"
 )
 
 // RedactedMarker is the sentinel string used by the response pipeline to
@@ -14,13 +15,29 @@ import (
 // secret" — not "store the literal marker".
 const RedactedMarker = "***REDACTED***"
 
-// preserveRedactedSecretsStep is a defense-in-depth step for the
-// Environment full-resource update pipeline. After BuildUpdateState
-// replaces the spec wholesale, this step detects any EnvironmentValue
-// whose value equals the redaction marker and restores the pre-update
-// encrypted value from the existing resource.
+// preserveRedactedSecretsStep handles client-supplied secret SENTINELS on
+// write — the mirror of the cloud edition's PreserveRedactedSecrets step,
+// serving both the create and full-resource update pipelines:
 //
-// Requires LoadExistingStep and BuildUpdateStateStep to have run first.
+//   - A secret whose incoming value is the ***REDACTED*** marker is
+//     restored from the existing resource (update). When there is nothing
+//     to preserve — a create, or an update for a key that had no prior
+//     secret — the marker is meaningless and rejected with
+//     INVALID_ARGUMENT rather than stored literally.
+//   - A secret carrying the ciphertext-shaped enc:v<N>: prefix is rejected
+//     with INVALID_ARGUMENT (oss#395): the prefix is server-reserved, so a
+//     prefixed request value is forged ciphertext or an attempt to plant a
+//     value that getSecretValue would later decrypt with the deployment
+//     key. The marker arm must run FIRST — after preservation, legitimate
+//     stored ciphertext is present by design and must not hit this arm.
+//   - Non-secret values pass through untouched. They are exempt from the
+//     prefix rejection deliberately: every decrypt path gates on
+//     is_secret && IsEncrypted, so a non-secret prefixed string is inert,
+//     and flipping it to secret later re-enters this guard.
+//
+// Runs while spec.data is still raw client input: after BuildUpdateState
+// (update; requires LoadExistingStep) or after BuildNewState (create,
+// where ExistingResourceKey is absent and every marker is rejected).
 type preserveRedactedSecretsStep struct{}
 
 func NewPreserveRedactedSecretsStep() *preserveRedactedSecretsStep {
@@ -37,32 +54,40 @@ func (s *preserveRedactedSecretsStep) Execute(ctx *pipeline.RequestContext[*envi
 		return nil
 	}
 
-	existingVal := ctx.Get(pipelinesteps.ExistingResourceKey)
-	existing, ok := existingVal.(*environmentv1.Environment)
-	if !ok || existing == nil {
-		return nil
-	}
-
-	existingData := existing.GetSpec().GetData()
-	if existingData == nil {
-		existingData = map[string]*environmentv1.EnvironmentValue{}
+	// Absent existing resource (the create pipeline) means there is nothing
+	// to preserve: fall through with an empty map so every marker is
+	// rejected instead of silently skipping the guards.
+	existingData := map[string]*environmentv1.EnvironmentValue{}
+	if existing, ok := ctx.Get(pipelinesteps.ExistingResourceKey).(*environmentv1.Environment); ok && existing != nil {
+		if data := existing.GetSpec().GetData(); data != nil {
+			existingData = data
+		}
 	}
 
 	preservedCount := 0
 	for key, val := range newState.Spec.Data {
-		if !val.GetIsSecret() || val.GetValue() != RedactedMarker {
+		if !val.GetIsSecret() {
 			continue
 		}
 
-		existingEntry, found := existingData[key]
-		if found && existingEntry.GetIsSecret() {
-			newState.Spec.Data[key] = existingEntry
-			preservedCount++
-			continue
+		if val.GetValue() == RedactedMarker {
+			existingEntry, found := existingData[key]
+			if found && existingEntry.GetIsSecret() {
+				newState.Spec.Data[key] = existingEntry
+				preservedCount++
+				continue
+			}
+			return grpclib.InvalidArgumentError(
+				"variable '%s': cannot use the redaction marker as a secret value", key)
 		}
 
-		return grpclib.InvalidArgumentError(
-			"variable '%s': cannot use the redaction marker as a secret value", key)
+		// Unconditional (not gated on encryption being enabled): the prefix
+		// is server-reserved regardless of key state.
+		if encryption.IsCiphertextShaped(val.GetValue()) {
+			return grpclib.InvalidArgumentError(
+				"variable '%s' must be plaintext — values carrying the 'enc:' "+
+					"encryption prefix are not accepted from clients", key)
+		}
 	}
 
 	if preservedCount > 0 {

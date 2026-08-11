@@ -10,7 +10,10 @@ import (
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
+	envsteps "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller/steps"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // contextWithEnvironmentKind creates a context with the environment resource kind injected
@@ -205,6 +208,137 @@ func TestEnvironmentController_Create(t *testing.T) {
 
 		if created.Spec.Data["EMPTY_VALUE"].Value != "" {
 			t.Error("Expected empty value to be preserved")
+		}
+	})
+}
+
+// newEnvWithData is a fixture helper for the secret-sentinel tests below.
+func newEnvWithData(name string, data map[string]*environmentv1.EnvironmentValue) *environmentv1.Environment {
+	return &environmentv1.Environment{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Environment",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: name,
+			Org:  "test-org",
+		},
+		Spec: &environmentv1.EnvironmentSpec{Data: data},
+	}
+}
+
+// TestEnvironmentController_SecretSentinels pins the oss#395 write-boundary
+// contract across all three environment write pipelines. The harness runs
+// KEYLESS (NewSecretService(nil)), so passing here also proves the
+// rejection is unconditional — not gated on encryption being enabled.
+func TestEnvironmentController_SecretSentinels(t *testing.T) {
+	controller, store := setupTestController(t)
+	defer store.Close()
+	ctx := contextWithEnvironmentKind()
+
+	t.Run("create rejects ciphertext-shaped secret", func(t *testing.T) {
+		env := newEnvWithData("Smuggle Create", map[string]*environmentv1.EnvironmentValue{
+			"API_KEY": {Value: "enc:v1:Zm9yZ2VkLWNpcGhlcnRleHQ=", IsSecret: true},
+		})
+		if _, err := controller.Create(ctx, env); status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected InvalidArgument, got %v", err)
+		}
+	})
+
+	t.Run("create rejects the redaction marker", func(t *testing.T) {
+		env := newEnvWithData("Marker Create", map[string]*environmentv1.EnvironmentValue{
+			"API_KEY": {Value: envsteps.RedactedMarker, IsSecret: true},
+		})
+		if _, err := controller.Create(ctx, env); status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected InvalidArgument (nothing to preserve on create), got %v", err)
+		}
+	})
+
+	t.Run("create accepts a non-secret value that merely looks prefixed", func(t *testing.T) {
+		// Deliberate exemption: every decrypt path gates on is_secret, so a
+		// non-secret prefixed string is inert; flipping it to secret later
+		// re-enters the guard.
+		env := newEnvWithData("Inert Create", map[string]*environmentv1.EnvironmentValue{
+			"DOCS_EXAMPLE": {Value: "enc:v1:just-an-example", IsSecret: false},
+		})
+		if _, err := controller.Create(ctx, env); err != nil {
+			t.Fatalf("non-secret prefixed value must be accepted, got %v", err)
+		}
+	})
+
+	t.Run("update rejects ciphertext-shaped secret", func(t *testing.T) {
+		created, err := controller.Create(ctx, newEnvWithData("Smuggle Update",
+			map[string]*environmentv1.EnvironmentValue{
+				"API_KEY": {Value: "real-secret", IsSecret: true},
+			}))
+		if err != nil {
+			t.Fatalf("create failed: %v", err)
+		}
+
+		created.Spec.Data["API_KEY"] = &environmentv1.EnvironmentValue{
+			Value: "enc:v2:ZnV0dXJlLXZlcnNpb24=", IsSecret: true}
+		if _, err := controller.Update(ctx, created); status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected InvalidArgument, got %v", err)
+		}
+	})
+
+	t.Run("update marker still preserves the stored secret", func(t *testing.T) {
+		// Arm-ordering pin: the marker arm restores the STORED value and
+		// must run before the prefix rejection ever sees it.
+		created, err := controller.Create(ctx, newEnvWithData("Marker Update",
+			map[string]*environmentv1.EnvironmentValue{
+				"API_KEY": {Value: "original-secret", IsSecret: true},
+			}))
+		if err != nil {
+			t.Fatalf("create failed: %v", err)
+		}
+
+		created.Spec.Data["API_KEY"] = &environmentv1.EnvironmentValue{
+			Value: envsteps.RedactedMarker, IsSecret: true}
+		updated, err := controller.Update(ctx, created)
+		if err != nil {
+			t.Fatalf("marker update failed: %v", err)
+		}
+		if updated.Spec.Data["API_KEY"].GetValue() != "original-secret" {
+			t.Errorf("marker must preserve the stored secret, got %q",
+				updated.Spec.Data["API_KEY"].GetValue())
+		}
+	})
+
+	t.Run("updateVariables rejects ciphertext-shaped secret", func(t *testing.T) {
+		created, err := controller.Create(ctx, newEnvWithData("Smuggle Merge",
+			map[string]*environmentv1.EnvironmentValue{
+				"EXISTING": {Value: "keep-me", IsSecret: false},
+			}))
+		if err != nil {
+			t.Fatalf("create failed: %v", err)
+		}
+
+		_, err = controller.UpdateVariables(ctx, &environmentv1.UpdateEnvironmentVariablesRequest{
+			EnvironmentId: created.GetMetadata().GetId(),
+			Variables: map[string]*environmentv1.EnvironmentValue{
+				"API_KEY": {Value: "enc:v1:Zm9yZ2VkLWNpcGhlcnRleHQ=", IsSecret: true},
+			},
+		})
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected InvalidArgument, got %v", err)
+		}
+	})
+
+	t.Run("updateVariables accepts a non-secret prefixed value", func(t *testing.T) {
+		created, err := controller.Create(ctx, newEnvWithData("Inert Merge",
+			map[string]*environmentv1.EnvironmentValue{
+				"EXISTING": {Value: "keep-me", IsSecret: false},
+			}))
+		if err != nil {
+			t.Fatalf("create failed: %v", err)
+		}
+
+		if _, err := controller.UpdateVariables(ctx, &environmentv1.UpdateEnvironmentVariablesRequest{
+			EnvironmentId: created.GetMetadata().GetId(),
+			Variables: map[string]*environmentv1.EnvironmentValue{
+				"DOCS_EXAMPLE": {Value: "enc:v1:just-an-example", IsSecret: false},
+			},
+		}); err != nil {
+			t.Fatalf("non-secret prefixed value must be accepted, got %v", err)
 		}
 	})
 }

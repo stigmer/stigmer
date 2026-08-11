@@ -310,6 +310,100 @@ describe("Environment conformance — redaction-marker preservation", () => {
       "redaction marker for a non-existent secret",
     );
   });
+
+  it("create rejects the redaction marker (nothing to preserve, InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+
+    await expectGrpcCode(
+      () =>
+        clients.environmentCommand.create(
+          makeEnvironment({
+            org,
+            name: uniqueName("env"),
+            data: { API_KEY: { value: REDACTED_MARKER, isSecret: true } },
+          }),
+        ),
+      Code.InvalidArgument,
+      "redaction marker on create",
+    );
+  });
+});
+
+describe("Environment conformance — ciphertext-shaped input rejection", () => {
+  // The enc:v<N>: prefix is a server-reserved encryption sentinel. A
+  // client-supplied secret carrying it is either forged ciphertext or an
+  // attempt to plant a value the server would later decrypt with its own
+  // key, so every write boundary rejects it (stigmer#395 / stigmer-cloud#229).
+  // Clients only ever see redacted secrets, so no legitimate round-trip
+  // sends a prefixed value.
+  const CIPHERTEXT_SHAPED = "enc:v1:Zm9yZ2VkLWNpcGhlcnRleHQ=";
+
+  it("create rejects a ciphertext-shaped secret value (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+
+    await expectGrpcCode(
+      () =>
+        clients.environmentCommand.create(
+          makeEnvironment({
+            org,
+            name: uniqueName("env"),
+            data: { API_KEY: { value: CIPHERTEXT_SHAPED, isSecret: true } },
+          }),
+        ),
+      Code.InvalidArgument,
+      "ciphertext-shaped secret on create",
+    );
+  });
+
+  it("update rejects a ciphertext-shaped secret value (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    const created = await createEnvironment(org, uniqueName("env"), {
+      data: { API_KEY: { value: "real-secret", isSecret: true } },
+    });
+    const { id } = created.metadata!;
+
+    await expectGrpcCode(
+      () =>
+        clients.environmentCommand.update({
+          apiVersion: ENVIRONMENT_API_VERSION,
+          kind: ENVIRONMENT_KIND,
+          metadata: { id, name: created.metadata!.name, org },
+          spec: makeEnvironmentSpec({ data: { API_KEY: { value: CIPHERTEXT_SHAPED, isSecret: true } } }),
+        }),
+      Code.InvalidArgument,
+      "ciphertext-shaped secret on update",
+    );
+  });
+
+  it("updateVariables rejects a ciphertext-shaped secret value (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    const created = await createEnvironment(org, uniqueName("env"));
+    const { id } = created.metadata!;
+
+    await expectGrpcCode(
+      () =>
+        clients.environmentCommand.updateVariables({
+          environmentId: id,
+          variables: { API_KEY: { value: CIPHERTEXT_SHAPED, isSecret: true, description: "" } },
+        }),
+      Code.InvalidArgument,
+      "ciphertext-shaped secret on updateVariables",
+    );
+  });
+
+  it("accepts a NON-secret value that merely looks prefixed (deliberate exemption)", async () => {
+    // Every decrypt path gates on is_secret, so a non-secret prefixed string
+    // is inert — and flipping it to secret later re-enters the guard.
+    const { org } = await target.provisionTenancy();
+
+    const created = await createEnvironment(org, uniqueName("env"), {
+      data: { DOCS_EXAMPLE: { value: CIPHERTEXT_SHAPED, isSecret: false } },
+    });
+
+    expect(created.spec?.data?.DOCS_EXAMPLE?.value, "non-secret prefixed values pass through").toBe(
+      CIPHERTEXT_SHAPED,
+    );
+  });
 });
 
 describe("Environment conformance — incremental variable management", () => {

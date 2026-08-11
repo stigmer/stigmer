@@ -39,6 +39,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -53,6 +54,13 @@ const (
 	// This allows detection of encrypted values and supports future key rotation.
 	EncryptedPrefix = "enc:v1:"
 )
+
+// versionedPrefix matches ciphertext in ANY supported-or-future version of the
+// enc:v<N>: family. Matching all versions (not just v1) is load-bearing: an
+// unmatched version would be treated as plaintext at every dispatch site and
+// fail open (returned or re-encrypted as if it were a real value). Mirrors the
+// cloud edition's SecretEncryptionService.VERSIONED_PREFIX.
+var versionedPrefix = regexp.MustCompile(`^enc:v\d+:`)
 
 var (
 	// ErrInvalidKeySize is returned when the encryption key is not 32 bytes
@@ -127,6 +135,15 @@ func (s *SecretService) IsEnabled() bool {
 //
 // If encryption is disabled, returns the plaintext unchanged.
 // If the value is already encrypted, returns it unchanged.
+//
+// The idempotent pass-through below TRUSTS its callers: it exists for
+// store-restored ciphertext (the ***REDACTED*** round-trip copies stored
+// values back into the new state before this runs), which must survive a
+// second pass unchanged. It is NOT a safe place to validate provenance —
+// only the request pipeline knows whether a prefixed value came from the
+// store or from a client. Client-supplied enc:v<N>: input is rejected at
+// every write boundary via IsCiphertextShaped (oss#395); do not "fix"
+// smuggling here, it would break the marker round-trip.
 func (s *SecretService) Encrypt(plaintext string) (string, error) {
 	if !s.enabled {
 		return plaintext, nil
@@ -192,10 +209,31 @@ func (s *SecretService) Decrypt(encrypted string) (string, error) {
 	return string(plaintext), nil
 }
 
-// IsEncrypted checks if a value appears to be encrypted.
-// Detection is based on the version prefix.
+// IsEncrypted checks if a value appears to be encrypted, in any version of
+// the enc:v<N>: family.
+//
+// Use this instance method when dispatching on STORED values (decrypt,
+// preserve, re-encrypt). For validating CLIENT-SUPPLIED input at a request
+// boundary, use the package-level IsCiphertextShaped — same test, different
+// intent.
 func (s *SecretService) IsEncrypted(value string) bool {
-	return strings.HasPrefix(value, EncryptedPrefix)
+	return IsCiphertextShaped(value)
+}
+
+// IsCiphertextShaped reports whether a value merely has the SHAPE of
+// ciphertext — the enc:v<N>: prefix — regardless of whether it is genuine.
+//
+// This is the request-boundary provenance test (oss#395, the Go twin of
+// cloud#229): the prefix is a server-reserved sentinel, so client-supplied
+// values matching it must be rejected with INVALID_ARGUMENT before they
+// reach Encrypt, whose idempotent pass-through would otherwise persist them
+// verbatim (letting a client store forged ciphertext that getSecretValue
+// later decrypts with the deployment key, or pin a row to whatever format
+// the prefix claims). Package-level, like the redaction-marker constants,
+// so boundary steps need no service instance and the rejection stays
+// unconditional on keyless deployments.
+func IsCiphertextShaped(value string) bool {
+	return versionedPrefix.MatchString(value)
 }
 
 // MustEncrypt is like Encrypt but panics on error.
