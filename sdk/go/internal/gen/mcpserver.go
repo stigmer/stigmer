@@ -30,17 +30,29 @@ func NewMcpServerClient(conn grpc.ClientConnInterface) *McpServerClient {
 }
 
 func (m *McpServerClient) Apply(ctx context.Context, input *McpServerInput) (*mcpserverv1.McpServer, error) {
-	resp, err := m.command.Apply(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := m.command.Apply(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (m *McpServerClient) Create(ctx context.Context, input *McpServerInput) (*mcpserverv1.McpServer, error) {
-	resp, err := m.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := m.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (m *McpServerClient) Update(ctx context.Context, input *McpServerInput) (*mcpserverv1.McpServer, error) {
-	resp, err := m.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := m.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -182,7 +194,7 @@ type McpServerAuthInput struct {
 	OauthOnly         bool
 }
 
-func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
+func (i *McpServerInput) toProto() (*mcpserverv1.McpServer, error) {
 	resource := &mcpserverv1.McpServer{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "McpServer",
@@ -215,30 +227,42 @@ func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
 	resource.Spec.DefaultEnabledTools = i.DefaultEnabledTools
 	if len(i.Env) > 0 {
 		resource.Spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(i.Env))
-		for k, v := range i.Env {
-			resource.Spec.Env[k] = v.toProto()
+		for k, val := range i.Env {
+			pv, err := val.toProto()
+			if err != nil {
+				return nil, keyErr("Env", k, err)
+			}
+			resource.Spec.Env[k] = pv
 		}
 	}
-	for _, item := range i.PinnedToolApprovals {
-		resource.Spec.PinnedToolApprovals = append(resource.Spec.PinnedToolApprovals, item.toProto())
+	for idx, item := range i.PinnedToolApprovals {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("PinnedToolApprovals", idx, err)
+		}
+		resource.Spec.PinnedToolApprovals = append(resource.Spec.PinnedToolApprovals, v)
 	}
 	resource.Spec.RepositoryUrl = i.RepositoryUrl
 	resource.Spec.GithubStars = i.GithubStars
 	if i.Auth != nil {
-		resource.Spec.Auth = i.Auth.toProto()
+		v, err := i.Auth.toProto()
+		if err != nil {
+			return nil, fieldErr("Auth", err)
+		}
+		resource.Spec.Auth = v
 	}
-	return resource
+	return resource, nil
 }
 
-func (i *ToolApprovalPolicyInput) toProto() *mcpserverv1.ToolApprovalPolicy {
+func (i *ToolApprovalPolicyInput) toProto() (*mcpserverv1.ToolApprovalPolicy, error) {
 	return &mcpserverv1.ToolApprovalPolicy{
 		ToolName:            i.ToolName,
 		Message:             i.Message,
 		FromDestructiveHint: i.FromDestructiveHint,
-	}
+	}, nil
 }
 
-func (i *McpServerAuthInput) toProto() *mcpserverv1.McpServerAuth {
+func (i *McpServerAuthInput) toProto() (*mcpserverv1.McpServerAuth, error) {
 	p := &mcpserverv1.McpServerAuth{}
 	if i.OauthAppRef.Org != "" || i.OauthAppRef.Slug != "" {
 		ref := i.OauthAppRef.toProto()
@@ -250,7 +274,7 @@ func (i *McpServerAuthInput) toProto() *mcpserverv1.McpServerAuth {
 	p.ScopeHints = i.ScopeHints
 	p.DiscoveryUrl = i.DiscoveryUrl
 	p.OauthOnly = i.OauthOnly
-	return p
+	return p, nil
 }
 
 // McpServerInputFromProto creates a McpServerInput from a proto McpServer resource.

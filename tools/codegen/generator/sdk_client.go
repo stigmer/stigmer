@@ -128,6 +128,11 @@ func runSDKClientGeneration(schemaDir, outputDir string) error {
 	}
 	fmt.Printf("   -> errors.go\n")
 
+	if err := generateGenStructConv(outputDir); err != nil {
+		return fmt.Errorf("failed to generate structconv: %w", err)
+	}
+	fmt.Printf("   -> structconv.go\n")
+
 	if err := generateGenTypes(outputDir); err != nil {
 		return fmt.Errorf("failed to generate types: %w", err)
 	}
@@ -401,7 +406,6 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	needsExecutionContext := false
 	needsEnvironmentV1 := false
 	needsTimestamppb := false
-	needsStructpb := false
 	needsRefKindOverride := false
 	// Cross-package proto imports (alias → Go import path) for nested spec
 	// types living in another proto package (e.g. a datastore subject
@@ -437,10 +441,6 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 				}
 				if f.Type.Kind == "timestamp" {
 					needsTimestamppb = true
-				}
-				if f.Type.Kind == "struct" || f.Type.Kind == "value" ||
-					(f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "struct") {
-					needsStructpb = true
 				}
 				if f.ReferenceKind != 0 {
 					needsRefKindOverride = true
@@ -593,9 +593,6 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	if needsEmptypb {
 		buf.WriteString("\t\"google.golang.org/protobuf/types/known/emptypb\"\n")
 	}
-	if needsStructpb {
-		buf.WriteString("\t\"google.golang.org/protobuf/types/known/structpb\"\n")
-	}
 	if needsTimestamppb {
 		buf.WriteString("\t\"google.golang.org/protobuf/types/known/timestamppb\"\n")
 	}
@@ -693,7 +690,9 @@ func generateMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefinition, 
 		inputTypeName := cfg.inputPrefix + "Input"
 		fmt.Fprintf(buf, "func (%s *%s) %s(ctx context.Context, input *%s) (*%s.%s, error) {\n",
 			receiver, cfg.clientName, m.Name, inputTypeName, outputPkg, outputType)
-		fmt.Fprintf(buf, "\tresp, err := %s.%s.%s(ctx, input.toProto())\n",
+		buf.WriteString("\treq, err := input.toProto()\n")
+		buf.WriteString("\tif err != nil {\n\t\treturn nil, invalidInputErr(err)\n\t}\n")
+		fmt.Fprintf(buf, "\tresp, err := %s.%s.%s(ctx, req)\n",
 			receiver, svc.Role, m.Name)
 		buf.WriteString("\treturn resp, wrapErr(err)\n}\n\n")
 
@@ -853,7 +852,14 @@ func generateInputTypesV2(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 		emitNestedTypes(buf, f, typeMap, emitted, &allTypes, alias, globalEmitted)
 	}
 
-	fmt.Fprintf(buf, "func (i *%s) toProto() *%s.%s {\n", inputName, alias, cfg.protoResType)
+	// toProto returns (proto, error): struct/value/timestamp conversions and
+	// every nested Input's toProto can fail, and a dropped conversion error
+	// silently applied an EMPTY field (stigmer/stigmer#342). All
+	// schema-derived Input types are uniformly fallible — matching the
+	// task-config builder emitter in main.go — so a schema change can never
+	// flip a signature. Fixed bridge types (ResourceRef, EnvSpecInput) stay
+	// infallible: their shapes are hand-defined here, not schema-derived.
+	fmt.Fprintf(buf, "func (i *%s) toProto() (*%s.%s, error) {\n", inputName, alias, cfg.protoResType)
 	fmt.Fprintf(buf, "\tresource := &%s.%s{\n", alias, cfg.protoResType)
 	fmt.Fprintf(buf, "\t\tApiVersion: %q,\n", cfg.apiVersion)
 	fmt.Fprintf(buf, "\t\tKind:       %q,\n", cfg.protoResType)
@@ -878,7 +884,7 @@ func generateInputTypesV2(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 		emitToProtoField(buf, f, alias, typeMap, spec.Name)
 	}
 
-	buf.WriteString("\treturn resource\n}\n\n")
+	buf.WriteString("\treturn resource, nil\n}\n\n")
 
 	for _, f := range specFields {
 		emitNestedToProto(buf, f, alias, typeMap, emitted, spec.Name, globalEmitted)
@@ -994,24 +1000,34 @@ func emitNestedTypes(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*Type
 	}
 }
 
+// emitToProtoField writes the conversion of one spec-level input field onto
+// resource.Spec inside the main Input's toProto. Every conversion that can
+// fail (struct/value/timestamp helpers, nested Input toProto calls)
+// propagates its error wrapped with the Go field path — silently dropping a
+// failed conversion shipped empty task configs (stigmer/stigmer#342).
 func emitToProtoField(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap map[string]*TypeSchema, specName string) {
 	protoField := goProtoFieldName(f.ProtoField)
 
 	switch {
 	case f.Type.Kind == "timestamp":
 		fmt.Fprintf(buf, "\tif i.%s != \"\" {\n", f.Name)
-		fmt.Fprintf(buf, "\t\tif t, err := time.Parse(time.RFC3339, i.%s); err == nil {\n", f.Name)
-		fmt.Fprintf(buf, "\t\t\tresource.Spec.%s = timestamppb.New(t)\n", protoField)
-		buf.WriteString("\t\t}\n\t}\n")
+		fmt.Fprintf(buf, "\t\tt, err := time.Parse(time.RFC3339, i.%s)\n", f.Name)
+		fmt.Fprintf(buf, "\t\tif err != nil {\n\t\t\treturn nil, fieldErr(%q, err)\n\t\t}\n", f.Name)
+		fmt.Fprintf(buf, "\t\tresource.Spec.%s = timestamppb.New(t)\n", protoField)
+		buf.WriteString("\t}\n")
 
 	case f.Type.Kind == "struct":
 		fmt.Fprintf(buf, "\tif i.%s != nil {\n", f.Name)
-		fmt.Fprintf(buf, "\t\tresource.Spec.%s, _ = structpb.NewStruct(i.%s)\n", protoField, f.Name)
+		fmt.Fprintf(buf, "\t\tv, err := structFromMap(i.%s)\n", f.Name)
+		fmt.Fprintf(buf, "\t\tif err != nil {\n\t\t\treturn nil, fieldErr(%q, err)\n\t\t}\n", f.Name)
+		fmt.Fprintf(buf, "\t\tresource.Spec.%s = v\n", protoField)
 		buf.WriteString("\t}\n")
 
 	case f.Type.Kind == "value":
 		fmt.Fprintf(buf, "\tif i.%s != nil {\n", f.Name)
-		fmt.Fprintf(buf, "\t\tresource.Spec.%s, _ = structpb.NewValue(i.%s)\n", protoField, f.Name)
+		fmt.Fprintf(buf, "\t\tv, err := valueFromAny(i.%s)\n", f.Name)
+		fmt.Fprintf(buf, "\t\tif err != nil {\n\t\t\treturn nil, fieldErr(%q, err)\n\t\t}\n", f.Name)
+		fmt.Fprintf(buf, "\t\tresource.Spec.%s = v\n", protoField)
 		buf.WriteString("\t}\n")
 
 	case f.Type.Kind == "string" || f.Type.Kind == "bool" || f.Type.Kind == "int32" || f.Type.Kind == "int64" ||
@@ -1040,17 +1056,20 @@ func emitToProtoField(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap m
 
 	case f.Type.Kind == "message":
 		fmt.Fprintf(buf, "\tif i.%s != nil {\n", f.Name)
-		fmt.Fprintf(buf, "\t\tresource.Spec.%s = i.%s.toProto()\n", protoField, f.Name)
+		fmt.Fprintf(buf, "\t\tv, err := i.%s.toProto()\n", f.Name)
+		fmt.Fprintf(buf, "\t\tif err != nil {\n\t\t\treturn nil, fieldErr(%q, err)\n\t\t}\n", f.Name)
+		fmt.Fprintf(buf, "\t\tresource.Spec.%s = v\n", protoField)
 		buf.WriteString("\t}\n")
 
 	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "string":
 		fmt.Fprintf(buf, "\tresource.Spec.%s = i.%s\n", protoField, f.Name)
 
 	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "struct":
-		fmt.Fprintf(buf, "\tfor _, item := range i.%s {\n", f.Name)
-		fmt.Fprintf(buf, "\t\tif s, err := structpb.NewStruct(item); err == nil {\n")
-		fmt.Fprintf(buf, "\t\t\tresource.Spec.%s = append(resource.Spec.%s, s)\n", protoField, protoField)
-		buf.WriteString("\t\t}\n\t}\n")
+		fmt.Fprintf(buf, "\tfor idx, item := range i.%s {\n", f.Name)
+		fmt.Fprintf(buf, "\t\tv, err := structFromMap(item)\n")
+		fmt.Fprintf(buf, "\t\tif err != nil {\n\t\t\treturn nil, indexErr(%q, idx, err)\n\t\t}\n", f.Name)
+		fmt.Fprintf(buf, "\t\tresource.Spec.%s = append(resource.Spec.%s, v)\n", protoField, protoField)
+		buf.WriteString("\t}\n")
 
 	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message":
 		elemMsg := f.Type.ElementType.MessageType
@@ -1066,8 +1085,10 @@ func emitToProtoField(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap m
 			}
 			buf.WriteString("\t}\n")
 		} else {
-			fmt.Fprintf(buf, "\tfor _, item := range i.%s {\n", f.Name)
-			fmt.Fprintf(buf, "\t\tresource.Spec.%s = append(resource.Spec.%s, item.toProto())\n", protoField, protoField)
+			fmt.Fprintf(buf, "\tfor idx, item := range i.%s {\n", f.Name)
+			fmt.Fprintf(buf, "\t\tv, err := item.toProto()\n")
+			fmt.Fprintf(buf, "\t\tif err != nil {\n\t\t\treturn nil, indexErr(%q, idx, err)\n\t\t}\n", f.Name)
+			fmt.Fprintf(buf, "\t\tresource.Spec.%s = append(resource.Spec.%s, v)\n", protoField, protoField)
 			buf.WriteString("\t}\n")
 		}
 
@@ -1096,8 +1117,10 @@ func emitToProtoField(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap m
 				}
 				fmt.Fprintf(buf, "\tif len(i.%s) > 0 {\n", f.Name)
 				fmt.Fprintf(buf, "\t\tresource.Spec.%s = make(map[string]*%s.%s, len(i.%s))\n", protoField, elemAlias, elemMsg, f.Name)
-				fmt.Fprintf(buf, "\t\tfor k, v := range i.%s {\n", f.Name)
-				fmt.Fprintf(buf, "\t\t\tresource.Spec.%s[k] = v.toProto()\n", protoField)
+				fmt.Fprintf(buf, "\t\tfor k, val := range i.%s {\n", f.Name)
+				buf.WriteString("\t\t\tpv, err := val.toProto()\n")
+				fmt.Fprintf(buf, "\t\t\tif err != nil {\n\t\t\t\treturn nil, keyErr(%q, k, err)\n\t\t\t}\n", f.Name)
+				fmt.Fprintf(buf, "\t\t\tresource.Spec.%s[k] = pv\n", protoField)
 				buf.WriteString("\t\t}\n\t}\n")
 			}
 		} else {
@@ -1188,9 +1211,13 @@ func emitOneofMemberToProto(buf *bytes.Buffer, f *FieldSchema, alias, containerM
 		if field.Type.Kind == "message" {
 			// A message-typed member converts through its Input type's
 			// own toProto (emitNestedToProto descends into oneof members
-			// to emit it) — a direct copy would not compile.
+			// to emit it) — a direct copy would not compile. The member
+			// path is composed statically ("GitRepo.RunConfig") because
+			// both names are known at generation time.
 			fmt.Fprintf(buf, "\t\tif i.%s.%s != nil {\n", f.Name, field.Name)
-			fmt.Fprintf(buf, "\t\t\tm.%s = i.%s.%s.toProto()\n", pf, f.Name, field.Name)
+			fmt.Fprintf(buf, "\t\t\tv, err := i.%s.%s.toProto()\n", f.Name, field.Name)
+			fmt.Fprintf(buf, "\t\t\tif err != nil {\n\t\t\t\treturn nil, fieldErr(%q, err)\n\t\t\t}\n", f.Name+"."+field.Name)
+			fmt.Fprintf(buf, "\t\t\tm.%s = v\n", pf)
 			buf.WriteString("\t\t}\n")
 			continue
 		}
@@ -1210,8 +1237,10 @@ func emitOneofMemberToProto(buf *bytes.Buffer, f *FieldSchema, alias, containerM
 				}
 				buf.WriteString("\t\t}\n")
 			} else {
-				fmt.Fprintf(buf, "\t\tfor _, item := range i.%s.%s {\n", f.Name, field.Name)
-				fmt.Fprintf(buf, "\t\t\tm.%s = append(m.%s, item.toProto())\n", pf, pf)
+				fmt.Fprintf(buf, "\t\tfor idx, item := range i.%s.%s {\n", f.Name, field.Name)
+				buf.WriteString("\t\t\tv, err := item.toProto()\n")
+				fmt.Fprintf(buf, "\t\t\tif err != nil {\n\t\t\t\treturn nil, indexErr(%q, idx, err)\n\t\t\t}\n", f.Name+"."+field.Name)
+				fmt.Fprintf(buf, "\t\t\tm.%s = append(m.%s, v)\n", pf, pf)
 				buf.WriteString("\t\t}\n")
 			}
 			continue
@@ -1321,23 +1350,28 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 	}
 
 	if needsImperative {
-		fmt.Fprintf(buf, "func (i *%s) toProto() *%s.%s {\n", inputName, protoAlias, msgName)
+		fmt.Fprintf(buf, "func (i *%s) toProto() (*%s.%s, error) {\n", inputName, protoAlias, msgName)
 		fmt.Fprintf(buf, "\tp := &%s.%s{}\n", protoAlias, msgName)
 		for _, field := range ts.Fields {
 			pf := goProtoFieldName(field.ProtoField)
 			if field.Type.Kind == "struct" {
 				fmt.Fprintf(buf, "\tif i.%s != nil {\n", field.Name)
-				fmt.Fprintf(buf, "\t\tp.%s, _ = structpb.NewStruct(i.%s)\n", pf, field.Name)
+				fmt.Fprintf(buf, "\t\tv, err := structFromMap(i.%s)\n", field.Name)
+				fmt.Fprintf(buf, "\t\tif err != nil {\n\t\t\treturn nil, fieldErr(%q, err)\n\t\t}\n", field.Name)
+				fmt.Fprintf(buf, "\t\tp.%s = v\n", pf)
 				buf.WriteString("\t}\n")
 			} else if field.Type.Kind == "value" {
 				fmt.Fprintf(buf, "\tif i.%s != nil {\n", field.Name)
-				fmt.Fprintf(buf, "\t\tp.%s, _ = structpb.NewValue(i.%s)\n", pf, field.Name)
+				fmt.Fprintf(buf, "\t\tv, err := valueFromAny(i.%s)\n", field.Name)
+				fmt.Fprintf(buf, "\t\tif err != nil {\n\t\t\treturn nil, fieldErr(%q, err)\n\t\t}\n", field.Name)
+				fmt.Fprintf(buf, "\t\tp.%s = v\n", pf)
 				buf.WriteString("\t}\n")
 			} else if field.Type.Kind == "timestamp" {
 				fmt.Fprintf(buf, "\tif i.%s != \"\" {\n", field.Name)
-				fmt.Fprintf(buf, "\t\tif t, err := time.Parse(time.RFC3339, i.%s); err == nil {\n", field.Name)
-				fmt.Fprintf(buf, "\t\t\tp.%s = timestamppb.New(t)\n", pf)
-				buf.WriteString("\t\t}\n\t}\n")
+				fmt.Fprintf(buf, "\t\tt, err := time.Parse(time.RFC3339, i.%s)\n", field.Name)
+				fmt.Fprintf(buf, "\t\tif err != nil {\n\t\t\treturn nil, fieldErr(%q, err)\n\t\t}\n", field.Name)
+				fmt.Fprintf(buf, "\t\tp.%s = timestamppb.New(t)\n", pf)
+				buf.WriteString("\t}\n")
 			} else if field.Type.Kind == "message" {
 				if field.OneofGroup != "" {
 					// Message-typed oneof member (e.g. WorkspaceSource's
@@ -1360,7 +1394,9 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 					buf.WriteString("\t}\n")
 				} else {
 					fmt.Fprintf(buf, "\tif i.%s != nil {\n", field.Name)
-					fmt.Fprintf(buf, "\t\tp.%s = i.%s.toProto()\n", pf, field.Name)
+					fmt.Fprintf(buf, "\t\tv, err := i.%s.toProto()\n", field.Name)
+					fmt.Fprintf(buf, "\t\tif err != nil {\n\t\t\treturn nil, fieldErr(%q, err)\n\t\t}\n", field.Name)
+					fmt.Fprintf(buf, "\t\tp.%s = v\n", pf)
 					buf.WriteString("\t}\n")
 				}
 			} else if field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "message" {
@@ -1375,37 +1411,39 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 					fmt.Fprintf(buf, "\t\tp.%s = append(p.%s, ref)\n", pf, pf)
 					buf.WriteString("\t}\n")
 				} else {
-					fmt.Fprintf(buf, "\tfor _, item := range i.%s {\n", field.Name)
-					fmt.Fprintf(buf, "\t\tp.%s = append(p.%s, item.toProto())\n", pf, pf)
+					fmt.Fprintf(buf, "\tfor idx, item := range i.%s {\n", field.Name)
+					buf.WriteString("\t\tv, err := item.toProto()\n")
+					fmt.Fprintf(buf, "\t\tif err != nil {\n\t\t\treturn nil, indexErr(%q, idx, err)\n\t\t}\n", field.Name)
+					fmt.Fprintf(buf, "\t\tp.%s = append(p.%s, v)\n", pf, pf)
 					buf.WriteString("\t}\n")
 				}
 			} else if field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "struct" {
-				fmt.Fprintf(buf, "\tfor _, item := range i.%s {\n", field.Name)
-				fmt.Fprintf(buf, "\t\tif s, err := structpb.NewStruct(item); err == nil {\n")
-				fmt.Fprintf(buf, "\t\t\tp.%s = append(p.%s, s)\n", pf, pf)
-				buf.WriteString("\t\t}\n\t}\n")
+				fmt.Fprintf(buf, "\tfor idx, item := range i.%s {\n", field.Name)
+				buf.WriteString("\t\tv, err := structFromMap(item)\n")
+				fmt.Fprintf(buf, "\t\tif err != nil {\n\t\t\treturn nil, indexErr(%q, idx, err)\n\t\t}\n", field.Name)
+				fmt.Fprintf(buf, "\t\tp.%s = append(p.%s, v)\n", pf, pf)
+				buf.WriteString("\t}\n")
 			} else {
 				fmt.Fprintf(buf, "\tp.%s = i.%s\n", pf, field.Name)
 			}
 		}
-		buf.WriteString("\treturn p\n}\n\n")
+		buf.WriteString("\treturn p, nil\n}\n\n")
 	} else {
-		fmt.Fprintf(buf, "func (i *%s) toProto() *%s.%s {\n", inputName, protoAlias, msgName)
+		// Literal form: only plain-copy fields remain (any message-, struct-,
+		// value-, timestamp-, or array-of-message-typed field flips
+		// needsImperative above), so nothing here can fail — the error
+		// return exists purely to keep every schema-derived Input's toProto
+		// signature uniform.
+		fmt.Fprintf(buf, "func (i *%s) toProto() (*%s.%s, error) {\n", inputName, protoAlias, msgName)
 		fmt.Fprintf(buf, "\treturn &%s.%s{\n", protoAlias, msgName)
 		for _, field := range ts.Fields {
 			pf := goProtoFieldName(field.ProtoField)
 			if field.OneofGroup != "" {
 				continue
 			}
-			if field.Type.Kind == "message" {
-				fmt.Fprintf(buf, "\t\t%s: i.%s.toProto(),\n", pf, field.Name)
-			} else if field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "message" {
-				continue
-			} else {
-				fmt.Fprintf(buf, "\t\t%s: i.%s,\n", pf, field.Name)
-			}
+			fmt.Fprintf(buf, "\t\t%s: i.%s,\n", pf, field.Name)
 		}
-		buf.WriteString("\t}\n}\n\n")
+		buf.WriteString("\t}, nil\n}\n\n")
 	}
 
 	for _, field := range ts.Fields {
@@ -1951,6 +1989,106 @@ func grpcCodeToSDK(c codes.Code) ErrorCode {
 		return err
 	}
 	return os.WriteFile(filepath.Join(outputDir, "errors.go"), formatted, 0644)
+}
+
+func generateGenStructConv(outputDir string) error {
+	var buf bytes.Buffer
+	buf.WriteString("// Code generated by stigmer-codegen. DO NOT EDIT.\n\n")
+	buf.WriteString("package gen\n\n")
+	buf.WriteString(`import (
+	"encoding/json"
+	"fmt"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
+)
+
+// Conversion support for the generated toProto methods.
+//
+// structpb.NewStruct and structpb.NewValue accept only JSON-native Go
+// shapes (map[string]any, []any, scalars). Natural typed values — a
+// []map[string]any of outcome objects, a []string of tags — fail the
+// direct conversion. The generated toProto methods used to discard that
+// error, silently applying an EMPTY field (stigmer/stigmer#342). They now
+// normalize-then-error through these helpers: the fast path converts
+// directly (byte-identical behavior for every value that already worked),
+// the fallback normalizes through a JSON round-trip (encoding/json
+// semantics, which Go callers already know), and only values JSON cannot
+// represent (channels, funcs, cycles) surface an error.
+//
+// tools/codegen/generator/main.go emits this same JSON normalization for
+// the task-config builder DSL — keep the two conversion behaviors
+// converged.
+
+// structFromMap converts a struct-kind input field to structpb.Struct,
+// normalizing structpb-unsupported (but JSON-representable) values.
+func structFromMap(m map[string]any) (*structpb.Struct, error) {
+	if s, err := structpb.NewStruct(m); err == nil {
+		return s, nil
+	}
+	data, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	var normalized map[string]any
+	if err := json.Unmarshal(data, &normalized); err != nil {
+		return nil, err
+	}
+	return structpb.NewStruct(normalized)
+}
+
+// valueFromAny converts a value-kind input field to structpb.Value,
+// normalizing structpb-unsupported (but JSON-representable) values.
+func valueFromAny(v any) (*structpb.Value, error) {
+	if val, err := structpb.NewValue(v); err == nil {
+		return val, nil
+	}
+	data, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	var normalized any
+	if err := json.Unmarshal(data, &normalized); err != nil {
+		return nil, err
+	}
+	return structpb.NewValue(normalized)
+}
+
+// fieldErr, indexErr, and keyErr compose the input-field path onto a
+// conversion failure as it propagates up the nested toProto chain, so the
+// final message locates the offending value exactly:
+//
+//	Tasks[2]: TaskConfig: json: unsupported type: chan int
+func fieldErr(field string, err error) error {
+	return fmt.Errorf("%s: %w", field, err)
+}
+
+func indexErr(field string, idx int, err error) error {
+	return fmt.Errorf("%s[%d]: %w", field, idx, err)
+}
+
+func keyErr(field, key string, err error) error {
+	return fmt.Errorf("%s[%q]: %w", field, key, err)
+}
+
+// invalidInputErr wraps a toProto conversion failure as the SDK's
+// structured *Error with CodeInvalidArgument: a value the SDK refuses
+// client-side surfaces exactly like a value the server would have refused,
+// so callers handle both through one errors.As path.
+func invalidInputErr(err error) error {
+	return &Error{
+		Code:     CodeInvalidArgument,
+		Message:  err.Error(),
+		GRPCCode: codes.InvalidArgument,
+	}
+}
+`)
+
+	formatted, err := format.Source(buf.Bytes())
+	if err != nil {
+		return fmt.Errorf("gofmt failed for structconv.go: %w\ngenerated:\n%s", err, buf.String())
+	}
+	return os.WriteFile(filepath.Join(outputDir, "structconv.go"), formatted, 0644)
 }
 
 func generateGenTypes(outputDir string) error {

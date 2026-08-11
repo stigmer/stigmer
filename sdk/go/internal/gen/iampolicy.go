@@ -105,7 +105,7 @@ type IamPolicyInput struct {
 	Relation   string
 }
 
-func (i *IamPolicyInput) toProto() *iampolicyv1.IamPolicy {
+func (i *IamPolicyInput) toProto() (*iampolicyv1.IamPolicy, error) {
 	resource := &iampolicyv1.IamPolicy{
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "IamPolicy",
@@ -119,21 +119,29 @@ func (i *IamPolicyInput) toProto() *iampolicyv1.IamPolicy {
 		Spec: &iampolicyv1.IamPolicySpec{},
 	}
 	if i.Principal != nil {
-		resource.Spec.Principal = i.Principal.toProto()
+		v, err := i.Principal.toProto()
+		if err != nil {
+			return nil, fieldErr("Principal", err)
+		}
+		resource.Spec.Principal = v
 	}
 	if i.Resource != nil {
-		resource.Spec.Resource = i.Resource.toProto()
+		v, err := i.Resource.toProto()
+		if err != nil {
+			return nil, fieldErr("Resource", err)
+		}
+		resource.Spec.Resource = v
 	}
 	resource.Spec.Relation = i.Relation
-	return resource
+	return resource, nil
 }
 
-func (i *ApiResourceRefInput) toProto() *iampolicyv1.ApiResourceRef {
+func (i *ApiResourceRefInput) toProto() (*iampolicyv1.ApiResourceRef, error) {
 	return &iampolicyv1.ApiResourceRef{
 		Kind:     i.Kind,
 		Id:       i.Id,
 		Relation: i.Relation,
-	}
+	}, nil
 }
 
 // IamPolicyInputFromProto creates a IamPolicyInput from a proto IamPolicy resource.

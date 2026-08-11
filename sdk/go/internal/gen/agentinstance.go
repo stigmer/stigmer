@@ -25,17 +25,29 @@ func NewAgentInstanceClient(conn grpc.ClientConnInterface) *AgentInstanceClient 
 }
 
 func (a *AgentInstanceClient) Apply(ctx context.Context, input *AgentInstanceInput) (*agentinstancev1.AgentInstance, error) {
-	resp, err := a.command.Apply(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := a.command.Apply(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (a *AgentInstanceClient) Create(ctx context.Context, input *AgentInstanceInput) (*agentinstancev1.AgentInstance, error) {
-	resp, err := a.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := a.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (a *AgentInstanceClient) Update(ctx context.Context, input *AgentInstanceInput) (*agentinstancev1.AgentInstance, error) {
-	resp, err := a.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := a.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -83,7 +95,7 @@ type AgentInstanceInput struct {
 	DatastorePartition string
 }
 
-func (i *AgentInstanceInput) toProto() *agentinstancev1.AgentInstance {
+func (i *AgentInstanceInput) toProto() (*agentinstancev1.AgentInstance, error) {
 	resource := &agentinstancev1.AgentInstance{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "AgentInstance",
@@ -104,7 +116,7 @@ func (i *AgentInstanceInput) toProto() *agentinstancev1.AgentInstance {
 		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, ref)
 	}
 	resource.Spec.DatastorePartition = i.DatastorePartition
-	return resource
+	return resource, nil
 }
 
 // AgentInstanceInputFromProto creates a AgentInstanceInput from a proto AgentInstance resource.

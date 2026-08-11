@@ -30,12 +30,20 @@ func NewPlatformClientClient(conn grpc.ClientConnInterface) *PlatformClientClien
 }
 
 func (p *PlatformClientClient) Create(ctx context.Context, input *PlatformClientInput) (*platformclientv1.PlatformClientCreateResponse, error) {
-	resp, err := p.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := p.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (p *PlatformClientClient) Update(ctx context.Context, input *PlatformClientInput) (*platformclientv1.PlatformClient, error) {
-	resp, err := p.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := p.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -97,7 +105,7 @@ type PlatformClientInput struct {
 	AllowedOrigins        []string
 }
 
-func (i *PlatformClientInput) toProto() *platformclientv1.PlatformClient {
+func (i *PlatformClientInput) toProto() (*platformclientv1.PlatformClient, error) {
 	resource := &platformclientv1.PlatformClient{
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "PlatformClient",
@@ -114,16 +122,18 @@ func (i *PlatformClientInput) toProto() *platformclientv1.PlatformClient {
 	resource.Spec.ClientSecretHash = i.ClientSecretHash
 	resource.Spec.SecretFingerprint = i.SecretFingerprint
 	if i.ExpiresAt != "" {
-		if t, err := time.Parse(time.RFC3339, i.ExpiresAt); err == nil {
-			resource.Spec.ExpiresAt = timestamppb.New(t)
+		t, err := time.Parse(time.RFC3339, i.ExpiresAt)
+		if err != nil {
+			return nil, fieldErr("ExpiresAt", err)
 		}
+		resource.Spec.ExpiresAt = timestamppb.New(t)
 	}
 	resource.Spec.NeverExpires = i.NeverExpires
 	resource.Spec.AutoProvisionAccounts = i.AutoProvisionAccounts
 	resource.Spec.AutoGrantOnOrg = i.AutoGrantOnOrg
 	resource.Spec.AutoGrantRole = i.AutoGrantRole
 	resource.Spec.AllowedOrigins = i.AllowedOrigins
-	return resource
+	return resource, nil
 }
 
 // PlatformClientInputFromProto creates a PlatformClientInput from a proto PlatformClient resource.

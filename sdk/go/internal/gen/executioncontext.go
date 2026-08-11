@@ -25,12 +25,20 @@ func NewExecutionContextClient(conn grpc.ClientConnInterface) *ExecutionContextC
 }
 
 func (e *ExecutionContextClient) Apply(ctx context.Context, input *ExecutionContextInput) (*executioncontextv1.ExecutionContext, error) {
-	resp, err := e.command.Apply(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := e.command.Apply(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (e *ExecutionContextClient) Create(ctx context.Context, input *ExecutionContextInput) (*executioncontextv1.ExecutionContext, error) {
-	resp, err := e.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := e.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -70,7 +78,7 @@ type ExecutionContextInput struct {
 	Data        map[string]EnvVarInput
 }
 
-func (i *ExecutionContextInput) toProto() *executioncontextv1.ExecutionContext {
+func (i *ExecutionContextInput) toProto() (*executioncontextv1.ExecutionContext, error) {
 	resource := &executioncontextv1.ExecutionContext{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "ExecutionContext",
@@ -90,7 +98,7 @@ func (i *ExecutionContextInput) toProto() *executioncontextv1.ExecutionContext {
 			resource.Spec.Data[k] = &executioncontextv1.ExecutionValue{Value: v.Value, IsSecret: v.IsSecret}
 		}
 	}
-	return resource
+	return resource, nil
 }
 
 // ExecutionContextInputFromProto creates a ExecutionContextInput from a proto ExecutionContext resource.

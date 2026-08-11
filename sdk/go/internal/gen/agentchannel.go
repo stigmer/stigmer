@@ -34,17 +34,29 @@ func NewAgentChannelClient(conn grpc.ClientConnInterface) *AgentChannelClient {
 }
 
 func (a *AgentChannelClient) Apply(ctx context.Context, input *AgentChannelInput) (*agentchannelv1.AgentChannel, error) {
-	resp, err := a.command.Apply(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := a.command.Apply(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (a *AgentChannelClient) Create(ctx context.Context, input *AgentChannelInput) (*agentchannelv1.AgentChannel, error) {
-	resp, err := a.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := a.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (a *AgentChannelClient) Update(ctx context.Context, input *AgentChannelInput) (*agentchannelv1.AgentChannel, error) {
-	resp, err := a.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := a.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -178,7 +190,7 @@ type RunConfigInput struct {
 	ServiceTier   agentexecutionv1.ServiceTier
 }
 
-func (i *AgentChannelInput) toProto() *agentchannelv1.AgentChannel {
+func (i *AgentChannelInput) toProto() (*agentchannelv1.AgentChannel, error) {
 	resource := &agentchannelv1.AgentChannel{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "AgentChannel",
@@ -218,18 +230,22 @@ func (i *AgentChannelInput) toProto() *agentchannelv1.AgentChannel {
 	}
 	resource.Spec.ProactiveMessagingEnabled = i.ProactiveMessagingEnabled
 	if i.RunConfig != nil {
-		resource.Spec.RunConfig = i.RunConfig.toProto()
+		v, err := i.RunConfig.toProto()
+		if err != nil {
+			return nil, fieldErr("RunConfig", err)
+		}
+		resource.Spec.RunConfig = v
 	}
-	return resource
+	return resource, nil
 }
 
-func (i *RunConfigInput) toProto() *agentexecutionv1.RunConfig {
+func (i *RunConfigInput) toProto() (*agentexecutionv1.RunConfig, error) {
 	return &agentexecutionv1.RunConfig{
 		ModelName:     i.ModelName,
 		MaxCostUsd:    i.MaxCostUsd,
 		MaxToolRounds: i.MaxToolRounds,
 		ServiceTier:   i.ServiceTier,
-	}
+	}, nil
 }
 
 // AgentChannelInputFromProto creates a AgentChannelInput from a proto AgentChannel resource.

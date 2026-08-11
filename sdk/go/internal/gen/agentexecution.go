@@ -13,7 +13,6 @@ import (
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -31,12 +30,20 @@ func NewAgentExecutionClient(conn grpc.ClientConnInterface) *AgentExecutionClien
 }
 
 func (a *AgentExecutionClient) Create(ctx context.Context, input *AgentExecutionInput) (*agentexecutionv1.AgentExecution, error) {
-	resp, err := a.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := a.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (a *AgentExecutionClient) Update(ctx context.Context, input *AgentExecutionInput) (*agentexecutionv1.AgentExecution, error) {
-	resp, err := a.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := a.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -265,7 +272,7 @@ type ConversationCatchupInput struct {
 	WindowEnd string
 }
 
-func (i *AgentExecutionInput) toProto() *agentexecutionv1.AgentExecution {
+func (i *AgentExecutionInput) toProto() (*agentexecutionv1.AgentExecution, error) {
 	resource := &agentexecutionv1.AgentExecution{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "AgentExecution",
@@ -281,11 +288,19 @@ func (i *AgentExecutionInput) toProto() *agentexecutionv1.AgentExecution {
 	resource.Spec.SessionId = i.SessionId
 	resource.Spec.AgentId = i.AgentId
 	if i.SessionSpec != nil {
-		resource.Spec.SessionSpec = i.SessionSpec.toProto()
+		v, err := i.SessionSpec.toProto()
+		if err != nil {
+			return nil, fieldErr("SessionSpec", err)
+		}
+		resource.Spec.SessionSpec = v
 	}
 	resource.Spec.Message = i.Message
 	if i.ExecutionConfig != nil {
-		resource.Spec.ExecutionConfig = i.ExecutionConfig.toProto()
+		v, err := i.ExecutionConfig.toProto()
+		if err != nil {
+			return nil, fieldErr("ExecutionConfig", err)
+		}
+		resource.Spec.ExecutionConfig = v
 	}
 	if len(i.RuntimeEnv) > 0 {
 		resource.Spec.RuntimeEnv = make(map[string]*executioncontextv1.ExecutionValue, len(i.RuntimeEnv))
@@ -296,30 +311,46 @@ func (i *AgentExecutionInput) toProto() *agentexecutionv1.AgentExecution {
 	resource.Spec.CallbackToken = i.CallbackToken
 	resource.Spec.AutoApproveAll = i.AutoApproveAll
 	resource.Spec.ParentWorkflowId = i.ParentWorkflowId
-	for _, item := range i.Attachments {
-		resource.Spec.Attachments = append(resource.Spec.Attachments, item.toProto())
+	for idx, item := range i.Attachments {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Attachments", idx, err)
+		}
+		resource.Spec.Attachments = append(resource.Spec.Attachments, v)
 	}
 	resource.Spec.WorkspaceFileRefs = i.WorkspaceFileRefs
 	resource.Spec.ActivityTaskQueue = i.ActivityTaskQueue
 	resource.Spec.SupersedesExecutionId = i.SupersedesExecutionId
 	if i.ConversationCatchup != nil {
-		resource.Spec.ConversationCatchup = i.ConversationCatchup.toProto()
+		v, err := i.ConversationCatchup.toProto()
+		if err != nil {
+			return nil, fieldErr("ConversationCatchup", err)
+		}
+		resource.Spec.ConversationCatchup = v
 	}
-	return resource
+	return resource, nil
 }
 
-func (i *SessionSpecInput) toProto() *sessionv1.SessionSpec {
+func (i *SessionSpecInput) toProto() (*sessionv1.SessionSpec, error) {
 	p := &sessionv1.SessionSpec{}
 	p.AgentInstanceId = i.AgentInstanceId
 	p.Subject = i.Subject
 	p.HarnessStateId = i.HarnessStateId
 	p.HarnessStateIdHistory = i.HarnessStateIdHistory
 	p.Metadata = i.Metadata
-	for _, item := range i.WorkspaceEntries {
-		p.WorkspaceEntries = append(p.WorkspaceEntries, item.toProto())
+	for idx, item := range i.WorkspaceEntries {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("WorkspaceEntries", idx, err)
+		}
+		p.WorkspaceEntries = append(p.WorkspaceEntries, v)
 	}
-	for _, item := range i.McpServerUsages {
-		p.McpServerUsages = append(p.McpServerUsages, item.toProto())
+	for idx, item := range i.McpServerUsages {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("McpServerUsages", idx, err)
+		}
+		p.McpServerUsages = append(p.McpServerUsages, v)
 	}
 	for _, r := range i.SkillRefs {
 		ref := r.toProto()
@@ -329,19 +360,23 @@ func (i *SessionSpecInput) toProto() *sessionv1.SessionSpec {
 	p.Harness = i.Harness
 	p.CursorMode = i.CursorMode
 	p.ExecutionTarget = i.ExecutionTarget
-	return p
+	return p, nil
 }
 
-func (i *WorkspaceEntryInput) toProto() *sessionv1.WorkspaceEntry {
+func (i *WorkspaceEntryInput) toProto() (*sessionv1.WorkspaceEntry, error) {
 	p := &sessionv1.WorkspaceEntry{}
 	p.Name = i.Name
 	if i.Source != nil {
-		p.Source = i.Source.toProto()
+		v, err := i.Source.toProto()
+		if err != nil {
+			return nil, fieldErr("Source", err)
+		}
+		p.Source = v
 	}
-	return p
+	return p, nil
 }
 
-func (i *WorkspaceSourceInput) toProto() *sessionv1.WorkspaceSource {
+func (i *WorkspaceSourceInput) toProto() (*sessionv1.WorkspaceSource, error) {
 	p := &sessionv1.WorkspaceSource{}
 	if i.GitRepo != nil {
 		m := &sessionv1.GitRepoSource{}
@@ -360,37 +395,45 @@ func (i *WorkspaceSourceInput) toProto() *sessionv1.WorkspaceSource {
 		m.Path = i.LocalPath.Path
 		p.Source = &sessionv1.WorkspaceSource_LocalPath{LocalPath: m}
 	}
-	return p
+	return p, nil
 }
 
-func (i *ExecutionConfigInput) toProto() *agentexecutionv1.ExecutionConfig {
+func (i *ExecutionConfigInput) toProto() (*agentexecutionv1.ExecutionConfig, error) {
 	p := &agentexecutionv1.ExecutionConfig{}
 	p.ModelName = i.ModelName
 	if i.ContextManagement != nil {
-		p.ContextManagement = i.ContextManagement.toProto()
+		v, err := i.ContextManagement.toProto()
+		if err != nil {
+			return nil, fieldErr("ContextManagement", err)
+		}
+		p.ContextManagement = v
 	}
 	p.MaxToolRounds = i.MaxToolRounds
 	p.MaxToolResultChars = i.MaxToolResultChars
 	p.MaxCostUsd = i.MaxCostUsd
 	p.InteractionMode = i.InteractionMode
 	if i.StructuredOutputSchema != nil {
-		p.StructuredOutputSchema, _ = structpb.NewStruct(i.StructuredOutputSchema)
+		v, err := structFromMap(i.StructuredOutputSchema)
+		if err != nil {
+			return nil, fieldErr("StructuredOutputSchema", err)
+		}
+		p.StructuredOutputSchema = v
 	}
 	p.BuildFromPlan = i.BuildFromPlan
 	p.ApprovalMode = i.ApprovalMode
 	p.ServiceTier = i.ServiceTier
-	return p
+	return p, nil
 }
 
-func (i *ContextManagementConfigInput) toProto() *agentexecutionv1.ContextManagementConfig {
+func (i *ContextManagementConfigInput) toProto() (*agentexecutionv1.ContextManagementConfig, error) {
 	return &agentexecutionv1.ContextManagementConfig{
 		DisableSummarization:   i.DisableSummarization,
 		CustomTriggerThreshold: i.CustomTriggerThreshold,
 		CustomTargetTokens:     i.CustomTargetTokens,
-	}
+	}, nil
 }
 
-func (i *AttachmentInput) toProto() *agentexecutionv1.Attachment {
+func (i *AttachmentInput) toProto() (*agentexecutionv1.Attachment, error) {
 	return &agentexecutionv1.Attachment{
 		Filename:    i.Filename,
 		StorageKey:  i.StorageKey,
@@ -398,18 +441,20 @@ func (i *AttachmentInput) toProto() *agentexecutionv1.Attachment {
 		ContentType: i.ContentType,
 		Extract:     i.Extract,
 		LocalPath:   i.LocalPath,
-	}
+	}, nil
 }
 
-func (i *ConversationCatchupInput) toProto() *agentexecutionv1.ConversationCatchup {
+func (i *ConversationCatchupInput) toProto() (*agentexecutionv1.ConversationCatchup, error) {
 	p := &agentexecutionv1.ConversationCatchup{}
 	p.Digest = i.Digest
 	if i.WindowEnd != "" {
-		if t, err := time.Parse(time.RFC3339, i.WindowEnd); err == nil {
-			p.WindowEnd = timestamppb.New(t)
+		t, err := time.Parse(time.RFC3339, i.WindowEnd)
+		if err != nil {
+			return nil, fieldErr("WindowEnd", err)
 		}
+		p.WindowEnd = timestamppb.New(t)
 	}
-	return p
+	return p, nil
 }
 
 // AgentExecutionInputFromProto creates a AgentExecutionInput from a proto AgentExecution resource.

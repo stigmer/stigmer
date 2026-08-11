@@ -25,17 +25,29 @@ func NewOAuthAppClient(conn grpc.ClientConnInterface) *OAuthAppClient {
 }
 
 func (o *OAuthAppClient) Apply(ctx context.Context, input *OAuthAppInput) (*oauthappv1.OAuthApp, error) {
-	resp, err := o.command.Apply(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := o.command.Apply(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (o *OAuthAppClient) Create(ctx context.Context, input *OAuthAppInput) (*oauthappv1.OAuthApp, error) {
-	resp, err := o.command.Create(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := o.command.Create(ctx, req)
 	return resp, wrapErr(err)
 }
 
 func (o *OAuthAppClient) Update(ctx context.Context, input *OAuthAppInput) (*oauthappv1.OAuthApp, error) {
-	resp, err := o.command.Update(ctx, input.toProto())
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := o.command.Update(ctx, req)
 	return resp, wrapErr(err)
 }
 
@@ -83,7 +95,7 @@ type OAuthAppInput struct {
 	VendorApprovalDocsUrl string
 }
 
-func (i *OAuthAppInput) toProto() *oauthappv1.OAuthApp {
+func (i *OAuthAppInput) toProto() (*oauthappv1.OAuthApp, error) {
 	resource := &oauthappv1.OAuthApp{
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "OAuthApp",
@@ -106,7 +118,7 @@ func (i *OAuthAppInput) toProto() *oauthappv1.OAuthApp {
 	resource.Spec.ScopeParameterName = i.ScopeParameterName
 	resource.Spec.VendorApprovalStatus = i.VendorApprovalStatus
 	resource.Spec.VendorApprovalDocsUrl = i.VendorApprovalDocsUrl
-	return resource
+	return resource, nil
 }
 
 // OAuthAppInputFromProto creates a OAuthAppInput from a proto OAuthApp resource.
