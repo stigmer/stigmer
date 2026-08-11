@@ -1,13 +1,19 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, within, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { createRouterTransport, ConnectError, Code } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/sdk";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
+import {
+  OAuthConnectionHealth,
+  GetOAuthGrantStatusOutputSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import {
   McpServerSpecSchema,
+  McpServerAuthSchema,
   HttpServerConfigSchema,
   ToolApprovalPolicySchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
@@ -90,6 +96,31 @@ function buildConnectedServer(): McpServer {
     ],
   });
   return server;
+}
+
+/** The same server as an OAuth integration (target var declared in env). */
+function buildOAuthServer(): McpServer {
+  const server = buildBaseServer();
+  server.spec!.auth = create(McpServerAuthSchema, {
+    targetEnvVar: "API_TOKEN",
+    oauthOnly: true,
+  });
+  return server;
+}
+
+/**
+ * Grant-status fixture for the given health. `connected: true` reflects the
+ * two-act persistence contract: completeOAuthConnect stores the grant before
+ * the chained discovery runs, so a grant can exist with zero discovered tools.
+ */
+function grantStatus(health: OAuthConnectionHealth) {
+  return () =>
+    create(GetOAuthGrantStatusOutputSchema, {
+      connected: true,
+      connectionHealth: health,
+      targetEnvVar: "API_TOKEN",
+      authMethod: "mcp_oauth",
+    });
 }
 
 /** Hoisted-state bag in its settled, data-loaded shape. */
@@ -291,6 +322,136 @@ describe("McpServerDetailView — connect bar and capability tabs", () => {
     expect(within(panel).getByText(/Auto-classified/)).toBeTruthy();
     expect(within(panel).getByText("process_return")).toBeTruthy();
     expect(within(panel).getByText("requires approval")).toBeTruthy();
+  });
+});
+
+describe("McpServerDetailView — signed in but undiscovered (oss#229)", () => {
+  it("renders the stranded state: honest status text, Discover tools action, recovery empty state", async () => {
+    renderView(
+      <McpServerDetailView
+        org={ORG}
+        slug={SLUG}
+        mcpServerState={loadedState(buildOAuthServer())}
+      />,
+      (router) => {
+        router.service(McpServerQueryController, {
+          getOAuthGrantStatus: grantStatus(
+            OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY,
+          ),
+        });
+      },
+    );
+
+    // The grant is healthy, so the pill honestly reads Connected — but the
+    // status text must carry the tools gap, not "tokens refresh automatically".
+    expect(
+      await screen.findByText("Signed in \u2014 tools not discovered yet"),
+    ).toBeTruthy();
+    expect(screen.getByText("Connected")).toBeTruthy();
+    // One action in the connect bar, one in the Tools tab empty state.
+    expect(
+      screen.getAllByRole("button", { name: /^Discover tools$/ }),
+    ).toHaveLength(2);
+
+    // The Tools tab empty state carries its own recovery action instead of
+    // the dead-end "Connect to this MCP server..." copy.
+    const panel = screen.getByRole("tabpanel");
+    expect(
+      within(panel).getByText("Signed in, but tools haven't been discovered yet."),
+    ).toBeTruthy();
+    expect(
+      within(panel).getByRole("button", { name: /^Discover tools$/ }),
+    ).toBeTruthy();
+    expect(
+      within(panel).queryByText(
+        "Connect to this MCP server to discover its available tools.",
+      ),
+    ).toBeNull();
+  });
+
+  it("runs bare discovery from the Tools tab action — never the OAuth popup", async () => {
+    const connect = vi.fn(() => buildConnectedServer());
+    const initiateOAuthConnect = vi.fn(() => {
+      throw new ConnectError("must not relaunch OAuth", Code.FailedPrecondition);
+    });
+
+    renderView(
+      <McpServerDetailView
+        org={ORG}
+        slug={SLUG}
+        mcpServerState={loadedState(buildOAuthServer())}
+      />,
+      (router) => {
+        router.service(McpServerQueryController, {
+          getOAuthGrantStatus: grantStatus(
+            OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY,
+          ),
+        });
+        router.service(McpServerCommandController, {
+          connect,
+          initiateOAuthConnect,
+        });
+      },
+    );
+
+    const panel = screen.getByRole("tabpanel");
+    const discover = await within(panel).findByRole("button", {
+      name: /^Discover tools$/,
+    });
+    fireEvent.click(discover);
+
+    await waitFor(() => expect(connect).toHaveBeenCalledTimes(1));
+    expect(initiateOAuthConnect).not.toHaveBeenCalled();
+  });
+
+  it("adjusts the Policies tab empty copy in the stranded state", async () => {
+    renderView(
+      <McpServerDetailView
+        org={ORG}
+        slug={SLUG}
+        defaultCapabilityTab="policies"
+        mcpServerState={loadedState(buildOAuthServer())}
+      />,
+      (router) => {
+        router.service(McpServerQueryController, {
+          getOAuthGrantStatus: grantStatus(
+            OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY,
+          ),
+        });
+      },
+    );
+
+    expect(
+      await screen.findByText(
+        "Signed in \u2014 discover tools to auto-classify approval policies.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("keeps re-auth ahead of discovery when the token is expired", async () => {
+    renderView(
+      <McpServerDetailView
+        org={ORG}
+        slug={SLUG}
+        mcpServerState={loadedState(buildOAuthServer())}
+      />,
+      (router) => {
+        router.service(McpServerQueryController, {
+          getOAuthGrantStatus: grantStatus(
+            OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED,
+          ),
+        });
+      },
+    );
+
+    // An expired grant with no tools needs a fresh sign-in first —
+    // discovery would fail against a dead token anyway.
+    expect(
+      await screen.findByRole("button", { name: /Sign in to connect/ }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: /^Discover tools$/ }),
+    ).toBeNull();
   });
 });
 

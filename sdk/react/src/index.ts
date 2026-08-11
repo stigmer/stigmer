@@ -528,6 +528,7 @@ export {
   useMcpServerSetup,
   useMcpServerConnect,
   useMcpServerOAuthConnect,
+  getOAuthConnectErrorMessage,
   useMcpServerCredentials,
   useOAuthGrantStatus,
   useDisconnectOAuth,

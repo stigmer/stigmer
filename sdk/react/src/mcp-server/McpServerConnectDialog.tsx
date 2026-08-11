@@ -179,6 +179,13 @@ function ConnectDialogContent({
 
   const handleOAuthSignIn = useCallback(() => {
     if (!serverId) return;
+    // A previous failure in the "connecting" phase means sign-in already
+    // succeeded and only discovery failed — retry bare discovery instead
+    // of relaunching the OAuth popup (stigmer/stigmer#229).
+    if (oauth.failedPhase === "connecting") {
+      void handleConnect();
+      return;
+    }
     oauth.startOAuth(serverId, activeOrg, declaredEnvKeys).then(
       () => {
         creds.refetch();
@@ -186,10 +193,15 @@ function ConnectDialogContent({
         onConnected?.(serverName);
       },
       () => {
+        // completeOAuthConnect persists the grant BEFORE the chained
+        // discovery runs, so even a failed attempt may have changed
+        // server state — refetch so the dialog offers "Discover Tools"
+        // instead of another popup round.
+        creds.refetch();
         setPhase("error");
       },
     );
-  }, [serverId, activeOrg, declaredEnvKeys, oauth, creds, onConnected, serverName]);
+  }, [serverId, activeOrg, declaredEnvKeys, oauth, creds, onConnected, serverName, handleConnect]);
 
   // Auto-trigger connect when credentials become ready (manual-only servers)
   useEffect(() => {
@@ -285,10 +297,25 @@ function ConnectDialogContent({
         <div className="mb-4">
           <ErrorMessage
             error={activeError}
+            title={
+              // Honest header for the two-act failure: the grant is stored,
+              // only the discovery leg broke. Without it the raw RPC error
+              // reads as a failed sign-in.
+              oauth.error && oauth.failedPhase === "connecting"
+                ? "Signed in, but tool discovery failed"
+                : undefined
+            }
             retry={() => {
+              // Capture before clearError() resets it: a discovery-leg
+              // failure retries discovery directly — sign-in is done.
+              const wasDiscoveryFailure = oauth.failedPhase === "connecting";
               clearConnectError();
               oauth.clearError();
-              setPhase("credentials");
+              if (wasDiscoveryFailure) {
+                void handleConnect();
+              } else {
+                setPhase("credentials");
+              }
             }}
           />
         </div>
