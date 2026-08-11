@@ -407,6 +407,98 @@ describe("classifyModelCallError — bedrock backend", () => {
   });
 });
 
+describe("classifyModelCallError — foundry backend", () => {
+  // The Foundry arms activate only for direct-mode Anthropic calls under
+  // STIGMER_ANTHROPIC_BACKEND=foundry, mirroring the vertex and bedrock
+  // suites above.
+  function stubFoundryEnv() {
+    vi.stubEnv("STIGMER_ANTHROPIC_BACKEND", "foundry");
+    vi.stubEnv("ANTHROPIC_FOUNDRY_RESOURCE", "my-foundry-resource");
+  }
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  const foundryCtx = {
+    proxyMode: false,
+    provider: "anthropic" as const,
+    modelId: "claude-sonnet-4-6",
+  };
+
+  it("classifies Entra token-acquisition failures as non-retryable with the Azure fix", () => {
+    stubFoundryEnv();
+    // The Foundry SDK wraps every token-provider failure in this one
+    // prefix (pinned by foundry-seam.test.ts), so a single wording covers
+    // the whole @azure/identity credential-chain family.
+    const classified = classifyModelCallError(
+      middlewareWrap(
+        new Error(
+          "Failed to get token from azureADTokenProvider: " +
+          "ChainedTokenCredential authentication failed. CredentialUnavailableError: " +
+          "ManagedIdentityCredential: no managed identity endpoint found.",
+        ),
+      ),
+      foundryCtx,
+    );
+    expect(classified?.code).toBe("LLM_BACKEND_CREDENTIALS");
+    expect(classified?.retryable).toBe(false);
+    expect(classified?.message).toContain("Microsoft Entra ID");
+    expect(classified?.message).toContain("ANTHROPIC_FOUNDRY_API_KEY");
+  });
+
+  it("does NOT classify credential prose when the backend is not foundry (no relabeling drift)", () => {
+    const classified = classifyModelCallError(
+      new Error("Failed to get token from azureADTokenProvider: boom"),
+      foundryCtx,
+    );
+    expect(classified).toBeUndefined();
+  });
+
+  it("words 401 around the Foundry credential, not the Anthropic API key", () => {
+    stubFoundryEnv();
+    const classified = classifyModelCallError(sdkError(401, "unauthorized"), foundryCtx);
+    expect(classified?.code).toBe("LLM_AUTHENTICATION_ERROR");
+    expect(classified?.message).toContain("Azure rejected this Microsoft Foundry call");
+    expect(classified?.message).toContain("ANTHROPIC_FOUNDRY_API_KEY");
+    expect(classified?.message).not.toContain("your API key");
+  });
+
+  it("words 403 around the Foundry RBAC role", () => {
+    stubFoundryEnv();
+    const classified = classifyModelCallError(sdkError(403, "forbidden"), foundryCtx);
+    expect(classified?.code).toBe("LLM_PERMISSION_DENIED");
+    expect(classified?.message).toContain("Foundry User");
+    expect(classified?.message).not.toContain("API key");
+  });
+
+  it("words 404 around deployment names, the resource, and the deployment map", () => {
+    stubFoundryEnv();
+    const classified = classifyModelCallError(sdkError(404, "not found"), foundryCtx);
+    expect(classified?.code).toBe("LLM_MODEL_NOT_FOUND");
+    expect(classified?.message).toContain("deployment name");
+    expect(classified?.message).toContain('resource "my-foundry-resource"');
+    expect(classified?.message).toContain("STIGMER_FOUNDRY_DEPLOYMENT_MAP");
+  });
+
+  it("stays inert in proxy mode even with the backend var set (proxy owns routing)", () => {
+    stubFoundryEnv();
+    const classified = classifyModelCallError(
+      sdkError(401, "unauthorized"),
+      { proxyMode: true, provider: "anthropic" },
+    );
+    expect(classified?.message).toContain("Stigmer platform");
+    expect(classified?.message).not.toContain("Foundry");
+  });
+
+  it("keeps foundry wordings from cross-contaminating with the other backends", () => {
+    stubFoundryEnv();
+    const classified = classifyModelCallError(sdkError(404, "not found"), foundryCtx);
+    expect(classified?.message).not.toContain("Vertex");
+    expect(classified?.message).not.toContain("Bedrock");
+  });
+});
+
 describe("describeExecutionError", () => {
   it("labels classified model errors with the stable code, not the wrapper class", () => {
     const { errorType, errorMessage } = describeExecutionError(

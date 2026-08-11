@@ -3,12 +3,15 @@ import { describe, it, expect } from "vitest";
 import {
   toVertexModelId,
   toBedrockModelId,
+  toFoundryDeploymentName,
   parseAnthropicBackend,
   parseOpenAiBackend,
   parseBedrockModelMap,
+  parseFoundryDeploymentMap,
   resolveAnthropicBackend,
   checkVertexPrerequisites,
   checkBedrockPrerequisites,
+  checkFoundryPrerequisites,
   checkDirectCredentials,
   preflightLlmBackends,
 } from "../llm-backend.js";
@@ -63,6 +66,8 @@ describe("parseAnthropicBackend", () => {
     ["  VERTEX  ", "vertex"],
     ["bedrock", "bedrock"],
     ["  Bedrock ", "bedrock"],
+    ["foundry", "foundry"],
+    ["  Foundry ", "foundry"],
   ])("value %j parses to %s", (value, backend) => {
     const result = parseAnthropicBackend({ STIGMER_ANTHROPIC_BACKEND: value });
     expect(result).toEqual({ ok: true, backend });
@@ -73,7 +78,19 @@ describe("parseAnthropicBackend", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.message).toContain('STIGMER_ANTHROPIC_BACKEND="verteks"');
-      expect(result.message).toContain("Supported: public, vertex, bedrock");
+      expect(result.message).toContain("Supported: public, vertex, bedrock, foundry");
+    }
+  });
+
+  it("rejects the cloud name where the service name is the value (azure vs foundry)", () => {
+    // The service that hosts Claude on Azure is Microsoft Foundry; "azure"
+    // as an Anthropic backend value would collide with the unrelated Azure
+    // OpenAI service reserved on the OpenAI axis. The unsupported-value
+    // message lists foundry, steering the operator to the right value.
+    const result = parseAnthropicBackend({ STIGMER_ANTHROPIC_BACKEND: "azure" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.message).toContain("foundry");
     }
   });
 });
@@ -169,6 +186,96 @@ describe("checkBedrockPrerequisites", () => {
   });
 });
 
+describe("checkFoundryPrerequisites", () => {
+  it("passes with a resource name alone", () => {
+    expect(
+      checkFoundryPrerequisites({ ANTHROPIC_FOUNDRY_RESOURCE: "my-foundry-resource" }),
+    ).toBeNull();
+  });
+
+  it("passes with a base URL alone", () => {
+    expect(
+      checkFoundryPrerequisites({
+        ANTHROPIC_FOUNDRY_BASE_URL: "https://my-foundry-resource.services.ai.azure.com/anthropic/",
+      }),
+    ).toBeNull();
+  });
+
+  it.each([[{}], [{ ANTHROPIC_FOUNDRY_RESOURCE: "  " }], [{ ANTHROPIC_FOUNDRY_BASE_URL: "" }]])(
+    "fails with an actionable message when no endpoint is configured (%j)",
+    (env) => {
+      const message = checkFoundryPrerequisites(env);
+      expect(message).toContain("ANTHROPIC_FOUNDRY_RESOURCE");
+      expect(message).toContain("ANTHROPIC_FOUNDRY_BASE_URL");
+      expect(message).toContain("docs.stigmer.ai");
+    },
+  );
+
+  it("fails when both resource and base URL are set (the SDK's own contract, at boot)", () => {
+    // The Foundry SDK constructor throws on this combination; catching it
+    // here turns a first-model-call crash into a boot refusal.
+    const message = checkFoundryPrerequisites({
+      ANTHROPIC_FOUNDRY_RESOURCE: "my-foundry-resource",
+      ANTHROPIC_FOUNDRY_BASE_URL: "https://other.services.ai.azure.com/anthropic/",
+    });
+    expect(message).toContain("mutually exclusive");
+  });
+
+  it("does not require a credential — keyless Entra deployments are valid", () => {
+    // ANTHROPIC_FOUNDRY_API_KEY absence is not an error: the adapter falls
+    // back to the Azure credential chain, which resolves at request time
+    // like Vertex ADC and the AWS chain.
+    expect(
+      checkFoundryPrerequisites({ ANTHROPIC_FOUNDRY_RESOURCE: "my-foundry-resource" }),
+    ).toBeNull();
+  });
+
+  it("fails on a malformed deployment map at boot, not at the first model call", () => {
+    const message = checkFoundryPrerequisites({
+      ANTHROPIC_FOUNDRY_RESOURCE: "my-foundry-resource",
+      STIGMER_FOUNDRY_DEPLOYMENT_MAP: "claude-sonnet-4-6",
+    });
+    expect(message).toContain("STIGMER_FOUNDRY_DEPLOYMENT_MAP");
+    expect(message).toContain("canonical=deploymentName");
+  });
+
+  it("accepts a well-formed deployment map", () => {
+    expect(
+      checkFoundryPrerequisites({
+        ANTHROPIC_FOUNDRY_RESOURCE: "my-foundry-resource",
+        STIGMER_FOUNDRY_DEPLOYMENT_MAP:
+          "claude-sonnet-4-6=my-sonnet-deployment, claude-fable-5=my-fable-deployment",
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("parseFoundryDeploymentMap", () => {
+  // The shared pair-parsing behavior (trimming, empty entries, blank ->
+  // empty map) is exercised exhaustively by the parseBedrockModelMap table;
+  // these pin what is foundry-specific: the var name and message wording.
+  it("parses pairs into canonical -> deployment name", () => {
+    const result = parseFoundryDeploymentMap({
+      STIGMER_FOUNDRY_DEPLOYMENT_MAP: "claude-sonnet-4-6=my-sonnet-deployment",
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.map.get("claude-sonnet-4-6")).toBe("my-sonnet-deployment");
+    }
+  });
+
+  it("rejects a malformed entry naming its own var and form", () => {
+    const result = parseFoundryDeploymentMap({
+      STIGMER_FOUNDRY_DEPLOYMENT_MAP: "no-equals-sign",
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.message).toContain('STIGMER_FOUNDRY_DEPLOYMENT_MAP entry "no-equals-sign"');
+      expect(result.message).toContain("canonical=deploymentName");
+    }
+  });
+});
+
 describe("parseBedrockModelMap", () => {
   it("parses unset / blank to an empty map", () => {
     for (const value of [undefined, "", "   "]) {
@@ -257,6 +364,60 @@ describe("toBedrockModelId", () => {
   });
 });
 
+describe("toFoundryDeploymentName", () => {
+  // Layer 2 alone: the deterministic strip-date rule, verified against
+  // Anthropic's published Foundry model table — every registry id (both
+  // shapes the registry serves) maps onto a real DEFAULT deployment name.
+  // Note the inversion vs toVertexModelId: Vertex keeps the snapshot date
+  // (reseparated with `@`), Foundry drops it.
+  it.each([
+    // Pre-4.6 snapshot ids: the trailing date is stripped.
+    ["claude-sonnet-4-5-20250929", "claude-sonnet-4-5"],
+    ["claude-haiku-4-5-20251001", "claude-haiku-4-5"],
+    ["claude-opus-4-5-20251101", "claude-opus-4-5"],
+
+    // 4.6-generation and later: dateless ids ARE the default deployment
+    // names and pass through untouched.
+    ["claude-sonnet-4-6", "claude-sonnet-4-6"],
+    ["claude-opus-4-6", "claude-opus-4-6"],
+    ["claude-opus-4-7", "claude-opus-4-7"],
+    ["claude-opus-4-8", "claude-opus-4-8"],
+    ["claude-sonnet-5", "claude-sonnet-5"],
+    ["claude-fable-5", "claude-fable-5"],
+
+    // Translating twice is a no-op: a stripped id has no date to strip.
+    ["claude-sonnet-4-5", "claude-sonnet-4-5"],
+
+    // Version segments are not dates; nothing to strip.
+    ["claude-3-5-sonnet", "claude-3-5-sonnet"],
+    ["", ""],
+  ])("%s -> %s with no map", (canonical, deployment) => {
+    expect(toFoundryDeploymentName(canonical, {})).toBe(deployment);
+  });
+
+  it("consults the operator map FIRST, bypassing the strip-date rule", () => {
+    expect(
+      toFoundryDeploymentName("claude-sonnet-4-5-20250929", {
+        STIGMER_FOUNDRY_DEPLOYMENT_MAP: "claude-sonnet-4-5-20250929=my-sonnet-deployment",
+      }),
+    ).toBe("my-sonnet-deployment");
+  });
+
+  it("applies the rule to models the map does not cover", () => {
+    expect(
+      toFoundryDeploymentName("claude-haiku-4-5-20251001", {
+        STIGMER_FOUNDRY_DEPLOYMENT_MAP: "claude-sonnet-4-6=my-sonnet-deployment",
+      }),
+    ).toBe("claude-haiku-4-5");
+  });
+
+  it("throws the catalog message on a malformed map (defense in depth)", () => {
+    expect(() =>
+      toFoundryDeploymentName("claude-sonnet-4-6", { STIGMER_FOUNDRY_DEPLOYMENT_MAP: "broken" }),
+    ).toThrow(/STIGMER_FOUNDRY_DEPLOYMENT_MAP entry "broken"/);
+  });
+});
+
 describe("checkDirectCredentials", () => {
   describe("anthropic", () => {
     it("is satisfied by a non-blank ANTHROPIC_API_KEY", () => {
@@ -289,9 +450,18 @@ describe("checkDirectCredentials", () => {
       ).toBeNull();
     });
 
-    it("names both shipped backends in the missing-key remedy", () => {
+    it("is satisfied by the foundry backend with no key (Foundry key or Entra authenticates)", () => {
+      // Same non-public waiver: a Foundry deployment authenticates with
+      // ANTHROPIC_FOUNDRY_API_KEY or the Azure credential chain, never
+      // with an Anthropic API key.
+      expect(
+        checkDirectCredentials("anthropic", { STIGMER_ANTHROPIC_BACKEND: "foundry" }),
+      ).toBeNull();
+    });
+
+    it("names all shipped backends in the missing-key remedy", () => {
       const message = checkDirectCredentials("anthropic", {});
-      expect(message).toContain("vertex or bedrock");
+      expect(message).toContain("vertex, bedrock, or foundry");
     });
 
     it("defers an invalid backend value to construction (one message per condition)", () => {
@@ -372,6 +542,38 @@ describe("preflightLlmBackends", () => {
       STIGMER_BEDROCK_MODEL_MAP: "not-a-pair",
     });
     expect(result.error).toContain("STIGMER_BEDROCK_MODEL_MAP");
+  });
+
+  it("is clean for a fully-configured foundry deployment", () => {
+    const result = preflightLlmBackends({
+      STIGMER_ANTHROPIC_BACKEND: "foundry",
+      ANTHROPIC_FOUNDRY_RESOURCE: "my-foundry-resource",
+    });
+    expect(result).toEqual({ error: null, warnings: [] });
+  });
+
+  it("fails foundry without an endpoint, naming both endpoint vars", () => {
+    const result = preflightLlmBackends({ STIGMER_ANTHROPIC_BACKEND: "foundry" });
+    expect(result.error).toContain("ANTHROPIC_FOUNDRY_RESOURCE");
+    expect(result.error).toContain("ANTHROPIC_FOUNDRY_BASE_URL");
+  });
+
+  it("fails foundry with both endpoint vars set (mutually exclusive)", () => {
+    const result = preflightLlmBackends({
+      STIGMER_ANTHROPIC_BACKEND: "foundry",
+      ANTHROPIC_FOUNDRY_RESOURCE: "my-foundry-resource",
+      ANTHROPIC_FOUNDRY_BASE_URL: "https://other.services.ai.azure.com/anthropic/",
+    });
+    expect(result.error).toContain("mutually exclusive");
+  });
+
+  it("fails foundry with a malformed deployment map at boot", () => {
+    const result = preflightLlmBackends({
+      STIGMER_ANTHROPIC_BACKEND: "foundry",
+      ANTHROPIC_FOUNDRY_RESOURCE: "my-foundry-resource",
+      STIGMER_FOUNDRY_DEPLOYMENT_MAP: "not-a-pair",
+    });
+    expect(result.error).toContain("STIGMER_FOUNDRY_DEPLOYMENT_MAP");
   });
 
   it("fails on invalid values for either var, reporting all problems at once", () => {

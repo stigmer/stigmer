@@ -70,7 +70,9 @@
   },
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "^0.32.1",
+    "@anthropic-ai/foundry-sdk": "^0.4.1",
     "@anthropic-ai/vertex-sdk": "^0.19.1",
+    "@azure/identity": "^4.13.1",
     "@bufbuild/protobuf": "2.12.0",
     "@connectrpc/connect": "^2.0.0",
     "@connectrpc/connect-node": "^2.0.0",
