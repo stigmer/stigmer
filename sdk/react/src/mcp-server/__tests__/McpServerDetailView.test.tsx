@@ -30,12 +30,6 @@ import { StigmerContext } from "../../context";
 import { McpServerDetailView } from "../McpServerDetailView";
 import type { UseMcpServerReturn } from "../useMcpServer";
 
-// The kebab menu and dialogs portal their content; without a StigmerProvider
-// the portal container is null — pin it to document.body like sibling tests.
-vi.mock("../../portal-container", () => ({
-  useStigmerPortalContainer: () => document.body,
-}));
-
 beforeAll(() => {
   // happy-dom lacks ResizeObserver, which Base UI positioners observe.
   if (!("ResizeObserver" in globalThis)) {

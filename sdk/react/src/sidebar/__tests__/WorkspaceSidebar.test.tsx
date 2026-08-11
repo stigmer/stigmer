@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
@@ -13,13 +13,6 @@ import { OrgProvider } from "../../organization/OrgProvider";
 import { WorkspaceSidebar } from "../WorkspaceSidebar";
 import type { RecentActivityEntry } from "../../activity/types";
 import type { RenderSidebarLink } from "../types";
-
-// Tooltips and the org switcher menu portal their content; without a
-// StigmerProvider the portal container is null — pin it to document.body
-// like sibling tests.
-vi.mock("../../portal-container", () => ({
-  useStigmerPortalContainer: () => document.body,
-}));
 
 beforeAll(() => {
   // happy-dom lacks ResizeObserver, which Base UI positioners observe.

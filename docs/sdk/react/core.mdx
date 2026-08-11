@@ -106,14 +106,24 @@ function AgentDetail({ id }: { id: string }) {
 
 Returns the managed portal container for the nearest `StigmerProvider`.
 
-SDK components that use `Popover.Portal`, `Dialog.Portal`,
-`Select.Portal`, or `Menu.Portal` pass the returned element as the
+SDK components that use `Popover.Portal`, `Dialog.Portal`, or
+`Menu.Portal` pass the returned value straight through as the
 `container` prop so that portaled content inherits `--stgm-*` design
 tokens (including dark-mode values).
 
-Returns `null` when called outside a `StigmerProvider`, which makes
-Base UI portals fall back to `document.body`. This keeps components
-functional (though un-themed) when used standalone.
+The return value is deliberately three-state, mirroring Base UI's
+`container` prop semantics so no coalescing is needed at call sites:
+
+- `undefined` — no `StigmerProvider` above. Base UI portals fall
+  back to `document.body`, keeping components functional (though
+  un-themed) when used standalone. Never coerce this to `null`:
+  Base UI treats an explicit `null` as "wait for a container" and
+  renders the popup nowhere.
+- `null` — a `StigmerProvider` exists but its themed portal
+  container has not mounted yet (first paint, SSR). Base UI waits
+  for the container instead of flashing un-themed content into
+  `document.body`, then re-portals once it mounts.
+- an `HTMLElement` — the mounted themed container.
 
 Platform builders who create custom portaled components should use
 this hook to target the same container as the built-in SDK components.
@@ -121,7 +131,7 @@ this hook to target the same container as the built-in SDK components.
 **Signature**
 
 ```tsx
-function useStigmerPortalContainer(): HTMLElement | null
+function useStigmerPortalContainer(): HTMLElement | null | undefined
 ```
 
 ```tsx

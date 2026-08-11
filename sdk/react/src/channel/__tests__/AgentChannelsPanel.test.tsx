@@ -12,13 +12,6 @@ vi.mock("../../feedback/toast", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-// The card actions live in a Base UI menu, whose content is portaled to the
-// SDK portal container. Without a StigmerProvider that container is null and
-// the menu renders nothing — pin it to document.body so the menu mounts.
-vi.mock("../../portal-container", () => ({
-  useStigmerPortalContainer: () => document.body,
-}));
-
 beforeAll(() => {
   // happy-dom does not implement the native dialog show/close methods.
   HTMLDialogElement.prototype.showModal = function showModal() {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { createRouterTransport } from "@connectrpc/connect";
@@ -8,10 +8,6 @@ import { OrgProvider } from "../../organization/OrgProvider";
 import { SETTINGS_NAV_GROUPS } from "../../settings/settings-nav";
 import { SettingsSidebar } from "../SettingsSidebar";
 import type { RenderSidebarLink } from "../types";
-
-vi.mock("../../portal-container", () => ({
-  useStigmerPortalContainer: () => document.body,
-}));
 
 beforeAll(() => {
   if (!("ResizeObserver" in globalThis)) {

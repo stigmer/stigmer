@@ -5,12 +5,6 @@ import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 
-// Without a StigmerProvider the portal container is null, and Base UI's
-// Portal renders nothing — pin it to document.body so the popover mounts.
-vi.mock("../../portal-container", () => ({
-  useStigmerPortalContainer: () => document.body,
-}));
-
 // Controllable agent-setup state — lets these tests drive the lock × setup
 // matrix directly instead of exercising the full resolution state machine
 // (which is covered by useAgentSetup's own tests).

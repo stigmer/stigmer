@@ -4,13 +4,8 @@ import { ModelSelector } from "../ModelSelector";
 import { ModelRegistryContext } from "../ModelRegistryContext";
 import type { ModelInfo } from "../registry";
 
-// Portal into document.body so the popover mounts under happy-dom, and shim
-// ResizeObserver for Base UI's positioner (the scheduleCreation.test.tsx
-// pattern).
-vi.mock("../../portal-container", () => ({
-  useStigmerPortalContainer: () => document.body,
-}));
-
+// Shim ResizeObserver for Base UI's positioner (the
+// scheduleCreation.test.tsx pattern).
 beforeAll(() => {
   if (!("ResizeObserver" in globalThis)) {
     (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
