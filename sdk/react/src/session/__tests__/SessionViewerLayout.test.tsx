@@ -8,8 +8,8 @@ import { SessionViewerLayout } from "../SessionViewerLayout";
 // The contract under test:
 //   - `panel` is the single source of truth for collapsed state
 //   - the conversation never remounts across an open/close toggle
-//   - `responsive={false}` disables the below-`lg` conversation collapse
-//     (fixed-canvas hosts: docs embeds, video export)
+//   - `responsive={false}` disables the narrow-container conversation
+//     collapse (hosts that must never trade the conversation for the panel)
 //   - no `splitStorageKey` means no localStorage read (deterministic hosts)
 // ---------------------------------------------------------------------------
 
@@ -75,17 +75,24 @@ describe("SessionViewerLayout", () => {
     expect(pane.style.width).toBe("420px");
   });
 
-  it("responsive (default): the open-panel conversation pane collapses below lg", () => {
+  // The collapse classes are container-query variants keyed on the split's
+  // own box, never the viewport (stigmer/stigmer#301). These are class-name
+  // pins only — the real layout behavior (a narrow dock inside a wide window
+  // collapsing) is proven in Chromium by ResizableSplit.layout.test.tsx.
+  it("responsive (default): the open-panel conversation pane collapses in a narrow container", () => {
     const { container } = render(
       <SessionViewerLayout conversation={conversation()} panel={panel()} />,
     );
     const pane = screen.getByTestId("conversation").parentElement!;
-    expect(pane.className).toContain("max-lg:hidden");
-    // The separator hides with it, so the panel is the full row below lg.
-    expect(container.querySelectorAll('[class*="max-lg:hidden"]').length).toBe(2);
+    expect(pane.className).toContain("@max-3xl/resizable-split:hidden");
+    // The separator hides with it, so the panel is the full narrow row.
+    expect(
+      container.querySelectorAll('[class*="@max-3xl/resizable-split:hidden"]')
+        .length,
+    ).toBe(2);
   });
 
-  it("responsive={false}: no below-lg collapse anywhere (fixed-canvas hosts)", () => {
+  it("responsive={false}: no narrow-container collapse anywhere (opt-out hosts)", () => {
     const { container } = render(
       <SessionViewerLayout
         conversation={conversation()}
@@ -93,7 +100,12 @@ describe("SessionViewerLayout", () => {
         responsive={false}
       />,
     );
-    expect(container.querySelector('[class*="max-lg:hidden"]')).toBeNull();
+    expect(
+      container.querySelector('[class*="@max-3xl/resizable-split:hidden"]'),
+    ).toBeNull();
+    // No collapse to decide means no CSS container either (the containment
+    // invariant documented in ResizableSplit).
+    expect(container.querySelector('[class*="@container"]')).toBeNull();
   });
 
   it("reads no localStorage without a splitStorageKey (deterministic hosts)", () => {
