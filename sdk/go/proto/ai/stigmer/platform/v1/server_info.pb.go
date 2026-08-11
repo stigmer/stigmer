@@ -451,8 +451,10 @@ func (*GetRunnerScopedTokenInput_Renewal) isGetRunnerScopedTokenInput_Scope() {}
 // @internal
 // Cloud authorizes against the pool claim record, not FGA: the pool_sandboxes
 // row for the caller token's pool_member_id must be CLAIMED for exactly this
-// session_id (the DB is the authorization source), and the minted session
-// token's TTL is the window-covering value recorded on that row at claim time.
+// session_id (the DB is the authorization source). Identity and org are minted
+// from the values the claimer recorded on that row — never from the client —
+// and the TTL is the config-owned standard sandbox TTL, like every session
+// token (stigmer-cloud#256; renewal, not lifetime, carries long conversations).
 // OSS has no pool and mints nothing (empty output, presence-based contract).
 type PoolClaim struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -524,9 +526,10 @@ func (x *PoolClaim) GetSessionId() string {
 // the same of its workflow_sandboxes row. The record IS the revocation
 // lever: when the lifecycle reconciler reaps the sandbox, renewal dies with
 // it, so a credential's renewable lifetime is exactly its sandbox's
-// lifetime. Minted TTL is the standard sandbox TTL (not window-covering) —
-// renewal is what makes short TTLs sufficient. OSS has no signing key and
-// mints nothing (empty output, presence-based contract).
+// lifetime. Minted TTL is the standard sandbox TTL — every mint path uses it
+// (stigmer-cloud#256), and renewal is what makes short TTLs sufficient. OSS
+// has no signing key and mints nothing (empty output, presence-based
+// contract).
 type TokenRenewal struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
