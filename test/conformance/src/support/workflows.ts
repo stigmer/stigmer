@@ -28,6 +28,15 @@ export interface WorkflowSpecOptions {
   // YAML and therefore the version hash — used to force a new version, or keep
   // it identical to assert idempotency.
   taskVar?: string;
+  // Full set_vars variables map, taking precedence over taskVar. Its OBJECT
+  // INSERTION ORDER is load-bearing: protobuf-es serializes Struct fields in
+  // that order, so permuting keys between two otherwise-identical applies
+  // reproduces the wire-order variance real SDKs (Go randomizes proto map
+  // marshal order) produce — the lever the order-agnostic idempotency pin
+  // pulls (stigmer/stigmer#341). Use non-integer-like keys: JS objects
+  // re-order integer-like keys numerically, silently neutralizing the
+  // permutation.
+  variables?: Record<string, string>;
   // Blueprint env-var declarations projected into spec.env — the least-privilege
   // key whitelist the execution engine filters the merged environment against.
   // Declarations carry no value (that is the instance/runtime job); see envmerge.
@@ -50,7 +59,7 @@ export function makeWorkflowSpec(opts: WorkflowSpecOptions = {}): MessageInitSha
       {
         name: "setVars",
         kind: WorkflowTaskKind.set_vars,
-        taskConfig: { variables: { greeting: opts.taskVar ?? "hello" } },
+        taskConfig: { variables: opts.variables ?? { greeting: opts.taskVar ?? "hello" } },
         export: { as: "${ . }" },
       },
     ],
@@ -69,7 +78,7 @@ export interface WorkflowOptions extends WorkflowSpecOptions {
 
 // A complete, valid Workflow resource ready to hand to create/apply/update.
 export function makeWorkflow(opts: WorkflowOptions): MessageInitShape<typeof WorkflowSchema> {
-  const { org, name, tag, namespace, documentName, taskVar } = opts;
+  const { org, name, tag, namespace, documentName, taskVar, variables } = opts;
   return {
     apiVersion: WORKFLOW_API_VERSION,
     kind: WORKFLOW_KIND,
@@ -82,6 +91,7 @@ export function makeWorkflow(opts: WorkflowOptions): MessageInitShape<typeof Wor
       namespace: namespace ?? org,
       documentName: documentName ?? name,
       taskVar,
+      variables,
     }),
   };
 }

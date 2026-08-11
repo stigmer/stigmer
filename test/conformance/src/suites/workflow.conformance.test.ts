@@ -47,6 +47,7 @@ afterAll(async () => {
 
 interface CreateOptions {
   taskVar?: string;
+  variables?: Record<string, string>;
   tag?: string;
   documentName?: string;
 }
@@ -220,6 +221,55 @@ describe("Workflow conformance — version history", () => {
     const history = await clients.workflowQuery.listVersions({ org, slug: created.metadata!.slug });
     expect(history.versions, "re-applying the same spec must not create a version").toHaveLength(1);
     expect(history.totalCount).toBe(1);
+  });
+
+  it("an idempotent apply is order-agnostic: permuted task-config key order registers no version", async () => {
+    // Protobuf map entry order carries no meaning, and real SDKs vary it (Go
+    // randomizes proto map marshal order per apply). protobuf-es serializes
+    // Struct fields in object insertion order, so these two applies reproduce
+    // that wire variance deliberately — the single-key test above can never
+    // exercise it, which is exactly how stigmer/stigmer#341 shipped: the
+    // cloud engine hashed wire-ordered YAML, so every SDK re-apply registered
+    // a phantom version. Both editions must render canonical (key-sorted)
+    // YAML so version identity is a pure function of the spec.
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("wf");
+
+    const created = await applyWorkflow(org, name, { variables: { alpha: "1", beta: "2", gamma: "3" } });
+    await applyWorkflow(org, name, { variables: { gamma: "3", beta: "2", alpha: "1" } }, false);
+
+    const history = await clients.workflowQuery.listVersions({ org, slug: created.metadata!.slug });
+    expect(history.versions, "map key order on the wire must not affect version identity").toHaveLength(1);
+    expect(history.totalCount).toBe(1);
+  });
+
+  it("re-applying a prior version's spec repoints the head without a duplicate row (A→B→A)", async () => {
+    // Content-addressed identity: one content, one history entry. A rollback
+    // apply reproduces the archived version's hash (canonical rendering), so
+    // the head repoints to the existing row instead of appending a duplicate
+    // — which would give the single-holder tag primitive two targets and
+    // make hash lookups ambiguous. Recency and currency legitimately diverge
+    // here: the newest-archived row is B, the current version is A.
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("wf");
+
+    const vA = await applyWorkflow(org, name, { taskVar: "a" });
+    const vB = await applyWorkflow(org, name, { taskVar: "b" }, false);
+    expect(vB.status?.versionHash).not.toBe(vA.status?.versionHash);
+
+    const rolledBack = await applyWorkflow(org, name, { taskVar: "a" }, false);
+    expect(rolledBack.status?.versionHash, "rollback must repoint the head to the archived version's hash").toBe(
+      vA.status?.versionHash,
+    );
+
+    const history = await clients.workflowQuery.listVersions({ org, slug: vA.metadata!.slug });
+    expect(history.versions, "rollback must not append a duplicate history row").toHaveLength(2);
+    expect(history.totalCount).toBe(2);
+    expect(history.versions[0]?.versionHash, "history stays newest-archived-first").toBe(vB.status?.versionHash);
+
+    const current = history.versions.filter((entry) => entry.isCurrent);
+    expect(current, "exactly one version is current").toHaveLength(1);
+    expect(current[0]?.versionHash, "the repointed-to entry is current").toBe(vA.status?.versionHash);
   });
 
   it("applying a changed spec archives a new version (newest-first, exactly one current)", async () => {
