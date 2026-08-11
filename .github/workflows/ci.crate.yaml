@@ -95,7 +95,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version-file: ".nvmrc"
 
       # `make gen-ipc-fixtures-check` installs the runner's deps on demand, then
       # regenerates the golden fixtures and fails if either committed copy (the

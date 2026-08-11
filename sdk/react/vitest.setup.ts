@@ -7,10 +7,14 @@ import { configure } from "@testing-library/react";
 // sprinkling per-call timeouts: passing tests are unaffected (waits resolve
 // the moment the element appears); only genuinely failing waits report later.
 //
+// 8s, not less: during the 2026-08-11 merge-rush contention window a menu
+// mount blew the previous 4s allowance on a starved runner (#323) — a wait
+// this generous only delays the report of a real failure, never a pass.
+//
 // Kept below the raised vitest testTimeout (vitest.config.ts) so a failing
 // wait still surfaces the informative testing-library error with a DOM dump,
 // never a bare vitest "test timed out".
-configure({ asyncUtilTimeout: 4000 });
+configure({ asyncUtilTimeout: 8000 });
 
 // No test may reach the real network. Any code path that calls the global
 // fetch unmocked fails immediately, in the right test file, instead of

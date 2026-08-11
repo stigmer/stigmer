@@ -417,7 +417,9 @@ describe("AgentChannelsPanel", () => {
     // bar as viewing its sessions, DD-012). Mutation items stay
     // permission-gated and absent.
     fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
-    expect(screen.getByRole("menuitem", { name: /sessions/i })).toBeTruthy();
+    // The awaited query anchors on the portaled menu's mount (#323) — only
+    // then are the absence assertions below meaningful rather than vacuous.
+    expect(await screen.findByRole("menuitem", { name: /sessions/i })).toBeTruthy();
     expect(screen.queryByRole("menuitem", { name: /tool credentials/i })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: /disconnect/i })).toBeNull();
   });
@@ -440,7 +442,7 @@ describe("AgentChannelsPanel", () => {
     await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
 
     fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
-    fireEvent.click(screen.getByRole("menuitem", { name: /manage access/i }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: /manage access/i }));
 
     // The one canonical dialog opens, and its subtitle names the channel
     // — the scope every grant covers (a participant grant is per

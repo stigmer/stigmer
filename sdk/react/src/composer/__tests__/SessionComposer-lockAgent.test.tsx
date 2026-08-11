@@ -79,10 +79,17 @@ function renderComposer(
   );
 }
 
-function openConfigureMenu() {
+/**
+ * Opens the composer's Configure menu and resolves once the portaled menu
+ * content mounts. Menu items render asynchronously in a portal, so a
+ * synchronous item query straight after the click races the mount (the
+ * openRowMenu idiom; see stigmer/stigmer#323).
+ */
+async function openConfigureMenu() {
   fireEvent.click(
     screen.getByRole("button", { name: "Configure agent, tools, and skills" }),
   );
+  await screen.findByRole("menu");
 }
 
 beforeEach(() => {
@@ -92,25 +99,25 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("SessionComposer — lockAgent", () => {
-  it("shows the Agent entry in the Configure menu by default", () => {
+  it("shows the Agent entry in the Configure menu by default", async () => {
     renderComposer();
-    openConfigureMenu();
+    await openConfigureMenu();
 
     expect(screen.getByRole("menuitem", { name: /Agent/ })).toBeTruthy();
   });
 
-  it("hides the Agent entry when locked, leaving other entries intact", () => {
+  it("hides the Agent entry when locked, leaving other entries intact", async () => {
     renderComposer({
       lockAgent: true,
       agentRef: { org: "acme", slug: "support-bot" },
     });
-    openConfigureMenu();
+    await openConfigureMenu();
 
     expect(screen.queryByRole("menuitem", { name: /Agent/ })).toBeNull();
     expect(screen.getByRole("menuitem", { name: /Skills/ })).toBeTruthy();
   });
 
-  it("keeps the Agent entry reachable while a locked agent needs env vars", () => {
+  it("keeps the Agent entry reachable while a locked agent needs env vars", async () => {
     // A pinned agent that requires credentials: resolution is pending and
     // the env form lives in the Configure > Agent panel — lock ≠ unwire.
     mockAgentSetup.state = {
@@ -126,11 +133,11 @@ describe("SessionComposer — lockAgent", () => {
     expect(screen.getByText("Agent needs configuration before use")).toBeTruthy();
 
     // ...and as a (warning-marked) Configure menu entry, despite the lock.
-    openConfigureMenu();
+    await openConfigureMenu();
     expect(screen.getByRole("menuitem", { name: /Agent/ })).toBeTruthy();
   });
 
-  it("removes the Agent entry once the locked agent has resolved", () => {
+  it("removes the Agent entry once the locked agent has resolved", async () => {
     mockAgentSetup.state = { status: "idle" };
     renderComposer({
       lockAgent: true,
@@ -138,7 +145,7 @@ describe("SessionComposer — lockAgent", () => {
     });
 
     expect(screen.queryByText("Agent needs configuration before use")).toBeNull();
-    openConfigureMenu();
+    await openConfigureMenu();
     expect(screen.queryByRole("menuitem", { name: /Agent/ })).toBeNull();
   });
 });
