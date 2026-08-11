@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -550,20 +551,35 @@ func StartUnifiedRunnerStatic(ctx context.Context, cfg UnifiedRunnerConfig, task
 		return nil, fmt.Errorf("start unified-runner-static: %w", err)
 	}
 
-	// Give Temporal worker time to connect and register.
-	time.Sleep(5 * time.Second)
+	// Race process death against the startup window instead of polling
+	// cmd.ProcessState, which is only populated by Wait() and therefore can
+	// never observe an early exit (the pre-oss#307 check was dead code: a
+	// runner that died at boot — e.g. Node without node:sqlite — was still
+	// reported "started", and every execution then timed out silently). The
+	// Wait goroutine also reaps the child, so a boot-time death no longer
+	// leaves a zombie for the life of the suite.
+	waitCh := make(chan error, 1)
+	go func() { waitCh <- cmd.Wait() }()
 
-	if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
+	// Give the Temporal worker time to connect and register; a process that
+	// survives this window is considered started (worker-level readiness is
+	// observed by the tests themselves).
+	select {
+	case waitErr := <-waitCh:
 		logFile.Sync()
+		lastLog := ""
 		if logBytes, readErr := os.ReadFile(logPath); readErr == nil {
-			lines := string(logBytes)
-			if len(lines) > 2000 {
-				lines = lines[len(lines)-2000:]
+			lastLog = string(logBytes)
+			if len(lastLog) > 2000 {
+				lastLog = lastLog[len(lastLog)-2000:]
 			}
-			logger.Error("unified-runner-static exited prematurely", "last_log", lines)
 		}
+		logger.Error("unified-runner-static exited during startup",
+			"wait_err", waitErr, "last_log", lastLog)
 		logFile.Close()
-		return nil, fmt.Errorf("unified-runner-static exited during startup")
+		return nil, fmt.Errorf("unified-runner-static exited during startup (log: %s): %s",
+			logPath, strings.TrimSpace(lastLog))
+	case <-time.After(5 * time.Second):
 	}
 
 	logger.Info("unified-runner-static started", "pid", cmd.Process.Pid, "task_queue", taskQueue)
@@ -583,6 +599,11 @@ func (r *UnifiedRunnerStatic) Stop() error {
 	}
 	r.logger.Info("stopping unified-runner-static")
 	err := r.cmd.Process.Kill()
+	// The startup Wait goroutine reaps the child, so a runner that already
+	// died is not an error worth surfacing to Stop's callers.
+	if errors.Is(err, os.ErrProcessDone) {
+		err = nil
+	}
 	if r.logFile != nil {
 		r.logFile.Close()
 	}

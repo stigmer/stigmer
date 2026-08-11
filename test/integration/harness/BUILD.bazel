@@ -141,6 +141,7 @@ go_test(
         "benchmark_helpers_test.go",
         "benchmark_stats_test.go",
         "ipc_fixtures_test.go",
+        "unified_runner_test.go",
     ],
     embed = [":harness"],
     deps = [
