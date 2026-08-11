@@ -8,7 +8,7 @@
  * the streaming phase needs.
  */
 
-import { createDeepAgent, type FilesystemPermission } from "deepagents";
+import { createDeepAgent } from "deepagents";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
 import { z } from "zod";
@@ -56,6 +56,7 @@ import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { WorkspaceBackend, ProvisionResult } from "../../shared/workspace/types.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
 import { buildShellEnv } from "./shell-env.js";
+import { PLAN_MODE_PERMISSIONS } from "../../shared/plan-mode-permissions.js";
 import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { isGitWorkTree, isPathCapturable } from "../../shared/filereview/git-substrate.js";
 import { deriveCaptureMode } from "../../shared/filereview/capture.js";
@@ -783,6 +784,10 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         // Presence of shellEnv is the shell-capability switch for sub-agent
         // backends too (undefined in plan mode; see buildShellEnv above).
         shellEnv,
+        // Plan mode's deny-all-writes rule, mirrored onto every sub-agent graph
+        // (issue #255) — pre-built CompiledSubAgents never inherit the parent's
+        // permissions, so read-only-by-construction must be baked in here.
+        ...(isPlanMode ? { permissions: PLAN_MODE_PERMISSIONS } : {}),
       });
       timing.mark("compile_subagents");
     }
@@ -795,16 +800,6 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     if (outputSchema) {
       responseFormat = jsonSchemaToZod(outputSchema as unknown as Record<string, unknown>);
     }
-
-    // Plan mode is read-only. Deny every filesystem write operation at the tool
-    // level so write_file/edit_file/etc. cannot mutate the workspace — enforcing
-    // the InteractionMode.PLAN contract by construction, not by prompt. Rules are
-    // first-match-wins with a permissive default, so a single deny-all-writes
-    // rule is sufficient. (The Cursor harness enforces plan mode via its prompt
-    // prefix; the native harness enforces it here.)
-    const planModePermissions: FilesystemPermission[] = [
-      { operations: ["write"], paths: ["/**"], mode: "deny" },
-    ];
 
     // File capture point. Apply-then-review is universal (Slice 2b), so the
     // CAS-observing backend: git-tracked edits flow to disk (the turn-boundary
@@ -826,7 +821,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       middleware: middleware as any,
       subagents: compiledSubagents ?? undefined,
       ...(responseFormat ? { responseFormat } : {}),
-      ...(isPlanMode ? { permissions: planModePermissions } : {}),
+      ...(isPlanMode ? { permissions: PLAN_MODE_PERMISSIONS } : {}),
     } as Parameters<typeof createDeepAgent>[0]);
 
     // Step 11: Prepare invocation input and config. The conversation catchup

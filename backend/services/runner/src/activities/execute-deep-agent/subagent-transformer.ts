@@ -15,12 +15,15 @@
  *   no approval gate — see deepagents-profiles.ts for the suppression half)
  * - Sub-agent backends are shell-capable outside plan mode (issue #248), mirroring
  *   the parent's backend selection in setup.ts
+ * - Sub-agent graphs carry the parent's filesystem permissions explicitly
+ *   (issue #255): pre-built CompiledSubAgents never inherit them, so plan
+ *   mode's deny-all-writes rule is baked into each graph at compile time
  * - Invalid configurations are logged and skipped (graceful degradation)
  * - Empty subagent list returns null (no subagents configured)
  */
 
 import { createDeepAgent, FilesystemBackend, LocalShellBackend, DEFAULT_GENERAL_PURPOSE_DESCRIPTION, DEFAULT_SUBAGENT_PROMPT } from "deepagents";
-import type { CompiledSubAgent } from "deepagents";
+import type { CompiledSubAgent, FilesystemPermission } from "deepagents";
 import type { StructuredTool } from "@langchain/core/tools";
 import type { RunnableConfig } from "@langchain/core/runnables";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
@@ -180,6 +183,18 @@ export interface SubagentTransformOptions {
    * backends, exactly like the parent's backend selection.
    */
   readonly shellEnv?: Record<string, string>;
+  /**
+   * Filesystem permission rules baked into each compiled sub-agent graph,
+   * inherited from the parent's rules in setup.ts (plan mode's deny-all-writes
+   * today). Required because deepagents' parent-permission inheritance covers
+   * only spec-style sub-agents — pre-built CompiledSubAgents bypass it, so
+   * without this a plan-mode sub-agent could still write (issue #255).
+   *
+   * Must not be combined with `shellEnv`: deepagents rejects permissions on an
+   * execution-capable backend (see the cas-capture-backend.ts header). Plan
+   * mode guarantees that by construction — it is the mode that clears shellEnv.
+   */
+  readonly permissions?: FilesystemPermission[];
 }
 
 // =========================================================================
@@ -525,6 +540,8 @@ export async function compileSubagents(
     readonly modelFactory?: (modelName: string) => Promise<BaseChatModel>;
     /** Shell env for `execute`; see {@link SubagentTransformOptions.shellEnv}. */
     readonly shellEnv?: Record<string, string>;
+    /** Per-graph filesystem rules; see {@link SubagentTransformOptions.permissions}. */
+    readonly permissions?: FilesystemPermission[];
   },
 ): Promise<CompiledSubAgent[]> {
   if (transformed.length === 0) return [];
@@ -560,6 +577,9 @@ export async function compileSubagents(
         tools: spec.tools.length > 0 ? spec.tools : undefined,
         middleware: middleware as unknown[],
         backend,
+        // Enforced inside this graph's own filesystem tools — and inherited by
+        // any spec-style sub-agent deepagents auto-injects one level deeper.
+        ...(opts.permissions ? { permissions: opts.permissions } : {}),
       } as Parameters<typeof createDeepAgent>[0]);
 
       const gatedRunnable = gate.wrapRunnable(
@@ -623,6 +643,7 @@ export async function transformAndCompileSubagents(
     costCap,
     modelFactory,
     shellEnv,
+    permissions,
   } = options;
 
   if (subAgents.length === 0 && !workspaceBackend.rootDir) {
@@ -743,6 +764,7 @@ export async function transformAndCompileSubagents(
     casObserver,
     modelFactory,
     shellEnv,
+    permissions,
   });
 
   if (compiled.length === 0) {
