@@ -113,7 +113,7 @@ ensure-runner-dist:
 # ─── Targets ──────────────────────────────────
 
 .PHONY: test
-test: ensure-service-jar ## Run offline integration tests (no API keys needed)
+test: check-runner-node ensure-service-jar ## Run offline integration tests (no API keys needed)
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \
@@ -132,7 +132,7 @@ test: ensure-service-jar ## Run offline integration tests (no API keys needed)
 		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args)
 
 .PHONY: test-providers
-test-providers: ensure-service-jar ## Run provider-backed integration tests (auto-fetches API keys)
+test-providers: check-runner-node ensure-service-jar ## Run provider-backed integration tests (auto-fetches API keys)
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \
@@ -175,7 +175,7 @@ test-providers: ensure-service-jar ## Run provider-backed integration tests (aut
 		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args) -run 'TestWorkflow(LlmCall|AgentCall|CursorCall|Architect|Eval|_StructuredOutput)|TestAgentExecution'
 
 .PHONY: test-canary
-test-canary: ensure-service-jar ## Run canary tests (live provider health checks, auto-fetches API keys)
+test-canary: check-runner-node ensure-service-jar ## Run canary tests (live provider health checks, auto-fetches API keys)
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \
@@ -216,7 +216,7 @@ test-canary: ensure-service-jar ## Run canary tests (live provider health checks
 		-- -tags integration -timeout 600s -count=1 -run 'TestCanary_'
 
 .PHONY: test-workflow-architect
-test-workflow-architect: ensure-service-jar ## Run Workflow Architect agent E2E tests (auto-fetches API keys)
+test-workflow-architect: check-runner-node ensure-service-jar ## Run Workflow Architect agent E2E tests (auto-fetches API keys)
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \
@@ -257,7 +257,7 @@ test-workflow-architect: ensure-service-jar ## Run Workflow Architect agent E2E 
 		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args) -run 'TestWorkflowArchitect'
 
 .PHONY: test-agent
-test-agent: ensure-service-jar ## Run agent execution integration tests (auto-fetches API keys)
+test-agent: check-runner-node ensure-service-jar ## Run agent execution integration tests (auto-fetches API keys)
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \
@@ -301,7 +301,7 @@ FAILING_OUTPUT_DIR ?= .test-output-failing
 TEST_RUN ?=
 
 .PHONY: test-subset
-test-subset: ensure-service-jar ## Run a subset of integration tests: make test-subset TEST_RUN='TestFoo|TestBar'
+test-subset: check-runner-node ensure-service-jar ## Run a subset of integration tests: make test-subset TEST_RUN='TestFoo|TestBar'
 	@if [ -z "$(TEST_RUN)" ]; then \
 		echo "error: TEST_RUN is required"; \
 		echo "  usage: make test-subset TEST_RUN='TestAgentExecution_Foo|TestAgentExecution_Bar'"; \
@@ -351,7 +351,7 @@ test-subset: ensure-service-jar ## Run a subset of integration tests: make test-
 SDK_OUTPUT_DIR ?= .test-output-sdk
 
 .PHONY: test-sdk
-test-sdk: ensure-service-jar ## Run SDK acceptance smoke tests (Go, TypeScript, Python)
+test-sdk: check-runner-node ensure-service-jar ## Run SDK acceptance smoke tests (Go, TypeScript, Python)
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \
@@ -373,7 +373,7 @@ REPLAY_HISTORY_OUTPUT_DIR ?= ../../backend/services/workflow-runner/test/replay/
 REPLAY_CAPTURE_OUTPUT_DIR ?= .test-output-replay-capture
 
 .PHONY: capture-replay-histories
-capture-replay-histories: ensure-service-jar ## Capture Temporal event histories for replay determinism tests
+capture-replay-histories: check-runner-node ensure-service-jar ## Capture Temporal event histories for replay determinism tests
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \
@@ -406,9 +406,13 @@ BENCHMARK_RUN_PATTERN ?= TestCostBenchmark
 
 # The unified runner requires node:sqlite (Cursor SDK local state). On a Node
 # without it (e.g. 23.1.0; needs 22.13+/23.4+) the runner prints one error and
-# dies — but the manager still reports ready, so every execution silently times
-# out at 4 minutes. On the benchmark lanes that burns a full paid run before
-# anyone notices, so those lanes assert the capability before spending money.
+# dies, and every runner-dependent test strands in a silent timeout instead of
+# failing fast (oss#307: 6 tests "failed deterministically" for weeks before
+# the Node version was identified). Every lane in this Makefile boots the
+# runner through the suite's TestMain, so every lane gets this guard as its
+# first prerequisite — it turns a multi-hour debugging trap into a two-second
+# actionable error. On the paid benchmark lanes it additionally prevents
+# burning a full run before anyone notices.
 .PHONY: check-runner-node
 check-runner-node:
 	@command -v node >/dev/null 2>&1 || { \
@@ -418,7 +422,8 @@ check-runner-node:
 	}
 	@node -e "require('node:sqlite')" >/dev/null 2>&1 || { \
 		echo "error: Node $$(node --version) lacks node:sqlite — the unified runner will die at startup"; \
-		echo "  and every benchmark execution would time out (~4 min each), wasting the whole run."; \
+		echo "  and every runner-dependent test (or paid benchmark run) would strand in a silent"; \
+		echo "  multi-minute timeout instead of failing (oss#307)."; \
 		echo "  fix: nvm use v22.22.1 (or any Node >= 22.13 / >= 23.4)"; \
 		exit 1; \
 	}
@@ -511,7 +516,7 @@ benchmark-cursor-modes: check-runner-node ensure-service-jar ensure-runner-dist 
 		-- -tags 'integration benchmark' -timeout 1800s -count=1 -run 'TestCostBenchmark_CursorLocalVsCloud'
 
 .PHONY: test-traced
-test-traced: ensure-service-jar ## Run offline integration tests with OTel tracing (Jaeger)
+test-traced: check-runner-node ensure-service-jar ## Run offline integration tests with OTel tracing (Jaeger)
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \
@@ -538,7 +543,7 @@ test-traced: ensure-service-jar ## Run offline integration tests with OTel traci
 # flakes. Quarantine skip is disabled so quarantined tests are also exercised.
 
 .PHONY: test-stress
-test-stress: ensure-service-jar ## Run offline integration tests 3x to detect flakes (no quarantine skip)
+test-stress: check-runner-node ensure-service-jar ## Run offline integration tests 3x to detect flakes (no quarantine skip)
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \
