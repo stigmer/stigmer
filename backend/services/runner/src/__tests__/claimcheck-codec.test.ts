@@ -152,6 +152,42 @@ describe("ClaimcheckPayloadCodec", () => {
       expect(Buffer.from(decoded.data!)).toEqual(original.data);
     });
 
+    it("restores the original payload metadata (round-trip)", async () => {
+      // The restored payload must carry its ORIGINAL encoding, not the
+      // marker's binary/claimcheck — otherwise no payload converter can
+      // interpret it and composition with the encryption codec breaks.
+      const original: Payload = {
+        metadata: {
+          encoding: Buffer.from("json/plain"),
+          "custom-key": Buffer.from("custom-value"),
+        },
+        data: Buffer.alloc(2048, "y"),
+      };
+
+      const [encoded] = await codec.encode([original]);
+      const [decoded] = await codec.decode([encoded]);
+
+      expect(Buffer.from(decoded.metadata!["encoding"]!).toString()).toBe("json/plain");
+      expect(Buffer.from(decoded.metadata!["custom-key"]!).toString()).toBe("custom-value");
+      expect(Buffer.from(decoded.data!)).toEqual(original.data);
+    });
+
+    it("decodes legacy markers written before metadata preservation", async () => {
+      const original = makeLargePayload(2048);
+      const [encoded] = await codec.encode([original]);
+
+      // Simulate a pre-fix marker: strip the metadata field.
+      const marker = JSON.parse(Buffer.from(encoded.data!).toString());
+      delete marker.metadata;
+      const legacy: Payload = {
+        metadata: encoded.metadata,
+        data: Buffer.from(JSON.stringify(marker)),
+      };
+
+      const [decoded] = await codec.decode([legacy]);
+      expect(Buffer.from(decoded.data!)).toEqual(original.data);
+    });
+
     it("retrieves uncompressed payloads correctly", async () => {
       codec = new ClaimcheckPayloadCodec(
         storage,

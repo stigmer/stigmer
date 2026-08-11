@@ -173,9 +173,20 @@ All configuration is environment-driven. Names and defaults below are verified a
 | `LOCAL_ARTIFACT_PATH` | Local storage | No | `~/.stigmer/data/artifacts` | Filesystem root of the local artifact store. **Must equal the stigmer-server's `ARTIFACT_LOCAL_BASE_PATH`** — in local mode the server writes an artifact to `<ARTIFACT_LOCAL_BASE_PATH>/<key>` and the runner reads it from `<LOCAL_ARTIFACT_PATH>/<key>`, so a mismatch makes every storage-key attachment and offload fail to resolve. The defaults align out of the box; the CLI local daemon sets both explicitly. |
 | `LOCAL_ARTIFACT_SERVE_URL` | Local storage | No | `http://localhost:7235` | Base URL of the server's artifact HTTP file server (its `ARTIFACT_HTTP_PORT`, default `GRPC_PORT + 1`). Used for blob downloads; the runner's own read-back goes straight to disk. |
 
+### Payload encryption (Temporal history at rest)
+
+The encryption codec encrypts every Temporal payload the runner produces (AES-256-GCM), so decrypted execution-context secrets never rest in workflow history or the Temporal UI. Payloads the runner did not encrypt (orchestrator inputs, signals, pre-rollout histories) pass through untouched. A key without its id — or a malformed key — fails the boot rather than silently running plaintext.
+
+| Variable | Applies to | Required | Default | Purpose |
+|----------|-----------|----------|---------|---------|
+| `STIGMER_PAYLOAD_ENCRYPTION_KEY` | All | No | _(unset — encryption off)_ | Base64-encoded 32-byte AES-256 key. Setting it enables the codec. |
+| `STIGMER_PAYLOAD_ENCRYPTION_KEY_ID` | Payload encryption | With the key | _(none)_ | Identifier stamped on every encrypted payload so rotation can tell keys apart. Required when the key is set. |
+| `STIGMER_PAYLOAD_ENCRYPTION_SECONDARY_KEY` | Payload encryption | No | _(unset)_ | Decrypt-only key accepted during rotation windows (payloads written under the previous key stay readable). |
+| `STIGMER_PAYLOAD_ENCRYPTION_SECONDARY_KEY_ID` | Payload encryption | With the secondary key | _(none)_ | Key id of the secondary key. |
+
 ### Claim-check (large Temporal payloads)
 
-The claim-check codec offloads oversized Temporal payloads to artifact storage and passes a reference instead.
+The claim-check codec offloads oversized Temporal payloads to artifact storage and passes a reference instead. When payload encryption is enabled, encryption runs first, so offloaded blobs are ciphertext.
 
 | Variable | Applies to | Required | Default | Purpose |
 |----------|-----------|----------|---------|---------|

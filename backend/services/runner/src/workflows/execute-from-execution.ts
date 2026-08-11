@@ -63,7 +63,7 @@ export interface ExecuteFromExecutionInput {
 
 export async function executeFromExecution(
   input: ExecuteFromExecutionInput,
-): Promise<unknown> {
+): Promise<void> {
   const { checkPause } = setupPauseResumeHandlers();
 
   log.info("Hydrating workflow execution from slim IDs", {
@@ -86,7 +86,17 @@ export async function executeFromExecution(
   });
 
   try {
-    return await runWorkflowEngine(materialized, {
+    // The engine's output is deliberately NOT returned. Both orchestrator
+    // parents discard this workflow's result (Java awaits it as Void, Go
+    // passes nil to Get), and the output already reaches users through
+    // PromoteTaskOutput and the event log. Returning it would (a) persist
+    // the full workflow output — which may embed secrets — as a plaintext
+    // payload in the cross-language parent's history, and (b) hand the Java
+    // parent a payload it must decode: once the payload-encryption codec is
+    // active, an encrypted result would fail Java's converter lookup
+    // (fromPayloads has no Void special-case). A void return produces a
+    // data-less binary/null payload that every SDK handles natively.
+    await runWorkflowEngine(materialized, {
       checkPause,
       recoveryMode: input.recovery_mode ?? false,
     });

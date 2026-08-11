@@ -27,11 +27,12 @@ export interface WorkerActivities {
 export interface StartWorkerOptions {
   config: Config;
   activities: WorkerActivities;
-  payloadCodec?: PayloadCodec;
+  /** Ordered codec chain from createPayloadCodecs (order is load-bearing). */
+  payloadCodecs?: PayloadCodec[];
 }
 
 export async function startWorker(opts: StartWorkerOptions): Promise<Worker> {
-  const { config, activities, payloadCodec } = opts;
+  const { config, activities, payloadCodecs } = opts;
 
   const connection = await NativeConnection.connect({
     address: config.temporalAddress,
@@ -89,9 +90,7 @@ export async function startWorker(opts: StartWorkerOptions): Promise<Worker> {
       ? { workflowBundle: { codePath: workflowSource.codePath } }
       : { workflowsPath: workflowSource.workflowsPath }),
     maxConcurrentActivityTaskExecutions: config.maxConcurrentActivities,
-    dataConverter: payloadCodec
-      ? { payloadCodecs: [payloadCodec] }
-      : undefined,
+    dataConverter: payloadCodecs?.length ? { payloadCodecs } : undefined,
     sinks,
     interceptors: {
       ...(activityInterceptors.length > 0 ? { activity: activityInterceptors } : {}),

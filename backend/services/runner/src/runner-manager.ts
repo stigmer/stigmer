@@ -22,7 +22,6 @@ import {
   type InjectedSinks,
   type WorkflowBundleOption,
 } from "@temporalio/worker";
-import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
 import { DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS, DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS, DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./config.js";
 // Boot marks mirror the static runner's segment names where the work is the
@@ -354,7 +353,8 @@ export async function createStigmerRunnerManager(
       `[runner-manager] Artifact store: could not resolve config for boot log: ${err}`,
     );
   }
-  const payloadCodec = await createPayloadCodec(config);
+  const { createPayloadCodecs } = await import("./payload-codecs.js");
+  const payloadCodecs = await createPayloadCodecs(config);
 
   const connection = await NativeConnection.connect({
     address: config.temporalAddress,
@@ -399,9 +399,7 @@ export async function createStigmerRunnerManager(
       activities,
       workflowBundle,
       maxConcurrentActivityTaskExecutions: config.maxConcurrentActivities,
-      dataConverter: payloadCodec
-        ? { payloadCodecs: [payloadCodec] }
-        : undefined,
+      dataConverter: payloadCodecs?.length ? { payloadCodecs } : undefined,
       sinks: interceptorConfig.sinks,
       interceptors: interceptorConfig.interceptors,
     });
@@ -740,25 +738,6 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     ...createPromoteTaskOutputActivities(),
     ...createAttachSessionActivities(config),
   };
-}
-
-async function createPayloadCodec(
-  config: Config,
-): Promise<PayloadCodec | undefined> {
-  const { loadClaimcheckConfig, ClaimcheckPayloadCodec } = await import(
-    "./claimcheck/index.js"
-  );
-  const claimcheckConfig = loadClaimcheckConfig();
-  if (!claimcheckConfig.enabled) {
-    return undefined;
-  }
-
-  const { loadArtifactStorageConfig, createArtifactStorage } = await import(
-    "./shared/artifact-storage.js"
-  );
-  const storageConfig = loadArtifactStorageConfig(config);
-  const storage = createArtifactStorage(storageConfig);
-  return new ClaimcheckPayloadCodec(storage, claimcheckConfig);
 }
 
 interface InterceptorConfig {

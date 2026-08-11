@@ -22,6 +22,14 @@ interface ClaimcheckMarker {
   key: string;
   size: number;
   compressed: boolean;
+  /**
+   * The relocated payload's original metadata, base64-encoded per value.
+   * Without it the restored payload would carry the marker's own
+   * "binary/claimcheck" encoding and no payload converter could interpret
+   * it. Absent on markers written before this field existed; those decode
+   * with the legacy (metadata-less) behavior.
+   */
+  metadata?: Record<string, string>;
 }
 
 export class ClaimcheckPayloadCodec implements PayloadCodec {
@@ -63,6 +71,7 @@ export class ClaimcheckPayloadCodec implements PayloadCodec {
       key,
       size: data.length,
       compressed,
+      metadata: serializeMetadata(payload.metadata),
     };
 
     return {
@@ -94,7 +103,9 @@ export class ClaimcheckPayloadCodec implements PayloadCodec {
     const dataBuf = marker.compressed ? decompress(rawBuf) : rawBuf;
 
     return {
-      metadata: payload.metadata,
+      metadata: marker.metadata
+        ? deserializeMetadata(marker.metadata)
+        : payload.metadata,
       data: dataBuf,
     };
   }
@@ -104,4 +115,25 @@ export class ClaimcheckPayloadCodec implements PayloadCodec {
     if (!encoding) return false;
     return Buffer.from(encoding).toString("utf-8") === MARKER_ENCODING_VALUE;
   }
+}
+
+function serializeMetadata(
+  metadata: Payload["metadata"],
+): Record<string, string> | undefined {
+  if (!metadata) return undefined;
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(metadata)) {
+    if (value) out[key] = Buffer.from(value).toString("base64");
+  }
+  return out;
+}
+
+function deserializeMetadata(
+  metadata: Record<string, string>,
+): Record<string, Uint8Array> {
+  const out: Record<string, Uint8Array> = {};
+  for (const [key, value] of Object.entries(metadata)) {
+    out[key] = Buffer.from(value, "base64");
+  }
+  return out;
 }
