@@ -388,7 +388,9 @@ func TestMcpServers_OAuthOnlyDeclared(t *testing.T) {
 
 	// Flagship OAuth-only endpoints verified to reject static tokens. Extend this
 	// list as the remaining dcr_oauth servers are rolled out.
-	oauthOnlySlugs := []string{"notion", "monday"}
+	// canva verified 2026-08-11 (oss#235): a dummy bearer token gets a 401
+	// OAuth challenge from mcp.canva.com; there is no manual token path.
+	oauthOnlySlugs := []string{"notion", "monday", "canva"}
 
 	for _, slug := range oauthOnlySlugs {
 		t.Run(slug, func(t *testing.T) {
