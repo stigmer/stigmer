@@ -7,11 +7,15 @@ import type { WorkflowEventDescriptor } from "../../workflow-engine/types.js";
 
 const mockGetEventLogHighWaterMark = vi.fn<(executionId: string) => Promise<bigint>>();
 const mockGetWorkflowExecution = vi.fn<(executionId: string) => Promise<unknown>>();
+const mockUpdateStatus = vi.fn<(input: unknown) => Promise<unknown>>();
 
 vi.mock("../../client/stigmer-client.js", () => ({
   StigmerClient: vi.fn().mockImplementation(() => ({
     getEventLogHighWaterMark: (...args: unknown[]) => mockGetEventLogHighWaterMark(...(args as [string])),
     getWorkflowExecution: (...args: unknown[]) => mockGetWorkflowExecution(...(args as [string])),
+    workflowExecutionCommand: {
+      updateStatus: (...args: unknown[]) => mockUpdateStatus(args[0]),
+    },
   })),
 }));
 
@@ -29,8 +33,9 @@ describe("initSequenceFromEventLog", () => {
     mockGetEventLogHighWaterMark.mockReset();
   });
 
-  it("sets counter to 0 when executionId is empty", async () => {
-    await initSequenceFromEventLog("");
+  it("returns 0 and resets the legacy counter when executionId is empty", async () => {
+    const highWaterMark = await initSequenceFromEventLog("");
+    expect(highWaterMark).toBe(0);
 
     const evt = toProtoEvent({
       type: "task_started",
@@ -43,10 +48,11 @@ describe("initSequenceFromEventLog", () => {
     expect(mockGetEventLogHighWaterMark).not.toHaveBeenCalled();
   });
 
-  it("sets counter to 0 when server returns no events", async () => {
+  it("returns 0 when server has no events", async () => {
     mockGetEventLogHighWaterMark.mockResolvedValue(BigInt(0));
 
-    await initSequenceFromEventLog("wfx_test-1");
+    const highWaterMark = await initSequenceFromEventLog("wfx_test-1");
+    expect(highWaterMark).toBe(0);
 
     const evt = toProtoEvent({
       type: "task_started",
@@ -58,7 +64,15 @@ describe("initSequenceFromEventLog", () => {
     expect(evt.sequenceNumber).toBe(BigInt(1));
   });
 
-  it("continues from high-water mark when events exist", async () => {
+  it("returns the high-water mark as a plain number (Temporal payload converter cannot carry BigInt)", async () => {
+    mockGetEventLogHighWaterMark.mockResolvedValue(BigInt(42));
+
+    const highWaterMark = await initSequenceFromEventLog("wfx_recovery-1");
+    expect(highWaterMark).toBe(42);
+    expect(typeof highWaterMark).toBe("number");
+  });
+
+  it("seeds the legacy counter so pre-patch replays continue from N+1", async () => {
     mockGetEventLogHighWaterMark.mockResolvedValue(BigInt(42));
 
     await initSequenceFromEventLog("wfx_recovery-1");
@@ -87,7 +101,8 @@ describe("initSequenceFromEventLog", () => {
   it("handles large sequence numbers", async () => {
     mockGetEventLogHighWaterMark.mockResolvedValue(BigInt(999999));
 
-    await initSequenceFromEventLog("wfx_large-seq");
+    const highWaterMark = await initSequenceFromEventLog("wfx_large-seq");
+    expect(highWaterMark).toBe(999999);
 
     const evt = toProtoEvent({
       type: "task_started",
@@ -112,7 +127,52 @@ describe("toProtoEvent", () => {
   });
 
   describe("sequence numbering", () => {
-    it("assigns monotonically increasing sequence numbers", () => {
+    it("honors the workflow-assigned sequenceNumber when stamped on the descriptor", () => {
+      const evt = toProtoEvent({
+        type: "task_started",
+        taskName: "t1",
+        occurredAt: NOW,
+        taskKind: "set",
+        attemptNumber: 1,
+        sequenceNumber: 77,
+      });
+
+      expect(evt.sequenceNumber).toBe(BigInt(77));
+    });
+
+    it("workflow-assigned sequences are stable across conversions (retry idempotency)", () => {
+      const desc: WorkflowEventDescriptor = {
+        type: "task_started",
+        taskName: "t1",
+        occurredAt: NOW,
+        taskKind: "set",
+        attemptNumber: 1,
+        sequenceNumber: 5,
+      };
+
+      // Simulates an activity retry re-converting the same descriptors:
+      // the sequence must not change between attempts.
+      expect(toProtoEvent(desc).sequenceNumber).toBe(BigInt(5));
+      expect(toProtoEvent(desc).sequenceNumber).toBe(BigInt(5));
+    });
+
+    it("a stamped descriptor does not consume the legacy counter", () => {
+      const unstamped: WorkflowEventDescriptor = {
+        type: "task_started",
+        taskName: "t",
+        occurredAt: NOW,
+        taskKind: "set",
+        attemptNumber: 1,
+      };
+
+      const e1 = toProtoEvent(unstamped);
+      toProtoEvent({ ...unstamped, sequenceNumber: 99 });
+      const e2 = toProtoEvent(unstamped);
+
+      expect(e2.sequenceNumber).toBe(e1.sequenceNumber + BigInt(1));
+    });
+
+    it("legacy path: assigns monotonically increasing sequence numbers when unstamped", () => {
       const desc: WorkflowEventDescriptor = {
         type: "task_started",
         taskName: "t1",
@@ -130,7 +190,7 @@ describe("toProtoEvent", () => {
       expect(e3.sequenceNumber).toBe(BigInt(3));
     });
 
-    it("resets to 1 after re-initializing with empty executionId", async () => {
+    it("legacy path: resets to 1 after re-initializing with empty executionId", async () => {
       toProtoEvent({
         type: "task_started",
         taskName: "t",
@@ -654,8 +714,13 @@ describe("toProtoEvent", () => {
 });
 
 describe("emitWorkflowEvents", () => {
+  beforeEach(() => {
+    mockUpdateStatus.mockReset();
+  });
+
   it("returns silently for empty events array", async () => {
     await expect(emitWorkflowEvents("exec-1", [])).resolves.toBeUndefined();
+    expect(mockUpdateStatus).not.toHaveBeenCalled();
   });
 
   it("returns silently for empty executionId", async () => {
@@ -667,6 +732,40 @@ describe("emitWorkflowEvents", () => {
       attemptNumber: 1,
     }];
     await expect(emitWorkflowEvents("", events)).resolves.toBeUndefined();
+    expect(mockUpdateStatus).not.toHaveBeenCalled();
+  });
+
+  it("sends workflow-assigned sequence numbers through to the RPC", async () => {
+    mockUpdateStatus.mockResolvedValue({});
+
+    await emitWorkflowEvents("exec-1", [{
+      type: "task_started",
+      taskName: "t",
+      occurredAt: NOW,
+      taskKind: "set",
+      attemptNumber: 1,
+      sequenceNumber: 12,
+    }]);
+
+    expect(mockUpdateStatus).toHaveBeenCalledTimes(1);
+    const input = mockUpdateStatus.mock.calls[0][0] as { events: { sequenceNumber: bigint }[] };
+    expect(input.events).toHaveLength(1);
+    expect(input.events[0].sequenceNumber).toBe(BigInt(12));
+  });
+
+  it("propagates RPC errors so the local activity retry policy fires", async () => {
+    mockUpdateStatus.mockRejectedValue(new Error("server unavailable"));
+
+    const events: WorkflowEventDescriptor[] = [{
+      type: "task_started",
+      taskName: "t",
+      occurredAt: NOW,
+      taskKind: "set",
+      attemptNumber: 1,
+      sequenceNumber: 1,
+    }];
+
+    await expect(emitWorkflowEvents("exec-1", events)).rejects.toThrow("server unavailable");
   });
 });
 

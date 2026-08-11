@@ -302,8 +302,11 @@ func (s *PersistExecutionStep) Execute(ctx *pipeline.RequestContext[*workflowexe
 }
 
 // PersistEventsStep appends workflow execution events to the event log.
-// Events are supplementary — a failure here logs a warning but does NOT
-// fail the pipeline because status persistence already succeeded.
+// Events are supplementary — a failure here does NOT fail the pipeline
+// because status persistence (PersistExecutionStep, which runs first)
+// already succeeded. But a real append failure means timeline data loss,
+// so it logs at error level; skipped duplicates are the expected result
+// of the runner's idempotent batch retries and only log at debug.
 type PersistEventsStep struct {
 	store store.Store
 }
@@ -329,11 +332,12 @@ func (s *PersistEventsStep) Execute(ctx *pipeline.RequestContext[*workflowexecut
 	for _, evt := range events {
 		data, err := proto.Marshal(evt)
 		if err != nil {
-			log.Warn().
+			log.Error().
 				Err(err).
 				Str("execution_id", executionID).
 				Uint64("sequence_number", evt.GetSequenceNumber()).
-				Msg("Failed to marshal event, skipping batch")
+				Int("event_count", len(events)).
+				Msg("Failed to marshal event — dropping batch (non-fatal, timeline data lost)")
 			return nil
 		}
 
@@ -348,18 +352,26 @@ func (s *PersistEventsStep) Execute(ctx *pipeline.RequestContext[*workflowexecut
 
 	appended, err := s.store.AppendWorkflowExecutionEvents(ctx.Context(), executionID, records)
 	if err != nil {
-		log.Warn().
+		log.Error().
 			Err(err).
 			Str("execution_id", executionID).
-			Int("event_count", len(records)).
-			Msg("Failed to persist execution events (non-fatal)")
+			Int("submitted", len(records)).
+			Msg("Failed to persist execution events (non-fatal, timeline data lost)")
 		return nil
 	}
 
-	log.Debug().
-		Str("execution_id", executionID).
-		Int("appended", appended).
-		Msg("Persisted execution events")
+	if skipped := len(records) - appended; skipped > 0 {
+		log.Debug().
+			Str("execution_id", executionID).
+			Int("appended", appended).
+			Int("skipped_duplicates", skipped).
+			Msg("Persisted execution events (idempotent retry skipped already-persisted sequences)")
+	} else {
+		log.Debug().
+			Str("execution_id", executionID).
+			Int("appended", appended).
+			Msg("Persisted execution events")
+	}
 
 	return nil
 }

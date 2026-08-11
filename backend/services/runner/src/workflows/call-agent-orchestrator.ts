@@ -94,6 +94,15 @@ export interface AgentCallOrchestrationInput {
   parentWorkflowId: string;
   taskName: string;
   workflowExecutionId: string;
+  /**
+   * Allocator for the workflow-owned event sequence counter, shared with
+   * engine-core's emit funnel so progress events and task events draw
+   * from one monotonic series. Safe to pass as a closure — the
+   * orchestrator is a plain function call inside the same workflow run,
+   * not a child workflow. Undefined when replaying pre-patch histories
+   * (the emit activity then assigns from its legacy counter).
+   */
+  nextEventSequence?: () => number;
 }
 
 /**
@@ -318,6 +327,7 @@ async function emitProgress(
       type: "agent_call_progress",
       taskName: input.taskName,
       occurredAt: new Date().toISOString(),
+      sequenceNumber: input.nextEventSequence?.(),
       childExecutionId: childExecId,
       agentSlug: input.config.agent ?? "",
       agentPhase: progress?.agentPhase ?? 0,

@@ -4,6 +4,8 @@ import type { WorkflowModel } from "../../workflow-engine/types.js";
 import type { ExecuteServerlessWorkflowInput } from "../execute-serverless-workflow.js";
 
 const mockEvaluateExpressions = vi.fn();
+const mockResetEventSequence = vi.fn();
+const mockEmitWorkflowEvents = vi.fn();
 
 vi.mock("@temporalio/workflow", () => ({
   proxyLocalActivities: vi.fn(() => ({
@@ -12,8 +14,9 @@ vi.mock("@temporalio/workflow", () => ({
       input: unknown,
       stateVars: Record<string, unknown>,
     ) => mockEvaluateExpressions(exprs, input, stateVars),
-    ResetEventSequence: vi.fn(),
-    EmitWorkflowEvents: vi.fn(),
+    ResetEventSequence: (executionId: string) => mockResetEventSequence(executionId),
+    EmitWorkflowEvents: (executionId: string, events: unknown[], taskStatuses: unknown[]) =>
+      mockEmitWorkflowEvents(executionId, events, taskStatuses),
   })),
   proxyActivities: vi.fn(() => ({
     CallHttp: vi.fn(),
@@ -243,6 +246,69 @@ describe("executeServerlessWorkflow", () => {
       await expect(
         runWorkflow({ model, workflow_input: null, env: {} }),
       ).rejects.toThrow("jq evaluation error");
+    });
+  });
+
+  describe("workflow-assigned event sequences", () => {
+    interface StampedEvent {
+      type: string;
+      sequenceNumber?: number;
+    }
+
+    function emittedEvents(): StampedEvent[] {
+      return mockEmitWorkflowEvents.mock.calls.flatMap(call => call[1] as StampedEvent[]);
+    }
+
+    const model: WorkflowModel = {
+      document: { dsl: "1.0.0", name: "test-sequences" },
+      do: [
+        { key: "step1", task: { kind: "set", set: { a: 1 } } },
+        { key: "step2", task: { kind: "set", set: { b: 2 } } },
+      ],
+    };
+
+    it("stamps a strictly monotonic sequence continuing from the high-water mark", async () => {
+      mockResetEventSequence.mockResolvedValue(10);
+
+      await runWorkflow({
+        model,
+        workflow_input: null,
+        env: {},
+        metadata: { execution_id: "wfx-seq-1" },
+      });
+
+      const events = emittedEvents();
+      expect(events.length).toBeGreaterThan(0);
+      // execution_started, task events, execution_completed — all from one
+      // counter, gapless, continuing after the persisted high-water mark.
+      const sequences = events.map(e => e.sequenceNumber);
+      const expected = Array.from({ length: events.length }, (_, i) => 11 + i);
+      expect(sequences).toEqual(expected);
+    });
+
+    it("starts at 1 for a fresh execution (high-water mark 0)", async () => {
+      mockResetEventSequence.mockResolvedValue(0);
+
+      await runWorkflow({
+        model,
+        workflow_input: null,
+        env: {},
+        metadata: { execution_id: "wfx-seq-2" },
+      });
+
+      expect(emittedEvents()[0]?.sequenceNumber).toBe(1);
+    });
+
+    it("emits no events without an execution_id (direct invocation, child workflows)", async () => {
+      mockResetEventSequence.mockResolvedValue(0);
+
+      await runWorkflow({
+        model,
+        workflow_input: null,
+        env: {},
+      });
+
+      expect(mockEmitWorkflowEvents).not.toHaveBeenCalled();
     });
   });
 

@@ -800,6 +800,24 @@ export type WorkflowEventDescriptor =
 interface EventBase {
   readonly taskName?: string;
   readonly occurredAt: string;
+  /**
+   * Workflow-assigned event sequence number, stamped at the emit funnels
+   * (engine-core's emitEvents and the agent-call orchestrator's
+   * emitProgress) from the workflow-owned monotonic counter. Assigning
+   * inside the deterministic sandbox makes the number stable across
+   * activity retries and worker restarts, so persistence is idempotent
+   * (the store skips already-persisted sequences).
+   *
+   * A plain `number`, not `bigint`: descriptors cross the
+   * workflow→activity boundary through Temporal's JSON payload converter,
+   * which cannot serialize BigInt. The emit activity converts to the
+   * proto's uint64.
+   *
+   * Absent only when replaying histories recorded before the
+   * "workflow-assigned-event-sequences" patch — the emit activity then
+   * falls back to its legacy process-global counter.
+   */
+  readonly sequenceNumber?: number;
 }
 
 export interface ExecutionStartedEvent extends EventBase {
