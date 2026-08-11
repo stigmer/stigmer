@@ -59,7 +59,10 @@ export function WorkflowExecutionDetailPage({
   const handleNavigateToWorkflowEditor = useCallback(
     (_yaml: string, workflowSlug: string) => {
       const targetOrg = org ?? "";
-      window.location.href = `/workflows/${targetOrg}/${workflowSlug}`;
+      // Hard load: the library detail route is dynamic, and in static
+      // export the router cannot soft-navigate across zones to a
+      // non-pre-rendered dynamic route (see library-navigation.tsx).
+      window.location.href = `/library/workflows/${targetOrg}/${workflowSlug}`;
     },
     [org],
   );

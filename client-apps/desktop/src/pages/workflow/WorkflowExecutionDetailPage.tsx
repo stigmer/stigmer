@@ -34,7 +34,7 @@ export default function WorkflowExecutionDetailPage() {
   const handleNavigateToWorkflowEditor = useCallback(
     (_yaml: string, workflowSlug: string) => {
       const targetOrg = org ?? "";
-      navigate(`/workflows/${targetOrg}/${workflowSlug}`);
+      navigate(`/library/workflows/${targetOrg}/${workflowSlug}`);
     },
     [navigate, org],
   );

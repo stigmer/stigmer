@@ -15,13 +15,26 @@ import { usePathname } from "next/navigation";
 // Types
 // ---------------------------------------------------------------------------
 
-type LibraryResourceType =
-  | "agents"
-  | "skills"
-  | "mcp-servers"
-  | "workflows"
-  | "datastores"
-  | "schedules";
+/**
+ * Every resource type navigable to a detail view within the library zone.
+ *
+ * Single source of truth: the detail-path regex below and the
+ * `LibraryResourceType` union derive from it, and
+ * `static-export-routing.test.ts` asserts each entry has a
+ * `src/app/library/<type>/[org]/[slug]/page.tsx` — soft navigation pushes
+ * that URL, so without the page file a cold load (reload, shared link)
+ * 404s in the static export (cloud#274).
+ */
+export const LIBRARY_RESOURCE_TYPES = [
+  "agents",
+  "skills",
+  "mcp-servers",
+  "workflows",
+  "datastores",
+  "schedules",
+] as const;
+
+type LibraryResourceType = (typeof LIBRARY_RESOURCE_TYPES)[number];
 
 interface ActiveDetail {
   readonly resourceType: LibraryResourceType;
@@ -54,8 +67,9 @@ const LibraryNavigationContext = createContext<LibraryNavigationValue | null>(
 // URL helpers
 // ---------------------------------------------------------------------------
 
-const LIBRARY_DETAIL_RE =
-  /^\/library\/(agents|skills|mcp-servers|workflows|datastores|schedules)\/([^/]+)\/([^/]+)\/?$/;
+const LIBRARY_DETAIL_RE = new RegExp(
+  `^/library/(${LIBRARY_RESOURCE_TYPES.join("|")})/([^/]+)/([^/]+)/?$`,
+);
 
 function parseLibraryDetailPath(pathname: string): ActiveDetail | null {
   const match = pathname.match(LIBRARY_DETAIL_RE);
