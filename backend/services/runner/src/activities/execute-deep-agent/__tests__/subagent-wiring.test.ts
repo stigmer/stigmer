@@ -7,10 +7,11 @@ describe("buildSubAgentMiddleware", () => {
   it("returns the correct middleware order without cost cap", () => {
     const stack = buildSubAgentMiddleware();
 
-    expect(stack).toHaveLength(3);
+    expect(stack).toHaveLength(4);
     expect(stack[0].name).toBe("LoopDetectionMiddleware");
     expect(stack[1].name).toBe("ExecutionBudgetMiddleware");
     expect(stack[2].name).toBe("ToolTruncationMiddleware");
+    expect(stack[3].name).toBe("ErrorHintsMiddleware");
   });
 
   it("includes cost cap view when parent cost cap is provided", () => {
@@ -24,8 +25,9 @@ describe("buildSubAgentMiddleware", () => {
 
     const stack = buildSubAgentMiddleware({ costCap: parentCostCap });
 
-    expect(stack).toHaveLength(4);
+    expect(stack).toHaveLength(5);
     expect(stack[3].name).toBe("CostCapSubAgentView");
+    expect(stack[4].name).toBe("ErrorHintsMiddleware");
   });
 
   it("sub-agent cost cap view shares parent state", () => {
@@ -75,8 +77,8 @@ describe("buildSubAgentMiddleware", () => {
       approvalGate: { policies: new Map(), toolServerMap: new Map() },
     });
 
-    // loop, budget, truncation, approval gate
-    expect(stack).toHaveLength(4);
+    // loop, budget, truncation, approval gate, error hints
+    expect(stack).toHaveLength(5);
     expect(stack[3].name).toBe("ApprovalGateMiddleware");
     expect(stack[3].wrapToolCall).toBeDefined();
   });
@@ -84,7 +86,7 @@ describe("buildSubAgentMiddleware", () => {
   it("omits the approval gate when approvalGate is null (auto-approve-all parity)", () => {
     const stack = buildSubAgentMiddleware({ approvalGate: null });
 
-    expect(stack).toHaveLength(3);
+    expect(stack).toHaveLength(4);
     expect(stack.some((m) => m.name === "ApprovalGateMiddleware")).toBe(false);
   });
 
@@ -102,10 +104,13 @@ describe("buildSubAgentMiddleware", () => {
       approvalGate: { policies: new Map(), toolServerMap: new Map() },
     });
 
-    // loop, budget, truncation, approval gate, cost cap view
-    expect(stack).toHaveLength(5);
+    // loop, budget, truncation, approval gate, cost cap view, error hints.
+    // Hints AFTER the gate matches the parent nesting: the gate's HITL
+    // interrupt stays outside the hints' try/catch (issue #255).
+    expect(stack).toHaveLength(6);
     expect(stack[3].name).toBe("ApprovalGateMiddleware");
     expect(stack[4].name).toBe("CostCapSubAgentView");
+    expect(stack[5].name).toBe("ErrorHintsMiddleware");
   });
 
   // captureIgnored is the structural coupling that makes sub-agent gitignored

@@ -9,11 +9,16 @@
  *   bypassed) — installed only when the parent itself is gated
  *   (`approvalGate` present; absent under auto-approve-all)
  * - Shared cost cap view (parent's budget, no reset on sub-agent start)
+ * - Error hints (issue #255): a thrown tool error becomes a recoverable
+ *   ToolMessage exactly as on the parent. Without it, any tool throw — a
+ *   plan-mode permission denial, an MCP hiccup — propagated out of the
+ *   sub-agent graph and killed the whole delegated task, losing all its
+ *   accumulated work, where the parent's identical error is one failed
+ *   tool round the model adapts to.
  *
  * The sub-agent middleware stack does NOT include:
  * - Graceful stop (parent handles STOP signal propagation)
  * - OTel spans (parent's OTel context propagates automatically)
- * - Error hints (applied at tool level, not sub-agent level)
  *
  * Approval-gate note: the gate is what *creates* the LangGraph `interrupt()`.
  * A sub-agent's interrupt does surface at the parent checkpoint and resumes
@@ -31,6 +36,7 @@ import {
   createApprovalGateMiddleware,
   type ApprovalGateConfig,
 } from "../../middleware/approval-gate.js";
+import { createErrorHintsMiddleware } from "../../middleware/error-hints.js";
 
 const SUB_AGENT_ADVISORY_INTERVAL = 30;
 const SUB_AGENT_MAX_ADVISORIES = 4;
@@ -60,9 +66,11 @@ export interface SubAgentMiddlewareOptions {
  *
  * Returns an ordered array mirroring the parent composition:
  * loop detection → execution budget (periodic) → tool truncation →
- * [approval gate] → cost cap view. The gate sits before the cost-cap view so an
- * approval pause happens before budget accounting, matching the parent order
- * (…→ truncation → graceful-stop → approval gate → cost cap …).
+ * [approval gate] → cost cap view → error hints. The gate sits before the
+ * cost-cap view so an approval pause happens before budget accounting, and
+ * error hints come after the gate — both matching the parent order
+ * (…→ truncation → graceful-stop → approval gate → cost cap → error hints …),
+ * which keeps the gate's HITL interrupt outside the hints' try/catch.
  */
 export function buildSubAgentMiddleware(
   options: SubAgentMiddlewareOptions = {},
@@ -98,6 +106,8 @@ export function buildSubAgentMiddleware(
   if (options.costCap) {
     stack.push(options.costCap.forSubAgent());
   }
+
+  stack.push(createErrorHintsMiddleware());
 
   return stack;
 }
