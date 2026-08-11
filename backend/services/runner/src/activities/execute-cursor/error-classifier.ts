@@ -7,8 +7,9 @@
  * 3. Surface isRetryable for future workflow-level retry decisions
  *
  * Error detail can come from several sources (in priority order):
- * - A thrown CursorSdkError's structured fields (highest fidelity)
- * - run.wait().result (SDK-provided string, often bare/generic)
+ * - Structured fields, either from a thrown CursorSdkError or lifted from a
+ *   structured run.wait() error value (highest fidelity)
+ * - run.wait() error text (SDK-provided string, often bare/generic)
  * - SDKStatusMessage with status "ERROR" from the stream
  * - ConnectError captured from process unhandledRejection
  * - Text extracted from the failing run.conversation() turn
@@ -39,13 +40,95 @@ export interface ClassifiedError {
 
 /**
  * Structured fields lifted from a thrown CursorSdkError (errors.d.ts:
- * { code, status, isRetryable, cause, endpoint, requestId, operation }).
+ * { code, status, isRetryable, cause, endpoint, requestId, operation }) or
+ * from a structured run.wait() error value (see extractRunErrorSources).
  * Only the fields used for classification are retained.
  */
 export interface SdkErrorFields {
   code?: string;
   status?: number;
   message?: string;
+}
+
+/**
+ * What String() produces for any plain object. Carries zero signal, so it is
+ * refused everywhere: extraction never emits it, and classifyFromSources
+ * treats it as absent should any other producer leak it through.
+ */
+const OBJECT_JUNK_STRING = "[object Object]";
+
+/**
+ * Error detail lifted from a run.wait() result, split by fidelity: structured
+ * values land in sdkError, plain text in sdkResultFields. At most one of the
+ * two is set; both undefined means the result carried nothing usable and the
+ * classifier's lower-priority sources should decide.
+ */
+export interface RunErrorSources {
+  sdkError: SdkErrorFields | undefined;
+  sdkResultFields: string | undefined;
+}
+
+const NO_RUN_ERROR_SOURCES: RunErrorSources = {
+  sdkError: undefined,
+  sdkResultFields: undefined,
+};
+
+/**
+ * Lift error detail from a run.wait() result whose status is "error".
+ *
+ * The SDK types RunResult.result as `string`, but structured values (Error
+ * instances, { code, message } objects) have been observed at runtime, both
+ * in `result` and in the undeclared error/message/reason fields (oss#299).
+ * A bare String() on those yields "[object Object]", which both destroys the
+ * message users see and — worse — shadows the lower-priority classifier
+ * sources (stream, rejection, conversation introspection) that often hold
+ * the real reason.
+ *
+ * Walks the candidate fields in order and answers from the FIRST one that
+ * yields usable content: strings keep flowing to the string channel
+ * (sdkResultFields), structured values are lifted into the same structured
+ * channel a thrown CursorSdkError uses (sdkError), and hopeless values are
+ * skipped so a later candidate — or the classifier's fallback sources — can
+ * win. (The previous `??` chain stopped at the first non-nullish value, so a
+ * hopeless object or empty string hid usable text one field later.)
+ *
+ * Deliberately NO JSON.stringify fallback for unrecognized object shapes:
+ * the error arm already logs the raw result in full server-side, and a JSON
+ * blob shown to the user would shadow the introspection sources that exist
+ * precisely to recover the real reason.
+ */
+export function extractRunErrorSources(result: unknown): RunErrorSources {
+  if (result === null || typeof result !== "object") return NO_RUN_ERROR_SOURCES;
+  const r = result as Record<string, unknown>;
+  for (const candidate of [r.result, r.error, r.message, r.reason]) {
+    const extracted = extractFromCandidate(candidate);
+    if (extracted) return extracted;
+  }
+  return NO_RUN_ERROR_SOURCES;
+}
+
+function extractFromCandidate(v: unknown): RunErrorSources | undefined {
+  if (v == null) return undefined;
+  if (typeof v === "string") {
+    if (v.length === 0 || v === OBJECT_JUNK_STRING) return undefined;
+    return { sdkError: undefined, sdkResultFields: v };
+  }
+  if (typeof v === "object") {
+    // Covers Error instances too: their message (and, on SDK/Node error
+    // shapes, code/status) are readable as plain properties.
+    const o = v as Record<string, unknown>;
+    const fields: SdkErrorFields = {};
+    if (typeof o.code === "string" && o.code.length > 0) fields.code = o.code;
+    if (typeof o.status === "number") fields.status = o.status;
+    if (typeof o.message === "string" && o.message.length > 0) fields.message = o.message;
+    if (fields.code !== undefined || fields.status !== undefined || fields.message !== undefined) {
+      return { sdkError: fields, sdkResultFields: undefined };
+    }
+    return undefined;
+  }
+  // Remaining primitives (number, boolean, ...) stringify losslessly.
+  const text = String(v);
+  return text.length > 0 ? { sdkError: undefined, sdkResultFields: text } : undefined;
 }
 
 const AUTH_PATTERNS = [
@@ -168,7 +251,11 @@ function classifyFromSources(opts: SynthesizeErrorOpts): ClassifiedError {
   }
 
   if (opts.sdkResultFields) {
-    const isBareGeneric = opts.sdkResultFields === "Cursor run failed";
+    // "Cursor run failed" is the SDK's bare generic; "[object Object]" is
+    // String()-coerced junk from any producer that bypassed the shape-aware
+    // extraction. Neither carries signal — fall through to better sources.
+    const isBareGeneric = opts.sdkResultFields === "Cursor run failed"
+      || opts.sdkResultFields === OBJECT_JUNK_STRING;
     if (!isBareGeneric) {
       const { category, retryable } = classifyText(opts.sdkResultFields);
       return {
