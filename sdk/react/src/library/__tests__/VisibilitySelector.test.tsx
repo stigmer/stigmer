@@ -17,12 +17,6 @@ import {
   blueprintVisibilityLevels,
 } from "../visibilityLevels";
 
-// Without a StigmerProvider the portal container is null, and Base UI's
-// Portal renders nothing — pin it to document.body so the popover mounts.
-vi.mock("../../portal-container", () => ({
-  useStigmerPortalContainer: () => document.body,
-}));
-
 // Base UI's Popover positioner observes its anchor; happy-dom lacks
 // ResizeObserver, so provide a no-op shim.
 beforeAll(() => {

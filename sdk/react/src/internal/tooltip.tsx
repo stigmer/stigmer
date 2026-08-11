@@ -40,12 +40,10 @@ function TooltipContent({
   const portalContainer = useStigmerPortalContainer();
 
   return (
-    // `?? undefined`, never a raw null: Base UI treats an EXPLICIT null
-    // container as "wait for one" and renders the popup nowhere, while
-    // undefined falls back to document.body — the standalone behavior
-    // `useStigmerPortalContainer` documents. Without the coalesce, a
-    // tooltip outside a StigmerProvider opens invisibly.
-    <TooltipPrimitive.Portal container={portalContainer ?? undefined}>
+    // Raw pass-through, no coalescing: the hook's three-state return
+    // (undefined / null / element) maps exactly onto Base UI's
+    // `container` semantics — see `useStigmerPortalContainer`.
+    <TooltipPrimitive.Portal container={portalContainer}>
       <TooltipPrimitive.Positioner
         className="isolate z-50 outline-none"
         side={side}

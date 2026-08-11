@@ -3,12 +3,6 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { WorkflowInstanceList } from "../WorkflowInstanceList";
 
-// The kebab menu portals its content; without a StigmerProvider the portal
-// container is null and nothing mounts — pin it to document.body.
-vi.mock("../../../portal-container", () => ({
-  useStigmerPortalContainer: () => document.body,
-}));
-
 // Isolate the row-actions behavior under test from the data, environment,
 // visibility, and permission subsystems (each has its own tests).
 const data = vi.hoisted(() => ({
