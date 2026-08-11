@@ -387,8 +387,11 @@ export async function consumeCursorTurnStream(
         console.log(
           `ExecuteCursor stream status: execution=${executionId}, status=${JSON.stringify(event)}`,
         );
-        const statusEvent = event as { status?: string; message?: string };
-        if (statusEvent.status === "ERROR" && statusEvent.message) {
+        const statusEvent = event as { status?: string; message?: unknown };
+        // The cast is a claim, not a guarantee: message is untyped at runtime
+        // (the oss#299 class of bug). A structured value here would crash
+        // classification downstream, so only capture actual text.
+        if (statusEvent.status === "ERROR" && typeof statusEvent.message === "string" && statusEvent.message.length > 0) {
           state.streamErrorMessage = statusEvent.message;
         }
       }

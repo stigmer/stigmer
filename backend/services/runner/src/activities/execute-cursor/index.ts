@@ -140,7 +140,7 @@ import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
 import { normalizeActivityInput, type ExecuteActivityInput } from "../../shared/activity-input.js";
 import { getCapturedRejection, clearCapturedRejection } from "./rejection-capture.js";
-import { synthesizeError, formatClassifiedError, shouldRetryWithFreshAgent } from "./error-classifier.js";
+import { synthesizeError, formatClassifiedError, shouldRetryWithFreshAgent, extractRunErrorSources } from "./error-classifier.js";
 import type { ClassifiedError } from "./error-classifier.js";
 import { createAgent, createCloudAgent } from "./session-lifecycle.js";
 import { setMaxListeners } from "node:events";
@@ -1739,12 +1739,10 @@ async function executeCursorInner(
         status.phase = ExecutionPhase.EXECUTION_COMPLETED;
         break;
       case "error": {
-        const resultAny = result as unknown as Record<string, unknown>;
-        const sdkError = result.result
-          ?? resultAny.error
-          ?? resultAny.message
-          ?? resultAny.reason;
-        const sdkErrorStr = sdkError ? String(sdkError) : undefined;
+        // Shape-aware extraction, NOT String(): the result's error fields are
+        // structured at runtime often enough that a bare coercion showed users
+        // "[object Object]" and shadowed every fallback source below (oss#299).
+        const runErrorSources = extractRunErrorSources(result);
 
         // The SDK frequently resolves run.wait() to a bare { status: "error" }
         // while the real reason (e.g. the original grpc-status 12 routing
@@ -1756,7 +1754,8 @@ async function executeCursorInner(
         if (capturedRejection) clearCapturedRejection(executionId);
 
         const classified = synthesizeError({
-          sdkResultFields: sdkErrorStr,
+          sdkError: runErrorSources.sdkError,
+          sdkResultFields: runErrorSources.sdkResultFields,
           streamErrorMessage: turnState.streamErrorMessage,
           capturedRejection,
           conversationErrorText,
@@ -1874,8 +1873,14 @@ async function executeCursorInner(
 
           const retryConversationErrorText = await introspectConversation(retryRun, executionId);
 
+          // Same shape-aware extraction as the primary error arm — the retry
+          // previously String()-coerced result.result alone, so a structured
+          // retry failure both read "[object Object]" and ignored the
+          // error/message/reason fields the primary arm consults.
+          const retryErrorSources = extractRunErrorSources(retryResult);
           const retryClassified = synthesizeError({
-            sdkResultFields: retryResult.result ? String(retryResult.result) : undefined,
+            sdkError: retryErrorSources.sdkError,
+            sdkResultFields: retryErrorSources.sdkResultFields,
             streamErrorMessage: turnState.streamErrorMessage,
             capturedRejection: retryRejection,
             conversationErrorText: retryConversationErrorText,

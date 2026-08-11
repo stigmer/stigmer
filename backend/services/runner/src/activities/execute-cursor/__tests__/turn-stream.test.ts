@@ -222,6 +222,19 @@ describe("consumeCursorTurnStream", () => {
     expect(state.streamErrorMessage).toBe("boom");
   });
 
+  it("does not capture a non-string stream ERROR message (oss#299 hardening)", async () => {
+    // message is untyped at runtime; a structured value assigned here would
+    // crash classifyText downstream (.toLowerCase() on a non-string).
+    const { deps, state } = buildDeps();
+
+    await consumeCursorTurnStream(
+      mockRun([ev({ type: "status", status: "ERROR", message: { code: 14 } })]),
+      deps,
+    );
+
+    expect(state.streamErrorMessage).toBeUndefined();
+  });
+
   describe("first-denial early stop", () => {
     let hitlDir: string;
 
