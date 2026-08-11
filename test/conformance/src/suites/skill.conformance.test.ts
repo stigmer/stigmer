@@ -28,7 +28,7 @@ import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { uniqueName } from "../support/naming";
-import { makeSkillArtifact, zipFiles } from "../support/skills";
+import { makeSkillArtifact, makeStreamingSkillArtifact, zipFiles } from "../support/skills";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -104,6 +104,23 @@ describe("Skill conformance — push & identity", () => {
 
     expect(fetched.metadata?.id).toBe(pushed.metadata?.id);
     expect(fetched.status?.versionHash).toBe(pushed.status?.versionHash);
+  });
+
+  it("accepts a ZIP with stored streaming entries — Go stdlib zip's default shape (#336)", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("skill");
+
+    // Stored entries with data descriptors: what Go's archive/zip emits by
+    // default, i.e. what a Go SDK integrator pushes unless they hand-tune the
+    // writer. A streaming ZIP parser cannot read this shape; a central-directory
+    // parser can. Both editions must accept it (#336: the cloud edition
+    // rejected it while the OSS server accepted it). fflate's zipSync cannot
+    // emit this shape, which is why no other case in this suite covers it.
+    const pushed = await pushSkill(org, makeStreamingSkillArtifact({ name, description: "go-shaped artifact" }));
+
+    expect(pushed.metadata?.name, "identity derives from frontmatter as for any other shape").toBe(name);
+    expect(pushed.metadata?.slug).toBe(name);
+    expect(pushed.status?.versionHash, "version hash is computed over the raw bytes").toMatch(/^[a-f0-9]{64}$/);
   });
 
   it("isolates skills with the same name across orgs", async () => {
