@@ -48,12 +48,13 @@ import type { Config } from "../config.js";
  * exactly this — 4xx on POST, then a silently-open SSE stream).
  *
  * HTTP endpoints get a short bound: there is nothing to install or compile,
- * so a healthy endpoint completes the handshake in seconds. 30s is chosen to
- * fit inside the OSS server's 45s connect-workflow run timeout with room for
- * the 10s OAuth re-probe on the failure path — any larger and this error
- * could never surface on OSS (the workflow deadline would fire first).
- * stdio servers keep the generous bound because their first run may compile
- * or install packages (`go run`, `npx`) — the cold-start case (issue #243).
+ * so a healthy endpoint completes the handshake in seconds — a short bound is
+ * what converts the silent hang into a fast, actionable failure (with room for
+ * the 10s OAuth re-probe on the failure path). stdio servers keep the generous
+ * bound because their first run may compile or install packages (`go run`,
+ * `npx`) — the cold-start case (issue #243). The OSS server's connect-workflow
+ * run timeout (connectTimeout, controller/connect.go) is derived from the
+ * stdio bound + the classification floor, so both errors stay reachable.
  */
 const HTTP_INIT_TIMEOUT_MS = 30_000;
 const STDIO_INIT_TIMEOUT_MS = 270_000;
