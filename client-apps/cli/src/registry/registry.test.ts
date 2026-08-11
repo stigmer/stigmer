@@ -4,6 +4,7 @@ import { APPLY_HANDLERS } from "../resources/apply/handlers.js";
 import { DELETE_HANDLERS } from "../resources/delete.js";
 import { GET_BINDINGS } from "../resources/get-bindings.js";
 import { LIST_HANDLERS, SEARCH_KINDS } from "../resources/list.js";
+import { VALIDATE_SCHEMAS } from "../resources/validate.js";
 import { defaultRegistry } from "./registry.js";
 import { Verb } from "./verbs.js";
 
@@ -165,6 +166,12 @@ describe("registry — verb/dispatch conformance", () => {
       label: "list",
       verb: Verb.List,
       wired: new Set([...LIST_HANDLERS.keys(), ...SEARCH_KINDS]),
+      specialCases: new Map(),
+    },
+    {
+      label: "validate",
+      verb: Verb.Validate,
+      wired: new Set(VALIDATE_SCHEMAS.keys()),
       specialCases: new Map(),
     },
     {
