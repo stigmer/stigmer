@@ -19,7 +19,10 @@ import { useUpdateMcpServer } from "./useUpdateMcpServer.js";
 import { mcpServerToInput } from "./internal/mcpServerToInput.js";
 import { useMcpServerConnect } from "./useMcpServerConnect.js";
 import { useMcpServerCredentials } from "./useMcpServerCredentials.js";
-import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect.js";
+import {
+  useMcpServerOAuthConnect,
+  getOAuthConnectErrorMessage,
+} from "./useMcpServerOAuthConnect.js";
 import type { OAuthConnectPhase } from "./useMcpServerOAuthConnect.js";
 import { StdioSandboxNotice } from "./StdioSandboxNotice.js";
 import { OAuthRequiredNotice } from "./OAuthRequiredNotice.js";
@@ -250,9 +253,23 @@ export function McpServerDetailView({
       credentials.refetch();
       refetch();
     } catch {
-      // error state is managed by the oauth hook
+      // Error state is managed by the oauth hook — but refetch anyway:
+      // completeOAuthConnect persists the grant BEFORE the chained
+      // discovery runs, so a discovery-leg failure still changed server
+      // state. Without this, stale isOAuthConnected=false makes the next
+      // Connect click relaunch the popup instead of retrying discovery
+      // (stigmer/stigmer#229).
+      credentials.refetch();
+      refetch();
     }
   }, [mcpServer, oauth, credentials, refetch]);
+
+  // A failure in the "connecting" phase proves sign-in already succeeded —
+  // the grant exists server-side even while the grant-status refetch is
+  // still in flight. Retry bare discovery; never relaunch the popup and
+  // never demand credentials the flow already has.
+  const isDiscoveryRetry =
+    credentials.authMode === "oauth" && oauth.failedPhase === "connecting";
 
   const handleConnectClick = useCallback(async () => {
     if (!mcpServer?.metadata?.id) return;
@@ -260,13 +277,14 @@ export function McpServerDetailView({
     if (
       credentials.authMode === "oauth" &&
       !credentials.isOAuthConnected &&
-      !credentials.manualOverride
+      !credentials.manualOverride &&
+      !isDiscoveryRetry
     ) {
       handleOAuthSignIn();
       return;
     }
 
-    if (!credentials.isReady) {
+    if (!credentials.isReady && !isDiscoveryRetry) {
       setShowCredentialForm(true);
       return;
     }
@@ -274,11 +292,15 @@ export function McpServerDetailView({
     const envKeys = Object.keys(mcpServer.spec?.env ?? {});
     try {
       await connection.connect(mcpServer.metadata.id, activeOrg ?? org, undefined, envKeys);
+      // Discovery succeeded — retire the OAuth chain's stale
+      // discovery-failure error so the banner doesn't outlive the state
+      // it described.
+      oauth.clearError();
       refetch();
     } catch {
       // error state is managed by the hook
     }
-  }, [mcpServer, credentials.authMode, credentials.isOAuthConnected, credentials.manualOverride, credentials.isReady, connection, refetch, handleOAuthSignIn]);
+  }, [mcpServer, credentials.authMode, credentials.isOAuthConnected, credentials.manualOverride, credentials.isReady, isDiscoveryRetry, connection, oauth.clearError, refetch, handleOAuthSignIn, activeOrg, org]);
 
   const handleCredentialSubmit = useCallback(
     async (
@@ -367,6 +389,20 @@ export function McpServerDetailView({
   const resourceTemplates = capabilities?.resourceTemplates ?? [];
   const hasDiscoveredTools = tools.length > 0;
 
+  // "Signed in but never discovered" (stigmer/stigmer#229): the OAuth flow
+  // persists the grant in completeOAuthConnect BEFORE the chained discovery
+  // runs, so a failed/interrupted discovery leg leaves a healthy grant with
+  // empty discovered_capabilities. Both inputs are server truth, so this
+  // derivation survives reloads and self-heals once discovery lands (even
+  // when the workflow outlives the browser's RPC). Token-expired grants are
+  // excluded — re-auth, not discovery, is their next step.
+  const isOAuthStranded =
+    credentials.authMode === "oauth" &&
+    credentials.isOAuthConnected &&
+    credentials.connectionHealth !==
+      OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED &&
+    !hasDiscoveredTools;
+
   const capabilityTabs: TabItem[] = useMemo(() => {
     const items: TabItem[] = [
       { id: "tools", label: "Tools", badge: tools.length },
@@ -383,6 +419,14 @@ export function McpServerDetailView({
   }, [tools.length, totalPolicyCount, resourceTemplates.length]);
 
   const combinedError = connection.error ?? oauth.error;
+  // OAuth-chain errors compose through the phase-aware helper so a
+  // discovery-leg failure reads "signed in, but discovery failed" instead
+  // of masquerading as a failed sign-in.
+  const combinedErrorMessage = connection.error
+    ? getUserMessage(connection.error)
+    : oauth.error
+      ? getOAuthConnectErrorMessage(oauth.error, oauth.failedPhase)
+      : null;
   const combinedClearError = useCallback(() => {
     connection.clearError();
     oauth.clearError();
@@ -548,9 +592,11 @@ export function McpServerDetailView({
           manualEntrySupported={credentials.manualEntrySupported}
           isConnecting={connection.isConnecting || oauth.isInProgress}
           connectionError={combinedError}
+          connectionErrorMessage={combinedErrorMessage}
           onConnect={handleConnectClick}
           onClearConnectionError={combinedClearError}
           hasDiscoveredTools={hasDiscoveredTools}
+          isOAuthStranded={isOAuthStranded}
           credentialsLoading={credentials.isLoading}
           oauthPhase={oauth.phase}
           authMode={credentials.authMode}
@@ -638,7 +684,12 @@ export function McpServerDetailView({
           aria-label="MCP server capabilities"
         >
           {capabilityTab === "tools" && (
-            <ToolsTabContent tools={tools} />
+            <ToolsTabContent
+              tools={tools}
+              isOAuthStranded={isOAuthStranded}
+              onDiscover={handleConnectClick}
+              isDiscovering={connection.isConnecting || oauth.isInProgress}
+            />
           )}
 
           {capabilityTab === "policies" && (
@@ -646,6 +697,7 @@ export function McpServerDetailView({
               pinnedPolicies={pinnedPolicies}
               classifiedPolicies={classifiedPolicies}
               hasDiscoveredTools={hasDiscoveredTools}
+              isOAuthStranded={isOAuthStranded}
             />
           )}
 
@@ -740,9 +792,11 @@ type RemoveOrgAppPhase = "idle" | "confirming" | "removing";
 function ConnectBar({
   isConnecting,
   connectionError,
+  connectionErrorMessage,
   onConnect,
   onClearConnectionError,
   hasDiscoveredTools,
+  isOAuthStranded,
   credentialsLoading,
   oauthPhase,
   authMode,
@@ -774,9 +828,13 @@ function ConnectBar({
 }: {
   readonly isConnecting: boolean;
   readonly connectionError: Error | null;
+  /** Display copy for `connectionError`, pre-composed by the parent (phase-aware for OAuth-chain failures). */
+  readonly connectionErrorMessage: string | null;
   readonly onConnect: () => void;
   readonly onClearConnectionError: () => void;
   readonly hasDiscoveredTools: boolean;
+  /** OAuth grant is healthy but discovery never landed — see the derivation in the parent. */
+  readonly isOAuthStranded: boolean;
   readonly credentialsLoading: boolean;
   readonly oauthPhase: OAuthConnectPhase;
   readonly authMode: "manual" | "oauth";
@@ -832,6 +890,7 @@ function ConnectBar({
     if (isConnecting) return "Connecting...";
     if (isOrgOAuthApp && showOAuthPrimary) return "Sign in with your app";
     if (showOAuthPrimary || needsReAuth) return "Sign in to connect";
+    if (isOAuthStranded) return "Discover tools";
     if (hasDiscoveredTools) return "Reconnect";
     return "Connect";
   })();
@@ -845,6 +904,9 @@ function ConnectBar({
 
   const statusText = (() => {
     if (authMode === "oauth" && isOAuthConnected) {
+      // Stranded takes precedence over token health: "tokens refresh
+      // automatically" reads as all-done while the Tools tab is empty.
+      if (isOAuthStranded) return "Signed in \u2014 tools not discovered yet";
       const base = healthStatusText(connectionHealth, accessTokenExpiresAt, tokenLifetimeHint);
       return isOrgOAuthApp ? `${base} \u00B7 Using your OAuth app` : base;
     }
@@ -1153,7 +1215,7 @@ function ConnectBar({
         >
           <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
           <p className="flex-1 text-xs text-destructive">
-            {getUserMessage(connectionError)}
+            {connectionErrorMessage ?? getUserMessage(connectionError)}
           </p>
           <div className="flex shrink-0 items-center gap-2">
             {isRetryableError(connectionError) && (
@@ -1843,8 +1905,17 @@ function TagsSection({
 
 function ToolsTabContent({
   tools,
+  isOAuthStranded,
+  onDiscover,
+  isDiscovering,
 }: {
   readonly tools: readonly DiscoveredTool[];
+  /** OAuth grant is healthy but discovery never landed — renders the recovery empty state. */
+  readonly isOAuthStranded: boolean;
+  /** Runs tool discovery (the parent's connect handler). */
+  readonly onDiscover: () => void;
+  /** `true` while a discovery attempt is in flight. */
+  readonly isDiscovering: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [expandedTool, setExpandedTool] = useState<string | null>(null);
@@ -1860,12 +1931,37 @@ function ToolsTabContent({
   }, [tools, search]);
 
   if (tools.length === 0) {
+    // Two distinct empty states: "never connected" (informational) vs
+    // "signed in but discovery never landed" (stigmer/stigmer#229) — the
+    // latter must carry its own recovery action, because the user already
+    // did the thing the informational copy asks for.
     return (
       <div className="px-3 py-8 text-center">
         <ConnectIcon className="mx-auto mb-2 size-6 text-muted-foreground-faint" />
-        <p className="text-xs text-muted-foreground">
-          Connect to this MCP server to discover its available tools.
-        </p>
+        {isOAuthStranded ? (
+          <>
+            <p className="text-xs text-muted-foreground">
+              Signed in, but tools haven&apos;t been discovered yet.
+            </p>
+            <button
+              type="button"
+              onClick={onDiscover}
+              disabled={isDiscovering}
+              className={cn(
+                "mt-3 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
+                "bg-primary text-primary-foreground hover:bg-primary-hover",
+                "disabled:pointer-events-none disabled:opacity-50",
+              )}
+            >
+              {isDiscovering && <Spinner />}
+              {isDiscovering ? "Discovering tools..." : "Discover tools"}
+            </button>
+          </>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Connect to this MCP server to discover its available tools.
+          </p>
+        )}
       </div>
     );
   }
@@ -1969,10 +2065,13 @@ function PoliciesTabContent({
   pinnedPolicies,
   classifiedPolicies,
   hasDiscoveredTools,
+  isOAuthStranded,
 }: {
   readonly pinnedPolicies: readonly ToolApprovalPolicy[];
   readonly classifiedPolicies: readonly ToolApprovalPolicy[];
   readonly hasDiscoveredTools: boolean;
+  /** OAuth grant is healthy but discovery never landed — adjusts the empty-state copy. */
+  readonly isOAuthStranded: boolean;
 }) {
   const [search, setSearch] = useState("");
 
@@ -2009,7 +2108,9 @@ function PoliciesTabContent({
         <p className="text-xs text-muted-foreground">
           {hasDiscoveredTools
             ? "No approval policies yet. Reconnect to reclassify tools."
-            : "Connect to discover tools and auto-classify approval policies."}
+            : isOAuthStranded
+              ? "Signed in \u2014 discover tools to auto-classify approval policies."
+              : "Connect to discover tools and auto-classify approval policies."}
         </p>
       </div>
     );

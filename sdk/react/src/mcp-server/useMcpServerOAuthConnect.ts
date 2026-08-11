@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
+import { getUserMessage } from "@stigmer/sdk";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import {
   InitiateOAuthConnectInputSchema,
@@ -36,6 +37,34 @@ export type OAuthConnectPhase =
   | "connecting"
   | "done";
 
+/**
+ * User-facing message for an OAuth connect failure, honest about *where*
+ * the chain broke.
+ *
+ * The flow persists state in two acts: `completeOAuthConnect` stores the
+ * grant ("Connected" from then on), and only afterwards does the chained
+ * `connect` run tool discovery. A failure in the `"connecting"` phase
+ * therefore means sign-in itself SUCCEEDED — presenting the raw RPC error
+ * alone reads as if OAuth failed and sends users back through the popup
+ * for nothing (stigmer/stigmer#229). Every surface that renders
+ * {@link UseMcpServerOAuthConnectReturn.error} should compose its copy
+ * through this helper.
+ *
+ * The error object is never wrapped or mutated: `classifyError` /
+ * `isRetryableError` dispatch on the original `StigmerError`/`ConnectError`
+ * instance, so retry affordances keep working on the error as thrown.
+ */
+export function getOAuthConnectErrorMessage(
+  error: Error,
+  failedPhase: OAuthConnectPhase | null,
+): string {
+  const base = getUserMessage(error);
+  if (failedPhase === "connecting") {
+    return `Signed in successfully, but tool discovery failed: ${base}`;
+  }
+  return base;
+}
+
 /** Return value of {@link useMcpServerOAuthConnect}. */
 export interface UseMcpServerOAuthConnectReturn {
   /**
@@ -63,6 +92,17 @@ export interface UseMcpServerOAuthConnectReturn {
   readonly phase: OAuthConnectPhase;
   /** Error from the most recent unsuccessful attempt, or `null`. */
   readonly error: Error | null;
+  /**
+   * The phase the flow was in when {@link error} was thrown, or `null`
+   * when there is no error.
+   *
+   * The load-bearing value is `"connecting"`: it means OAuth sign-in
+   * completed (the grant is stored server-side) and only the chained
+   * tool-discovery `connect` failed. Consumers should branch on it to
+   * (a) render honest copy via {@link getOAuthConnectErrorMessage} and
+   * (b) retry with a bare `connect` instead of relaunching the popup.
+   */
+  readonly failedPhase: OAuthConnectPhase | null;
   /** Reset the hook to idle state, clearing any error. */
   readonly clearError: () => void;
 }
@@ -107,10 +147,20 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
   const stigmer = useStigmer();
   const [phase, setPhase] = useState<OAuthConnectPhase>("idle");
   const [error, setError] = useState<Error | null>(null);
+  const [failedPhase, setFailedPhase] = useState<OAuthConnectPhase | null>(null);
 
   const popupRef = useRef<Window | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
   const cancelledRef = useRef(false);
+  // Mirrors the phase state for the catch block: React state reads would be
+  // stale inside the async flow, and failedPhase must record exactly where
+  // the chain broke (completeOAuthConnect vs the chained connect).
+  const phaseRef = useRef<OAuthConnectPhase>("idle");
+
+  const advancePhase = useCallback((next: OAuthConnectPhase) => {
+    phaseRef.current = next;
+    setPhase(next);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -126,14 +176,16 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
       popupRef.current = null;
       cleanupRef.current = null;
     }
-    setPhase("idle");
+    advancePhase("idle");
     setError(null);
-  }, []);
+    setFailedPhase(null);
+  }, [advancePhase]);
 
   const startOAuth = useCallback(
     async (mcpServerId: string, org: string, declaredEnvKeys?: readonly string[]): Promise<McpServer> => {
-      setPhase("initiating");
+      advancePhase("initiating");
       setError(null);
+      setFailedPhase(null);
       cancelledRef.current = false;
 
       cleanupRef.current?.();
@@ -142,7 +194,8 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
       if (!popup) {
         const blocked = popupBlockedError();
         setError(blocked);
-        setPhase("idle");
+        setFailedPhase("initiating");
+        advancePhase("idle");
         throw blocked;
       }
 
@@ -154,7 +207,7 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
         );
 
         popup.location.href = initOutput.authorizationUrl;
-        setPhase("awaiting-callback");
+        advancePhase("awaiting-callback");
 
         const { code, state } = await waitForOAuthCallback(
           popup,
@@ -164,7 +217,7 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
           },
         );
 
-        setPhase("completing");
+        advancePhase("completing");
 
         await stigmer.mcpServer.completeOAuthConnect(
           create(CompleteOAuthConnectInputSchema, {
@@ -174,7 +227,7 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
           }),
         );
 
-        setPhase("connecting");
+        advancePhase("connecting");
 
         const systemEnv = declaredEnvKeys
           ? await resolveDeclaredSystemEnvVars(stigmer, declaredEnvKeys)
@@ -197,13 +250,14 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
 
         const server = await stigmer.mcpServer.connect(input);
 
-        setPhase("done");
+        advancePhase("done");
         return server;
       } catch (err) {
         const wrapped = toError(err);
         if (!cancelledRef.current) {
           setError(wrapped);
-          setPhase("idle");
+          setFailedPhase(phaseRef.current);
+          advancePhase("idle");
           closeOAuthPopup(popup);
         }
         cancelledRef.current = false;
@@ -213,7 +267,7 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
         cleanupRef.current = null;
       }
     },
-    [stigmer],
+    [stigmer, advancePhase],
   );
 
   return {
@@ -221,6 +275,7 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
     isInProgress: phase !== "idle" && phase !== "done",
     phase,
     error,
+    failedPhase,
     clearError,
   };
 }

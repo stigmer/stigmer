@@ -65,7 +65,10 @@ export type {
 export { useMcpServerConnect } from "./useMcpServerConnect.js";
 export type { UseMcpServerConnectReturn } from "./useMcpServerConnect.js";
 
-export { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect.js";
+export {
+  useMcpServerOAuthConnect,
+  getOAuthConnectErrorMessage,
+} from "./useMcpServerOAuthConnect.js";
 export type {
   UseMcpServerOAuthConnectReturn,
   OAuthConnectPhase,
