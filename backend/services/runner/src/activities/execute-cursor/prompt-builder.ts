@@ -71,6 +71,18 @@ export interface VisionPromptInfo {
   notViewable: NotViewableEntry[];
 }
 
+/**
+ * One resolved attachment as the `<input_files>` section renders it —
+ * the final workspace-relative path plus the duplicate-rename disclosure
+ * (attachment-resolver.ts / shared/attachment-naming.ts).
+ */
+export interface AttachmentPromptEntry {
+  /** Workspace-relative path the agent reads (`.stigmer/inputs/{filename}`). */
+  path: string;
+  /** Original filename, present only when a duplicate name was renamed. */
+  renamedFrom?: string;
+}
+
 export interface EnhancedPromptOptions {
   instructions: string;
   userMessage: string;
@@ -90,7 +102,7 @@ export interface EnhancedPromptOptions {
   subAgents: SubAgent[];
   workspaceDirs: string[];
   workspaceFileRefs: string[];
-  attachmentPaths: string[];
+  attachments: AttachmentPromptEntry[];
   /** Inline/degraded image facts for the input-files section (T04 vision). */
   vision?: VisionPromptInfo;
   interactionMode?: InteractionMode;
@@ -153,7 +165,7 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
 
   const implementPlan = formatImplementPlanSection(
     options.buildFromPlan,
-    options.attachmentPaths,
+    options.attachments,
   );
   if (implementPlan) {
     sections.push(implementPlan);
@@ -195,8 +207,8 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
     sections.push(formatWorkspaceContext(safeDirs));
   }
 
-  if (options.attachmentPaths.length > 0) {
-    sections.push(formatInputFiles(options.attachmentPaths, options.vision));
+  if (options.attachments.length > 0) {
+    sections.push(formatInputFiles(options.attachments, options.vision));
   }
 
   if (options.workspaceFileRefs.length > 0) {
@@ -479,8 +491,18 @@ export function formatWorkspaceContext(dirs: string[]): string {
   ].join("\n");
 }
 
-export function formatInputFiles(paths: string[], vision?: VisionPromptInfo): string {
-  const entries = paths.map((p) => `- \`${p}\``);
+export function formatInputFiles(
+  attachments: readonly AttachmentPromptEntry[],
+  vision?: VisionPromptInfo,
+): string {
+  // A duplicate-renamed file (attachment-naming.ts) discloses its original
+  // name so the agent can connect "the two report.pdfs" in the user's
+  // message to distinct files on disk.
+  const entries = attachments.map((a) =>
+    a.renamedFrom !== undefined
+      ? `- \`${a.path}\` (renamed from duplicate '${a.renamedFrom}')`
+      : `- \`${a.path}\``,
+  );
   // The vision lines (shared wording, attachment-vision.ts) tell the model
   // which of these files it can already SEE inline versus which degraded to
   // path-only — without them an agent silently ignores a photo the user
@@ -541,14 +563,14 @@ export function formatInteractionModePrefix(
  */
 export function formatImplementPlanSection(
   buildFromPlan: boolean | undefined,
-  attachmentPaths: string[],
+  attachments: readonly AttachmentPromptEntry[],
 ): string | undefined {
   if (!buildFromPlan) {
     return undefined;
   }
 
   const directive = buildImplementPlanDirective(
-    findApprovedPlanPath(attachmentPaths),
+    findApprovedPlanPath(attachments.map((a) => a.path)),
   );
   return ["<implement_plan>", directive, "</implement_plan>"].join("\n");
 }

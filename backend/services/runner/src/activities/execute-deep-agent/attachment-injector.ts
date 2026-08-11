@@ -12,14 +12,22 @@
  * Error model: fail-hard. Any attachment failure aborts the entire injection
  * and propagates a descriptive error. Attachments are explicit user inputs —
  * running with partial inputs produces silently incorrect results.
+ *
+ * Duplicate names are NOT a failure (issue #364): a default-derived mount
+ * path that collides is renamed with the platform's `stem-2.ext` semantics
+ * (shared/attachment-naming.ts) and the rename is disclosed in the prompt's
+ * Input Files section. Only two attachments EXPLICITLY pinning the same
+ * `mountPath` still abort — that is a user contradiction no rename can
+ * honestly resolve.
  */
 
 import { readFile } from "node:fs/promises";
 import { createInflateRaw } from "node:zlib";
-import { basename, posix } from "node:path";
+import { posix } from "node:path";
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
+import { allocateUniqueName } from "../../shared/attachment-naming.js";
 import type {
   VisionBudget,
   VisionDegradedReason,
@@ -38,9 +46,17 @@ export { MAX_ZIP_FILES, MAX_ZIP_EXTRACTED_SIZE };
 // ── Types ────────────────────────────────────────────────────────────
 
 export interface InjectedFile {
+  /** The final on-disk basename — after any duplicate rename, so it always
+   * agrees with {@link path} and with the vision payload's image label. */
   readonly filename: string;
   readonly path: string;
   readonly sizeBytes: number;
+  /**
+   * The attachment's original filename, present only when a duplicate name
+   * was renamed (shared/attachment-naming.ts) — rendered as disclosure in
+   * the prompt's Input Files section.
+   */
+  readonly renamedFrom?: string;
   /** Present when the attachment was accepted into the turn's vision payload. */
   readonly vision?: VisionImage;
   /**
@@ -257,7 +273,9 @@ export function validateZipForExtraction(
 /**
  * Download, validate, and inject all attachments into the workspace.
  *
- * Performs mount path collision detection before any downloads begin.
+ * Resolves all mount paths before any downloads begin: duplicate
+ * default-derived names are renamed (never fatal — see module doc), and an
+ * explicit-mountPath contradiction throws before any bytes move.
  * On any failure, throws AttachmentInjectionError with an actionable message.
  */
 export async function injectAttachments(opts: InjectAttachmentsOptions): Promise<InjectedFile[]> {
@@ -273,17 +291,24 @@ export async function injectAttachments(opts: InjectAttachmentsOptions): Promise
 
   for (const attachment of attachments) {
     const content = await downloadAttachment(attachment, storage, isLocalMode);
-    const mountPath = mountPaths.get(attachment)!;
+    const { path: mountPath, renamedFrom } = mountPaths.get(attachment)!;
 
     if (attachment.extract) {
       const entries = validateZipForExtraction(content, attachment.filename);
       const extracted = await extractZipToWorkspace(
         content, entries, mountPath, backend,
       );
+      // A renamed mount DIR is visible through every extracted path; the
+      // entries themselves were not renamed, so they carry no renamedFrom
+      // (per-file disclosure would misattribute the rename).
       injectedFiles.push(...extracted);
     } else {
       await backend.writeFileBuffer(mountPath, content);
-      const filename = attachment.filename || basename(mountPath);
+      // The final basename is the canonical filename: after a duplicate
+      // rename the original attachment.filename no longer names the file on
+      // disk, and the vision label must match what the prompt lists or the
+      // agent sees two images with one indistinguishable name.
+      const filename = posix.basename(mountPath);
       // The bytes are already in hand for the workspace write — offer them to
       // the vision budget before they go out of scope (the sniff decides
       // eligibility; the budget owns every size/count rule).
@@ -292,6 +317,7 @@ export async function injectAttachments(opts: InjectAttachmentsOptions): Promise
         filename,
         path: mountPath,
         sizeBytes: content.length,
+        ...(renamedFrom !== undefined ? { renamedFrom } : {}),
         ...(vision?.kind === "accepted" ? { vision: vision.image } : {}),
         ...(vision?.kind === "degraded" ? { visionDegraded: vision.reason } : {}),
       });
@@ -307,14 +333,24 @@ export async function injectAttachments(opts: InjectAttachmentsOptions): Promise
 
 // ── Internal Helpers ─────────────────────────────────────────────────
 
+interface ResolvedMountPath {
+  readonly path: string;
+  /** Present when a default-derived name was uniquified (issue #364). */
+  readonly renamedFrom?: string;
+}
+
 function resolveMountPaths(
   attachments: readonly Attachment[],
-): Map<Attachment, string> {
-  const result = new Map<Attachment, string>();
+): Map<Attachment, ResolvedMountPath> {
+  const result = new Map<Attachment, ResolvedMountPath>();
   const pathToAttachment = new Map<string, Attachment>();
 
+  // Pass 1: explicit mount paths claim their exact targets first. Two
+  // attachments explicitly pinning the SAME path is a user contradiction no
+  // rename can honestly resolve — keep rejecting with the actionable message.
   for (const attachment of attachments) {
-    const mountPath = resolveMountPath(attachment);
+    if (!attachment.mountPath) continue;
+    const mountPath = resolveExplicitMountPath(attachment);
     const existing = pathToAttachment.get(mountPath);
 
     if (existing) {
@@ -326,35 +362,63 @@ function resolveMountPaths(
     }
 
     pathToAttachment.set(mountPath, attachment);
-    result.set(attachment, mountPath);
+    result.set(attachment, { path: mountPath });
+  }
+
+  // Pass 2: default-derived names (`.stigmer/inputs/{filename}`) uniquify
+  // around everything already taken — other defaults AND explicit paths that
+  // landed inside the inputs prefix — instead of failing the execution
+  // (issue #364). The taken-set is seeded with the basenames the explicit
+  // pass claimed directly under the prefix.
+  const takenNames = new Set<string>();
+  for (const path of pathToAttachment.keys()) {
+    if (path.startsWith(`${DEFAULT_INPUTS_PREFIX}/`)) {
+      const rest = path.slice(DEFAULT_INPUTS_PREFIX.length + 1);
+      if (rest.length > 0 && !rest.includes("/")) takenNames.add(rest);
+    }
+  }
+  for (const attachment of attachments) {
+    if (attachment.mountPath) continue;
+    const { name, renamedFrom } = allocateUniqueName(
+      deriveDefaultFilename(attachment),
+      takenNames,
+    );
+    const path = `${DEFAULT_INPUTS_PREFIX}/${name}`;
+    pathToAttachment.set(path, attachment);
+    result.set(
+      attachment,
+      renamedFrom !== undefined ? { path, renamedFrom } : { path },
+    );
   }
 
   return result;
 }
 
-function resolveMountPath(attachment: Attachment): string {
-  if (attachment.mountPath) {
-    const cleaned = attachment.mountPath.replace(/^\/+/, "");
-    if (cleaned.length === 0) {
-      throw new AttachmentInjectionError(
-        attachment.filename,
-        "mountPath resolves to an empty path after removing leading slashes",
-      );
-    }
-    // A caller-supplied mount path is untrusted. Stripping leading slashes does
-    // not stop `..` segments from climbing out of the workspace root on the
-    // non-`.stigmer/` branch (the `.stigmer/`-routed branch is already guarded
-    // by LocalWorkspaceBackend.resolvePath). Reject any path that normalizes to
-    // an escape before it reaches the backend write.
-    if (escapesRoot(cleaned)) {
-      throw new AttachmentInjectionError(
-        attachment.filename,
-        `mount path '${attachment.mountPath}' escapes the workspace root`,
-      );
-    }
-    return cleaned;
+function resolveExplicitMountPath(attachment: Attachment): string {
+  const cleaned = attachment.mountPath.replace(/^\/+/, "");
+  if (cleaned.length === 0) {
+    throw new AttachmentInjectionError(
+      attachment.filename,
+      "mountPath resolves to an empty path after removing leading slashes",
+    );
   }
+  // A caller-supplied mount path is untrusted. Stripping leading slashes does
+  // not stop `..` segments from climbing out of the workspace root on the
+  // non-`.stigmer/` branch (the `.stigmer/`-routed branch is already guarded
+  // by LocalWorkspaceBackend.resolvePath). Reject any path that normalizes to
+  // an escape before it reaches the backend write.
+  if (escapesRoot(cleaned)) {
+    throw new AttachmentInjectionError(
+      attachment.filename,
+      `mount path '${attachment.mountPath}' escapes the workspace root`,
+    );
+  }
+  return cleaned;
+}
 
+// Derives the single-component filename an attachment without an explicit
+// mountPath materializes under (the name that pass 2 uniquifies).
+function deriveDefaultFilename(attachment: Attachment): string {
   const rawName = attachment.filename || deriveFilename(attachment.storageKey);
   if (!rawName) {
     throw new AttachmentInjectionError(
@@ -373,7 +437,7 @@ function resolveMountPath(attachment: Attachment): string {
     );
   }
 
-  return `${DEFAULT_INPUTS_PREFIX}/${filename}`;
+  return filename;
 }
 
 // escapesRoot reports whether a workspace-relative mount path would climb out

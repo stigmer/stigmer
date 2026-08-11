@@ -142,6 +142,10 @@ describe("buildEnhancedSystemPrompt", () => {
   });
 
   it("includes injected files section with size info", () => {
+    // The section renders the injector's own result type (sizeBytes). A local
+    // structural twin with a `size` field used to live in the prompt builder,
+    // and production wiring silently dropped the size — this pin holds the
+    // real field name so that drift class cannot return.
     const prompt = buildEnhancedSystemPrompt({
       instructions: "Test",
       provisionResults: [],
@@ -150,15 +154,40 @@ describe("buildEnhancedSystemPrompt", () => {
       workspaceFileRefs: [],
       workspaceRoot: "/workspace",
       injectedFiles: [
-        { filename: "data.csv", path: ".stigmer/inputs/data.csv", size: 1024 },
-        { filename: "notes.md", path: ".stigmer/inputs/notes.md", size: null },
+        { filename: "data.csv", path: ".stigmer/inputs/data.csv", sizeBytes: 1024 },
+        { filename: "notes.md", path: ".stigmer/inputs/notes.md", sizeBytes: 12 },
       ],
     });
 
     expect(prompt).toContain("## Input Files");
     expect(prompt).toContain("`.stigmer/inputs/data.csv` (1024 bytes)");
-    expect(prompt).toContain("`.stigmer/inputs/notes.md`");
-    expect(prompt).not.toContain("null");
+    expect(prompt).toContain("`.stigmer/inputs/notes.md` (12 bytes)");
+  });
+
+  it("discloses a duplicate-renamed injected file's original name", () => {
+    const prompt = buildEnhancedSystemPrompt({
+      instructions: "Test",
+      provisionResults: [],
+      containerRoot: "",
+      skillsPromptSection: "",
+      workspaceFileRefs: [],
+      workspaceRoot: "/workspace",
+      injectedFiles: [
+        { filename: "report.pdf", path: ".stigmer/inputs/report.pdf", sizeBytes: 10 },
+        {
+          filename: "report-2.pdf",
+          path: ".stigmer/inputs/report-2.pdf",
+          sizeBytes: 20,
+          renamedFrom: "report.pdf",
+        },
+      ],
+    });
+
+    expect(prompt).toContain(
+      "`.stigmer/inputs/report-2.pdf` (20 bytes) (renamed from duplicate 'report.pdf')",
+    );
+    // The first file keeps a clean entry — no disclosure noise.
+    expect(prompt).toContain("`.stigmer/inputs/report.pdf` (10 bytes)\n");
   });
 
   it("produces a git repo description for git workspace entries", () => {
@@ -361,7 +390,7 @@ describe("buildEnhancedSystemPrompt", () => {
     const planFile = {
       filename: "plan.md",
       path: ".stigmer/inputs/plan.md",
-      size: 1024,
+      sizeBytes: 1024,
     };
 
     it("appends the implement-plan directive pointing at the injected plan", () => {

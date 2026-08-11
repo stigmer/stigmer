@@ -114,6 +114,59 @@ describe("resolveAttachments", () => {
     expect(readFileSync(join(platformDir, "inputs", "data.csv"), "utf-8")).toBe("a,b,c");
   });
 
+  it("uniquifies duplicate filenames on the storage branch — neither file's bytes are lost (issue #364)", async () => {
+    // Before the fix this branch had no collision check and the second write
+    // silently overwrote the first.
+    const { storage } = makeInMemoryArtifactStorage();
+    await storage.upload("attachments/01AAA/report.pdf", Buffer.from("first bytes"), "application/pdf");
+    await storage.upload("attachments/01BBB/report.pdf", Buffer.from("second bytes"), "application/pdf");
+
+    const result = await resolveAttachments(
+      [
+        makeAttachment({ filename: "report.pdf", storageKey: "attachments/01AAA/report.pdf" }),
+        makeAttachment({ filename: "report.pdf", storageKey: "attachments/01BBB/report.pdf" }),
+      ],
+      options({ storage }),
+    );
+
+    expect(result).toEqual([
+      { filename: "report.pdf", relativePath: ".stigmer/inputs/report.pdf" },
+      {
+        filename: "report-2.pdf",
+        relativePath: ".stigmer/inputs/report-2.pdf",
+        renamedFrom: "report.pdf",
+      },
+    ]);
+    expect(readFileSync(join(platformDir, "inputs", "report.pdf"), "utf-8")).toBe("first bytes");
+    expect(readFileSync(join(platformDir, "inputs", "report-2.pdf"), "utf-8")).toBe("second bytes");
+  });
+
+  it("uniquifies duplicate filenames across the local and storage branches (one shared taken-set)", async () => {
+    const srcPath = join(workspaceDir, "notes.md");
+    writeFileSync(srcPath, "local copy");
+    const { storage } = makeInMemoryArtifactStorage();
+    await storage.upload("attachments/01ABC/notes.md", Buffer.from("uploaded copy"), "text/markdown");
+
+    const result = await resolveAttachments(
+      [
+        makeAttachment({ filename: "notes.md", storageKey: "", localPath: srcPath }),
+        makeAttachment({ filename: "notes.md", storageKey: "attachments/01ABC/notes.md" }),
+      ],
+      options({ storage }),
+    );
+
+    expect(result).toEqual([
+      { filename: "notes.md", relativePath: ".stigmer/inputs/notes.md" },
+      {
+        filename: "notes-2.md",
+        relativePath: ".stigmer/inputs/notes-2.md",
+        renamedFrom: "notes.md",
+      },
+    ]);
+    expect(readFileSync(join(platformDir, "inputs", "notes.md"), "utf-8")).toBe("local copy");
+    expect(readFileSync(join(platformDir, "inputs", "notes-2.md"), "utf-8")).toBe("uploaded copy");
+  });
+
   it("ignores localPath in cloud mode and downloads by storage key", async () => {
     const { storage } = makeInMemoryArtifactStorage();
     await storage.upload("attachments/01ABC/plan.md", Buffer.from("from storage"), "text/markdown");

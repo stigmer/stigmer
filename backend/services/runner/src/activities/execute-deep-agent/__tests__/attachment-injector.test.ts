@@ -600,22 +600,95 @@ describe("injectAttachments", () => {
     expect(Buffer.compare(writtenBuffer, binaryContent)).toBe(0);
   });
 
-  it("detects mount path collision before any downloads", async () => {
+  it("uniquifies duplicate default-derived filenames instead of failing (issue #364)", async () => {
+    const contentA = Buffer.from("first");
+    const contentB = Buffer.from("second");
+    const storage = makeMockStorage();
+    await storage.upload("attachments/a/data.csv", contentA);
+    await storage.upload("attachments/b/data.csv", contentB);
+
+    const backend = mockWorkspaceBackend();
+
+    const result = await injectAttachments({
+      backend,
+      attachments: [
+        makeAttachment({ filename: "data.csv", storageKey: "attachments/a/data.csv" }),
+        makeAttachment({ filename: "data.csv", storageKey: "attachments/b/data.csv" }),
+      ],
+      storage,
+      isLocalMode: false,
+    });
+
+    // Both files land, both downloads run — the execution is never burned
+    // over a mechanically resolvable name.
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({
+      filename: "data.csv",
+      path: ".stigmer/inputs/data.csv",
+    });
+    expect(result[0].renamedFrom).toBeUndefined();
+    // The rename follows the platform's stem-2.ext semantics and carries the
+    // disclosure payload for the prompt.
+    expect(result[1]).toMatchObject({
+      filename: "data-2.csv",
+      path: ".stigmer/inputs/data-2.csv",
+      renamedFrom: "data.csv",
+    });
+    expect(backend.writeFileBuffer).toHaveBeenCalledWith(
+      ".stigmer/inputs/data.csv", contentA,
+    );
+    expect(backend.writeFileBuffer).toHaveBeenCalledWith(
+      ".stigmer/inputs/data-2.csv", contentB,
+    );
+  });
+
+  it("rejects two attachments explicitly pinning the same mountPath (a user contradiction)", async () => {
     const backend = mockWorkspaceBackend();
     const storage = makeMockStorage();
 
     await expect(injectAttachments({
       backend,
       attachments: [
-        makeAttachment({ filename: "data.csv", storageKey: "key1" }),
-        makeAttachment({ filename: "data.csv", storageKey: "key2" }),
+        makeAttachment({ filename: "a.csv", storageKey: "key1", mountPath: "inputs/data.csv" }),
+        makeAttachment({ filename: "b.csv", storageKey: "key2", mountPath: "inputs/data.csv" }),
       ],
       storage,
       isLocalMode: false,
     })).rejects.toThrow(/collides with/);
 
-    // Verify no downloads were attempted
+    // The contradiction is detected before any downloads
     expect(storage.download).not.toHaveBeenCalled();
+  });
+
+  it("default-derived names dodge an explicit mountPath already inside the inputs prefix", async () => {
+    const storage = makeMockStorage();
+    await storage.upload("attachments/a/pinned", Buffer.from("pinned"));
+    await storage.upload("attachments/b/report.pdf", Buffer.from("derived"));
+
+    const backend = mockWorkspaceBackend();
+
+    const result = await injectAttachments({
+      backend,
+      attachments: [
+        // Listed AFTER the default-derived attachment: explicit paths claim
+        // first regardless of order, so the default still dodges.
+        makeAttachment({ filename: "report.pdf", storageKey: "attachments/b/report.pdf" }),
+        makeAttachment({
+          filename: "report.pdf",
+          storageKey: "attachments/a/pinned",
+          mountPath: ".stigmer/inputs/report.pdf",
+        }),
+      ],
+      storage,
+      isLocalMode: false,
+    });
+
+    const byPath = new Map(result.map((f) => [f.path, f]));
+    expect(byPath.get(".stigmer/inputs/report.pdf")?.renamedFrom).toBeUndefined();
+    expect(byPath.get(".stigmer/inputs/report-2.pdf")).toMatchObject({
+      filename: "report-2.pdf",
+      renamedFrom: "report.pdf",
+    });
   });
 
   it("derives filename from storageKey when filename is empty", async () => {
@@ -662,7 +735,7 @@ describe("injectAttachments", () => {
     expect(result[0].path).toBe("workspace/input.csv");
   });
 
-  it("error message includes attachment filename and actionable suggestion", async () => {
+  it("explicit-collision error names both attachments and stays actionable", async () => {
     const backend = mockWorkspaceBackend();
     const storage = makeMockStorage();
 
@@ -670,8 +743,8 @@ describe("injectAttachments", () => {
       await injectAttachments({
         backend,
         attachments: [
-          makeAttachment({ filename: "first.csv" }),
-          makeAttachment({ filename: "first.csv", storageKey: "key2" }),
+          makeAttachment({ filename: "first.csv", mountPath: "inputs/shared.csv" }),
+          makeAttachment({ filename: "second.csv", storageKey: "key2", mountPath: "inputs/shared.csv" }),
         ],
         storage,
         isLocalMode: false,
@@ -680,7 +753,7 @@ describe("injectAttachments", () => {
     } catch (err) {
       expect(err).toBeInstanceOf(AttachmentInjectionError);
       const injErr = err as AttachmentInjectionError;
-      expect(injErr.attachmentFilename).toBe("first.csv");
+      expect(injErr.attachmentFilename).toBe("second.csv");
       expect(injErr.message).toContain("first.csv");
       expect(injErr.message).toContain("mountPath");
     }
@@ -858,6 +931,35 @@ describe("injectAttachments — vision selection", () => {
 
     expect(injected.vision).toBeUndefined();
     expect(injected.visionDegraded).toBe("type_mismatch");
+  });
+
+  it("labels a duplicate-renamed image's vision payload with the on-disk name", async () => {
+    // Coherence pin: the prompt lists the renamed path and the vision
+    // disclosure lists image filenames — if the offer used the original
+    // attachment.filename, the agent would see two images with one
+    // indistinguishable name.
+    const backend = mockWorkspaceBackend();
+    const storage = makeMockStorage();
+    await storage.upload("attachments/a/photo.png", PNG_BYTES);
+    await storage.upload("attachments/b/photo.png", PNG_BYTES);
+
+    const injected = await injectAttachments({
+      backend,
+      attachments: [
+        makeAttachment({ filename: "photo.png", storageKey: "attachments/a/photo.png", contentType: "image/png" }),
+        makeAttachment({ filename: "photo.png", storageKey: "attachments/b/photo.png", contentType: "image/png" }),
+      ],
+      storage,
+      isLocalMode: false,
+      visionBudget: new VisionBudget(DEEP_AGENT_VISION_PROFILE),
+    });
+
+    expect(injected[0].vision?.filename).toBe("photo.png");
+    expect(injected[1]).toMatchObject({
+      filename: "photo-2.png",
+      renamedFrom: "photo.png",
+    });
+    expect(injected[1].vision?.filename).toBe("photo-2.png");
   });
 
   it("never offers an extract archive to the budget — extracted files carry no vision fields", async () => {

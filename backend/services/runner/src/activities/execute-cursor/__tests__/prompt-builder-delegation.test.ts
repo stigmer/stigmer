@@ -70,7 +70,7 @@ describe("buildEnhancedPrompt delegation integration", () => {
     skills: [],
     subAgents: [],
     workspaceFileRefs: [],
-    attachmentPaths: [],
+    attachments: [],
   };
 
   it("includes exploration guidance when a workspace dir is present", () => {

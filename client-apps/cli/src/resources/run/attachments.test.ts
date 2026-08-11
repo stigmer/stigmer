@@ -110,4 +110,26 @@ describe("directory zipping", () => {
     writeFileSync(join(empty, ".hidden"), "x"); // only hidden -> nothing attachable
     await expect(processAttachments(uploader, [empty], [])).rejects.toThrow(/no attachable files/);
   });
+
+  it("uniquifies duplicate directory basenames so mount paths never contradict (issue #364)", async () => {
+    // Two dirs named `data` from different parents would otherwise derive the
+    // SAME explicit mount path, which the runner rejects as a contradiction.
+    const dirA = join(dir, "a", "data");
+    const dirB = join(dir, "b", "data");
+    mkdirSync(dirA, { recursive: true });
+    mkdirSync(dirB, { recursive: true });
+    writeFileSync(join(dirA, "one.txt"), "1");
+    writeFileSync(join(dirB, "two.txt"), "2");
+
+    const progress: string[] = [];
+    const result = await processAttachments(uploader, [dirA, dirB], [], (l) => progress.push(l));
+
+    expect(result.attachments).toHaveLength(2);
+    expect(result.attachments[0].filename).toBe("data.zip");
+    expect(result.attachments[0].mountPath).toBe("inputs/data/");
+    expect(result.attachments[1].filename).toBe("data-2.zip");
+    expect(result.attachments[1].mountPath).toBe("inputs/data-2/");
+    // The rename is disclosed to the user on the progress sink.
+    expect(progress.some((l) => l.includes("'data/'") && l.includes("'data-2/'"))).toBe(true);
+  });
 });
