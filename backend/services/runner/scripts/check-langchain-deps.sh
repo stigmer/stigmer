@@ -66,5 +66,73 @@ else
   echo "WARN: Could not determine @langchain/core versions (is npm ci done?)"
 fi
 
+# --- 3. Check @anthropic-ai/sdk copies (known, contained dual) ---
+#
+# The tree deliberately carries TWO copies of @anthropic-ai/sdk:
+#   - @langchain/anthropic -> ^0.95.x  (hoisted; serves the public-API path)
+#   - @anthropic-ai/vertex-sdk -> >=0.115 (nested; serves only the Vertex
+#     backend client constructed via ChatAnthropic's createClient factory)
+# The copies never exchange class instances (LangChain consumes stream events
+# structurally and classifies errors by HTTP status, not instanceof), and the
+# vertex-seam characterization test pins the cross-version combination in CI.
+#
+# Collapse condition: when the LangChain stack bump lands (@langchain/core
+# 1.2.x + @langchain/anthropic 1.5.x, which pins @anthropic-ai/sdk ^0.115),
+# npm dedupes to a single copy — tighten this check to single-copy then.
+# Any dependent other than these two, or a third distinct version, is drift
+# and fails the check.
+
+echo ""
+ANTHROPIC_SDK_REPORT=$(npm ls @anthropic-ai/sdk --all --json 2>/dev/null \
+  | node -e "
+    const json = require('fs').readFileSync('/dev/stdin', 'utf8');
+    const tree = JSON.parse(json);
+    const ALLOWED_PARENTS = new Set(['@langchain/anthropic', '@anthropic-ai/vertex-sdk']);
+    const found = new Map(); // parent -> Set<version>
+    function walk(node, parentName) {
+      if (!node || !node.dependencies) return;
+      for (const [name, dep] of Object.entries(node.dependencies)) {
+        if (name === '@anthropic-ai/sdk' && dep.version) {
+          if (!found.has(parentName)) found.set(parentName, new Set());
+          found.get(parentName).add(dep.version);
+        }
+        walk(dep, name);
+      }
+    }
+    walk(tree, tree.name ?? '(root)');
+    const versions = new Set([...found.values()].flatMap((s) => [...s]));
+    const badParents = [...found.keys()].filter((p) => !ALLOWED_PARENTS.has(p));
+    for (const [parent, vs] of found) {
+      console.log(\`  \${parent} -> \${[...vs].join(', ')}\`);
+    }
+    if (badParents.length > 0) {
+      console.log(\`FAIL:unexpected dependents: \${badParents.join(', ')}\`);
+      process.exit(0);
+    }
+    if (versions.size > 2) {
+      console.log(\`FAIL:more than two distinct versions: \${[...versions].join(', ')}\`);
+      process.exit(0);
+    }
+    console.log('PASS');
+  " 2>/dev/null)
+
+echo "@anthropic-ai/sdk copies:"
+echo "$ANTHROPIC_SDK_REPORT" | grep -v '^PASS$' | grep -v '^FAIL:' || true
+
+if echo "$ANTHROPIC_SDK_REPORT" | grep -q '^FAIL:'; then
+  echo ""
+  echo "FAIL: @anthropic-ai/sdk copy check: $(echo "$ANTHROPIC_SDK_REPORT" | grep '^FAIL:' | sed 's/^FAIL://')"
+  echo "Only @langchain/anthropic (0.95.x) and @anthropic-ai/vertex-sdk (>=0.115)"
+  echo "may pull @anthropic-ai/sdk. See the comment above this check for the"
+  echo "rationale and the collapse condition."
+  exit 1
+fi
+
+if echo "$ANTHROPIC_SDK_REPORT" | grep -q '^PASS$'; then
+  echo "OK: @anthropic-ai/sdk copies match the known langchain + vertex-sdk pair"
+else
+  echo "WARN: Could not determine @anthropic-ai/sdk copies (is npm ci done?)"
+fi
+
 echo ""
 echo "=== Dependency check passed ==="
