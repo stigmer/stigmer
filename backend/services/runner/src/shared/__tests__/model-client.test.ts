@@ -53,6 +53,9 @@ describe("buildChatModel", () => {
     vi.clearAllMocks();
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.OPENAI_API_KEY;
+    delete process.env.STIGMER_ANTHROPIC_BACKEND;
+    delete process.env.STIGMER_OPENAI_BACKEND;
+    delete process.env.CLOUD_ML_REGION;
   });
 
   afterEach(() => {
@@ -158,5 +161,102 @@ describe("buildChatModel", () => {
 
     expect(provider).toBe("anthropic");
     expect(apiModelId).toBe("claude-haiku-4.5");
+  });
+
+  // ─── Provider backends (STIGMER_ANTHROPIC_BACKEND) ─────────────────────────
+
+  describe("vertex backend", () => {
+    beforeEach(() => {
+      process.env.STIGMER_ANTHROPIC_BACKEND = "vertex";
+      process.env.CLOUD_ML_REGION = "asia-south1";
+    });
+
+    it("holds the canonical-id invariant: translated id on the wire, canonical id returned", async () => {
+      mockRegistryResponse([
+        { id: "claude-sonnet-4.5", apiModelId: "claude-sonnet-4-5-20250929", provider: "anthropic" },
+      ]);
+
+      const { apiModelId } = await buildChatModel({ modelName: "claude-sonnet-4.5" });
+
+      // Pricing and usage metrics key on the canonical id; only the
+      // constructor (the wire) sees the Vertex `@date` form.
+      expect(apiModelId).toBe("claude-sonnet-4-5-20250929");
+      const args = lastAnthropicArgs();
+      expect(args.model).toBe("claude-sonnet-4-5@20250929");
+      expect(typeof args.createClient).toBe("function");
+    });
+
+    it("passes dateless 4.6-generation ids to the wire untranslated", async () => {
+      mockRegistryResponse([
+        { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({ modelName: "claude-sonnet-4.6" });
+
+      expect(lastAnthropicArgs().model).toBe("claude-sonnet-4-6");
+    });
+
+    it("constructs without ANTHROPIC_API_KEY (auth is Google's, not Anthropic's)", async () => {
+      mockRegistryResponse([
+        { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({ modelName: "claude-sonnet-4.6" });
+
+      expect(lastAnthropicArgs().apiKey).toBe("");
+    });
+
+    it("yields to the proxy: a proxied call never consults the backend var", async () => {
+      mockRegistryResponse([
+        { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({
+        modelName: "claude-sonnet-4.6",
+        proxyEndpoint: "https://api.stigmer.ai",
+        stigmerToken: "tok",
+      });
+
+      const args = lastAnthropicArgs();
+      expect(args).not.toHaveProperty("createClient");
+      expect(args.model).toBe("claude-sonnet-4-6");
+      expect(args).toMatchObject({
+        clientOptions: { baseURL: "https://api.stigmer.ai/v1/proxy/llm/anthropic" },
+      });
+    });
+
+    it("leaves the OpenAI path untouched by the Anthropic backend var", async () => {
+      mockRegistryResponse([
+        { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai" },
+      ]);
+
+      await buildChatModel({ modelName: "gpt-4.1" });
+
+      const args = mockOpenAICtor.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+      expect(args).not.toHaveProperty("createClient");
+      expect(mockAnthropicCtor).not.toHaveBeenCalled();
+    });
+
+    it("fails at dispatch with the region message when CLOUD_ML_REGION is missing", async () => {
+      // Defense in depth for paths that bypass the factories' preflight.
+      delete process.env.CLOUD_ML_REGION;
+      mockRegistryResponse([
+        { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic" },
+      ]);
+
+      await expect(buildChatModel({ modelName: "claude-sonnet-4.6" }))
+        .rejects.toThrow(/CLOUD_ML_REGION/);
+      expect(mockAnthropicCtor).not.toHaveBeenCalled();
+    });
+  });
+
+  it("throws the parser's message on an invalid backend value (never a silent public fallback)", async () => {
+    process.env.STIGMER_ANTHROPIC_BACKEND = "verteks";
+    mockRegistryResponse([
+      { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic" },
+    ]);
+
+    await expect(buildChatModel({ modelName: "claude-sonnet-4.6" }))
+      .rejects.toThrow(/STIGMER_ANTHROPIC_BACKEND="verteks" is not a supported backend/);
   });
 });

@@ -20,6 +20,7 @@ import type { Config } from "./config.js";
 import { DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS, DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS, DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./config.js";
 import type { WorkerActivities } from "./worker.js";
 import { resolveRunnerBootstrap } from "./bootstrap.js";
+import { assertLlmBackendsPreflight } from "./preflight.js";
 import { markBoot, emitRunnerBootTiming } from "./shared/cold-start-timing.js";
 
 /**
@@ -196,6 +197,8 @@ export async function createStigmerRunner(
   registerStigmerDeepagentsProfiles();
 
   const baseConfig = mapOptionsToConfig(options);
+
+  assertLlmBackendsPreflight(baseConfig.proxyEndpoint);
 
   // Install the Cursor SDK interceptors BEFORE resolving Temporal coordinates.
   // Coordinate discovery dials the control plane via StigmerClient, which loads

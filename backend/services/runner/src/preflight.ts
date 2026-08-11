@@ -21,7 +21,14 @@
  * The gate is unconditional (not checkpointer-type-dependent): the eager
  * import chain needs `node:sqlite` to LOAD regardless of configuration, so
  * the gate mirrors the actual load-time requirement.
+ *
+ * This module also hosts {@link assertLlmBackendsPreflight}, the
+ * deployment-config gate the runner factories run at construction. The
+ * llm-backend import below is a pure, dependency-free module, so it does
+ * not compromise the load-order guarantees above.
  */
+
+import { preflightLlmBackends } from "./shared/llm-backend.js";
 
 /**
  * True when this Node binary provides the built-in `node:sqlite`.
@@ -56,4 +63,42 @@ export function preflightNodeRuntime(
     `module required by the runner's durable checkpointer. ` +
     `Use Node >= 22.13 (22.x line) or >= 23.4 (23.x and later).`
   );
+}
+
+/**
+ * Validate LLM backend configuration (STIGMER_ANTHROPIC_BACKEND /
+ * STIGMER_OPENAI_BACKEND) at runner construction, throwing an actionable
+ * operator message on fatal misconfiguration and logging precedence
+ * warnings.
+ *
+ * Called from the runner factories rather than main.ts because
+ * @stigmer/runner is a public library: in-process embedders never execute
+ * main.ts, while all of main.ts's process modes construct through the
+ * factories. A library must never process.exit, so this throws — manager
+ * mode's factory catch converts it to a fatal IPC error for the desktop
+ * host, static/pool modes exit through main()'s fatal handler, and
+ * embedders get a rejected promise.
+ *
+ * Backend misconfiguration is deployment-static; failing here means a
+ * broken deployment refuses to accept work instead of failing every
+ * execution mid-flight (the createClient factories construct lazily on
+ * first request, far too late for a good operator experience).
+ *
+ * @param proxyEndpoint The effective proxy endpoint. Factories receive it
+ *   via options (env-derived in main.ts flows, caller-supplied for
+ *   embedders), so it is threaded explicitly instead of re-read from env —
+ *   an options-supplied proxy must downgrade backend vars to warnings the
+ *   same way STIGMER_PROXY_ENDPOINT does.
+ */
+export function assertLlmBackendsPreflight(proxyEndpoint?: string | null): void {
+  const env = proxyEndpoint
+    ? { ...process.env, STIGMER_PROXY_ENDPOINT: proxyEndpoint }
+    : process.env;
+  const { error, warnings } = preflightLlmBackends(env);
+  for (const warning of warnings) {
+    console.warn(`[runner] ${warning}`);
+  }
+  if (error !== null) {
+    throw new Error(error);
+  }
 }

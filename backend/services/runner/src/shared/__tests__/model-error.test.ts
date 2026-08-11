@@ -11,7 +11,7 @@
  * a non-model error.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   PLATFORM_CAPACITY_SENTINEL,
   classifyModelCallError,
@@ -208,6 +208,102 @@ describe("classifyModelCallError — connection heuristics and no-signal", () =>
   it("returns undefined for errors with no model-call signal", () => {
     expect(classifyModelCallError(new Error("ENOSPC: disk full"), { proxyMode: true })).toBeUndefined();
     expect(classifyModelCallError("not even an error", { proxyMode: false })).toBeUndefined();
+  });
+});
+
+describe("classifyModelCallError — vertex backend", () => {
+  // The Vertex arms activate only for direct-mode Anthropic calls under
+  // STIGMER_ANTHROPIC_BACKEND=vertex (resolved from env, deployment-static).
+  // Every other test in this file runs with the var unset and pins that the
+  // public wordings are untouched.
+  function stubVertexEnv() {
+    vi.stubEnv("STIGMER_ANTHROPIC_BACKEND", "vertex");
+    vi.stubEnv("CLOUD_ML_REGION", "asia-south1");
+  }
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  const vertexCtx = {
+    proxyMode: false,
+    provider: "anthropic" as const,
+    modelId: "claude-sonnet-4-6",
+  };
+
+  it("classifies google-auth credential failures as non-retryable with the GCP fix", () => {
+    stubVertexEnv();
+    for (const raw of [
+      "Could not load the default credentials. Browse to https://cloud.google.com/docs/authentication/getting-started for more information.",
+      "Unable to detect a Project Id in the current environment.",
+      "No projectId was given and it could not be resolved from credentials. The client should be instantiated with the `projectId` option or the `ANTHROPIC_VERTEX_PROJECT_ID` environment variable should be set.",
+      "invalid_grant: Invalid JWT Signature.",
+    ]) {
+      const classified = classifyModelCallError(middlewareWrap(new Error(raw)), vertexCtx);
+      expect(classified?.code, raw).toBe("LLM_BACKEND_CREDENTIALS");
+      expect(classified?.retryable, raw).toBe(false);
+      expect(classified?.message, raw).toContain("GOOGLE_APPLICATION_CREDENTIALS");
+    }
+  });
+
+  it("does NOT classify credential prose when the backend is not vertex (no relabeling drift)", () => {
+    // Same message, backend unset: google-auth prose can only mean vertex —
+    // without it, there is no positive model-call signal, so no classification.
+    const classified = classifyModelCallError(
+      new Error("Could not load the default credentials"),
+      vertexCtx,
+    );
+    expect(classified).toBeUndefined();
+  });
+
+  it("words 401 around Google credentials, not an API key", () => {
+    stubVertexEnv();
+    const classified = classifyModelCallError(sdkError(401, "unauthorized"), vertexCtx);
+    expect(classified?.code).toBe("LLM_AUTHENTICATION_ERROR");
+    expect(classified?.message).toContain("Google rejected this Vertex AI call");
+    expect(classified?.message).not.toContain("API key");
+  });
+
+  it("words 403 around the service account's Vertex AI role", () => {
+    stubVertexEnv();
+    const classified = classifyModelCallError(sdkError(403, "forbidden"), vertexCtx);
+    expect(classified?.code).toBe("LLM_PERMISSION_DENIED");
+    expect(classified?.message).toContain("Vertex AI User");
+    expect(classified?.message).toContain("aiplatform.endpoints.predict");
+  });
+
+  it("words 404 around Model Garden enablement and the configured region", () => {
+    stubVertexEnv();
+    const classified = classifyModelCallError(sdkError(404, "not found"), vertexCtx);
+    expect(classified?.code).toBe("LLM_MODEL_NOT_FOUND");
+    expect(classified?.message).toContain("Model Garden");
+    expect(classified?.message).toContain('region "asia-south1"');
+  });
+
+  it("stays inert in proxy mode even with the backend var set (proxy owns routing)", () => {
+    stubVertexEnv();
+    const classified = classifyModelCallError(
+      sdkError(401, "unauthorized"),
+      { proxyMode: true, provider: "anthropic" },
+    );
+    expect(classified?.message).toContain("Stigmer platform");
+    expect(classified?.message).not.toContain("Vertex");
+  });
+
+  it("stays inert for OpenAI failures with the Anthropic backend var set", () => {
+    stubVertexEnv();
+    const classified = classifyModelCallError(
+      sdkError(404, "not found"),
+      { proxyMode: false, provider: "openai", modelId: "gpt-4.1" },
+    );
+    expect(classified?.message).not.toContain("Vertex");
+  });
+
+  it("never throws on an invalid backend value — classification reads it as public", () => {
+    vi.stubEnv("STIGMER_ANTHROPIC_BACKEND", "verteks");
+    const classified = classifyModelCallError(sdkError(401, "unauthorized"), vertexCtx);
+    expect(classified?.code).toBe("LLM_AUTHENTICATION_ERROR");
+    expect(classified?.message).toContain("API key");
   });
 });
 

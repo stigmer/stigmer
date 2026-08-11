@@ -1,0 +1,123 @@
+---
+title: Run models in your own cloud
+description:
+  Serve a provider's models from your own cloud account instead of the
+  provider's public API. Configure the GCP Vertex AI backend for Claude models
+  with two environment variables on the runner.
+---
+
+By default, a runner in direct mode calls each model provider's public API —
+api.anthropic.com for Claude, api.openai.com for GPT. A **backend** changes
+where those models are served. Point the runner at your own GCP project and
+every Claude call runs inside your cloud account's compliance boundary: your
+region, your contracts, your audit trail. Nothing else changes — Agents, model
+names, usage reporting, and the console all behave exactly as before.
+
+Backends are a deployment decision, set through environment variables on the
+runner. Agents stay portable: the same Agent runs unchanged on a laptop against
+the public API and on a production runner against Vertex AI.
+
+| Provider  | Backends                                          |
+| --------- | ------------------------------------------------- |
+| Anthropic | `public` (default), `vertex` — Bedrock is planned |
+| OpenAI    | `public` (default) — Azure OpenAI is planned      |
+
+<Callout type="info">
+  Backends apply to runners in **direct mode** — runners you operate with your
+  own provider credentials. On Stigmer Cloud, the platform proxy owns provider
+  routing, and backend variables are ignored (the runner logs a warning at
+  startup if you set one).
+</Callout>
+
+## Serve Claude from GCP Vertex AI
+
+<Steps>
+<Step>
+
+## Enable the Claude models in your GCP project
+
+In the
+[Vertex AI Model Garden](https://console.cloud.google.com/vertex-ai/model-garden),
+find the Claude models you plan to use and enable them for your project.
+Anthropic models must be enabled explicitly, and availability varies by region —
+confirm your region serves the models you need.
+
+</Step>
+<Step>
+
+## Give the runner a Google identity
+
+The runner authenticates with Google's standard
+[Application Default Credentials](https://cloud.google.com/docs/authentication/provide-credentials-adc).
+Any of these work:
+
+- **Workload identity** (recommended on GKE) — no keys to manage.
+- **A service-account key file** — set `GOOGLE_APPLICATION_CREDENTIALS` to its
+  path.
+- **Your own gcloud login** for local testing —
+  `gcloud auth application-default login`.
+
+Whichever identity you use, grant it the **Vertex AI User** role
+(`roles/aiplatform.user`) in the target project.
+
+</Step>
+<Step>
+
+## Configure and start the runner
+
+Two variables select the backend and the region. Anthropic API keys are not
+needed — authentication is Google's:
+
+```bash
+# Stigmer-owned decision: which backend serves Anthropic models.
+export STIGMER_ANTHROPIC_BACKEND=vertex
+
+# Standard GCP conventions, read natively by the Vertex SDK.
+export CLOUD_ML_REGION=asia-south1      # or "global" for the global endpoint
+# export ANTHROPIC_VERTEX_PROJECT_ID=my-project   # only if your credentials
+                                                  # don't carry a project id
+
+stigmer up
+```
+
+The runner validates this configuration at startup. If the backend value is
+wrong or the region is missing, it refuses to start and prints exactly what to
+fix — a misconfigured deployment never accepts work it cannot serve.
+
+</Step>
+<Step>
+
+## Verify with a Session
+
+Run any Agent that uses a Claude model. Usage and cost reporting key on the same
+model names as before — you can confirm the traffic is reaching your project in
+the GCP console under Vertex AI monitoring.
+
+</Step>
+</Steps>
+
+## How model names map to Vertex
+
+You never configure Vertex model ids. The runner translates each canonical model
+id to Vertex's form on the wire (for example, `claude-sonnet-4-5-20250929`
+becomes `claude-sonnet-4-5@20250929`; dateless ids like `claude-sonnet-4-6` are
+identical on both). Usage metrics and pricing always report the canonical id.
+
+## Troubleshooting
+
+Every failure names the variable or permission to fix. The common ones:
+
+| Symptom                                          | Fix                                                                                                      |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| Runner refuses to start, names `CLOUD_ML_REGION` | Set the region (e.g. `asia-south1`, or `global`).                                                        |
+| "could not acquire Google credentials"           | Set `GOOGLE_APPLICATION_CREDENTIALS`, or run on a GCP identity (workload identity / metadata server).    |
+| HTTP 403 from Vertex AI                          | Grant the runner's identity the **Vertex AI User** role in the target project.                           |
+| Model not found (HTTP 404)                       | Enable the model in the Model Garden for your project, and confirm it is available in `CLOUD_ML_REGION`. |
+
+## What's next
+
+- **Understand runners** — the [Runners concept page](/docs/concepts/runners)
+  explains the runner lifecycle and the three execution modes.
+- **Cursor harness** — backends apply where the runner calls models itself (the
+  native harness); the [Cursor harness](/docs/guides/runners/cursor-harness) has
+  its own credential model.

@@ -488,6 +488,14 @@ pages:
       pin a Session to it.
     medium: none
 
+  guides/runners/model-backends:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Serve a provider's models from your own cloud account (GCP Vertex AI for
+      Claude) by setting backend env vars on a direct-mode runner.
+    medium: none
+
   guides/runners/ipc-protocol:
     fate: keep
     diataxis: reference

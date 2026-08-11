@@ -32,6 +32,7 @@ import { markBoot } from "./shared/cold-start-timing.js";
 import type { WorkerActivities } from "./worker.js";
 import { resolveWorkflowSource, OTEL_WORKFLOW_INTERCEPTOR_MODULE } from "./workflow-source.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
+import { assertLlmBackendsPreflight } from "./preflight.js";
 import { createRunnerTokenCoordinator } from "./runner-token-coordinator.js";
 // Per-task-queue in-flight activity tracking lives in ./in-flight.ts so the
 // activity interceptor (no manager-closure handle) and unit tests can reach it.
@@ -236,6 +237,8 @@ export async function createStigmerRunnerManager(
   // token, which is exactly what the client would fall back to anyway.
   const runnerTokenRef = { current: options.stigmerToken ?? null };
   const baseConfig = mapManagerOptionsToConfig(options, tokenRef, runnerTokenRef);
+
+  assertLlmBackendsPreflight(baseConfig.proxyEndpoint);
 
   // Install the Cursor SDK interceptors BEFORE resolving Temporal coordinates.
   // Coordinate discovery dials the control plane via StigmerClient, which loads

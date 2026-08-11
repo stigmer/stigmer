@@ -26,6 +26,7 @@
  */
 
 import type { LlmProvider } from "./llm-proxy.js";
+import { parseAnthropicBackend, BACKEND_DOC_URL } from "./llm-backend.js";
 
 /**
  * Machine-readable code the cloud proxy embeds in rewritten platform-fault
@@ -96,6 +97,7 @@ export function classifyModelCallError(
 ): ClassifiedModelError | undefined {
   const root = unwrapModelError(err);
   const message = root instanceof Error ? root.message : String(root);
+  const vertex = isVertexDirectCall(ctx);
 
   // 1. Platform sentinel — before status mapping (see module doc).
   if (message.includes(PLATFORM_CAPACITY_SENTINEL)) {
@@ -103,6 +105,24 @@ export function classifyModelCallError(
       code: "LLM_PLATFORM_CAPACITY",
       retryable: false,
       message: platformCapacityMessage(ctx),
+    };
+  }
+
+  // 1b. Vertex credential acquisition — also before status mapping: these
+  //     failures come from google-auth (thrown while adapting the request,
+  //     usually with no HTTP status) and won't self-heal on retry. Raw, they
+  //     read like library internals ("Could not load the default
+  //     credentials"); the operator needs to hear "fix your GCP credentials".
+  if (vertex && isGoogleCredentialMessage(message)) {
+    return {
+      code: "LLM_BACKEND_CREDENTIALS",
+      retryable: false,
+      message:
+        `The vertex backend could not acquire Google credentials for ${modelLabel(ctx)}. ` +
+        `Set GOOGLE_APPLICATION_CREDENTIALS to a service-account key, or run on a GCP ` +
+        `identity (workload identity / metadata server). ANTHROPIC_VERTEX_PROJECT_ID is ` +
+        `only needed when the credentials don't carry a project. See ${BACKEND_DOC_URL}. ` +
+        `Underlying error: ${message}`,
     };
   }
 
@@ -135,7 +155,7 @@ export function classifyModelCallError(
     ? (root as { status: number }).status
     : undefined;
   if (status !== undefined) {
-    return classifyByStatus(status, message, ctx);
+    return classifyByStatus(status, message, ctx, vertex);
   }
 
   // 4. Connection/timeout heuristics on the root error's class name. Strict
@@ -175,6 +195,7 @@ function classifyByStatus(
   status: number,
   rawMessage: string,
   ctx: ModelErrorContext,
+  vertex: boolean,
 ): ClassifiedModelError {
   const context = modelLabel(ctx);
 
@@ -186,7 +207,13 @@ function classifyByStatus(
         message: ctx.proxyMode
           ? `The Stigmer platform rejected this model call (authentication, HTTP 401) for ${context}. ` +
             `Your session token may have expired — retry the execution, and contact support if it persists.`
-          : `Authentication failed for ${context}. Check that your API key is valid and not expired.`,
+          : vertex
+            // On Vertex the credential is a Google identity — "check your API
+            // key" would send the operator hunting for a key that isn't in play.
+            ? `Google rejected this Vertex AI call (authentication, HTTP 401) for ${context}. ` +
+              `The credentials are expired or not valid for this project — check ` +
+              `GOOGLE_APPLICATION_CREDENTIALS or the runner's GCP identity. See ${BACKEND_DOC_URL}.`
+            : `Authentication failed for ${context}. Check that your API key is valid and not expired.`,
       };
     case 403:
       return {
@@ -195,13 +222,23 @@ function classifyByStatus(
         message: ctx.proxyMode
           ? `The Stigmer platform denied this model call (authorization, HTTP 403) for ${context}. ` +
             `Verify this execution is permitted to use the model, and contact support if it persists.`
-          : `Access denied for ${context}. Verify that your API key has permission to use this model.`,
+          : vertex
+            ? `Vertex AI denied this call (HTTP 403) for ${context}. Grant the runner's ` +
+              `service account the "Vertex AI User" role (aiplatform.endpoints.predict) ` +
+              `in the target project. See ${BACKEND_DOC_URL}.`
+            : `Access denied for ${context}. Verify that your API key has permission to use this model.`,
       };
     case 404:
       return {
         code: "LLM_MODEL_NOT_FOUND",
         retryable: false,
-        message: `Model not found: ${context}. Verify the model name is correct and available in your account.`,
+        // The most common Vertex setup mistake: Claude models must be enabled
+        // per project in Model Garden, and availability varies by region.
+        message: vertex
+          ? `Model not found on Vertex AI: ${context}. Enable this Claude model for your ` +
+            `project in the Vertex AI Model Garden, and confirm it is available in ` +
+            `${describeVertexRegion()} — availability varies by region. See ${BACKEND_DOC_URL}.`
+          : `Model not found: ${context}. Verify the model name is correct and available in your account.`,
       };
     case 400:
       return {
@@ -258,6 +295,45 @@ export function describeExecutionError(
     errorType: root instanceof Error ? root.constructor.name : "UnknownError",
     errorMessage: root instanceof Error ? root.message : String(root),
   };
+}
+
+/**
+ * True when this failure came from a direct-mode Anthropic call served by
+ * the vertex backend — the only condition under which the Vertex-specific
+ * arms may speak. The backend is resolved from env here (deployment-static,
+ * like the API keys model-client reads) rather than threaded through every
+ * activity's ModelErrorContext; an invalid var value reads as public, since
+ * classification must never throw and invalid values are already fatal at
+ * the factories' preflight and at model construction.
+ */
+function isVertexDirectCall(ctx: ModelErrorContext): boolean {
+  if (ctx.proxyMode || ctx.provider !== "anthropic") return false;
+  const parsed = parseAnthropicBackend();
+  return parsed.ok && parsed.backend === "vertex";
+}
+
+/**
+ * Google credential-acquisition prose, matched against the raw message.
+ * Narrow by design (mirrors isProviderBillingMessage): pinned to
+ * google-auth-library's ADC failure, its project-detection failure, the
+ * Vertex SDK's own projectId error, and OAuth's invalid_grant (expired or
+ * revoked service-account key). A miss falls through to status
+ * classification — never worse than the raw error.
+ */
+function isGoogleCredentialMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("could not load the default credentials")
+    || lower.includes("unable to detect a project id")
+    || lower.includes("no projectid was given")
+    || lower.includes("invalid_grant")
+  );
+}
+
+/** "region {value}" when CLOUD_ML_REGION is set, else a pointer to the var. */
+function describeVertexRegion(): string {
+  const region = process.env.CLOUD_ML_REGION?.trim();
+  return region ? `region "${region}"` : "your CLOUD_ML_REGION";
 }
 
 /**
