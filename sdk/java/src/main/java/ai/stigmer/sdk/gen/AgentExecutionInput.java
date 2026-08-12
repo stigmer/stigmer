@@ -580,7 +580,7 @@ public final class AgentExecutionInput {
                 builder.setInteractionMode(this.interactionMode);
             }
             if (this.structuredOutputSchema != null) {
-                builder.setStructuredOutputSchema(ProtoConvert.mapToStruct(this.structuredOutputSchema));
+                builder.setStructuredOutputSchema(ProtoConvert.mapToStruct(this.structuredOutputSchema, "structuredOutputSchema"));
             }
             builder.setBuildFromPlan(this.buildFromPlan);
             if (this.approvalMode != null) {

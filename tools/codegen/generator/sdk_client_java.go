@@ -910,24 +910,49 @@ func generateJavaProtoConvert(outputDir string) error {
 	imports.add("com.google.protobuf.NullValue")
 	imports.add("com.google.protobuf.Struct")
 	imports.add("com.google.protobuf.Value")
+	imports.add("io.grpc.Status")
 
 	var body bytes.Buffer
-	body.WriteString(`final class ProtoConvert {
+	body.WriteString(`// Struct/Value conversion for the generated Input types.
+//
+// objectToValue accepts only values with an exact protobuf Struct
+// representation: String, Number, Boolean, String-keyed Map, Iterable,
+// array, and null. Anything else used to be silently coerced to its
+// String.valueOf — a POJO in a task config arrived on the wire as
+// "com.example.Outcome@1a2b3c4d" with no failure until a human
+// inspected the degraded resource (stigmer/stigmer#448; the Go twin of
+// the class was #342). Unsupported values now throw StigmerException
+// with INVALID_ARGUMENT naming the offending field path and type: a
+// value the SDK refuses client-side surfaces exactly like a value the
+// server would have refused.
+//
+// No lossy guessing: enums, java.time types, and POJOs are refused
+// rather than coerced — callers convert explicitly (e.g. name() for an
+// enum, toString() for an Instant). A JSON dependency for POJO
+// normalization was deliberately rejected to keep the published SDK
+// dependency-free; see #448 for the contract discussion.
+final class ProtoConvert {
     private ProtoConvert() {}
 
-    static Struct mapToStruct(java.util.Map<String, Object> map) {
+    static Struct mapToStruct(java.util.Map<?, ?> map, String path) {
         if (map == null) {
             return Struct.getDefaultInstance();
         }
         Struct.Builder builder = Struct.newBuilder();
-        for (java.util.Map.Entry<String, Object> entry : map.entrySet()) {
-            builder.putFields(entry.getKey(), objectToValue(entry.getValue()));
+        for (java.util.Map.Entry<?, ?> entry : map.entrySet()) {
+            Object key = entry.getKey();
+            if (!(key instanceof String)) {
+                throw invalidValue(path, "map key "
+                    + (key == null ? "null" : "of type " + key.getClass().getName())
+                    + " (Struct keys must be String)");
+            }
+            builder.putFields((String) key,
+                objectToValue(entry.getValue(), path + "[\"" + key + "\"]"));
         }
         return builder.build();
     }
 
-    @SuppressWarnings("unchecked")
-    static Value objectToValue(Object obj) {
+    static Value objectToValue(Object obj, String path) {
         if (obj == null) {
             return Value.newBuilder().setNullValue(NullValue.NULL_VALUE).build();
         }
@@ -942,16 +967,37 @@ func generateJavaProtoConvert(outputDir string) error {
         }
         if (obj instanceof java.util.Map) {
             return Value.newBuilder().setStructValue(
-                mapToStruct((java.util.Map<String, Object>) obj)).build();
+                mapToStruct((java.util.Map<?, ?>) obj, path)).build();
         }
         if (obj instanceof Iterable) {
             com.google.protobuf.ListValue.Builder list = com.google.protobuf.ListValue.newBuilder();
+            int idx = 0;
             for (Object item : (Iterable<?>) obj) {
-                list.addValues(objectToValue(item));
+                list.addValues(objectToValue(item, path + "[" + idx + "]"));
+                idx++;
             }
             return Value.newBuilder().setListValue(list.build()).build();
         }
-        return Value.newBuilder().setStringValue(String.valueOf(obj)).build();
+        if (obj.getClass().isArray()) {
+            com.google.protobuf.ListValue.Builder list = com.google.protobuf.ListValue.newBuilder();
+            int length = java.lang.reflect.Array.getLength(obj);
+            for (int idx = 0; idx < length; idx++) {
+                list.addValues(objectToValue(
+                    java.lang.reflect.Array.get(obj, idx), path + "[" + idx + "]"));
+            }
+            return Value.newBuilder().setListValue(list.build()).build();
+        }
+        throw invalidValue(path, "value of type " + obj.getClass().getName()
+            + " (pass a Map, Iterable, array, String, Number, Boolean, or null;"
+            + " convert other types explicitly, e.g. name() for an enum or"
+            + " toString() for a timestamp)");
+    }
+
+    private static StigmerException invalidValue(String path, String detail) {
+        return new StigmerException(
+            ErrorCode.INVALID_ARGUMENT,
+            path + ": unsupported " + detail,
+            Status.Code.INVALID_ARGUMENT);
     }
 }
 `)
@@ -1570,12 +1616,12 @@ func emitJavaToProtoField(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]
 
 	case f.Type.Kind == "struct":
 		fmt.Fprintf(buf, "%sif (this.%s != null) {\n", indent, fieldName)
-		fmt.Fprintf(buf, "%s    spec.%s(ProtoConvert.mapToStruct(this.%s));\n", indent, javaSetterName(f.ProtoField), fieldName)
+		fmt.Fprintf(buf, "%s    spec.%s(ProtoConvert.mapToStruct(this.%s, %q));\n", indent, javaSetterName(f.ProtoField), fieldName, fieldName)
 		fmt.Fprintf(buf, "%s}\n", indent)
 
 	case f.Type.Kind == "value":
 		fmt.Fprintf(buf, "%sif (this.%s != null) {\n", indent, fieldName)
-		fmt.Fprintf(buf, "%s    spec.%s(ProtoConvert.objectToValue(this.%s));\n", indent, javaSetterName(f.ProtoField), fieldName)
+		fmt.Fprintf(buf, "%s    spec.%s(ProtoConvert.objectToValue(this.%s, %q));\n", indent, javaSetterName(f.ProtoField), fieldName, fieldName)
 		fmt.Fprintf(buf, "%s}\n", indent)
 
 	case f.Type.Kind == "string" && f.Type.EnumType != "":
@@ -1724,12 +1770,12 @@ func emitJavaNestedToProtoField(buf *bytes.Buffer, f *FieldSchema, typeMap map[s
 
 	case f.Type.Kind == "struct":
 		fmt.Fprintf(buf, "%sif (this.%s != null) {\n", indent, fieldName)
-		fmt.Fprintf(buf, "%s    builder.%s(ProtoConvert.mapToStruct(this.%s));\n", indent, javaSetterName(f.ProtoField), fieldName)
+		fmt.Fprintf(buf, "%s    builder.%s(ProtoConvert.mapToStruct(this.%s, %q));\n", indent, javaSetterName(f.ProtoField), fieldName, fieldName)
 		fmt.Fprintf(buf, "%s}\n", indent)
 
 	case f.Type.Kind == "value":
 		fmt.Fprintf(buf, "%sif (this.%s != null) {\n", indent, fieldName)
-		fmt.Fprintf(buf, "%s    builder.%s(ProtoConvert.objectToValue(this.%s));\n", indent, javaSetterName(f.ProtoField), fieldName)
+		fmt.Fprintf(buf, "%s    builder.%s(ProtoConvert.objectToValue(this.%s, %q));\n", indent, javaSetterName(f.ProtoField), fieldName, fieldName)
 		fmt.Fprintf(buf, "%s}\n", indent)
 
 	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference":

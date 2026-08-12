@@ -207,7 +207,7 @@ public final class WorkflowInput {
                 builder.setKind(this.kind);
             }
             if (this.taskConfig != null) {
-                builder.setTaskConfig(ProtoConvert.mapToStruct(this.taskConfig));
+                builder.setTaskConfig(ProtoConvert.mapToStruct(this.taskConfig, "taskConfig"));
             }
             if (this.export != null) {
                 builder.setExport(this.export.toProto());
