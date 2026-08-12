@@ -1,5 +1,6 @@
 import type { ResourceRef } from "@stigmer/sdk";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import type { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { DiscoveredTool } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm.js";
@@ -61,6 +62,8 @@ export type McpServerSetupPhase =
       readonly discoveredTools: DiscoveredTool[];
       /** Per-tool approval policies from the server spec. */
       readonly toolApprovals: ToolApprovalPolicy[];
+      /** OAuth grant health at resolve time — full doc on the `ready` variant. */
+      readonly oauthConnectionHealth?: OAuthConnectionHealth;
     }
   | {
       /** Environment variables are being persisted or the instance is being provisioned. */
@@ -73,6 +76,8 @@ export type McpServerSetupPhase =
       readonly discoveredTools: DiscoveredTool[];
       /** Per-tool approval policies from the server spec. */
       readonly toolApprovals: ToolApprovalPolicy[];
+      /** OAuth grant health at resolve time — full doc on the `ready` variant. */
+      readonly oauthConnectionHealth?: OAuthConnectionHealth;
     }
   | {
       /** The server is fully configured and ready for session creation. */
@@ -85,6 +90,15 @@ export type McpServerSetupPhase =
       readonly toolApprovals: ToolApprovalPolicy[];
       /** Tool names enabled for this session, after user selection. */
       readonly enabledTools: string[];
+      /**
+       * OAuth grant health at resolve time, from the grant-status lookup
+       * `addServer` performs for OAuth-declaring servers. `undefined` when
+       * no lookup ran (server has no OAuth declaration) or the lookup
+       * failed. Consumers use it to distinguish "signed in but tools never
+       * discovered" (offer bare discovery, stigmer/stigmer#418) from
+       * "token expired" (offer re-auth) without another RPC.
+       */
+      readonly oauthConnectionHealth?: OAuthConnectionHealth;
     };
 
 /**
@@ -145,6 +159,8 @@ export type McpServerSetupAction =
       readonly discoveredTools: DiscoveredTool[];
       /** Per-tool approval policies from the server spec. */
       readonly toolApprovals: ToolApprovalPolicy[];
+      /** OAuth grant health at resolve time, when a lookup ran. */
+      readonly oauthConnectionHealth?: OAuthConnectionHealth;
     }
   | {
       /** Server resolved and is ready (no env vars needed). */
@@ -159,6 +175,8 @@ export type McpServerSetupAction =
       readonly toolApprovals: ToolApprovalPolicy[];
       /** Tool names enabled for this session. */
       readonly enabledTools: string[];
+      /** OAuth grant health at resolve time, when a lookup ran. */
+      readonly oauthConnectionHealth?: OAuthConnectionHealth;
     }
   | {
       /** Re-evaluate missing variables after pool values arrive. */
@@ -254,6 +272,7 @@ export function mcpServerSetupReducer(
           missingVariables: action.missingVariables,
           discoveredTools: action.discoveredTools,
           toolApprovals: action.toolApprovals,
+          oauthConnectionHealth: action.oauthConnectionHealth,
           error: null,
         },
       };
@@ -270,6 +289,7 @@ export function mcpServerSetupReducer(
           discoveredTools: action.discoveredTools,
           toolApprovals: action.toolApprovals,
           enabledTools: action.enabledTools,
+          oauthConnectionHealth: action.oauthConnectionHealth,
           error: null,
         },
       };
@@ -288,6 +308,7 @@ export function mcpServerSetupReducer(
             discoveredTools: entry.discoveredTools,
             toolApprovals: entry.toolApprovals,
             enabledTools: action.enabledTools,
+            oauthConnectionHealth: entry.oauthConnectionHealth,
             error: null,
           },
         };
@@ -313,6 +334,7 @@ export function mcpServerSetupReducer(
           missingVariables: entry.missingVariables,
           discoveredTools: entry.discoveredTools,
           toolApprovals: entry.toolApprovals,
+          oauthConnectionHealth: entry.oauthConnectionHealth,
           error: null,
         },
       };
@@ -329,6 +351,7 @@ export function mcpServerSetupReducer(
           discoveredTools: entry.discoveredTools,
           toolApprovals: entry.toolApprovals,
           enabledTools: action.enabledTools,
+          oauthConnectionHealth: entry.oauthConnectionHealth,
           error: null,
         },
       };
@@ -345,6 +368,7 @@ export function mcpServerSetupReducer(
           missingVariables: entry.missingVariables,
           discoveredTools: entry.discoveredTools,
           toolApprovals: entry.toolApprovals,
+          oauthConnectionHealth: entry.oauthConnectionHealth,
           error: action.error,
         },
       };
