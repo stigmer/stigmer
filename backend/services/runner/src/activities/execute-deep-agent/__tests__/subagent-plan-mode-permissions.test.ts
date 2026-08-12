@@ -83,12 +83,10 @@ describe("plan-mode sub-agent filesystem permissions (issue #255)", () => {
     // One turn, three tool calls: both mutation tools must be denied by the
     // permission rules; the read must pass through untouched (the deny rule
     // covers the `write` operation class only).
-    // Real absolute workspace paths, as production models use (the prompt's
-    // file tree is absolute, and the tools' contract says absolute). With
-    // permission rules present this is also the only shape that reaches the
-    // rules at all: enforcePermission's canonicalization refuses relative
-    // paths with a validation error before any rule or backend runs — a
-    // different denial, but still nothing written.
+    // Absolute workspace paths — the canonical shape after enforcement
+    // canonicalization, and what the single-workspace prompt's prose (the
+    // absolute rootDir) steers models toward. The workspace-relative shape
+    // is pinned separately below (issue #429).
     const script: ScriptSelector = () => ({
       toolCalls: [
         { name: "write_file", args: { file_path: join(root, "dist/out.txt"), content: "new file" }, id: "c_write" },
@@ -143,19 +141,20 @@ describe("plan-mode sub-agent filesystem permissions (issue #255)", () => {
     expect(observer.before.size).toBe(1);
   });
 
-  it("relative-path mutations are refused too — by validation, before the rules", async () => {
-    // The native prompt steers models to workspace-relative paths, but
-    // deepagents' permission canonicalization accepts only absolute ones, so
-    // with rules present a relative-path call fails validation before any
-    // rule (or backend) runs. Read-only still holds — nothing is written —
-    // but the model sees "path must be absolute", not "permission denied",
-    // and prompt-compliant relative READS degrade the same way. That
-    // relative-vs-absolute friction is a pre-existing parent-plan-mode
-    // behavior, tracked as issue #429; this pins that the sub-agent's
-    // read-only contract survives it.
+  it("relative-path writes are refused by the RULES, and relative reads flow (issue #429)", async () => {
+    // The multi-workspace prompt mandates workspace-relative paths, and
+    // models routinely choose them in single-workspace sessions too. Before
+    // the #429 fix, deepagents' permission canonicalization refused the
+    // shape outright — every relative call, reads included, died with
+    // "path must be absolute" before any rule ran. compileSubagents now
+    // derives a path-normalization shim from the same `permissions` it
+    // bakes into the graph, so the relative shape reaches the rules in
+    // canonical form: writes get the honest plan-mode denial, reads just
+    // work. Read-only-by-construction (issue #255) holds throughout.
     const script: ScriptSelector = () => ({
       toolCalls: [
         { name: "write_file", args: { file_path: "dist/out.txt", content: "new file" }, id: "c_write_rel" },
+        { name: "read_file", args: { file_path: "notes.md" }, id: "c_read_rel" },
       ],
       done: "worker done",
     });
@@ -166,8 +165,14 @@ describe("plan-mode sub-agent filesystem permissions (issue #255)", () => {
       { configurable: { thread_id: "t3" }, recursionLimit: 50 },
     )) as { messages: BaseMessage[] };
 
-    expect(toolResultById(result.messages, "c_write_rel")).toMatch(/path must be absolute/i);
+    const writeResult = toolResultById(result.messages, "c_write_rel");
+    expect(writeResult).toMatch(/permission denied for write/i);
+    expect(writeResult).not.toMatch(/path must be absolute/i);
     await expect(access(join(root, "dist/out.txt"))).rejects.toThrow();
     expect(observer.before.size).toBe(0);
+
+    const readResult = toolResultById(result.messages, "c_read_rel");
+    expect(readResult).toContain("PLAN_MODE_README_TOKEN");
+    expect(readResult).not.toMatch(/path must be absolute/i);
   });
 });

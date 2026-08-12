@@ -100,6 +100,11 @@ export interface OtelSpansConfig {
 import type { ApprovalGateConfig } from "./approval-gate.js";
 export type { ApprovalGateConfig };
 
+// Same idiom as ApprovalGateConfig above: the normalization middleware
+// consumes it, this module re-exports it for stack-config assembly.
+import type { PathNormalizationConfig } from "./path-normalization.js";
+export type { PathNormalizationConfig };
+
 /**
  * Top-level configuration for buildMiddlewareStack().
  * All sections are optional — the factory applies sensible defaults.
@@ -111,4 +116,10 @@ export interface MiddlewareStackConfig {
   readonly costCap?: CostCapConfig | null;
   readonly otelSpans?: Partial<OtelSpansConfig>;
   readonly approvalGate?: ApprovalGateConfig | null;
+  /**
+   * Workspace-relative path normalization (issue #429). Set iff the graph
+   * carries filesystem permission rules — derive from the same expression
+   * that supplies the rules so the two cannot drift apart.
+   */
+  readonly pathNormalization?: PathNormalizationConfig | null;
 }

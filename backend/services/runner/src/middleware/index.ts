@@ -4,6 +4,9 @@
  * Assembles the ordered middleware array from a MiddlewareStackConfig.
  * The composition order matches the Python create_deep_agent injection:
  *
+ *   0. Path normalization (conditional: only on permission-rule-bearing
+ *      graphs — FIRST, so every downstream middleware observes canonical
+ *      workspace-absolute paths)
  *   1. Loop detection (always)
  *   2. Execution budget (always)
  *   3. Tool truncation (always)
@@ -15,6 +18,7 @@
 
 import type { StigmerMiddleware, MiddlewareStackConfig } from "./types.js";
 import type { GracefulStopMiddleware } from "./graceful-stop.js";
+import { createPathNormalizationMiddleware } from "./path-normalization.js";
 import { createLoopDetectionMiddleware } from "./loop-detection.js";
 import { createExecutionBudgetMiddleware } from "./execution-budget.js";
 import { createToolTruncationMiddleware } from "./tool-truncation.js";
@@ -38,6 +42,10 @@ export function buildMiddlewareStack(
   config: MiddlewareStackConfig = {},
 ): MiddlewareStackResult {
   const stack: StigmerMiddleware[] = [];
+
+  if (config.pathNormalization) {
+    stack.push(createPathNormalizationMiddleware(config.pathNormalization));
+  }
 
   stack.push(createLoopDetectionMiddleware(config.loopDetection));
 

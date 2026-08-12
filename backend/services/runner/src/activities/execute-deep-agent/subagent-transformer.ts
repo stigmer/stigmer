@@ -554,11 +554,17 @@ export async function compileSubagents(
       // Structural coupling (DD-19): a sub-agent gate flows gitignored writes into
       // CAS iff a CAS observer backs that sub-agent's filesystem backend. Deriving
       // both from the same `casObserver` makes "unobserved unreviewable bytes"
-      // impossible by construction.
+      // impossible by construction. Same idiom for path normalization
+      // (issue #429): derived from the same `permissions` baked into the graph
+      // below, so a rule-bearing graph always carries the shim that keeps
+      // prompt-compliant relative paths from dying in rule validation.
       const middleware = buildSubAgentMiddleware({
         costCap: opts.costCap,
         approvalGate: opts.approvalGate,
         captureIgnored: !!opts.casObserver,
+        ...(opts.permissions?.length
+          ? { pathNormalization: { rootDir: opts.workspaceRootDir } }
+          : {}),
       });
 
       const modelName = spec.model ?? opts.parentModelName;
