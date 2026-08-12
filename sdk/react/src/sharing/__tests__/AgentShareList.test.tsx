@@ -7,6 +7,7 @@ import type { AgentShareInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DeploymentModeContext } from "../../deployment-mode";
+import { openMenu } from "../../__tests__/helpers/open-menu";
 import { AgentShareList } from "../AgentShareList";
 
 // Toasts are visual feedback owned by the feedback module; keep them inert.
@@ -173,8 +174,7 @@ async function openRowMenu(rowName?: string) {
   const scope = rowName
     ? within(screen.getByText(rowName).closest("tr")!)
     : screen;
-  fireEvent.click(scope.getByRole("button", { name: /^Actions for/ }));
-  await screen.findByRole("menuitem", { name: "Edit" });
+  await openMenu(scope.getByRole("button", { name: /^Actions for/ }));
 }
 
 describe("AgentShareList", () => {
@@ -442,8 +442,8 @@ describe("AgentShareList", () => {
       });
       await renderList(client);
 
-      fireEvent.click(screen.getByRole("button", { name: /^Actions for/ }));
-      expect(await screen.findByRole("menuitem", { name: "Delete" })).toBeTruthy();
+      await openMenu(screen.getByRole("button", { name: /^Actions for/ }));
+      expect(screen.getByRole("menuitem", { name: "Delete" })).toBeTruthy();
       expect(screen.queryByRole("menuitem", { name: "Edit" })).toBeNull();
       expect(screen.queryByRole("menuitem", { name: "Pause" })).toBeNull();
       expect(screen.queryByRole("menuitem", { name: "Reset link" })).toBeNull();
