@@ -21,7 +21,7 @@ import (
 //     defaults step already set it)
 //  4. CheckDuplicate - Org+slug uniqueness; with the agent-slug default
 //     this structurally caps shares at one canonical link per agent per org
-//  5. BuildNewState - Set ID (ash_ prefix), clear status, audit fields
+//  5. BuildNewState - Set ID (ash_ prefix), clear status, audit fields, default visibility
 //  6. StampAgentPin - Write status.agent_id (the rebind guard) from the
 //     agent loaded in step 2; after BuildNewState so the wipe of
 //     client-provided status cannot erase it

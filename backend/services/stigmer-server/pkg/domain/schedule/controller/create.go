@@ -20,7 +20,7 @@ import (
 //     default — schedules are N-per-agent, see ResolveScheduleDefaults)
 //  4. CheckDuplicate - Org+slug uniqueness
 //  5. BuildNewState - Set ID (sch_ prefix), clear client-provided status,
-//     audit fields. The status wipe is the contract: status is
+//     audit fields, default visibility. The status wipe is the contract: status is
 //     platform-owned and starts empty — no client may seed firing
 //     observations.
 //  6. NormalizeReferences - Make references absolute (fill org)

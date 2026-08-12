@@ -27,7 +27,7 @@ const (
 // 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
 // 2. ResolveSlug - Generate slug from metadata.name
 // 3. CheckDuplicate - Verify no duplicate exists
-// 4. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
+// 4. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event), default visibility
 // 5. NormalizeReferences - Resolve empty org in cross-references (skill_refs, mcp_server_usages, etc.)
 // 6. MergeMcpServerEnvSpecs - Merge env_spec entries from referenced MCP servers into agent
 // 7. Persist - Save agent to repository

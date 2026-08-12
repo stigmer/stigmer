@@ -19,7 +19,7 @@ import (
 //     - client_id, client_secret, authorization_url, token_url are required
 //  3. CheckDuplicate - Verify no duplicate exists by slug (within org)
 //  4. EncryptClientSecret - AES-256-GCM encrypt client_secret before persist
-//  5. BuildNewState - Generate ID (oap_{ulid}), clear status, set audit fields
+//  5. BuildNewState - Generate ID (oap_{ulid}), clear status, set audit fields, default visibility
 //  6. Persist - Save OAuthApp to repository
 //
 // The returned OAuthApp has client_secret replaced with ***REDACTED***.

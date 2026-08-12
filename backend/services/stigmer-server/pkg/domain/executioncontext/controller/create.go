@@ -21,7 +21,7 @@ import (
 // 1. ValidateProto - Validate proto field constraints (including owner_scope restriction)
 // 2. ResolveSlug - Generate slug from metadata.name
 // 3. CheckDuplicate - Verify no duplicate exists by slug
-// 4. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
+// 4. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event), default visibility
 // 5. Persist - Save execution context to repository
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:

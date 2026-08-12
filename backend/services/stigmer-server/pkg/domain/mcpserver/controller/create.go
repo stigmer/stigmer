@@ -19,7 +19,7 @@ import (
 //     - docker.image is required with min length 1
 //  2. ResolveSlug - Generate slug from metadata.name
 //  3. CheckDuplicate - Verify no duplicate exists by slug
-//  4. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
+//  4. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event), default visibility
 //  5. Persist - Save MCP server to repository
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:

@@ -52,7 +52,7 @@ const autoCreatedSessionSubject = "Auto-created session"
 //     reference must be resolved by this point (see step doc for why this is an
 //     invariant, not input validation)
 //  4. ResolveSlug - Generate slug from metadata.name
-//  5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
+//  5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event), default visibility
 //  6. NormalizeReferences - Resolve cross-references (slugs to IDs)
 //  7. EnsureEngineAvailable - Fail fast with Unavailable if the agent execution engine is not connected (before the first side effect)
 //  8. CreateDefaultInstanceIfNeeded - Create default agent instance if missing

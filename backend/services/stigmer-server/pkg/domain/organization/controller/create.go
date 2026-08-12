@@ -20,7 +20,7 @@ import (
 //  3. CheckDuplicate - Reject a duplicate slug, checked GLOBALLY by id
 //     (organizations use slug as id; see step 5). Mirrors cloud's
 //     OrganizationCreateHandler.CheckDuplicate.
-//  4. BuildNewState - Mint a throwaway org_<ulid>, clear status, set audit fields
+//  4. BuildNewState - Mint a throwaway org_<ulid>, clear status, set audit fields, default visibility
 //  5. CopySlugToId - Overwrite the id with the slug (the id == slug exception),
 //     mirroring cloud's OrganizationCreateHandler.CopySlugToId
 //  6. Persist - Save organization to repository

@@ -27,7 +27,7 @@ const (
 // 3. LoadParentWorkflow - Load and validate workflow template exists
 // 4. ValidateSameOrgBusinessRule - Verify same-org for org-scoped instances
 // 5. CheckDuplicate - Verify no duplicate exists
-// 6. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
+// 6. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event), default visibility
 // 7. Persist - Save workflow instance to repository
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:

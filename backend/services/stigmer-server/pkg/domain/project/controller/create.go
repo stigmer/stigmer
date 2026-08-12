@@ -16,7 +16,7 @@ import (
 //     (api_version, kind, metadata required)
 //  2. ResolveSlug - Generates URL-safe slug from metadata.name
 //  3. CheckDuplicate - Verifies no duplicate exists by slug within org
-//  4. BuildNewState - Generates ID (prj-{ulid}), clears status, sets audit fields
+//  4. BuildNewState - Generates ID (prj-{ulid}), clears status, sets audit fields, defaults visibility
 //  5. Persist - Saves project to repository
 //
 // Unlike Agent, Project has no custom steps (no default instance creation).

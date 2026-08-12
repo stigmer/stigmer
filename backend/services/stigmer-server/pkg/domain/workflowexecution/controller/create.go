@@ -36,7 +36,7 @@ const (
 // 4. EnsureEngineAvailable - Fail fast with Unavailable if the workflow engine is not connected (before any side effect)
 // 5. CreateDefaultInstanceIfNeeded - Auto-create default instance if workflow_id is used
 // 6. CheckDuplicate - Verify no duplicate exists
-// 7. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
+// 7. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event), default visibility
 // 8. SetInitialPhase - Set execution phase to PENDING
 // 9. Persist - Save execution to repository
 // 10. StartWorkflow - Start Temporal workflow
