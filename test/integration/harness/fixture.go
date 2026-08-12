@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/google/uuid"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
@@ -240,12 +241,41 @@ func (f *FixtureDeployer) Cleanup(ctx context.Context) {
 	f.created = nil
 }
 
+const (
+	// seedDefaultAgentAttempts bounds the apply retries in SeedDefaultAgent.
+	// The seed runs right after service boot, where one-off transients
+	// (connection churn, FGA warm-up) are most likely.
+	seedDefaultAgentAttempts = 3
+	seedDefaultAgentBackoff  = time.Second
+)
+
 // SeedDefaultAgent creates the system default "assistant" agent in test-org
 // via the Agent Apply RPC. This agent is required by tests that create sessions
 // without specifying an explicit agent.
+//
+// The seed is load-bearing for every session-dependent test in a suite, and a
+// half-seeded agent is worse than no agent: AgentCreateHandler has no rollback,
+// so a mid-pipeline failure leaves the agent row and its default-agent label
+// persisted without FGA tuples or a default instance. findDefault keeps
+// serving that agent, and every session create is then denied trying to
+// lazily recreate the instance (oss#541; service-side contract tracked in
+// stigmer-cloud#385). Two consequences here:
+//
+//   - Transient failures are retried a bounded number of times, because a
+//     failed first apply can poison the rest of the run.
+//   - Success is verified against the response, not the RPC status: a re-apply
+//     after a partial failure routes to update and "succeeds" while the agent
+//     is still missing its default instance, so the status alone can lie.
+//
+// Callers must treat a returned error as fatal for the suite.
 func SeedDefaultAgent(ctx context.Context, conn grpc.ClientConnInterface) error {
-	clients := NewClients(conn)
-	_, err := clients.AgentCommand.Apply(ctx, &agentv1.Agent{
+	return seedDefaultAgent(ctx, NewClients(conn).AgentCommand, seedDefaultAgentBackoff)
+}
+
+// seedDefaultAgent is the client-injectable core of SeedDefaultAgent; the
+// backoff grows linearly per attempt (tests pass ~0 to avoid real sleeps).
+func seedDefaultAgent(ctx context.Context, agents agentv1.AgentCommandControllerClient, backoff time.Duration) error {
+	agent := &agentv1.Agent{
 		ApiVersion: TestAPIVersion,
 		Kind:       "Agent",
 		Metadata: &apiresource.ApiResourceMetadata{
@@ -261,8 +291,35 @@ func SeedDefaultAgent(ctx context.Context, conn grpc.ClientConnInterface) error 
 			Description:  "General-purpose AI assistant.",
 			Instructions: "You are a general-purpose AI assistant.",
 		},
-	})
-	return err
+	}
+
+	var lastErr error
+	for attempt := 1; attempt <= seedDefaultAgentAttempts; attempt++ {
+		if attempt > 1 {
+			select {
+			case <-ctx.Done():
+				return fmt.Errorf("seed default agent: %w (last attempt error: %v)", ctx.Err(), lastErr)
+			case <-time.After(time.Duration(attempt-1) * backoff):
+			}
+		}
+
+		applied, err := agents.Apply(ctx, agent)
+		if err != nil {
+			lastErr = fmt.Errorf("apply default agent (attempt %d/%d): %w", attempt, seedDefaultAgentAttempts, err)
+			continue
+		}
+		if applied.GetStatus().GetDefaultInstanceId() == "" {
+			// Retrying cannot heal this state (re-apply routes to update, which
+			// converges nothing) — report it precisely instead of looping.
+			return fmt.Errorf(
+				"default agent %s applied but has no default instance bound — "+
+					"half-created state from an earlier failed create; every session "+
+					"create against it will be denied (oss#541, stigmer-cloud#385)",
+				applied.GetMetadata().GetId())
+		}
+		return nil
+	}
+	return lastErr
 }
 
 // ProvisionTestBillingAccount creates a billing account for the given org

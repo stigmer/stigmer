@@ -143,6 +143,9 @@ jobs:
               >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      # include-hidden-files: the dot-named output dirs are excluded by
+      # upload-artifact@v4's default, which silently uploads nothing
+      # (the #323 class, swept in oss#541).
       - name: Upload provider test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -150,6 +153,7 @@ jobs:
           name: provider-integration-results
           path: test/integration/.test-output-providers/
           retention-days: 30
+          include-hidden-files: true
 
       - name: Upload session routing provider results
         if: always()
@@ -159,6 +163,7 @@ jobs:
           path: test/integration-session-routing/.test-output-session-routing-providers/
           retention-days: 30
           if-no-files-found: ignore
+          include-hidden-files: true
 
       - name: Publish provider test report
         if: always() && hashFiles('test/integration/.test-output-providers/junit.xml') != ''
