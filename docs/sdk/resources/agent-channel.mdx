@@ -1734,3 +1734,13 @@ ChannelOutboundOrigin records which trust context authorized a business-initiate
 | `platform` | Platform-authored conversation-context copy (e.g. the takeover acknowledgment), neither the agent's words nor a human's. |
 | `participant` | A staff member's reply inside a live conversation, sent through the conversation-scoped reply command. |
 
+### ChannelAttemptFailureKind
+
+ChannelAttemptFailureKind classifies WHY a send attempt reached status failed — and with it, whether the failure's stored explanation was authored for the conversation surface (attempt_detail) or is an operator-only diagnostic (last_error).
+
+| Value | Description |
+|-------|-------------|
+| `attempt_refused` | The provider terminally refused the send; attempt_detail carries the platform's mapped human explanation (e.g. the 24-hour customer-service-window copy for WhatsApp code 131047). |
+| `attempt_errored` | A technical failure (transport error, unexpected provider error, unresolvable credentials — exhausted retries or unattemptable at the first try). |
+| `attempt_withdrawn` | The platform withdrew the send for a structural reason; attempt_detail carries the short fact ("channel deleted", "execution no longer exists"). |
+
