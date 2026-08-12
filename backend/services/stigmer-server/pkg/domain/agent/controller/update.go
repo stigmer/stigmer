@@ -47,7 +47,6 @@ func (c *AgentController) buildUpdatePipeline() *pipeline.Pipeline[*agentv1.Agen
 		AddStep(steps.NewBuildUpdateStateStep[*agentv1.Agent]()).                                // 4. Build updated state
 		AddStep(steps.NewNormalizeReferencesStep[*agentv1.Agent]()).                             // 5. Normalize cross-references
 		AddStep(steps.NewValidateReferencesStep[*agentv1.Agent](c.store)).                       // 5b. Validate referenced resources exist
-		AddStep(newGuardDatastoreExposureStep(c.store)).                                         // 5c. DD-010: datastore-attached agents stay org-internal
 		AddStep(newMergeMcpServerEnvSpecsStep(c.store)).                                         // 6. Merge MCP server env_specs
 		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).                                  // 7. Persist agent
 		AddStep(steps.NewIndexSearchStep[*agentv1.Agent](c.store, &extractor.AgentExtractor{})). // 6. Update search index

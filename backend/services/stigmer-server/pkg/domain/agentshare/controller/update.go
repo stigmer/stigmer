@@ -45,7 +45,7 @@ func (c *AgentShareController) buildUpdatePipeline() *pipeline.Pipeline[*agentsh
 		AddStep(steps.NewValidateProtoStep[*agentsharev1.AgentShare]()).
 		AddStep(steps.NewResolveSlugStep[*agentsharev1.AgentShare]()).
 		AddStep(steps.NewLoadExistingStep[*agentsharev1.AgentShare](c.store)).
-		AddStep(&validateShareUpdateStep{store: c.store}).
+		AddStep(&validateShareUpdateStep{}).
 		AddStep(steps.NewBuildUpdateStateStep[*agentsharev1.AgentShare]()).
 		AddStep(steps.NewNormalizeReferencesStep[*agentsharev1.AgentShare]()).
 		AddStep(steps.NewPersistStep[*agentsharev1.AgentShare](c.store)).

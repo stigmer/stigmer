@@ -43,22 +43,6 @@ func WithMcpServerUsageAndApproval(slug string, overrides []*agentv1.ToolApprova
 	}
 }
 
-// WithDatastoreUsage attaches a datastore to the agent via
-// datastore_usages. The usage edge is authorization-bearing for
-// session-bound record access (DD-006): a sandbox-token caller reaches
-// only the datastores its agent lists, so adding or omitting this line
-// is what the records reach tests exercise.
-func WithDatastoreUsage(slug string) AgentOption {
-	return func(s *agentv1.AgentSpec) {
-		s.DatastoreUsages = append(s.DatastoreUsages, &agentv1.DatastoreUsage{
-			DatastoreRef: &apiresource.ApiResourceReference{
-				Slug: slug,
-				Org:  TestOrg,
-				Kind: 49, // datastore
-			},
-		})
-	}
-}
 
 // WithSkillRef adds a skill reference to the agent.
 func WithSkillRef(slug string) AgentOption {

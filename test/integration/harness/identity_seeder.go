@@ -43,8 +43,7 @@ type SeedIdentityAccountInput struct {
 	// ID is the internal identity account ID (metadata.id).
 	ID string
 	// Slug is the account's human handle (metadata.slug). Optional;
-	// seeded only when set (IdentityAccountRepo.findBySlug queries it —
-	// the datastore binding validation's did-you-mean resolves slugs).
+	// seeded only when set (IdentityAccountRepo.findBySlug queries it).
 	Slug string
 	// IdpID is the external identity provider subject (spec.idpId).
 	// For Auth0 JWTs this is the JWT "sub" claim.

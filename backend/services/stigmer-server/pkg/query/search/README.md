@@ -1,6 +1,6 @@
 # Search Query Layer - CQRS Read Side
 
-This package implements the query layer for the unified Search bounded context, providing full-text search across all searchable API resources (Agent, Skill, McpServer, Workflow, Project, Datastore, Environment, Session).
+This package implements the query layer for the unified Search bounded context, providing full-text search across all searchable API resources (Agent, Skill, McpServer, Workflow, Project, Environment, Session).
 
 The authoritative list is `SearchableKinds` in `valueobject/search_criteria.go`, pinned against the proto kind registry's `not_search_indexed` annotation by `TestSearchableKinds_CoverSearchIndexedProtoKinds`.
 
