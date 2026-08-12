@@ -45,6 +45,10 @@ export const PlatformClientCommandController: GenService<{
    * The creator's organization owns the platform client. The creator is granted
    * the owner role automatically.
    *
+   * The slug `system-share-client` is platform-reserved (it identifies the org's
+   * system-managed share client) and is rejected with INVALID_ARGUMENT — including
+   * when derived from the resource name.
+   *
    * @internal
    * Authorization: Requires can_create_platform_client permission in the organization.
    *
