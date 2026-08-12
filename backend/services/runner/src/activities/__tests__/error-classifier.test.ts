@@ -7,7 +7,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { synthesizeError, formatClassifiedError, shouldRetryWithFreshAgent } from "../execute-cursor/error-classifier.js";
+import {
+  synthesizeError,
+  formatClassifiedError,
+  shouldRetryWithFreshAgent,
+  DETAIL_FREE_FALLBACK_USER_PREFIX,
+  TRANSPORT_TIMEOUT_USER_PREFIX,
+} from "../execute-cursor/error-classifier.js";
 
 describe("synthesizeError", () => {
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
@@ -213,7 +219,7 @@ describe("synthesizeError", () => {
 
     expect(result.category).toBe("unknown");
     expect(result.source).toBe("fallback");
-    expect(result.message).toContain("no detail from SDK");
+    expect(result.message).toContain(DETAIL_FREE_FALLBACK_USER_PREFIX);
     expect(result.message).toContain("claude-sonnet-4");
   });
 
@@ -259,6 +265,92 @@ describe("synthesizeError", () => {
     expect(result.message).toContain("Model=claude-sonnet-4");
     expect(result.message).toContain("mode=local");
     expect(result.message).toContain("agentId=agent-123");
+  });
+
+  // The exact prod shape from oss#492: the Composer 2.5 capacity incident
+  // rejected every run with a bare { status: "error" } — all five detail
+  // channels empty, fresh agent (the poisoned-handle retry produces this
+  // same shape with isResumedHandle: false). End users read this message
+  // verbatim in embedded surfaces, so it must lead with actionable copy,
+  // keep the diagnostic parenthetical for operators, and be retryable
+  // (provider capacity is transient).
+  it("detail-free failure on a fresh agent leads with user-facing copy and is retryable (oss#492)", () => {
+    const result = synthesizeError({
+      sdkError: undefined,
+      sdkResultFields: undefined,
+      streamErrorMessage: undefined,
+      capturedRejection: undefined,
+      conversationErrorText: undefined,
+      isResumedHandle: false,
+      fallbackContext: { model: "composer-2.5", mode: "local", agentId: "agent-abc" },
+    });
+
+    expect(result.category).toBe("unknown");
+    expect(result.source).toBe("fallback");
+    expect(result.retryable).toBe(true);
+    expect(result.message.startsWith(DETAIL_FREE_FALLBACK_USER_PREFIX)).toBe(true);
+    // Diagnostic context survives for operators (and the env integration
+    // test's Model= matcher).
+    expect(result.message).toContain("Model=composer-2.5");
+    expect(result.message).toContain("mode=local");
+    expect(result.message).toContain("agentId=agent-abc");
+  });
+
+  // sdk-react's isInterruptedError reframes any error containing the phrase
+  // "retry or resume" as a neutral resumable notice instead of a failure
+  // alert. A capacity failure must render as a failure — guard the copy
+  // (formatted end-to-end, tail included) against ever matching that regex.
+  it("user-facing fallback copy never trips the sdk-react interrupted-error reframe", () => {
+    const interruptedReframe = /\[StallTimeoutError\]|execution interrupted|retry or resume/i;
+    for (const prefix of [DETAIL_FREE_FALLBACK_USER_PREFIX, TRANSPORT_TIMEOUT_USER_PREFIX]) {
+      expect(prefix).not.toMatch(interruptedReframe);
+    }
+    const formatted = formatClassifiedError(synthesizeError({
+      sdkResultFields: undefined,
+      streamErrorMessage: undefined,
+      capturedRejection: undefined,
+      isResumedHandle: false,
+      fallbackContext,
+    }));
+    expect(formatted).not.toMatch(interruptedReframe);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Transport-timeout heuristic (0 messages, ~default SDK timeout)
+  // ---------------------------------------------------------------------------
+
+  it("classifies a 0-message ~30s failure as retryable network with user-facing copy", () => {
+    const result = synthesizeError({
+      sdkResultFields: undefined,
+      streamErrorMessage: undefined,
+      capturedRejection: undefined,
+      isResumedHandle: false,
+      fallbackContext,
+      durationMs: 30012,
+      messageCount: 0,
+    });
+
+    expect(result.category).toBe("network");
+    expect(result.source).toBe("fallback");
+    expect(result.retryable).toBe(true);
+    expect(result.message.startsWith(TRANSPORT_TIMEOUT_USER_PREFIX)).toBe(true);
+    expect(result.message).toContain("30012ms");
+    expect(result.message).toContain("Model=claude-sonnet-4");
+  });
+
+  it("does not apply the transport heuristic outside the default-timeout window", () => {
+    const result = synthesizeError({
+      sdkResultFields: undefined,
+      streamErrorMessage: undefined,
+      capturedRejection: undefined,
+      isResumedHandle: false,
+      fallbackContext,
+      durationMs: 120000,
+      messageCount: 0,
+    });
+
+    expect(result.category).toBe("unknown");
+    expect(result.message.startsWith(DETAIL_FREE_FALLBACK_USER_PREFIX)).toBe(true);
   });
 
   // ---------------------------------------------------------------------------

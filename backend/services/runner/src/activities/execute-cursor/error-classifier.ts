@@ -131,6 +131,29 @@ function extractFromCandidate(v: unknown): RunErrorSources | undefined {
   return text.length > 0 ? { sdkError: undefined, sdkResultFields: text } : undefined;
 }
 
+/**
+ * Stable lead sentence of the detail-free fallback error (all five detail
+ * channels empty — empirically the shape of Cursor-side capacity rejections,
+ * oss#492). This is what end users read in embedded surfaces, so it must be
+ * actionable product copy, not a diagnostic; the diagnostic context follows
+ * in a parenthetical. Mirrors the COST_LIMIT_ERROR_PREFIX convention: a
+ * consumer that needs to recognize this failure can match on the prefix.
+ * Do not reword without checking consumers, and NEVER include the phrase
+ * "retry or resume" — sdk-react's isInterruptedError (MessageThread.tsx)
+ * reframes any error containing it as a neutral resumable notice instead of
+ * a failure alert.
+ */
+export const DETAIL_FREE_FALLBACK_USER_PREFIX =
+  "The model may be temporarily overloaded — please retry, or switch to a different model.";
+
+/**
+ * Stable lead sentence of the transport-timeout fallback error (0 messages,
+ * ~30s duration — the SDK's default timeout with no stream established).
+ * Same user-facing rules as DETAIL_FREE_FALLBACK_USER_PREFIX above.
+ */
+export const TRANSPORT_TIMEOUT_USER_PREFIX =
+  "The connection to the model could not be established — please retry.";
+
 const AUTH_PATTERNS = [
   "unauthenticated", "unauthorized", "401", "forbidden",
   "permission_denied", "invalid api key", "not logged in",
@@ -317,7 +340,10 @@ function classifyFromSources(opts: SynthesizeErrorOpts): ClassifiedError {
     const { model, mode, agentId } = opts.fallbackContext;
     return {
       category: "network",
-      message: `Transport timeout (${opts.durationMs}ms, 0 messages received). Model=${model}, mode=${mode}, agentId=${agentId}`,
+      message:
+        `${TRANSPORT_TIMEOUT_USER_PREFIX} ` +
+        `(Transport timeout: ${opts.durationMs}ms, 0 messages received. ` +
+        `Model=${model}, mode=${mode}, agentId=${agentId})`,
       retryable: true,
       source: "fallback",
     };
@@ -332,11 +358,22 @@ function classifyFromSources(opts: SynthesizeErrorOpts): ClassifiedError {
     };
   }
 
+  // The honest last resort: every detail channel was empty. Observed in prod
+  // only during provider capacity incidents (oss#492: Composer 2.5 degradation
+  // — the SDK rejection that carries ERROR_RESOURCE_EXHAUSTED in Cursor's IDE
+  // arrives here detail-free), so the copy leads with the capacity hypothesis
+  // hedged ("may be"), and retryable is true: the observed cause is transient
+  // by nature, and nothing gates a recovery loop on unknown+retryable. The
+  // parenthetical keeps the exact Model=/mode=/agentId= tokens for log-grep
+  // continuity and the env integration test's matcher.
   const { model, mode, agentId } = opts.fallbackContext;
   return {
     category: "unknown",
-    message: `Cursor run failed (no detail from SDK). Model=${model}, mode=${mode}, agentId=${agentId}`,
-    retryable: false,
+    message:
+      `${DETAIL_FREE_FALLBACK_USER_PREFIX} ` +
+      `(No error detail from the Cursor SDK. ` +
+      `Model=${model}, mode=${mode}, agentId=${agentId})`,
+    retryable: true,
     source: "fallback",
   };
 }
