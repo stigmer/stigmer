@@ -132,6 +132,14 @@ const (
 	// this channel's customers" and "may configure this channel" are
 	// different powers, and the ISC pilot's trainers hold only the first.
 	IamPermission_can_participate IamPermission = 36
+	// Platform-level permission to introduce or change labels in the
+	// reserved stigmer.ai/* key namespace through client-facing write
+	// boundaries. Gated to platform operators (the seeding machine
+	// account): reserved labels carry platform semantics — most
+	// critically stigmer.ai/default-agent, which selects the platform
+	// default agent served to every organization — so ordinary requests
+	// may echo or remove them but never write them (cloud#320).
+	IamPermission_can_write_reserved_labels IamPermission = 37
 )
 
 // Enum value maps for IamPermission.
@@ -173,6 +181,7 @@ var (
 		34: "can_create_datastore",
 		35: "can_manage_cursor_accounts",
 		36: "can_participate",
+		37: "can_write_reserved_labels",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -211,6 +220,7 @@ var (
 		"can_create_datastore":         34,
 		"can_manage_cursor_accounts":   35,
 		"can_participate":              36,
+		"can_write_reserved_labels":    37,
 	}
 )
 
@@ -327,7 +337,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xf0\x06\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\x8f\a\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -366,7 +376,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x0fcan_use_records\x10!\x12\x18\n" +
 	"\x14can_create_datastore\x10\"\x12\x1e\n" +
 	"\x1acan_manage_cursor_accounts\x10#\x12\x13\n" +
-	"\x0fcan_participate\x10$*b\n" +
+	"\x0fcan_participate\x10$\x12\x1d\n" +
+	"\x19can_write_reserved_labels\x10%*b\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

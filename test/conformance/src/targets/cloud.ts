@@ -43,6 +43,10 @@ export class CloudTarget implements TargetProfile {
     // The hermetic cloud env boots Temporal and the Java service runs the
     // schedule clock (T04 slice 2) — triggers fire for real.
     scheduleFiring: true,
+    // GuardReservedLabelsStep (stigmer-cloud#320) rejects reserved-label
+    // writes from the ordinary conformance user; unguarding requires the
+    // platform-privileged caller lane (stigmer#547).
+    clientReservedLabelWrites: false,
   };
 
   private grpcBaseUrl: string | undefined;

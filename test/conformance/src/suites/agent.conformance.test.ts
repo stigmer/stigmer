@@ -247,9 +247,12 @@ describe("Agent conformance — platform default resolution", () => {
   // the skill suite pins). The label assert gives a crisp failure if an
   // edition ever strips labels at create, instead of an opaque NotFound later.
   //
-  // NOTE: label writes ride the currently-unguarded stigmer.ai/* namespace
-  // (stigmer-cloud#320 tracks guarding it at write boundaries); when a guard
-  // lands, this helper must switch to a platform-privileged caller.
+  // NOTE: the stigmer.ai/* namespace is now guarded at the cloud write
+  // boundaries (stigmer-cloud#320): only platform operators may introduce
+  // reserved labels there, and the harness has no privileged caller yet —
+  // so this helper runs only where clientReservedLabelWrites holds (the
+  // local OSS targets, deliberately unguarded). stigmer#547 owns the
+  // privileged-caller lane that puts the cloud target back in.
   async function createDefaultCandidate(org: string) {
     const agent = await clients.agentCommand.create(
       makeAgent({ org, name: uniqueName("default-cand"), labels: { [DEFAULT_AGENT_LABEL]: "true" } }),
@@ -266,6 +269,11 @@ describe("Agent conformance — platform default resolution", () => {
   }
 
   it("getDefault resolves the incumbent (first-created) when several public agents carry the label", async () => {
+    // Candidate creation writes a reserved label, which the cloud edition
+    // accepts only from platform operators (stigmer-cloud#320) — see the
+    // capability's doc in targets/target.ts and the helper NOTE above.
+    if (!target.capabilities.clientReservedLabelWrites) return;
+
     const { org } = await target.provisionTenancy();
 
     // Two labeled public agents is the normal mid-rotation state: the new

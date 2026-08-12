@@ -21,6 +21,9 @@ export class LocalGoTarget implements TargetProfile {
     workflowChildApprovalForwarding: false,
     // No Temporal behind this target at all — schedules cannot fire.
     scheduleFiring: false,
+    // Single-tenant OSS: the reserved-label write guard is cloud-only
+    // (stigmer-cloud#320), so the caller may create labeled candidates.
+    clientReservedLabelWrites: true,
   };
 
   private server: RunningServer | undefined;
