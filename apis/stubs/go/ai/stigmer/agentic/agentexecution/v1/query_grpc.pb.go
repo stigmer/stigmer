@@ -148,13 +148,21 @@ type AgentExecutionQueryControllerClient interface {
 	//
 	// Returns aggregated tokens, cost, and per-execution breakdown.
 	GetSessionUsageReport(ctx context.Context, in *GetSessionUsageReportInput, opts ...grpc.CallOption) (*GetSessionUsageReportOutput, error)
-	// Get a usage report for an agent.
+	// Get a usage report for an agent within an organization.
 	//
-	// Returns aggregated tokens, cost, and per-session breakdown with pagination.
+	// Returns aggregated tokens, cost, and per-session breakdown for one
+	// organization's executions of the agent. Requires can_view on the
+	// organization named in org_id; executions outside that organization are
+	// never included, so the report is the per-agent drill-down of
+	// getOrgUsageReport.
 	//
 	// @internal
-	// Not consumed by any UI. Authorization model TBD — when a product need
-	// arises, this should likely be org-scoped (usage of agent X within org Y).
+	// Org-scoped by design (oss#389). Agent can_view is a consumption
+	// permission — public agents grant it to every authenticated account via
+	// the FGA wildcard — so gating on the agent would leak cross-tenant usage.
+	// Gating on the organization also keeps other tenants' sessions of a
+	// shared agent out of the report. Consumed by the CLI (`stigmer usage
+	// agent`).
 	GetAgentUsageReport(ctx context.Context, in *GetAgentUsageReportInput, opts ...grpc.CallOption) (*GetAgentUsageReportOutput, error)
 	// Get a usage report for an organization.
 	//
@@ -427,13 +435,21 @@ type AgentExecutionQueryControllerServer interface {
 	//
 	// Returns aggregated tokens, cost, and per-execution breakdown.
 	GetSessionUsageReport(context.Context, *GetSessionUsageReportInput) (*GetSessionUsageReportOutput, error)
-	// Get a usage report for an agent.
+	// Get a usage report for an agent within an organization.
 	//
-	// Returns aggregated tokens, cost, and per-session breakdown with pagination.
+	// Returns aggregated tokens, cost, and per-session breakdown for one
+	// organization's executions of the agent. Requires can_view on the
+	// organization named in org_id; executions outside that organization are
+	// never included, so the report is the per-agent drill-down of
+	// getOrgUsageReport.
 	//
 	// @internal
-	// Not consumed by any UI. Authorization model TBD — when a product need
-	// arises, this should likely be org-scoped (usage of agent X within org Y).
+	// Org-scoped by design (oss#389). Agent can_view is a consumption
+	// permission — public agents grant it to every authenticated account via
+	// the FGA wildcard — so gating on the agent would leak cross-tenant usage.
+	// Gating on the organization also keeps other tenants' sessions of a
+	// shared agent out of the report. Consumed by the CLI (`stigmer usage
+	// agent`).
 	GetAgentUsageReport(context.Context, *GetAgentUsageReportInput) (*GetAgentUsageReportOutput, error)
 	// Get a usage report for an organization.
 	//

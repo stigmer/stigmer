@@ -41,10 +41,11 @@ export async function getSessionUsageReport(client: Stigmer, sessionId: string):
 export async function getAgentUsageReport(
   client: Stigmer,
   agentId: string,
+  orgId: string,
   range: DateRange,
 ): Promise<GetAgentUsageReportOutput> {
   return client.agentExecution.getAgentUsageReport(
-    create(GetAgentUsageReportInputSchema, { agentId, fromDate: range.from, toDate: range.to }),
+    create(GetAgentUsageReportInputSchema, { agentId, orgId, fromDate: range.from, toDate: range.to }),
   );
 }
 

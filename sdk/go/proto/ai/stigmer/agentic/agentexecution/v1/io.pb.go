@@ -2209,9 +2209,9 @@ func (x *GetSessionUsageReportOutput) GetIsEstimated() bool {
 	return false
 }
 
-// GetAgentUsageReportInput requests a usage report for a specific agent.
-// Aggregates cost and token data across all sessions for the agent within
-// a time range.
+// GetAgentUsageReportInput requests a usage report for a specific agent
+// within one organization. Aggregates cost and token data across the org's
+// sessions of the agent within a time range.
 type GetAgentUsageReportInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Agent ID to get usage report for.
@@ -2225,7 +2225,11 @@ type GetAgentUsageReportInput struct {
 	// Maximum number of sessions to return per page.
 	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Token for pagination, obtained from previous response.
-	PageToken     string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Organization scope for the report: usage of this agent within this
+	// organization. Only executions belonging to this organization are
+	// aggregated. The caller must hold can_view on the organization.
+	OrgId         string `protobuf:"bytes,6,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2291,6 +2295,13 @@ func (x *GetAgentUsageReportInput) GetPageSize() int32 {
 func (x *GetAgentUsageReportInput) GetPageToken() string {
 	if x != nil {
 		return x.PageToken
+	}
+	return ""
+}
+
+func (x *GetAgentUsageReportInput) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
 	}
 	return ""
 }
@@ -3396,14 +3407,15 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\x0fmodel_breakdown\x18\x05 \x03(\v20.ai.stigmer.agentic.agentexecution.v1.ModelUsageR\x0emodelBreakdown\x12,\n" +
 	"\x12first_execution_at\x18\x06 \x01(\tR\x10firstExecutionAt\x12*\n" +
 	"\x11last_execution_at\x18\a \x01(\tR\x0flastExecutionAt\x12!\n" +
-	"\fis_estimated\x18\b \x01(\bR\visEstimated\"\xb0\x01\n" +
+	"\fis_estimated\x18\b \x01(\bR\visEstimated\"\xd0\x01\n" +
 	"\x18GetAgentUsageReportInput\x12\"\n" +
 	"\bagent_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aagentId\x12\x1b\n" +
 	"\tfrom_date\x18\x02 \x01(\tR\bfromDate\x12\x17\n" +
 	"\ato_date\x18\x03 \x01(\tR\x06toDate\x12\x1b\n" +
 	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x05 \x01(\tR\tpageToken\"\x9b\x04\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\x12\x1e\n" +
+	"\x06org_id\x18\x06 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05orgId\"\x9b\x04\n" +
 	"\x19GetAgentUsageReportOutput\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x1d\n" +
 	"\n" +

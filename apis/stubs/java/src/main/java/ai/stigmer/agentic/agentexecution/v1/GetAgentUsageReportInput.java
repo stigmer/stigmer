@@ -7,9 +7,9 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 /**
  * <pre>
- * GetAgentUsageReportInput requests a usage report for a specific agent.
- * Aggregates cost and token data across all sessions for the agent within
- * a time range.
+ * GetAgentUsageReportInput requests a usage report for a specific agent
+ * within one organization. Aggregates cost and token data across the org's
+ * sessions of the agent within a time range.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput}
@@ -38,6 +38,7 @@ private static final long serialVersionUID = 0L;
     fromDate_ = "";
     toDate_ = "";
     pageToken_ = "";
+    orgId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -265,6 +266,57 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int ORG_ID_FIELD_NUMBER = 6;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object orgId_ = "";
+  /**
+   * <pre>
+   * Organization scope for the report: usage of this agent within this
+   * organization. Only executions belonging to this organization are
+   * aggregated. The caller must hold can_view on the organization.
+   * </pre>
+   *
+   * <code>string org_id = 6 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
+   * @return The orgId.
+   */
+  @java.lang.Override
+  public java.lang.String getOrgId() {
+    java.lang.Object ref = orgId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      orgId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Organization scope for the report: usage of this agent within this
+   * organization. Only executions belonging to this organization are
+   * aggregated. The caller must hold can_view on the organization.
+   * </pre>
+   *
+   * <code>string org_id = 6 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for orgId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getOrgIdBytes() {
+    java.lang.Object ref = orgId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      orgId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -294,6 +346,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pageToken_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 5, pageToken_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 6, orgId_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -318,6 +373,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pageToken_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(5, pageToken_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(6, orgId_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -344,6 +402,8 @@ private static final long serialVersionUID = 0L;
         != other.getPageSize()) return false;
     if (!getPageToken()
         .equals(other.getPageToken())) return false;
+    if (!getOrgId()
+        .equals(other.getOrgId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -365,6 +425,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getPageSize();
     hash = (37 * hash) + PAGE_TOKEN_FIELD_NUMBER;
     hash = (53 * hash) + getPageToken().hashCode();
+    hash = (37 * hash) + ORG_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getOrgId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -464,9 +526,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetAgentUsageReportInput requests a usage report for a specific agent.
-   * Aggregates cost and token data across all sessions for the agent within
-   * a time range.
+   * GetAgentUsageReportInput requests a usage report for a specific agent
+   * within one organization. Aggregates cost and token data across the org's
+   * sessions of the agent within a time range.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput}
@@ -507,6 +569,7 @@ private static final long serialVersionUID = 0L;
       toDate_ = "";
       pageSize_ = 0;
       pageToken_ = "";
+      orgId_ = "";
       return this;
     }
 
@@ -555,6 +618,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.pageToken_ = pageToken_;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.orgId_ = orgId_;
+      }
     }
 
     @java.lang.Override
@@ -590,6 +656,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getPageToken().isEmpty()) {
         pageToken_ = other.pageToken_;
         bitField0_ |= 0x00000010;
+        onChanged();
+      }
+      if (!other.getOrgId().isEmpty()) {
+        orgId_ = other.orgId_;
+        bitField0_ |= 0x00000020;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -643,6 +714,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 42
+            case 50: {
+              orgId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 50
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1078,6 +1154,108 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       pageToken_ = value;
       bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object orgId_ = "";
+    /**
+     * <pre>
+     * Organization scope for the report: usage of this agent within this
+     * organization. Only executions belonging to this organization are
+     * aggregated. The caller must hold can_view on the organization.
+     * </pre>
+     *
+     * <code>string org_id = 6 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
+     * @return The orgId.
+     */
+    public java.lang.String getOrgId() {
+      java.lang.Object ref = orgId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        orgId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Organization scope for the report: usage of this agent within this
+     * organization. Only executions belonging to this organization are
+     * aggregated. The caller must hold can_view on the organization.
+     * </pre>
+     *
+     * <code>string org_id = 6 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for orgId.
+     */
+    public com.google.protobuf.ByteString
+        getOrgIdBytes() {
+      java.lang.Object ref = orgId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        orgId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Organization scope for the report: usage of this agent within this
+     * organization. Only executions belonging to this organization are
+     * aggregated. The caller must hold can_view on the organization.
+     * </pre>
+     *
+     * <code>string org_id = 6 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
+     * @param value The orgId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOrgId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      orgId_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Organization scope for the report: usage of this agent within this
+     * organization. Only executions belonging to this organization are
+     * aggregated. The caller must hold can_view on the organization.
+     * </pre>
+     *
+     * <code>string org_id = 6 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOrgId() {
+      orgId_ = getDefaultInstance().getOrgId();
+      bitField0_ = (bitField0_ & ~0x00000020);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Organization scope for the report: usage of this agent within this
+     * organization. Only executions belonging to this organization are
+     * aggregated. The caller must hold can_view on the organization.
+     * </pre>
+     *
+     * <code>string org_id = 6 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for orgId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOrgIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      orgId_ = value;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }

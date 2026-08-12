@@ -182,7 +182,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput",
           "outputType": "GetAgentUsageReportOutput",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput",
-          "description": "Get a usage report for an agent.\n\n Returns aggregated tokens, cost, and per-session breakdown with pagination."
+          "description": "Get a usage report for an agent within an organization.\n\n Returns aggregated tokens, cost, and per-session breakdown for one\n organization's executions of the agent. Requires can_view on the\n organization named in org_id; executions outside that organization are\n never included, so the report is the per-agent drill-down of\n getOrgUsageReport."
         },
         {
           "name": "GetOrgUsageReport",
@@ -1130,7 +1130,7 @@
     },
     {
       "name": "GetAgentUsageReportInput",
-      "description": "GetAgentUsageReportInput requests a usage report for a specific agent.\n Aggregates cost and token data across all sessions for the agent within\n a time range.",
+      "description": "GetAgentUsageReportInput requests a usage report for a specific agent\n within one organization. Aggregates cost and token data across the org's\n sessions of the agent within a time range.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
       "fields": [
@@ -1186,6 +1186,19 @@
           },
           "description": "Token for pagination, obtained from previous response.",
           "required": false
+        },
+        {
+          "name": "OrgId",
+          "jsonName": "orgId",
+          "protoField": "org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization scope for the report: usage of this agent within this\n organization. Only executions belonging to this organization are\n aggregated. The caller must hold can_view on the organization.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
         }
       ]
     },
