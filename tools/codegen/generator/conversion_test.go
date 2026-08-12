@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -1586,5 +1588,99 @@ func TestEmitNestedToProto(t *testing.T) {
 
 		mustContain(t, got, `func (i *ExportInput) toProto() (*workflowv1.Export, error)`)
 		mustContain(t, got, `func (i *FlowControlInput) toProto() (*workflowv1.FlowControl, error)`)
+	})
+}
+
+// ============================================================================
+// Part C: sdk_client_java.go — Java SDK Conversion Generation
+// ============================================================================
+
+// ============================================================================
+// C1: TestGenerateJavaProtoConvert
+// ============================================================================
+
+func TestGenerateJavaProtoConvert_RefusesInsteadOfCoercing(t *testing.T) {
+	dir := t.TempDir()
+	if err := generateJavaProtoConvert(dir); err != nil {
+		t.Fatalf("generateJavaProtoConvert: %v", err)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "ProtoConvert.java"))
+	if err != nil {
+		t.Fatalf("read emitted ProtoConvert.java: %v", err)
+	}
+	got := string(data)
+
+	// The silent String.valueOf fallthrough put a POJO's toString on the
+	// wire ("com.example.Outcome@1a2b3c4d") with no failure until a human
+	// inspected the degraded resource (stigmer/stigmer#448, the Java twin
+	// of #342's silent-drop class). The coercion expression must never be
+	// emitted again (the class comment may still NAME String.valueOf when
+	// telling the story, so the pin targets the code shape).
+	mustNotContain(t, got, `setStringValue(String.valueOf(obj))`)
+
+	// Unsupported values surface as the SDK's structured error — a value
+	// the SDK refuses client-side looks exactly like a value the server
+	// would have refused.
+	mustContain(t, got, `throw invalidValue`)
+	mustContain(t, got, `ErrorCode.INVALID_ARGUMENT`)
+
+	// Arrays are not Iterable — without an explicit arm, String[] takes
+	// the fallthrough. They convert faithfully to ListValue.
+	mustContain(t, got, `obj.getClass().isArray()`)
+	mustContain(t, got, `java.lang.reflect.Array.getLength(obj)`)
+
+	// Struct keys must be String; a non-String key smuggled through type
+	// erasure gets the structured error, not a bare ClassCastException.
+	mustContain(t, got, `Struct keys must be String`)
+}
+
+// ============================================================================
+// C2: TestEmitJavaToProtoField — struct/value call sites thread the field path
+// ============================================================================
+
+func TestEmitJavaToProtoField_StructAndValueThreadFieldPath(t *testing.T) {
+	// The builder field name rides into the conversion as the error-path
+	// root, so a refusal names exactly the field the caller set (e.g.
+	// `taskConfig["outcome"]: unsupported value of type ...`).
+	t.Run("spec_struct_field", func(t *testing.T) {
+		var buf bytes.Buffer
+		emitJavaToProtoField(&buf,
+			field("TaskConfig", "taskConfig", "task_config", TypeSpec{Kind: "struct"}),
+			map[string]*TypeSchema{}, "workflowv1", "        ")
+		got := buf.String()
+
+		mustContain(t, got, `spec.setTaskConfig(ProtoConvert.mapToStruct(this.taskConfig, "taskConfig"));`)
+	})
+
+	t.Run("spec_value_field_reserved_word", func(t *testing.T) {
+		// javaCamel suffixes Java reserved words ("default" -> "default_");
+		// the path must match the builder method the caller actually used.
+		var buf bytes.Buffer
+		emitJavaToProtoField(&buf,
+			field("Default", "default", "default", TypeSpec{Kind: "value"}),
+			map[string]*TypeSchema{}, "datastorev1", "        ")
+		got := buf.String()
+
+		mustContain(t, got, `spec.setDefault(ProtoConvert.objectToValue(this.default_, "default_"));`)
+	})
+
+	t.Run("nested_struct_field", func(t *testing.T) {
+		var buf bytes.Buffer
+		emitJavaNestedToProtoField(&buf,
+			field("TaskConfig", "taskConfig", "task_config", TypeSpec{Kind: "struct"}),
+			map[string]*TypeSchema{}, "workflowv1", "            ")
+		got := buf.String()
+
+		mustContain(t, got, `builder.setTaskConfig(ProtoConvert.mapToStruct(this.taskConfig, "taskConfig"));`)
+	})
+
+	t.Run("nested_value_field", func(t *testing.T) {
+		var buf bytes.Buffer
+		emitJavaNestedToProtoField(&buf,
+			field("Equals", "equals", "equals", TypeSpec{Kind: "value"}),
+			map[string]*TypeSchema{}, "datastorev1", "            ")
+		got := buf.String()
+
+		mustContain(t, got, `builder.setEquals(ProtoConvert.objectToValue(this.equals_, "equals_"));`)
 	})
 }

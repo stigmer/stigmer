@@ -457,7 +457,7 @@ public final class DatastoreInput {
             }
             builder.setRequired(this.required);
             if (this.default_ != null) {
-                builder.setDefault(ProtoConvert.objectToValue(this.default_));
+                builder.setDefault(ProtoConvert.objectToValue(this.default_, "default_"));
             }
             if (this.enumValues != null) {
                 builder.addAllEnumValues(this.enumValues);
@@ -557,7 +557,7 @@ public final class DatastoreInput {
                 builder.setField(this.field);
             }
             if (this.equals_ != null) {
-                builder.setEquals(ProtoConvert.objectToValue(this.equals_));
+                builder.setEquals(ProtoConvert.objectToValue(this.equals_, "equals_"));
             }
             return builder.build();
         }
