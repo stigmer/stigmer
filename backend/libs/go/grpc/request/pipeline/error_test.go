@@ -2,8 +2,10 @@ package pipeline
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -101,6 +103,11 @@ func TestPipelineError_GRPCStatus(t *testing.T) {
 			inner:    errors.New("resource metadata is nil"),
 			wantCode: codes.Internal,
 		},
+		{
+			name:     "grpclib.InternalError keeps Internal through the wrapper",
+			inner:    grpclib.InternalError(errors.New("bbolt: file corrupted"), "failed to list resources"),
+			wantCode: codes.Internal,
+		},
 	}
 
 	for _, tt := range tests {
@@ -116,6 +123,58 @@ func TestPipelineError_GRPCStatus(t *testing.T) {
 				t.Error("wrapped pipeline error must never surface as codes.Unknown")
 			}
 		})
+	}
+}
+
+// TestPipelineError_GRPCStatus_NakedErrorMessageIsSanitized pins the
+// information-disclosure contract from stigmer/stigmer#478: a step that
+// returns a plain (un-statused) error must reach the client as the generic
+// fallback copy — never the step name, never the raw cause. Both stay
+// available in Error() for the transport boundary log.
+func TestPipelineError_GRPCStatus_NakedErrorMessageIsSanitized(t *testing.T) {
+	inner := errors.New("bbolt: /var/lib/stigmer/store.db corrupted")
+	wrapped := StepError("LoadShareForProfile", inner)
+
+	st, ok := status.FromError(wrapped)
+	if !ok {
+		t.Fatal("expected a gRPC status from the wrapped error")
+	}
+	if st.Message() != internalFallbackMessage {
+		t.Errorf("wire message = %q, want the generic fallback %q", st.Message(), internalFallbackMessage)
+	}
+	if strings.Contains(st.Message(), "bbolt") || strings.Contains(st.Message(), "LoadShareForProfile") {
+		t.Errorf("wire message must carry neither the cause nor the step name, got %q", st.Message())
+	}
+
+	// The operator-facing form keeps both.
+	if got := wrapped.Error(); !strings.Contains(got, "LoadShareForProfile") || !strings.Contains(got, "bbolt") {
+		t.Errorf("Error() = %q, want step name and cause preserved for server logs", got)
+	}
+}
+
+// TestPipelineError_GRPCStatus_InternalErrorMessageSurvives verifies that a
+// step returning grpclib.InternalError reaches the client with exactly the
+// sanitized public message — the pipeline wrapper neither re-leaks the cause
+// nor degrades the message to the generic fallback.
+func TestPipelineError_GRPCStatus_InternalErrorMessageSurvives(t *testing.T) {
+	inner := grpclib.InternalError(
+		errors.New("bbolt: /var/lib/stigmer/store.db corrupted"),
+		"failed to list agent share resources",
+	)
+	wrapped := StepError("LoadShareForProfile", inner)
+
+	st, ok := status.FromError(wrapped)
+	if !ok {
+		t.Fatal("expected a gRPC status from the wrapped error")
+	}
+	if st.Code() != codes.Internal {
+		t.Errorf("code = %s, want Internal", st.Code())
+	}
+	if st.Message() != "failed to list agent share resources" {
+		t.Errorf("wire message = %q, want the sanitized public message", st.Message())
+	}
+	if strings.Contains(st.Message(), "bbolt") {
+		t.Errorf("wire message must not carry the cause, got %q", st.Message())
 	}
 }
 

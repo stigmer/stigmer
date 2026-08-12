@@ -2,6 +2,7 @@ package agentshare
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -140,6 +141,72 @@ func createTestShare(t *testing.T, tc *testControllers, agent *agentv1.Agent, en
 		t.Fatalf("share Create failed: %v", err)
 	}
 	return created
+}
+
+// failingListStore delegates to the real store but fails ListResources for
+// one kind — the smallest fault injection that reaches the anonymous
+// resolution path's store dependency.
+type failingListStore struct {
+	store.Store
+	failKind apiresourcekind.ApiResourceKind
+	cause    error
+}
+
+func (s *failingListStore) ListResources(
+	ctx context.Context,
+	kind apiresourcekind.ApiResourceKind,
+) ([][]byte, error) {
+	if kind == s.failKind {
+		return nil, s.cause
+	}
+	return s.Store.ListResources(ctx, kind)
+}
+
+// TestGetSharedProfile_StoreFailureLeaksNoInternals pins stigmer/stigmer#478
+// on the exact surface the issue names: getSharedProfile is the OSS server's
+// only anonymous (is_public) RPC, and a store-level failure there used to
+// format the raw underlying error — storage-engine detail, filesystem paths —
+// into the wire-visible status description. The anonymous visitor must see
+// only the static public message; the cause stays reachable server-side for
+// the transport boundary log.
+func TestGetSharedProfile_StoreFailureLeaksNoInternals(t *testing.T) {
+	tc := newTestControllers(t)
+	agent := createTestAgent(t, tc, "Leak Probe Agent")
+	createTestShare(t, tc, agent, true)
+
+	cause := errors.New("bbolt: /var/lib/stigmer/store.db corrupted")
+	broken := NewAgentShareController(&failingListStore{
+		Store:    tc.store,
+		failKind: apiresourcekind.ApiResourceKind_agent_share,
+		cause:    cause,
+	})
+
+	_, err := broken.GetSharedProfile(shareCtx(), &agentsharev1.GetSharedProfileRequest{
+		Org:  "test-org",
+		Slug: agent.GetMetadata().GetSlug(),
+	})
+	if err == nil {
+		t.Fatal("expected the injected store failure to surface")
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected a gRPC status, got %v", err)
+	}
+	if st.Code() != codes.Internal {
+		t.Errorf("code = %s, want Internal", st.Code())
+	}
+	if st.Message() != "failed to list agent share resources" {
+		t.Errorf("wire message = %q, want only the public message", st.Message())
+	}
+	if strings.Contains(st.Message(), "bbolt") || strings.Contains(st.Message(), "/var/lib") {
+		t.Errorf("anonymous visitors must never see store internals, got %q", st.Message())
+	}
+
+	// Sanitization must not lose the cause for server-side code and logs.
+	if !errors.Is(err, cause) {
+		t.Error("the cause must stay reachable through the sanitized error chain")
+	}
 }
 
 func TestAgentShareController_Create(t *testing.T) {

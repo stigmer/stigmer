@@ -311,11 +311,15 @@ func loggingUnaryInterceptor(
 			logMsg = "gRPC call failed"
 		}
 
+		// Log err.Error(), not st.Message(): sanitized errors (InternalError,
+		// the PipelineError fallback) deliberately keep the cause OUT of the
+		// wire-visible status message — this boundary log line is where the
+		// full detail is preserved for operators.
 		logEvent.
 			Str("method", info.FullMethod).
 			Dur("duration_ms", duration).
 			Str("code", st.Code().String()).
-			Str("error", st.Message()).
+			Str("error", err.Error()).
 			Msg(logMsg)
 	} else {
 		// Health probes are high-frequency infrastructure traffic; log their
@@ -376,11 +380,14 @@ func loggingStreamInterceptor(
 			logMsg = "gRPC stream call failed"
 		}
 
+		// err.Error() rather than st.Message() — same rationale as the unary
+		// interceptor: sanitized errors keep the cause off the wire, and this
+		// log line is the operator's copy of it.
 		logEvent.
 			Str("method", info.FullMethod).
 			Dur("duration_ms", duration).
 			Str("code", st.Code().String()).
-			Str("error", st.Message()).
+			Str("error", err.Error()).
 			Msg(logMsg)
 	} else {
 		// Health Watch is a long-lived probe stream; log its completion at
@@ -398,7 +405,14 @@ func loggingStreamInterceptor(
 	return err
 }
 
-// WrapError wraps an error with an appropriate gRPC status code
+// WrapError wraps an error with an appropriate gRPC status code.
+//
+// The underlying error is embedded in the wire-visible description, so this
+// is only for codes whose causes are client-appropriate (NotFound,
+// FailedPrecondition, and similar caller-actionable refusals). Never use it
+// with codes.Internal: internal causes are server internals and must stay off
+// the wire — use InternalError, which sanitizes the description while keeping
+// the cause for server logs (stigmer/stigmer#478).
 func WrapError(err error, code codes.Code, message string) error {
 	if err == nil {
 		return nil
@@ -419,9 +433,51 @@ func InvalidArgumentError(format string, args ...interface{}) error {
 	return status.Errorf(codes.InvalidArgument, format, args...)
 }
 
-// InternalError returns a gRPC INTERNAL error
+// InternalError returns a gRPC INTERNAL error whose wire-visible description
+// is ONLY the static message. The underlying cause never crosses the wire: an
+// internal failure's raw text can carry storage-engine detail or filesystem
+// paths, and the description is client-visible — on an anonymous surface such
+// as getSharedProfile that is information disclosure to an unauthenticated
+// visitor (stigmer/stigmer#478, the OSS twin of stigmer-cloud#242).
+//
+// The cause is not lost: it stays reachable via errors.Is/errors.As/Unwrap,
+// and Error() renders "message: cause" — which the transport logging
+// interceptors record server-side. Callers therefore keep writing
+// InternalError(err, "failed to <do thing>") exactly as before; the split
+// between operator-visible detail and client-visible copy happens here.
 func InternalError(err error, message string) error {
-	return status.Errorf(codes.Internal, "%s: %v", message, err)
+	return &internalError{cause: err, message: message}
+}
+
+// internalError is the sanitized-status error type behind InternalError. It
+// follows the same contract as pipeline.PipelineError: GRPCStatus() decides
+// the wire representation (implemented explicitly so status.FromError hits
+// its fast path instead of depending on grpc-go's chain-walking), while
+// Error() keeps the full detail for server logs.
+type internalError struct {
+	cause   error
+	message string
+}
+
+// Error renders the operator-facing form, message and cause together. This is
+// what the transport logging interceptors record; it must never be sent to
+// clients.
+func (e *internalError) Error() string {
+	return fmt.Sprintf("%s: %v", e.message, e.cause)
+}
+
+// Unwrap exposes the cause so errors.Is and errors.As see through the
+// sanitization.
+func (e *internalError) Unwrap() error {
+	return e.cause
+}
+
+// GRPCStatus is the wire representation: codes.Internal with only the static
+// public message. grpc-go resolves it via status.FromError, including when
+// this error is wrapped further (e.g. by pipeline.StepError), so the
+// sanitized description survives to the client verbatim.
+func (e *internalError) GRPCStatus() *status.Status {
+	return status.New(codes.Internal, e.message)
 }
 
 // AlreadyExistsError returns a gRPC ALREADY_EXISTS error
