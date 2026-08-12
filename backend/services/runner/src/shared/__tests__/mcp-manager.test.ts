@@ -240,3 +240,52 @@ describe("connectMcpServers — enabled_tools enforcement (issue #350)", () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("ghost"));
   });
 });
+
+describe("connectMcpServers — schema sanitization (issue #420)", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockMcpClient.toolMap = {};
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("drops unicode-invalid regex patterns from every discovered tool's schema and warns per tool", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const toxic = {
+      name: "toxic",
+      schema: {
+        type: "object",
+        // PayPal's issue-#420 shape: legal plain regex, invalid under /u.
+        properties: { url: { type: "string", pattern: "^https\\:\\/\\/" } },
+      },
+    } as any;
+    const clean = {
+      name: "clean",
+      schema: {
+        type: "object",
+        properties: { id: { type: "string", pattern: "^[a-z]+$" } },
+      },
+    } as any;
+    mockMcpClient.toolMap = { paypal: [toxic, clean] };
+
+    const result = await connectMcpServers([
+      makeServer({ slug: "paypal", connectionType: "http", url: "https://mcp.example.com/mcp" }),
+    ]);
+
+    // Sanitization happens on the discovered tool objects themselves, so
+    // every downstream consumer (model binding, approval gate, sub-agent
+    // filter) sees the sanitized schema.
+    expect(result.serverToolMap.paypal[0].schema).toEqual({
+      type: "object",
+      properties: { url: { type: "string" } },
+    });
+    expect(result.serverToolMap.paypal[1].schema).toEqual(clean.schema);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("Server 'paypal' tool 'toxic'"),
+    );
+  });
+});
