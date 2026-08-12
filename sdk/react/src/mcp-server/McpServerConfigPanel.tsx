@@ -14,6 +14,7 @@ import {
   type EnvVarFormSubmitOptions,
 } from "../environment/EnvVarForm.js";
 import { McpToolSelector } from "./McpToolSelector.js";
+import { VendorApprovalBlockedNotice } from "./VendorApprovalBlockedNotice.js";
 import {
   getOAuthConnectErrorMessage,
   type OAuthConnectPhase,
@@ -142,6 +143,16 @@ export interface McpServerOAuthSignInProps {
    * `true` when an org-level BYOA override is active.
    */
   readonly isOrgOAuthApp?: boolean;
+  /**
+   * Whether a manually-entered static token can authenticate this server
+   * (`false` for `oauth_only` servers whose endpoint rejects static
+   * tokens). Consulted by the vendor-approval-blocked message so it never
+   * recommends manual entry on a server where it cannot work.
+   * When omitted, falls back to whether `onSwitchToManual` is wired on
+   * {@link McpServerConfigPanelProps} — callers gate that affordance on
+   * the same fact.
+   */
+  readonly manualEntrySupported?: boolean;
   /**
    * Open the BYOA form. The parent is responsible for rendering the
    * form/dialog and handling the mutation.
@@ -364,6 +375,7 @@ export function McpServerConfigPanel({
           onBringOwnApp={oauthSignIn.onBringOwnApp}
           onRemoveOrgApp={oauthSignIn.onRemoveOrgApp}
           isRemovingOrgApp={oauthSignIn.isRemovingOrgApp}
+          manualEntrySupported={oauthSignIn.manualEntrySupported}
           onSwitchToManual={onSwitchToManual}
         />
       )}
@@ -486,6 +498,7 @@ function InlineOAuthSignIn({
   onBringOwnApp,
   onRemoveOrgApp,
   isRemovingOrgApp,
+  manualEntrySupported,
   onSwitchToManual,
 }: {
   readonly serverName: string;
@@ -509,6 +522,7 @@ function InlineOAuthSignIn({
   readonly onBringOwnApp?: () => void;
   readonly onRemoveOrgApp?: () => Promise<void>;
   readonly isRemovingOrgApp?: boolean;
+  readonly manualEntrySupported?: boolean;
   readonly onSwitchToManual?: () => void;
 }) {
   const [disconnectPhase, setDisconnectPhase] = useState<InlineDisconnectPhase>("idle");
@@ -730,34 +744,16 @@ function InlineOAuthSignIn({
       </div>
 
       {/* Vendor approval blocked message with BYOA CTA */}
-      {blocked && !isConnected && !isOrgOAuthApp && (
-        <div className="stg:text-[0.65rem] stg:text-amber-700 stg:dark:text-amber-300">
-          <p>
-            OAuth sign-in is pending vendor approval.
-            {canBringOwnApp && onBringOwnApp
-              ? " You can use your own OAuth app or enter a token manually."
-              : ""}
-          </p>
-          {canBringOwnApp && onBringOwnApp && (
-            <button
-              type="button"
-              onClick={onBringOwnApp}
-              className="stg:mt-1 stg:inline-flex stg:items-center stg:gap-1 stg:rounded stg:bg-amber-600 stg:px-2 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:text-white stg:hover:bg-amber-700 stg:dark:bg-amber-500 stg:dark:text-amber-950 stg:dark:hover:bg-amber-400"
-            >
-              Use your own OAuth app
-            </button>
-          )}
-          {vendorApprovalDocsUrl && !canBringOwnApp && (
-            <a
-              href={vendorApprovalDocsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="stg:underline stg:decoration-amber-600/40 stg:underline-offset-2 stg:hover:decoration-amber-600 stg:dark:decoration-amber-400/40 stg:dark:hover:decoration-amber-400"
-            >
-              Learn how to bring your own token
-            </a>
-          )}
-        </div>
+      {!isConnected && !isOrgOAuthApp && (
+        <VendorApprovalBlockedNotice
+          blocked={!!blocked}
+          pending={!!isVendorApprovalPending}
+          manualEntrySupported={manualEntrySupported ?? Boolean(onSwitchToManual)}
+          canBringOwnApp={Boolean(canBringOwnApp && onBringOwnApp)}
+          docsUrl={vendorApprovalDocsUrl ?? null}
+          onBringOwnApp={onBringOwnApp}
+          compact
+        />
       )}
 
       {/* Org override indicator when not connected */}

@@ -542,6 +542,7 @@ export function McpServerPicker({
             isVendorApprovalPending,
             isVendorApprovalBlocked,
             vendorApprovalDocsUrl: oauthStatus?.vendorApprovalDocsUrl || null,
+            manualEntrySupported,
           }
         : undefined;
 
