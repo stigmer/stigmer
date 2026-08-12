@@ -92,8 +92,17 @@ test: ensure-service-jar ensure-runner-built ## Run offline session routing test
 
 # ─── Provider-Backed Tests (Tier 3) ─────────────────────────────────────────
 
+# Fetch a Planton secret's value (the test/integration/Makefile idiom): the
+# CLI renders a decorated box, so the value is extracted from the "Value"
+# line, ANSI-stripped. Empty result means "fetch failed" — callers skip.
+# The previous `planton service secrets get-value` syntax is obsolete and
+# silently captured the CLI error text as the key.
+define planton_get_secret
+planton secret get $(1) --env prod --org stigmer 2>/dev/null | awk '{ gsub(/\033\[[0-9;]*m/, "") } /^[[:space:]]*Value[[:space:]]+/ { sub(/^[[:space:]]*Value[[:space:]]+/, ""); gsub(/[[:space:]]+$$/, ""); print; exit }'
+endef
+
 .PHONY: test-providers
-test-providers: ensure-service-jar ensure-runner-built ## Run provider-backed session routing E2E tests (auto-fetches CURSOR_API_KEY)
+test-providers: ensure-service-jar ensure-runner-built ## Run provider-backed session routing E2E tests (auto-fetches Cursor keys)
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \
@@ -101,16 +110,19 @@ test-providers: ensure-service-jar ensure-runner-built ## Run provider-backed se
 	}
 	@mkdir -p $(PROVIDER_OUTPUT_DIR)
 	@CURSOR_KEY=$${CURSOR_API_KEY:-}; \
-	if [ -z "$$CURSOR_KEY" ]; then \
-		if command -v planton >/dev/null 2>&1; then \
-			echo "Fetching CURSOR_API_KEY from Planton..."; \
-			CURSOR_KEY=$$(planton service secrets get-value --org stigmer --group cursor --name prod.api-key 2>&1 || true); \
-			if [ -n "$$CURSOR_KEY" ]; then echo "CURSOR_API_KEY fetched"; else echo "CURSOR_API_KEY not available — E2E tests will be skipped"; fi; \
-		else \
-			echo "warning: CURSOR_API_KEY not set and planton CLI not found — E2E tests will be skipped"; \
-		fi; \
+	if [ -z "$$CURSOR_KEY" ] && command -v planton >/dev/null 2>&1; then \
+		echo "Fetching CURSOR_API_KEY from Planton..."; \
+		CURSOR_KEY=$$($(call planton_get_secret,cursor) || true); \
+		if [ -n "$$CURSOR_KEY" ]; then echo "CURSOR_API_KEY fetched"; else echo "CURSOR_API_KEY not available — E2E tests will be skipped"; fi; \
+	fi; \
+	CURSOR_ADMIN=$${CURSOR_ADMIN_KEY:-}; \
+	if [ -z "$$CURSOR_ADMIN" ] && command -v planton >/dev/null 2>&1; then \
+		echo "Fetching CURSOR_ADMIN_KEY from Planton..."; \
+		CURSOR_ADMIN=$$($(call planton_get_secret,cursor-admin) || true); \
+		if [ -n "$$CURSOR_ADMIN" ]; then echo "CURSOR_ADMIN_KEY fetched"; else echo "CURSOR_ADMIN_KEY not available — E2E tests will be skipped (shared-pool seed needs it)"; fi; \
 	fi; \
 	CURSOR_API_KEY=$$CURSOR_KEY \
+	CURSOR_ADMIN_KEY=$$CURSOR_ADMIN \
 	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
 	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(PROVIDER_OUTPUT_DIR)) gotestsum \
 		--junitfile $(PROVIDER_OUTPUT_DIR)/junit.xml \

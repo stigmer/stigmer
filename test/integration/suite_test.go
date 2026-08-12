@@ -69,6 +69,7 @@ func TestMain(m *testing.M) {
 	anthropicKey := os.Getenv("ANTHROPIC_API_KEY")
 
 	cursorKey := os.Getenv("CURSOR_API_KEY")
+	cursorAdminKey := os.Getenv("CURSOR_ADMIN_KEY")
 
 	mockWhatsAppGraph = harness.StartMockWhatsAppGraph()
 	defer mockWhatsAppGraph.Close()
@@ -79,7 +80,6 @@ func TestMain(m *testing.M) {
 		RedisPort:            testHarness.Redis.Port,
 		TemporalAddress:      testHarness.Temporal.Address(),
 		AnthropicAPIKey:      anthropicKey,
-		CursorAPIKey:         cursorKey,
 		WhatsAppGraphBaseURL: mockWhatsAppGraph.BaseURL(),
 		LogDir:               logDir,
 	}
@@ -211,6 +211,19 @@ func TestMain(m *testing.M) {
 		suiteLogger.Warn("failed to seed default agent — tests requiring a default agent may fail", "error", err)
 	} else {
 		suiteLogger.Info("default agent seeded")
+	}
+
+	// Cursor credentials are DB-resident CursorAccounts (DD-008) — without
+	// this seed every proxied Cursor call 503s on an empty shared pool.
+	// Both keys are required: the seed's upsert live-validates the admin
+	// key against Cursor's Admin API (RequireCursorPrereqs skips cursor
+	// tests when either is absent).
+	if cursorKey != "" && cursorAdminKey != "" {
+		if err := harness.SeedSharedPoolCursorAccount(ctx, grpcConn, cursorAdminKey, cursorKey); err != nil {
+			suiteLogger.Warn("failed to seed shared-pool cursor account — cursor harness tests will fail at key selection", "error", err)
+		} else {
+			suiteLogger.Info("shared-pool cursor account seeded")
+		}
 	}
 
 	mcpBinary, mcpErr := harness.BuildTestMcpServer(cfg.OutputDir)

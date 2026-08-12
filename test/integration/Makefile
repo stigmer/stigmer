@@ -51,15 +51,33 @@ RERUN_FLAGS = \
 
 # ─── Planton Secret Fetch ────────────────────
 # Fetch a Planton secret's value for use as an API key. Secrets are
-# environment-scoped to `prod` (slugs: anthropic, cursor). The CLI renders a
-# decorated box even with `-o plain`, so we extract the value from the "Value"
-# line (stripping any ANSI). On failure (not logged in / not found) stdout has
-# no "Value" line, so the result is empty — which callers treat as "fetch
-# failed". Replaces the obsolete `planton service secrets get-value
-# --group/--name` syntax, which silently captured the CLI error text as the key.
+# environment-scoped to `prod` (slugs: anthropic, cursor, cursor-admin). The
+# CLI renders a decorated box even with `-o plain`, so we extract the value
+# from the "Value" line (stripping any ANSI). On failure (not logged in / not
+# found) stdout has no "Value" line, so the result is empty — which callers
+# treat as "fetch failed". Replaces the obsolete `planton service secrets
+# get-value --group/--name` syntax, which silently captured the CLI error
+# text as the key.
 #   Usage in a recipe: KEY=$$($(call planton_get_secret,<slug>))
 define planton_get_secret
 planton secret get $(1) --env prod --org stigmer 2>/dev/null | awk '{ gsub(/\033\[[0-9;]*m/, "") } /^[[:space:]]*Value[[:space:]]+/ { sub(/^[[:space:]]*Value[[:space:]]+/, ""); gsub(/[[:space:]]+$$/, ""); print; exit }'
+endef
+
+# Best-effort fetch of the Cursor team Admin API key (CURSOR_ADMIN_KEY). The
+# suite's boot-time shared-pool CursorAccount seed needs it alongside the
+# user-scoped CURSOR_API_KEY (DD-008: DB-resident CursorAccounts are the only
+# Cursor credential source; the seed's upsert live-validates the admin key).
+# Optional like the cursor key: when absent, cursor tests skip honestly via
+# RequireCursorPrereqs. Recipes that HARD-require cursor add their own
+# emptiness check after expanding this.
+#   Usage in a recipe (inside the same shell chain): $(call fetch_cursor_admin_key)
+define fetch_cursor_admin_key
+CURSOR_ADMIN=$${CURSOR_ADMIN_KEY:-}; \
+if [ -z "$$CURSOR_ADMIN" ] && command -v planton >/dev/null 2>&1; then \
+	echo "Fetching CURSOR_ADMIN_KEY from Planton..."; \
+	CURSOR_ADMIN=$$($(call planton_get_secret,cursor-admin) || true); \
+	if [ -n "$$CURSOR_ADMIN" ]; then echo "CURSOR_ADMIN_KEY fetched"; else echo "CURSOR_ADMIN_KEY not available — cursor tests will be skipped (shared-pool seed needs it)"; fi; \
+fi
 endef
 
 # Guarantees the service JAR reflects current stigmer-cloud sources. When the
@@ -161,8 +179,10 @@ test-providers: check-runner-node ensure-service-jar ## Run provider-backed inte
 		CURSOR_KEY=$$($(call planton_get_secret,cursor) || true); \
 		if [ -n "$$CURSOR_KEY" ]; then echo "CURSOR_API_KEY fetched"; else echo "CURSOR_API_KEY not available — cursor tests will be skipped"; fi; \
 	fi; \
+	$(call fetch_cursor_admin_key); \
 	ANTHROPIC_API_KEY=$$ANTHROPIC_KEY \
 	CURSOR_API_KEY=$$CURSOR_KEY \
+	CURSOR_ADMIN_KEY=$$CURSOR_ADMIN \
 	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
 	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(PROVIDER_OUTPUT_DIR)) gotestsum \
 		--junitfile $(PROVIDER_OUTPUT_DIR)/junit.xml \
@@ -204,8 +224,10 @@ test-canary: check-runner-node ensure-service-jar ## Run canary tests (live prov
 		CURSOR_KEY=$$($(call planton_get_secret,cursor) || true); \
 		if [ -n "$$CURSOR_KEY" ]; then echo "CURSOR_API_KEY fetched"; else echo "CURSOR_API_KEY not available — cursor canary will be skipped"; fi; \
 	fi; \
+	$(call fetch_cursor_admin_key); \
 	ANTHROPIC_API_KEY=$$ANTHROPIC_KEY \
 	CURSOR_API_KEY=$$CURSOR_KEY \
+	CURSOR_ADMIN_KEY=$$CURSOR_ADMIN \
 	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
 	INTEGRATION_TEST_OUTPUT_DIR=$(abspath .test-output-canary) gotestsum \
 		--junitfile .test-output-canary/junit.xml \
@@ -243,8 +265,10 @@ test-workflow-architect: check-runner-node ensure-service-jar ## Run Workflow Ar
 		CURSOR_KEY=$$($(call planton_get_secret,cursor) || true); \
 		if [ -n "$$CURSOR_KEY" ]; then echo "CURSOR_API_KEY fetched"; else echo "CURSOR_API_KEY not available — cursor subtests will be skipped"; fi; \
 	fi; \
+	$(call fetch_cursor_admin_key); \
 	ANTHROPIC_API_KEY=$$ANTHROPIC_KEY \
 	CURSOR_API_KEY=$$CURSOR_KEY \
+	CURSOR_ADMIN_KEY=$$CURSOR_ADMIN \
 	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
 	INTEGRATION_TEST_OUTPUT_DIR=$(abspath .test-output-architect) gotestsum \
 		--junitfile .test-output-architect/junit.xml \
@@ -284,8 +308,10 @@ test-agent: check-runner-node ensure-service-jar ## Run agent execution integrat
 		CURSOR_KEY=$$($(call planton_get_secret,cursor) || true); \
 		if [ -n "$$CURSOR_KEY" ]; then echo "CURSOR_API_KEY fetched"; else echo "CURSOR_API_KEY not available — cursor subtests will be skipped"; fi; \
 	fi; \
+	$(call fetch_cursor_admin_key); \
 	ANTHROPIC_API_KEY=$$ANTHROPIC_KEY \
 	CURSOR_API_KEY=$$CURSOR_KEY \
+	CURSOR_ADMIN_KEY=$$CURSOR_ADMIN \
 	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
 	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(AGENT_OUTPUT_DIR)) gotestsum \
 		--junitfile $(AGENT_OUTPUT_DIR)/junit.xml \
@@ -333,9 +359,11 @@ test-subset: check-runner-node ensure-service-jar ## Run a subset of integration
 		CURSOR_KEY=$$($(call planton_get_secret,cursor) || true); \
 		if [ -n "$$CURSOR_KEY" ]; then echo "CURSOR_API_KEY fetched"; else echo "CURSOR_API_KEY not available — cursor subtests will be skipped"; fi; \
 	fi; \
+	$(call fetch_cursor_admin_key); \
 	echo "Running tests matching: $(TEST_RUN)"; \
 	ANTHROPIC_API_KEY=$$ANTHROPIC_KEY \
 	CURSOR_API_KEY=$$CURSOR_KEY \
+	CURSOR_ADMIN_KEY=$$CURSOR_ADMIN \
 	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
 	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(FAILING_OUTPUT_DIR)) gotestsum \
 		--junitfile $(FAILING_OUTPUT_DIR)/junit.xml \
@@ -465,9 +493,15 @@ benchmark-cost: check-runner-node ensure-service-jar ensure-runner-dist ## Run c
 			exit 1; \
 		fi; \
 	fi; \
+	$(call fetch_cursor_admin_key); \
+	if [ -z "$$CURSOR_ADMIN" ]; then \
+		echo "error: CURSOR_ADMIN_KEY required — the shared-pool CursorAccount seed needs the team admin key"; \
+		exit 1; \
+	fi; \
 	echo "Running cost benchmarks (native vs cursor)..."; \
 	ANTHROPIC_API_KEY=$$ANTHROPIC_KEY \
 	CURSOR_API_KEY=$$CURSOR_KEY \
+	CURSOR_ADMIN_KEY=$$CURSOR_ADMIN \
 	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
 	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(BENCHMARK_OUTPUT_DIR)) gotestsum \
 		--junitfile $(BENCHMARK_OUTPUT_DIR)/junit.xml \
@@ -503,8 +537,14 @@ benchmark-cursor-modes: check-runner-node ensure-service-jar ensure-runner-dist 
 			exit 1; \
 		fi; \
 	fi; \
+	$(call fetch_cursor_admin_key); \
+	if [ -z "$$CURSOR_ADMIN" ]; then \
+		echo "error: CURSOR_ADMIN_KEY required — the shared-pool CursorAccount seed needs the team admin key"; \
+		exit 1; \
+	fi; \
 	echo "Running cursor mode benchmarks (local vs cloud)..."; \
 	CURSOR_API_KEY=$$CURSOR_KEY \
+	CURSOR_ADMIN_KEY=$$CURSOR_ADMIN \
 	STIGMER_CURSOR_CLOUD_MODE_ENABLED=true \
 	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
 	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(CURSOR_MODE_OUTPUT_DIR)) gotestsum \

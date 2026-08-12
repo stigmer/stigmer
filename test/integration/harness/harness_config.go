@@ -52,9 +52,13 @@ func RequireNativePrereqs(t *testing.T, th *TestHarness) {
 }
 
 // RequireCursorPrereqs skips the test if the unified runner is not available
-// or if the Cursor API key is absent. Every cursor harness test dispatches
-// an agent execution through the Cursor proxy, which requires an upstream key.
-// Without it, executions fail immediately with HTTP 502 from the proxy.
+// or if either Cursor credential is absent. Every cursor harness test
+// dispatches through the Cursor proxy, whose key selection serves ONLY from
+// the DB-resident shared pool (DD-008) — seeded at suite boot by
+// SeedSharedPoolCursorAccount, which needs BOTH keys: the admin key to
+// create the account (live-validated against Cursor's Admin API) and the
+// user-scoped key as the pool member key. Without the seed, every proxied
+// Cursor call fails with a pool-exhausted 503.
 func RequireCursorPrereqs(t *testing.T, th *TestHarness) {
 	t.Helper()
 	if th.UnifiedRunner == nil {
@@ -62,6 +66,9 @@ func RequireCursorPrereqs(t *testing.T, th *TestHarness) {
 	}
 	if os.Getenv("CURSOR_API_KEY") == "" {
 		t.Skip("CURSOR_API_KEY not set — skipping cursor harness test (requires Cursor proxy)")
+	}
+	if os.Getenv("CURSOR_ADMIN_KEY") == "" {
+		t.Skip("CURSOR_ADMIN_KEY not set — skipping cursor harness test (the shared-pool CursorAccount seed needs the team admin key)")
 	}
 }
 

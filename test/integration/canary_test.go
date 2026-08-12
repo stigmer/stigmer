@@ -42,8 +42,14 @@ func requireCanaryAnthropicPrereqs(t *testing.T) {
 func requireCanaryCursorPrereqs(t *testing.T) {
 	t.Helper()
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+	// Same credential pair the suite-boot SeedSharedPoolCursorAccount
+	// needs: without both, the proxy's shared pool is empty and every
+	// cursor call 503s (see RequireCursorPrereqs).
 	if os.Getenv("CURSOR_API_KEY") == "" {
 		t.Skip("CURSOR_API_KEY not set — skipping cursor canary test")
+	}
+	if os.Getenv("CURSOR_ADMIN_KEY") == "" {
+		t.Skip("CURSOR_ADMIN_KEY not set — skipping cursor canary test (the shared-pool CursorAccount seed needs the team admin key)")
 	}
 }
 
