@@ -34,18 +34,26 @@ class GetRunnerBootstrapConfigInput(_message.Message):
     def __init__(self) -> None: ...
 
 class GetRunnerBootstrapConfigOutput(_message.Message):
-    __slots__ = ("temporal_address", "temporal_namespace", "runner_access_token", "token_type", "runner_access_token_expires_in_seconds")
+    __slots__ = ("temporal_address", "temporal_namespace", "runner_access_token", "token_type", "runner_access_token_expires_in_seconds", "payload_encryption_key", "payload_encryption_key_id", "payload_encryption_secondary_key", "payload_encryption_secondary_key_id")
     TEMPORAL_ADDRESS_FIELD_NUMBER: _ClassVar[int]
     TEMPORAL_NAMESPACE_FIELD_NUMBER: _ClassVar[int]
     RUNNER_ACCESS_TOKEN_FIELD_NUMBER: _ClassVar[int]
     TOKEN_TYPE_FIELD_NUMBER: _ClassVar[int]
     RUNNER_ACCESS_TOKEN_EXPIRES_IN_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    PAYLOAD_ENCRYPTION_KEY_FIELD_NUMBER: _ClassVar[int]
+    PAYLOAD_ENCRYPTION_KEY_ID_FIELD_NUMBER: _ClassVar[int]
+    PAYLOAD_ENCRYPTION_SECONDARY_KEY_FIELD_NUMBER: _ClassVar[int]
+    PAYLOAD_ENCRYPTION_SECONDARY_KEY_ID_FIELD_NUMBER: _ClassVar[int]
     temporal_address: str
     temporal_namespace: str
     runner_access_token: str
     token_type: str
     runner_access_token_expires_in_seconds: int
-    def __init__(self, temporal_address: _Optional[str] = ..., temporal_namespace: _Optional[str] = ..., runner_access_token: _Optional[str] = ..., token_type: _Optional[str] = ..., runner_access_token_expires_in_seconds: _Optional[int] = ...) -> None: ...
+    payload_encryption_key: str
+    payload_encryption_key_id: str
+    payload_encryption_secondary_key: str
+    payload_encryption_secondary_key_id: str
+    def __init__(self, temporal_address: _Optional[str] = ..., temporal_namespace: _Optional[str] = ..., runner_access_token: _Optional[str] = ..., token_type: _Optional[str] = ..., runner_access_token_expires_in_seconds: _Optional[int] = ..., payload_encryption_key: _Optional[str] = ..., payload_encryption_key_id: _Optional[str] = ..., payload_encryption_secondary_key: _Optional[str] = ..., payload_encryption_secondary_key_id: _Optional[str] = ...) -> None: ...
 
 class GetRunnerScopedTokenInput(_message.Message):
     __slots__ = ("agent_execution_id", "workflow_execution_id", "pool_claim", "renewal")

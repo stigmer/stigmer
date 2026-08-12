@@ -305,7 +305,10 @@ export async function createStigmerRunner(
   }
 
   const { createPayloadCodecs } = await import("./payload-codecs.js");
-  const payloadCodecs = await createPayloadCodecs(config);
+  // Server-managed keys from the bootstrap response apply here too (a CLI
+  // daemon with a cloud token is desktop-class); cloud sandboxes are
+  // unaffected — their env-injected platform key wins inside the loader.
+  const payloadCodecs = await createPayloadCodecs(config, coordinates.payloadEncryption);
 
   const { startWorker } = await import("./worker.js");
   const worker = await startWorker({ config, activities, payloadCodecs });
