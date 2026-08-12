@@ -4,12 +4,15 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Helper function to create a context with api_resource_kind injected
@@ -321,5 +324,153 @@ func TestGenerateID_Uniqueness(t *testing.T) {
 	// Should have 100 unique IDs
 	if len(ids) != 100 {
 		t.Errorf("Expected 100 unique IDs, got %d", len(ids))
+	}
+}
+
+// TestSetAuditFieldsForUpdate_PreservesCreationAudit is the regression pin
+// for stigmer/stigmer#453: the helper used to rebuild the whole audit
+// block, resetting created_by/created_at to system/now on every call —
+// silently destroying the true creation record at all 14 call sites
+// (visibility flips, skill push, schedule stamps, artifact soft-delete,
+// share-link rotate) and reordering every created_at-sorted list.
+//
+// The pinned contract: created_by/created_at survive EXACTLY (full proto
+// equality, per audit slot — spec_audit and status_audit each keep their
+// own), updated_by/updated_at are stamped fresh, event flips to "updated".
+func TestSetAuditFieldsForUpdate_PreservesCreationAudit(t *testing.T) {
+	// Distinct creation identities per slot prove per-slot extraction —
+	// a fix that copied spec_audit's values into status_audit would fail.
+	specCreatedBy := &apiresource.ApiResourceAuditActor{Id: "user-alice"}
+	specCreatedAt := timestamppb.New(time.Date(2024, 3, 15, 10, 30, 0, 123456789, time.UTC))
+	statusCreatedBy := &apiresource.ApiResourceAuditActor{Id: "user-bob"}
+	statusCreatedAt := timestamppb.New(time.Date(2024, 6, 1, 8, 0, 0, 987654321, time.UTC))
+	staleUpdatedAt := timestamppb.New(time.Date(2024, 7, 4, 12, 0, 0, 0, time.UTC))
+
+	agent := &agentv1.Agent{
+		Metadata: &apiresource.ApiResourceMetadata{Name: "Test Agent"},
+		Status: &agentv1.AgentStatus{
+			Audit: &apiresource.ApiResourceAudit{
+				SpecAudit: &apiresource.ApiResourceAuditInfo{
+					CreatedBy: specCreatedBy,
+					CreatedAt: specCreatedAt,
+					UpdatedBy: specCreatedBy,
+					UpdatedAt: staleUpdatedAt,
+					Event:     "created",
+				},
+				StatusAudit: &apiresource.ApiResourceAuditInfo{
+					CreatedBy: statusCreatedBy,
+					CreatedAt: statusCreatedAt,
+					UpdatedBy: statusCreatedBy,
+					UpdatedAt: staleUpdatedAt,
+					Event:     "created",
+				},
+			},
+		},
+	}
+
+	before := time.Now()
+	if err := SetAuditFieldsForUpdate(agent); err != nil {
+		t.Fatalf("Expected success, got error: %v", err)
+	}
+
+	audit := agent.GetStatus().GetAudit()
+	if audit == nil || audit.SpecAudit == nil || audit.StatusAudit == nil {
+		t.Fatalf("Expected both audit slots to be set, got %v", audit)
+	}
+
+	// Creation identity preserved exactly, per slot.
+	if !proto.Equal(audit.SpecAudit.CreatedBy, specCreatedBy) {
+		t.Errorf("spec_audit.created_by not preserved: want %v, got %v", specCreatedBy, audit.SpecAudit.CreatedBy)
+	}
+	if !proto.Equal(audit.SpecAudit.CreatedAt, specCreatedAt) {
+		t.Errorf("spec_audit.created_at not preserved: want %v, got %v", specCreatedAt, audit.SpecAudit.CreatedAt)
+	}
+	if !proto.Equal(audit.StatusAudit.CreatedBy, statusCreatedBy) {
+		t.Errorf("status_audit.created_by not preserved: want %v, got %v", statusCreatedBy, audit.StatusAudit.CreatedBy)
+	}
+	if !proto.Equal(audit.StatusAudit.CreatedAt, statusCreatedAt) {
+		t.Errorf("status_audit.created_at not preserved: want %v, got %v", statusCreatedAt, audit.StatusAudit.CreatedAt)
+	}
+
+	// Update stamp is fresh on both slots.
+	for slot, info := range map[string]*apiresource.ApiResourceAuditInfo{
+		"spec_audit":   audit.SpecAudit,
+		"status_audit": audit.StatusAudit,
+	} {
+		if info.UpdatedAt.AsTime().Before(before) {
+			t.Errorf("%s.updated_at not stamped fresh: got %v, want >= %v", slot, info.UpdatedAt.AsTime(), before)
+		}
+		if info.UpdatedBy.GetId() != "system" {
+			t.Errorf("%s.updated_by not stamped: want system, got %q", slot, info.UpdatedBy.GetId())
+		}
+		if info.Event != "updated" {
+			t.Errorf("%s.event: want updated, got %q", slot, info.Event)
+		}
+	}
+}
+
+// TestSetAuditFieldsForUpdate_NoPriorAudit pins the first-write fallback:
+// a resource with no existing audit gets creation fields backfilled with
+// the current actor/time — the same fallback BuildUpdateStateStep uses —
+// instead of nil creation fields or an error.
+func TestSetAuditFieldsForUpdate_NoPriorAudit(t *testing.T) {
+	agent := &agentv1.Agent{
+		Metadata: &apiresource.ApiResourceMetadata{Name: "Test Agent"},
+		Status:   &agentv1.AgentStatus{},
+	}
+
+	if err := SetAuditFieldsForUpdate(agent); err != nil {
+		t.Fatalf("Expected success, got error: %v", err)
+	}
+
+	audit := agent.GetStatus().GetAudit()
+	if audit == nil || audit.SpecAudit == nil || audit.StatusAudit == nil {
+		t.Fatalf("Expected both audit slots to be set, got %v", audit)
+	}
+
+	for slot, info := range map[string]*apiresource.ApiResourceAuditInfo{
+		"spec_audit":   audit.SpecAudit,
+		"status_audit": audit.StatusAudit,
+	} {
+		if info.CreatedAt == nil || info.CreatedBy == nil {
+			t.Fatalf("%s: expected creation fallback to be filled, got created_by=%v created_at=%v", slot, info.CreatedBy, info.CreatedAt)
+		}
+		// The fallback backfills creation with the same stamp as the update.
+		if !proto.Equal(info.CreatedAt, info.UpdatedAt) {
+			t.Errorf("%s: fallback created_at should equal updated_at, got %v vs %v", slot, info.CreatedAt, info.UpdatedAt)
+		}
+		if info.CreatedBy.GetId() != "system" {
+			t.Errorf("%s: fallback created_by should be system, got %q", slot, info.CreatedBy.GetId())
+		}
+		if info.Event != "updated" {
+			t.Errorf("%s.event: want updated, got %q", slot, info.Event)
+		}
+	}
+}
+
+// TestSetAuditFieldsForCreate pins the create stamp: both audit slots set
+// identically, created == updated, event "created".
+func TestSetAuditFieldsForCreate(t *testing.T) {
+	agent := &agentv1.Agent{
+		Metadata: &apiresource.ApiResourceMetadata{Name: "Test Agent"},
+		Status:   &agentv1.AgentStatus{},
+	}
+
+	if err := SetAuditFieldsForCreate(agent); err != nil {
+		t.Fatalf("Expected success, got error: %v", err)
+	}
+
+	audit := agent.GetStatus().GetAudit()
+	if audit == nil || audit.SpecAudit == nil || audit.StatusAudit == nil {
+		t.Fatalf("Expected both audit slots to be set, got %v", audit)
+	}
+	if !proto.Equal(audit.SpecAudit, audit.StatusAudit) {
+		t.Errorf("Expected spec_audit and status_audit to be identical on create, got %v vs %v", audit.SpecAudit, audit.StatusAudit)
+	}
+	if !proto.Equal(audit.SpecAudit.CreatedAt, audit.SpecAudit.UpdatedAt) {
+		t.Errorf("Expected created_at == updated_at on create, got %v vs %v", audit.SpecAudit.CreatedAt, audit.SpecAudit.UpdatedAt)
+	}
+	if audit.SpecAudit.Event != "created" {
+		t.Errorf("Expected event=created, got %q", audit.SpecAudit.Event)
 	}
 }

@@ -466,6 +466,77 @@ func TestAgentController_Delete_Cascade(t *testing.T) {
 	})
 }
 
+// TestAgentController_UpdateVisibility_PreservesCreationAudit pins the
+// call-site half of the stigmer/stigmer#453 fix: a visibility flip must
+// not rewrite spec_audit.created_by/created_at (before the fix,
+// steps.SetAuditFieldsForUpdate rebuilt the whole audit block, resetting
+// creation to system/now — which also reordered every created_at-sorted
+// list). The steps package pins the helper contract; this test proves the
+// preservation survives the full update-visibility pipeline.
+func TestAgentController_UpdateVisibility_PreservesCreationAudit(t *testing.T) {
+	s, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
+	if err != nil {
+		t.Fatalf("failed to create store: %v", err)
+	}
+	defer s.Close()
+	controller := NewAgentController(s, nil)
+
+	created, err := controller.Create(contextWithAgentKind(), &agentv1.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Agent",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "Audit Pin Agent",
+			Org:  "test-org",
+		},
+		Spec: &agentv1.AgentSpec{
+			Instructions: "You are an agent pinning audit preservation.",
+		},
+	})
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	originalSpecAudit := created.GetStatus().GetAudit().GetSpecAudit()
+	if originalSpecAudit.GetCreatedAt() == nil || originalSpecAudit.GetCreatedBy() == nil {
+		t.Fatalf("precondition: create should stamp spec_audit creation, got %v", originalSpecAudit)
+	}
+
+	updated, err := controller.UpdateVisibility(contextWithAgentKind(), &apiresource.UpdateVisibilityInput{
+		ResourceId: created.Metadata.Id,
+		Visibility: apiresource.ApiResourceVisibility_visibility_private,
+	})
+	if err != nil {
+		t.Fatalf("UpdateVisibility failed: %v", err)
+	}
+
+	if updated.Metadata.Visibility != apiresource.ApiResourceVisibility_visibility_private {
+		t.Errorf("Expected visibility_private, got %v", updated.Metadata.Visibility)
+	}
+
+	specAudit := updated.GetStatus().GetAudit().GetSpecAudit()
+	if !proto.Equal(specAudit.GetCreatedAt(), originalSpecAudit.GetCreatedAt()) {
+		t.Errorf("spec_audit.created_at destroyed by visibility flip: want %v, got %v",
+			originalSpecAudit.GetCreatedAt(), specAudit.GetCreatedAt())
+	}
+	if !proto.Equal(specAudit.GetCreatedBy(), originalSpecAudit.GetCreatedBy()) {
+		t.Errorf("spec_audit.created_by destroyed by visibility flip: want %v, got %v",
+			originalSpecAudit.GetCreatedBy(), specAudit.GetCreatedBy())
+	}
+	if specAudit.GetEvent() != "updated" {
+		t.Errorf("spec_audit.event: want updated, got %q", specAudit.GetEvent())
+	}
+
+	// The persisted row must agree with the response.
+	persisted := &agentv1.Agent{}
+	if err := s.GetResource(context.Background(), apiresourcekind.ApiResourceKind_agent, created.Metadata.Id, persisted); err != nil {
+		t.Fatalf("failed to reload agent: %v", err)
+	}
+	if !proto.Equal(persisted.GetStatus().GetAudit().GetSpecAudit().GetCreatedAt(), originalSpecAudit.GetCreatedAt()) {
+		t.Errorf("persisted spec_audit.created_at destroyed: want %v, got %v",
+			originalSpecAudit.GetCreatedAt(), persisted.GetStatus().GetAudit().GetSpecAudit().GetCreatedAt())
+	}
+}
+
 func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 	store, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 	if err != nil {

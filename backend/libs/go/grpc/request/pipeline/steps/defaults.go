@@ -112,7 +112,7 @@ func (s *BuildNewStateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 
 	// 5. Set audit fields in status using proto reflection
 	if hasStatusField(resource) {
-		if err := setAuditFieldsReflect(resource, "created"); err != nil {
+		if err := SetAuditFieldsForCreate(resource); err != nil {
 			return fmt.Errorf("failed to set audit fields: %w", err)
 		}
 	}
@@ -174,77 +174,152 @@ func clearStatusFieldReflect(resource proto.Message) error {
 // - event to "created"
 //
 // Both spec_audit and status_audit are set identically for new resources.
+// The status field is created if it doesn't exist; resources without a
+// status field (or without an audit field within it) are a no-op.
+//
 // This function is exported so custom steps can use it for audit field management.
 func SetAuditFieldsForCreate(resource proto.Message) error {
-	return setAuditFieldsReflect(resource, "created")
-}
-
-// SetAuditFieldsForUpdate sets audit fields for an updated resource
-//
-// This preserves created_by and created_at from the existing resource (must be set prior),
-// and updates updated_by and updated_at to current values.
-//
-// This function is exported so custom steps can use it for audit field management.
-func SetAuditFieldsForUpdate(resource proto.Message) error {
-	return setAuditFieldsReflect(resource, "updated")
-}
-
-// setAuditFieldsReflect sets the audit information in the status field using proto reflection
-//
-// For create operations (event="created"):
-// - Both spec_audit and status_audit are set identically
-// - created_by and updated_by are the same actor
-// - created_at and updated_at are the same timestamp
-//
-// For update operations (event="updated"):
-// - spec_audit and status_audit are set with current actor/timestamp
-//
-// This function uses proto reflection to set the audit field generically.
-// The status field is created if it doesn't exist.
-func setAuditFieldsReflect(resource proto.Message, event string) error {
-	// Get or create status field using proto reflection
-	statusMsg := getOrCreateStatusField(resource)
-	if statusMsg == nil {
-		// Resource doesn't have a status field - this is OK for some resource types
-		return nil
-	}
-
-	// Get current timestamp
 	now := timestamppb.Now()
+	actor := currentAuditActor()
 
-	// Build audit actor
-	// TODO: Get actual caller information from auth context when auth is implemented
-	// For now, use system/local placeholder
-	actor := &commonspb.ApiResourceAuditActor{
-		Id:     "system",
-		Avatar: "",
-	}
-
-	// Build audit info
 	auditInfo := &commonspb.ApiResourceAuditInfo{
 		CreatedBy: actor,
 		CreatedAt: now,
 		UpdatedBy: actor,
 		UpdatedAt: now,
-		Event:     event,
+		Event:     "created",
 	}
 
-	// Build complete audit with both spec_audit and status_audit
-	audit := &commonspb.ApiResourceAudit{
+	return setAuditReflect(resource, &commonspb.ApiResourceAudit{
 		SpecAudit:   auditInfo,
 		StatusAudit: auditInfo,
+	})
+}
+
+// SetAuditFieldsForUpdate sets audit fields for an updated resource
+//
+// This preserves created_by and created_at from the resource's own current
+// audit — in both spec_audit and status_audit — and stamps updated_by and
+// updated_at with the current actor/time (event "updated"). Callers hand
+// this the loaded resource they mutated in place (or one that carries the
+// existing audit copied onto it, as skill push does), so the resource
+// itself is the source of creation truth. A resource with no prior audit
+// falls back to the current actor/time for the creation fields, the same
+// fallback BuildUpdateStateStep uses.
+//
+// Unlike BuildUpdateStateStep's updateAuditFieldsReflect — which resets
+// status_audit because the update pipeline rebuilds status from the
+// request — this helper preserves status_audit's creation identity too:
+// its callers are targeted mutations (visibility flips, skill push,
+// schedule stamps, soft deletes) that never reset status.
+//
+// This function is exported so custom steps can use it for audit field management.
+func SetAuditFieldsForUpdate(resource proto.Message) error {
+	now := timestamppb.Now()
+	actor := currentAuditActor()
+
+	specCreatedBy, specCreatedAt := creationAuditOf(resource, "spec_audit")
+	statusCreatedBy, statusCreatedAt := creationAuditOf(resource, "status_audit")
+
+	return setAuditReflect(resource, &commonspb.ApiResourceAudit{
+		SpecAudit:   updatedAuditInfo(specCreatedBy, specCreatedAt, actor, now),
+		StatusAudit: updatedAuditInfo(statusCreatedBy, statusCreatedAt, actor, now),
+	})
+}
+
+// currentAuditActor returns the actor to stamp on audit fields.
+//
+// TODO: Get actual caller information from auth context when auth is implemented
+// For now, use system/local placeholder
+func currentAuditActor() *commonspb.ApiResourceAuditActor {
+	return &commonspb.ApiResourceAuditActor{
+		Id:     "system",
+		Avatar: "",
+	}
+}
+
+// updatedAuditInfo builds the post-update audit info: preserved creation
+// identity (falling back to the updating actor/time when the resource had
+// none) and a fresh update stamp.
+func updatedAuditInfo(
+	createdBy *commonspb.ApiResourceAuditActor,
+	createdAt *timestamppb.Timestamp,
+	actor *commonspb.ApiResourceAuditActor,
+	now *timestamppb.Timestamp,
+) *commonspb.ApiResourceAuditInfo {
+	if createdBy == nil {
+		createdBy = actor
+	}
+	if createdAt == nil {
+		createdAt = now
+	}
+	return &commonspb.ApiResourceAuditInfo{
+		CreatedBy: createdBy,
+		CreatedAt: createdAt,
+		UpdatedBy: actor,
+		UpdatedAt: now,
+		Event:     "updated",
+	}
+}
+
+// creationAuditOf extracts created_by and created_at from the named audit
+// slot ("spec_audit" or "status_audit") of a resource's status.audit,
+// using proto reflection. Returns deep copies so the values survive the
+// audit field being overwritten. Either return may be nil when the
+// resource, its status, the audit, the slot, or the individual field is
+// absent — callers decide the fallback.
+func creationAuditOf(
+	resource proto.Message,
+	auditSlot protoreflect.Name,
+) (*commonspb.ApiResourceAuditActor, *timestamppb.Timestamp) {
+	statusMsg := getStatusField(resource)
+	if statusMsg == nil {
+		return nil, nil
 	}
 
-	// Use proto reflection to set audit field
 	auditField := statusMsg.Descriptor().Fields().ByName("audit")
-	if auditField == nil {
-		// Status doesn't have an audit field - this is ok for some resource types
+	if auditField == nil || !statusMsg.Has(auditField) {
+		return nil, nil
+	}
+	auditMsg := statusMsg.Get(auditField).Message()
+
+	slotField := auditMsg.Descriptor().Fields().ByName(auditSlot)
+	if slotField == nil || !auditMsg.Has(slotField) {
+		return nil, nil
+	}
+	slotMsg := auditMsg.Get(slotField).Message()
+
+	var createdBy *commonspb.ApiResourceAuditActor
+	var createdAt *timestamppb.Timestamp
+
+	if f := slotMsg.Descriptor().Fields().ByName("created_by"); f != nil && slotMsg.Has(f) {
+		createdBy = &commonspb.ApiResourceAuditActor{}
+		proto.Merge(createdBy, slotMsg.Get(f).Message().Interface())
+	}
+	if f := slotMsg.Descriptor().Fields().ByName("created_at"); f != nil && slotMsg.Has(f) {
+		createdAt = &timestamppb.Timestamp{}
+		proto.Merge(createdAt, slotMsg.Get(f).Message().Interface())
+	}
+
+	return createdBy, createdAt
+}
+
+// setAuditReflect writes the audit block onto the resource's status via
+// proto reflection, creating the status field if needed. Resources
+// without a status field, or whose status has no audit field, are a
+// no-op — that is OK for some resource types.
+func setAuditReflect(resource proto.Message, audit *commonspb.ApiResourceAudit) error {
+	statusMsg := getOrCreateStatusField(resource)
+	if statusMsg == nil {
 		return nil
 	}
 
-	// Set the audit field
-	statusMsg.Set(auditField, protoreflect.ValueOfMessage(audit.ProtoReflect()))
+	auditField := statusMsg.Descriptor().Fields().ByName("audit")
+	if auditField == nil {
+		return nil
+	}
 
+	statusMsg.Set(auditField, protoreflect.ValueOfMessage(audit.ProtoReflect()))
 	return nil
 }
 
