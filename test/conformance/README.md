@@ -54,9 +54,9 @@ Covered against the `local-go` target:
 - **Environment** — a flat platform resource holding configuration and secrets in
   `spec.data`. Coverage: CRUD & identity (`env_` id, slug derivation, apply
   create/update branching, `getByReference`, cross-org slug reuse); **secret
-  handling** (the `secretRedaction`-gated value round-trip, the always-preserved
-  `is_secret` flag, and the `getSecretValue` reveal endpoint that returns the
-  unredacted value in every edition); the **redaction-marker preservation**
+  handling** (redaction on every read in both editions since stigmer#405, the
+  always-preserved `is_secret` flag, and the `getSecretValue` reveal endpoint
+  that returns the unredacted value in every edition); the **redaction-marker preservation**
   contract (re-submitting `***REDACTED***` for an existing secret on `update`
   preserves the stored value, and using it for a non-existent secret is rejected);
   incremental variable management (`updateVariables` merge, `removeVariables`); and
@@ -67,7 +67,9 @@ Covered against the `local-go` target:
   run. Coverage: CRUD & identity (`ectx_` id, slug derivation); resolution by id,
   by reference, and by parent **`getByExecutionId`**; the distinctive **`apply` is
   create-or-fail** semantics (a real `AlreadyExists` over an existing slug, since
-  there is no `update` RPC); and `secretRedaction`-gated secret handling. The
+  there is no `update` RPC); and secret handling (redacted on every user-shaped
+  read in both editions since stigmer#535; decrypted values flow only through
+  the scope-bound runner lane). The
   *envmerge precedence* that populates `spec.data` at execution start is out of
   scope here (it needs a live execution) and is covered by the execution-lifecycle
   slice.
@@ -212,15 +214,17 @@ with no IAM filtering), `versionTagging` is `true` (the dedicated `tagVersion`
 RPC is implemented in both editions; assigning a tag moves it to name exactly
 one version, and apply-time `metadata.version.tag` flows through the same
 single-holder primitive), and
-`secretRedaction` is `false` (single-user OSS returns secret values in plaintext
-on bulk reads, whereas cloud redacts them; the `is_secret` flag and the
-`getSecretValue` reveal endpoint are edition-agnostic), and
 `workflowChildApprovalForwarding` is `false` (the `WorkflowExecution.submitApproval`
 forwarder is built in OSS, but the `child_approval_required` signal that surfaces a
 child agent's gate to its parent workflow is cloud-only, so the forwarder's
 happy path is unreachable against the Go server — see
 `design-decisions/012-workflowexecution-child-approval-forwarding-contract.md`).
-See the project's `design-decisions/005-secret-redaction-capability-flag.md`.
+Capabilities are retired when a surface converges: secret redaction was gated
+per edition until the Environment (stigmer#405) and ExecutionContext
+(stigmer#535) surfaces converged, after which the suites assert redaction
+unconditionally. See the project's
+`design-decisions/005-secret-redaction-capability-flag.md` for the original
+flag's rationale.
 
 ### Harness (`src/harness/`)
 

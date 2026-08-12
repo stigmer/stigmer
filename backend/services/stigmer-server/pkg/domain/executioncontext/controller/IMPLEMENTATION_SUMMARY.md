@@ -253,10 +253,12 @@ Contexts should be:
 
 ### 3. Secret Storage
 
-Secrets stored in BadgerDB (local file-based):
-- Not encrypted at rest in OSS (single-user environment)
+Secrets stored in the local SQLite store:
+- Encrypted at rest since oss#535 (`EncryptSecretValues` in the create
+  pipeline, shared `pkg/encryption` key)
+- Redacted on every user-shaped read; decrypted only for the runner's
+  execution-scoped token on `getByExecutionId` (see README.md)
 - Marked with `is_secret: true` for tooling
-- Production deployments should consider encryption
 
 ## Build Verification
 

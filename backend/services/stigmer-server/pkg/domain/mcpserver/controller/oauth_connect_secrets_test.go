@@ -280,7 +280,7 @@ func TestCompleteOAuthConnect_CorruptCiphertextFailsBeforeExchange(t *testing.T)
 	h := setupOAuthSecretsHarness(t, secrets)
 	// Gives the controller a non-nil managedEnvService so CompleteOAuthConnect
 	// passes its dependency checks; the flow must fail before any use of it.
-	h.controller.SetConnectDependencies(nil, nil, nil, nil)
+	h.controller.SetConnectDependencies(nil, nil, nil, nil, nil)
 
 	tokenEndpoint := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("token endpoint must not be reached when the pending row cannot be unsealed")

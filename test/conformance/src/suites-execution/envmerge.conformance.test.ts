@@ -28,14 +28,16 @@
 // the workflow path, a held mock-LLM turn for the agent path. Neither the read
 // nor the assertions depend on the run reaching any particular phase.
 //
-// Secret values follow the ExecutionContext read contract (NOT Environment's,
-// which is edition-converged since stigmer#405): the merged value is observed
-// through EC getByExecutionId, so it is plaintext on OSS and redacted on
-// cloud, gated by the executionContextSecretRedaction capability. The
-// is_secret flag is edition-agnostic. Note the merge itself DECRYPTS
-// environment secrets on OSS (RuntimeResolutionService) — this suite is the
-// end-to-end proof that encrypted-at-rest environment values reach executions
-// as plaintext.
+// Secret values follow the ExecutionContext read contract, edition-CONVERGED
+// since stigmer#535 (as Environment's has been since stigmer#405): the merged
+// value is observed through EC getByExecutionId under this harness's
+// user-shaped credentials, so a secret comes back REDACTED on every target;
+// the is_secret flag is edition-agnostic. Non-secret merged values stay
+// observable in plaintext, which is what the precedence assertions ride on.
+// The proof that the RUNNER still receives decrypted secrets (via the
+// execution-scoped token lane, stigmer#535) is the set_vars proof test below:
+// a workflow task emits a declared secret env var into its observable output,
+// which only works if the runner-side EC read decrypted it.
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -49,8 +51,8 @@ import { type EnvVarDeclarationInit, type EnvironmentValueInit, makeEnvironment 
 import { type ExecutionValueInit } from "../support/executioncontexts";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
-import { makeEnvMergeWorkflow } from "../support/workflows";
-import { makeWorkflowExecution } from "../support/workflowexecutions";
+import { makeEnvMergeWorkflow, makeWorkflow } from "../support/workflows";
+import { awaitTerminal, makeWorkflowExecution, taskByName } from "../support/workflowexecutions";
 import { makeWorkflowInstance } from "../support/workflowinstances";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -234,7 +236,7 @@ describe("envmerge conformance — Workflow precedence", () => {
     );
   });
 
-  it("a secret value survives the merge with is_secret preserved (value gated by executionContextSecretRedaction)", async () => {
+  it("a secret value survives the merge with is_secret preserved and its value redacted on the user-shaped read", async () => {
     const { org } = await target.provisionTenancy();
     const secretValue = "env-secret-value";
     const { data } = await runWorkflowMerge(org, {
@@ -247,15 +249,61 @@ describe("envmerge conformance — Workflow precedence", () => {
     const secretEntry = data.API_TOKEN;
     expect(secretEntry?.isSecret, "is_secret is preserved through the merge in both editions").toBe(true);
     expect(data.PLAIN_KEY?.value, "plaintext values are never redacted").toBe("plain-value");
+    // The harness is a user-shaped caller, so the merged secret is redacted
+    // (stigmer#535 — the stigmer-cloud#152 contract on both editions). That
+    // the RUNNER receives the decrypted value is proven separately by the
+    // set_vars proof test below.
+    expect(secretEntry?.value, "no user-shaped read returns the plaintext secret").not.toBe(secretValue);
+  });
 
-    if (target.capabilities.executionContextSecretRedaction) {
-      expect(secretEntry?.value, "redacting targets must not return the plaintext secret").not.toBe(secretValue);
-      return;
-    }
-    // OSS EC reads are plaintext — and the value being the ORIGINAL secret
-    // (not enc:v1: ciphertext) proves the merge decrypted the encrypted-at-
-    // rest environment value via RuntimeResolutionService (stigmer#405).
-    expect(secretEntry?.value, "OSS returns the merged secret value in plaintext").toBe(secretValue);
+  it("a merged secret reaches the RUNNER decrypted — a set_vars task emits it into the workflow output (stigmer#535)", async () => {
+    // The end-to-end proof of the runner decrypt lane, replacing the proof
+    // the redaction flip removed (pre-#535, the harness observed the
+    // plaintext directly on the EC read). The chain under test:
+    // Environment secret (encrypted at rest, stigmer#405) -> merge decrypts
+    // it into the EC (RuntimeResolutionService) -> EC encrypts at rest
+    // (stigmer#535) -> the runner exchanges for an execution-scoped token
+    // and reads the EC decrypted -> `$env` in the workflow expression scope
+    // carries the real value -> the set_vars output is observable plaintext.
+    // If ANY link served the redaction marker or ciphertext instead, the
+    // output would carry that junk and the equality below would fail.
+    const { org } = await target.provisionTenancy();
+    const secretValue = "proof-secret-value";
+
+    const refs = await seedEnvironments(org, [
+      { data: { PROOF_TOKEN: { value: secretValue, isSecret: true } } },
+    ]);
+
+    const workflow = await clients.workflowCommand.create(
+      makeWorkflow({
+        org,
+        name: uniqueName("wf-secretproof"),
+        variables: { proof: "${ $env.PROOF_TOKEN }" },
+        env: { PROOF_TOKEN: { isSecret: true } },
+      }),
+    );
+    fixtures.defer(() => clients.workflowCommand.delete({ value: workflow.metadata!.id }));
+
+    const instance = await clients.workflowInstanceCommand.create(
+      makeWorkflowInstance({ org, name: uniqueName("wfi"), workflowId: workflow.metadata!.id, environmentRefs: refs }),
+    );
+    fixtures.defer(() => clients.workflowInstanceCommand.delete({ value: instance.metadata!.id }));
+
+    const execution = await clients.workflowExecutionCommand.create(
+      makeWorkflowExecution({ org, name: uniqueName("wfx"), workflowInstanceId: instance.metadata!.id }),
+    );
+    fixtures.defer(() => clients.workflowExecutionCommand.delete({ value: execution.metadata!.id }));
+
+    const final = await awaitTerminal(clients, execution.metadata!.id);
+
+    expect(final.status?.phase, "the secret-consuming run completes").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    // The set_vars task's recorded output carries the evaluated variables
+    // (workflow-level status.output needs an explicit output.as block, which
+    // this single-task fixture deliberately omits).
+    const taskOutput = taskByName(final, "setVars")?.output as Record<string, unknown> | undefined;
+    expect(taskOutput?.proof, "the runner received the decrypted secret, not the marker or ciphertext").toBe(
+      secretValue,
+    );
   });
 
   it("environment_refs merge in declaration order — the later environment wins on a conflicting key", async () => {

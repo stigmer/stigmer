@@ -81,6 +81,13 @@ const PLATFORM_INJECTABLE_MAP: Record<string, string> = {
 export interface DiscoverMcpServerInput {
   mcpServerId: string;
   executionContextId?: string | null;
+  /**
+   * Execution-scoped token unlocking the connect EC's decrypted credentials
+   * (oss#535). Minted by the OSS handler and carried with the work item —
+   * discovery has no execution of its own to exchange for one. Absent on
+   * cloud, where the ambient connect_sandbox credential decrypts.
+   */
+  executionContextToken?: string | null;
   invokerIdentityAccountId?: string | null;
 }
 
@@ -280,7 +287,7 @@ export async function discoverMcpServer(
   input: DiscoverMcpServerInput,
   deps: DiscoverDeps,
 ): Promise<DiscoverMcpServerOutput> {
-  const { mcpServerId, executionContextId } = input;
+  const { mcpServerId, executionContextId, executionContextToken } = input;
   const { stigmerClient } = deps;
 
   console.log(
@@ -301,6 +308,7 @@ export async function discoverMcpServer(
   const envVars = await resolveEnvVarsForDiscovery(
     stigmerClient,
     executionContextId ?? null,
+    executionContextToken ?? null,
     slug,
     declaredEnv,
   );
@@ -382,6 +390,7 @@ export async function discoverMcpServer(
 async function resolveEnvVarsForDiscovery(
   client: StigmerClient,
   executionContextId: string | null,
+  executionContextToken: string | null,
   slug: string,
   declaredEnv: Record<string, EnvVarDeclaration>,
 ): Promise<Record<string, string>> {
@@ -394,7 +403,12 @@ async function resolveEnvVarsForDiscovery(
 
   let execCtx: Awaited<ReturnType<typeof client.getExecutionContextByExecutionId>>;
   try {
-    execCtx = await client.getExecutionContextByExecutionId(executionContextId);
+    // The payload-carried token authenticates the read on OSS (oss#535);
+    // undefined on cloud, where the ambient credential applies instead.
+    execCtx = await client.getExecutionContextByExecutionId(
+      executionContextId,
+      executionContextToken ?? undefined,
+    );
   } catch (err) {
     const cause = err instanceof Error ? err.message : String(err);
     if (credentialsExpected) {

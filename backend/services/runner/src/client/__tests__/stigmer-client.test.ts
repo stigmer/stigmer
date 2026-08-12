@@ -45,10 +45,11 @@ function makeScopedTokenExchangeRequest() {
 }
 
 /** An unsigned JWT-shaped token carrying the given token_type claim. */
-function fakeTokenOfType(tokenType: string): string {
+function fakeTokenOfType(tokenType?: string): string {
   const b64 = (obj: Record<string, unknown>) =>
     Buffer.from(JSON.stringify(obj)).toString("base64url");
-  return `${b64({ alg: "RS256" })}.${b64({ token_type: tokenType })}.sig`;
+  const claims = tokenType === undefined ? {} : { token_type: tokenType };
+  return `${b64({ alg: "RS256" })}.${b64(claims)}.sig`;
 }
 
 /**
@@ -310,14 +311,64 @@ describe("StigmerClient", () => {
       expect(spy).not.toHaveBeenCalled();
     });
 
-    it("skips the exchange when no runner credential exists (OSS/local)", async () => {
+    // NOTE (oss#535): the no-credential arm previously pinned "skip the
+    // exchange" — correct while OSS neither minted nor redacted. Since
+    // oss#535 the OSS server redacts EC reads by default and mints
+    // execution-scoped tokens on this exchange, so a credential-less runner
+    // must now ASK, and fall back to the tokenless read only when the server
+    // answers not-minted (pre-oss#535 OSS) or refuses (cloud refusing a
+    // non-runner credential — the legacy desktop degrade).
+    it("exchanges best-effort when no runner credential exists and uses a minted token (oss#535)", async () => {
       const client = clientWithRunnerCredential(null);
-      const spy = vi.spyOn(client, "getRunnerScopedToken");
+      vi.spyOn(client, "getRunnerScopedToken").mockResolvedValue({
+        token: "oss-scoped-tok",
+        expiresInSeconds: 3600,
+      });
+
+      const token = await client.acquireScopedRunnerToken({ workflowExecutionId: "wfx_1" });
+
+      expect(token).toBe("oss-scoped-tok");
+      expect(client.getRunnerScopedToken).toHaveBeenCalledWith({ workflowExecutionId: "wfx_1" });
+    });
+
+    it("proceeds tokenless when a credential-less exchange is answered not-minted (pre-oss#535 server)", async () => {
+      const client = clientWithRunnerCredential(null);
+      vi.spyOn(client, "getRunnerScopedToken").mockResolvedValue(undefined);
 
       const token = await client.acquireScopedRunnerToken({ workflowExecutionId: "wfx_1" });
 
       expect(token).toBeUndefined();
-      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it("proceeds tokenless when a credential-less exchange is refused (cloud refusing a non-runner credential)", async () => {
+      const client = clientWithRunnerCredential(null);
+      vi.spyOn(client, "getRunnerScopedToken").mockRejectedValue(new Error("permission denied"));
+
+      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" });
+
+      expect(token).toBeUndefined();
+    });
+
+    it("treats a non-JWT process token as no runner credential (the harness/proxy token shape)", async () => {
+      // e.g. the conformance harness boots the runner with a mock proxy
+      // token that is not a Stigmer-minted JWT; the best-effort arm must
+      // still ask the server for a scoped token.
+      const client = clientWithRunnerCredential("not-a-jwt-proxy-token");
+      vi.spyOn(client, "getRunnerScopedToken").mockResolvedValue({ token: "scoped-tok" });
+
+      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" });
+
+      expect(token).toBe("scoped-tok");
+    });
+
+    it("treats a claim-less user JWT as no runner credential (legacy desktop shape)", async () => {
+      const client = clientWithRunnerCredential(fakeTokenOfType(undefined));
+      vi.spyOn(client, "getRunnerScopedToken").mockResolvedValue(undefined);
+
+      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" });
+
+      expect(token).toBeUndefined();
+      expect(client.getRunnerScopedToken).toHaveBeenCalled();
     });
 
     it("throws when the server mints no token — the bootstrap credential no longer decrypts (stigmer-cloud#218)", async () => {

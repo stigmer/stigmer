@@ -31,6 +31,10 @@ executioncontext/
 ├── delete.go                       # Delete handler + pipeline
 ├── get.go                          # Get by ID handler + pipeline
 ├── get_by_reference.go             # Get by slug handler + pipeline
+├── get_by_execution_id.go          # Runner lookup by parent execution id
+├── encrypt_secret_values.go        # Encrypt-at-write + forged-ciphertext guard (oss#535)
+├── redact_secret_values.go         # Secret redaction for user-shaped responses (oss#535)
+├── resolve_values_for_caller.go    # Runner-token decrypt gate for getByExecutionId (oss#535)
 └── README.md                       # This file
 ```
 
@@ -42,10 +46,15 @@ Creates a new execution context for a workflow or agent execution.
 
 **Pipeline:**
 1. **ValidateProto** - Validate field constraints (owner_scope must be unspecified)
-2. **ResolveSlug** - Generate slug from metadata.name
-3. **CheckDuplicate** - Verify no duplicate exists
-4. **BuildNewState** - Generate ID, timestamps, audit fields
-5. **Persist** - Save to BadgerDB
+2. **RejectCiphertextShapedValues** - Refuse client-supplied `enc:v<N>:` input (oss#535)
+3. **ResolveSlug** - Generate slug from metadata.name
+4. **CheckDuplicate** - Verify no duplicate exists
+5. **BuildNewState** - Generate ID, timestamps, audit fields
+6. **EncryptSecretValues** - Encrypt `is_secret` values before storage (oss#535)
+7. **Persist** - Save to the store
+
+The response echo is redacted after the pipeline (secret values come back as
+`***REDACTED***`); internal builders only read `metadata.id` from it.
 
 **Usage:**
 ```go
@@ -177,10 +186,11 @@ All steps are from `backend/libs/go/grpc/request/pipeline/steps/`:
 | Aspect | Stigmer Cloud (Java) | Stigmer OSS (Go) |
 |--------|---------------------|------------------|
 | **Authorization** | Platform operator check | None (single-user local) |
+| **Secret decrypt gate** | Sandbox credential class + scope (`RunnerScopeVerifier`) | Execution-scoped token (`pkg/runnerauth`, oss#535) |
 | **IAM Policies** | None (operator-only resource) | None |
 | **Event Publishing** | Publishes events | None |
 | **Response Transform** | Applies transformations | None |
-| **Storage** | MongoDB | BadgerDB |
+| **Storage** | PostgreSQL (JSONB) | SQLite |
 | **Context Pattern** | Specialized contexts per operation | Single RequestContext |
 
 ## Use Cases
@@ -232,13 +242,14 @@ executionContext := &executioncontextv1.ExecutionContext{
 
 created, _ := controller.Create(ctx, executionContext)
 
-// Agent execution retrieves context
+// The runner retrieves the context via getByExecutionId, presenting the
+// execution-scoped token it exchanged for (oss#535) — that is the only
+// read that returns decrypted secret values. Get/GetByReference (and the
+// create echo above) redact them:
 retrieved, _ := controller.Get(ctx, &executioncontextv1.ExecutionContextId{
-    Value: created.Metadata.Id,
+	Value: created.Metadata.Id,
 })
-
-// Access secrets from retrieved.Spec.Data
-apiToken := retrieved.Spec.Data["CUSTOMER_API_TOKEN"].Value
+retrieved.Spec.Data["CUSTOMER_API_TOKEN"].Value // "***REDACTED***"
 ```
 
 ## Security Considerations
@@ -260,17 +271,26 @@ Execution contexts should be:
 - Deleted at execution completion
 - Never persisted long-term
 
-### Secret Storage
+### Secret Storage (oss#535)
 
-Secrets in `ExecutionContextSpec.Data` are:
-- Stored in BadgerDB (local file-based storage)
-- Not encrypted at rest in OSS (single-user local environment)
-- Marked with `is_secret: true` for visibility/tooling
+Secrets in `ExecutionContextSpec.Data` (`is_secret: true`) are:
+- **Encrypted at rest** (AES-256-GCM, the shared `pkg/encryption` service and
+  the same auto-generated key the Environment domain uses) — the write path
+  is the create pipeline's `EncryptSecretValues` step
+- **Redacted on every user-shaped read**: `get`, `getByReference`, the
+  create/apply response echo, the delete response echo, and
+  `getByExecutionId` for callers without a runner token all return
+  `***REDACTED***` with `is_secret` preserved
+- **Decrypted only for the runner lane**: `getByExecutionId` with an
+  execution-scoped token (minted by
+  `PlatformQueryController.getRunnerScopedToken`, verified by
+  `pkg/runnerauth`) whose binding matches this EC's `spec.execution_id`
 
-**Production Note:** If deploying Stigmer OSS in production, consider:
-- Encrypting BadgerDB storage at rest
-- Using external secret management (Vault, AWS Secrets Manager)
-- Implementing proper access controls
+On a single-user server the token is a **lane discriminator, not a trust
+boundary** (anyone local can mint one); the security win is encryption at
+rest, and redaction-by-default converges the read contract with cloud.
+Legacy plaintext rows (pre-oss#535) serve without migration: `Decrypt`
+passes non-ciphertext through, and redaction is representation-agnostic.
 
 ## Testing
 
@@ -359,21 +379,14 @@ Add automatic deletion of stale execution contexts:
 - Background job deletes contexts older than TTL (e.g., 24 hours)
 - Prevents accumulation of orphaned contexts
 
-### 2. Encryption at Rest
-
-Encrypt secret values in BadgerDB:
-- Use libsodium or age for encryption
-- Store encrypted values, decrypt on read
-- Derive encryption key from platform master key
-
-### 3. Audit Logging
+### 2. Audit Logging
 
 Log all access to execution contexts:
 - Who created the context
 - When secrets were accessed
 - When context was deleted
 
-### 4. Secret Rotation
+### 3. Secret Rotation
 
 Support secret rotation during execution:
 - Update operation for secrets only

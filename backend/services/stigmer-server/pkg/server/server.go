@@ -77,6 +77,7 @@ import (
 	mcpserverclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/mcpserver"
 	skillclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/skill"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/runnerauth"
 
 	// Platform service imports
 	githubv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/platform/github/v1"
@@ -264,6 +265,17 @@ func Run() error {
 		secretService, _ = encryption.NewSecretService(nil)
 	}
 
+	// Runner-token service for the ExecutionContext decrypt lane (oss#535).
+	// Unlike encryption's WARN-and-degrade above (plaintext at rest is
+	// tolerable), a key failure here is fatal: the EC read RPCs redact by
+	// default, so a server that cannot mint runner tokens would hand every
+	// execution redaction markers instead of its secrets — the exact
+	// silent-junk failure the oss#405 fail-loud doctrine forbids.
+	runnerAuthService, err := runnerauth.NewServiceFromEnv()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize runner token service (check STIGMER_RUNNER_TOKEN_KEY)")
+	}
+
 	// Create and register Environment controller
 	environmentController := environmentcontroller.NewEnvironmentController(store, secretService)
 	environmentv1.RegisterEnvironmentCommandControllerServer(grpcServer, environmentController)
@@ -298,8 +310,10 @@ func Run() error {
 
 	log.Info().Msg("Registered OAuthApp controllers")
 
-	// Create and register ExecutionContext controller
-	executionContextController := executioncontextcontroller.NewExecutionContextController(store)
+	// Create and register ExecutionContext controller. Shares the encryption
+	// service (encrypt-at-write / runner-lane decrypt, oss#535) and verifies
+	// runner tokens minted by the platform controller's exchange.
+	executionContextController := executioncontextcontroller.NewExecutionContextController(store, secretService, runnerAuthService)
 	executioncontextv1.RegisterExecutionContextCommandControllerServer(grpcServer, executionContextController)
 	executioncontextv1.RegisterExecutionContextQueryControllerServer(grpcServer, executionContextController)
 
@@ -480,8 +494,9 @@ func Run() error {
 
 	log.Info().Msg("Registered GitHubService controller")
 
-	// Create and register Platform controller (server info / edition detection)
-	platController := platformcontroller.NewPlatformController(cfg.TemporalHostPort, cfg.TemporalNamespace)
+	// Create and register Platform controller (server info / edition detection,
+	// runner bootstrap coordinates, and the runner scoped-token exchange).
+	platController := platformcontroller.NewPlatformController(cfg.TemporalHostPort, cfg.TemporalNamespace, runnerAuthService)
 	platformv1.RegisterPlatformQueryControllerServer(grpcServer, platController)
 
 	log.Info().Msg("Registered PlatformQueryController")
@@ -647,6 +662,7 @@ func Run() error {
 			agentExecutionTemporalConfig,
 			environmentClient,
 			executionContextClient,
+			runnerAuthService,
 		)
 		log.Info().
 			Str("runner_queue", agentExecutionTemporalConfig.RunnerQueue).

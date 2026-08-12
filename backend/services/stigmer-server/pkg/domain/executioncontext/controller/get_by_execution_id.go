@@ -15,23 +15,21 @@ import (
 
 // GetByExecutionId retrieves an execution context by the execution ID it belongs to.
 //
-// This is the primary lookup method used by runners (workflow-runner, agent-runner)
-// to retrieve the merged environment variables during execution. The execution_id
-// corresponds to either a WorkflowExecution ID or AgentExecution ID.
+// This is the runner's secret-delivery path: the unified TS runner fetches
+// the merged environment variables here before executing an agent or
+// workflow (and during MCP connect discovery). The execution_id corresponds
+// to a WorkflowExecution ID, AgentExecution ID, or connect-flow execution id.
 //
-// Use cases:
-//   - Go workflow-runner queries for merged env vars before executing workflow
-//   - Python agent-runner queries for merged env vars before executing agent
+// Secret handling (oss#535, the cloud stigmer-cloud#152 contract ported):
+// the response carries DECRYPTED is_secret values only when the caller
+// presents an execution-scoped runner token (minted by
+// PlatformQueryController.getRunnerScopedToken) whose binding matches this
+// EC — see resolveValuesForCaller. Every other caller receives the same
+// redaction as get/getByReference.
 //
 // Pipeline steps:
 //  1. ValidateProto - Validate input ExecutionContextExecutionIdInput
 //  2. LoadByExecutionId - Query store by spec.execution_id field
-//
-// Note: In OSS, secrets are not encrypted (no encryption key configured).
-// In Cloud, this RPC returns decrypted secrets for runner consumption.
-//
-// Authorization: This is an operator-only action (platform-scoped).
-// OSS does not enforce authorization, but the proto defines operator permission.
 func (c *ExecutionContextController) GetByExecutionId(ctx context.Context, input *executioncontextv1.ExecutionContextExecutionIdInput) (*executioncontextv1.ExecutionContext, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, input)
 
@@ -41,8 +39,14 @@ func (c *ExecutionContextController) GetByExecutionId(ctx context.Context, input
 		return nil, err
 	}
 
-	// Retrieve loaded execution context from context
+	// Retrieve loaded execution context from context, then resolve secret
+	// values by presented credential: decrypt for a scope-bound runner
+	// token, redact for everyone else. Both transforms mutate the fresh
+	// store unmarshal, never the stored row.
 	executionContext := reqCtx.Get(steps.TargetResourceKey).(*executioncontextv1.ExecutionContext)
+	if err := c.resolveValuesForCaller(ctx, executionContext); err != nil {
+		return nil, err
+	}
 	return executionContext, nil
 }
 

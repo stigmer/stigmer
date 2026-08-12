@@ -4,6 +4,7 @@ import (
 	"context"
 
 	platformv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/platform/v1"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/runnerauth"
 )
 
 // Version is set at build time via -ldflags.
@@ -19,16 +20,24 @@ type PlatformController struct {
 	// should dial too — no internal/external split (unlike Stigmer Cloud).
 	temporalHostPort  string
 	temporalNamespace string
+
+	// Mints the execution-scoped tokens GetRunnerScopedToken hands to
+	// runners for the ExecutionContext decrypt lane (oss#535). Nil or
+	// keyless yields the presence-based "not minted" response.
+	runnerAuth *runnerauth.Service
 }
 
 // NewPlatformController creates a new PlatformController.
 //
 // temporalHostPort and temporalNamespace are the coordinates returned by
 // GetRunnerBootstrapConfig so embedded runners can self-bootstrap.
-func NewPlatformController(temporalHostPort, temporalNamespace string) *PlatformController {
+// runnerAuth mints the execution-scoped runner tokens (may be nil in tests
+// that never exercise the exchange).
+func NewPlatformController(temporalHostPort, temporalNamespace string, runnerAuth *runnerauth.Service) *PlatformController {
 	return &PlatformController{
 		temporalHostPort:  temporalHostPort,
 		temporalNamespace: temporalNamespace,
+		runnerAuth:        runnerAuth,
 	}
 }
 

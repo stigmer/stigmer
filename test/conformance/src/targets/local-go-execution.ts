@@ -37,7 +37,6 @@ export class LocalGoExecutionTarget implements TargetProfile {
     externalOrgLookup: false,
     organizationEnumeration: true,
     versionTagging: false,
-    executionContextSecretRedaction: false,
     // The engine runs here, but the child-approval signal sender is cloud-only,
     // so a gated agent_call child never surfaces its gate to the parent workflow
     // (DD-012). The forwarder's reachable negatives still run unconditionally.

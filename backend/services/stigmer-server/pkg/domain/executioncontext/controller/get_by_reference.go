@@ -22,6 +22,9 @@ import (
 // 1. ValidateProto - Validate input reference
 // 2. LoadByReference - Load execution context by slug (platform-scoped)
 //
+// Secret values are redacted in the response (oss#535, the cloud contract) —
+// same as Get.
+//
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)
 // - TransformResponse step (no response transformations in OSS)
@@ -38,8 +41,10 @@ func (c *ExecutionContextController) GetByReference(ctx context.Context, ref *ap
 		return nil, err
 	}
 
-	// Retrieve loaded execution context from context
+	// Retrieve loaded execution context from context. Redaction mutates the
+	// fresh store unmarshal, never the stored row.
 	executionContext := reqCtx.Get(steps.TargetResourceKey).(*executioncontextv1.ExecutionContext)
+	RedactExecutionContextSecrets(executionContext)
 	return executionContext, nil
 }
 

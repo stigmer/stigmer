@@ -9,7 +9,11 @@ go_library(
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/platform/controller",
     visibility = ["//visibility:public"],
-    deps = ["//apis/stubs/go/ai/stigmer/platform/v1:platform"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/platform/v1:platform",
+        "//backend/services/stigmer-server/pkg/runnerauth",
+        "@com_github_rs_zerolog//log",
+    ],
 )
 
 go_test(
@@ -21,6 +25,7 @@ go_test(
     embed = [":controller"],
     deps = [
         "//apis/stubs/go/ai/stigmer/platform/v1:platform",
+        "//backend/services/stigmer-server/pkg/runnerauth",
         "@com_github_stretchr_testify//require",
     ],
 )
