@@ -2,6 +2,8 @@ package temporal
 
 import (
 	"os"
+
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 )
 
 // Activity routing mode constants. These control how the dispatch function
@@ -61,6 +63,27 @@ type Config struct {
 	// "local" (default): client's runner polls the queue.
 	// "cloud": server provisions a sandbox.
 	DefaultExecutionTarget string
+}
+
+// ResolveExecutionTarget resolves a session's execution_target value to its
+// effective target: EXECUTION_TARGET_UNSPECIFIED becomes the configured
+// DefaultExecutionTarget (LOCAL on OSS/self-hosted, CLOUD on the managed
+// cloud service); explicit values pass through unchanged.
+//
+// This is the single definition of the resolution rule — dispatch
+// (ResolveActivityTaskQueue) and policy enforcement (e.g. the session
+// update pipeline's execution-target immutability step) must both use it
+// rather than re-deriving the default, so they can never disagree about
+// where an execution runs. Mirrors the cloud edition's
+// AgentExecutionTemporalConfig.resolveExecutionTarget.
+func (c *Config) ResolveExecutionTarget(target sessionv1.ExecutionTarget) sessionv1.ExecutionTarget {
+	if target != sessionv1.ExecutionTarget_EXECUTION_TARGET_UNSPECIFIED {
+		return target
+	}
+	if c.DefaultExecutionTarget == DefaultExecutionTargetCloud {
+		return sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD
+	}
+	return sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL
 }
 
 // NewConfig creates a new Config with values from environment variables or defaults.

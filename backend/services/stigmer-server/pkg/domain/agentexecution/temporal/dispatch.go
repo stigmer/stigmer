@@ -98,7 +98,7 @@ func ResolveActivityTaskQueue(ctx context.Context, s store.Store, sessionID stri
 		}
 	}
 
-	resolvedTarget := resolveExecutionTarget(executionTarget, cfg)
+	resolvedTarget := cfg.ResolveExecutionTarget(executionTarget)
 	taskQueue := resolveTaskQueue(sessionID, cfg)
 
 	log.Info().
@@ -113,17 +113,6 @@ func ResolveActivityTaskQueue(ctx context.Context, s store.Store, sessionID stri
 		Harness:         harness,
 		ExecutionTarget: resolvedTarget,
 	}, nil
-}
-
-// resolveExecutionTarget resolves UNSPECIFIED to the configured default.
-func resolveExecutionTarget(target sessionv1.ExecutionTarget, cfg *Config) sessionv1.ExecutionTarget {
-	if target != sessionv1.ExecutionTarget_EXECUTION_TARGET_UNSPECIFIED {
-		return target
-	}
-	if cfg.DefaultExecutionTarget == DefaultExecutionTargetCloud {
-		return sessionv1.ExecutionTarget_EXECUTION_TARGET_CLOUD
-	}
-	return sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL
 }
 
 // resolveTaskQueue derives the task queue name based on routing mode and session ID.

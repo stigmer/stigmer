@@ -247,8 +247,10 @@ func Run() error {
 
 	log.Info().Msg("Registered AgentInstance controllers")
 
-	// Create and register Session controller
-	sessionController := sessioncontroller.NewSessionController(store)
+	// Create and register Session controller. The temporal config drives the
+	// update pipeline's execution-target immutability check: UNSPECIFIED is
+	// resolved through the same deployment default dispatch uses (oss#397).
+	sessionController := sessioncontroller.NewSessionController(store, agentExecutionTemporalConfig)
 	sessionv1.RegisterSessionCommandControllerServer(grpcServer, sessionController)
 	sessionv1.RegisterSessionQueryControllerServer(grpcServer, sessionController)
 
