@@ -18,10 +18,10 @@
  * (HOME, LOGNAME, PATH, SHELL, TERM, USER — getDefaultEnvironment in
  * @modelcontextprotocol/sdk, merged under whatever we pass). The
  * runner's own process env is never passed: it carries runner-internal
- * credentials (STIGMER_TOKEN, STIGMER_RUNNER_HITL_SECRET,
- * CURSOR_API_KEY, LLM provider keys) that no third-party MCP subprocess
- * may see. A declared-empty env and an undeclared env are deliberately
- * equivalent — both yield the SDK base environment.
+ * credentials (enumerated in runner-credential-keys.ts) that no
+ * third-party MCP subprocess may see. A declared-empty env and an
+ * undeclared env are deliberately equivalent — both yield the SDK base
+ * environment.
  *
  * The Cursor execution path does NOT use this manager — it passes MCP
  * configs directly to the Cursor SDK via toCursorMcpConfig(). This
