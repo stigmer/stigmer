@@ -883,7 +883,8 @@ describe("FileReviewCard", () => {
       expect(screen.getByText("a.ts")).toBeTruthy();
       expect(screen.getByText("b.ts")).toBeTruthy();
       expect(screen.getByRole("button", { name: /Copy path: src\/a\.ts/ })).toBeTruthy();
-      expect(screen.getByTitle("src/a.ts")).toBeTruthy();
+      // Full path on hover rides the house tooltip; no native title remains.
+      expect(document.querySelector("[title]")).toBeNull();
     });
 
     it("keeps a single complete file collapsed behind the 'Files' expander", () => {

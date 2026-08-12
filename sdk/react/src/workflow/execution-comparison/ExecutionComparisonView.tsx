@@ -6,6 +6,7 @@ import { WorkflowExecutionPhaseBadge } from "../WorkflowExecutionPhaseBadge.js";
 import { useExecutionComparison } from "./useExecutionComparison.js";
 import { ComparisonSummaryCards } from "./ComparisonSummaryCards.js";
 import { TaskComparisonTable } from "./TaskComparisonTable.js";
+import { TruncatedText } from "../../internal/truncated-text.js";
 
 /** Props for {@link ExecutionComparisonView}. */
 export interface ExecutionComparisonViewProps {
@@ -146,9 +147,10 @@ function ExecutionLabel({
         {label}:
       </span>
       <WorkflowExecutionPhaseBadge phase={phase} />
-      <span className="stg:max-w-[10rem] stg:truncate stg:text-xs stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]" title={name}>
-        {name}
-      </span>
+      <TruncatedText
+        text={name}
+        className="stg:max-w-[10rem] stg:text-xs stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]"
+      />
     </div>
   );
 }

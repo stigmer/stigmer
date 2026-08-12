@@ -12,6 +12,7 @@ import { useEnvironmentList } from "../../environment/useEnvironmentList.js";
 import { ResourceVisibilityControl } from "../../library/ResourceVisibilityControl.js";
 import { useCheckPermission } from "../../iam-policy/useCheckPermission.js";
 import { WorkflowInstanceEmptyState } from "./WorkflowInstanceEmptyState.js";
+import { TruncatedText } from "../../internal/truncated-text.js";
 
 /** Props for {@link WorkflowInstanceList}. */
 export interface WorkflowInstanceListProps {
@@ -206,12 +207,10 @@ function InstanceRow({
     >
       <td className="stg:px-4 stg:py-2.5">
         <div className="stg:min-w-0">
-          <span
-            className="stg:block stg:truncate stg:font-medium stg:text-foreground"
-            title={meta?.name || meta?.slug || undefined}
-          >
-            {meta?.name || meta?.slug || "—"}
-          </span>
+          <TruncatedText
+            text={meta?.name || meta?.slug || "—"}
+            className="stg:block stg:font-medium stg:text-foreground"
+          />
           {instance.spec?.description && (
             <p className="stg:text-[0.65rem] stg:text-muted-foreground stg:truncate">
               {instance.spec.description}

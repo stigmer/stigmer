@@ -132,8 +132,12 @@ describe("ArtifactRow — download", () => {
     });
   });
 
-  it("labels the Download control 'Download ZIP' for a directory", () => {
+  it("renders the directory Download control with no native title", () => {
     renderRow({ artifact: dirArtifact("return-policy") });
-    expect(screen.getByTitle("Download ZIP")).toBeTruthy();
+    // The "Download ZIP" copy moved to the house tooltip (native titles
+    // are banned — stigmer-cloud#268); its reveal is pinned in the
+    // real-browser suite (artifact-row-tooltips.layout.test.tsx).
+    expect(screen.getByLabelText("Download return-policy")).toBeTruthy();
+    expect(document.querySelector("[title]")).toBeNull();
   });
 });

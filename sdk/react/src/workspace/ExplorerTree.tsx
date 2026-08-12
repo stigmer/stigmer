@@ -4,6 +4,7 @@ import { useState } from "react";
 import { cn } from "@stigmer/theme";
 import { FileTreeNode } from "../internal/file-tree/index.js";
 import type { SelectedWorkspaceFile } from "../internal/store/index.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useWorkspaceFiles } from "./useWorkspaceFiles.js";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 import type { WorkspaceFileLister } from "./WorkspaceFileLister.js";
@@ -91,38 +92,54 @@ function ExplorerRoot({
   return (
     <div className="stg:flex stg:flex-col">
       <div className="stg:group/root stg:flex stg:items-stretch">
-        <button
-          type="button"
-          onClick={() => setExpanded((prev) => !prev)}
-          aria-expanded={expanded}
-          className={cn(
-            "stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-1.5 stg:px-1.5 stg:py-1 stg:text-left stg:text-[0.7rem] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-foreground stg:transition-colors stg:hover:bg-accent-hover",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
-          )}
-          title={entry.type === "local" ? entry.localPath : entry.gitUrl}
-        >
-          <span
-            aria-hidden="true"
-            className="stg:text-[10px] stg:text-muted-foreground-subtle"
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                onClick={() => setExpanded((prev) => !prev)}
+                aria-expanded={expanded}
+                className={cn(
+                  "stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-1.5 stg:px-1.5 stg:py-1 stg:text-left stg:text-[0.7rem] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-foreground stg:transition-colors stg:hover:bg-accent-hover",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
+                )}
+              />
+            }
           >
-            {expanded ? "▼" : "▶"}
-          </span>
-          <span className="stg:truncate">{entry.name}</span>
-        </button>
+            <span
+              aria-hidden="true"
+              className="stg:text-[10px] stg:text-muted-foreground-subtle"
+            >
+              {expanded ? "▼" : "▶"}
+            </span>
+            <span className="stg:truncate">{entry.name}</span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="stg:break-all">
+            {entry.type === "local" ? entry.localPath : entry.gitUrl}
+          </TooltipContent>
+        </Tooltip>
         {onRemove && (
-          <button
-            type="button"
-            onClick={() => onRemove(entry.id)}
-            aria-label={`Remove ${entry.name} from workspace`}
-            title={`Remove ${entry.name} from workspace`}
-            className={cn(
-              "stg:shrink-0 stg:px-1.5 stg:text-muted-foreground stg:opacity-0 stg:transition-opacity",
-              "stg:group-hover/root:opacity-100 stg:focus-visible:opacity-100",
-              "stg:hover:text-destructive stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
-            )}
-          >
-            <RemoveIcon />
-          </button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={() => onRemove(entry.id)}
+                  aria-label={`Remove ${entry.name} from workspace`}
+                  className={cn(
+                    "stg:shrink-0 stg:px-1.5 stg:text-muted-foreground stg:opacity-0 stg:transition-opacity",
+                    "stg:group-hover/root:opacity-100 stg:focus-visible:opacity-100",
+                    "stg:hover:text-destructive stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
+                  )}
+                />
+              }
+            >
+              <RemoveIcon />
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {`Remove ${entry.name} from workspace`}
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
 

@@ -5,6 +5,8 @@ import { cn } from "@stigmer/theme";
 import type { WorkflowGraphModel } from "../workflow-graph-model.js";
 import { TASK_NAME_PATTERN, TASK_NAME_PATTERN_ERROR } from "../canvas-constants.js";
 import type { InspectorNodeIdentity, InspectorMutations } from "./types.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../internal/tooltip.js";
+import { TruncatedText } from "../../internal/truncated-text.js";
 
 /** Props for {@link InspectorHeader}. */
 export interface InspectorHeaderProps {
@@ -107,14 +109,20 @@ export const InspectorHeader = memo(function InspectorHeader({
               )}
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={startEditing}
-              className="stg:w-fit stg:max-w-full stg:truncate stg:text-left stg:text-sm stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)] stg:hover:underline"
-              title="Click to rename"
-            >
-              {identity.taskName}
-            </button>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    onClick={startEditing}
+                    className="stg:w-fit stg:max-w-full stg:truncate stg:text-left stg:text-sm stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)] stg:hover:underline"
+                  />
+                }
+              >
+                {identity.taskName}
+              </TooltipTrigger>
+              <TooltipContent side="top">Click to rename</TooltipContent>
+            </Tooltip>
           )}
         </div>
 
@@ -155,9 +163,10 @@ export const InspectorHeader = memo(function InspectorHeader({
           {identity.kindString.replace(/_/g, " ")}
         </span>
         {identity.description && (
-          <span className="stg:truncate stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]" title={identity.description}>
-            {identity.description}
-          </span>
+          <TruncatedText
+            text={identity.description}
+            className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]"
+          />
         )}
       </div>
     </div>

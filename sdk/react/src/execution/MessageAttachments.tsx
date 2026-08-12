@@ -4,6 +4,8 @@ import { useState } from "react";
 import { cn } from "@stigmer/theme";
 import { AttachmentImageLightbox } from "../attachment/AttachmentImageLightbox.js";
 import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { TruncatedText } from "../internal/truncated-text.js";
 import { useArtifactDownload } from "./useArtifactDownload.js";
 import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl.js";
 
@@ -172,38 +174,45 @@ function ImagePreviewChip({
   }
 
   return (
-    <span role="listitem" aria-label={name} title={name} className="stg:inline-flex">
-      {/* The whole tile is the preview target. UNSTYLED_BUTTON adds the
-          pointer cursor — the image tile carries no other clickability
-          cue. */}
-      <button
-        type="button"
-        onClick={onPreview}
-        aria-label={`Preview ${name}`}
-        className={cn(
-          UNSTYLED_BUTTON,
-          "stg:relative stg:block stg:h-14 stg:w-14 stg:overflow-hidden stg:rounded-md stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-        )}
+    <Tooltip>
+      <TooltipTrigger
+        render={<span role="listitem" aria-label={name} className="stg:inline-flex" />}
       >
-        {url ? (
-          <img
-            src={url}
-            alt=""
-            aria-hidden="true"
-            loading="lazy"
-            className="stg:h-full stg:w-full stg:object-cover"
-          />
-        ) : (
-          // Pulse placeholder while the presigned URL is minted — pulse
-          // means work is genuinely in flight (contrast ImageGlyphTile).
-          // Same footprint as the image, so no layout shift.
-          <span
-            className="stg:block stg:h-full stg:w-full stg:animate-pulse stg:bg-muted"
-            aria-hidden="true"
-          />
-        )}
-      </button>
-    </span>
+        {/* The whole tile is the preview target. UNSTYLED_BUTTON adds the
+            pointer cursor — the image tile carries no other clickability
+            cue. */}
+        <button
+          type="button"
+          onClick={onPreview}
+          aria-label={`Preview ${name}`}
+          className={cn(
+            UNSTYLED_BUTTON,
+            "stg:relative stg:block stg:h-14 stg:w-14 stg:overflow-hidden stg:rounded-md stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+          )}
+        >
+          {url ? (
+            <img
+              src={url}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              className="stg:h-full stg:w-full stg:object-cover"
+            />
+          ) : (
+            // Pulse placeholder while the presigned URL is minted — pulse
+            // means work is genuinely in flight (contrast ImageGlyphTile).
+            // Same footprint as the image, so no layout shift.
+            <span
+              className="stg:block stg:h-full stg:w-full stg:animate-pulse stg:bg-muted"
+              aria-hidden="true"
+            />
+          )}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="stg:break-all">
+        {name}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -215,14 +224,22 @@ function ImagePreviewChip({
  */
 function ImageGlyphTile({ name }: { readonly name: string }) {
   return (
-    <span
-      role="listitem"
-      aria-label={name}
-      title={name}
-      className="stg:inline-flex stg:h-14 stg:w-14 stg:items-center stg:justify-center stg:rounded-md stg:bg-muted-subtle"
-    >
-      <ImageGlyph />
-    </span>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span
+            role="listitem"
+            aria-label={name}
+            className="stg:inline-flex stg:h-14 stg:w-14 stg:items-center stg:justify-center stg:rounded-md stg:bg-muted-subtle"
+          />
+        }
+      >
+        <ImageGlyph />
+      </TooltipTrigger>
+      <TooltipContent side="top" className="stg:break-all">
+        {name}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -251,7 +268,7 @@ function DocumentChip({
   const content = (
     <>
       <FileGlyph />
-      <span className="stg:min-w-0 stg:truncate">{name}</span>
+      <TruncatedText text={name} className="stg:min-w-0" />
     </>
   );
 
@@ -259,7 +276,6 @@ function DocumentChip({
     <span
       role="listitem"
       aria-label={name}
-      title={name}
       className="stg:inline-flex stg:max-w-[200px] stg:items-center stg:rounded-md stg:bg-muted-subtle stg:px-2 stg:py-0.5 stg:text-xs stg:text-foreground"
     >
       {downloadable ? (

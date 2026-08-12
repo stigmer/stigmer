@@ -5,6 +5,7 @@
 
 import { useEffect, useRef } from "react";
 import { cn } from "@stigmer/theme";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 /** Props for {@link PanelChip}. */
 export interface PanelChipProps {
@@ -50,29 +51,37 @@ export function PanelChip({ isOpen, onToggle, badgeCount }: PanelChipProps) {
   }, [isOpen]);
 
   return (
-    <button
-      ref={buttonRef}
-      type="button"
-      onClick={onToggle}
-      aria-expanded={isOpen}
-      aria-label={isOpen ? "Hide panel" : "Show panel"}
-      title={isOpen ? "Hide panel" : "Show panel"}
-      className={cn(
-        "stg:flex stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border stg:bg-card stg:px-1.5 stg:py-1",
-        "stg:text-muted-foreground stg:transition-colors stg:hover:bg-muted stg:hover:text-foreground",
-        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-      )}
-    >
-      {showCount && (
-        <span
-          aria-label={`${badgeCount} new items`}
-          className="stg:inline-flex stg:min-w-[1rem] stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-1 stg:py-px stg:text-[10px] stg:font-medium stg:leading-none stg:text-primary-foreground"
-        >
-          {badgeCount}
-        </span>
-      )}
-      <PanelIcon open={isOpen} />
-    </button>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            ref={buttonRef}
+            type="button"
+            onClick={onToggle}
+            aria-expanded={isOpen}
+            aria-label={isOpen ? "Hide panel" : "Show panel"}
+            className={cn(
+              "stg:flex stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border stg:bg-card stg:px-1.5 stg:py-1",
+              "stg:text-muted-foreground stg:transition-colors stg:hover:bg-muted stg:hover:text-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            )}
+          />
+        }
+      >
+        {showCount && (
+          <span
+            aria-label={`${badgeCount} new items`}
+            className="stg:inline-flex stg:min-w-[1rem] stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-1 stg:py-px stg:text-[10px] stg:font-medium stg:leading-none stg:text-primary-foreground"
+          >
+            {badgeCount}
+          </span>
+        )}
+        <PanelIcon open={isOpen} />
+      </TooltipTrigger>
+      <TooltipContent side="top">
+        {isOpen ? "Hide panel" : "Show panel"}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 

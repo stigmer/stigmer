@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { TruncatedText } from "../internal/truncated-text.js";
 
 /**
  * Internal building blocks shared by the channel-app forms and panels.
@@ -74,15 +75,13 @@ export function CopyRow({
     <div className="stg:space-y-1">
       <p className="stg:text-xs stg:font-medium stg:text-foreground">{label}</p>
       <div className="stg:flex stg:items-center stg:gap-1.5">
-        <code
+        <TruncatedText
+          text={value}
           className={cn(
-            "stg:min-w-0 stg:flex-1 stg:truncate stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle",
+            "stg:min-w-0 stg:flex-1 stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle",
             "stg:px-2 stg:py-1.5 stg:font-mono stg:text-[0.65rem] stg:text-foreground",
           )}
-          title={value}
-        >
-          {value}
-        </code>
+        />
         <CopyButton copied={copied} onCopy={copy} copyTargetId={copyTargetId} />
       </div>
     </div>

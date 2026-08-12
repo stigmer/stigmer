@@ -5,6 +5,7 @@ import { cn } from "@stigmer/theme";
 import { useWorkflowVersions } from "./useWorkflowVersions.js";
 import { WorkflowVersionBadge } from "./WorkflowVersionBadge.js";
 import type { VersionEntry } from "../version-history/types.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 /** Props for {@link WorkflowVersionTimeline}. */
 export interface WorkflowVersionTimelineProps {
@@ -169,12 +170,12 @@ function VersionTimelineRow({
 
         {/* Second line: timestamp + actor */}
         <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-muted-foreground">
-          <time
-            dateTime={entry.timestamp.toISOString()}
-            title={entry.timestamp.toLocaleString()}
-          >
-            {formatRelativeTime(entry.timestamp)}
-          </time>
+          <Tooltip>
+            <TooltipTrigger render={<time dateTime={entry.timestamp.toISOString()} />}>
+              {formatRelativeTime(entry.timestamp)}
+            </TooltipTrigger>
+            <TooltipContent side="top">{entry.timestamp.toLocaleString()}</TooltipContent>
+          </Tooltip>
 
           {entry.actor && (
             <>

@@ -5,6 +5,7 @@ import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useStigmerPortalContainer } from "../portal-container.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import {
@@ -454,20 +455,26 @@ export function VisibilityBadge({
 
   if (onClick) {
     return (
-      <button
-        type="button"
-        onClick={onClick}
-        title="Manage access"
-        aria-label={`${option.label} visibility — manage access`}
-        className={cn(
-          VISIBILITY_CHIP_CLASS,
-          "stg:transition-colors stg:hover:bg-accent-hover stg:hover:text-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          className,
-        )}
-      >
-        {content}
-      </button>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <button
+              type="button"
+              onClick={onClick}
+              aria-label={`${option.label} visibility — manage access`}
+              className={cn(
+                VISIBILITY_CHIP_CLASS,
+                "stg:transition-colors stg:hover:bg-accent-hover stg:hover:text-foreground",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                className,
+              )}
+            />
+          }
+        >
+          {content}
+        </TooltipTrigger>
+        <TooltipContent side="top">Manage access</TooltipContent>
+      </Tooltip>
     );
   }
 

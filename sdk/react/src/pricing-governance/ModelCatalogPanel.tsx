@@ -8,6 +8,7 @@ import {
   type ModelPricingBaseline,
 } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { Button } from "../button/index.js";
+import { TruncatedText } from "../internal/truncated-text.js";
 import { BaselineEditor } from "./BaselineEditor.js";
 import { RetireConfirm } from "./RetireConfirm.js";
 import { OperatorAccessNotice } from "./OperatorAccessNotice.js";
@@ -232,13 +233,16 @@ function CatalogRow({
         className="stg:grid stg:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] stg:items-center stg:gap-2 stg:px-3 stg:py-2 stg:text-xs"
       >
         <span role="cell" className="stg:min-w-0">
-          <span className="stg:block stg:truncate stg:font-medium stg:text-foreground" title={baseline.modelId}>
+          {/* The display name needs no tooltip: the model id it used to
+              reveal is printed on the line below, which shows its own
+              tooltip when clipped. */}
+          <span className="stg:block stg:truncate stg:font-medium stg:text-foreground">
             {baseline.displayName || baseline.modelId}
           </span>
-          <span className="stg:block stg:truncate stg:text-[11px] stg:text-muted-foreground">
-            {baseline.modelId}
-            {baseline.featured ? " · featured" : ""}
-          </span>
+          <TruncatedText
+            text={`${baseline.modelId}${baseline.featured ? " · featured" : ""}`}
+            className="stg:block stg:text-[11px] stg:text-muted-foreground"
+          />
         </span>
         <span role="cell" className="stg:text-muted-foreground">
           {baseline.harness}

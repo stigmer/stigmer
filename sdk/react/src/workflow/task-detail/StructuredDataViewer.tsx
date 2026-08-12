@@ -9,6 +9,7 @@ import {
   humanizeArgKey,
   isScalar,
 } from "../../execution/tool-rendering-primitives.js";
+import { TruncatedText } from "../../internal/truncated-text.js";
 
 /**
  * Threshold (in characters) above which a string value is rendered
@@ -148,14 +149,15 @@ function ScalarEntry({
             typeof value === "boolean" && "stg:font-medium",
             (value === null || value === undefined) && "stg:text-muted-foreground",
           )}
-          title={strValue}
         >
           {strValue.includes("\n") ? (
+            // Multiline values wrap fully in the <pre> — nothing is clipped,
+            // so no tooltip is needed.
             <pre className="stg:whitespace-pre-wrap stg:break-words stg:rounded stg:border stg:border-border stg:bg-muted-subtle stg:px-2 stg:py-1 stg:font-mono stg:text-foreground">
               {strValue}
             </pre>
           ) : (
-            <span className="stg:block stg:truncate">{strValue}</span>
+            <TruncatedText text={strValue} className="stg:block" />
           )}
         </dd>
       )}

@@ -5,6 +5,7 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useApiKeyList } from "./useApiKeyList.js";
 import { useDeleteApiKey } from "./useDeleteApiKey.js";
 
@@ -242,9 +243,16 @@ function ApiKeyRow({
       {/* Metadata columns */}
       <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-4 stg:text-xs stg:text-muted-foreground">
         {createdAt && (
-          <span title={`Created ${timestampDate(createdAt).toISOString()}`}>
-            {formatShortDate(timestampDate(createdAt))}
-          </span>
+          <Tooltip>
+            <TooltipTrigger
+              render={<time dateTime={timestampDate(createdAt).toISOString()} />}
+            >
+              {formatShortDate(timestampDate(createdAt))}
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {`Created ${timestampDate(createdAt).toISOString()}`}
+            </TooltipContent>
+          </Tooltip>
         )}
         <span>
           {neverExpires

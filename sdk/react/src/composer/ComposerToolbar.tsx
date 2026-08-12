@@ -1,6 +1,12 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../internal/tooltip.js";
 import { ContextPopover } from "./ContextPopover.js";
 import { ConfigureMenu, type ConfigureMenuItem } from "./ConfigureMenu.js";
 import { ModelSelector } from "../models/ModelSelector.js";
@@ -160,101 +166,127 @@ export function ComposerToolbar({
         )}
       </div>
 
-      {/* ---- Right group: Secondary actions (icon-only) + Send ---- */}
+      {/* ---- Right group: Secondary actions (icon-only) + Send ----
 
-      <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
-        {showWorkspace && (
-          onWorkspaceDirectAction
-            ? <button
-                type="button"
-                disabled={disabled}
-                onClick={onWorkspaceDirectAction}
-                title="Workspace"
-                className={cn(
-                  "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
-                  "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-                  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-                )}
-                aria-label="Workspace"
-              >
-                <span className="stg:relative">
-                  <WorkspaceIcon />
-                  {workspaceCount > 0 && (
-                    <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-[0.5rem] stg:font-medium stg:leading-none stg:text-primary-foreground">
-                      {workspaceCount}
-                    </span>
+          Icon-only actions carry house tooltips (never native `title` —
+          OS-delayed and unreachable from keyboard/touch, dead entirely on
+          disabled controls). Disabled-capable buttons put the trigger on a
+          plain wrapper span: `disabled` adds `pointer-events-none`, so the
+          span, not the button, must own the hover for the tooltip to keep
+          working while disabled. The provider is context-only (no DOM node)
+          and groups the buttons' hover delay. */}
+
+      <TooltipProvider>
+        <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
+          {showWorkspace && (
+            onWorkspaceDirectAction
+              ? <Tooltip>
+                  <TooltipTrigger render={<span className="stg:inline-flex" />}>
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={onWorkspaceDirectAction}
+                      className={cn(
+                        "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
+                        "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+                        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+                      )}
+                      aria-label="Workspace"
+                    >
+                      <span className="stg:relative">
+                        <WorkspaceIcon />
+                        {workspaceCount > 0 && (
+                          <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-[0.5rem] stg:font-medium stg:leading-none stg:text-primary-foreground">
+                            {workspaceCount}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Workspace</TooltipContent>
+                </Tooltip>
+              : <ContextPopover
+                  icon={<WorkspaceIcon />}
+                  label="Workspace"
+                  count={workspaceCount}
+                  disabled={disabled}
+                >
+                  {workspaceContent}
+                </ContextPopover>
+          )}
+
+          {showAttach && (
+            <Tooltip>
+              <TooltipTrigger render={<span className="stg:inline-flex" />}>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={onAttachClick}
+                  className={cn(
+                    "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
+                    "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+                    "stg:disabled:pointer-events-none stg:disabled:opacity-50",
                   )}
-                </span>
-              </button>
-            : <ContextPopover
-                icon={<WorkspaceIcon />}
-                label="Workspace"
-                count={workspaceCount}
-                disabled={disabled}
-              >
-                {workspaceContent}
-              </ContextPopover>
-        )}
+                  aria-label="Attach files"
+                >
+                  <span className="stg:relative">
+                    <PaperclipIcon />
+                    {attachmentCount > 0 && (
+                      <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-[0.5rem] stg:font-medium stg:leading-none stg:text-primary-foreground">
+                        {attachmentCount}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">Attach files</TooltipContent>
+            </Tooltip>
+          )}
 
-        {showAttach && (
-          <button
-            type="button"
+          <ConfigureMenu
+            open={configOpen}
+            onOpenChange={onConfigOpenChange}
+            activePanel={configActivePanel}
+            onActivePanelChange={onConfigActivePanelChange}
+            items={configureItems}
+            renderPanel={renderConfigPanel}
             disabled={disabled}
-            onClick={onAttachClick}
-            title="Attach files"
-            className={cn(
-              "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
-              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
-            aria-label="Attach files"
-          >
-            <span className="stg:relative">
-              <PaperclipIcon />
-              {attachmentCount > 0 && (
-                <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-[0.5rem] stg:font-medium stg:leading-none stg:text-primary-foreground">
-                  {attachmentCount}
-                </span>
-              )}
-            </span>
-          </button>
-        )}
+          />
 
-        <ConfigureMenu
-          open={configOpen}
-          onOpenChange={onConfigOpenChange}
-          activePanel={configActivePanel}
-          onActivePanelChange={onConfigActivePanelChange}
-          items={configureItems}
-          renderPanel={renderConfigPanel}
-          disabled={disabled}
-        />
-
-        {onStop ? (
-          // Circular container (vs. Send's rounded-square) gives the square glyph
-          // a proper home — the canonical stop affordance — and the shape morph
-          // from Send→Stop signals the running state at a glance.
-          <button
-            type="button"
-            onClick={onStop}
-            className="stg:flex stg:h-8 stg:w-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:text-primary-foreground stg:transition-colors stg:hover:bg-primary-hover"
-            aria-label="Stop generating"
-            title="Stop"
-          >
-            {isStopping ? <SpinnerIcon /> : <StopIcon />}
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled={!canSend}
-            onClick={onSend}
-            className="stg:flex stg:h-8 stg:w-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-lg stg:bg-primary stg:text-primary-foreground stg:transition-colors stg:hover:bg-primary-hover stg:disabled:pointer-events-none stg:disabled:opacity-40"
-            aria-label="Send message"
-          >
-            {isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}
-          </button>
-        )}
-      </div>
+          {onStop ? (
+            // Circular container (vs. Send's rounded-square) gives the square glyph
+            // a proper home — the canonical stop affordance — and the shape morph
+            // from Send→Stop signals the running state at a glance. Always
+            // enabled, so the button itself is the tooltip trigger (keyboard
+            // focus opens it too).
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    onClick={onStop}
+                    className="stg:flex stg:h-8 stg:w-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:text-primary-foreground stg:transition-colors stg:hover:bg-primary-hover"
+                    aria-label="Stop generating"
+                  />
+                }
+              >
+                {isStopping ? <SpinnerIcon /> : <StopIcon />}
+              </TooltipTrigger>
+              <TooltipContent side="top">Stop</TooltipContent>
+            </Tooltip>
+          ) : (
+            <button
+              type="button"
+              disabled={!canSend}
+              onClick={onSend}
+              className="stg:flex stg:h-8 stg:w-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-lg stg:bg-primary stg:text-primary-foreground stg:transition-colors stg:hover:bg-primary-hover stg:disabled:pointer-events-none stg:disabled:opacity-40"
+              aria-label="Send message"
+            >
+              {isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}
+            </button>
+          )}
+        </div>
+      </TooltipProvider>
     </div>
   );
 }

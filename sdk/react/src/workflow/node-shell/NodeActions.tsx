@@ -9,6 +9,12 @@ import { BranchAddPopover } from "../picker/BranchAddPopover.js";
 import type { BranchAddMode, BranchAddResult } from "../picker/BranchAddPopover.js";
 import type { InsertionContext } from "../picker/insertion-context.js";
 import { TrashIcon, DuplicateIcon, PlusIcon } from "../canvas-icons.js";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../../internal/tooltip.js";
 
 export interface NodeActionsProps {
   nodeId: string;
@@ -156,70 +162,84 @@ export const NodeActions = memo(function NodeActions({
     <>
       {/* Selection toolbar — auto-shown by React Flow when selected */}
       <NodeToolbar position={Position.Top} offset={8} align="center">
-        <div
-          className="stgm stg:flex stg:items-center stg:gap-0.5 stg:rounded-md stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-popover,var(--stgm-background,#fff))] stg:p-0.5 stg:shadow-md"
-          role="toolbar"
-          aria-label="Task actions"
-          aria-orientation="horizontal"
-        >
-          <ToolbarButton
-            icon={<DuplicateIcon />}
-            label={`Duplicate task ${taskName}`}
-            title="Duplicate"
-            onClick={handleDuplicate}
-          />
-          <ToolbarButton
-            ref={toolbarAddRef}
-            icon={<PlusIcon />}
-            label={`Add task after ${taskName}`}
-            title="Add task after"
-            onClick={handleToolbarAddClick}
-          />
-          <div className="stg:mx-0.5 stg:h-4 stg:w-px stg:bg-[var(--stgm-border,#e5e5e5)]" aria-hidden="true" />
-          <ToolbarButton
-            icon={<TrashIcon />}
-            label={`Delete task ${taskName}`}
-            title="Delete"
-            onClick={handleDelete}
-            destructive
-          />
-        </div>
+        <TooltipProvider>
+          <div
+            className="stgm stg:flex stg:items-center stg:gap-0.5 stg:rounded-md stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-popover,var(--stgm-background,#fff))] stg:p-0.5 stg:shadow-md"
+            role="toolbar"
+            aria-label="Task actions"
+            aria-orientation="horizontal"
+          >
+            <ToolbarButton
+              icon={<DuplicateIcon />}
+              label={`Duplicate task ${taskName}`}
+              tooltip="Duplicate"
+              onClick={handleDuplicate}
+            />
+            <ToolbarButton
+              ref={toolbarAddRef}
+              icon={<PlusIcon />}
+              label={`Add task after ${taskName}`}
+              tooltip="Add task after"
+              onClick={handleToolbarAddClick}
+            />
+            <div className="stg:mx-0.5 stg:h-4 stg:w-px stg:bg-[var(--stgm-border,#e5e5e5)]" aria-hidden="true" />
+            <ToolbarButton
+              icon={<TrashIcon />}
+              label={`Delete task ${taskName}`}
+              tooltip="Delete"
+              onClick={handleDelete}
+              destructive
+            />
+          </div>
+        </TooltipProvider>
       </NodeToolbar>
 
       {/* Delete button — revealed on hover via CSS group */}
-      <button
-        type="button"
-        onClick={handleDelete}
-        className={cn(
-          "stg:absolute stg:-right-2 stg:-top-2 stg:z-10 stg:flex stg:h-5 stg:w-5 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:text-[var(--stgm-muted-foreground,#737373)] stg:shadow-sm stg:transition-all",
-          "stg:hover:border-[var(--stgm-destructive,#ef4444)] stg:hover:bg-[var(--stgm-destructive,#ef4444)] stg:hover:text-[var(--stgm-primary-foreground,#fff)]",
-          "stg:scale-75 stg:opacity-0 stg:group-hover:scale-100 stg:group-hover:opacity-100",
-        )}
-        aria-label={`Delete task ${taskName}`}
-        title="Delete task"
-      >
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-          <path d="M2 3h6M3.5 3V2.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5V3M4 4.5v2.5M6 4.5v2.5M3 3l.5 5h3l.5-5" />
-        </svg>
-      </button>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <button
+              type="button"
+              onClick={handleDelete}
+              className={cn(
+                "stg:absolute stg:-right-2 stg:-top-2 stg:z-10 stg:flex stg:h-5 stg:w-5 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:text-[var(--stgm-muted-foreground,#737373)] stg:shadow-sm stg:transition-all",
+                "stg:hover:border-[var(--stgm-destructive,#ef4444)] stg:hover:bg-[var(--stgm-destructive,#ef4444)] stg:hover:text-[var(--stgm-primary-foreground,#fff)]",
+                "stg:scale-75 stg:opacity-0 stg:group-hover:scale-100 stg:group-hover:opacity-100",
+              )}
+              aria-label={`Delete task ${taskName}`}
+            />
+          }
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+            <path d="M2 3h6M3.5 3V2.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5V3M4 4.5v2.5M6 4.5v2.5M3 3l.5 5h3l.5-5" />
+          </svg>
+        </TooltipTrigger>
+        <TooltipContent side="top">Delete task</TooltipContent>
+      </Tooltip>
 
       {/* Add successor button — revealed on hover via CSS group */}
-      <button
-        ref={hoverAddRef}
-        type="button"
-        onClick={handleHoverAddClick}
-        className={cn(
-          "stg:absolute stg:-bottom-3 stg:left-1/2 stg:z-10 stg:flex stg:h-5 stg:w-5 stg:-translate-x-1/2 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:text-[var(--stgm-muted-foreground,#737373)] stg:shadow-sm stg:transition-all",
-          "stg:hover:border-[var(--stgm-primary,#6366f1)] stg:hover:bg-[var(--stgm-primary,#6366f1)] stg:hover:text-[var(--stgm-primary-foreground,#fff)]",
-          "stg:scale-75 stg:opacity-0 stg:group-hover:scale-100 stg:group-hover:opacity-100",
-        )}
-        aria-label={`Add task after ${taskName}`}
-        title="Add task"
-      >
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-          <path d="M5 2v6M2 5h6" />
-        </svg>
-      </button>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <button
+              ref={hoverAddRef}
+              type="button"
+              onClick={handleHoverAddClick}
+              className={cn(
+                "stg:absolute stg:-bottom-3 stg:left-1/2 stg:z-10 stg:flex stg:h-5 stg:w-5 stg:-translate-x-1/2 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:text-[var(--stgm-muted-foreground,#737373)] stg:shadow-sm stg:transition-all",
+                "stg:hover:border-[var(--stgm-primary,#6366f1)] stg:hover:bg-[var(--stgm-primary,#6366f1)] stg:hover:text-[var(--stgm-primary-foreground,#fff)]",
+                "stg:scale-75 stg:opacity-0 stg:group-hover:scale-100 stg:group-hover:opacity-100",
+              )}
+              aria-label={`Add task after ${taskName}`}
+            />
+          }
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+            <path d="M5 2v6M2 5h6" />
+          </svg>
+        </TooltipTrigger>
+        <TooltipContent side="top">Add task</TooltipContent>
+      </Tooltip>
 
       <TaskPickerPopover
         open={pickerOpen}
@@ -233,32 +253,38 @@ export const NodeActions = memo(function NodeActions({
 
       {branchMode && (
         <>
-          <button
-            ref={branchAddRef}
-            type="button"
-            onClick={() => setBranchPopoverOpen(true)}
-            className={cn(
-              "stg:absolute stg:-bottom-3 stg:left-1/2 stg:z-10 stg:flex stg:h-5 stg:-translate-x-1/2 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:px-2 stg:text-[9px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)] stg:shadow-sm stg:transition-all",
-              "stg:hover:border-[var(--stgm-primary,#6366f1)] stg:hover:bg-[var(--stgm-primary,#6366f1)] stg:hover:text-[var(--stgm-primary-foreground,#fff)]",
-              "stg:scale-75 stg:opacity-0 stg:group-hover:scale-100 stg:group-hover:opacity-100",
-            )}
-            aria-label={
-              branchMode === "switch-case"
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  ref={branchAddRef}
+                  type="button"
+                  onClick={() => setBranchPopoverOpen(true)}
+                  className={cn(
+                    "stg:absolute stg:-bottom-3 stg:left-1/2 stg:z-10 stg:flex stg:h-5 stg:-translate-x-1/2 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:px-2 stg:text-[9px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)] stg:shadow-sm stg:transition-all",
+                    "stg:hover:border-[var(--stgm-primary,#6366f1)] stg:hover:bg-[var(--stgm-primary,#6366f1)] stg:hover:text-[var(--stgm-primary-foreground,#fff)]",
+                    "stg:scale-75 stg:opacity-0 stg:group-hover:scale-100 stg:group-hover:opacity-100",
+                  )}
+                  aria-label={
+                    branchMode === "switch-case"
+                      ? "Add case"
+                      : branchMode === "fork-branch"
+                        ? "Add branch"
+                        : "Add catch"
+                  }
+                />
+              }
+            >
+              +
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {branchMode === "switch-case"
                 ? "Add case"
                 : branchMode === "fork-branch"
                   ? "Add branch"
-                  : "Add catch"
-            }
-            title={
-              branchMode === "switch-case"
-                ? "Add case"
-                : branchMode === "fork-branch"
-                  ? "Add branch"
-                  : "Add catch"
-            }
-          >
-            +
-          </button>
+                  : "Add catch"}
+            </TooltipContent>
+          </Tooltip>
 
           <BranchAddPopover
             open={branchPopoverOpen}
@@ -290,25 +316,33 @@ const TOOLBAR_BTN_DESTRUCTIVE_CLASS = cn(
 
 interface ToolbarButtonProps {
   icon: React.ReactNode;
+  /** Full accessible name (e.g. "Duplicate task fetch-data"). */
   label: string;
-  title: string;
+  /** Short action name shown on the house tooltip. */
+  tooltip: string;
   onClick: () => void;
   destructive?: boolean;
 }
 
 const ToolbarButton = forwardRef<HTMLButtonElement, ToolbarButtonProps>(
-  function ToolbarButton({ icon, label, title, onClick, destructive }, ref) {
+  function ToolbarButton({ icon, label, tooltip, onClick, destructive }, ref) {
     return (
-      <button
-        ref={ref}
-        type="button"
-        onClick={onClick}
-        className={destructive ? TOOLBAR_BTN_DESTRUCTIVE_CLASS : TOOLBAR_BTN_CLASS}
-        aria-label={label}
-        title={title}
-      >
-        {icon}
-      </button>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <button
+              ref={ref}
+              type="button"
+              onClick={onClick}
+              className={destructive ? TOOLBAR_BTN_DESTRUCTIVE_CLASS : TOOLBAR_BTN_CLASS}
+              aria-label={label}
+            />
+          }
+        >
+          {icon}
+        </TooltipTrigger>
+        <TooltipContent side="top">{tooltip}</TooltipContent>
+      </Tooltip>
     );
   },
 );

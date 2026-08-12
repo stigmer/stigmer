@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 /** Props for {@link WorkflowVersionBadge}. */
 export interface WorkflowVersionBadgeProps {
@@ -56,26 +57,40 @@ export const WorkflowVersionBadge = memo(function WorkflowVersionBadge({
   return (
     <span className={cn("stg:inline-flex stg:items-center stg:gap-1.5", className)}>
       {isCurrent && (
-        <span
-          className="stg:size-2 stg:shrink-0 stg:rounded-full stg:bg-status-ready"
-          aria-label="Current version"
-          title="Current version"
-        />
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <span
+                className="stg:size-2 stg:shrink-0 stg:rounded-full stg:bg-status-ready"
+                aria-label="Current version"
+              />
+            }
+          />
+          <TooltipContent side="top">Current version</TooltipContent>
+        </Tooltip>
       )}
 
-      <button
-        type="button"
-        onClick={handleCopy}
-        title={copied ? "Copied!" : `Copy full hash: ${versionHash}`}
-        className={cn(
-          "stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-[11px] stg:font-medium stg:text-foreground stg:transition-colors",
-          "stg:hover:bg-accent-hover",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          copied && "stg:bg-status-ready-subtle stg:text-status-ready",
-        )}
-      >
-        {copied ? "copied" : truncated}
-      </button>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <button
+              type="button"
+              onClick={handleCopy}
+              className={cn(
+                "stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-[11px] stg:font-medium stg:text-foreground stg:transition-colors",
+                "stg:hover:bg-accent-hover",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                copied && "stg:bg-status-ready-subtle stg:text-status-ready",
+              )}
+            />
+          }
+        >
+          {copied ? "copied" : truncated}
+        </TooltipTrigger>
+        <TooltipContent side="top" className="stg:break-all">
+          {copied ? "Copied!" : `Copy full hash: ${versionHash}`}
+        </TooltipContent>
+      </Tooltip>
 
       {tag && (
         <span className="stg:shrink-0 stg:rounded-full stg:bg-primary-subtle stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-primary">

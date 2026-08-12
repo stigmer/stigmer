@@ -5,6 +5,7 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useIdentityProviderList } from "./useIdentityProviderList.js";
 import { useDeleteIdentityProvider } from "./useDeleteIdentityProvider.js";
 
@@ -246,9 +247,16 @@ function IdpRow({
           </span>
         )}
         {createdAt && (
-          <span title={`Created ${timestampDate(createdAt).toISOString()}`}>
-            {formatShortDate(timestampDate(createdAt))}
-          </span>
+          <Tooltip>
+            <TooltipTrigger
+              render={<time dateTime={timestampDate(createdAt).toISOString()} />}
+            >
+              {formatShortDate(timestampDate(createdAt))}
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {`Created ${timestampDate(createdAt).toISOString()}`}
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
 

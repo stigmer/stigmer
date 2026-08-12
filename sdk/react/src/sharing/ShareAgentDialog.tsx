@@ -27,6 +27,7 @@ import { useBillingAccount } from "../billing/useBillingAccount.js";
 import { formatCreditBalance } from "../billing/format.js";
 import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
 import { generateSlug } from "../internal/slug.js";
+import { TruncatedText } from "../internal/truncated-text.js";
 import { getFieldError, validateMessage } from "../internal/validate.js";
 import {
   draftFromShare,
@@ -1637,15 +1638,13 @@ function CopyField({
             {value}
           </pre>
         ) : (
-          <code
+          <TruncatedText
+            text={value}
             className={cn(
-              "stg:min-w-0 stg:flex-1 stg:truncate stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:px-2.5 stg:py-1.5",
+              "stg:min-w-0 stg:flex-1 stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:px-2.5 stg:py-1.5",
               "stg:font-mono stg:text-xs stg:text-foreground",
             )}
-            title={value}
-          >
-            {value}
-          </code>
+          />
         )}
         <div className="stg:flex stg:shrink-0 stg:flex-col stg:gap-1.5">
           <button

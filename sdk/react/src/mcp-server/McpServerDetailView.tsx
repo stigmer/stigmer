@@ -31,6 +31,7 @@ import { useOrgOAuthApp } from "./useOrgOAuthApp.js";
 import { OAuthAppForm } from "./OAuthAppForm.js";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { EnvVarForm } from "../environment/EnvVarForm.js";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
@@ -1660,13 +1661,18 @@ function renderHeaderValue(value: string): React.ReactNode {
       parts.push(value.slice(lastIndex, match.index));
     }
     parts.push(
-      <span
-        key={match.index}
-        className="stg:inline-flex stg:items-center stg:gap-0.5 stg:rounded stg:bg-primary-subtle stg:px-1 stg:py-px stg:text-[10px] stg:font-medium stg:text-primary"
-        title={`Resolved from environment variable: ${match[1]}`}
-      >
-        {match[0]}
-      </span>,
+      <Tooltip key={match.index}>
+        <TooltipTrigger
+          render={
+            <span className="stg:inline-flex stg:items-center stg:gap-0.5 stg:rounded stg:bg-primary-subtle stg:px-1 stg:py-px stg:text-[10px] stg:font-medium stg:text-primary" />
+          }
+        >
+          {match[0]}
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {`Resolved from environment variable: ${match[1]}`}
+        </TooltipContent>
+      </Tooltip>,
     );
     lastIndex = match.index + match[0].length;
   }

@@ -11,6 +11,7 @@ import { Button } from "../button/Button.js";
 import { useEnvironmentList } from "../environment/useEnvironmentList.js";
 import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { TruncatedText } from "../internal/truncated-text.js";
 import { AgentInstanceEmptyState } from "./AgentInstanceEmptyState.js";
 
 /** Label marking a user's auto-managed personal instance. */
@@ -216,12 +217,10 @@ function InstanceRow({
       <td className="stg:px-4 stg:py-2.5">
         <div className="stg:min-w-0">
           <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2">
-            <span
-              className="stg:truncate stg:font-medium stg:text-foreground"
-              title={meta?.name || meta?.slug || undefined}
-            >
-              {meta?.name || meta?.slug || "\u2014"}
-            </span>
+            <TruncatedText
+              text={meta?.name || meta?.slug || "\u2014"}
+              className="stg:font-medium stg:text-foreground"
+            />
             {isPersonal && (
               <span
                 className={cn(

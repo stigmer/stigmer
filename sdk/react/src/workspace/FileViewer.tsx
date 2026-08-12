@@ -22,6 +22,7 @@ import { ArtifactContentRenderer } from "../execution/ArtifactContentRenderer.js
 import { FileChangeDiff } from "../execution/FileChangesView.js";
 import { useFileChangeContent } from "../execution/useFileChangeContent.js";
 import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import type { RevealTarget } from "../internal/useRevealLine.js";
 import type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";
 import { useWorkspaceFileContent } from "./useWorkspaceFileContent.js";
@@ -660,9 +661,16 @@ function ViewerHeader({
     <div className="stg:flex stg:items-center stg:gap-2 stg:border-b stg:border-border stg:px-3 stg:py-2">
       <FileIcon />
       <div className="stg:flex stg:min-w-0 stg:flex-1 stg:items-baseline stg:gap-1.5">
-        <span className="stg:truncate stg:text-xs stg:font-semibold stg:text-foreground" title={dir ? `${dir}/${basename}` : basename}>
-          {basename}
-        </span>
+        <Tooltip>
+          <TooltipTrigger
+            render={<span className="stg:truncate stg:text-xs stg:font-semibold stg:text-foreground" />}
+          >
+            {basename}
+          </TooltipTrigger>
+          <TooltipContent side="top" className="stg:break-all">
+            {dir ? `${dir}/${basename}` : basename}
+          </TooltipContent>
+        </Tooltip>
         {dir && (
           <span className="stg:truncate stg:text-[0.65rem] stg:text-muted-foreground">{dir}</span>
         )}

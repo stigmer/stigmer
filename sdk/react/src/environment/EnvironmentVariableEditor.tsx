@@ -12,6 +12,7 @@ import { getUserMessage, type EnvVarInput } from "@stigmer/sdk";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { useUpdateEnvironmentVariables } from "./useUpdateEnvironmentVariables.js";
 import { useRemoveEnvironmentVariables } from "./useRemoveEnvironmentVariables.js";
@@ -390,12 +391,22 @@ function VariableRow({
       <div className="stg:group stg:flex stg:items-center stg:gap-3 stg:py-2">
         {/* Key + badge */}
         <div className="stg:flex stg:shrink-0 stg:items-baseline stg:gap-1.5">
-          <span
-            className="stg:font-mono stg:text-xs stg:font-medium stg:text-foreground"
-            title={variable.description || undefined}
-          >
-            {variable.key}
-          </span>
+          {variable.description ? (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <span className="stg:font-mono stg:text-xs stg:font-medium stg:text-foreground" />
+                }
+              >
+                {variable.key}
+              </TooltipTrigger>
+              <TooltipContent side="top">{variable.description}</TooltipContent>
+            </Tooltip>
+          ) : (
+            <span className="stg:font-mono stg:text-xs stg:font-medium stg:text-foreground">
+              {variable.key}
+            </span>
+          )}
           {variable.isSecret && (
             <span className="stg:text-[0.55rem] stg:uppercase stg:tracking-wider stg:text-muted-foreground-subtle">
               secret

@@ -4,6 +4,7 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useOAuthAppList } from "./useOAuthAppList.js";
 
 // ---------------------------------------------------------------------------
@@ -153,9 +154,16 @@ function OAuthAppRow({
 
       <div className="stg:hidden stg:shrink-0 stg:items-center stg:gap-4 stg:text-xs stg:text-muted-foreground stg:sm:flex">
         {createdAt && (
-          <span title={`Created ${timestampDate(createdAt).toISOString()}`}>
-            {formatShortDate(timestampDate(createdAt))}
-          </span>
+          <Tooltip>
+            <TooltipTrigger
+              render={<time dateTime={timestampDate(createdAt).toISOString()} />}
+            >
+              {formatShortDate(timestampDate(createdAt))}
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {`Created ${timestampDate(createdAt).toISOString()}`}
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
 

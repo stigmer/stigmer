@@ -1,4 +1,5 @@
 import { cn } from "@stigmer/theme";
+import { TruncatedText } from "../internal/truncated-text.js";
 import { ChipSpinner, XIcon } from "./icons.js";
 
 export interface ChipItem {
@@ -60,9 +61,7 @@ export function ContextChip({
       <span className="stg:text-[0.55rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
         {CHIP_TYPE_LABELS[type]}
       </span>
-      <span className="stg:max-w-[120px] stg:truncate" title={label}>
-        {label}
-      </span>
+      <TruncatedText text={label} className="stg:max-w-[120px]" />
       {detail != null && (
         <span className="stg:shrink-0 stg:text-[0.6rem] stg:font-medium stg:text-muted-foreground">
           {detail}

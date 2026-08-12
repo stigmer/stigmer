@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 /** Props for {@link FileReferenceChipList}. */
 export interface FileReferenceChipListProps {
@@ -83,24 +84,35 @@ function FileReferenceChip({
   const filename = path.split("/").pop() ?? path;
 
   return (
-    <span
-      role="listitem"
-      aria-label={`Referenced file: ${path}`}
-      title={path}
-      className="stg:inline-flex stg:max-w-[200px] stg:items-center stg:gap-1 stg:rounded-md stg:bg-muted-subtle stg:px-2 stg:py-0.5 stg:text-xs stg:text-foreground"
-    >
-      <FileRefIcon />
-      <span className="stg:truncate">{filename}</span>
-      <button
-        type="button"
-        onClick={onRemove}
-        disabled={disabled}
-        className="stg:ml-0.5 stg:shrink-0 stg:text-muted-foreground stg:hover:text-destructive stg:disabled:pointer-events-none"
-        aria-label={`Remove reference to ${path}`}
+    // The chip shows only the basename; the tooltip restores the full path,
+    // so it is a hover-always hint on the chip, not an overflow-gated
+    // TruncatedText.
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span
+            role="listitem"
+            aria-label={`Referenced file: ${path}`}
+            className="stg:inline-flex stg:max-w-[200px] stg:items-center stg:gap-1 stg:rounded-md stg:bg-muted-subtle stg:px-2 stg:py-0.5 stg:text-xs stg:text-foreground"
+          />
+        }
       >
-        <XIcon />
-      </button>
-    </span>
+        <FileRefIcon />
+        <span className="stg:truncate">{filename}</span>
+        <button
+          type="button"
+          onClick={onRemove}
+          disabled={disabled}
+          className="stg:ml-0.5 stg:shrink-0 stg:text-muted-foreground stg:hover:text-destructive stg:disabled:pointer-events-none"
+          aria-label={`Remove reference to ${path}`}
+        >
+          <XIcon />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="stg:break-all">
+        {path}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 

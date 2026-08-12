@@ -6,6 +6,7 @@ import type { DiscoveredTool } from "@stigmer/protos/ai/stigmer/agentic/mcpserve
 import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { useScrollShadows } from "../internal/useScrollShadows.js";
 import { ScrollFade } from "../internal/ScrollFade.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 /** Props for {@link McpToolSelector}. */
 export interface McpToolSelectorProps {
@@ -217,13 +218,17 @@ function ApprovalBadge({ message }: { readonly message: string }) {
   const resolvedTitle = message || "This tool requires approval before execution";
 
   return (
-    <span
-      className="stg:inline-flex stg:shrink-0 stg:items-center stg:gap-0.5 stg:rounded stg:px-1 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:leading-none stg:bg-warning/15 stg:text-warning"
-      title={resolvedTitle}
-    >
-      <ShieldIcon />
-      Approval
-    </span>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span className="stg:inline-flex stg:shrink-0 stg:items-center stg:gap-0.5 stg:rounded stg:px-1 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:leading-none stg:bg-warning/15 stg:text-warning" />
+        }
+      >
+        <ShieldIcon />
+        Approval
+      </TooltipTrigger>
+      <TooltipContent side="top">{resolvedTitle}</TooltipContent>
+    </Tooltip>
   );
 }
 

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { cn } from "@stigmer/theme";
+import { TruncatedText } from "../internal/truncated-text.js";
 import { formatDuration } from "./ToolCallDetail.js";
 import { humanizeToolName } from "./tool-categories.js";
 import {
@@ -301,8 +302,11 @@ function ScalarRow({ label, value }: { label: string; value: string }) {
           </pre>
         </dd>
       ) : (
-        <dd className="stg:min-w-0 stg:truncate stg:font-mono stg:text-foreground" title={value}>
-          {value}
+        <dd className="stg:min-w-0">
+          <TruncatedText
+            text={value}
+            className="stg:block stg:font-mono stg:text-foreground"
+          />
         </dd>
       )}
     </>

@@ -135,9 +135,10 @@ describe("MessageEntry attachment rendering", () => {
 
     // The tile is preview-only: no "screenshot.png" text node anywhere…
     expect(screen.queryByText("screenshot.png")).toBeNull();
-    // …but the name stays reachable — tooltip on the listitem, aria on both.
+    // …but the name stays reachable — house tooltip on the tile (native
+    // titles are banned, stigmer-cloud#268), aria on both.
     const tile = screen.getByRole("listitem", { name: "screenshot.png" });
-    expect(tile.getAttribute("title")).toBe("screenshot.png");
+    expect(tile.getAttribute("title")).toBeNull();
     expect(
       screen.getByRole("button", { name: "Preview screenshot.png" }),
     ).toBeTruthy();

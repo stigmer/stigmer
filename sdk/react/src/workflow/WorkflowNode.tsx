@@ -7,6 +7,7 @@ import type { CanvasTaskNodeData } from "./workflow-graph-conversions.js";
 import { getVisualSpec } from "./task-type-visual-registry.js";
 import { NodeShell, NodeContent, NodeHandles, NodeActions, ExecutionBadge, BranchBadge, DiffBadge } from "./node-shell/index.js";
 import { useWorkflowGraphMode } from "./WorkflowGraphModeContext.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 const NESTED_TASK_KINDS = new Set(["fork", "for_each", "try_catch"]);
 
@@ -67,12 +68,18 @@ export const WorkflowNode = memo(function WorkflowNode({
 
       {/* Validation badge — design mode only */}
       {mode === "design" && errorCount > 0 && (
-        <span
-          className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-4 stg:min-w-4 stg:items-center stg:justify-center stg:rounded-full stg:bg-[var(--stgm-destructive,#ef4444)] stg:px-1 stg:text-[9px] stg:font-bold stg:leading-none stg:text-[var(--stgm-destructive-foreground,#fff)]"
-          title={`${errorCount} validation ${errorCount === 1 ? "error" : "errors"}`}
-        >
-          {errorCount}
-        </span>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-4 stg:min-w-4 stg:items-center stg:justify-center stg:rounded-full stg:bg-[var(--stgm-destructive,#ef4444)] stg:px-1 stg:text-[9px] stg:font-bold stg:leading-none stg:text-[var(--stgm-destructive-foreground,#fff)]" />
+            }
+          >
+            {errorCount}
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {`${errorCount} validation ${errorCount === 1 ? "error" : "errors"}`}
+          </TooltipContent>
+        </Tooltip>
       )}
 
       {/* Execution badge — execution mode only */}

@@ -11,6 +11,7 @@ import {
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Pagination } from "../internal/Pagination.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useScheduleRuns } from "./useScheduleRuns.js";
 
 /** Props for {@link ScheduleRunsTable}. */
@@ -188,12 +189,17 @@ function RunTableRow({
       <span role="cell" className="stg:hidden stg:text-xs stg:text-muted-foreground stg:sm:block">
         {runOriginLabel(run.origin)}
       </span>
-      <span
-        role="cell"
-        className="stg:text-xs stg:text-muted-foreground"
-        title={fireDate ? fireDate.toLocaleString() : undefined}
-      >
-        {fireDate ? formatRelativeTime(fireDate, now) : "—"}
+      <span role="cell" className="stg:text-xs stg:text-muted-foreground">
+        {fireDate ? (
+          <Tooltip>
+            <TooltipTrigger render={<time dateTime={fireDate.toISOString()} />}>
+              {formatRelativeTime(fireDate, now)}
+            </TooltipTrigger>
+            <TooltipContent side="top">{fireDate.toLocaleString()}</TooltipContent>
+          </Tooltip>
+        ) : (
+          "—"
+        )}
       </span>
       <span
         role="cell"
@@ -313,11 +319,17 @@ function CompactRunRow({
           {runOriginLabel(run.origin)}
         </span>
         <span className="stg:text-xs stg:text-muted-foreground-subtle">·</span>
-        <span
-          className="stg:text-xs stg:text-muted-foreground"
-          title={fireDate ? fireDate.toLocaleString() : undefined}
-        >
-          {fireDate ? formatRelativeTime(fireDate, now) : "—"}
+        <span className="stg:text-xs stg:text-muted-foreground">
+          {fireDate ? (
+            <Tooltip>
+              <TooltipTrigger render={<time dateTime={fireDate.toISOString()} />}>
+                {formatRelativeTime(fireDate, now)}
+              </TooltipTrigger>
+              <TooltipContent side="top">{fireDate.toLocaleString()}</TooltipContent>
+            </Tooltip>
+          ) : (
+            "—"
+          )}
         </span>
       </div>
       {run.reason && (

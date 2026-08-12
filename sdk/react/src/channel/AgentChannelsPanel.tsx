@@ -22,6 +22,7 @@ import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { EditResourceYamlDialog } from "../manifest/EditResourceYamlDialog.js";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { TruncatedText } from "../internal/truncated-text.js";
 import { ChannelConversationsDialog } from "./ChannelConversationsDialog.js";
 import { ChannelCredentialsDialog } from "./ChannelCredentialsDialog.js";
 import { ChannelTemplatesDialog } from "./ChannelTemplatesDialog.js";
@@ -510,12 +511,10 @@ function ChannelCard({
           <provider.Icon className="stg:size-5 stg:shrink-0 stg:text-foreground" />
           <div className="stg:min-w-0">
             <div className="stg:flex stg:items-center stg:gap-2">
-              <span
-                className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground"
-                title={meta?.name || meta?.slug || undefined}
-              >
-                {meta?.name || meta?.slug || "\u2014"}
-              </span>
+              <TruncatedText
+                text={meta?.name || meta?.slug || "\u2014"}
+                className="stg:text-sm stg:font-medium stg:text-foreground"
+              />
               <InstallStatePill state={installState} />
             </div>
             <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">

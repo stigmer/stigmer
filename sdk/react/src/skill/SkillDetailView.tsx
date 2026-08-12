@@ -14,6 +14,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell.js";
 import { Section } from "../resource-detail/Section.js";
 import { useDetailTabs } from "../resource-detail/useDetailTabs.js";
@@ -518,12 +519,16 @@ function VersionSection({
             <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">
               Hash
             </span>
-            <code
-              className="stg:font-mono stg:text-xs stg:text-foreground"
-              title={versionHash}
-            >
-              {truncatedHash}
-            </code>
+            <Tooltip>
+              <TooltipTrigger
+                render={<code className="stg:font-mono stg:text-xs stg:text-foreground" />}
+              >
+                {truncatedHash}
+              </TooltipTrigger>
+              <TooltipContent side="top" className="stg:break-all">
+                {versionHash}
+              </TooltipContent>
+            </Tooltip>
           </div>
         )}
 
@@ -567,12 +572,18 @@ function GitProvenanceDisplay({
             </>
           )}
           {truncatedCommit && (
-            <code
-              className="stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:font-mono stg:text-[10px]"
-              title={provenance.commit}
-            >
-              {truncatedCommit}
-            </code>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <code className="stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:font-mono stg:text-[10px]" />
+                }
+              >
+                {truncatedCommit}
+              </TooltipTrigger>
+              <TooltipContent side="top" className="stg:break-all">
+                {provenance.commit}
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
       </div>

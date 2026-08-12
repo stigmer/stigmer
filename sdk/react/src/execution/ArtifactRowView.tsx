@@ -5,6 +5,7 @@
 
 import { cn } from "@stigmer/theme";
 import { FileTypeIcon, FolderTypeIcon } from "../internal/file-icons/index.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import type { ArtifactRowItem } from "./artifact-row-item.js";
 import { formatArtifactSize } from "./artifact-utils.js";
 
@@ -59,54 +60,73 @@ export function ArtifactRowView({
 }: ArtifactRowViewProps) {
   return (
     <li className={cn("stg:group stg:flex stg:items-stretch", className)}>
-      <button
-        type="button"
-        onClick={onOpen}
-        onDoubleClick={onActivate}
-        title={item.tooltip}
-        className={cn(
-          "stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-2 stg:px-2 stg:py-1 stg:text-left stg:text-xs stg:text-muted-foreground stg:transition-colors",
-          "stg:hover:bg-muted stg:hover:text-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
-        )}
-      >
-        <span className="stg:shrink-0 stg:text-muted-foreground">
-          {item.isDirectory ? (
-            <FolderTypeIcon open={false} />
-          ) : (
-            <FileTypeIcon fileName={item.name} />
-          )}
-        </span>
-        <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground">
-          {item.name}
-          {item.isDirectory && "/"}
-          {item.subtitlePath && (
-            <span className="stg:ml-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
-              {item.subtitlePath}
-            </span>
-          )}
-        </span>
-        <span className="stg:shrink-0 stg:tabular-nums stg:text-[0.65rem] stg:text-muted-foreground-faint">
-          {formatArtifactSize(item.sizeBytes)}
-        </span>
-      </button>
-      <button
-        type="button"
-        onClick={onDownload}
-        disabled={isDownloading}
-        aria-label={
-          isDownloading ? `Preparing ${item.name}` : `Download ${item.name}`
-        }
-        title={item.isDirectory ? "Download ZIP" : "Download"}
-        className={cn(
-          "stg:flex stg:shrink-0 stg:items-center stg:px-2 stg:text-muted-foreground stg:opacity-0 stg:transition-opacity",
-          "stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
-          "stg:hover:text-foreground stg:disabled:opacity-50",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
-        )}
-      >
-        <DownloadIcon />
-      </button>
+      {/* The open button is its own tooltip trigger (hover and keyboard focus
+          both reveal the full path); the Download button's trigger is a
+          wrapper span so the hint survives the in-flight `disabled` state
+          (browsers suppress pointer events on disabled form controls, so a
+          disabled button can never open its own tooltip). */}
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <button
+              type="button"
+              onClick={onOpen}
+              onDoubleClick={onActivate}
+              className={cn(
+                "stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-2 stg:px-2 stg:py-1 stg:text-left stg:text-xs stg:text-muted-foreground stg:transition-colors",
+                "stg:hover:bg-muted stg:hover:text-foreground",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
+              )}
+            />
+          }
+        >
+          <span className="stg:shrink-0 stg:text-muted-foreground">
+            {item.isDirectory ? (
+              <FolderTypeIcon open={false} />
+            ) : (
+              <FileTypeIcon fileName={item.name} />
+            )}
+          </span>
+          <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground">
+            {item.name}
+            {item.isDirectory && "/"}
+            {item.subtitlePath && (
+              <span className="stg:ml-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
+                {item.subtitlePath}
+              </span>
+            )}
+          </span>
+          <span className="stg:shrink-0 stg:tabular-nums stg:text-[0.65rem] stg:text-muted-foreground-faint">
+            {formatArtifactSize(item.sizeBytes)}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="stg:break-all">
+          {item.tooltip}
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger render={<span className="stg:flex stg:shrink-0" />}>
+          <button
+            type="button"
+            onClick={onDownload}
+            disabled={isDownloading}
+            aria-label={
+              isDownloading ? `Preparing ${item.name}` : `Download ${item.name}`
+            }
+            className={cn(
+              "stg:flex stg:shrink-0 stg:items-center stg:px-2 stg:text-muted-foreground stg:opacity-0 stg:transition-opacity",
+              "stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
+              "stg:hover:text-foreground stg:disabled:opacity-50",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
+            )}
+          >
+            <DownloadIcon />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {item.isDirectory ? "Download ZIP" : "Download"}
+        </TooltipContent>
+      </Tooltip>
     </li>
   );
 }

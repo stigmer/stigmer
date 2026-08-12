@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
 import type { NodeDiffStatus } from "../diff/types.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../internal/tooltip.js";
 
 export interface DiffBadgeProps {
   readonly status: NodeDiffStatus;
@@ -30,17 +31,23 @@ export const DiffBadge = memo(function DiffBadge({
       : icon;
 
   return (
-    <span
-      className={cn(
-        "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-5 stg:min-w-5 stg:items-center stg:justify-center stg:rounded-full stg:px-1 stg:text-[10px] stg:font-semibold stg:leading-none stg:shadow-sm",
-        className,
-      )}
-      title={label}
-      aria-label={label}
-      data-diff-status={status}
-    >
-      {displayText}
-    </span>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span
+            className={cn(
+              "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-5 stg:min-w-5 stg:items-center stg:justify-center stg:rounded-full stg:px-1 stg:text-[10px] stg:font-semibold stg:leading-none stg:shadow-sm",
+              className,
+            )}
+            aria-label={label}
+            data-diff-status={status}
+          />
+        }
+      >
+        {displayText}
+      </TooltipTrigger>
+      <TooltipContent side="top">{label}</TooltipContent>
+    </Tooltip>
   );
 });
 

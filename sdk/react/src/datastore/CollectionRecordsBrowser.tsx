@@ -14,6 +14,7 @@ import type {
   CollectionDescription,
   RecordEnvelope,
 } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/record_io_pb";
+import { TruncatedText } from "../internal/truncated-text.js";
 import { ResourceTable } from "../resource-workbench/components/ResourceTable.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
@@ -505,18 +506,18 @@ function TypedCell({
   readonly numeric?: boolean;
   readonly mono?: boolean;
 }) {
-  const truncated = value.length > 80 ? `${value.slice(0, 79)}…` : value;
+  // TruncatedText's overflow gating supersedes the old hand-rolled
+  // 80-character slice + conditional title: CSS truncates the cell and the
+  // tooltip opens only when the value is actually clipped.
   return (
-    <span
-      title={value.length > 80 ? value : undefined}
+    <TruncatedText
+      text={value}
       className={cn(
-        "stg:block stg:max-w-xs stg:truncate",
+        "stg:block stg:max-w-xs",
         numeric && "stg:text-right stg:tabular-nums",
         mono && "stg:font-mono",
       )}
-    >
-      {truncated}
-    </span>
+    />
   );
 }
 

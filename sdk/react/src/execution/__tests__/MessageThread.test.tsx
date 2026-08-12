@@ -365,7 +365,12 @@ describe("MessageThread", () => {
     // shows the folded set's changed file.
     expect(screen.getByText("File changes")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Show" }));
-    expect(screen.getByTitle("src/a.ts")).toBeTruthy();
+    // The changed file renders as a FilePathLink whose accessible name
+    // carries the full path (the hover reveal is the house tooltip now —
+    // native titles are banned, stigmer-cloud#268).
+    expect(
+      screen.getByRole("button", { name: /Copy path: src\/a\.ts/ }),
+    ).toBeTruthy();
     expect(
       document.querySelector('[data-cursor-target="file-review-approve"]'),
     ).toBeNull();

@@ -3,6 +3,8 @@
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { WorkspaceSource } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { cn } from "@stigmer/theme";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { TruncatedText } from "../internal/truncated-text.js";
 
 /** Props for {@link WorkspaceSummary}. */
 export interface WorkspaceSummaryProps {
@@ -67,25 +69,32 @@ function SourceLabel({ source }: { source?: WorkspaceSource }) {
     const short = url
       .replace(/^https?:\/\//, "")
       .replace(/\.git$/, "");
+    // The cell shows the shortened form but the tooltip restores the full
+    // URL (protocol and .git suffix), so this is a hover-always hint, not an
+    // overflow-gated TruncatedText.
     return (
-      <span
-        className="stg:ml-5 stg:block stg:truncate stg:text-muted-foreground"
-        title={url}
-      >
-        {short}
-      </span>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <span className="stg:ml-5 stg:block stg:truncate stg:text-muted-foreground" />
+          }
+        >
+          {short}
+        </TooltipTrigger>
+        <TooltipContent side="top" className="stg:break-all">
+          {url}
+        </TooltipContent>
+      </Tooltip>
     );
   }
 
   if (source.source.case === "localPath") {
     const path = source.source.value.path;
     return (
-      <span
-        className="stg:ml-5 stg:block stg:truncate stg:font-mono stg:text-muted-foreground"
-        title={path}
-      >
-        {path}
-      </span>
+      <TruncatedText
+        text={path}
+        className="stg:ml-5 stg:block stg:font-mono stg:text-muted-foreground"
+      />
     );
   }
 

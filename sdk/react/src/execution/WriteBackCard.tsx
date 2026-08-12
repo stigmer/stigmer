@@ -5,6 +5,8 @@ import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agen
 import { WorkspaceWriteBackPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 import { cn } from "@stigmer/theme";
 import { DiffSummary } from "../version-history/DiffSummary.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { TruncatedText } from "../internal/truncated-text.js";
 import {
   parseDiffStatSummary,
   trailingDiffStatLine,
@@ -73,12 +75,10 @@ export function WriteBackCard({ writeBack, className }: WriteBackCardProps) {
     >
       {/* Header: workspace name + quiet phase caption */}
       <div className="stg:flex stg:items-center stg:gap-2 stg:px-2 stg:py-1">
-        <span
-          className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-xs stg:font-medium stg:text-foreground"
-          title={displayName}
-        >
-          {displayName}
-        </span>
+        <TruncatedText
+          text={displayName}
+          className="stg:min-w-0 stg:flex-1 stg:text-xs stg:font-medium stg:text-foreground"
+        />
         <PhaseCaption
           phase={writeBack.phase}
           pullRequestNumber={writeBack.pullRequestNumber}
@@ -236,16 +236,17 @@ function BranchRow({
 
   return (
     <div className="stg:group stg:flex stg:items-stretch">
-      <div
-        className="stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-2 stg:px-2 stg:py-1 stg:text-xs"
-        title={baseBranch ? `${branchName} \u2190 ${baseBranch}` : branchName}
-      >
+      {/* The old row title restated "branch ← base", which is already visible
+          text; only the branch name can clip, so it alone carries the
+          overflow-gated tooltip. */}
+      <div className="stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-2 stg:px-2 stg:py-1 stg:text-xs">
         <span className="stg:shrink-0 stg:text-muted-foreground">
           <GitBranchIcon />
         </span>
-        <span className="stg:min-w-0 stg:truncate stg:font-mono stg:text-foreground">
-          {branchName}
-        </span>
+        <TruncatedText
+          text={branchName}
+          className="stg:min-w-0 stg:font-mono stg:text-foreground"
+        />
         {baseBranch && (
           <span className="stg:shrink-0 stg:font-mono stg:text-muted-foreground-faint">
             {"\u2190 "}
@@ -253,22 +254,30 @@ function BranchRow({
           </span>
         )}
       </div>
-      <button
-        type="button"
-        onClick={handleCopy}
-        aria-label={copied ? "Branch name copied" : `Copy branch name ${branchName}`}
-        title={copied ? "Copied" : "Copy branch name"}
-        className={cn(
-          "stg:flex stg:shrink-0 stg:items-center stg:px-2 stg:text-muted-foreground stg:transition-opacity",
-          copied
-            ? "stg:opacity-100"
-            : "stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
-          "stg:hover:text-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
-        )}
-      >
-        {copied ? <CheckIcon /> : <CopyIcon />}
-      </button>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <button
+              type="button"
+              onClick={handleCopy}
+              aria-label={copied ? "Branch name copied" : `Copy branch name ${branchName}`}
+              className={cn(
+                "stg:flex stg:shrink-0 stg:items-center stg:px-2 stg:text-muted-foreground stg:transition-opacity",
+                copied
+                  ? "stg:opacity-100"
+                  : "stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
+                "stg:hover:text-foreground",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
+              )}
+            />
+          }
+        >
+          {copied ? <CheckIcon /> : <CopyIcon />}
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {copied ? "Copied" : "Copy branch name"}
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 }

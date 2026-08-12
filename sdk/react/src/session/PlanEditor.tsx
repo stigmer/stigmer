@@ -153,17 +153,21 @@ export function PlanEditor({
               onClick={() => setView("edit")}
               label="Edit"
               disabled={!canEdit}
-              title={
-                !canEdit
-                  ? "This plan is too large to edit in place — download it instead."
-                  : undefined
-              }
             />
           )}
         </div>
         <span className="stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground-faint">
           {formatArtifactSize(plan.artifact.sizeBytes)}
         </span>
+        {/* The reason the Edit tab is disabled must be visible text: a
+            disabled tab leaves the tab order and drops pointer events, so
+            no hover- or focus-dependent hint can ever reach the user who
+            needs it. */}
+        {activeDraft !== undefined && !canEdit && (
+          <span className="stg:min-w-0 stg:text-[0.65rem] stg:text-muted-foreground">
+            This plan is too large to edit in place — download it instead.
+          </span>
+        )}
 
         <div className="stg:ml-auto stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-3">
           {activeDraft?.isEdited && (
@@ -312,13 +316,11 @@ function ViewTab({
   onClick,
   label,
   disabled,
-  title,
 }: {
   readonly active: boolean;
   readonly onClick: () => void;
   readonly label: string;
   readonly disabled?: boolean;
-  readonly title?: string;
 }) {
   return (
     <button
@@ -327,7 +329,6 @@ function ViewTab({
       aria-selected={active}
       onClick={onClick}
       disabled={disabled}
-      title={title}
       className={cn(
         "stg:rounded stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:transition-colors",
         "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",

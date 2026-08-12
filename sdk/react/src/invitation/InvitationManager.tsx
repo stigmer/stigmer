@@ -15,6 +15,7 @@ import { useOrgInvitations } from "./useOrgInvitations.js";
 import { useCreateInvitation } from "./useCreateInvitation.js";
 import { useRevokeInvitation } from "./useRevokeInvitation.js";
 import { InvitationCreatedAlert } from "./InvitationCreatedAlert.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { RoleSelector } from "../iam-policy/RoleSelector.js";
 
 // ---------------------------------------------------------------------------
@@ -465,11 +466,23 @@ function InvitationRow({
 
         {/* Expiry */}
         {expiresAt && (
-          <span className="stg:text-xs stg:text-muted-foreground" title={timestampDate(expiresAt).toISOString()}>
-            {isActive
-              ? formatRelativeExpiry(timestampDate(expiresAt))
-              : formatShortDate(timestampDate(expiresAt))}
-          </span>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <time
+                  dateTime={timestampDate(expiresAt).toISOString()}
+                  className="stg:text-xs stg:text-muted-foreground"
+                />
+              }
+            >
+              {isActive
+                ? formatRelativeExpiry(timestampDate(expiresAt))
+                : formatShortDate(timestampDate(expiresAt))}
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {timestampDate(expiresAt).toISOString()}
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
 

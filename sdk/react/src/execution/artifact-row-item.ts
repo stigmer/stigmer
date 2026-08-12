@@ -19,7 +19,7 @@ import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/ap
 export interface ArtifactRowItem {
   /** Display label (file or directory name). */
   readonly name: string;
-  /** Hover title — the fullest location/name known for the artifact. */
+  /** House-tooltip content — the fullest location/name known for the artifact. */
   readonly tooltip: string;
   /**
    * Disambiguation subtitle rendered after the name when another row shares
