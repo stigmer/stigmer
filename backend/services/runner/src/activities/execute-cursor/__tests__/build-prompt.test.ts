@@ -14,7 +14,7 @@ import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agen
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
-import { buildPrompt, isHitlReinvocation } from "../index.js";
+import { appendStructuredOutputDirective, buildPrompt, isHitlReinvocation, primarySendCarriesImages } from "../index.js";
 import type { BuildPromptInput } from "../index.js";
 import { buildReinvocationPrompt, formatInteractionModePrefix, formatImplementPlanSection, formatToolApprovalProtocol, buildToolApprovalRuleFile } from "../prompt-builder.js";
 import { PLAN_MODE_DIRECTIVE } from "../../../shared/plan-mode-prompt.js";
@@ -255,7 +255,7 @@ describe("buildPrompt", () => {
   });
 });
 
-describe("isHitlReinvocation (the single discriminator for message-accompanied payloads)", () => {
+describe("isHitlReinvocation (paired with resolution.reason at every consumer — issue #366)", () => {
   it("is false with no decisions and false with an empty map", () => {
     expect(isHitlReinvocation(undefined)).toBe(false);
     expect(isHitlReinvocation(new Map())).toBe(false);
@@ -265,6 +265,115 @@ describe("isHitlReinvocation (the single discriminator for message-accompanied p
     expect(
       isHitlReinvocation(new Map([["tc-1", ApprovalAction.APPROVE]])),
     ).toBe(true);
+  });
+});
+
+describe("HITL recovery — fresh agent mid-HITL (issue #366)", () => {
+  const decisions = () =>
+    new Map<string, ApprovalAction>([["tool-call-1", ApprovalAction.APPROVE]]);
+  const approvals = () => [
+    create(PendingApprovalSchema, {
+      toolCallId: "tool-call-1",
+      toolName: "Write",
+      message: "Write file: gated.txt",
+    }),
+  ];
+  const recoveryInput = (overrides: Partial<BuildPromptInput> = {}) =>
+    input({
+      resolution: resolution("local", "created_after_resume_failure"),
+      approvalDecisions: decisions(),
+      pendingApprovals: approvals(),
+      ...overrides,
+    });
+
+  it("keeps the resumed-HITL prompt byte-identical to the bare reinvocation prompt (regression guard)", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "resumed_successfully"),
+        approvalDecisions: decisions(),
+        pendingApprovals: approvals(),
+      }),
+    );
+    expect(prompt).toBe(buildReinvocationPrompt(approvals(), decisions()));
+  });
+
+  it("rebuilds full context for a fresh agent mid-HITL: instructions, the ORIGINAL user message, the state-loss disclosure, and the decisions", () => {
+    const prompt = buildPrompt(recoveryInput());
+    // The pre-fix failure mode: bare decisions with no story.
+    expect(prompt).not.toBe(buildReinvocationPrompt(approvals(), decisions()));
+    expect(prompt).toContain("<agent_instructions>");
+    expect(prompt).toContain("<tool_approval_protocol>");
+    expect(prompt).toContain(`<user_request>\n${USER_MESSAGE}\n</user_request>`);
+    expect(prompt).toContain("<turn_recovery>");
+    expect(prompt).toContain("Write file: gated.txt");
+    expect(prompt).toContain("APPROVED");
+    // The opaque tool-call id must not leak into the prompt (reinvocation rule).
+    expect(prompt).not.toContain("tool-call-1");
+  });
+
+  it("orders the recovery chronologically: request, then the recovered work, then the decisions, ending on the continue directive", () => {
+    const prompt = buildPrompt(
+      recoveryInput({ turnRecoveryDigest: "Tool: Write file: draft.txt — completed" }),
+    );
+    const requestIdx = prompt.indexOf("<user_request>");
+    const recoveryIdx = prompt.indexOf("<turn_recovery>");
+    const decisionsIdx = prompt.indexOf("APPROVED");
+    expect(requestIdx).toBeGreaterThan(-1);
+    expect(recoveryIdx).toBeGreaterThan(requestIdx);
+    expect(decisionsIdx).toBeGreaterThan(recoveryIdx);
+    expect(prompt).toContain("Tool: Write file: draft.txt — completed");
+    expect(prompt.trimEnd().endsWith("do not ask the user for permission in prose.")).toBe(true);
+  });
+
+  it("discloses the state loss even with NO transcript — otherwise the decisions read as reactions to proposals this agent never made", () => {
+    const prompt = buildPrompt(recoveryInput({ turnRecoveryDigest: undefined }));
+    expect(prompt).toContain("<turn_recovery>");
+    expect(prompt).toContain("no transcript of your progress is available");
+  });
+
+  it("preserves already-applied semantics: exact-applied writes are described as done, not as work to redo", () => {
+    const prompt = buildPrompt(
+      recoveryInput({ appliedToolCallIds: new Set(["tool-call-1"]) }),
+    );
+    expect(prompt).toContain("ALREADY applied");
+    expect(prompt).not.toContain("Carry them out now");
+  });
+
+  it("carries the session-standing context a first turn would get — the replacement agent inherits the whole story, not just the blueprint", () => {
+    const prompt = buildPrompt(
+      recoveryInput({ contextBridge: "User: earlier thread\nAssistant: earlier reply" }),
+    );
+    expect(prompt).toContain("<previous_conversation_context>");
+    expect(prompt).toContain("User: earlier thread");
+  });
+
+  it("selects the recovery shape for ANY non-resumed reason — decisions-only is safe only when native context is guaranteed", () => {
+    // created_first_execution + decisions cannot happen in practice
+    // (decisions are reconstructed from a persisted transcript, which
+    // implies a prior invocation) — but if it ever did, the bare decisions
+    // prompt would reproduce the #366 amnesia. Fail safe.
+    const prompt = buildPrompt(
+      recoveryInput({ resolution: resolution("local", "created_first_execution") }),
+    );
+    expect(prompt).toContain("<turn_recovery>");
+    expect(prompt).toContain("<agent_instructions>");
+  });
+
+  it("primary send skips images ONLY for a resumed HITL agent (which holds them natively); every fresh agent gets the re-delivery", () => {
+    expect(primarySendCarriesImages(decisions(), "resumed_successfully")).toBe(false);
+    // The #366 vision corollary: fresh agent mid-HITL after a
+    // resolution-time resume failure.
+    expect(primarySendCarriesImages(decisions(), "created_after_resume_failure")).toBe(true);
+    // Non-HITL turns always carry the message's images, resumed or not.
+    expect(primarySendCarriesImages(undefined, "resumed_successfully")).toBe(true);
+    expect(primarySendCarriesImages(undefined, "created_first_execution")).toBe(true);
+  });
+
+  it("the structured-output directive is a pure append shared by the primary and recovery sends — absent schema, absent suffix", () => {
+    expect(appendStructuredOutputDirective("base", undefined)).toBe("base");
+    const withSchema = appendStructuredOutputDirective("base", { type: "object" });
+    expect(withSchema.startsWith("base\n\n---\nCRITICAL OUTPUT REQUIREMENT:")).toBe(true);
+    expect(withSchema).toContain('"type": "object"');
   });
 });
 

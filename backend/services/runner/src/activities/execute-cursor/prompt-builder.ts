@@ -36,6 +36,7 @@ import {
   visionDisclosureLines,
   type NotViewableEntry,
 } from "../../shared/attachment-vision.js";
+import { formatTurnRecoveryText } from "./turn-recovery.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import {
   buildImplementPlanDirective,
@@ -336,6 +337,56 @@ export function buildReinvocationPrompt(
   );
 
   return parts.join("\n\n");
+}
+
+/**
+ * Build the prompt for a fresh agent that replaced a lost one MID-HITL —
+ * the stored handle failed to resume when the approval landed, or the
+ * resumed handle proved poisoned mid-send (issue #366, both crossings).
+ *
+ * A resumed agent gets {@link buildReinvocationPrompt} alone because its
+ * native conversation carries everything else. A replacement agent's
+ * conversation is EMPTY, so the bare decisions prompt would strand it with
+ * instructions and no story — and, because recovery repoints the session at
+ * the new agent, every later turn would inherit that amnesia. This prompt
+ * rebuilds the whole story in chronological-narrative order:
+ *
+ * 1. the full enhanced prompt (blueprint, standing context, protocol, and
+ *    the turn's ORIGINAL user message as `<user_request>`),
+ * 2. `<turn_recovery>` — the state-loss disclosure plus the recorded
+ *    transcript of the turn so far (turn-recovery.ts; rendered even with no
+ *    transcript, since without the disclosure the decisions below would read
+ *    as reactions to proposals this agent never made),
+ * 3. the reinvocation decisions verbatim — already-applied / approved /
+ *    skipped semantics byte-identical to the resumed path, ending on its
+ *    "continue the task" directive.
+ *
+ * Appending past `<user_request>` is the chronology speaking (request →
+ * work done → decisions → continue), the same shape as the activity-level
+ * structured-output suffix.
+ */
+export function buildHitlRecoveryPrompt(
+  options: EnhancedPromptOptions,
+  recovery: {
+    turnDigest: string | undefined;
+    pendingApprovals: PendingApproval[];
+    approvalDecisions: Map<string, ApprovalAction>;
+    appliedToolCallIds?: ReadonlySet<string>;
+  },
+): string {
+  return [
+    buildEnhancedPrompt(options),
+    formatTurnRecoverySection(recovery.turnDigest),
+    buildReinvocationPrompt(
+      recovery.pendingApprovals,
+      recovery.approvalDecisions,
+      recovery.appliedToolCallIds,
+    ),
+  ].join("\n\n---\n\n");
+}
+
+export function formatTurnRecoverySection(digest: string | undefined): string {
+  return `<turn_recovery>\n${formatTurnRecoveryText(digest)}\n</turn_recovery>`;
 }
 
 /**

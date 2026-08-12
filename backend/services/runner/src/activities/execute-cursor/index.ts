@@ -41,7 +41,7 @@ import type { Config } from "../../config.js";
 import { StigmerClient } from "../../client/stigmer-client.js";
 import { describeExecutionError } from "../../shared/model-error.js";
 import { resolveAgentWithTransportRecovery } from "./session-lifecycle.js";
-import type { AgentResolution, CreateAgentOptions, CreateCloudAgentOptions } from "./session-lifecycle.js";
+import type { AgentResolution, AgentResolutionReason, CreateAgentOptions, CreateCloudAgentOptions } from "./session-lifecycle.js";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
 import { MessageAccumulator, cancelInProgressSubAgentProtos, collapseRedundantToolCallTwins } from "./message-translator.js";
@@ -92,7 +92,8 @@ import { buildCursorSubAgentDefinitions } from "./subagent-config.js";
 import { resolveSkills } from "./skill-resolver.js";
 import { removeStigmerSymlink } from "../../shared/workspace/stigmer-link.js";
 import { resolveAttachments } from "./attachment-resolver.js";
-import { buildEnhancedPrompt, buildReinvocationPrompt, formatConversationCatchupSection, formatInputFiles, formatInteractionModePrefix, formatImplementPlanSection } from "./prompt-builder.js";
+import { buildEnhancedPrompt, buildHitlRecoveryPrompt, buildReinvocationPrompt, formatConversationCatchupSection, formatInputFiles, formatInteractionModePrefix, formatImplementPlanSection } from "./prompt-builder.js";
+import { composeTurnRecoveryDigest } from "./turn-recovery.js";
 import { installHitlGate, removeHitlGate } from "./workspace-setup.js";
 import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
 import {
@@ -1161,28 +1162,43 @@ async function executeCursorInner(
       senderIdentity: readSenderIdentity(blueprint.sessionSpec.metadata),
       sessionContext: readSessionContext(blueprint.sessionSpec.metadata),
       conversationCatchup: readConversationCatchup(spec.conversationCatchup),
+      // The turn's recorded transcript, seeded from the persisted execution
+      // on a reinvocation (Phase 3). Consumed only by the HITL-recovery
+      // shape — reached from HERE when the stored handle failed to resume
+      // at resolution time (issue #366 crossing 2).
+      turnRecoveryDigest: isReinvocation
+        ? composeTurnRecoveryDigest(status.messages)
+        : undefined,
     });
 
-    // Phase 10a: Inject structured output instruction for Cursor harness
-    let effectivePrompt = prompt;
-    if (structuredOutputSchema) {
-      const schemaStr = JSON.stringify(structuredOutputSchema, null, 2);
-      effectivePrompt += `\n\n---\nCRITICAL OUTPUT REQUIREMENT:\nYour final response MUST be a single valid JSON object (no markdown, no commentary, no code fences) that matches this schema:\n${schemaStr}\n\nRespond with ONLY the JSON object. Nothing else.`;
-    }
+    // Phase 10a: Inject the structured output instruction for the Cursor
+    // harness. A per-turn directive, so like buildFromPlan it must ride every
+    // prompt this turn sends — the primary AND the poisoned-handle recovery
+    // rebuild (the transport retry re-sends effectivePrompt and inherits it).
+    const withStructuredOutputDirective = (basePrompt: string): string =>
+      appendStructuredOutputDirective(basePrompt, structuredOutputSchema);
+    const effectivePrompt = withStructuredOutputDirective(prompt);
 
     // Phase 10a1: The turn's vision payload. The invariant is "images
-    // accompany the user's turn message — where the message goes, they go":
-    // every send that delivers this turn's message carries them (the primary
-    // send and both fresh-agent recovery retries, whose empty conversations
-    // genuinely need the re-send), while a HITL re-invocation — whose prompt
-    // carries no user message and whose resumed agent already holds the
-    // images in its native conversation — carries none. Computed ONCE here so
-    // all send sites agree by construction.
-    const turnImages = isHitlReinvocation(approvalDecisions)
-      ? []
-      : toCursorImages(visionImages);
-    const toSendMessage = (sendPrompt: string): string | SDKUserMessage =>
-      turnImages.length > 0 ? { text: sendPrompt, images: turnImages } : sendPrompt;
+    // accompany the user's turn message, wherever the conversation does not
+    // already hold them" (primarySendCarriesImages): the ONLY send that
+    // skips them is a HITL re-invocation of a successfully RESUMED agent,
+    // whose native conversation carries the images from the original send.
+    // Every send that starts an empty conversation re-delivers them — the
+    // ordinary first/fresh-agent primary send, the HITL primary send after a
+    // resolution-time resume failure, and both mid-send recovery retries
+    // (which always run on a fresh agent, so their sites pass turnImages
+    // unconditionally). Attachments re-resolve on every invocation
+    // (Phase 5b), so the bytes are in hand even on a re-invocation.
+    const turnImages = toCursorImages(visionImages);
+    const primarySendImages = primarySendCarriesImages(approvalDecisions, resolution.reason)
+      ? turnImages
+      : [];
+    const toSendMessage = (
+      sendPrompt: string,
+      images: { data: string; mimeType: string }[],
+    ): string | SDKUserMessage =>
+      images.length > 0 ? { text: sendPrompt, images } : sendPrompt;
 
     // Phase 10a2: Log Stigmer preamble size for context trimming diagnostics
     const promptChars = effectivePrompt.length;
@@ -1298,7 +1314,7 @@ async function executeCursorInner(
     // The stall watchdog is armed inside consumeCursorTurnStream (it needs the
     // run to cancel), stored on turnState.stallWatchdog so this shared onDelta can
     // reset it and the activity's finally can stop it as a backstop.
-    const run = await resolution.agent.send(toSendMessage(effectivePrompt), {
+    const run = await resolution.agent.send(toSendMessage(effectivePrompt, primarySendImages), {
       onDelta: (event) => {
         if (!turnFirstEventEmitted) {
           turnFirstEventEmitted = true;
@@ -1669,10 +1685,11 @@ async function executeCursorInner(
       // poisoned-handle path leaked the fresh agent — it closed the stale one.)
       resolution = { ...resolution, agent: freshAgent, agentId: freshAgent.agentId, isNew: true };
       turnState.streamErrorMessage = undefined;
-      // The retry carries the turn's images too (same toSendMessage): the
-      // fresh agent's conversation is empty, so skipping them here would
-      // silently lose the user's photo on a recovered turn.
-      const retryRun = await freshAgent.send(toSendMessage(retryPrompt), {
+      // The retry always carries the turn's full image payload — never the
+      // primary send's HITL-trimmed set: the fresh agent's conversation is
+      // empty, so skipping them here would silently lose the user's photo on
+      // a recovered turn (issue #366's vision corollary).
+      const retryRun = await freshAgent.send(toSendMessage(retryPrompt, turnImages), {
         onDelta: makeCursorTurnOnDelta(onDeltaDeps),
       });
       await consumeCursorTurnStream(retryRun, streamDeps);
@@ -1812,6 +1829,10 @@ async function executeCursorInner(
             attachments: attachmentEntries,
             vision: visionPromptInfo,
             pendingApprovals: adjudicatedApprovals,
+            // Without the applied set, the HITL-recovery prompt would tell
+            // the fresh agent to carry out writes the runner already
+            // exact-applied (the primary call at Phase 10 passes it too).
+            appliedToolCallIds,
             interactionMode,
             // buildFromPlan was silently dropped here until T03 Sitting 3 —
             // a build turn that hit handle recovery lost its directive. The
@@ -1822,6 +1843,10 @@ async function executeCursorInner(
             senderIdentity: readSenderIdentity(blueprint.sessionSpec.metadata),
             sessionContext: readSessionContext(blueprint.sessionSpec.metadata),
             conversationCatchup: readConversationCatchup(spec.conversationCatchup),
+            // Composed fresh (not reused from Phase 10): the failed primary
+            // stream may have appended partial work onto status.messages,
+            // and the replacement agent should know about that too.
+            turnRecoveryDigest: composeTurnRecoveryDigest(status.messages),
           });
 
           console.log(
@@ -1837,7 +1862,14 @@ async function executeCursorInner(
             console.warn("Failed to update session with fresh agentId (non-fatal):", updateErr);
           }
 
-          const outcome = await runRecoveryStream(freshAgent, freshPrompt);
+          // Same per-turn directive rule as buildFromPlan above: a
+          // structured-output turn keeps its output contract on the rebuilt
+          // prompt (the transport retry re-sends effectivePrompt and
+          // inherits it without help).
+          const outcome = await runRecoveryStream(
+            freshAgent,
+            withStructuredOutputDirective(freshPrompt),
+          );
           if (!outcome.proceeded) {
             if (outcome.terminal.kind === "return") return slimStatus(status);
             throw new CancelledFailure(outcome.terminal.message);
@@ -2400,6 +2432,15 @@ export interface BuildPromptInput {
    * usually blank.
    */
   conversationCatchup?: string;
+  /**
+   * The turn's recorded transcript rendered as digest lines
+   * (turn-recovery.ts), composed from `status.messages` at the call site.
+   * Consumed ONLY by the HITL-recovery shape — a fresh agent that replaced
+   * a lost one mid-HITL needs the story of the work it no longer remembers
+   * (issue #366); every other shape either has native context or no prior
+   * work to tell.
+   */
+  turnRecoveryDigest?: string;
 }
 
 /**
@@ -2411,25 +2452,66 @@ export interface BuildPromptInput {
  * volume, or cloud server-side state) — there is no separate continuation
  * store. The prompt therefore depends only on how the agent was resolved:
  *
- * 1. HITL reinvocation        -> buildReinvocationPrompt (approval decisions;
- *                                 the resumed agent's native context carries
- *                                 the prior conversation)
- * 2. resumed_successfully      -> raw userMessage (native context carries it)
- * 3. first execution / fresh   -> buildEnhancedPrompt (full instructions +
+ * 1. HITL reinvocation,        -> buildReinvocationPrompt (approval decisions
+ *    resumed agent                 only; the resumed agent's native context
+ *                                  carries the prior conversation)
+ * 2. HITL reinvocation,        -> buildHitlRecoveryPrompt (full context +
+ *    fresh agent after            the turn's recorded transcript + decisions;
+ *    resume failure               the replacement agent's conversation is
+ *                                 empty, and both fresh-agent crossings —
+ *                                 resolution-time resume failure and mid-send
+ *                                 poisoned-handle recovery — land here by
+ *                                 keying on the reason, issue #366)
+ * 3. resumed_successfully      -> raw userMessage (native context carries it)
+ * 4. first execution / fresh   -> buildEnhancedPrompt (full instructions +
  *    agent after resume failure   skills; no prior conversation to inherit)
  */
 /**
  * Whether this activity invocation is a HITL re-invocation — the turn resumes
  * an agent purely to convey approval decisions, carrying NO user message.
- * The single discriminator for everything that must ride with the user's
- * message and nothing else: the reinvocation prompt shape (below) and the
- * vision payload (images accompany the message; a resumed agent already holds
- * them in its native conversation).
+ * Discriminates the two surfaces that depend on the agent already holding
+ * this turn's content natively — the prompt shape (below) and the primary
+ * send's vision payload — but never alone: both pair it with
+ * `resolution.reason`, because a FRESH agent mid-HITL holds nothing and
+ * needs the full re-delivery (issue #366).
  */
 export function isHitlReinvocation(
   approvalDecisions: Map<string, ApprovalAction> | undefined,
 ): approvalDecisions is Map<string, ApprovalAction> {
   return approvalDecisions !== undefined && approvalDecisions.size > 0;
+}
+
+/**
+ * Whether the PRIMARY send delivers the turn's vision payload. The invariant
+ * is "images accompany the user's turn message, wherever the conversation
+ * does not already hold them" — so the only send that skips them is a HITL
+ * re-invocation of a successfully RESUMED agent, whose native conversation
+ * carries the images from the original send. A fresh agent mid-HITL
+ * (resolution-time resume failure — issue #366's vision corollary) holds
+ * nothing and needs the re-delivery. The mid-send recovery retries always
+ * run on a fresh agent, so their send sites carry the payload
+ * unconditionally rather than consulting this.
+ */
+export function primarySendCarriesImages(
+  approvalDecisions: Map<string, ApprovalAction> | undefined,
+  reason: AgentResolutionReason,
+): boolean {
+  return !(isHitlReinvocation(approvalDecisions) && reason === "resumed_successfully");
+}
+
+/**
+ * Append the structured-output contract to a prompt when the execution
+ * requests one. A per-turn directive (the buildFromPlan rule): it must ride
+ * every prompt this turn sends — the primary send AND the poisoned-handle
+ * recovery rebuild, which previously lost it (issue #366 ride-along).
+ */
+export function appendStructuredOutputDirective(
+  basePrompt: string,
+  schema: Record<string, unknown> | undefined,
+): string {
+  if (!schema) return basePrompt;
+  const schemaStr = JSON.stringify(schema, null, 2);
+  return basePrompt + `\n\n---\nCRITICAL OUTPUT REQUIREMENT:\nYour final response MUST be a single valid JSON object (no markdown, no commentary, no code fences) that matches this schema:\n${schemaStr}\n\nRespond with ONLY the JSON object. Nothing else.`;
 }
 
 export function buildPrompt(input: BuildPromptInput): string {
@@ -2448,10 +2530,44 @@ export function buildPrompt(input: BuildPromptInput): string {
     conversationCatchup,
   } = input;
 
-  // HITL reinvocation: the agent is resumed, so its native context carries the
-  // prior conversation; the reinvocation prompt conveys the approval decisions
-  // (and which approved writes the runner already exact-applied).
+  // HITL reinvocation: the decisions-only prompt is correct ONLY while the
+  // agent's native context still carries the prior conversation — which only
+  // resumed_successfully guarantees. Any other reason means a fresh agent
+  // mid-HITL (in practice created_after_resume_failure: the stored handle
+  // failed to resume, or a poisoned handle was replaced mid-send), which
+  // gets the full recovery shape instead — enhanced context + the turn's
+  // recorded transcript + the same decisions — because the bare decisions on
+  // an empty conversation strand the agent with instructions and no story,
+  // and the session inherits that amnesia permanently (issue #366).
   if (isHitlReinvocation(approvalDecisions)) {
+    if (resolution.reason !== "resumed_successfully") {
+      return buildHitlRecoveryPrompt(
+        {
+          instructions,
+          userMessage,
+          skills,
+          datastoreUsages: input.datastoreUsages ?? [],
+          channelMessaging: input.channelMessaging ?? [],
+          subAgents,
+          workspaceDirs,
+          workspaceFileRefs,
+          attachments,
+          vision: input.vision,
+          interactionMode,
+          buildFromPlan,
+          contextBridge: input.contextBridge,
+          senderIdentity: input.senderIdentity,
+          sessionContext: input.sessionContext,
+          conversationCatchup,
+        },
+        {
+          turnDigest: input.turnRecoveryDigest,
+          pendingApprovals: input.pendingApprovals,
+          approvalDecisions,
+          appliedToolCallIds: input.appliedToolCallIds,
+        },
+      );
+    }
     return buildReinvocationPrompt(
       input.pendingApprovals,
       approvalDecisions,
