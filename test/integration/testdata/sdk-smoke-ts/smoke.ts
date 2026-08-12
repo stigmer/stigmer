@@ -41,9 +41,10 @@ async function main(): Promise<void> {
   const workflowRunnerAvailable =
     process.env.STIGMER_WORKFLOW_RUNNER_AVAILABLE === "true";
 
+  // connect-node v2's gRPC transport is HTTP/2-only; the v1-era httpVersion
+  // option no longer exists.
   const transport = createGrpcTransport({
     baseUrl: `http://${addr}`,
-    httpVersion: "2",
   });
 
   const stigmer = new Stigmer({
