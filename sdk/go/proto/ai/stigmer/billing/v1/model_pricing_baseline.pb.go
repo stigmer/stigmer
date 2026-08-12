@@ -484,9 +484,22 @@ type ModelPricingBaseline struct {
 	Pricing *PricingBlock `protobuf:"bytes,11,opt,name=pricing,proto3" json:"pricing,omitempty"`
 	// Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
 	// from the pricing feedback loop target variants by the same key.
-	PricingVariants     map[string]*PricingVariant `protobuf:"bytes,12,rep,name=pricing_variants,json=pricingVariants,proto3" json:"pricing_variants,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	ContextWindowTokens int32                      `protobuf:"varint,13,opt,name=context_window_tokens,json=contextWindowTokens,proto3" json:"context_window_tokens,omitempty"`
-	MaxOutputTokens     int32                      `protobuf:"varint,14,opt,name=max_output_tokens,json=maxOutputTokens,proto3" json:"max_output_tokens,omitempty"`
+	PricingVariants map[string]*PricingVariant `protobuf:"bytes,12,rep,name=pricing_variants,json=pricingVariants,proto3" json:"pricing_variants,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Wire model names that resolve directly to this base entry — the
+	// base-level twin of PricingVariant.wire_ids, for served-model names
+	// that neither match the canonical id nor normalize to a clean
+	// "base + suffix" form (e.g. "gemini-3-flash-preview" for
+	// gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+	// kimi-k2.7-code — Cursor's serving stack reports upstream serving
+	// names the catalog never uses). Matched case-insensitively; billed
+	// at the base rates.
+	//
+	// Distinct from api_model_id, which is the single OUTBOUND identifier
+	// the runner dispatches with. Wire ids are INBOUND aliases only: they
+	// must never appear in pickers or dispatch requests.
+	WireIds             []string `protobuf:"bytes,24,rep,name=wire_ids,json=wireIds,proto3" json:"wire_ids,omitempty"`
+	ContextWindowTokens int32    `protobuf:"varint,13,opt,name=context_window_tokens,json=contextWindowTokens,proto3" json:"context_window_tokens,omitempty"`
+	MaxOutputTokens     int32    `protobuf:"varint,14,opt,name=max_output_tokens,json=maxOutputTokens,proto3" json:"max_output_tokens,omitempty"`
 	// Token counting strategy (e.g. "anthropic_native", "tiktoken_o200k",
 	// "approximate").
 	TokenCounterMethod string                     `protobuf:"bytes,15,opt,name=token_counter_method,json=tokenCounterMethod,proto3" json:"token_counter_method,omitempty"`
@@ -621,6 +634,13 @@ func (x *ModelPricingBaseline) GetPricingVariants() map[string]*PricingVariant {
 	return nil
 }
 
+func (x *ModelPricingBaseline) GetWireIds() []string {
+	if x != nil {
+		return x.WireIds
+	}
+	return nil
+}
+
 func (x *ModelPricingBaseline) GetContextWindowTokens() int32 {
 	if x != nil {
 		return x.ContextWindowTokens
@@ -726,7 +746,7 @@ const file_ai_stigmer_billing_v1_model_pricing_baseline_proto_rawDesc = "" +
 	"\x06vision\x18\x02 \x01(\bR\x06vision\x12\x1c\n" +
 	"\tstreaming\x18\x03 \x01(\bR\tstreaming\x12\x1a\n" +
 	"\bthinking\x18\x04 \x01(\bR\bthinking\x12+\n" +
-	"\x11adaptive_thinking\x18\x05 \x01(\bR\x10adaptiveThinking\"\x92\v\n" +
+	"\x11adaptive_thinking\x18\x05 \x01(\bR\x10adaptiveThinking\"\xbc\v\n" +
 	"\x14ModelPricingBaseline\x12\x1f\n" +
 	"\vbaseline_id\x18\x01 \x01(\tR\n" +
 	"baselineId\x12&\n" +
@@ -745,7 +765,9 @@ const file_ai_stigmer_billing_v1_model_pricing_baseline_proto_rawDesc = "" +
 	"\bfeatured\x18\n" +
 	" \x01(\bR\bfeatured\x12E\n" +
 	"\apricing\x18\v \x01(\v2#.ai.stigmer.billing.v1.PricingBlockB\x06\xbaH\x03\xc8\x01\x01R\apricing\x12k\n" +
-	"\x10pricing_variants\x18\f \x03(\v2@.ai.stigmer.billing.v1.ModelPricingBaseline.PricingVariantsEntryR\x0fpricingVariants\x12;\n" +
+	"\x10pricing_variants\x18\f \x03(\v2@.ai.stigmer.billing.v1.ModelPricingBaseline.PricingVariantsEntryR\x0fpricingVariants\x12(\n" +
+	"\bwire_ids\x18\x18 \x03(\tB\r\xbaH\n" +
+	"\x92\x01\a\"\x05r\x03\x18\x80\x01R\awireIds\x12;\n" +
 	"\x15context_window_tokens\x18\r \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x13contextWindowTokens\x123\n" +
 	"\x11max_output_tokens\x18\x0e \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x0fmaxOutputTokens\x129\n" +
 	"\x14token_counter_method\x18\x0f \x01(\tB\a\xbaH\x04r\x02\x18@R\x12tokenCounterMethod\x12P\n" +

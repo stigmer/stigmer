@@ -243,8 +243,38 @@ type GetRunnerBootstrapConfigOutput struct {
 	// Lifetime of runner_access_token in seconds from issuance. 0 when no token
 	// is present. The runner uses this to schedule a refresh before expiry.
 	RunnerAccessTokenExpiresInSeconds int32 `protobuf:"varint,5,opt,name=runner_access_token_expires_in_seconds,json=runnerAccessTokenExpiresInSeconds,proto3" json:"runner_access_token_expires_in_seconds,omitempty"`
-	unknownFields                     protoimpl.UnknownFields
-	sizeCache                         protoimpl.SizeCache
+	// Temporal payload-encryption key for this runner: base64-encoded 32-byte
+	// AES-256 key, minted once per caller identity and persisted by the control
+	// plane, so every boot of the same identity's runners receives the SAME
+	// key. Persistence is what makes encryption safe for a restartable runner —
+	// Temporal replay must decode history payloads written before the restart.
+	//
+	// Empty when the server does not manage runner keys — OSS (a self-hosted
+	// deployment configures one shared key on server and runner via
+	// STIGMER_PAYLOAD_ENCRYPTION_KEY) or a cloud server predating key
+	// management. The runner then falls back to its env-configured key, or runs
+	// without payload encryption. An explicitly env-configured key always wins
+	// over this field.
+	//
+	// @internal
+	// Cloud-only. Per-identity rather than platform-wide because a desktop
+	// runner must never hold the platform key: compromise of one user's machine
+	// exposes only payloads encrypted under that identity's key. The control
+	// plane's decode-only codec resolves these keys by key id, so the service
+	// can read every runner's results while runners cannot read each other's.
+	PayloadEncryptionKey string `protobuf:"bytes,6,opt,name=payload_encryption_key,json=payloadEncryptionKey,proto3" json:"payload_encryption_key,omitempty"`
+	// Key id stamped on payloads encrypted under payload_encryption_key.
+	// Present exactly when the key is present.
+	PayloadEncryptionKeyId string `protobuf:"bytes,7,opt,name=payload_encryption_key_id,json=payloadEncryptionKeyId,proto3" json:"payload_encryption_key_id,omitempty"`
+	// Previous key for this identity, present during a rotation window so the
+	// runner can replay history written under it. Decrypt-only: new payloads
+	// are always written under payload_encryption_key.
+	PayloadEncryptionSecondaryKey string `protobuf:"bytes,8,opt,name=payload_encryption_secondary_key,json=payloadEncryptionSecondaryKey,proto3" json:"payload_encryption_secondary_key,omitempty"`
+	// Key id of payload_encryption_secondary_key. Present exactly when the
+	// secondary key is present.
+	PayloadEncryptionSecondaryKeyId string `protobuf:"bytes,9,opt,name=payload_encryption_secondary_key_id,json=payloadEncryptionSecondaryKeyId,proto3" json:"payload_encryption_secondary_key_id,omitempty"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *GetRunnerBootstrapConfigOutput) Reset() {
@@ -310,6 +340,34 @@ func (x *GetRunnerBootstrapConfigOutput) GetRunnerAccessTokenExpiresInSeconds() 
 		return x.RunnerAccessTokenExpiresInSeconds
 	}
 	return 0
+}
+
+func (x *GetRunnerBootstrapConfigOutput) GetPayloadEncryptionKey() string {
+	if x != nil {
+		return x.PayloadEncryptionKey
+	}
+	return ""
+}
+
+func (x *GetRunnerBootstrapConfigOutput) GetPayloadEncryptionKeyId() string {
+	if x != nil {
+		return x.PayloadEncryptionKeyId
+	}
+	return ""
+}
+
+func (x *GetRunnerBootstrapConfigOutput) GetPayloadEncryptionSecondaryKey() string {
+	if x != nil {
+		return x.PayloadEncryptionSecondaryKey
+	}
+	return ""
+}
+
+func (x *GetRunnerBootstrapConfigOutput) GetPayloadEncryptionSecondaryKeyId() string {
+	if x != nil {
+		return x.PayloadEncryptionSecondaryKeyId
+	}
+	return ""
 }
 
 // Names the unit of dispatched work a runner wants a scoped token for.
@@ -652,14 +710,18 @@ const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\x13GetServerInfoOutput\x12?\n" +
 	"\aedition\x18\x01 \x01(\x0e2%.ai.stigmer.platform.v1.ServerEditionR\aedition\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\"\x1f\n" +
-	"\x1dGetRunnerBootstrapConfigInput\"\xae\x02\n" +
+	"\x1dGetRunnerBootstrapConfigInput\"\xb6\x04\n" +
 	"\x1eGetRunnerBootstrapConfigOutput\x122\n" +
 	"\x10temporal_address\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0ftemporalAddress\x126\n" +
 	"\x12temporal_namespace\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x11temporalNamespace\x12.\n" +
 	"\x13runner_access_token\x18\x03 \x01(\tR\x11runnerAccessToken\x12\x1d\n" +
 	"\n" +
 	"token_type\x18\x04 \x01(\tR\ttokenType\x12Q\n" +
-	"&runner_access_token_expires_in_seconds\x18\x05 \x01(\x05R!runnerAccessTokenExpiresInSeconds\"\x97\x02\n" +
+	"&runner_access_token_expires_in_seconds\x18\x05 \x01(\x05R!runnerAccessTokenExpiresInSeconds\x124\n" +
+	"\x16payload_encryption_key\x18\x06 \x01(\tR\x14payloadEncryptionKey\x129\n" +
+	"\x19payload_encryption_key_id\x18\a \x01(\tR\x16payloadEncryptionKeyId\x12G\n" +
+	" payload_encryption_secondary_key\x18\b \x01(\tR\x1dpayloadEncryptionSecondaryKey\x12L\n" +
+	"#payload_encryption_secondary_key_id\x18\t \x01(\tR\x1fpayloadEncryptionSecondaryKeyId\"\x97\x02\n" +
 	"\x19GetRunnerScopedTokenInput\x12.\n" +
 	"\x12agent_execution_id\x18\x01 \x01(\tH\x00R\x10agentExecutionId\x124\n" +
 	"\x15workflow_execution_id\x18\x02 \x01(\tH\x00R\x13workflowExecutionId\x12B\n" +

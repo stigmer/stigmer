@@ -120,6 +120,11 @@ export async function resolveRunnerBootstrap(
     // (OSS / no signing key) and is handled by the runner, not treated as fatal.
     runnerAccessToken: discovered.runnerAccessToken,
     runnerAccessTokenExpiresInSeconds: discovered.runnerAccessTokenExpiresInSeconds,
+    // Server-managed payload-encryption keys ride the same best-effort lane:
+    // absent on OSS (env-configured keys) and on cloud servers predating key
+    // management. Note the explicit-address and localhost branches above return
+    // none by construction — key management only exists where discovery does.
+    payloadEncryption: discovered.payloadEncryption,
   };
 }
 

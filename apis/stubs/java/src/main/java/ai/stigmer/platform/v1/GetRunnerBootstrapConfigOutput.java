@@ -42,6 +42,10 @@ private static final long serialVersionUID = 0L;
     temporalNamespace_ = "";
     runnerAccessToken_ = "";
     tokenType_ = "";
+    payloadEncryptionKey_ = "";
+    payloadEncryptionKeyId_ = "";
+    payloadEncryptionSecondaryKey_ = "";
+    payloadEncryptionSecondaryKeyId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -288,6 +292,238 @@ private static final long serialVersionUID = 0L;
     return runnerAccessTokenExpiresInSeconds_;
   }
 
+  public static final int PAYLOAD_ENCRYPTION_KEY_FIELD_NUMBER = 6;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object payloadEncryptionKey_ = "";
+  /**
+   * <pre>
+   * Temporal payload-encryption key for this runner: base64-encoded 32-byte
+   * AES-256 key, minted once per caller identity and persisted by the control
+   * plane, so every boot of the same identity's runners receives the SAME
+   * key. Persistence is what makes encryption safe for a restartable runner —
+   * Temporal replay must decode history payloads written before the restart.
+   *
+   * Empty when the server does not manage runner keys — OSS (a self-hosted
+   * deployment configures one shared key on server and runner via
+   * STIGMER_PAYLOAD_ENCRYPTION_KEY) or a cloud server predating key
+   * management. The runner then falls back to its env-configured key, or runs
+   * without payload encryption. An explicitly env-configured key always wins
+   * over this field.
+   *
+   * &#64;internal
+   * Cloud-only. Per-identity rather than platform-wide because a desktop
+   * runner must never hold the platform key: compromise of one user's machine
+   * exposes only payloads encrypted under that identity's key. The control
+   * plane's decode-only codec resolves these keys by key id, so the service
+   * can read every runner's results while runners cannot read each other's.
+   * </pre>
+   *
+   * <code>string payload_encryption_key = 6 [json_name = "payloadEncryptionKey"];</code>
+   * @return The payloadEncryptionKey.
+   */
+  @java.lang.Override
+  public java.lang.String getPayloadEncryptionKey() {
+    java.lang.Object ref = payloadEncryptionKey_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      payloadEncryptionKey_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Temporal payload-encryption key for this runner: base64-encoded 32-byte
+   * AES-256 key, minted once per caller identity and persisted by the control
+   * plane, so every boot of the same identity's runners receives the SAME
+   * key. Persistence is what makes encryption safe for a restartable runner —
+   * Temporal replay must decode history payloads written before the restart.
+   *
+   * Empty when the server does not manage runner keys — OSS (a self-hosted
+   * deployment configures one shared key on server and runner via
+   * STIGMER_PAYLOAD_ENCRYPTION_KEY) or a cloud server predating key
+   * management. The runner then falls back to its env-configured key, or runs
+   * without payload encryption. An explicitly env-configured key always wins
+   * over this field.
+   *
+   * &#64;internal
+   * Cloud-only. Per-identity rather than platform-wide because a desktop
+   * runner must never hold the platform key: compromise of one user's machine
+   * exposes only payloads encrypted under that identity's key. The control
+   * plane's decode-only codec resolves these keys by key id, so the service
+   * can read every runner's results while runners cannot read each other's.
+   * </pre>
+   *
+   * <code>string payload_encryption_key = 6 [json_name = "payloadEncryptionKey"];</code>
+   * @return The bytes for payloadEncryptionKey.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPayloadEncryptionKeyBytes() {
+    java.lang.Object ref = payloadEncryptionKey_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      payloadEncryptionKey_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int PAYLOAD_ENCRYPTION_KEY_ID_FIELD_NUMBER = 7;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object payloadEncryptionKeyId_ = "";
+  /**
+   * <pre>
+   * Key id stamped on payloads encrypted under payload_encryption_key.
+   * Present exactly when the key is present.
+   * </pre>
+   *
+   * <code>string payload_encryption_key_id = 7 [json_name = "payloadEncryptionKeyId"];</code>
+   * @return The payloadEncryptionKeyId.
+   */
+  @java.lang.Override
+  public java.lang.String getPayloadEncryptionKeyId() {
+    java.lang.Object ref = payloadEncryptionKeyId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      payloadEncryptionKeyId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Key id stamped on payloads encrypted under payload_encryption_key.
+   * Present exactly when the key is present.
+   * </pre>
+   *
+   * <code>string payload_encryption_key_id = 7 [json_name = "payloadEncryptionKeyId"];</code>
+   * @return The bytes for payloadEncryptionKeyId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPayloadEncryptionKeyIdBytes() {
+    java.lang.Object ref = payloadEncryptionKeyId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      payloadEncryptionKeyId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int PAYLOAD_ENCRYPTION_SECONDARY_KEY_FIELD_NUMBER = 8;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object payloadEncryptionSecondaryKey_ = "";
+  /**
+   * <pre>
+   * Previous key for this identity, present during a rotation window so the
+   * runner can replay history written under it. Decrypt-only: new payloads
+   * are always written under payload_encryption_key.
+   * </pre>
+   *
+   * <code>string payload_encryption_secondary_key = 8 [json_name = "payloadEncryptionSecondaryKey"];</code>
+   * @return The payloadEncryptionSecondaryKey.
+   */
+  @java.lang.Override
+  public java.lang.String getPayloadEncryptionSecondaryKey() {
+    java.lang.Object ref = payloadEncryptionSecondaryKey_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      payloadEncryptionSecondaryKey_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Previous key for this identity, present during a rotation window so the
+   * runner can replay history written under it. Decrypt-only: new payloads
+   * are always written under payload_encryption_key.
+   * </pre>
+   *
+   * <code>string payload_encryption_secondary_key = 8 [json_name = "payloadEncryptionSecondaryKey"];</code>
+   * @return The bytes for payloadEncryptionSecondaryKey.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPayloadEncryptionSecondaryKeyBytes() {
+    java.lang.Object ref = payloadEncryptionSecondaryKey_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      payloadEncryptionSecondaryKey_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int PAYLOAD_ENCRYPTION_SECONDARY_KEY_ID_FIELD_NUMBER = 9;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object payloadEncryptionSecondaryKeyId_ = "";
+  /**
+   * <pre>
+   * Key id of payload_encryption_secondary_key. Present exactly when the
+   * secondary key is present.
+   * </pre>
+   *
+   * <code>string payload_encryption_secondary_key_id = 9 [json_name = "payloadEncryptionSecondaryKeyId"];</code>
+   * @return The payloadEncryptionSecondaryKeyId.
+   */
+  @java.lang.Override
+  public java.lang.String getPayloadEncryptionSecondaryKeyId() {
+    java.lang.Object ref = payloadEncryptionSecondaryKeyId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      payloadEncryptionSecondaryKeyId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Key id of payload_encryption_secondary_key. Present exactly when the
+   * secondary key is present.
+   * </pre>
+   *
+   * <code>string payload_encryption_secondary_key_id = 9 [json_name = "payloadEncryptionSecondaryKeyId"];</code>
+   * @return The bytes for payloadEncryptionSecondaryKeyId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPayloadEncryptionSecondaryKeyIdBytes() {
+    java.lang.Object ref = payloadEncryptionSecondaryKeyId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      payloadEncryptionSecondaryKeyId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -317,6 +553,18 @@ private static final long serialVersionUID = 0L;
     if (runnerAccessTokenExpiresInSeconds_ != 0) {
       output.writeInt32(5, runnerAccessTokenExpiresInSeconds_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(payloadEncryptionKey_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 6, payloadEncryptionKey_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(payloadEncryptionKeyId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 7, payloadEncryptionKeyId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(payloadEncryptionSecondaryKey_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 8, payloadEncryptionSecondaryKey_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(payloadEncryptionSecondaryKeyId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 9, payloadEncryptionSecondaryKeyId_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -341,6 +589,18 @@ private static final long serialVersionUID = 0L;
     if (runnerAccessTokenExpiresInSeconds_ != 0) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(5, runnerAccessTokenExpiresInSeconds_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(payloadEncryptionKey_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(6, payloadEncryptionKey_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(payloadEncryptionKeyId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(7, payloadEncryptionKeyId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(payloadEncryptionSecondaryKey_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(8, payloadEncryptionSecondaryKey_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(payloadEncryptionSecondaryKeyId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(9, payloadEncryptionSecondaryKeyId_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -367,6 +627,14 @@ private static final long serialVersionUID = 0L;
         .equals(other.getTokenType())) return false;
     if (getRunnerAccessTokenExpiresInSeconds()
         != other.getRunnerAccessTokenExpiresInSeconds()) return false;
+    if (!getPayloadEncryptionKey()
+        .equals(other.getPayloadEncryptionKey())) return false;
+    if (!getPayloadEncryptionKeyId()
+        .equals(other.getPayloadEncryptionKeyId())) return false;
+    if (!getPayloadEncryptionSecondaryKey()
+        .equals(other.getPayloadEncryptionSecondaryKey())) return false;
+    if (!getPayloadEncryptionSecondaryKeyId()
+        .equals(other.getPayloadEncryptionSecondaryKeyId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -388,6 +656,14 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getTokenType().hashCode();
     hash = (37 * hash) + RUNNER_ACCESS_TOKEN_EXPIRES_IN_SECONDS_FIELD_NUMBER;
     hash = (53 * hash) + getRunnerAccessTokenExpiresInSeconds();
+    hash = (37 * hash) + PAYLOAD_ENCRYPTION_KEY_FIELD_NUMBER;
+    hash = (53 * hash) + getPayloadEncryptionKey().hashCode();
+    hash = (37 * hash) + PAYLOAD_ENCRYPTION_KEY_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getPayloadEncryptionKeyId().hashCode();
+    hash = (37 * hash) + PAYLOAD_ENCRYPTION_SECONDARY_KEY_FIELD_NUMBER;
+    hash = (53 * hash) + getPayloadEncryptionSecondaryKey().hashCode();
+    hash = (37 * hash) + PAYLOAD_ENCRYPTION_SECONDARY_KEY_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getPayloadEncryptionSecondaryKeyId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -534,6 +810,10 @@ private static final long serialVersionUID = 0L;
       runnerAccessToken_ = "";
       tokenType_ = "";
       runnerAccessTokenExpiresInSeconds_ = 0;
+      payloadEncryptionKey_ = "";
+      payloadEncryptionKeyId_ = "";
+      payloadEncryptionSecondaryKey_ = "";
+      payloadEncryptionSecondaryKeyId_ = "";
       return this;
     }
 
@@ -582,6 +862,18 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.runnerAccessTokenExpiresInSeconds_ = runnerAccessTokenExpiresInSeconds_;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.payloadEncryptionKey_ = payloadEncryptionKey_;
+      }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.payloadEncryptionKeyId_ = payloadEncryptionKeyId_;
+      }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.payloadEncryptionSecondaryKey_ = payloadEncryptionSecondaryKey_;
+      }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.payloadEncryptionSecondaryKeyId_ = payloadEncryptionSecondaryKeyId_;
+      }
     }
 
     @java.lang.Override
@@ -618,6 +910,26 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getRunnerAccessTokenExpiresInSeconds() != 0) {
         setRunnerAccessTokenExpiresInSeconds(other.getRunnerAccessTokenExpiresInSeconds());
+      }
+      if (!other.getPayloadEncryptionKey().isEmpty()) {
+        payloadEncryptionKey_ = other.payloadEncryptionKey_;
+        bitField0_ |= 0x00000020;
+        onChanged();
+      }
+      if (!other.getPayloadEncryptionKeyId().isEmpty()) {
+        payloadEncryptionKeyId_ = other.payloadEncryptionKeyId_;
+        bitField0_ |= 0x00000040;
+        onChanged();
+      }
+      if (!other.getPayloadEncryptionSecondaryKey().isEmpty()) {
+        payloadEncryptionSecondaryKey_ = other.payloadEncryptionSecondaryKey_;
+        bitField0_ |= 0x00000080;
+        onChanged();
+      }
+      if (!other.getPayloadEncryptionSecondaryKeyId().isEmpty()) {
+        payloadEncryptionSecondaryKeyId_ = other.payloadEncryptionSecondaryKeyId_;
+        bitField0_ |= 0x00000100;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -670,6 +982,26 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 40
+            case 50: {
+              payloadEncryptionKey_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 50
+            case 58: {
+              payloadEncryptionKeyId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 58
+            case 66: {
+              payloadEncryptionSecondaryKey_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 66
+            case 74: {
+              payloadEncryptionSecondaryKeyId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000100;
+              break;
+            } // case 74
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1153,6 +1485,484 @@ private static final long serialVersionUID = 0L;
     public Builder clearRunnerAccessTokenExpiresInSeconds() {
       bitField0_ = (bitField0_ & ~0x00000010);
       runnerAccessTokenExpiresInSeconds_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object payloadEncryptionKey_ = "";
+    /**
+     * <pre>
+     * Temporal payload-encryption key for this runner: base64-encoded 32-byte
+     * AES-256 key, minted once per caller identity and persisted by the control
+     * plane, so every boot of the same identity's runners receives the SAME
+     * key. Persistence is what makes encryption safe for a restartable runner —
+     * Temporal replay must decode history payloads written before the restart.
+     *
+     * Empty when the server does not manage runner keys — OSS (a self-hosted
+     * deployment configures one shared key on server and runner via
+     * STIGMER_PAYLOAD_ENCRYPTION_KEY) or a cloud server predating key
+     * management. The runner then falls back to its env-configured key, or runs
+     * without payload encryption. An explicitly env-configured key always wins
+     * over this field.
+     *
+     * &#64;internal
+     * Cloud-only. Per-identity rather than platform-wide because a desktop
+     * runner must never hold the platform key: compromise of one user's machine
+     * exposes only payloads encrypted under that identity's key. The control
+     * plane's decode-only codec resolves these keys by key id, so the service
+     * can read every runner's results while runners cannot read each other's.
+     * </pre>
+     *
+     * <code>string payload_encryption_key = 6 [json_name = "payloadEncryptionKey"];</code>
+     * @return The payloadEncryptionKey.
+     */
+    public java.lang.String getPayloadEncryptionKey() {
+      java.lang.Object ref = payloadEncryptionKey_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        payloadEncryptionKey_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Temporal payload-encryption key for this runner: base64-encoded 32-byte
+     * AES-256 key, minted once per caller identity and persisted by the control
+     * plane, so every boot of the same identity's runners receives the SAME
+     * key. Persistence is what makes encryption safe for a restartable runner —
+     * Temporal replay must decode history payloads written before the restart.
+     *
+     * Empty when the server does not manage runner keys — OSS (a self-hosted
+     * deployment configures one shared key on server and runner via
+     * STIGMER_PAYLOAD_ENCRYPTION_KEY) or a cloud server predating key
+     * management. The runner then falls back to its env-configured key, or runs
+     * without payload encryption. An explicitly env-configured key always wins
+     * over this field.
+     *
+     * &#64;internal
+     * Cloud-only. Per-identity rather than platform-wide because a desktop
+     * runner must never hold the platform key: compromise of one user's machine
+     * exposes only payloads encrypted under that identity's key. The control
+     * plane's decode-only codec resolves these keys by key id, so the service
+     * can read every runner's results while runners cannot read each other's.
+     * </pre>
+     *
+     * <code>string payload_encryption_key = 6 [json_name = "payloadEncryptionKey"];</code>
+     * @return The bytes for payloadEncryptionKey.
+     */
+    public com.google.protobuf.ByteString
+        getPayloadEncryptionKeyBytes() {
+      java.lang.Object ref = payloadEncryptionKey_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        payloadEncryptionKey_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Temporal payload-encryption key for this runner: base64-encoded 32-byte
+     * AES-256 key, minted once per caller identity and persisted by the control
+     * plane, so every boot of the same identity's runners receives the SAME
+     * key. Persistence is what makes encryption safe for a restartable runner —
+     * Temporal replay must decode history payloads written before the restart.
+     *
+     * Empty when the server does not manage runner keys — OSS (a self-hosted
+     * deployment configures one shared key on server and runner via
+     * STIGMER_PAYLOAD_ENCRYPTION_KEY) or a cloud server predating key
+     * management. The runner then falls back to its env-configured key, or runs
+     * without payload encryption. An explicitly env-configured key always wins
+     * over this field.
+     *
+     * &#64;internal
+     * Cloud-only. Per-identity rather than platform-wide because a desktop
+     * runner must never hold the platform key: compromise of one user's machine
+     * exposes only payloads encrypted under that identity's key. The control
+     * plane's decode-only codec resolves these keys by key id, so the service
+     * can read every runner's results while runners cannot read each other's.
+     * </pre>
+     *
+     * <code>string payload_encryption_key = 6 [json_name = "payloadEncryptionKey"];</code>
+     * @param value The payloadEncryptionKey to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPayloadEncryptionKey(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      payloadEncryptionKey_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Temporal payload-encryption key for this runner: base64-encoded 32-byte
+     * AES-256 key, minted once per caller identity and persisted by the control
+     * plane, so every boot of the same identity's runners receives the SAME
+     * key. Persistence is what makes encryption safe for a restartable runner —
+     * Temporal replay must decode history payloads written before the restart.
+     *
+     * Empty when the server does not manage runner keys — OSS (a self-hosted
+     * deployment configures one shared key on server and runner via
+     * STIGMER_PAYLOAD_ENCRYPTION_KEY) or a cloud server predating key
+     * management. The runner then falls back to its env-configured key, or runs
+     * without payload encryption. An explicitly env-configured key always wins
+     * over this field.
+     *
+     * &#64;internal
+     * Cloud-only. Per-identity rather than platform-wide because a desktop
+     * runner must never hold the platform key: compromise of one user's machine
+     * exposes only payloads encrypted under that identity's key. The control
+     * plane's decode-only codec resolves these keys by key id, so the service
+     * can read every runner's results while runners cannot read each other's.
+     * </pre>
+     *
+     * <code>string payload_encryption_key = 6 [json_name = "payloadEncryptionKey"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPayloadEncryptionKey() {
+      payloadEncryptionKey_ = getDefaultInstance().getPayloadEncryptionKey();
+      bitField0_ = (bitField0_ & ~0x00000020);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Temporal payload-encryption key for this runner: base64-encoded 32-byte
+     * AES-256 key, minted once per caller identity and persisted by the control
+     * plane, so every boot of the same identity's runners receives the SAME
+     * key. Persistence is what makes encryption safe for a restartable runner —
+     * Temporal replay must decode history payloads written before the restart.
+     *
+     * Empty when the server does not manage runner keys — OSS (a self-hosted
+     * deployment configures one shared key on server and runner via
+     * STIGMER_PAYLOAD_ENCRYPTION_KEY) or a cloud server predating key
+     * management. The runner then falls back to its env-configured key, or runs
+     * without payload encryption. An explicitly env-configured key always wins
+     * over this field.
+     *
+     * &#64;internal
+     * Cloud-only. Per-identity rather than platform-wide because a desktop
+     * runner must never hold the platform key: compromise of one user's machine
+     * exposes only payloads encrypted under that identity's key. The control
+     * plane's decode-only codec resolves these keys by key id, so the service
+     * can read every runner's results while runners cannot read each other's.
+     * </pre>
+     *
+     * <code>string payload_encryption_key = 6 [json_name = "payloadEncryptionKey"];</code>
+     * @param value The bytes for payloadEncryptionKey to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPayloadEncryptionKeyBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      payloadEncryptionKey_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object payloadEncryptionKeyId_ = "";
+    /**
+     * <pre>
+     * Key id stamped on payloads encrypted under payload_encryption_key.
+     * Present exactly when the key is present.
+     * </pre>
+     *
+     * <code>string payload_encryption_key_id = 7 [json_name = "payloadEncryptionKeyId"];</code>
+     * @return The payloadEncryptionKeyId.
+     */
+    public java.lang.String getPayloadEncryptionKeyId() {
+      java.lang.Object ref = payloadEncryptionKeyId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        payloadEncryptionKeyId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Key id stamped on payloads encrypted under payload_encryption_key.
+     * Present exactly when the key is present.
+     * </pre>
+     *
+     * <code>string payload_encryption_key_id = 7 [json_name = "payloadEncryptionKeyId"];</code>
+     * @return The bytes for payloadEncryptionKeyId.
+     */
+    public com.google.protobuf.ByteString
+        getPayloadEncryptionKeyIdBytes() {
+      java.lang.Object ref = payloadEncryptionKeyId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        payloadEncryptionKeyId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Key id stamped on payloads encrypted under payload_encryption_key.
+     * Present exactly when the key is present.
+     * </pre>
+     *
+     * <code>string payload_encryption_key_id = 7 [json_name = "payloadEncryptionKeyId"];</code>
+     * @param value The payloadEncryptionKeyId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPayloadEncryptionKeyId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      payloadEncryptionKeyId_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Key id stamped on payloads encrypted under payload_encryption_key.
+     * Present exactly when the key is present.
+     * </pre>
+     *
+     * <code>string payload_encryption_key_id = 7 [json_name = "payloadEncryptionKeyId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPayloadEncryptionKeyId() {
+      payloadEncryptionKeyId_ = getDefaultInstance().getPayloadEncryptionKeyId();
+      bitField0_ = (bitField0_ & ~0x00000040);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Key id stamped on payloads encrypted under payload_encryption_key.
+     * Present exactly when the key is present.
+     * </pre>
+     *
+     * <code>string payload_encryption_key_id = 7 [json_name = "payloadEncryptionKeyId"];</code>
+     * @param value The bytes for payloadEncryptionKeyId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPayloadEncryptionKeyIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      payloadEncryptionKeyId_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object payloadEncryptionSecondaryKey_ = "";
+    /**
+     * <pre>
+     * Previous key for this identity, present during a rotation window so the
+     * runner can replay history written under it. Decrypt-only: new payloads
+     * are always written under payload_encryption_key.
+     * </pre>
+     *
+     * <code>string payload_encryption_secondary_key = 8 [json_name = "payloadEncryptionSecondaryKey"];</code>
+     * @return The payloadEncryptionSecondaryKey.
+     */
+    public java.lang.String getPayloadEncryptionSecondaryKey() {
+      java.lang.Object ref = payloadEncryptionSecondaryKey_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        payloadEncryptionSecondaryKey_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Previous key for this identity, present during a rotation window so the
+     * runner can replay history written under it. Decrypt-only: new payloads
+     * are always written under payload_encryption_key.
+     * </pre>
+     *
+     * <code>string payload_encryption_secondary_key = 8 [json_name = "payloadEncryptionSecondaryKey"];</code>
+     * @return The bytes for payloadEncryptionSecondaryKey.
+     */
+    public com.google.protobuf.ByteString
+        getPayloadEncryptionSecondaryKeyBytes() {
+      java.lang.Object ref = payloadEncryptionSecondaryKey_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        payloadEncryptionSecondaryKey_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Previous key for this identity, present during a rotation window so the
+     * runner can replay history written under it. Decrypt-only: new payloads
+     * are always written under payload_encryption_key.
+     * </pre>
+     *
+     * <code>string payload_encryption_secondary_key = 8 [json_name = "payloadEncryptionSecondaryKey"];</code>
+     * @param value The payloadEncryptionSecondaryKey to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPayloadEncryptionSecondaryKey(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      payloadEncryptionSecondaryKey_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Previous key for this identity, present during a rotation window so the
+     * runner can replay history written under it. Decrypt-only: new payloads
+     * are always written under payload_encryption_key.
+     * </pre>
+     *
+     * <code>string payload_encryption_secondary_key = 8 [json_name = "payloadEncryptionSecondaryKey"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPayloadEncryptionSecondaryKey() {
+      payloadEncryptionSecondaryKey_ = getDefaultInstance().getPayloadEncryptionSecondaryKey();
+      bitField0_ = (bitField0_ & ~0x00000080);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Previous key for this identity, present during a rotation window so the
+     * runner can replay history written under it. Decrypt-only: new payloads
+     * are always written under payload_encryption_key.
+     * </pre>
+     *
+     * <code>string payload_encryption_secondary_key = 8 [json_name = "payloadEncryptionSecondaryKey"];</code>
+     * @param value The bytes for payloadEncryptionSecondaryKey to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPayloadEncryptionSecondaryKeyBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      payloadEncryptionSecondaryKey_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object payloadEncryptionSecondaryKeyId_ = "";
+    /**
+     * <pre>
+     * Key id of payload_encryption_secondary_key. Present exactly when the
+     * secondary key is present.
+     * </pre>
+     *
+     * <code>string payload_encryption_secondary_key_id = 9 [json_name = "payloadEncryptionSecondaryKeyId"];</code>
+     * @return The payloadEncryptionSecondaryKeyId.
+     */
+    public java.lang.String getPayloadEncryptionSecondaryKeyId() {
+      java.lang.Object ref = payloadEncryptionSecondaryKeyId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        payloadEncryptionSecondaryKeyId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Key id of payload_encryption_secondary_key. Present exactly when the
+     * secondary key is present.
+     * </pre>
+     *
+     * <code>string payload_encryption_secondary_key_id = 9 [json_name = "payloadEncryptionSecondaryKeyId"];</code>
+     * @return The bytes for payloadEncryptionSecondaryKeyId.
+     */
+    public com.google.protobuf.ByteString
+        getPayloadEncryptionSecondaryKeyIdBytes() {
+      java.lang.Object ref = payloadEncryptionSecondaryKeyId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        payloadEncryptionSecondaryKeyId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Key id of payload_encryption_secondary_key. Present exactly when the
+     * secondary key is present.
+     * </pre>
+     *
+     * <code>string payload_encryption_secondary_key_id = 9 [json_name = "payloadEncryptionSecondaryKeyId"];</code>
+     * @param value The payloadEncryptionSecondaryKeyId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPayloadEncryptionSecondaryKeyId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      payloadEncryptionSecondaryKeyId_ = value;
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Key id of payload_encryption_secondary_key. Present exactly when the
+     * secondary key is present.
+     * </pre>
+     *
+     * <code>string payload_encryption_secondary_key_id = 9 [json_name = "payloadEncryptionSecondaryKeyId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPayloadEncryptionSecondaryKeyId() {
+      payloadEncryptionSecondaryKeyId_ = getDefaultInstance().getPayloadEncryptionSecondaryKeyId();
+      bitField0_ = (bitField0_ & ~0x00000100);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Key id of payload_encryption_secondary_key. Present exactly when the
+     * secondary key is present.
+     * </pre>
+     *
+     * <code>string payload_encryption_secondary_key_id = 9 [json_name = "payloadEncryptionSecondaryKeyId"];</code>
+     * @param value The bytes for payloadEncryptionSecondaryKeyId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPayloadEncryptionSecondaryKeyIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      payloadEncryptionSecondaryKeyId_ = value;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }

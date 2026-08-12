@@ -195,6 +195,59 @@ describe("loadPayloadEncryptionConfig", () => {
     process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY_ID = "k1";
     expect(() => loadPayloadEncryptionConfig()).toThrow(/must decode to 32 bytes/);
   });
+
+  // Server-managed key material from getRunnerBootstrapConfig (stigmer#398):
+  // desktop-class runners receive a per-identity key at bootstrap instead of
+  // env config. The env key is the operator's explicit choice and must win.
+  describe("bootstrap-delivered keys", () => {
+    const bootstrapKeys = () => ({
+      key: randomBytes(32).toString("base64"),
+      keyId: "identity-key-v1",
+      secondaryKey: randomBytes(32).toString("base64"),
+      secondaryKeyId: "identity-key-v0",
+    });
+
+    it("enables encryption from bootstrap material when no env key is set", () => {
+      const config = loadPayloadEncryptionConfig(bootstrapKeys());
+      expect(config?.primary.keyId).toBe("identity-key-v1");
+      expect(config?.primary.key.length).toBe(32);
+      expect(config?.secondary?.keyId).toBe("identity-key-v0");
+    });
+
+    it("env-configured key wins over bootstrap material", () => {
+      process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY = randomBytes(32).toString("base64");
+      process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY_ID = "env-key";
+
+      const config = loadPayloadEncryptionConfig(bootstrapKeys());
+      expect(config?.primary.keyId).toBe("env-key");
+      expect(config?.secondary).toBeUndefined();
+    });
+
+    it("fails the boot on a bootstrap key without its id (server contract violation)", () => {
+      expect(() =>
+        loadPayloadEncryptionConfig({ key: randomBytes(32).toString("base64") }),
+      ).toThrow(/payload_encryption_key_id/);
+    });
+
+    it("fails the boot on a malformed bootstrap key rather than running plaintext", () => {
+      expect(() =>
+        loadPayloadEncryptionConfig({
+          key: randomBytes(16).toString("base64"),
+          keyId: "identity-key-v1",
+        }),
+      ).toThrow(/must decode to 32 bytes/);
+    });
+
+    it("fails the boot on a bootstrap secondary key without its id", () => {
+      expect(() =>
+        loadPayloadEncryptionConfig({
+          key: randomBytes(32).toString("base64"),
+          keyId: "identity-key-v1",
+          secondaryKey: randomBytes(32).toString("base64"),
+        }),
+      ).toThrow(/payload_encryption_secondary_key_id/);
+    });
+  });
 });
 
 describe("cross-language conformance fixture", () => {

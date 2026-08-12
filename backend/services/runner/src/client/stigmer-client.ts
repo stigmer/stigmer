@@ -56,13 +56,36 @@ import { isEmbeddedRunnerToken } from "./token-claims.js";
 import { assertCreateRequirements, assertReferenceRequirements } from "./server-contracts.js";
 
 /**
+ * Server-managed Temporal payload-encryption keys for this runner.
+ *
+ * Minted once per caller identity and persisted by the control plane, so
+ * every boot of the same identity's runners receives the SAME key — the
+ * persistence Temporal replay requires across runner restarts. The secondary
+ * pair is present only during a rotation window (decrypt-only; new payloads
+ * are written under the primary).
+ */
+export interface BootstrapPayloadEncryptionKeys {
+  /** Base64-encoded 32-byte AES-256 key. */
+  key: string;
+  /** Key id stamped on payloads encrypted under {@link key}. */
+  keyId: string;
+  /** Previous key of this identity, present during rotation windows. */
+  secondaryKey?: string;
+  /** Key id of {@link secondaryKey}; present exactly when it is. */
+  secondaryKeyId?: string;
+}
+
+/**
  * Everything an embedded runner needs to bootstrap: Temporal coordinates plus
  * its own minted access token.
  *
  * The Temporal coordinates are always present. The access token is optional: the
  * server only mints one when it has a Cursor proxy to authenticate against
  * (cloud) and a signing key configured — OSS and misconfigured servers omit it,
- * and the runner keeps using its existing token in that case.
+ * and the runner keeps using its existing token in that case. Payload-encryption
+ * keys follow the same presence contract: absent when the server does not manage
+ * runner keys (OSS uses env-configured keys; older cloud servers predate key
+ * management).
  */
 export interface RunnerBootstrapConfig {
   temporalAddress: string;
@@ -71,6 +94,8 @@ export interface RunnerBootstrapConfig {
   runnerAccessToken?: string;
   /** Lifetime of {@link runnerAccessToken} in seconds; absent/0 when no token. */
   runnerAccessTokenExpiresInSeconds?: number;
+  /** Server-managed payload-encryption keys; absent when not managed by the server. */
+  payloadEncryption?: BootstrapPayloadEncryptionKeys;
 }
 
 /**
@@ -272,6 +297,18 @@ export class StigmerClient {
       runnerAccessToken: res.runnerAccessToken || undefined,
       runnerAccessTokenExpiresInSeconds:
         res.runnerAccessTokenExpiresInSeconds || undefined,
+      // Same presence contract, grouped so callers make ONE presence check.
+      // Key without id (or vice versa) is a server contract violation the
+      // encryption config loader rejects — not silently dropped here, so the
+      // breakage is diagnosable at the fail-closed boundary.
+      payloadEncryption: res.payloadEncryptionKey
+        ? {
+            key: res.payloadEncryptionKey,
+            keyId: res.payloadEncryptionKeyId,
+            secondaryKey: res.payloadEncryptionSecondaryKey || undefined,
+            secondaryKeyId: res.payloadEncryptionSecondaryKeyId || undefined,
+          }
+        : undefined,
     };
   }
 

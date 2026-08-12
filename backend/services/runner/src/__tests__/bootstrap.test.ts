@@ -161,6 +161,49 @@ describe("resolveRunnerBootstrap", () => {
     );
 
     expect(result.runnerAccessToken).toBeUndefined();
+    expect(result.payloadEncryption).toBeUndefined();
+  });
+
+  it("surfaces server-managed payload-encryption keys from the discovery branch", async () => {
+    const factory: BootstrapClientFactory = async () => ({
+      getRunnerBootstrapConfig: () =>
+        Promise.resolve({
+          temporalAddress: "t:7233",
+          temporalNamespace: "default",
+          payloadEncryption: {
+            key: "a".repeat(44),
+            keyId: "identity-key-v2",
+            secondaryKey: "b".repeat(44),
+            secondaryKeyId: "identity-key-v1",
+          },
+        }),
+    });
+
+    const result = await resolveRunnerBootstrap(
+      { token: "tok", stigmerEndpoint: "https://api.stigmer.ai" },
+      factory,
+    );
+
+    expect(result.payloadEncryption).toEqual({
+      key: "a".repeat(44),
+      keyId: "identity-key-v2",
+      secondaryKey: "b".repeat(44),
+      secondaryKeyId: "identity-key-v1",
+    });
+  });
+
+  it("omits payload-encryption keys when the server does not manage them", async () => {
+    const factory: BootstrapClientFactory = async () => ({
+      getRunnerBootstrapConfig: () =>
+        Promise.resolve({ temporalAddress: "t:7233", temporalNamespace: "default" }),
+    });
+
+    const result = await resolveRunnerBootstrap(
+      { token: "tok", stigmerEndpoint: "https://api.stigmer.ai" },
+      factory,
+    );
+
+    expect(result.payloadEncryption).toBeUndefined();
   });
 });
 
