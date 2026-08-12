@@ -10,18 +10,17 @@ import (
 
 // Get retrieves an execution context by ID using the pipeline framework
 //
-// This operation is typically used by the execution engine to:
-// - Retrieve runtime configuration during execution
-// - Access injected secrets (B2B scenarios)
+// This operation is typically used to:
+// - Inspect an execution's runtime configuration (values redacted)
 // - Verify execution context exists before proceeding
 //
 // This implements the standard Get operation pattern:
 // 1. ValidateProto - Validate input ExecutionContextId (ensures value is not empty)
 // 2. LoadTarget - Load execution context from repository by ID
 //
-// Pipeline (Stigmer OSS - simplified from Cloud):
-// - ValidateProto: Validates buf.validate constraints on ExecutionContextId
-// - LoadTarget: Loads execution context from SQLite by ID, returns NotFound if missing
+// Secret values are redacted in the response (oss#535, the cloud contract):
+// the runner's secret-delivery path is getByExecutionId under a scope-bound
+// runner token, never this RPC.
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - ExtractResourceId step (not needed - ID is already in ExecutionContextId.value)
@@ -40,8 +39,10 @@ func (c *ExecutionContextController) Get(ctx context.Context, executionContextId
 		return nil, err
 	}
 
-	// Retrieve loaded execution context from context
+	// Retrieve loaded execution context from context. Redaction mutates the
+	// fresh store unmarshal, never the stored row.
 	executionContext := reqCtx.Get(steps.TargetResourceKey).(*executioncontextv1.ExecutionContext)
+	RedactExecutionContextSecrets(executionContext)
 	return executionContext, nil
 }
 

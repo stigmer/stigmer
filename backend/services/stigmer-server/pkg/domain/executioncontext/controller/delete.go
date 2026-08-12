@@ -48,7 +48,12 @@ func (c *ExecutionContextController) Delete(ctx context.Context, deleteInput *ap
 		return nil, grpclib.InternalError(nil, "deleted execution context not found in context")
 	}
 
-	return deletedExecutionContext.(*executioncontextv1.ExecutionContext), nil
+	// Redact the audit echo (oss#535): without this, delete would be the one
+	// path that leaks the stored representation — ciphertext today, actual
+	// plaintext for legacy pre-encryption rows.
+	deleted := deletedExecutionContext.(*executioncontextv1.ExecutionContext)
+	RedactExecutionContextSecrets(deleted)
+	return deleted, nil
 }
 
 // buildDeletePipeline constructs the pipeline for delete operations

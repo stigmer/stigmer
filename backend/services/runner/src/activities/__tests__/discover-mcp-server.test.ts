@@ -416,7 +416,45 @@ describe("DiscoverMcpServer activity", () => {
       );
 
       expect(result.tools).toEqual([]);
-      expect(mockClient.getExecutionContextByExecutionId).toHaveBeenCalledWith("ctx-abc");
+      // No payload-carried token -> the read goes out without a per-call
+      // credential (the cloud shape, where the ambient credential applies).
+      expect(mockClient.getExecutionContextByExecutionId).toHaveBeenCalledWith("ctx-abc", undefined);
+    });
+
+    it("presents the payload-carried EC token on the ExecutionContext read (oss#535)", async () => {
+      const { discoverMcpServer } = await import("../discover-mcp-server.js");
+
+      const mockClient = makeMockStigmerClient({
+        mcpServer: makeMcpServer({
+          metadata: { slug: "with-token" },
+          spec: makeStdioSpec("npx", ["server"]),
+        }),
+        executionContext: {
+          spec: {
+            data: {
+              API_KEY: { value: "secret-123", isSecret: true },
+            },
+          },
+        },
+      });
+
+      const mockMcpClient = makeMockMcpClient({ tools: [] });
+      mockInitializeConnections.mockResolvedValue({});
+      mockGetClient.mockResolvedValue(mockMcpClient);
+
+      await discoverMcpServer(
+        {
+          mcpServerId: "mcp-env",
+          executionContextId: "ctx-abc",
+          executionContextToken: "scoped-ec-token",
+        },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
+      );
+
+      expect(mockClient.getExecutionContextByExecutionId).toHaveBeenCalledWith(
+        "ctx-abc",
+        "scoped-ec-token",
+      );
     });
 
     it("discovers a caller-identity-templating server via the anonymous sentinel", async () => {

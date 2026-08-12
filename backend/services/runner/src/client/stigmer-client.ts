@@ -53,7 +53,7 @@ import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workfl
 import { PlatformQueryController, GetRunnerScopedTokenInputSchema, TokenRenewalSchema } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
 import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
-import { isEmbeddedRunnerToken } from "./token-claims.js";
+import { TOKEN_TYPE_EMBEDDED_RUNNER, tokenTypeOf } from "./token-claims.js";
 import { assertCreateRequirements, assertReferenceRequirements } from "./server-contracts.js";
 
 /**
@@ -102,10 +102,11 @@ export interface RunnerBootstrapConfig {
 /**
  * A runner token scoped to one unit of dispatched work (issue #156).
  *
- * Minted on demand by the control plane when the runner exchanges its
- * bootstrap credential at task start; presented for the ExecutionContext
- * fetch of exactly that execution. Absent when the server does not mint
- * (OSS, or no signing key) — the runner keeps its existing credential.
+ * Minted on demand by the control plane at task start — a desktop runner
+ * exchanges its bootstrap credential, an OSS runner asks with no credential
+ * at all (oss#535) — and presented for the ExecutionContext fetch of exactly
+ * that execution. Absent when the server does not mint (pre-oss#535 OSS, or
+ * a refused credential class) — the runner keeps its existing credential.
  */
 export interface RunnerScopedToken {
   token: string;
@@ -351,14 +352,16 @@ export class StigmerClient {
   }
 
   /**
-   * Exchange this runner's bootstrap credential for a token scoped to one
-   * unit of dispatched work (issue #156).
+   * Exchange this runner's credential for a token scoped to one unit of
+   * dispatched work (issue #156).
    *
-   * The call authenticates with the runner credential (see the interceptor);
-   * the server verifies it is an embedded_runner token and that its identity
-   * can view the named execution, then mints the same session/execution-scoped
-   * sandbox token a cloud sandbox runner receives at provisioning. Returns
-   * undefined when the server does not mint (OSS, or no signing key) —
+   * The call authenticates with the runner credential (see the interceptor).
+   * Cloud verifies it is an embedded_runner token and that its identity can
+   * view the named execution, then mints the same session/execution-scoped
+   * sandbox token a cloud sandbox runner receives at provisioning. OSS mints
+   * an execution-scoped token for any caller (oss#535 — a lane discriminator
+   * on a single-user server, not a trust boundary). Returns undefined when
+   * the server does not mint (pre-oss#535 OSS, or an unserved scope arm) —
    * presence-based, like the bootstrap token fields.
    *
    * `callerToken` authenticates the exchange per-call instead of the
@@ -392,26 +395,44 @@ export class StigmerClient {
    * Acquire a scoped runner token for an ExecutionContext read, if this
    * runner's credential situation calls for one.
    *
-   * The gate is the credential itself: only an unscoped embedded_runner
-   * bootstrap token needs exchanging. A cloud sandbox runner's credential is
-   * already scoped (skip — the exchange would rightly refuse it), and an
-   * OSS/local runner holds no runner-class credential at all (skip — the
-   * server neither mints nor redacts).
+   * The gate is the credential itself, three ways:
    *
-   * A failed exchange is a hard error, not a fallback: since the #156 item-3
-   * flip (stigmer-cloud#218) the bootstrap credential no longer decrypts, so
-   * a read that "fell back" would silently receive redacted placeholders and
-   * the execution would run against junk secret values — strictly worse than
-   * failing here with the real reason. The secret-delivery call sites let
-   * this error fail the activity; opportunistic consumers that can genuinely
-   * proceed without a scoped token (attachment credential, channel
-   * discovery) catch it at the call site, where their degrade-to-empty
-   * contract lives.
+   * 1. An unscoped embedded_runner bootstrap token MUST be exchanged, and a
+   *    failed exchange is a hard error, not a fallback: since the #156
+   *    item-3 flip (stigmer-cloud#218) the bootstrap credential no longer
+   *    decrypts, so a read that "fell back" would silently receive redacted
+   *    placeholders and the execution would run against junk secret values —
+   *    strictly worse than failing here with the real reason. The
+   *    secret-delivery call sites let this error fail the activity;
+   *    opportunistic consumers that can genuinely proceed without a scoped
+   *    token (attachment credential, channel discovery) catch it at the
+   *    call site, where their degrade-to-empty contract lives.
+   *
+   * 2. Any other runner-class credential is already scoped (a cloud
+   *    sandbox/pool/connect token) — skip; the exchange would rightly
+   *    refuse it and the ambient credential decrypts on its own.
+   *
+   * 3. No runner-class credential at all (OSS/local, where the process
+   *    token is absent or carries no token_type claim) — attempt the
+   *    exchange best-effort (oss#535): a current OSS server mints an
+   *    execution-scoped token here, which is the ONLY way this runner can
+   *    read decrypted secrets from its redact-by-default EC RPCs. A server
+   *    that answers "not minted" (pre-oss#535 OSS, which also does not
+   *    redact) or refuses the exchange (cloud refusing a non-runner
+   *    credential — the legacy desktop degrade, which reads redacted today
+   *    regardless) falls through to the tokenless read, preserving each
+   *    old pairing's exact behavior.
    */
   async acquireScopedRunnerToken(
     scope: RunnerScopedTokenScope,
   ): Promise<string | undefined> {
-    if (!isEmbeddedRunnerToken(this.runnerTokenRef?.current)) {
+    // Inspect the same credential chain the EC read's interceptor would use.
+    const ambientTokenType = tokenTypeOf(
+      this.runnerTokenRef?.current ?? this.tokenRef?.current ?? this.currentToken,
+    );
+    const isEmbeddedRunner = ambientTokenType === TOKEN_TYPE_EMBEDDED_RUNNER;
+    if (ambientTokenType !== undefined && !isEmbeddedRunner) {
+      // Case 2: an already-scoped runner-class credential.
       return undefined;
     }
     const scopeDescription =
@@ -424,6 +445,11 @@ export class StigmerClient {
     try {
       scoped = await this.getRunnerScopedToken(scope);
     } catch (err) {
+      if (!isEmbeddedRunner) {
+        // Case 3: best-effort — a refusal means the server does not serve
+        // this credential class; the tokenless read is today's behavior.
+        return undefined;
+      }
       throw new Error(
         `Scoped runner token exchange failed for ${scopeDescription}: ` +
         `${err instanceof Error ? err.message : String(err)}. ` +
@@ -433,6 +459,11 @@ export class StigmerClient {
       );
     }
     if (!scoped) {
+      if (!isEmbeddedRunner) {
+        // Case 3: a server that mints nothing for this scope also does not
+        // redact for this runner (pre-oss#535 OSS) — proceed tokenless.
+        return undefined;
+      }
       throw new Error(
         `Server minted no scoped runner token for ${scopeDescription}. ` +
         "The bootstrap credential cannot read ExecutionContext secrets " +

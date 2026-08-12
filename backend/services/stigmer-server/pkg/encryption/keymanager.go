@@ -34,20 +34,28 @@ const (
 // Returns nil if encryption should be disabled (no key available and
 // auto-generation is not appropriate for the environment).
 func GetOrCreateKey() ([]byte, error) {
+	return GetOrCreateNamedKey(EnvKeyName, KeyFileName)
+}
+
+// GetOrCreateNamedKey is GetOrCreateKey generalized over the env var and key
+// file name, so sibling key material (the runner-token signing key, oss#535)
+// rides the same env-var -> ~/.stigmer file -> auto-generate convention
+// instead of growing a divergent loader.
+func GetOrCreateNamedKey(envVar, fileName string) ([]byte, error) {
 	// 1. Check environment variable (highest priority)
-	if envKey := os.Getenv(EnvKeyName); envKey != "" {
+	if envKey := os.Getenv(envVar); envKey != "" {
 		key, err := base64.StdEncoding.DecodeString(envKey)
 		if err != nil {
-			return nil, fmt.Errorf("invalid Base64 encoding in %s: %w", EnvKeyName, err)
+			return nil, fmt.Errorf("invalid Base64 encoding in %s: %w", envVar, err)
 		}
 		if len(key) != KeySize {
-			return nil, fmt.Errorf("%s must be exactly 32 bytes (256 bits) when decoded, got %d bytes", EnvKeyName, len(key))
+			return nil, fmt.Errorf("%s must be exactly 32 bytes (256 bits) when decoded, got %d bytes", envVar, len(key))
 		}
 		return key, nil
 	}
 
 	// 2. Check local file
-	keyPath, err := getKeyFilePath()
+	keyPath, err := getNamedKeyFilePath(fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -60,13 +68,13 @@ func GetOrCreateKey() ([]byte, error) {
 	// In production, the key should be configured via environment variable
 	key, err := generateKey()
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate encryption key: %w", err)
+		return nil, fmt.Errorf("failed to generate key for %s: %w", fileName, err)
 	}
 
 	// Persist for future use
 	if err := saveKeyToFile(keyPath, key); err != nil {
 		// Log warning but don't fail - the key is still usable
-		fmt.Fprintf(os.Stderr, "Warning: could not save encryption key to %s: %v\n", keyPath, err)
+		fmt.Fprintf(os.Stderr, "Warning: could not save key to %s: %v\n", keyPath, err)
 	}
 
 	return key, nil
@@ -104,11 +112,16 @@ func GetKey() ([]byte, error) {
 
 // getKeyFilePath returns the path to the local key file (~/.stigmer/encryption.key)
 func getKeyFilePath() (string, error) {
+	return getNamedKeyFilePath(KeyFileName)
+}
+
+// getNamedKeyFilePath returns the path to a named key file under ~/.stigmer.
+func getNamedKeyFilePath(fileName string) (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("could not determine home directory: %w", err)
 	}
-	return filepath.Join(home, KeyFileDir, KeyFileName), nil
+	return filepath.Join(home, KeyFileDir, fileName), nil
 }
 
 // loadKeyFromFile reads the raw key bytes from a file

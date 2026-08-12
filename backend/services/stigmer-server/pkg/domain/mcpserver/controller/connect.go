@@ -64,16 +64,27 @@ const (
 	bestEffortConnectGetBuffer = 15 * time.Second
 )
 
-// connectWorkflowInput matches the Python DiscoverMcpServerInput dataclass
+// connectWorkflowInput matches the runner's ConnectMcpServerWorkflowInput
 // used by ConnectMcpServerWorkflow (discover + classify).
 //
 // Follows the slim-payload pattern: only reference IDs are passed through
-// Temporal. The Python activity reads environment variables from the
+// Temporal. The discovery activity reads environment variables from the
 // pre-created ExecutionContext, keeping secrets out of Temporal's durable
 // workflow history.
+//
+// ExecutionContextToken is the one deliberate exception to ids-only
+// (oss#535): the EC read RPC redacts secrets unless the caller presents an
+// execution-scoped runner token, and unlike the agent/workflow lanes the
+// discovery activity has no execution of its own to exchange for one — the
+// capability travels with the work item instead. It is a decrypt-lane
+// discriminator, not a secret value: short-TTL, bound to this connect
+// flow's ephemeral EC (deleted when the handler returns), and useless once
+// either expires. The cloud edition leaves it empty — its discovery runs
+// with an ambient connect_sandbox credential.
 type connectWorkflowInput struct {
 	McpServerID              string `json:"mcp_server_id"`
 	ExecutionContextID       string `json:"execution_context_id,omitempty"`
+	ExecutionContextToken    string `json:"execution_context_token,omitempty"`
 	InvokerIdentityAccountID string `json:"invoker_identity_account_id,omitempty"`
 }
 
@@ -177,6 +188,22 @@ func (c *McpServerController) Connect(
 	wfInput := connectWorkflowInput{
 		McpServerID:        mcpServerID,
 		ExecutionContextID: executionID,
+	}
+
+	// Mint the decrypt-lane token for the EC just created (oss#535) — see
+	// the connectWorkflowInput doc for why this rides the payload. Minting
+	// failure degrades, not fails: discovery of a server with declared
+	// credentials will refuse the redacted read with an actionable error,
+	// and credential-less servers connect fine without the token.
+	if ecResourceID != "" && c.runnerAuth != nil && c.runnerAuth.IsEnabled() {
+		token, _, err := c.runnerAuth.Mint(executionID, 0)
+		if err != nil {
+			log.Warn().Err(err).
+				Str("execution_id", executionID).
+				Msg("Failed to mint connect EC token — discovery will read redacted credentials")
+		} else {
+			wfInput.ExecutionContextToken = token
+		}
 	}
 
 	result, err := c.executeConnectWorkflow(ctx, mcpServer, wfInput)

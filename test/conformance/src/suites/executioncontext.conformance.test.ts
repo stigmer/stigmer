@@ -17,12 +17,16 @@
 // live execution and is covered by the execution-lifecycle session. Here we test
 // the resource's own API contract by creating contexts directly.
 //
-// Secret value handling DIVERGES from Environment (which is edition-converged
-// since stigmer#405): EC get/getByReference/getByExecutionId return the value
-// in plaintext on OSS (its runner reads the EC through these RPCs) and redact
-// it on cloud (gated by executionContextSecretRedaction); the is_secret flag
-// is edition-agnostic. OSS convergence is tracked by the stigmer#405 spawned
-// EC-at-rest issue.
+// Secret value handling is edition-CONVERGED since stigmer#535 (following
+// Environment, converged in stigmer#405): both editions encrypt EC values at
+// rest and redact every user-shaped read — get, getByReference, the
+// create/apply and delete echoes, and getByExecutionId for callers without a
+// scope-bound runner credential. Decrypted values flow only through the
+// runner lane (cloud: ResolveExecutionContextValuesForCaller; OSS: the
+// execution-scoped token minted by getRunnerScopedToken). This harness
+// authenticates as a user, so redaction is asserted unconditionally; the
+// is_secret flag is preserved on every read. The runner lane's decrypt is
+// proven end to end by the envmerge execution suite's set_vars proof test.
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -202,7 +206,7 @@ describe("ExecutionContext conformance — apply (create-or-fail)", () => {
 });
 
 describe("ExecutionContext conformance — secrets", () => {
-  it("read returns the secret value per the executionContextSecretRedaction capability; is_secret is always preserved", async () => {
+  it("read redacts the secret value; is_secret is always preserved", async () => {
     const { org } = await target.provisionTenancy();
     const secretValue = "runtime-secret-value";
     const created = await createExecutionContext(org, uniqueName("ectx"), {
@@ -217,24 +221,19 @@ describe("ExecutionContext conformance — secrets", () => {
 
     expect(secretEntry?.isSecret, "is_secret is preserved on read in both editions").toBe(true);
     expect(fetched.spec?.data?.AWS_REGION?.value, "plaintext values are never redacted").toBe("us-east-1");
-
-    if (target.capabilities.executionContextSecretRedaction) {
-      expect(secretEntry?.value, "redacting targets must not return the plaintext secret").not.toBe(secretValue);
-      return;
-    }
-
-    expect(secretEntry?.value, "OSS returns the secret value in plaintext").toBe(secretValue);
+    expect(secretEntry?.value, "no user-shaped read returns the plaintext secret (stigmer#535)").not.toBe(secretValue);
   });
 
   it("getByExecutionId under a user token follows the same secret contract as get", async () => {
-    // On cloud, getByExecutionId decrypts only for scope-bound runner
-    // credentials (token_type of sandbox / workflow_sandbox / connect_sandbox,
-    // each bound to the EC it reads; the unscoped embedded_runner bootstrap
-    // credential is refused — stigmer-cloud#218). The conformance harness
+    // getByExecutionId is the runner's secret-delivery path, but it decrypts
+    // only for scope-bound runner credentials (cloud: token_type of sandbox /
+    // workflow_sandbox / connect_sandbox, each bound to the EC it reads, with
+    // the unscoped embedded_runner bootstrap credential refused —
+    // stigmer-cloud#218; OSS: the execution-scoped token minted by
+    // getRunnerScopedToken — stigmer#535). The conformance harness
     // authenticates as a user, so it must see the same redaction as get —
-    // this is the stigmer-cloud#152 contract: no read RPC hands plaintext
-    // secrets to a user-class caller. OSS has no redaction, so the value
-    // comes back in plaintext.
+    // the stigmer-cloud#152 contract: no read RPC hands plaintext secrets to
+    // a user-class caller.
     const { org } = await target.provisionTenancy();
     const secretValue = "runtime-secret-value";
     const executionId = uniqueName("aex");
@@ -251,15 +250,10 @@ describe("ExecutionContext conformance — secrets", () => {
 
     expect(secretEntry?.isSecret, "is_secret is preserved on read in both editions").toBe(true);
     expect(fetched.spec?.data?.AWS_REGION?.value, "plaintext values are never redacted").toBe("us-east-1");
-
-    if (target.capabilities.executionContextSecretRedaction) {
-      expect(secretEntry?.value, "redacting targets must not return the plaintext secret to a user token").not.toBe(
-        secretValue,
-      );
-      return;
-    }
-
-    expect(secretEntry?.value, "OSS returns the secret value in plaintext").toBe(secretValue);
+    expect(
+      secretEntry?.value,
+      "no read RPC hands the plaintext secret to a user-class caller (stigmer-cloud#152 / stigmer#535)",
+    ).not.toBe(secretValue);
   });
 });
 

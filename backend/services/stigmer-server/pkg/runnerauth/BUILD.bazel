@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "runnerauth",
+    srcs = ["runnerauth.go"],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/runnerauth",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/services/stigmer-server/pkg/encryption",
+    ],
+)
+
+go_test(
+    name = "runnerauth_test",
+    srcs = ["runnerauth_test.go"],
+    embed = [":runnerauth"],
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

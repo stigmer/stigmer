@@ -78,7 +78,7 @@ export interface WorkflowOptions extends WorkflowSpecOptions {
 
 // A complete, valid Workflow resource ready to hand to create/apply/update.
 export function makeWorkflow(opts: WorkflowOptions): MessageInitShape<typeof WorkflowSchema> {
-  const { org, name, tag, namespace, documentName, taskVar, variables } = opts;
+  const { org, name, tag, namespace, documentName, taskVar, variables, env } = opts;
   return {
     apiVersion: WORKFLOW_API_VERSION,
     kind: WORKFLOW_KIND,
@@ -92,6 +92,7 @@ export function makeWorkflow(opts: WorkflowOptions): MessageInitShape<typeof Wor
       documentName: documentName ?? name,
       taskVar,
       variables,
+      env,
     }),
   };
 }

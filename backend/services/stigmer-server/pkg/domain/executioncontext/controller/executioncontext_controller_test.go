@@ -10,6 +10,7 @@ import (
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
+	envsteps "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller/steps"
 )
 
 // contextWithExecutionContextKind creates a context with the execution context resource kind injected
@@ -18,7 +19,9 @@ func contextWithExecutionContextKind() context.Context {
 	return context.WithValue(context.Background(), apiresourceinterceptor.ApiResourceKindKey, apiresourcekind.ApiResourceKind_execution_context)
 }
 
-// setupTestController creates a test controller with necessary dependencies
+// setupTestController creates a test controller with necessary dependencies.
+// Encryption and the runner-token lane are keyed, matching a real deployment
+// (both keys auto-generate on boot).
 func setupTestController(t *testing.T) (*ExecutionContextController, store.Store) {
 	// Create temporary SQLite store
 	store, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
@@ -26,7 +29,7 @@ func setupTestController(t *testing.T) (*ExecutionContextController, store.Store
 		t.Fatalf("failed to create store: %v", err)
 	}
 
-	controller := NewExecutionContextController(store)
+	controller := NewExecutionContextController(store, testSecretService(t), testRunnerAuth(t))
 
 	return controller, store
 }
@@ -391,11 +394,14 @@ func TestExecutionContextController_Delete(t *testing.T) {
 			t.Errorf("Expected execution_id 'verify-delete-execution-id', got '%s'", deleted.Spec.ExecutionId)
 		}
 
+		// The delete echo redacts secret values (oss#535): the key and its
+		// is_secret flag survive, the value is the marker — never the
+		// plaintext, never the stored ciphertext.
 		if verifyVal, ok := deleted.Spec.Data["VERIFY_KEY"]; !ok {
 			t.Error("Expected VERIFY_KEY in deleted data")
 		} else {
-			if verifyVal.Value != "verify-value" {
-				t.Errorf("Expected value 'verify-value', got '%s'", verifyVal.Value)
+			if verifyVal.Value != envsteps.RedactedMarker {
+				t.Errorf("Expected redacted marker, got '%s'", verifyVal.Value)
 			}
 			if !verifyVal.IsSecret {
 				t.Error("Expected is_secret to be true")

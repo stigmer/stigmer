@@ -33,6 +33,7 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/environment"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/executioncontext"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/runnerauth"
 	"go.temporal.io/sdk/client"
 )
 
@@ -61,6 +62,12 @@ type McpServerController struct {
 	temporalConfig     *agentexecutiontemporal.Config
 	environmentClient  *environment.Client
 	executionCtxClient *executioncontext.Client
+
+	// Mints the execution-scoped token the discovery activity presents to
+	// read the connect ExecutionContext's decrypted credentials (oss#535).
+	// Nil/keyless degrades to a tokenless read, which the redacting EC RPC
+	// answers with markers and discovery refuses fail-closed.
+	runnerAuth *runnerauth.Service
 
 	// Managed environment service for OAuth token storage. Initialized
 	// alongside connect dependencies since it depends on environmentClient.
@@ -98,11 +105,13 @@ func (c *McpServerController) SetConnectDependencies(
 	temporalConfig *agentexecutiontemporal.Config,
 	environmentClient *environment.Client,
 	executionCtxClient *executioncontext.Client,
+	runnerAuth *runnerauth.Service,
 ) {
 	c.temporalClient = temporalClient
 	c.temporalConfig = temporalConfig
 	c.environmentClient = environmentClient
 	c.executionCtxClient = executionCtxClient
+	c.runnerAuth = runnerAuth
 	c.managedEnvService = oauth.NewManagedEnvironmentService(environmentClient)
 }
 

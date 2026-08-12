@@ -9,7 +9,7 @@ import (
 )
 
 func TestGetRunnerBootstrapConfig_ReturnsConfiguredCoordinates(t *testing.T) {
-	c := NewPlatformController("temporal.example:7233", "prod")
+	c := NewPlatformController("temporal.example:7233", "prod", nil)
 
 	out, err := c.GetRunnerBootstrapConfig(context.Background(), &platformv1.GetRunnerBootstrapConfigInput{})
 
@@ -23,7 +23,7 @@ func TestGetRunnerBootstrapConfig_DefaultsFlowThrough(t *testing.T) {
 	// The OSS server defaults TEMPORAL_HOST_PORT to localhost:7233 / default;
 	// those defaults must reach an embedded runner verbatim so a no-config local
 	// setup works without the runner hardcoding anything.
-	c := NewPlatformController("localhost:7233", "default")
+	c := NewPlatformController("localhost:7233", "default", nil)
 
 	out, err := c.GetRunnerBootstrapConfig(context.Background(), &platformv1.GetRunnerBootstrapConfigInput{})
 

@@ -28,20 +28,16 @@ export interface CapabilityFlags {
   // Unimplemented) — version tags are instead set at apply time via
   // metadata.version.tag and resolved through getByReference.
   versionTagging: boolean;
-  // ExecutionContext secret values (ExecutionValue with is_secret=true) are
-  // redacted on EC read RPCs. True for cloud, which encrypts EC values at rest,
-  // redacts user-class reads, and decrypts only for scope-bound runner
-  // credentials (ResolveExecutionContextValuesForCaller). False for local OSS,
-  // whose runner reads the EC through the plain get/getByExecutionId RPCs — EC
-  // redaction there would break execution until the runner-scoped resolve lane
-  // is ported (tracked as the stigmer#405 spawned EC-at-rest issue; flipping
-  // this flag is that port's finish line).
-  //
-  // NOTE the scope: this gates the ExecutionContext surface ONLY. Environment
-  // secret handling is edition-CONVERGED since stigmer#405 (both editions
-  // encrypt at rest and redact every Environment-returning RPC), so it needs
-  // no capability — the environment suite asserts redaction unconditionally.
-  executionContextSecretRedaction: boolean;
+  // NOTE: there is deliberately no ExecutionContext secret-redaction
+  // capability. The EC surface is edition-CONVERGED since stigmer#535 (the
+  // stigmer#405 spawned EC-at-rest port): both editions encrypt EC values at
+  // rest, redact every user-shaped EC read, and decrypt only for a
+  // scope-bound runner credential (cloud: ResolveExecutionContextValuesForCaller;
+  // OSS: the execution-scoped token lane on getByExecutionId). The EC and
+  // envmerge suites assert redaction unconditionally, exactly like the
+  // environment suite — the flag that used to gate this
+  // (executionContextSecretRedaction) was retired at convergence, the same
+  // retirement the environment surface got in stigmer#405.
   // A child agent's tool-approval gate surfaces at the parent WorkflowExecution
   // (status.pending_approvals carries the child_agent_execution_id) so that
   // WorkflowExecution.submitApproval can forward the decision to the child.

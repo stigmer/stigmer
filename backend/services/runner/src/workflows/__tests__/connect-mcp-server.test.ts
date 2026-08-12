@@ -63,6 +63,7 @@ describe("ConnectMcpServerWorkflow", () => {
       expect(mockDiscoverActivity).toHaveBeenCalledWith({
         mcpServerId: "mcp-123",
         executionContextId: "ctx-abc",
+        executionContextToken: null,
         invokerIdentityAccountId: "user-1",
       });
 
@@ -88,6 +89,30 @@ describe("ConnectMcpServerWorkflow", () => {
       expect(mockDiscoverActivity).toHaveBeenCalledWith({
         mcpServerId: "mcp-min",
         executionContextId: null,
+        executionContextToken: null,
+        invokerIdentityAccountId: null,
+      });
+    });
+
+    it("forwards the payload-carried EC token to discovery (oss#535)", async () => {
+      // The OSS handler mints an execution-scoped token into the workflow
+      // input; discovery presents it on the EC read to receive decrypted
+      // credentials from the redact-by-default OSS server.
+      const { connectMcpServer } = await import("../connect-mcp-server.js");
+
+      mockDiscoverActivity.mockResolvedValue(makeDiscoveryResult({ tools: [] }));
+      mockClassifyActivity.mockResolvedValue([]);
+
+      await connectMcpServer({
+        mcp_server_id: "mcp-tok",
+        execution_context_id: "ctx-tok",
+        execution_context_token: "scoped-ec-token",
+      });
+
+      expect(mockDiscoverActivity).toHaveBeenCalledWith({
+        mcpServerId: "mcp-tok",
+        executionContextId: "ctx-tok",
+        executionContextToken: "scoped-ec-token",
         invokerIdentityAccountId: null,
       });
     });

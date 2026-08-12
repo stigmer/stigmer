@@ -201,6 +201,7 @@ export async function connectMcpServer(
   const discovery = await discover.DiscoverMcpServerCapabilities({
     mcpServerId: input.mcp_server_id,
     executionContextId: input.execution_context_id ?? null,
+    executionContextToken: input.execution_context_token ?? null,
     invokerIdentityAccountId: input.invoker_identity_account_id ?? null,
   });
 
@@ -288,6 +289,7 @@ export async function discoverMcpServerLegacy(
   const discovery = await discover.DiscoverMcpServerCapabilities({
     mcpServerId: input.mcp_server_id,
     executionContextId: input.execution_context_id ?? null,
+    executionContextToken: input.execution_context_token ?? null,
     invokerIdentityAccountId: input.invoker_identity_account_id ?? null,
   });
 
