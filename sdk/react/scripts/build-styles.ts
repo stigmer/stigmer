@@ -24,6 +24,7 @@
 
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
@@ -32,11 +33,20 @@ import { scopeUnprefixedSelectors } from "./lib/scope-unprefixed.js";
 const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const distFile = join(sdkRoot, "dist", "styles.css");
 
+// Invoke the Tailwind CLI's JS entry with the current Node binary rather than
+// `npx`: on Windows `npx` is a `.cmd` shim that Node refuses to spawn without
+// a shell (CVE-2024-27980 hardening), which killed release builds silently.
+const require = createRequire(import.meta.url);
+const cliPkgPath = require.resolve("@tailwindcss/cli/package.json");
+const cliPkg = require(cliPkgPath) as { bin: { tailwindcss: string } };
+const tailwindCli = join(dirname(cliPkgPath), cliPkg.bin.tailwindcss);
+
 const cli = spawnSync(
-  "npx",
-  ["tailwindcss", "-i", "src/styles.css", "-o", "dist/styles.css", "--minify"],
+  process.execPath,
+  [tailwindCli, "-i", "src/styles.css", "-o", "dist/styles.css", "--minify"],
   { cwd: sdkRoot, stdio: "inherit" },
 );
+if (cli.error) throw cli.error;
 if (cli.status !== 0) process.exit(cli.status ?? 1);
 
 const root = postcss.parse(readFileSync(distFile, "utf8"));
