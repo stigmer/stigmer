@@ -19,6 +19,7 @@ import {
 import { useAutoScroll } from "../internal/useAutoScroll.js";
 import { ConversationMediaAttachment } from "./ConversationMediaAttachment.js";
 import {
+  attemptExplanationOf,
   authorKindOf,
   inboundPlaceholderOf,
   isInternalItem,
@@ -228,14 +229,25 @@ const TimelineItemRow = memo(function TimelineItemRow({
   // relay, never pattern-matched; the numeric twin (receipt_error_code)
   // stays off the surface as machine vocabulary. Gated exactly like
   // ReceiptTicks' failed arm — attempt delivered AND receipt failed —
-  // so the attempt-axis explanation (last_error, F-25's slice) can
-  // structurally never leak in here.
+  // so the attempt-axis explanation (attemptExplanationOf, cloud#262's
+  // slice) can structurally never leak in here: its gate requires
+  // attempt FAILED, this one attempt delivered, so at most one of the
+  // two explanations ever renders.
   const receiptExplanation =
     sendAttemptOf(item) === "delivered" &&
     receiptOf(item) === "failed" &&
     item.receiptDetail !== ""
       ? item.receiptDetail
       : null;
+
+  // The attempt axis's explanation (cloud#262, closing F-25), the same
+  // R-1 visible-text treatment as the receipt explanation and for the
+  // same reason: why a send failed is decision-bearing (a closed
+  // 24h-window refusal says "the customer must write first"; a deleted
+  // channel says there is nothing to retry). The words and the gate
+  // live in attemptExplanationOf — presentation vocabulary, never
+  // computed in the view.
+  const attemptExplanation = attemptExplanationOf(item);
 
   return (
     <li className={cn("stg:flex", isCustomer ? "stg:justify-start" : "stg:justify-end")}>
@@ -272,6 +284,11 @@ const TimelineItemRow = memo(function TimelineItemRow({
         {receiptExplanation !== null && (
           <p className="stg:mt-1 stg:break-words stg:text-xs stg:text-destructive">
             {receiptExplanation}
+          </p>
+        )}
+        {attemptExplanation !== null && (
+          <p className="stg:mt-1 stg:break-words stg:text-xs stg:text-destructive">
+            {attemptExplanation}
           </p>
         )}
         <ItemFooter item={item} />

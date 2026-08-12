@@ -136,6 +136,32 @@ message ChannelOutboundMessage {
   // provider I/O; no later writer touches it. No backfill is possible —
   // pre-field history stays honestly unavailable (the D1-A consequence).
   string rendered_body = 20;
+
+  // Why the send FAILED, in the platform's classification. Unspecified
+  // unless status is failed (and on rows terminal before this field
+  // existed). A third axis fact beside status and the receipt pair.
+  //
+  // @internal
+  // cloud#262 (channel-conversations F-25): the classification that
+  // decides whether the failure's explanation may reach the conversation
+  // timeline. Written only by markFailed and the delete cascade, never by
+  // markRetry — a scheduled retry is not a verdict. The ChannelDelivery
+  // twin (its fields 18/19) carries the same contract.
+  ChannelAttemptFailureKind failure_kind = 21;
+
+  // The thread-safe explanation of a FAILED send, when one was authored
+  // for the conversation surface. Empty unless failure_kind is
+  // attempt_refused or attempt_withdrawn.
+  //
+  // @internal
+  // cloud#262: PLATFORM-authored copy — for refusals this is the
+  // TERMINAL_REFUSALS mapped explanation (plus the provider's own
+  // error_data details when present), NOT the receipt axis's
+  // provider-owned vocabulary. The write side is the guarantee: only the
+  // refusal and withdrawal arms carry copy here, so raw exception text
+  // (which stays in last_error, an operator-only fact) can structurally
+  // never reach the timeline relay.
+  string attempt_detail = 22;
 }
 
 // ChannelReceiptState is the provider-reported delivery progress of an

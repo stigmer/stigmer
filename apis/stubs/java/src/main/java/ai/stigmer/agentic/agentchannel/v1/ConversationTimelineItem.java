@@ -51,6 +51,8 @@ private static final long serialVersionUID = 0L;
     receiptState_ = 0;
     origin_ = 0;
     receiptDetail_ = "";
+    attemptDetail_ = "";
+    attemptFailureKind_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -621,6 +623,127 @@ private static final long serialVersionUID = 0L;
     return media_ == null ? ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef.getDefaultInstance() : media_;
   }
 
+  public static final int ATTEMPT_DETAIL_FIELD_NUMBER = 14;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object attemptDetail_ = "";
+  /**
+   * <pre>
+   * The platform's explanation of a FAILED send attempt, when one was
+   * authored for this surface (a provider refusal's mapped copy, or the
+   * short fact behind a withdrawn send such as "channel deleted").
+   * Empty on non-failed items and on technical failures, whose
+   * diagnostics deliberately stay off the thread.
+   *
+   * &#64;internal
+   * cloud#262 (channel-conversations F-25). The attempt-axis sibling of
+   * receipt_detail (field 11) with one deliberate doctrine difference:
+   * receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
+   * field carries PLATFORM-authored thread-safe copy — the guarantee is
+   * the write-side classification (the ledgers' attempt_detail is only
+   * ever written by the refusal/withdrawal arms; raw exception text
+   * lands in last_error, which never rides the wire). A pure relay of
+   * the row's own pair, never gated here: the stamp writer owns when
+   * the pair is meaningful. Rides both "ob:" and "dl:" items.
+   * </pre>
+   *
+   * <code>string attempt_detail = 14 [json_name = "attemptDetail"];</code>
+   * @return The attemptDetail.
+   */
+  @java.lang.Override
+  public java.lang.String getAttemptDetail() {
+    java.lang.Object ref = attemptDetail_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      attemptDetail_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The platform's explanation of a FAILED send attempt, when one was
+   * authored for this surface (a provider refusal's mapped copy, or the
+   * short fact behind a withdrawn send such as "channel deleted").
+   * Empty on non-failed items and on technical failures, whose
+   * diagnostics deliberately stay off the thread.
+   *
+   * &#64;internal
+   * cloud#262 (channel-conversations F-25). The attempt-axis sibling of
+   * receipt_detail (field 11) with one deliberate doctrine difference:
+   * receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
+   * field carries PLATFORM-authored thread-safe copy — the guarantee is
+   * the write-side classification (the ledgers' attempt_detail is only
+   * ever written by the refusal/withdrawal arms; raw exception text
+   * lands in last_error, which never rides the wire). A pure relay of
+   * the row's own pair, never gated here: the stamp writer owns when
+   * the pair is meaningful. Rides both "ob:" and "dl:" items.
+   * </pre>
+   *
+   * <code>string attempt_detail = 14 [json_name = "attemptDetail"];</code>
+   * @return The bytes for attemptDetail.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getAttemptDetailBytes() {
+    java.lang.Object ref = attemptDetail_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      attemptDetail_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int ATTEMPT_FAILURE_KIND_FIELD_NUMBER = 15;
+  private int attemptFailureKind_ = 0;
+  /**
+   * <pre>
+   * Why a FAILED send attempt failed, in the platform's classification.
+   * Unspecified on non-failed items and on rows written before the
+   * classification existed.
+   *
+   * &#64;internal
+   * The structured twin, shipped WITH attempt_detail and never after it
+   * (the receipt_error_code discipline): a client that branches on the
+   * failure keys on this enum, never the prose. attempt_errored rows
+   * carry no detail by construction — clients render their own generic
+   * copy for that arm.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>
+   * @return The enum numeric value on the wire for attemptFailureKind.
+   */
+  @java.lang.Override public int getAttemptFailureKindValue() {
+    return attemptFailureKind_;
+  }
+  /**
+   * <pre>
+   * Why a FAILED send attempt failed, in the platform's classification.
+   * Unspecified on non-failed items and on rows written before the
+   * classification existed.
+   *
+   * &#64;internal
+   * The structured twin, shipped WITH attempt_detail and never after it
+   * (the receipt_error_code discipline): a client that branches on the
+   * failure keys on this enum, never the prose. attempt_errored rows
+   * carry no detail by construction — clients render their own generic
+   * copy for that arm.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>
+   * @return The attemptFailureKind.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind getAttemptFailureKind() {
+    ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind result = ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind.forNumber(attemptFailureKind_);
+    return result == null ? ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -673,6 +796,12 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(13, getMedia());
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(attemptDetail_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 14, attemptDetail_);
+    }
+    if (attemptFailureKind_ != ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind.attempt_failure_unspecified.getNumber()) {
+      output.writeEnum(15, attemptFailureKind_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -730,6 +859,13 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(13, getMedia());
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(attemptDetail_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(14, attemptDetail_);
+    }
+    if (attemptFailureKind_ != ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind.attempt_failure_unspecified.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(15, attemptFailureKind_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -772,6 +908,9 @@ private static final long serialVersionUID = 0L;
       if (!getMedia()
           .equals(other.getMedia())) return false;
     }
+    if (!getAttemptDetail()
+        .equals(other.getAttemptDetail())) return false;
+    if (attemptFailureKind_ != other.attemptFailureKind_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -813,6 +952,10 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + MEDIA_FIELD_NUMBER;
       hash = (53 * hash) + getMedia().hashCode();
     }
+    hash = (37 * hash) + ATTEMPT_DETAIL_FIELD_NUMBER;
+    hash = (53 * hash) + getAttemptDetail().hashCode();
+    hash = (37 * hash) + ATTEMPT_FAILURE_KIND_FIELD_NUMBER;
+    hash = (53 * hash) + attemptFailureKind_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -985,6 +1128,8 @@ private static final long serialVersionUID = 0L;
         mediaBuilder_.dispose();
         mediaBuilder_ = null;
       }
+      attemptDetail_ = "";
+      attemptFailureKind_ = 0;
       return this;
     }
 
@@ -1064,6 +1209,12 @@ private static final long serialVersionUID = 0L;
             : mediaBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
+      if (((from_bitField0_ & 0x00002000) != 0)) {
+        result.attemptDetail_ = attemptDetail_;
+      }
+      if (((from_bitField0_ & 0x00004000) != 0)) {
+        result.attemptFailureKind_ = attemptFailureKind_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1127,6 +1278,14 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasMedia()) {
         mergeMedia(other.getMedia());
+      }
+      if (!other.getAttemptDetail().isEmpty()) {
+        attemptDetail_ = other.attemptDetail_;
+        bitField0_ |= 0x00002000;
+        onChanged();
+      }
+      if (other.attemptFailureKind_ != 0) {
+        setAttemptFailureKindValue(other.getAttemptFailureKindValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1223,6 +1382,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00001000;
               break;
             } // case 106
+            case 114: {
+              attemptDetail_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00002000;
+              break;
+            } // case 114
+            case 120: {
+              attemptFailureKind_ = input.readEnum();
+              bitField0_ |= 0x00004000;
+              break;
+            } // case 120
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2670,6 +2839,290 @@ private static final long serialVersionUID = 0L;
         media_ = null;
       }
       return mediaBuilder_;
+    }
+
+    private java.lang.Object attemptDetail_ = "";
+    /**
+     * <pre>
+     * The platform's explanation of a FAILED send attempt, when one was
+     * authored for this surface (a provider refusal's mapped copy, or the
+     * short fact behind a withdrawn send such as "channel deleted").
+     * Empty on non-failed items and on technical failures, whose
+     * diagnostics deliberately stay off the thread.
+     *
+     * &#64;internal
+     * cloud#262 (channel-conversations F-25). The attempt-axis sibling of
+     * receipt_detail (field 11) with one deliberate doctrine difference:
+     * receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
+     * field carries PLATFORM-authored thread-safe copy — the guarantee is
+     * the write-side classification (the ledgers' attempt_detail is only
+     * ever written by the refusal/withdrawal arms; raw exception text
+     * lands in last_error, which never rides the wire). A pure relay of
+     * the row's own pair, never gated here: the stamp writer owns when
+     * the pair is meaningful. Rides both "ob:" and "dl:" items.
+     * </pre>
+     *
+     * <code>string attempt_detail = 14 [json_name = "attemptDetail"];</code>
+     * @return The attemptDetail.
+     */
+    public java.lang.String getAttemptDetail() {
+      java.lang.Object ref = attemptDetail_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        attemptDetail_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The platform's explanation of a FAILED send attempt, when one was
+     * authored for this surface (a provider refusal's mapped copy, or the
+     * short fact behind a withdrawn send such as "channel deleted").
+     * Empty on non-failed items and on technical failures, whose
+     * diagnostics deliberately stay off the thread.
+     *
+     * &#64;internal
+     * cloud#262 (channel-conversations F-25). The attempt-axis sibling of
+     * receipt_detail (field 11) with one deliberate doctrine difference:
+     * receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
+     * field carries PLATFORM-authored thread-safe copy — the guarantee is
+     * the write-side classification (the ledgers' attempt_detail is only
+     * ever written by the refusal/withdrawal arms; raw exception text
+     * lands in last_error, which never rides the wire). A pure relay of
+     * the row's own pair, never gated here: the stamp writer owns when
+     * the pair is meaningful. Rides both "ob:" and "dl:" items.
+     * </pre>
+     *
+     * <code>string attempt_detail = 14 [json_name = "attemptDetail"];</code>
+     * @return The bytes for attemptDetail.
+     */
+    public com.google.protobuf.ByteString
+        getAttemptDetailBytes() {
+      java.lang.Object ref = attemptDetail_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        attemptDetail_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The platform's explanation of a FAILED send attempt, when one was
+     * authored for this surface (a provider refusal's mapped copy, or the
+     * short fact behind a withdrawn send such as "channel deleted").
+     * Empty on non-failed items and on technical failures, whose
+     * diagnostics deliberately stay off the thread.
+     *
+     * &#64;internal
+     * cloud#262 (channel-conversations F-25). The attempt-axis sibling of
+     * receipt_detail (field 11) with one deliberate doctrine difference:
+     * receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
+     * field carries PLATFORM-authored thread-safe copy — the guarantee is
+     * the write-side classification (the ledgers' attempt_detail is only
+     * ever written by the refusal/withdrawal arms; raw exception text
+     * lands in last_error, which never rides the wire). A pure relay of
+     * the row's own pair, never gated here: the stamp writer owns when
+     * the pair is meaningful. Rides both "ob:" and "dl:" items.
+     * </pre>
+     *
+     * <code>string attempt_detail = 14 [json_name = "attemptDetail"];</code>
+     * @param value The attemptDetail to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAttemptDetail(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      attemptDetail_ = value;
+      bitField0_ |= 0x00002000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The platform's explanation of a FAILED send attempt, when one was
+     * authored for this surface (a provider refusal's mapped copy, or the
+     * short fact behind a withdrawn send such as "channel deleted").
+     * Empty on non-failed items and on technical failures, whose
+     * diagnostics deliberately stay off the thread.
+     *
+     * &#64;internal
+     * cloud#262 (channel-conversations F-25). The attempt-axis sibling of
+     * receipt_detail (field 11) with one deliberate doctrine difference:
+     * receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
+     * field carries PLATFORM-authored thread-safe copy — the guarantee is
+     * the write-side classification (the ledgers' attempt_detail is only
+     * ever written by the refusal/withdrawal arms; raw exception text
+     * lands in last_error, which never rides the wire). A pure relay of
+     * the row's own pair, never gated here: the stamp writer owns when
+     * the pair is meaningful. Rides both "ob:" and "dl:" items.
+     * </pre>
+     *
+     * <code>string attempt_detail = 14 [json_name = "attemptDetail"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAttemptDetail() {
+      attemptDetail_ = getDefaultInstance().getAttemptDetail();
+      bitField0_ = (bitField0_ & ~0x00002000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The platform's explanation of a FAILED send attempt, when one was
+     * authored for this surface (a provider refusal's mapped copy, or the
+     * short fact behind a withdrawn send such as "channel deleted").
+     * Empty on non-failed items and on technical failures, whose
+     * diagnostics deliberately stay off the thread.
+     *
+     * &#64;internal
+     * cloud#262 (channel-conversations F-25). The attempt-axis sibling of
+     * receipt_detail (field 11) with one deliberate doctrine difference:
+     * receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
+     * field carries PLATFORM-authored thread-safe copy — the guarantee is
+     * the write-side classification (the ledgers' attempt_detail is only
+     * ever written by the refusal/withdrawal arms; raw exception text
+     * lands in last_error, which never rides the wire). A pure relay of
+     * the row's own pair, never gated here: the stamp writer owns when
+     * the pair is meaningful. Rides both "ob:" and "dl:" items.
+     * </pre>
+     *
+     * <code>string attempt_detail = 14 [json_name = "attemptDetail"];</code>
+     * @param value The bytes for attemptDetail to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAttemptDetailBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      attemptDetail_ = value;
+      bitField0_ |= 0x00002000;
+      onChanged();
+      return this;
+    }
+
+    private int attemptFailureKind_ = 0;
+    /**
+     * <pre>
+     * Why a FAILED send attempt failed, in the platform's classification.
+     * Unspecified on non-failed items and on rows written before the
+     * classification existed.
+     *
+     * &#64;internal
+     * The structured twin, shipped WITH attempt_detail and never after it
+     * (the receipt_error_code discipline): a client that branches on the
+     * failure keys on this enum, never the prose. attempt_errored rows
+     * carry no detail by construction — clients render their own generic
+     * copy for that arm.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>
+     * @return The enum numeric value on the wire for attemptFailureKind.
+     */
+    @java.lang.Override public int getAttemptFailureKindValue() {
+      return attemptFailureKind_;
+    }
+    /**
+     * <pre>
+     * Why a FAILED send attempt failed, in the platform's classification.
+     * Unspecified on non-failed items and on rows written before the
+     * classification existed.
+     *
+     * &#64;internal
+     * The structured twin, shipped WITH attempt_detail and never after it
+     * (the receipt_error_code discipline): a client that branches on the
+     * failure keys on this enum, never the prose. attempt_errored rows
+     * carry no detail by construction — clients render their own generic
+     * copy for that arm.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>
+     * @param value The enum numeric value on the wire for attemptFailureKind to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setAttemptFailureKindValue(int value) {
+      attemptFailureKind_ = value;
+      bitField0_ |= 0x00004000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Why a FAILED send attempt failed, in the platform's classification.
+     * Unspecified on non-failed items and on rows written before the
+     * classification existed.
+     *
+     * &#64;internal
+     * The structured twin, shipped WITH attempt_detail and never after it
+     * (the receipt_error_code discipline): a client that branches on the
+     * failure keys on this enum, never the prose. attempt_errored rows
+     * carry no detail by construction — clients render their own generic
+     * copy for that arm.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>
+     * @return The attemptFailureKind.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind getAttemptFailureKind() {
+      ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind result = ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind.forNumber(attemptFailureKind_);
+      return result == null ? ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Why a FAILED send attempt failed, in the platform's classification.
+     * Unspecified on non-failed items and on rows written before the
+     * classification existed.
+     *
+     * &#64;internal
+     * The structured twin, shipped WITH attempt_detail and never after it
+     * (the receipt_error_code discipline): a client that branches on the
+     * failure keys on this enum, never the prose. attempt_errored rows
+     * carry no detail by construction — clients render their own generic
+     * copy for that arm.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>
+     * @param value The attemptFailureKind to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAttemptFailureKind(ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00004000;
+      attemptFailureKind_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Why a FAILED send attempt failed, in the platform's classification.
+     * Unspecified on non-failed items and on rows written before the
+     * classification existed.
+     *
+     * &#64;internal
+     * The structured twin, shipped WITH attempt_detail and never after it
+     * (the receipt_error_code discipline): a client that branches on the
+     * failure keys on this enum, never the prose. attempt_errored rows
+     * carry no detail by construction — clients render their own generic
+     * copy for that arm.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAttemptFailureKind() {
+      bitField0_ = (bitField0_ & ~0x00004000);
+      attemptFailureKind_ = 0;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem)

@@ -246,6 +246,36 @@ message ConversationTimelineItem {
   // is conversation-viewer-scoped by construction and blob capabilities
   // never leave the server.
   ConversationMediaRef media = 13;
+
+  // The platform's explanation of a FAILED send attempt, when one was
+  // authored for this surface (a provider refusal's mapped copy, or the
+  // short fact behind a withdrawn send such as "channel deleted").
+  // Empty on non-failed items and on technical failures, whose
+  // diagnostics deliberately stay off the thread.
+  //
+  // @internal
+  // cloud#262 (channel-conversations F-25). The attempt-axis sibling of
+  // receipt_detail (field 11) with one deliberate doctrine difference:
+  // receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
+  // field carries PLATFORM-authored thread-safe copy — the guarantee is
+  // the write-side classification (the ledgers' attempt_detail is only
+  // ever written by the refusal/withdrawal arms; raw exception text
+  // lands in last_error, which never rides the wire). A pure relay of
+  // the row's own pair, never gated here: the stamp writer owns when
+  // the pair is meaningful. Rides both "ob:" and "dl:" items.
+  string attempt_detail = 14;
+
+  // Why a FAILED send attempt failed, in the platform's classification.
+  // Unspecified on non-failed items and on rows written before the
+  // classification existed.
+  //
+  // @internal
+  // The structured twin, shipped WITH attempt_detail and never after it
+  // (the receipt_error_code discipline): a client that branches on the
+  // failure keys on this enum, never the prose. attempt_errored rows
+  // carry no detail by construction — clients render their own generic
+  // copy for that arm.
+  ChannelAttemptFailureKind attempt_failure_kind = 15;
 }
 
 // ConversationMediaRef describes a media file attached to an inbound

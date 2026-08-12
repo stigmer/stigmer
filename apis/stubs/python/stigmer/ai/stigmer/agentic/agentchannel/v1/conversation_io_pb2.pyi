@@ -84,7 +84,7 @@ class ChannelConversation(_message.Message):
     def __init__(self, agent_channel_id: _Optional[str] = ..., conversation_key: _Optional[str] = ..., org: _Optional[str] = ..., control: _Optional[_Union[ConversationControl, str]] = ..., controlled_by: _Optional[str] = ..., control_changed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., needs_attention: bool = ..., attention_reason: _Optional[str] = ..., attention_changed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., display_name: _Optional[str] = ..., last_customer_message_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., last_activity_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., awaiting_reply: bool = ...) -> None: ...
 
 class ConversationTimelineItem(_message.Message):
-    __slots__ = ("item_id", "lane", "author", "authored_by", "text", "provider_message_type", "at", "delivery_status", "receipt_state", "origin", "receipt_detail", "receipt_error_code", "media")
+    __slots__ = ("item_id", "lane", "author", "authored_by", "text", "provider_message_type", "at", "delivery_status", "receipt_state", "origin", "receipt_detail", "receipt_error_code", "media", "attempt_detail", "attempt_failure_kind")
     ITEM_ID_FIELD_NUMBER: _ClassVar[int]
     LANE_FIELD_NUMBER: _ClassVar[int]
     AUTHOR_FIELD_NUMBER: _ClassVar[int]
@@ -98,6 +98,8 @@ class ConversationTimelineItem(_message.Message):
     RECEIPT_DETAIL_FIELD_NUMBER: _ClassVar[int]
     RECEIPT_ERROR_CODE_FIELD_NUMBER: _ClassVar[int]
     MEDIA_FIELD_NUMBER: _ClassVar[int]
+    ATTEMPT_DETAIL_FIELD_NUMBER: _ClassVar[int]
+    ATTEMPT_FAILURE_KIND_FIELD_NUMBER: _ClassVar[int]
     item_id: str
     lane: ConversationLane
     author: ConversationItemAuthor
@@ -111,7 +113,9 @@ class ConversationTimelineItem(_message.Message):
     receipt_detail: str
     receipt_error_code: int
     media: ConversationMediaRef
-    def __init__(self, item_id: _Optional[str] = ..., lane: _Optional[_Union[ConversationLane, str]] = ..., author: _Optional[_Union[ConversationItemAuthor, str]] = ..., authored_by: _Optional[str] = ..., text: _Optional[str] = ..., provider_message_type: _Optional[str] = ..., at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., delivery_status: _Optional[_Union[_delivery_pb2.ChannelDeliveryStatus, str]] = ..., receipt_state: _Optional[_Union[_outbound_pb2.ChannelReceiptState, str]] = ..., origin: _Optional[_Union[_outbound_pb2.ChannelOutboundOrigin, str]] = ..., receipt_detail: _Optional[str] = ..., receipt_error_code: _Optional[int] = ..., media: _Optional[_Union[ConversationMediaRef, _Mapping]] = ...) -> None: ...
+    attempt_detail: str
+    attempt_failure_kind: _delivery_pb2.ChannelAttemptFailureKind
+    def __init__(self, item_id: _Optional[str] = ..., lane: _Optional[_Union[ConversationLane, str]] = ..., author: _Optional[_Union[ConversationItemAuthor, str]] = ..., authored_by: _Optional[str] = ..., text: _Optional[str] = ..., provider_message_type: _Optional[str] = ..., at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., delivery_status: _Optional[_Union[_delivery_pb2.ChannelDeliveryStatus, str]] = ..., receipt_state: _Optional[_Union[_outbound_pb2.ChannelReceiptState, str]] = ..., origin: _Optional[_Union[_outbound_pb2.ChannelOutboundOrigin, str]] = ..., receipt_detail: _Optional[str] = ..., receipt_error_code: _Optional[int] = ..., media: _Optional[_Union[ConversationMediaRef, _Mapping]] = ..., attempt_detail: _Optional[str] = ..., attempt_failure_kind: _Optional[_Union[_delivery_pb2.ChannelAttemptFailureKind, str]] = ...) -> None: ...
 
 class ConversationMediaRef(_message.Message):
     __slots__ = ("filename", "content_type", "size_bytes")

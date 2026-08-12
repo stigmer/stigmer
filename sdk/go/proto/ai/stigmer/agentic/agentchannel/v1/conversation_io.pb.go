@@ -547,9 +547,37 @@ type ConversationTimelineItem struct {
 	// and the server resolves the key from its own row, so the read path
 	// is conversation-viewer-scoped by construction and blob capabilities
 	// never leave the server.
-	Media         *ConversationMediaRef `protobuf:"bytes,13,opt,name=media,proto3" json:"media,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Media *ConversationMediaRef `protobuf:"bytes,13,opt,name=media,proto3" json:"media,omitempty"`
+	// The platform's explanation of a FAILED send attempt, when one was
+	// authored for this surface (a provider refusal's mapped copy, or the
+	// short fact behind a withdrawn send such as "channel deleted").
+	// Empty on non-failed items and on technical failures, whose
+	// diagnostics deliberately stay off the thread.
+	//
+	// @internal
+	// cloud#262 (channel-conversations F-25). The attempt-axis sibling of
+	// receipt_detail (field 11) with one deliberate doctrine difference:
+	// receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
+	// field carries PLATFORM-authored thread-safe copy — the guarantee is
+	// the write-side classification (the ledgers' attempt_detail is only
+	// ever written by the refusal/withdrawal arms; raw exception text
+	// lands in last_error, which never rides the wire). A pure relay of
+	// the row's own pair, never gated here: the stamp writer owns when
+	// the pair is meaningful. Rides both "ob:" and "dl:" items.
+	AttemptDetail string `protobuf:"bytes,14,opt,name=attempt_detail,json=attemptDetail,proto3" json:"attempt_detail,omitempty"`
+	// Why a FAILED send attempt failed, in the platform's classification.
+	// Unspecified on non-failed items and on rows written before the
+	// classification existed.
+	//
+	// @internal
+	// The structured twin, shipped WITH attempt_detail and never after it
+	// (the receipt_error_code discipline): a client that branches on the
+	// failure keys on this enum, never the prose. attempt_errored rows
+	// carry no detail by construction — clients render their own generic
+	// copy for that arm.
+	AttemptFailureKind ChannelAttemptFailureKind `protobuf:"varint,15,opt,name=attempt_failure_kind,json=attemptFailureKind,proto3,enum=ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind" json:"attempt_failure_kind,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *ConversationTimelineItem) Reset() {
@@ -671,6 +699,20 @@ func (x *ConversationTimelineItem) GetMedia() *ConversationMediaRef {
 		return x.Media
 	}
 	return nil
+}
+
+func (x *ConversationTimelineItem) GetAttemptDetail() string {
+	if x != nil {
+		return x.AttemptDetail
+	}
+	return ""
+}
+
+func (x *ConversationTimelineItem) GetAttemptFailureKind() ChannelAttemptFailureKind {
+	if x != nil {
+		return x.AttemptFailureKind
+	}
+	return ChannelAttemptFailureKind_attempt_failure_unspecified
 }
 
 // ConversationMediaRef describes a media file attached to an inbound
@@ -1385,7 +1427,7 @@ const file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDesc = ""
 	" \x01(\tR\vdisplayName\x12S\n" +
 	"\x18last_customer_message_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\x15lastCustomerMessageAt\x12D\n" +
 	"\x10last_activity_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\x0elastActivityAt\x12%\n" +
-	"\x0eawaiting_reply\x18\r \x01(\bR\rawaitingReply\"\xa0\x06\n" +
+	"\x0eawaiting_reply\x18\r \x01(\bR\rawaitingReply\"\xb8\a\n" +
 	"\x18ConversationTimelineItem\x12\x17\n" +
 	"\aitem_id\x18\x01 \x01(\tR\x06itemId\x12H\n" +
 	"\x04lane\x18\x02 \x01(\x0e24.ai.stigmer.agentic.agentchannel.v1.ConversationLaneR\x04lane\x12R\n" +
@@ -1401,7 +1443,9 @@ const file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDesc = ""
 	" \x01(\x0e29.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOriginR\x06origin\x12%\n" +
 	"\x0ereceipt_detail\x18\v \x01(\tR\rreceiptDetail\x12,\n" +
 	"\x12receipt_error_code\x18\f \x01(\x05R\x10receiptErrorCode\x12N\n" +
-	"\x05media\x18\r \x01(\v28.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRefR\x05media\"t\n" +
+	"\x05media\x18\r \x01(\v28.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRefR\x05media\x12%\n" +
+	"\x0eattempt_detail\x18\x0e \x01(\tR\rattemptDetail\x12o\n" +
+	"\x14attempt_failure_kind\x18\x0f \x01(\x0e2=.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKindR\x12attemptFailureKind\"t\n" +
 	"\x14ConversationMediaRef\x12\x1a\n" +
 	"\bfilename\x18\x01 \x01(\tR\bfilename\x12!\n" +
 	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\x12\x1d\n" +
@@ -1512,8 +1556,9 @@ var file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_goTypes = []an
 	(ChannelDeliveryStatus)(0),                   // 18: ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
 	(ChannelReceiptState)(0),                     // 19: ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState
 	(ChannelOutboundOrigin)(0),                   // 20: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin
-	(*rpc.PageInfo)(nil),                         // 21: ai.stigmer.commons.rpc.PageInfo
-	(*ChannelOutboundPayload)(nil),               // 22: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
+	(ChannelAttemptFailureKind)(0),               // 21: ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind
+	(*rpc.PageInfo)(nil),                         // 22: ai.stigmer.commons.rpc.PageInfo
+	(*ChannelOutboundPayload)(nil),               // 23: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
 }
 var file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.control:type_name -> ai.stigmer.agentic.agentchannel.v1.ConversationControl
@@ -1528,17 +1573,18 @@ var file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_depIdxs = []in
 	19, // 9: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.receipt_state:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState
 	20, // 10: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.origin:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin
 	6,  // 11: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.media:type_name -> ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef
-	21, // 12: ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	3,  // 13: ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput.filter:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter
-	4,  // 14: ai.stigmer.agentic.agentchannel.v1.ChannelConversationList.items:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelConversation
-	5,  // 15: ai.stigmer.agentic.agentchannel.v1.ConversationTimeline.items:type_name -> ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem
-	17, // 16: ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl.expires_at:type_name -> google.protobuf.Timestamp
-	22, // 17: ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput.payload:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
-	18, // [18:18] is the sub-list for method output_type
-	18, // [18:18] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	21, // 12: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.attempt_failure_kind:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind
+	22, // 13: ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	3,  // 14: ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput.filter:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter
+	4,  // 15: ai.stigmer.agentic.agentchannel.v1.ChannelConversationList.items:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelConversation
+	5,  // 16: ai.stigmer.agentic.agentchannel.v1.ConversationTimeline.items:type_name -> ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem
+	17, // 17: ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl.expires_at:type_name -> google.protobuf.Timestamp
+	23, // 18: ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput.payload:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
+	19, // [19:19] is the sub-list for method output_type
+	19, // [19:19] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_init() }

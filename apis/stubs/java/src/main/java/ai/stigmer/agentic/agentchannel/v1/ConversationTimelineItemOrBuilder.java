@@ -361,4 +361,91 @@ public interface ConversationTimelineItemOrBuilder extends
    * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
    */
   ai.stigmer.agentic.agentchannel.v1.ConversationMediaRefOrBuilder getMediaOrBuilder();
+
+  /**
+   * <pre>
+   * The platform's explanation of a FAILED send attempt, when one was
+   * authored for this surface (a provider refusal's mapped copy, or the
+   * short fact behind a withdrawn send such as "channel deleted").
+   * Empty on non-failed items and on technical failures, whose
+   * diagnostics deliberately stay off the thread.
+   *
+   * &#64;internal
+   * cloud#262 (channel-conversations F-25). The attempt-axis sibling of
+   * receipt_detail (field 11) with one deliberate doctrine difference:
+   * receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
+   * field carries PLATFORM-authored thread-safe copy — the guarantee is
+   * the write-side classification (the ledgers' attempt_detail is only
+   * ever written by the refusal/withdrawal arms; raw exception text
+   * lands in last_error, which never rides the wire). A pure relay of
+   * the row's own pair, never gated here: the stamp writer owns when
+   * the pair is meaningful. Rides both "ob:" and "dl:" items.
+   * </pre>
+   *
+   * <code>string attempt_detail = 14 [json_name = "attemptDetail"];</code>
+   * @return The attemptDetail.
+   */
+  java.lang.String getAttemptDetail();
+  /**
+   * <pre>
+   * The platform's explanation of a FAILED send attempt, when one was
+   * authored for this surface (a provider refusal's mapped copy, or the
+   * short fact behind a withdrawn send such as "channel deleted").
+   * Empty on non-failed items and on technical failures, whose
+   * diagnostics deliberately stay off the thread.
+   *
+   * &#64;internal
+   * cloud#262 (channel-conversations F-25). The attempt-axis sibling of
+   * receipt_detail (field 11) with one deliberate doctrine difference:
+   * receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
+   * field carries PLATFORM-authored thread-safe copy — the guarantee is
+   * the write-side classification (the ledgers' attempt_detail is only
+   * ever written by the refusal/withdrawal arms; raw exception text
+   * lands in last_error, which never rides the wire). A pure relay of
+   * the row's own pair, never gated here: the stamp writer owns when
+   * the pair is meaningful. Rides both "ob:" and "dl:" items.
+   * </pre>
+   *
+   * <code>string attempt_detail = 14 [json_name = "attemptDetail"];</code>
+   * @return The bytes for attemptDetail.
+   */
+  com.google.protobuf.ByteString
+      getAttemptDetailBytes();
+
+  /**
+   * <pre>
+   * Why a FAILED send attempt failed, in the platform's classification.
+   * Unspecified on non-failed items and on rows written before the
+   * classification existed.
+   *
+   * &#64;internal
+   * The structured twin, shipped WITH attempt_detail and never after it
+   * (the receipt_error_code discipline): a client that branches on the
+   * failure keys on this enum, never the prose. attempt_errored rows
+   * carry no detail by construction — clients render their own generic
+   * copy for that arm.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>
+   * @return The enum numeric value on the wire for attemptFailureKind.
+   */
+  int getAttemptFailureKindValue();
+  /**
+   * <pre>
+   * Why a FAILED send attempt failed, in the platform's classification.
+   * Unspecified on non-failed items and on rows written before the
+   * classification existed.
+   *
+   * &#64;internal
+   * The structured twin, shipped WITH attempt_detail and never after it
+   * (the receipt_error_code discipline): a client that branches on the
+   * failure keys on this enum, never the prose. attempt_errored rows
+   * carry no detail by construction — clients render their own generic
+   * copy for that arm.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>
+   * @return The attemptFailureKind.
+   */
+  ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind getAttemptFailureKind();
 }

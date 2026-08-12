@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/delivery.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_delivery: GenFile = /*@__PURE__*/
-  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2RlbGl2ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIo8FCg9DaGFubmVsRGVsaXZlcnkSEwoLZGVsaXZlcnlfaWQYASABKAkSGAoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCRILCgNvcmcYAyABKAkSFAoMZXhlY3V0aW9uX2lkGAQgASgJEhIKCnNlc3Npb25faWQYBSABKAkSGAoQY29udmVyc2F0aW9uX2tleRgGIAEoCRIZChFleHRlcm5hbF91c2VyX2tleRgHIAEoCRJJCgZzdGF0dXMYCCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxEZWxpdmVyeVN0YXR1cxIQCghhdHRlbXB0cxgJIAEoBRISCgpsYXN0X2Vycm9yGAogASgJEhcKD2lkZW1wb3RlbmN5X2tleRgLIAEoCRJJCgVzbGFjaxgMIAEoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuU2xhY2tEZWxpdmVyeUNvbnRleHRIABJPCgh3aGF0c2FwcBgQIAEoCzI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuV2hhdHNBcHBEZWxpdmVyeUNvbnRleHRIABIuCgpjcmVhdGVkX2F0GA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GA4gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIzCg9uZXh0X2F0dGVtcHRfYXQYDyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCnJlcGx5X3RleHQYESABKAlCEgoQZGVsaXZlcnlfY29udGV4dCJVChRTbGFja0RlbGl2ZXJ5Q29udGV4dBISCgpjaGFubmVsX2lkGAEgASgJEhEKCXRocmVhZF90cxgCIAEoCRIWCg5wbGFjZWhvbGRlcl90cxgDIAEoCSJLChdXaGF0c0FwcERlbGl2ZXJ5Q29udGV4dBIXCg9waG9uZV9udW1iZXJfaWQYASABKAkSFwoPcmVjaXBpZW50X3dhX2lkGAIgASgJKogBChVDaGFubmVsRGVsaXZlcnlTdGF0dXMSJwojY2hhbm5lbF9kZWxpdmVyeV9zdGF0dXNfdW5zcGVjaWZpZWQQABILCgdwZW5kaW5nEAESDgoKZGVsaXZlcmluZxACEg0KCWRlbGl2ZXJlZBADEgoKBmZhaWxlZBAEEg4KCnN1cHByZXNzZWQQBWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2RlbGl2ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIvwFCg9DaGFubmVsRGVsaXZlcnkSEwoLZGVsaXZlcnlfaWQYASABKAkSGAoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCRILCgNvcmcYAyABKAkSFAoMZXhlY3V0aW9uX2lkGAQgASgJEhIKCnNlc3Npb25faWQYBSABKAkSGAoQY29udmVyc2F0aW9uX2tleRgGIAEoCRIZChFleHRlcm5hbF91c2VyX2tleRgHIAEoCRJJCgZzdGF0dXMYCCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxEZWxpdmVyeVN0YXR1cxIQCghhdHRlbXB0cxgJIAEoBRISCgpsYXN0X2Vycm9yGAogASgJEhcKD2lkZW1wb3RlbmN5X2tleRgLIAEoCRJJCgVzbGFjaxgMIAEoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuU2xhY2tEZWxpdmVyeUNvbnRleHRIABJPCgh3aGF0c2FwcBgQIAEoCzI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuV2hhdHNBcHBEZWxpdmVyeUNvbnRleHRIABIuCgpjcmVhdGVkX2F0GA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GA4gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIzCg9uZXh0X2F0dGVtcHRfYXQYDyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCnJlcGx5X3RleHQYESABKAkSUwoMZmFpbHVyZV9raW5kGBIgASgOMj0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsQXR0ZW1wdEZhaWx1cmVLaW5kEhYKDmF0dGVtcHRfZGV0YWlsGBMgASgJQhIKEGRlbGl2ZXJ5X2NvbnRleHQiVQoUU2xhY2tEZWxpdmVyeUNvbnRleHQSEgoKY2hhbm5lbF9pZBgBIAEoCRIRCgl0aHJlYWRfdHMYAiABKAkSFgoOcGxhY2Vob2xkZXJfdHMYAyABKAkiSwoXV2hhdHNBcHBEZWxpdmVyeUNvbnRleHQSFwoPcGhvbmVfbnVtYmVyX2lkGAEgASgJEhcKD3JlY2lwaWVudF93YV9pZBgCIAEoCSqIAQoVQ2hhbm5lbERlbGl2ZXJ5U3RhdHVzEicKI2NoYW5uZWxfZGVsaXZlcnlfc3RhdHVzX3Vuc3BlY2lmaWVkEAASCwoHcGVuZGluZxABEg4KCmRlbGl2ZXJpbmcQAhINCglkZWxpdmVyZWQQAxIKCgZmYWlsZWQQBBIOCgpzdXBwcmVzc2VkEAUqfQoZQ2hhbm5lbEF0dGVtcHRGYWlsdXJlS2luZBIfChthdHRlbXB0X2ZhaWx1cmVfdW5zcGVjaWZpZWQQABITCg9hdHRlbXB0X3JlZnVzZWQQARITCg9hdHRlbXB0X2Vycm9yZWQQAhIVChFhdHRlbXB0X3dpdGhkcmF3bhADYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * ChannelDelivery tracks the delivery of one agent reply to one external
@@ -172,6 +172,37 @@ export type ChannelDelivery = Message<"ai.stigmer.agentic.agentchannel.v1.Channe
    * @generated from field: string reply_text = 17;
    */
   replyText: string;
+
+  /**
+   * Why the delivery FAILED, in the platform's classification. Unspecified
+   * unless status is failed (and on rows terminal before this field
+   * existed).
+   *
+   * @internal
+   * cloud#262 (channel-conversations F-25): the classification that
+   * decides whether the failure's explanation may reach the conversation
+   * timeline. Written only by markFailed and the delete cascade, never by
+   * markRetry — a scheduled retry is not a verdict.
+   *
+   * @generated from field: ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 18;
+   */
+  failureKind: ChannelAttemptFailureKind;
+
+  /**
+   * The thread-safe explanation of a FAILED delivery, when one was
+   * authored for the conversation surface. Empty unless failure_kind is
+   * attempt_refused or attempt_withdrawn.
+   *
+   * @internal
+   * cloud#262: PLATFORM-authored copy, unlike the outbound ledger's
+   * provider-owned receipt_detail. The write side is the guarantee: only
+   * the refusal and withdrawal arms carry copy here, so raw exception
+   * text (which stays in last_error, an operator-only fact) can
+   * structurally never reach the timeline relay.
+   *
+   * @generated from field: string attempt_detail = 19;
+   */
+  attemptDetail: string;
 };
 
 /**
@@ -330,4 +361,65 @@ export enum ChannelDeliveryStatus {
  */
 export const ChannelDeliveryStatusSchema: GenEnum<ChannelDeliveryStatus> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_agentchannel_v1_delivery, 0);
+
+/**
+ * ChannelAttemptFailureKind classifies WHY a send attempt reached
+ * status failed — and with it, whether the failure's stored explanation
+ * was authored for the conversation surface (attempt_detail) or is an
+ * operator-only diagnostic (last_error).
+ *
+ * @internal
+ * cloud#262 (channel-conversations F-25, the DD-014 D-d deferred copy
+ * ruling). Values carry the attempt_ prefix because proto3 enum values
+ * are package-scoped — and, as with ChannelReceiptState's receipt_
+ * prefix, that is also a feature: the attempt axis and the receipt axis
+ * can never be confused on the wire. Shared by ChannelDelivery and
+ * ChannelOutboundMessage exactly like ChannelDeliveryStatus (a twin
+ * enum would not compile).
+ *
+ * @generated from enum ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind
+ */
+export enum ChannelAttemptFailureKind {
+  /**
+   * Default value when no classification is set (non-failed rows, and
+   * rows that failed before this classification existed).
+   *
+   * @generated from enum value: attempt_failure_unspecified = 0;
+   */
+  attempt_failure_unspecified = 0,
+
+  /**
+   * The provider terminally refused the send; attempt_detail carries
+   * the platform's mapped human explanation (e.g. the 24-hour
+   * customer-service-window copy for WhatsApp code 131047).
+   *
+   * @generated from enum value: attempt_refused = 1;
+   */
+  attempt_refused = 1,
+
+  /**
+   * A technical failure (transport error, unexpected provider error,
+   * unresolvable credentials — exhausted retries or unattemptable at
+   * the first try). attempt_detail is EMPTY by construction; the raw
+   * diagnostic lives in last_error and never reaches the thread.
+   *
+   * @generated from enum value: attempt_errored = 2;
+   */
+  attempt_errored = 2,
+
+  /**
+   * The platform withdrew the send for a structural reason;
+   * attempt_detail carries the short fact ("channel deleted",
+   * "execution no longer exists").
+   *
+   * @generated from enum value: attempt_withdrawn = 3;
+   */
+  attempt_withdrawn = 3,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind.
+ */
+export const ChannelAttemptFailureKindSchema: GenEnum<ChannelAttemptFailureKind> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentchannel_v1_delivery, 1);
 

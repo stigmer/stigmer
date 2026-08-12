@@ -4,7 +4,7 @@
 
 import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ChannelDeliveryStatus } from "./delivery_pb.js";
+import type { ChannelAttemptFailureKind, ChannelDeliveryStatus } from "./delivery_pb.js";
 import { file_ai_stigmer_agentic_agentchannel_v1_delivery } from "./delivery_pb.js";
 import type { ChannelOutboundPayload } from "./message_io_pb.js";
 import { file_ai_stigmer_agentic_agentchannel_v1_message_io } from "./message_io_pb.js";
@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/outbound.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_outbound: GenFile = /*@__PURE__*/
-  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL291dGJvdW5kLnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIqIGChZDaGFubmVsT3V0Ym91bmRNZXNzYWdlEhsKE291dGJvdW5kX21lc3NhZ2VfaWQYASABKAkSGAoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCRILCgNvcmcYAyABKAkSEgoKc2Vzc2lvbl9pZBgEIAEoCRJJCgZvcmlnaW4YBSABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxPdXRib3VuZE9yaWdpbhIRCglyZWNpcGllbnQYBiABKAkSSwoHcGF5bG9hZBgHIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbE91dGJvdW5kUGF5bG9hZBJJCgZzdGF0dXMYCCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxEZWxpdmVyeVN0YXR1cxIQCghhdHRlbXB0cxgJIAEoBRISCgpsYXN0X2Vycm9yGAogASgJEhcKD2lkZW1wb3RlbmN5X2tleRgLIAEoCRIbChNwcm92aWRlcl9tZXNzYWdlX2lkGAwgASgJEi4KCmNyZWF0ZWRfYXQYDSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYDiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKD25leHRfYXR0ZW1wdF9hdBgPIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASTgoNcmVjZWlwdF9zdGF0ZRgQIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbFJlY2VpcHRTdGF0ZRIWCg5yZWNlaXB0X2RldGFpbBgRIAEoCRIaChJyZWNlaXB0X2Vycm9yX2NvZGUYEiABKAUSLgoKcmVjZWlwdF9hdBgTIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFQoNcmVuZGVyZWRfYm9keRgUIAEoCSqDAQoTQ2hhbm5lbFJlY2VpcHRTdGF0ZRIdChlyZWNlaXB0X3N0YXRlX3Vuc3BlY2lmaWVkEAASEAoMcmVjZWlwdF9zZW50EAESFQoRcmVjZWlwdF9kZWxpdmVyZWQQAhIQCgxyZWNlaXB0X3JlYWQQAxISCg5yZWNlaXB0X2ZhaWxlZBAEKocBChVDaGFubmVsT3V0Ym91bmRPcmlnaW4SJwojY2hhbm5lbF9vdXRib3VuZF9vcmlnaW5fdW5zcGVjaWZpZWQQABIYChRjaGFubmVsX2NvbnZlcnNhdGlvbhABEgwKCG9wZXJhdG9yEAISDAoIcGxhdGZvcm0QAxIPCgtwYXJ0aWNpcGFudBAEYgZwcm90bzM", [file_ai_stigmer_agentic_agentchannel_v1_delivery, file_ai_stigmer_agentic_agentchannel_v1_message_io, file_google_protobuf_timestamp]);
+  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL291dGJvdW5kLnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIo8HChZDaGFubmVsT3V0Ym91bmRNZXNzYWdlEhsKE291dGJvdW5kX21lc3NhZ2VfaWQYASABKAkSGAoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCRILCgNvcmcYAyABKAkSEgoKc2Vzc2lvbl9pZBgEIAEoCRJJCgZvcmlnaW4YBSABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxPdXRib3VuZE9yaWdpbhIRCglyZWNpcGllbnQYBiABKAkSSwoHcGF5bG9hZBgHIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbE91dGJvdW5kUGF5bG9hZBJJCgZzdGF0dXMYCCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxEZWxpdmVyeVN0YXR1cxIQCghhdHRlbXB0cxgJIAEoBRISCgpsYXN0X2Vycm9yGAogASgJEhcKD2lkZW1wb3RlbmN5X2tleRgLIAEoCRIbChNwcm92aWRlcl9tZXNzYWdlX2lkGAwgASgJEi4KCmNyZWF0ZWRfYXQYDSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYDiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKD25leHRfYXR0ZW1wdF9hdBgPIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASTgoNcmVjZWlwdF9zdGF0ZRgQIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbFJlY2VpcHRTdGF0ZRIWCg5yZWNlaXB0X2RldGFpbBgRIAEoCRIaChJyZWNlaXB0X2Vycm9yX2NvZGUYEiABKAUSLgoKcmVjZWlwdF9hdBgTIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFQoNcmVuZGVyZWRfYm9keRgUIAEoCRJTCgxmYWlsdXJlX2tpbmQYFSABKA4yPS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxBdHRlbXB0RmFpbHVyZUtpbmQSFgoOYXR0ZW1wdF9kZXRhaWwYFiABKAkqgwEKE0NoYW5uZWxSZWNlaXB0U3RhdGUSHQoZcmVjZWlwdF9zdGF0ZV91bnNwZWNpZmllZBAAEhAKDHJlY2VpcHRfc2VudBABEhUKEXJlY2VpcHRfZGVsaXZlcmVkEAISEAoMcmVjZWlwdF9yZWFkEAMSEgoOcmVjZWlwdF9mYWlsZWQQBCqHAQoVQ2hhbm5lbE91dGJvdW5kT3JpZ2luEicKI2NoYW5uZWxfb3V0Ym91bmRfb3JpZ2luX3Vuc3BlY2lmaWVkEAASGAoUY2hhbm5lbF9jb252ZXJzYXRpb24QARIMCghvcGVyYXRvchACEgwKCHBsYXRmb3JtEAMSDwoLcGFydGljaXBhbnQQBGIGcHJvdG8z", [file_ai_stigmer_agentic_agentchannel_v1_delivery, file_ai_stigmer_agentic_agentchannel_v1_message_io, file_google_protobuf_timestamp]);
 
 /**
  * ChannelOutboundMessage tracks the delivery of one business-initiated
@@ -232,6 +232,40 @@ export type ChannelOutboundMessage = Message<"ai.stigmer.agentic.agentchannel.v1
    * @generated from field: string rendered_body = 20;
    */
   renderedBody: string;
+
+  /**
+   * Why the send FAILED, in the platform's classification. Unspecified
+   * unless status is failed (and on rows terminal before this field
+   * existed). A third axis fact beside status and the receipt pair.
+   *
+   * @internal
+   * cloud#262 (channel-conversations F-25): the classification that
+   * decides whether the failure's explanation may reach the conversation
+   * timeline. Written only by markFailed and the delete cascade, never by
+   * markRetry — a scheduled retry is not a verdict. The ChannelDelivery
+   * twin (its fields 18/19) carries the same contract.
+   *
+   * @generated from field: ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 21;
+   */
+  failureKind: ChannelAttemptFailureKind;
+
+  /**
+   * The thread-safe explanation of a FAILED send, when one was authored
+   * for the conversation surface. Empty unless failure_kind is
+   * attempt_refused or attempt_withdrawn.
+   *
+   * @internal
+   * cloud#262: PLATFORM-authored copy — for refusals this is the
+   * TERMINAL_REFUSALS mapped explanation (plus the provider's own
+   * error_data details when present), NOT the receipt axis's
+   * provider-owned vocabulary. The write side is the guarantee: only the
+   * refusal and withdrawal arms carry copy here, so raw exception text
+   * (which stays in last_error, an operator-only fact) can structurally
+   * never reach the timeline relay.
+   *
+   * @generated from field: string attempt_detail = 22;
+   */
+  attemptDetail: string;
 };
 
 /**

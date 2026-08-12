@@ -84,6 +84,29 @@ message ChannelDelivery {
   // dead-lettered reply's text is what a human taking over needs to see);
   // deliberately not on markRetry, which is non-terminal and re-extracts.
   string reply_text = 17;
+
+  // Why the delivery FAILED, in the platform's classification. Unspecified
+  // unless status is failed (and on rows terminal before this field
+  // existed).
+  //
+  // @internal
+  // cloud#262 (channel-conversations F-25): the classification that
+  // decides whether the failure's explanation may reach the conversation
+  // timeline. Written only by markFailed and the delete cascade, never by
+  // markRetry — a scheduled retry is not a verdict.
+  ChannelAttemptFailureKind failure_kind = 18;
+
+  // The thread-safe explanation of a FAILED delivery, when one was
+  // authored for the conversation surface. Empty unless failure_kind is
+  // attempt_refused or attempt_withdrawn.
+  //
+  // @internal
+  // cloud#262: PLATFORM-authored copy, unlike the outbound ledger's
+  // provider-owned receipt_detail. The write side is the guarantee: only
+  // the refusal and withdrawal arms carry copy here, so raw exception
+  // text (which stays in last_error, an operator-only fact) can
+  // structurally never reach the timeline relay.
+  string attempt_detail = 19;
 }
 
 // ChannelDeliveryStatus is the delivery record lifecycle.
@@ -123,6 +146,41 @@ enum ChannelDeliveryStatus {
   // NOT extracted or persisted (the customer never saw any words, and
   // the timeline's reply lane excludes this status by contract).
   suppressed = 5;
+}
+
+// ChannelAttemptFailureKind classifies WHY a send attempt reached
+// status failed — and with it, whether the failure's stored explanation
+// was authored for the conversation surface (attempt_detail) or is an
+// operator-only diagnostic (last_error).
+//
+// @internal
+// cloud#262 (channel-conversations F-25, the DD-014 D-d deferred copy
+// ruling). Values carry the attempt_ prefix because proto3 enum values
+// are package-scoped — and, as with ChannelReceiptState's receipt_
+// prefix, that is also a feature: the attempt axis and the receipt axis
+// can never be confused on the wire. Shared by ChannelDelivery and
+// ChannelOutboundMessage exactly like ChannelDeliveryStatus (a twin
+// enum would not compile).
+enum ChannelAttemptFailureKind {
+  // Default value when no classification is set (non-failed rows, and
+  // rows that failed before this classification existed).
+  attempt_failure_unspecified = 0;
+
+  // The provider terminally refused the send; attempt_detail carries
+  // the platform's mapped human explanation (e.g. the 24-hour
+  // customer-service-window copy for WhatsApp code 131047).
+  attempt_refused = 1;
+
+  // A technical failure (transport error, unexpected provider error,
+  // unresolvable credentials — exhausted retries or unattemptable at
+  // the first try). attempt_detail is EMPTY by construction; the raw
+  // diagnostic lives in last_error and never reaches the thread.
+  attempt_errored = 2;
+
+  // The platform withdrew the send for a structural reason;
+  // attempt_detail carries the short fact ("channel deleted",
+  // "execution no longer exists").
+  attempt_withdrawn = 3;
 }
 
 // SlackDeliveryContext carries what the Slack deliverer needs to post or

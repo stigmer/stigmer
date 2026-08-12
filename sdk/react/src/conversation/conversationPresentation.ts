@@ -6,7 +6,10 @@ import {
   ConversationLane,
   type ConversationTimelineItem,
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
-import { ChannelDeliveryStatus } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/delivery_pb";
+import {
+  ChannelAttemptFailureKind,
+  ChannelDeliveryStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/delivery_pb";
 import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/outbound_pb";
 import type { ChannelProviderId } from "../channel/providers.js";
 
@@ -104,6 +107,54 @@ export function receiptOf(item: ConversationTimelineItem): ReceiptKind | null {
     default:
       return null;
   }
+}
+
+/**
+ * Why a FAILED send attempt failed, in render vocabulary. `null` until
+ * the platform classifies (rows failed before the classification
+ * existed, and every non-failed item).
+ *
+ * The structured twin of {@link attemptExplanationOf}'s prose
+ * (cloud#262): a renderer that branches on the failure keys on this,
+ * never on the explanation's words.
+ */
+export type AttemptFailureKind = "refused" | "errored" | "withdrawn";
+
+/** Map the wire attempt-failure kind onto the render vocabulary. */
+export function attemptFailureOf(item: ConversationTimelineItem): AttemptFailureKind | null {
+  switch (item.attemptFailureKind) {
+    case ChannelAttemptFailureKind.attempt_refused:
+      return "refused";
+    case ChannelAttemptFailureKind.attempt_errored:
+      return "errored";
+    case ChannelAttemptFailureKind.attempt_withdrawn:
+      return "withdrawn";
+    default:
+      return null;
+  }
+}
+
+/**
+ * The visible explanation for a FAILED send attempt, or `null` when the
+ * item carries none to show (non-failed items, and rows failed before
+ * the platform classified failures).
+ *
+ * The attempt-axis sibling of the receipt explanation (cloud#262,
+ * closing F-25): `attempt_detail` is PLATFORM-authored thread-safe copy
+ * — the write side guarantees raw diagnostics never occupy it — so it
+ * renders verbatim when present (refusals and withdrawn sends). An
+ * `errored` failure deliberately carries no detail (its diagnostic is
+ * operator-only, in `last_error` server-side); the copy here is this
+ * surface's own generic for that arm, and it makes NO claim about
+ * attempt counts — the wire does not carry them, and `errored` covers
+ * first-try structural dead-letters as well as exhausted retries.
+ */
+export function attemptExplanationOf(item: ConversationTimelineItem): string | null {
+  if (sendAttemptOf(item) !== "failed") return null;
+  if (item.attemptDetail !== "") return item.attemptDetail;
+  return attemptFailureOf(item) === "errored"
+    ? "Delivery failed due to a technical problem on the platform's side."
+    : null;
 }
 
 /**

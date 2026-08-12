@@ -1694,6 +1694,28 @@
           "description": "A staff member's reply inside a live conversation, sent through the\n conversation-scoped reply command."
         }
       ]
+    },
+    {
+      "name": "ChannelAttemptFailureKind",
+      "description": "ChannelAttemptFailureKind classifies WHY a send attempt reached\n status failed — and with it, whether the failure's stored explanation\n was authored for the conversation surface (attempt_detail) or is an\n operator-only diagnostic (last_error).",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind",
+      "values": [
+        {
+          "name": "attempt_refused",
+          "number": 1,
+          "description": "The provider terminally refused the send; attempt_detail carries\n the platform's mapped human explanation (e.g. the 24-hour\n customer-service-window copy for WhatsApp code 131047)."
+        },
+        {
+          "name": "attempt_errored",
+          "number": 2,
+          "description": "A technical failure (transport error, unexpected provider error,\n unresolvable credentials — exhausted retries or unattemptable at\n the first try). attempt_detail is EMPTY by construction; the raw\n diagnostic lives in last_error and never reaches the thread."
+        },
+        {
+          "name": "attempt_withdrawn",
+          "number": 3,
+          "description": "The platform withdrew the send for a structural reason;\n attempt_detail carries the short fact (\"channel deleted\",\n \"execution no longer exists\")."
+        }
+      ]
     }
   ],
   "resourceDescription": "AgentChannel connects an agent to an external messaging platform so people can chat with it where they already work.\n\n A channel is a distribution channel like AgentShare, but for push-based\n messaging platforms: the provider (Slack today) delivers user messages\n to a Stigmer webhook, and Stigmer calls the provider's API to deliver\n the agent's replies. The connection records which agent serves the\n channel, whether serving is enabled, and provider selection; the\n workspace identity and credential references produced by the install\n flow live in status. Deleting the channel tears the connection down;\n disabling pauses serving while preserving the install.",

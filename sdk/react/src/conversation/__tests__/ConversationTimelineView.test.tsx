@@ -10,7 +10,10 @@ import {
   ConversationLane,
   ConversationTimelineItemSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
-import { ChannelDeliveryStatus } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/delivery_pb";
+import {
+  ChannelAttemptFailureKind,
+  ChannelDeliveryStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/delivery_pb";
 import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/outbound_pb";
 import { StigmerContext } from "../../context";
 import { ConversationTimelineView } from "../ConversationTimelineView";
@@ -174,8 +177,9 @@ describe("ConversationTimelineView", () => {
             text: "lost reply",
             deliveryStatus: ChannelDeliveryStatus.failed,
             // A malformed item carrying a detail on the wrong axis: the
-            // attempt-axis explanation (last_error) is F-25's separate
-            // slice, so this lane renders nothing extra.
+            // attempt-axis explanation has its own field and gate
+            // (attemptExplanationOf, cloud#262), so a stray receipt
+            // detail still renders nothing here.
             receiptDetail: "should never render",
           }),
         ]}
@@ -183,6 +187,105 @@ describe("ConversationTimelineView", () => {
     );
     expect(screen.getByText("Not delivered")).toBeDefined();
     expect(screen.queryByText("should never render")).toBeNull();
+  });
+
+  it("shows a refused send's platform-authored explanation verbatim (cloud#262)", () => {
+    render(
+      <ConversationTimelineView
+        {...baseProps()}
+        items={[
+          item("ob:1", {
+            author: ConversationItemAuthor.author_teammate,
+            text: "Following up on your case.",
+            deliveryStatus: ChannelDeliveryStatus.failed,
+            attemptFailureKind: ChannelAttemptFailureKind.attempt_refused,
+            attemptDetail: "the recipient's 24-hour customer-service window is closed",
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("Not delivered")).toBeDefined();
+    expect(
+      screen.getByText("the recipient's 24-hour customer-service window is closed"),
+    ).toBeDefined();
+  });
+
+  it("shows a withdrawn send's structural fact verbatim (cloud#262)", () => {
+    render(
+      <ConversationTimelineView
+        {...baseProps()}
+        items={[
+          item("dl:1", {
+            author: ConversationItemAuthor.author_agent,
+            text: "the reply that never landed",
+            deliveryStatus: ChannelDeliveryStatus.failed,
+            attemptFailureKind: ChannelAttemptFailureKind.attempt_withdrawn,
+            attemptDetail: "channel deleted",
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("channel deleted")).toBeDefined();
+  });
+
+  it("shows this surface's own generic copy for an errored send — the wire carries no detail (cloud#262)", () => {
+    render(
+      <ConversationTimelineView
+        {...baseProps()}
+        items={[
+          item("dl:1", {
+            author: ConversationItemAuthor.author_agent,
+            text: "lost reply",
+            deliveryStatus: ChannelDeliveryStatus.failed,
+            attemptFailureKind: ChannelAttemptFailureKind.attempt_errored,
+            // attemptDetail deliberately empty: the server's AttemptFailure
+            // construction keeps diagnostics off the wire entirely.
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("Not delivered")).toBeDefined();
+    expect(
+      screen.getByText("Delivery failed due to a technical problem on the platform's side."),
+    ).toBeDefined();
+  });
+
+  it("keeps the bare tick for a failure the platform never classified (pre-cloud#262 rows)", () => {
+    render(
+      <ConversationTimelineView
+        {...baseProps()}
+        items={[
+          item("ob:1", {
+            author: ConversationItemAuthor.author_teammate,
+            text: "an old failed send",
+            deliveryStatus: ChannelDeliveryStatus.failed,
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("Not delivered")).toBeDefined();
+    expect(screen.queryByText(/technical problem/)).toBeNull();
+  });
+
+  it("never shows the attempt explanation on a delivered item — the F-25 boundary's mirror", () => {
+    render(
+      <ConversationTimelineView
+        {...baseProps()}
+        items={[
+          item("ob:1", {
+            author: ConversationItemAuthor.author_teammate,
+            text: "a landed send",
+            deliveryStatus: ChannelDeliveryStatus.delivered,
+            // A malformed item carrying attempt copy on a success: the
+            // gate requires attempt FAILED, so nothing renders.
+            attemptFailureKind: ChannelAttemptFailureKind.attempt_refused,
+            attemptDetail: "should never render",
+          }),
+        ]}
+      />,
+    );
+    expect(screen.queryByText("should never render")).toBeNull();
+    expect(screen.queryByText("Not delivered")).toBeNull();
   });
 
   it("renders a dead-lettered send as exactly that", () => {
