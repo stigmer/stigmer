@@ -28,7 +28,7 @@ const (
 // 2. ValidateWorkflowSpec - Validate workflow spec in-process (Layer 2: proto → CNCF YAML + structural checks - SSOT)
 // 3. ResolveSlug - Generate slug from metadata.name
 // 4. CheckDuplicate - Verify no duplicate exists
-// 5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
+// 5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event), default visibility
 // 6. Persist - Save workflow to repository
 // 7. CreateDefaultInstance - Create default workflow instance
 // 8. UpdateWorkflowStatusWithDefaultInstance - Update workflow status with default_instance_id

@@ -20,7 +20,7 @@ import (
 //  4. ValidateSpec       - cross-field domain validation (names, roles,
 //     defaults, timezone, constraint references, CEL compilation)
 //  5. EnforceOrgQuota    - max datastores per org
-//  6. BuildNewState      - ID (dst_<ulid>), audit fields
+//  6. BuildNewState      - ID (dst_<ulid>), audit fields, default visibility
 //  7. Persist            - save resource
 //  8. SchemaSync         - GATING: materialize tables/indexes, seed-once,
 //     write sync report to status (rejection rolls the create back)

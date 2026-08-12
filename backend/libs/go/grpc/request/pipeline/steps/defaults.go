@@ -30,8 +30,23 @@ import (
 //     - updated_at (timestamp)
 //     - event (ApiResourceEventType.created)
 //     - Both spec_audit and status_audit are set identically for create operations
+//  6. Set metadata.visibility to the kind's default when the client left it
+//     unspecified, so consumers never have to treat UNSPECIFIED as an implicit
+//     level. The default is config-driven via the kind's proto VisibilityConfig
+//     (apiresource.DefaultVisibilityFor): blueprint kinds flagged
+//     defaults_to_org_visibility (agent, skill, workflow, mcp_server) get
+//     visibility_org — blueprints are shared org assets, and a private default
+//     would silently hide every new blueprint from the author's teammates once
+//     visibility enforcement is real; private is an explicit opt-in. Every
+//     other kind gets visibility_private. This mirrors the cloud edition,
+//     where CreateOperationBuildNewStateStepV2 composes
+//     CreateOperationSetDefaultVisibilityStepV2 for every kind's create; the
+//     cross-edition contract is pinned by TestVisibilityCreateDefaults
+//     (test/integration, exercises the Java service) and the per-kind create
+//     pins in test/conformance (exercise both editions).
 //
-// The step is idempotent - if ID is already set, it will not override it.
+// The step is idempotent - if ID is already set, it will not override it;
+// an explicitly provided visibility is never overwritten.
 //
 // The api_resource_kind is extracted from request context (injected by interceptor).
 //
@@ -100,6 +115,18 @@ func (s *BuildNewStateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 		if err := setAuditFieldsReflect(resource, "created"); err != nil {
 			return fmt.Errorf("failed to set audit fields: %w", err)
 		}
+	}
+
+	// 6. Default metadata.visibility from the kind's proto config when the
+	// client left it unspecified (blueprints -> visibility_org, everything
+	// else -> visibility_private; see the step doc for the full contract).
+	if metadata.Visibility == commonspb.ApiResourceVisibility_api_resource_visibility_unspecified {
+		kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
+		visibility, err := apiresource.DefaultVisibilityFor(kind)
+		if err != nil {
+			return fmt.Errorf("failed to resolve default visibility from kind: %w", err)
+		}
+		metadata.Visibility = visibility
 	}
 
 	return nil

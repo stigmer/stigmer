@@ -17,7 +17,7 @@ import (
 // 2. ResolveSlug - Generate slug from metadata.name
 // 3. CheckDuplicate - Verify no duplicate exists (slug-level)
 // 4. EnforcePersonalEnvUniqueness - At most one personal env per org
-// 5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
+// 5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event), default visibility
 // 6. PreserveRedactedSecrets - Reject secret sentinels (redaction marker, enc:v<N>: prefix)
 // 7. Persist - Save environment to repository
 // 8. IndexSearch - Update search index

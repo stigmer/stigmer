@@ -157,6 +157,77 @@ func TestBuildNewStateStep_DifferentKinds(t *testing.T) {
 	}
 }
 
+// TestBuildNewStateStep_DefaultVisibility pins the create-time visibility
+// default: blueprint kinds flagged defaults_to_org_visibility persist
+// visibility_org, every other kind persists visibility_private — never the
+// proto zero value. This is the OSS half of the cross-edition contract
+// asserted end-to-end by TestVisibilityCreateDefaults (test/integration,
+// Java service) and the per-kind create pins in test/conformance.
+//
+// The agent proto is reused across kinds deliberately (the same trick as
+// TestBuildNewStateStep_DifferentKinds): the step is generic and visibility
+// lives on the shared ApiResourceMetadata, so only the kind in context
+// matters.
+func TestBuildNewStateStep_DefaultVisibility(t *testing.T) {
+	tests := []struct {
+		name     string
+		kind     apiresourcekind.ApiResourceKind
+		expected apiresource.ApiResourceVisibility
+	}{
+		{"agent (blueprint) defaults to org", apiresourcekind.ApiResourceKind_agent, apiresource.ApiResourceVisibility_visibility_org},
+		{"workflow (blueprint) defaults to org", apiresourcekind.ApiResourceKind_workflow, apiresource.ApiResourceVisibility_visibility_org},
+		{"mcp_server (blueprint) defaults to org", apiresourcekind.ApiResourceKind_mcp_server, apiresource.ApiResourceVisibility_visibility_org},
+		{"agent_instance (non-blueprint) defaults to private", apiresourcekind.ApiResourceKind_agent_instance, apiresource.ApiResourceVisibility_visibility_private},
+		{"session (non-blueprint) defaults to private", apiresourcekind.ApiResourceKind_session, apiresource.ApiResourceVisibility_visibility_private},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			agent := &agentv1.Agent{
+				Metadata: &apiresource.ApiResourceMetadata{
+					Name: "Test",
+				},
+			}
+
+			step := NewBuildNewStateStep[*agentv1.Agent]()
+			ctx := pipeline.NewRequestContext(contextWithKind(tt.kind), agent)
+			ctx.SetNewState(agent)
+
+			if err := step.Execute(ctx); err != nil {
+				t.Fatalf("Expected success, got error: %v", err)
+			}
+
+			if agent.Metadata.Visibility != tt.expected {
+				t.Errorf("Expected visibility %v, got %v", tt.expected, agent.Metadata.Visibility)
+			}
+		})
+	}
+}
+
+// TestBuildNewStateStep_ExplicitVisibilityPreserved pins that the default is
+// strictly an unspecified-only fill: a client-chosen level is never
+// overwritten, even when it differs from the kind's default.
+func TestBuildNewStateStep_ExplicitVisibilityPreserved(t *testing.T) {
+	agent := &agentv1.Agent{
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name:       "Test",
+			Visibility: apiresource.ApiResourceVisibility_visibility_public,
+		},
+	}
+
+	step := NewBuildNewStateStep[*agentv1.Agent]()
+	ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), agent)
+	ctx.SetNewState(agent)
+
+	if err := step.Execute(ctx); err != nil {
+		t.Fatalf("Expected success, got error: %v", err)
+	}
+
+	if agent.Metadata.Visibility != apiresource.ApiResourceVisibility_visibility_public {
+		t.Errorf("Expected explicit visibility_public to be preserved, got %v", agent.Metadata.Visibility)
+	}
+}
+
 func TestBuildNewStateStep_MultipleResources(t *testing.T) {
 	// Create multiple agents and ensure they get different IDs
 	ids := make(map[string]bool)

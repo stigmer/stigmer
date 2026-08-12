@@ -12,6 +12,7 @@
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
@@ -58,6 +59,9 @@ describe("McpServer conformance — CRUD & identity", () => {
     expect(created.spec?.description).toBe("github operations");
     expect(created.spec?.serverType.case).toBe("stdio");
     expect(created.status?.audit?.specAudit?.event).toBe("created");
+    // McpServer is a blueprint kind (defaults_to_org_visibility), so an
+    // unspecified visibility defaults to org; private is an explicit opt-in.
+    expect(created.metadata?.visibility, "visibility defaults to org (blueprint default)").toBe(ApiResourceVisibility.visibility_org);
   });
 
   it("get round-trips the created resource (ignoring server-set fields)", async () => {

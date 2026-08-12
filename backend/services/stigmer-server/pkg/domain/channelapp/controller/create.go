@@ -17,7 +17,8 @@ import (
 //  3. CheckDuplicate - no duplicate by slug within the org
 //  4. EncryptChannelAppSecrets - AES-256-GCM encrypt both secrets;
 //     the redaction marker is refused on create
-//  5. BuildNewState - generate id (chapp_{ulid}), clear status, set audit
+//  5. BuildNewState - generate id (chapp_{ulid}), clear status, set audit,
+//     default visibility
 //  6. Persist - save to the store
 //
 // The returned ChannelApp has both secret fields redacted.

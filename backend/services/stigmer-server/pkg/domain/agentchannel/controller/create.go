@@ -20,7 +20,7 @@ import (
 //     default — channels are N-per-agent, see ResolveChannelDefaults)
 //  4. CheckDuplicate - Org+slug uniqueness
 //  5. BuildNewState - Set ID (ach_ prefix), clear client-provided status,
-//     audit fields
+//     audit fields, default visibility
 //  6. InitInstallState - status.install_state = pending_install; after
 //     BuildNewState so the status wipe cannot erase it
 //  7. NormalizeReferences - Make references absolute (fill org)

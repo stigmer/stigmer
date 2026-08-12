@@ -29,7 +29,7 @@ import (
 //  2. ValidateFieldConstraints - Validate proto field constraints using buf validate
 //  3. ResolveSlug - Generate slug from metadata.name
 //  4. CheckDuplicate - Verify no duplicate exists
-//  5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
+//  5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event), default visibility
 //  6. NormalizeReferences - Resolve cross-references (slugs to IDs)
 //  7. Persist - Save session to repository
 //  8. IndexSearch - Update search index
