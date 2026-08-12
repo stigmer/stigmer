@@ -9,12 +9,24 @@
  *
  * Supported delivery targets:
  * - webhook: HTTP POST with Content-Type: application/cloudevents+json
- * - signal:  Temporal signal to another running workflow's listen task
+ * - signal:  signal to another workflow execution's listen task, routed
+ *            through the server's SendSignal lane
+ *
+ * Signal delivery is deliberately server-mediated (oss#517): a direct
+ * Temporal client here would bypass the authorization boundary (any
+ * workflow could signal any workflow id in the namespace) and is
+ * structurally incompatible with payload encryption — emit→listen is
+ * the platform's only runner-to-runner channel, and under per-identity
+ * runner keys a sender-encrypted signal fails closed at a receiver
+ * holding a different key. The server re-produces the payload, so each
+ * side's codec passes it through.
  *
  * CloudEvents spec: https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md
  */
 
 import { randomUUID } from "node:crypto";
+import type { JsonObject } from "@bufbuild/protobuf";
+import { StigmerClient } from "../client/stigmer-client.js";
 import { loadConfig } from "../config.js";
 import { resolveRuntimePlaceholders } from "../workflow-engine/resolve.js";
 
@@ -24,7 +36,9 @@ export interface WebhookDeliveryTarget {
 }
 
 export interface SignalDeliveryTarget {
-  readonly workflow_id: string;
+  /** Target workflow execution id ("wfx_..."), as returned by run/create. */
+  readonly execution_id: string;
+  /** Signal name matching the target's listen task event id (verbatim). */
   readonly signal_name: string;
 }
 
@@ -53,6 +67,11 @@ export interface EmitEventResult {
 }
 
 const WEBHOOK_TIMEOUT_MS = 30_000;
+
+// Delivery is best-effort by contract, so no single target may consume the
+// CallFunction activity's whole 5m startToClose budget. Same bound as the
+// webhook arm.
+const SIGNAL_TIMEOUT_MS = 30_000;
 
 function buildEnvelope(
   config: EmitEventConfig,
@@ -120,33 +139,53 @@ async function deliverWebhook(
   }
 }
 
+function buildClient(): StigmerClient {
+  const config = loadConfig();
+  return new StigmerClient({
+    endpoint: config.stigmerBackendEndpoint,
+    token: config.stigmerToken,
+  });
+}
+
 async function deliverSignal(
   envelope: Record<string, unknown>,
   target: SignalDeliveryTarget,
+  client: StigmerClient,
 ): Promise<DeliveryError | null> {
+  // Refuse the pre-oss#517 field by name: direct-addressing raw Temporal
+  // workflow ids is exactly the capability server mediation removes.
+  const legacyWorkflowId = (target as { workflow_id?: unknown }).workflow_id;
+  if (!target.execution_id) {
+    const reason = legacyWorkflowId
+      ? "signal delivery addresses workflow executions by 'execution_id' (\"wfx_...\"); 'workflow_id' is not supported"
+      : "signal delivery requires 'execution_id'";
+    return {
+      target: `signal:${String(legacyWorkflowId ?? "")}/${target.signal_name ?? ""}`,
+      error: reason,
+    };
+  }
+  if (!target.signal_name) {
+    return {
+      target: `signal:${target.execution_id}/`,
+      error: "signal delivery requires 'signal_name'",
+    };
+  }
+
   try {
-    const { Connection, Client } = await import("@temporalio/client");
-
-    // Resolve Temporal coordinates through the central config layer rather than
-    // reading env directly: signal delivery must dial the SAME cluster/namespace
-    // the worker connected with. config.ts is the single source of truth for the
-    // canonical TEMPORAL_SERVICE_ADDRESS / TEMPORAL_NAMESPACE resolution — reading
-    // env here would diverge (and previously dialed localhost via a stale name).
-    const config = loadConfig();
-    const temporalAddress = config.temporalAddress;
-    const temporalNamespace = config.temporalNamespace;
-
-    const connection = await Connection.connect({ address: temporalAddress });
-    const client = new Client({ connection, namespace: temporalNamespace });
-
-    const handle = client.workflow.getHandle(target.workflow_id);
-    await handle.signal(target.signal_name, envelope);
-
+    await client.sendWorkflowSignal(
+      target.execution_id,
+      target.signal_name,
+      envelope as JsonObject,
+      { timeoutMs: SIGNAL_TIMEOUT_MS },
+    );
     return null;
   } catch (err) {
+    // Server refusals arrive as ConnectErrors whose messages carry the code
+    // (e.g. [not_found], [failed_precondition] for terminal executions) —
+    // surfaced verbatim in delivery_errors, same contract as the webhook arm.
     const message = err instanceof Error ? err.message : String(err);
     return {
-      target: `signal:${target.workflow_id}/${target.signal_name}`,
+      target: `signal:${target.execution_id}/${target.signal_name}`,
       error: message,
     };
   }
@@ -173,13 +212,18 @@ export async function emitEventAction(
   const errors: DeliveryError[] = [];
   const env = runtimeEnv ?? {};
 
+  // One client serves all signal targets of this emit; constructed lazily so
+  // webhook-only emits never pay for a gRPC transport.
+  let client: StigmerClient | undefined;
+
   for (const target of config.delivery) {
     let err: DeliveryError | null = null;
 
     if ("webhook" in target) {
       err = await deliverWebhook(envelope, target.webhook, env);
     } else if ("signal" in target) {
-      err = await deliverSignal(envelope, target.signal);
+      client ??= buildClient();
+      err = await deliverSignal(envelope, target.signal, client);
     }
 
     if (err) {

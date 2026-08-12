@@ -44,7 +44,8 @@ import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/ag
 import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
 import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
 import type { WorkflowExecution, WorkflowExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionUpdateStatusInputSchema, GetEventLogRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import { WorkflowExecutionUpdateStatusInputSchema, GetEventLogRequestSchema, SendSignalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import type { JsonObject } from "@bufbuild/protobuf";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
@@ -587,6 +588,36 @@ export class StigmerClient {
       pendingUpdateChildAgentExecutionId: options?.pendingUpdateChildAgentExecutionId ?? "",
     });
     return this.workflowExecutionCommand.updateStatus(input);
+  }
+
+  /**
+   * Deliver a named signal to another workflow execution through the
+   * server's SendSignal lane (validate → phase gate → relay via the
+   * outer orchestrator). This is the ONLY sanctioned path for
+   * runner-originated signals: a direct Temporal client would bypass
+   * both the authorization boundary and the payload-encryption design
+   * (per-identity runner keys make sender-side encryption fail closed
+   * at receivers holding a different key — see oss#517).
+   *
+   * Deliberately sends no idempotency_key: the server's dedupe claim is
+   * not released when delivery fails (oss#442), so a key here would
+   * poison the exact retry it exists to protect — and emit envelope ids
+   * regenerate per activity attempt anyway. Revisit once oss#442 lands.
+   */
+  async sendWorkflowSignal(
+    executionId: string,
+    signalName: string,
+    payload: JsonObject | undefined,
+    options?: { timeoutMs?: number },
+  ): Promise<WorkflowExecution> {
+    const input = create(SendSignalInputSchema, {
+      executionId,
+      signalName,
+      payload,
+    });
+    return this.workflowExecutionCommand.sendSignal(input, {
+      timeoutMs: options?.timeoutMs,
+    });
   }
 
   async getWorkflowExecution(executionId: string): Promise<WorkflowExecution> {

@@ -293,8 +293,10 @@ export async function createStigmerRunnerManager(
   // Resolve the runner bootstrap after the http2 patch is in place (discovery
   // dials the control plane through connect-node). An explicit address wins;
   // otherwise a token triggers control-plane discovery; otherwise localhost.
-  // Must happen before createAllActivities so runtime activities that dial
-  // Temporal (e.g. emit-event) see the resolved address too.
+  // Must happen before createAllActivities so the activities' Config carries
+  // the resolved coordinates. Only the worker connection dials Temporal — no
+  // activity does (emit-event, the last one, now routes signals through the
+  // server's SendSignal lane; see oss#517).
   const bootstrap = await resolveRunnerBootstrap({
     explicitAddress: options.temporalAddress,
     explicitNamespace: options.temporalNamespace,

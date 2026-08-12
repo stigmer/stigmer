@@ -432,6 +432,54 @@ describe("StigmerClient", () => {
     });
   });
 
+  describe("sendWorkflowSignal", () => {
+    function clientWithWorkflowCommand() {
+      const client = new StigmerClient({ endpoint: "http://localhost", token: null });
+      const sendSignal = vi.fn().mockResolvedValue({});
+      // Reach into the private generated client: the mocked createClient()
+      // returned {}, so install the method it would have provided.
+      (client as any).workflowExecutionCommand = { sendSignal };
+      return { client, rpc: sendSignal };
+    }
+
+    it("builds SendSignalInput with execution addressing and the payload verbatim", async () => {
+      const { client, rpc } = clientWithWorkflowCommand();
+      const payload = { type: "approval.granted", data: { ok: true } };
+
+      await client.sendWorkflowSignal("wfx_1", "approval_resolved", payload);
+
+      const input = rpc.mock.calls[0]![0];
+      expect(input.executionId).toBe("wfx_1");
+      expect(input.signalName).toBe("approval_resolved");
+      expect(input.payload).toEqual(payload);
+    });
+
+    it("sends no idempotency key (oss#442: failed-delivery claims are never released)", async () => {
+      const { client, rpc } = clientWithWorkflowCommand();
+
+      await client.sendWorkflowSignal("wfx_1", "ping", undefined);
+
+      const input = rpc.mock.calls[0]![0];
+      expect(input.idempotencyKey).toBe("");
+    });
+
+    it("passes the per-call timeout through to the RPC", async () => {
+      const { client, rpc } = clientWithWorkflowCommand();
+
+      await client.sendWorkflowSignal("wfx_1", "ping", undefined, { timeoutMs: 30_000 });
+
+      expect(rpc).toHaveBeenCalledWith(expect.anything(), { timeoutMs: 30_000 });
+    });
+
+    it("passes an undefined timeout when no options are supplied", async () => {
+      const { client, rpc } = clientWithWorkflowCommand();
+
+      await client.sendWorkflowSignal("wfx_1", "ping", undefined);
+
+      expect(rpc).toHaveBeenCalledWith(expect.anything(), { timeoutMs: undefined });
+    });
+  });
+
   describe("updateToken", () => {
     it("does not affect tokenRef-based resolution", async () => {
       const ref: TokenRef = { current: "from-ref" };
