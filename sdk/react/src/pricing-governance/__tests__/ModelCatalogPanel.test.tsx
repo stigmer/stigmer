@@ -53,6 +53,7 @@ function sonnetBaseline(overrides: Record<string, unknown> = {}) {
     costTier: "standard",
     speedTier: "fast",
     featured: true,
+    wireIds: ["claude-sonnet-4-6-preview"],
     status: ModelPricingBaselineStatus.pricing_baseline_active,
     pricing: create(PricingBlockSchema, {
       inputPriceMicrosPerMillion: 3_000_000n,
@@ -168,6 +169,42 @@ describe("ModelCatalogPanel", () => {
     // The variant (and its wire ids) survive too.
     expect(submitted.baseline.pricingVariants.fast.wireIds).toEqual([
       "claude-sonnet-4-6-fast",
+    ]);
+    // Base-level wire ids survive an unrelated edit — the form surfaces
+    // them precisely so a price edit can never silently erase them.
+    expect(submitted.baseline.wireIds).toEqual(["claude-sonnet-4-6-preview"]);
+  });
+
+  it("edits base-level wire ids and submits the parsed list", async () => {
+    const user = userEvent.setup();
+    const upsertModelPricingBaseline = vi.fn().mockResolvedValue(sonnetBaseline());
+    const client = createMockStigmer({
+      listModelPricingBaselines: vi
+        .fn()
+        .mockResolvedValue({ baselines: [sonnetBaseline()] }),
+      upsertModelPricingBaseline,
+    });
+
+    render(<ModelCatalogPanel />, { wrapper: wrapper(client) });
+    await user.click(await screen.findByRole("button", { name: "Edit" }));
+
+    // The base "Wire ids" field comes before the variant's in DOM order.
+    const wireIdsField = screen.getAllByLabelText("Wire ids (comma-separated)")[0];
+    await user.clear(wireIdsField);
+    await user.type(
+      wireIdsField,
+      "claude-sonnet-4-6-preview, accounts/fireworks/models/sonnet-4p6",
+    );
+    await user.click(screen.getByRole("button", { name: "Review changes" }));
+
+    // Alias-only edits move no rates — the confirm step says so.
+    expect(await screen.findByText(/No rate changes/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Apply revision" }));
+    await waitFor(() => expect(upsertModelPricingBaseline).toHaveBeenCalledTimes(1));
+
+    expect(upsertModelPricingBaseline.mock.calls[0][0].baseline.wireIds).toEqual([
+      "claude-sonnet-4-6-preview",
+      "accounts/fireworks/models/sonnet-4p6",
     ]);
   });
 

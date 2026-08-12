@@ -86,6 +86,8 @@ interface CatalogForm {
   readonly speedTier: string;
   readonly costTier: string;
   readonly featured: boolean;
+  /** Comma-separated base-level wire ids (inbound aliases). */
+  readonly wireIds: string;
   readonly input: string;
   readonly output: string;
   readonly cacheWrite: string;
@@ -105,6 +107,7 @@ const EMPTY_FORM: CatalogForm = {
   speedTier: "fast",
   costTier: "standard",
   featured: false,
+  wireIds: "",
   input: "",
   output: "",
   cacheWrite: "0",
@@ -126,6 +129,7 @@ function formFromBaseline(baseline: ModelPricingBaseline): CatalogForm {
     speedTier: baseline.speedTier || "fast",
     costTier: baseline.costTier || "standard",
     featured: baseline.featured,
+    wireIds: baseline.wireIds.join(", "),
     input: microsToDollarString(pricing?.inputPriceMicrosPerMillion ?? ZERO),
     output: microsToDollarString(pricing?.outputPriceMicrosPerMillion ?? ZERO),
     cacheWrite: microsToDollarString(pricing?.cacheWritePriceMicrosPerMillion ?? ZERO),
@@ -212,6 +216,10 @@ function buildBaseline(
     speedTier: form.speedTier,
     costTier: form.costTier,
     featured: form.featured,
+    wireIds: form.wireIds
+      .split(",")
+      .map((w) => w.trim())
+      .filter((w) => w !== ""),
     pricing: create(PricingBlockSchema, {
       inputPriceMicrosPerMillion: input,
       outputPriceMicrosPerMillion: output,
@@ -515,6 +523,18 @@ export function BaselineEditor({
           </select>
         </Field>
       </div>
+
+      {/* Inbound aliases, editable on existing entries (unlike identity):
+          adding an alias to a live model is this field's primary use. */}
+      <Field label="Wire ids (comma-separated)">
+        <input
+          className={INPUT_CLASSES}
+          value={form.wireIds}
+          onChange={(e) => set("wireIds", e.target.value)}
+          placeholder="e.g. gemini-3-flash-preview"
+          disabled={isSubmitting}
+        />
+      </Field>
 
       <label className="stg:flex stg:cursor-pointer stg:items-center stg:gap-1.5 stg:text-xs stg:text-foreground">
         <input
