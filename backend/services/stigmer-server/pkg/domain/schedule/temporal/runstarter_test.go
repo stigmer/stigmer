@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 // fakeExecutionCreator records the create request and answers with a
@@ -36,14 +37,16 @@ func (f *fakeExecutionCreator) Create(ctx context.Context, execution *agentexecu
 	}
 	response := f.response
 	if response == nil {
-		clone := *execution
+		// proto.Clone, never a struct copy: proto messages carry an
+		// internal mutex, so copying trips vet's copylocks.
+		clone := proto.Clone(execution).(*agentexecutionv1.AgentExecution)
 		clone.Metadata = &apiresource.ApiResourceMetadata{
 			Id:   "aex_01CREATED",
 			Org:  execution.GetMetadata().GetOrg(),
 			Name: execution.GetMetadata().GetName(),
 			Slug: execution.GetMetadata().GetName(),
 		}
-		response = &clone
+		response = clone
 	}
 	if f.persistOnCreate != nil {
 		if err := f.persistOnCreate.SaveResource(ctx,
