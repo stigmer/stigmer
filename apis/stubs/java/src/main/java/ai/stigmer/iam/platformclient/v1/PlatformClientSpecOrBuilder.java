@@ -191,14 +191,27 @@ public interface PlatformClientSpecOrBuilder extends
 
   /**
    * <pre>
-   * CORS origins allowed for browser-based requests using tokens minted by
-   * this PlatformClient.
+   * Web origins allowed for browser-based requests using tokens minted by
+   * this PlatformClient (Stigmer Cloud).
    *
-   * When non-empty, the server validates the Origin header of browser requests
-   * against this list. Requests from unlisted origins are rejected.
+   * Enforced on every API request bearing a user token minted by this
+   * client (never on mintUserToken itself — minting is server-to-server and
+   * carries no browser Origin):
+   * - Empty list: origin validation is not enforced (open mode — suitable
+   * for development or when the platform controls all access points).
+   * - Non-empty list: the request's Origin header must match an entry
+   * (case-insensitive, per RFC 6454 origin comparison). Unlisted
+   * origins — including the opaque-origin serialization "null" — are
+   * refused PERMISSION_DENIED.
+   * - Requests without an Origin header always pass: only browsers send
+   * Origin, and only browsers guarantee it is not forgeable by page
+   * script. This is a browser-context, CORS-class defense-in-depth
+   * control against a leaked token being replayed from another site's
+   * browser context; the client_secret remains the primary control,
+   * and non-browser callers are not constrained by it.
    *
-   * When empty, origin validation is not enforced (suitable for development
-   * or when the platform controls all access points).
+   * Edits propagate immediately: the enforcement cache is evicted on every
+   * PlatformClient update.
    * </pre>
    *
    * <code>repeated string allowed_origins = 9 [json_name = "allowedOrigins"];</code>
@@ -208,14 +221,27 @@ public interface PlatformClientSpecOrBuilder extends
       getAllowedOriginsList();
   /**
    * <pre>
-   * CORS origins allowed for browser-based requests using tokens minted by
-   * this PlatformClient.
+   * Web origins allowed for browser-based requests using tokens minted by
+   * this PlatformClient (Stigmer Cloud).
    *
-   * When non-empty, the server validates the Origin header of browser requests
-   * against this list. Requests from unlisted origins are rejected.
+   * Enforced on every API request bearing a user token minted by this
+   * client (never on mintUserToken itself — minting is server-to-server and
+   * carries no browser Origin):
+   * - Empty list: origin validation is not enforced (open mode — suitable
+   * for development or when the platform controls all access points).
+   * - Non-empty list: the request's Origin header must match an entry
+   * (case-insensitive, per RFC 6454 origin comparison). Unlisted
+   * origins — including the opaque-origin serialization "null" — are
+   * refused PERMISSION_DENIED.
+   * - Requests without an Origin header always pass: only browsers send
+   * Origin, and only browsers guarantee it is not forgeable by page
+   * script. This is a browser-context, CORS-class defense-in-depth
+   * control against a leaked token being replayed from another site's
+   * browser context; the client_secret remains the primary control,
+   * and non-browser callers are not constrained by it.
    *
-   * When empty, origin validation is not enforced (suitable for development
-   * or when the platform controls all access points).
+   * Edits propagate immediately: the enforcement cache is evicted on every
+   * PlatformClient update.
    * </pre>
    *
    * <code>repeated string allowed_origins = 9 [json_name = "allowedOrigins"];</code>
@@ -224,14 +250,27 @@ public interface PlatformClientSpecOrBuilder extends
   int getAllowedOriginsCount();
   /**
    * <pre>
-   * CORS origins allowed for browser-based requests using tokens minted by
-   * this PlatformClient.
+   * Web origins allowed for browser-based requests using tokens minted by
+   * this PlatformClient (Stigmer Cloud).
    *
-   * When non-empty, the server validates the Origin header of browser requests
-   * against this list. Requests from unlisted origins are rejected.
+   * Enforced on every API request bearing a user token minted by this
+   * client (never on mintUserToken itself — minting is server-to-server and
+   * carries no browser Origin):
+   * - Empty list: origin validation is not enforced (open mode — suitable
+   * for development or when the platform controls all access points).
+   * - Non-empty list: the request's Origin header must match an entry
+   * (case-insensitive, per RFC 6454 origin comparison). Unlisted
+   * origins — including the opaque-origin serialization "null" — are
+   * refused PERMISSION_DENIED.
+   * - Requests without an Origin header always pass: only browsers send
+   * Origin, and only browsers guarantee it is not forgeable by page
+   * script. This is a browser-context, CORS-class defense-in-depth
+   * control against a leaked token being replayed from another site's
+   * browser context; the client_secret remains the primary control,
+   * and non-browser callers are not constrained by it.
    *
-   * When empty, origin validation is not enforced (suitable for development
-   * or when the platform controls all access points).
+   * Edits propagate immediately: the enforcement cache is evicted on every
+   * PlatformClient update.
    * </pre>
    *
    * <code>repeated string allowed_origins = 9 [json_name = "allowedOrigins"];</code>
@@ -241,14 +280,27 @@ public interface PlatformClientSpecOrBuilder extends
   java.lang.String getAllowedOrigins(int index);
   /**
    * <pre>
-   * CORS origins allowed for browser-based requests using tokens minted by
-   * this PlatformClient.
+   * Web origins allowed for browser-based requests using tokens minted by
+   * this PlatformClient (Stigmer Cloud).
    *
-   * When non-empty, the server validates the Origin header of browser requests
-   * against this list. Requests from unlisted origins are rejected.
+   * Enforced on every API request bearing a user token minted by this
+   * client (never on mintUserToken itself — minting is server-to-server and
+   * carries no browser Origin):
+   * - Empty list: origin validation is not enforced (open mode — suitable
+   * for development or when the platform controls all access points).
+   * - Non-empty list: the request's Origin header must match an entry
+   * (case-insensitive, per RFC 6454 origin comparison). Unlisted
+   * origins — including the opaque-origin serialization "null" — are
+   * refused PERMISSION_DENIED.
+   * - Requests without an Origin header always pass: only browsers send
+   * Origin, and only browsers guarantee it is not forgeable by page
+   * script. This is a browser-context, CORS-class defense-in-depth
+   * control against a leaked token being replayed from another site's
+   * browser context; the client_secret remains the primary control,
+   * and non-browser callers are not constrained by it.
    *
-   * When empty, origin validation is not enforced (suitable for development
-   * or when the platform controls all access points).
+   * Edits propagate immediately: the enforcement cache is evicted on every
+   * PlatformClient update.
    * </pre>
    *
    * <code>repeated string allowed_origins = 9 [json_name = "allowedOrigins"];</code>

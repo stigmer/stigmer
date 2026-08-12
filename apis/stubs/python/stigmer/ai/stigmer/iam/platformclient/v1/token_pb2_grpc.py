@@ -82,10 +82,16 @@ class PlatformClientTokenControllerServicer(object):
         - UNAUTHENTICATED: Invalid client_id or client_secret
         - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts
         is false, or the PlatformClient secret has expired
-        - PERMISSION_DENIED: Origin not in allowed_origins (when configured)
         - INTERNAL: Account provisioning could not be completed (for example, the
         auto_grant_on_org role grant failed). No partial account is left behind
         — the account is rolled back — so the request is safe to retry.
+
+        Origin enforcement (spec.allowed_origins) does NOT apply to this call:
+        minting is server-to-server, so there is no browser Origin to check.
+        It applies to the browser API calls that BEAR the minted token — when
+        the PlatformClient lists allowed_origins, requests whose Origin header
+        is not on the list are refused PERMISSION_DENIED (see the
+        allowed_origins field docs in spec.proto for the exact semantics).
 
         @internal
         This RPC is public — no Bearer token is required. The caller authenticates

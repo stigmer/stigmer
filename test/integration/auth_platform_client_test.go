@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -396,4 +397,100 @@ func TestPlatformClient_ListByOrg(t *testing.T) {
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(list.GetEntries()), 2,
 		"should list at least the 2 platform clients we created")
+}
+
+// TestPlatformClient_AllowedOrigins_EnforcedOnTokenBearingRequests is the
+// end-to-end pin for issue #375: PlatformClientSpec.allowed_origins was
+// documented, stored, and updatable — and read by nothing. It is now enforced
+// on every request BEARING a minted user token (never on mintUserToken
+// itself, which is server-to-server and carries no browser Origin): with a
+// non-empty list, an unlisted Origin header is refused PERMISSION_DENIED;
+// listed origins (case-insensitive), absent origins (non-browser callers),
+// and empty-list clients (open mode) all pass. whoAmI is the probe RPC — it
+// needs no org grants, so every refusal here is the origin gate's.
+func TestPlatformClient_AllowedOrigins_EnforcedOnTokenBearingRequests(t *testing.T) {
+	clients := requirePlatformClientClients(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	creds := harness.CreatePlatformClient(t, ctx, clients,
+		harness.WithAutoProvision(true),
+		harness.WithAllowedOrigins("https://app.acme-origins.test"))
+	token := harness.MintUserToken(t, ctx, clients, creds, "origin-user-"+uuid.New().String()[:8])
+
+	userConn := harness.GRPCConnWithBearer(t, testHarness.Service.GRPCAddress(), token)
+	userClients := harness.NewClients(userConn)
+
+	whoAmI := func(callCtx context.Context) error {
+		_, err := userClients.IdentityAccountQuery.WhoAmI(callCtx, &emptypb.Empty{})
+		return err
+	}
+	withOrigin := func(origin string) context.Context {
+		// The origin metadata key is the browser's Origin header exactly as
+		// the gateway's grpc-web translation forwards it to the service.
+		return metadata.AppendToOutgoingContext(ctx, "origin", origin)
+	}
+
+	// Unlisted origin: refused, with copy naming the field to fix.
+	err := whoAmI(withOrigin("https://evil.example.com"))
+	require.Error(t, err, "unlisted origin must be refused")
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.PermissionDenied, st.Code(),
+		"unlisted origin should return PERMISSION_DENIED, got: %s — %s", st.Code(), st.Message())
+	assert.Contains(t, st.Message(), "allowed_origins",
+		"the refusal must tell the integrator which field to fix")
+	assert.Contains(t, st.Message(), "https://evil.example.com",
+		"the refusal must name the refused origin (origins are public identifiers)")
+
+	// Opaque origin ("null"): a framed page whose parent is undiscoverable —
+	// fails closed under a non-empty list, mirroring the guest-embed policy.
+	err = whoAmI(withOrigin("null"))
+	require.Error(t, err, "opaque origin must be refused under a non-empty list")
+	st, _ = status.FromError(err)
+	assert.Equal(t, codes.PermissionDenied, st.Code())
+
+	// Listed origin, different case: RFC 6454 origins compare
+	// case-insensitively, and owner-entered list entries may differ in case
+	// from the browser's lowercase serialization.
+	assert.NoError(t, whoAmI(withOrigin("https://APP.Acme-Origins.TEST")),
+		"listed origin must pass regardless of case")
+
+	// No Origin header: non-browser callers (backends, curl) are not
+	// constrained — the client secret remains the primary control.
+	assert.NoError(t, whoAmI(ctx), "absent Origin must always pass")
+
+	// Origin-list edits propagate immediately (the update pipeline evicts
+	// the enforcement cache): admit the previously refused origin and the
+	// SAME outstanding token passes on its next request.
+	existing, err := clients.PlatformClientQuery.Get(ctx,
+		&apiresource.ApiResourceId{Value: creds.ResourceID})
+	require.NoError(t, err, "load platform client for the allowlist update")
+	existing.Spec.AllowedOrigins = []string{
+		"https://app.acme-origins.test", "https://evil.example.com"}
+	_, err = clients.PlatformClientCommand.Update(ctx, existing)
+	require.NoError(t, err, "update allowed_origins")
+	assert.NoError(t, whoAmI(withOrigin("https://evil.example.com")),
+		"an origin admitted by update must pass immediately — stale-cache "+
+			"enforcement would keep refusing until the TTL")
+}
+
+// TestPlatformClient_AllowedOrigins_EmptyListIsOpenMode pins today's default:
+// a PlatformClient with no allowed_origins does not origin-check at all, so
+// shipping enforcement (issue #375) changes nothing for existing integrators
+// until they opt in by listing origins.
+func TestPlatformClient_AllowedOrigins_EmptyListIsOpenMode(t *testing.T) {
+	clients := requirePlatformClientClients(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	creds := harness.CreatePlatformClient(t, ctx, clients, harness.WithAutoProvision(true))
+	token := harness.MintUserToken(t, ctx, clients, creds, "open-user-"+uuid.New().String()[:8])
+
+	userConn := harness.GRPCConnWithBearer(t, testHarness.Service.GRPCAddress(), token)
+	userClients := harness.NewClients(userConn)
+
+	callCtx := metadata.AppendToOutgoingContext(ctx, "origin", "https://anywhere.example.com")
+	_, err := userClients.IdentityAccountQuery.WhoAmI(callCtx, &emptypb.Empty{})
+	assert.NoError(t, err, "empty allowed_origins must admit any origin (open mode)")
 }

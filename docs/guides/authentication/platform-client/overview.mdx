@@ -213,12 +213,12 @@ one set of permissions. Use a consistent, stable identifier across all your apps
 
 All SDKs return structured errors with actionable messages:
 
-| Error code            | When                                           | What to do                                                                                          |
-| --------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `UNAUTHENTICATED`     | Invalid `client_id` or `client_secret`         | Verify `STIGMER_CLIENT_ID` and `STIGMER_CLIENT_SECRET`. If rotated, the previous secret is invalid. |
-| `NOT_FOUND`           | User doesn't exist, automatic provisioning off | Enable `auto_provision_accounts` or pre-create the account.                                         |
-| `FAILED_PRECONDITION` | Client secret expired                          | Rotate the secret in the Console or CLI.                                                            |
-| `PERMISSION_DENIED`   | Origin not in `allowed_origins`                | Add the requesting origin to the PlatformClient's `allowed_origins`.                                |
+| Error code            | When                                                                                     | What to do                                                                                          |
+| --------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `UNAUTHENTICATED`     | Invalid `client_id` or `client_secret`                                                   | Verify `STIGMER_CLIENT_ID` and `STIGMER_CLIENT_SECRET`. If rotated, the previous secret is invalid. |
+| `NOT_FOUND`           | User doesn't exist, automatic provisioning off                                           | Enable `auto_provision_accounts` or pre-create the account.                                         |
+| `FAILED_PRECONDITION` | Client secret expired                                                                    | Rotate the secret in the Console or CLI.                                                            |
+| `PERMISSION_DENIED`   | A browser API call bearing the minted token came from an origin not in `allowed_origins` | Add the requesting origin to the PlatformClient's `allowed_origins`.                                |
 
 ## Security notes
 
@@ -231,7 +231,13 @@ All SDKs return structured errors with actionable messages:
 - Tokens are signed by Stigmer's private key and verified in-process. There is
   no JWKS endpoint (yet).
 - Use `allowed_origins` to restrict which browser origins can use tokens minted
-  by this PlatformClient.
+  by this PlatformClient. Enforcement happens on the browser's API calls, not on
+  `mintUserToken` (minting is server-to-server and carries no browser Origin):
+  with a non-empty list, requests whose `Origin` header is unlisted are refused
+  `PERMISSION_DENIED`; an empty list disables the check. Requests without an
+  `Origin` header always pass — this is a browser-context defense-in-depth
+  control against a leaked token being replayed from another site, and the
+  `client_secret` remains the primary control.
 
 ## Troubleshooting
 

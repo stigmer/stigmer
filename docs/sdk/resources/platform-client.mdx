@@ -583,7 +583,9 @@ The returned JWT can be used by the React SDK (via StigmerProvider's getAccessTo
 
 Authentication flow: 1. Validate client_id + client_secret against stored hash 2. Resolve or JIT-provision the identity account for user_id 3. If auto_grant_on_org is enabled, grant the configured role 4. Sign a JWT with Stigmer's private key containing the user's identity
 
-Error scenarios: - UNAUTHENTICATED: Invalid client_id or client_secret - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts is false, or the PlatformClient secret has expired - PERMISSION_DENIED: Origin not in allowed_origins (when configured) - INTERNAL: Account provisioning could not be completed (for example, the auto_grant_on_org role grant failed). No partial account is left behind — the account is rolled back — so the request is safe to retry.
+Error scenarios: - UNAUTHENTICATED: Invalid client_id or client_secret - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts is false, or the PlatformClient secret has expired - INTERNAL: Account provisioning could not be completed (for example, the auto_grant_on_org role grant failed). No partial account is left behind — the account is rolled back — so the request is safe to retry.
+
+Origin enforcement (spec.allowed_origins) does NOT apply to this call: minting is server-to-server, so there is no browser Origin to check. It applies to the browser API calls that BEAR the minted token — when the PlatformClient lists allowed_origins, requests whose Origin header is not on the list are refused PERMISSION_DENIED (see the allowed_origins field docs in spec.proto for the exact semantics).
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -697,7 +699,7 @@ Input for creating or updating a Platform Client.
     autoProvisionAccounts: { type: "boolean", description: "Whether to automatically create an identity account when mintUserToken is called with a user_id that has no existing account." },
     autoGrantOnOrg: { type: "boolean", description: "Whether to automatically grant a role on the PlatformClient's owning organization when an account is auto-provisioned." },
     autoGrantRole: { type: "IamRole", description: "The role to grant when auto_grant_on_org is true.", typeDescriptionLink: "#iamrole" },
-    allowedOrigins: { type: "string[]", description: "CORS origins allowed for browser-based requests using tokens minted by this PlatformClient." },
+    allowedOrigins: { type: "string[]", description: "Web origins allowed for browser-based requests using tokens minted by this PlatformClient (Stigmer Cloud)." },
   }}
 />
 
