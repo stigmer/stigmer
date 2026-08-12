@@ -39,6 +39,11 @@ import (
 // MCP SDK merges its minimal base environment (getDefaultEnvironment)
 // under whatever the runner passes. If a library upgrade ever changes
 // that merge, this test fails.
+//
+// Cursor-harness twin: TestAgentExecution_CursorMcpStdioEnvIsolation
+// (agent_execution_cursor_mcp_stdio_env_isolation_test.go) pins the same
+// contract for spawns that happen inside @cursor/sdk (oss#388). A change
+// to either guard's assertions likely owes the other the same change.
 func TestMcpStdio_EnvIsolation_NoDeclaredEnv(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
 	if testHarness.UnifiedRunner == nil {
