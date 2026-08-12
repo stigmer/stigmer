@@ -260,18 +260,20 @@ class GetSessionUsageReportOutput(_message.Message):
     def __init__(self, session_id: _Optional[str] = ..., execution_count: _Optional[int] = ..., total_usage: _Optional[_Union[_usage_pb2.UsageReportAggregate, _Mapping]] = ..., executions: _Optional[_Iterable[_Union[ExecutionUsageSummary, _Mapping]]] = ..., model_breakdown: _Optional[_Iterable[_Union[_usage_pb2.ModelUsage, _Mapping]]] = ..., first_execution_at: _Optional[str] = ..., last_execution_at: _Optional[str] = ..., is_estimated: bool = ...) -> None: ...
 
 class GetAgentUsageReportInput(_message.Message):
-    __slots__ = ("agent_id", "from_date", "to_date", "page_size", "page_token")
+    __slots__ = ("agent_id", "from_date", "to_date", "page_size", "page_token", "org_id")
     AGENT_ID_FIELD_NUMBER: _ClassVar[int]
     FROM_DATE_FIELD_NUMBER: _ClassVar[int]
     TO_DATE_FIELD_NUMBER: _ClassVar[int]
     PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
     PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    ORG_ID_FIELD_NUMBER: _ClassVar[int]
     agent_id: str
     from_date: str
     to_date: str
     page_size: int
     page_token: str
-    def __init__(self, agent_id: _Optional[str] = ..., from_date: _Optional[str] = ..., to_date: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+    org_id: str
+    def __init__(self, agent_id: _Optional[str] = ..., from_date: _Optional[str] = ..., to_date: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., org_id: _Optional[str] = ...) -> None: ...
 
 class GetAgentUsageReportOutput(_message.Message):
     __slots__ = ("agent_id", "agent_name", "total_usage", "model_breakdown", "sessions", "total_sessions", "total_executions", "total_billable_cost_micros", "next_page_token")

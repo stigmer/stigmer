@@ -103,4 +103,28 @@ public interface GetAgentUsageReportInputOrBuilder extends
    */
   com.google.protobuf.ByteString
       getPageTokenBytes();
+
+  /**
+   * <pre>
+   * Organization scope for the report: usage of this agent within this
+   * organization. Only executions belonging to this organization are
+   * aggregated. The caller must hold can_view on the organization.
+   * </pre>
+   *
+   * <code>string org_id = 6 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
+   * @return The orgId.
+   */
+  java.lang.String getOrgId();
+  /**
+   * <pre>
+   * Organization scope for the report: usage of this agent within this
+   * organization. Only executions belonging to this organization are
+   * aggregated. The caller must hold can_view on the organization.
+   * </pre>
+   *
+   * <code>string org_id = 6 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for orgId.
+   */
+  com.google.protobuf.ByteString
+      getOrgIdBytes();
 }
