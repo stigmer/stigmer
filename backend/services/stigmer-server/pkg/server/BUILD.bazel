@@ -52,6 +52,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/domain/datastore/controller",
         "//backend/services/stigmer-server/pkg/domain/datastore/recordstore",
         "//backend/services/stigmer-server/pkg/domain/environment/controller",
+        "//backend/services/stigmer-server/pkg/domain/environment/resolution",
         "//backend/services/stigmer-server/pkg/domain/executioncontext/controller",
         "//backend/services/stigmer-server/pkg/domain/github/controller",
         "//backend/services/stigmer-server/pkg/domain/mcpserver/controller",

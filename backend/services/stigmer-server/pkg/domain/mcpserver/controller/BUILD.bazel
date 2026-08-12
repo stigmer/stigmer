@@ -53,6 +53,7 @@ go_test(
     name = "controller_test",
     srcs = [
         "connect_test.go",
+        "initiate_vendor_refusal_test.go",
         "mcpserver_controller_test.go",
         "oauth_connect_secrets_test.go",
         "oauth_preflight_test.go",

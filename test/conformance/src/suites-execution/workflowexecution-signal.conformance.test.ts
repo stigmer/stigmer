@@ -25,12 +25,18 @@
 // - A signal whose signal_name matches the listen task's signal id unblocks the
 //   gate; the listen task and the downstream task complete and the execution
 //   reaches EXECUTION_COMPLETED. The optional payload is accepted.
-// - idempotency_key dedupe: a duplicate key (org-scoped, 24h TTL) is rejected
-//   with ALREADY_EXISTS; a distinct key delivers normally. Both editions
-//   enforce this through equivalent DedupeClaimStep pipelines. This was the
-//   DD-013 "documented, not fixed" gap — the OSS server never called
-//   SetSignalDedupeStore, so dedupe degraded to a no-op; #309 wired the store
-//   and this suite asserts the contract ungated. (The cloud conformance run
+// - idempotency_key dedupe: a duplicate of a DELIVERED key (org-scoped, 24h
+//   window anchored at delivery) is rejected with ALREADY_EXISTS; a distinct
+//   key delivers normally. Both editions enforce this through equivalent
+//   DedupeClaimStep pipelines. This was the DD-013 "documented, not fixed"
+//   gap — the OSS server never called SetSignalDedupeStore, so dedupe degraded
+//   to a no-op; #309 wired the store and this suite asserts the contract
+//   ungated. Deliberately NOT asserted here (oss#442, pinned at store/step
+//   level in both editions instead — inducing a Temporal send failure or an
+//   in-flight race needs surgical control a live server doesn't offer): a
+//   FAILED delivery frees the key for the caller's retry, and a same-key
+//   request whose delivery is in flight is rejected with the retryable
+//   ABORTED rather than ALREADY_EXISTS. (The cloud conformance run
 //   does not include this file today — its environment boots no TS runner —
 //   so in CI the pin executes against local-go-execution; it becomes a live
 //   cross-edition pin automatically if the cloud lane gains a runner.)

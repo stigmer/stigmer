@@ -64,6 +64,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows",
         "//backend/services/stigmer-server/pkg/domain/artifact/storage",
+        "//backend/services/stigmer-server/pkg/domain/environment/resolution",
         "//backend/services/stigmer-server/pkg/domain/mcpserver/oauth",
         "//backend/services/stigmer-server/pkg/domain/schedule/temporal",
         "//backend/services/stigmer-server/pkg/domain/workflow/converter",

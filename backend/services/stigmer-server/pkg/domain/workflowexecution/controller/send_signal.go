@@ -66,6 +66,14 @@ const DedupeSkippedKey = "dedupe_skipped"
 // - NOT_FOUND: Execution with given ID doesn't exist
 // - FAILED_PRECONDITION: Execution is in a terminal phase
 // - INVALID_ARGUMENT: execution_id or signal_name is empty
+// - ALREADY_EXISTS: Signal with same idempotency_key already DELIVERED (Gap B2)
+// - ABORTED: Signal with same idempotency_key currently in flight; retryable (oss#442)
+//
+// Idempotency-key lifecycle (oss#442, shared contract with the cloud edition):
+// a claim holds the key only for the short in-flight TTL; successful delivery
+// extends it to the 24h dedupe window; a failed send releases the claim so the
+// caller's retry — the exact scenario idempotency keys exist for — claims
+// freshly instead of being rejected.
 func (c *WorkflowExecutionController) SendSignal(
 	ctx context.Context,
 	input *workflowexecutionv1.SendSignalInput,
@@ -81,6 +89,14 @@ func (c *WorkflowExecutionController) SendSignal(
 	// Build and execute pipeline
 	p := c.buildSendSignalPipeline()
 	if err := p.Execute(reqCtx); err != nil {
+		// The only step that can fail after the dedupe claim landed is the send
+		// itself (mark-delivered never fails the pipeline) — release the claim so
+		// the caller's retry with the same idempotency_key claims freshly instead
+		// of being rejected (oss#442). Best-effort: a release failure is logged
+		// and swallowed — the caller must see the send error, and the stranded
+		// claim self-heals when its in-flight hold lapses.
+		c.releaseDedupeClaimAfterFailure(ctx, reqCtx, input)
+
 		log.Warn().
 			Str("execution_id", input.GetExecutionId()).
 			Str("signal_name", input.GetSignalName()).
@@ -102,6 +118,36 @@ func (c *WorkflowExecutionController) SendSignal(
 		Msg("SendSignal workflow execution completed")
 
 	return execution.(*workflowexecutionv1.WorkflowExecution), nil
+}
+
+// releaseDedupeClaimAfterFailure frees the idempotency key claimed for a
+// send-signal request whose pipeline failed after the claim landed, so the
+// caller can retry the failed delivery immediately instead of waiting out the
+// in-flight hold (oss#442).
+func (c *WorkflowExecutionController) releaseDedupeClaimAfterFailure(
+	ctx context.Context,
+	reqCtx *pipeline.RequestContext[*workflowexecutionv1.SendSignalInput],
+	input *workflowexecutionv1.SendSignalInput,
+) {
+	if claimed, ok := reqCtx.Get(DedupeClaimedKey).(bool); !ok || !claimed {
+		return
+	}
+
+	execution, ok := reqCtx.Get(LoadedExecutionKey).(*workflowexecutionv1.WorkflowExecution)
+	if !ok {
+		// The claim step runs after the load step, so a claimed key implies a
+		// loaded execution; this arm is unreachable in practice.
+		return
+	}
+
+	org := execution.GetMetadata().GetOrg()
+	if err := c.signalDedupeStore.Release(ctx, org, input.GetIdempotencyKey()); err != nil {
+		log.Warn().
+			Err(err).
+			Str("execution_id", input.GetExecutionId()).
+			Str("idempotency_key", input.GetIdempotencyKey()).
+			Msg("Failed to release idempotency key after failed delivery (claim self-heals when its hold lapses)")
+	}
 }
 
 // buildSendSignalPipeline constructs the pipeline for send signal operations.
@@ -351,8 +397,16 @@ func (s *SendSignalToWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) e
 // =============================================================================
 
 // DedupeClaimStep attempts to claim an idempotency key before signal delivery.
-// If the key was already used, rejects the request with ALREADY_EXISTS.
 // If no idempotency_key is provided, skips deduplication (backward compatible).
+//
+// A duplicate is judged by the existing holder's status (oss#442, shared
+// contract with the cloud edition): a DELIVERED holder is a true duplicate
+// (ALREADY_EXISTS — stop retrying), while a live CLAIMED holder means another
+// request with the same key is in flight right now (ABORTED — retryable; the
+// conflict resolves when that delivery settles or its short claim hold lapses).
+// A CLAIMED holder from a FAILED delivery never reaches this branch: the
+// failure path releases the claim, and a crashed one expires within the
+// in-flight TTL.
 //
 // @since Gap B2 (Event Dedupe)
 type DedupeClaimStep[T SignalInput] struct {
@@ -405,14 +459,15 @@ func (s *DedupeClaimStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 		Str("signal_name", signalName).
 		Msg("Attempting to claim idempotency key for signal")
 
-	// Attempt to claim the key
+	// Attempt to claim the key. The claim holds only for the in-flight TTL;
+	// successful delivery extends it to the full dedupe window.
 	result, err := s.dedupeStore.Claim(
 		ctx.Context(),
 		org,
 		idempotencyKey,
 		executionID,
 		signalName,
-		dedupe.DefaultSignalDedupeTTL,
+		dedupe.InFlightClaimTTL,
 	)
 	if err != nil {
 		log.Error().
@@ -425,19 +480,29 @@ func (s *DedupeClaimStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 		return nil
 	}
 
-	// Check claim result
+	// Check claim result, branching on the existing holder's status.
 	if result.Status == dedupe.ClaimStatusDuplicate {
 		log.Info().
 			Str("execution_id", executionID).
 			Str("idempotency_key", idempotencyKey).
 			Str("original_execution_id", result.Record.ExecutionID).
 			Str("original_status", string(result.Record.Status)).
-			Msg("Duplicate signal detected - rejecting with ALREADY_EXISTS")
+			Msg("Duplicate signal detected")
 
-		// Duplicates are rejected with ALREADY_EXISTS — nothing is cached or
-		// replayed. Same contract as the cloud edition's DedupeClaimStep.
-		return grpclib.AlreadyExistsError(
-			"signal_with_idempotency_key",
+		if result.Record.Status == dedupe.StatusDelivered {
+			// True duplicate: the signal already landed. Terminal for this key —
+			// nothing is cached or replayed. Same contract as the cloud edition.
+			return grpclib.AlreadyExistsError(
+				"signal_with_idempotency_key",
+				idempotencyKey,
+			)
+		}
+
+		// In-flight conflict: another request holds a live claim on this key.
+		// ABORTED is the retryable-conflict code — the caller should retry
+		// shortly, unlike ALREADY_EXISTS which says stop.
+		return grpclib.AbortedError(
+			"signal with idempotency_key %q is currently being delivered; retry shortly",
 			idempotencyKey,
 		)
 	}
@@ -457,7 +522,9 @@ func (s *DedupeClaimStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 // =============================================================================
 
 // DedupeMarkDeliveredStep marks an idempotency key as delivered after successful
-// signal delivery. Only runs if DedupeClaimStep successfully claimed the key.
+// signal delivery, extending its hold from the short in-flight TTL to the full
+// 24h dedupe window — delivery is what earns the window (oss#442).
+// Only runs if DedupeClaimStep successfully claimed the key.
 //
 // @since Gap B2 (Event Dedupe)
 type DedupeMarkDeliveredStep[T SignalInput] struct {

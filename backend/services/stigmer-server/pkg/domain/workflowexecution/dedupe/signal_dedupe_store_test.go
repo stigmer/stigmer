@@ -57,7 +57,7 @@ func TestSignalDedupeStore_Claim(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("claim new key succeeds", func(t *testing.T) {
-		result, err := store.Claim(ctx, "org-1", "key-1", "wfx_1", "signal_1", DefaultSignalDedupeTTL)
+		result, err := store.Claim(ctx, "org-1", "key-1", "wfx_1", "signal_1", InFlightClaimTTL)
 		if err != nil {
 			t.Fatalf("Claim failed: %v", err)
 		}
@@ -73,7 +73,7 @@ func TestSignalDedupeStore_Claim(t *testing.T) {
 
 	t.Run("claim duplicate key returns duplicate", func(t *testing.T) {
 		// First claim should succeed
-		result1, err := store.Claim(ctx, "org-2", "key-2", "wfx_2", "signal_2", DefaultSignalDedupeTTL)
+		result1, err := store.Claim(ctx, "org-2", "key-2", "wfx_2", "signal_2", InFlightClaimTTL)
 		if err != nil {
 			t.Fatalf("First claim failed: %v", err)
 		}
@@ -82,7 +82,7 @@ func TestSignalDedupeStore_Claim(t *testing.T) {
 		}
 
 		// Second claim should return duplicate
-		result2, err := store.Claim(ctx, "org-2", "key-2", "wfx_2", "signal_2", DefaultSignalDedupeTTL)
+		result2, err := store.Claim(ctx, "org-2", "key-2", "wfx_2", "signal_2", InFlightClaimTTL)
 		if err != nil {
 			t.Fatalf("Second claim failed unexpectedly: %v", err)
 		}
@@ -102,7 +102,7 @@ func TestSignalDedupeStore_Claim(t *testing.T) {
 
 	t.Run("same key different org succeeds", func(t *testing.T) {
 		// Claim in org-a
-		result1, err := store.Claim(ctx, "org-a", "shared-key", "wfx_a", "signal", DefaultSignalDedupeTTL)
+		result1, err := store.Claim(ctx, "org-a", "shared-key", "wfx_a", "signal", InFlightClaimTTL)
 		if err != nil {
 			t.Fatalf("Claim in org-a failed: %v", err)
 		}
@@ -111,7 +111,7 @@ func TestSignalDedupeStore_Claim(t *testing.T) {
 		}
 
 		// Same key in org-b should succeed (different scope)
-		result2, err := store.Claim(ctx, "org-b", "shared-key", "wfx_b", "signal", DefaultSignalDedupeTTL)
+		result2, err := store.Claim(ctx, "org-b", "shared-key", "wfx_b", "signal", InFlightClaimTTL)
 		if err != nil {
 			t.Fatalf("Claim in org-b failed: %v", err)
 		}
@@ -154,7 +154,7 @@ func TestSignalDedupeStore_MarkDelivered(t *testing.T) {
 
 	t.Run("mark claimed key as delivered", func(t *testing.T) {
 		// First claim the key
-		result, err := store.Claim(ctx, "org-mark", "mark-key", "wfx_1", "signal", DefaultSignalDedupeTTL)
+		result, err := store.Claim(ctx, "org-mark", "mark-key", "wfx_1", "signal", InFlightClaimTTL)
 		if err != nil {
 			t.Fatalf("Claim failed: %v", err)
 		}
@@ -169,7 +169,7 @@ func TestSignalDedupeStore_MarkDelivered(t *testing.T) {
 		}
 
 		// Subsequent claim should still return duplicate (key is still valid)
-		result2, err := store.Claim(ctx, "org-mark", "mark-key", "wfx_2", "signal", DefaultSignalDedupeTTL)
+		result2, err := store.Claim(ctx, "org-mark", "mark-key", "wfx_2", "signal", InFlightClaimTTL)
 		if err != nil {
 			t.Fatalf("Subsequent claim failed: %v", err)
 		}
@@ -192,6 +192,111 @@ func TestSignalDedupeStore_MarkDelivered(t *testing.T) {
 		err := store.MarkDelivered(ctx, "org-none", "non-existent-key")
 		if err != nil {
 			t.Errorf("MarkDelivered should not error for non-existent key: %v", err)
+		}
+	})
+
+	t.Run("delivery EARNS the dedupe window: expiry extends to DeliveredSignalDedupeTTL", func(t *testing.T) {
+		// The oss#442 contract that makes the short in-flight hold safe: the
+		// claim holds only InFlightClaimTTL; MarkDelivered extends the winner.
+		if _, err := store.Claim(ctx, "org-extend", "extend-key", "wfx_1", "signal", InFlightClaimTTL); err != nil {
+			t.Fatalf("Claim failed: %v", err)
+		}
+		before := time.Now().UTC()
+
+		if err := store.MarkDelivered(ctx, "org-extend", "extend-key"); err != nil {
+			t.Fatalf("MarkDelivered failed: %v", err)
+		}
+
+		record, err := store.loadRecord(ctx, buildDedupeKey("org-extend", "extend-key"))
+		if err != nil {
+			t.Fatalf("loadRecord failed: %v", err)
+		}
+		if record.ExpiresAt.Before(before.Add(DeliveredSignalDedupeTTL - time.Second)) {
+			t.Errorf("Expected expiry extended to ~%v from delivery, got %v",
+				DeliveredSignalDedupeTTL, record.ExpiresAt.Sub(before))
+		}
+	})
+
+	t.Run("re-marking is idempotent: neither delivered_at nor expiry restamps", func(t *testing.T) {
+		if _, err := store.Claim(ctx, "org-remark", "remark-key", "wfx_1", "signal", InFlightClaimTTL); err != nil {
+			t.Fatalf("Claim failed: %v", err)
+		}
+		if err := store.MarkDelivered(ctx, "org-remark", "remark-key"); err != nil {
+			t.Fatalf("First MarkDelivered failed: %v", err)
+		}
+		first, err := store.loadRecord(ctx, buildDedupeKey("org-remark", "remark-key"))
+		if err != nil {
+			t.Fatalf("loadRecord failed: %v", err)
+		}
+
+		if err := store.MarkDelivered(ctx, "org-remark", "remark-key"); err != nil {
+			t.Fatalf("Second MarkDelivered failed: %v", err)
+		}
+		second, err := store.loadRecord(ctx, buildDedupeKey("org-remark", "remark-key"))
+		if err != nil {
+			t.Fatalf("loadRecord failed: %v", err)
+		}
+
+		if !second.DeliveredAt.Equal(first.DeliveredAt) {
+			t.Errorf("Re-marking restamped delivered_at: %v -> %v", first.DeliveredAt, second.DeliveredAt)
+		}
+		if !second.ExpiresAt.Equal(first.ExpiresAt) {
+			t.Errorf("Re-marking re-extended the dedupe window: %v -> %v", first.ExpiresAt, second.ExpiresAt)
+		}
+	})
+}
+
+func TestSignalDedupeStore_Release(t *testing.T) {
+	store := setupTestStore(t)
+	ctx := context.Background()
+
+	t.Run("release frees a CLAIMED key: the failed delivery's retry claims freshly", func(t *testing.T) {
+		if _, err := store.Claim(ctx, "org-rel", "rel-key", "wfx_failed", "signal", InFlightClaimTTL); err != nil {
+			t.Fatalf("Claim failed: %v", err)
+		}
+
+		if err := store.Release(ctx, "org-rel", "rel-key"); err != nil {
+			t.Fatalf("Release failed: %v", err)
+		}
+
+		// The whole point of release: the retry is not a duplicate.
+		retry, err := store.Claim(ctx, "org-rel", "rel-key", "wfx_retry", "signal", InFlightClaimTTL)
+		if err != nil {
+			t.Fatalf("Retry claim failed: %v", err)
+		}
+		if retry.Status != ClaimStatusSuccess {
+			t.Errorf("Expected retry after release to claim freshly, got %v", retry.Status)
+		}
+	})
+
+	t.Run("release can NEVER free a DELIVERED key", func(t *testing.T) {
+		if _, err := store.Claim(ctx, "org-rel", "rel-delivered", "wfx_1", "signal", InFlightClaimTTL); err != nil {
+			t.Fatalf("Claim failed: %v", err)
+		}
+		if err := store.MarkDelivered(ctx, "org-rel", "rel-delivered"); err != nil {
+			t.Fatalf("MarkDelivered failed: %v", err)
+		}
+
+		if err := store.Release(ctx, "org-rel", "rel-delivered"); err != nil {
+			t.Fatalf("Release on delivered key should be a no-op, not an error: %v", err)
+		}
+
+		// A misplaced release must not unblock a key whose signal actually landed.
+		retry, err := store.Claim(ctx, "org-rel", "rel-delivered", "wfx_retry", "signal", InFlightClaimTTL)
+		if err != nil {
+			t.Fatalf("Retry claim failed: %v", err)
+		}
+		if retry.Status != ClaimStatusDuplicate {
+			t.Errorf("Expected DELIVERED key to still block after release, got %v", retry.Status)
+		}
+		if retry.Record.Status != StatusDelivered {
+			t.Errorf("Expected the blocking record to be DELIVERED, got %s", retry.Record.Status)
+		}
+	})
+
+	t.Run("release on a missing key is a tolerant no-op", func(t *testing.T) {
+		if err := store.Release(ctx, "org-rel", "never-claimed"); err != nil {
+			t.Errorf("Release should not error for a missing key: %v", err)
 		}
 	})
 }
