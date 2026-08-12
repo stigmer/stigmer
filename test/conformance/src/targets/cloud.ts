@@ -39,7 +39,7 @@ export class CloudTarget implements TargetProfile {
     externalOrgLookup: true,
     organizationEnumeration: false,
     versionTagging: true,
-    secretRedaction: true,
+    executionContextSecretRedaction: true,
     workflowChildApprovalForwarding: true,
     // The hermetic cloud env boots Temporal and the Java service runs the
     // schedule clock (T04 slice 2) — triggers fire for real.

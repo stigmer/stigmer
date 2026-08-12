@@ -7,6 +7,7 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	envsteps "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller/steps"
 )
 
 // Get retrieves an environment by ID using the pipeline framework
@@ -26,7 +27,8 @@ import (
 // - SendResponse step (handler returns directly)
 //
 // The loaded environment is stored in context with key "targetResource" and
-// returned by the handler.
+// returned by the handler with secret values redacted (both editions redact
+// on read since oss#405 — getSecretValue is the reveal path).
 func (c *EnvironmentController) Get(ctx context.Context, id *apiresource.ApiResourceId) (*environmentv1.Environment, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, id)
 
@@ -38,6 +40,7 @@ func (c *EnvironmentController) Get(ctx context.Context, id *apiresource.ApiReso
 
 	// Retrieve loaded environment from context
 	environment := reqCtx.Get(steps.TargetResourceKey).(*environmentv1.Environment)
+	envsteps.RedactEnvironmentSecrets(environment)
 	return environment, nil
 }
 

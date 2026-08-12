@@ -23,14 +23,22 @@ const UpdatedEnvironmentKey = "updatedEnvironment"
 // environment's spec.data and persists the result. Keys in the request
 // overwrite existing keys; keys not in the request are preserved.
 //
+// Incoming is_secret values are encrypted before assignment (oss#405) —
+// this step is its own write boundary (sentinel guard, merge, and persist
+// all live here), so it carries its own encrypt call rather than a separate
+// pipeline step. Same ordering contract as create/update: sentinels first,
+// then encrypt. This is the path OAuth-managed vendor tokens take
+// (ManagedEnvironmentService.UpdateSecrets), so they rest encrypted too.
+//
 // Requires LoadEnvironmentByIDStep to have run first (reads from TargetResourceKey).
 // Stores the modified environment under UpdatedEnvironmentKey.
 type mergeVariablesAndPersistStep struct {
-	store store.Store
+	store         store.Store
+	secretService *encryption.SecretService
 }
 
-func NewMergeVariablesAndPersistStep(store store.Store) *mergeVariablesAndPersistStep {
-	return &mergeVariablesAndPersistStep{store: store}
+func NewMergeVariablesAndPersistStep(store store.Store, secretService *encryption.SecretService) *mergeVariablesAndPersistStep {
+	return &mergeVariablesAndPersistStep{store: store, secretService: secretService}
 }
 
 func (s *mergeVariablesAndPersistStep) Name() string {
@@ -67,6 +75,23 @@ func (s *mergeVariablesAndPersistStep) Execute(ctx *pipeline.RequestContext[*env
 			return grpclib.InvalidArgumentError(
 				"variable '%s' must be plaintext — values carrying the 'enc:' "+
 					"encryption prefix are not accepted from clients", key)
+		}
+		if val.GetIsSecret() && val.GetValue() != "" {
+			if !s.secretService.IsEnabled() {
+				log.Warn().Str("key", key).
+					Msg("Encryption disabled: environment secret value will be stored in plaintext")
+			} else {
+				encrypted, err := s.secretService.Encrypt(val.GetValue())
+				if err != nil {
+					return grpclib.InternalError(err,
+						fmt.Sprintf("failed to encrypt secret value for variable '%s'", key))
+				}
+				val = &environmentv1.EnvironmentValue{
+					Value:       encrypted,
+					IsSecret:    true,
+					Description: val.GetDescription(),
+				}
+			}
 		}
 		env.Spec.Data[key] = val
 	}

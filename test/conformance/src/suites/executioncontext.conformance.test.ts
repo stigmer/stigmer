@@ -17,9 +17,12 @@
 // live execution and is covered by the execution-lifecycle session. Here we test
 // the resource's own API contract by creating contexts directly.
 //
-// Secret value handling mirrors Environment: get/getByReference/getByExecutionId
-// return the value in plaintext on OSS and redact it on cloud (gated by
-// secretRedaction); the is_secret flag is edition-agnostic.
+// Secret value handling DIVERGES from Environment (which is edition-converged
+// since stigmer#405): EC get/getByReference/getByExecutionId return the value
+// in plaintext on OSS (its runner reads the EC through these RPCs) and redact
+// it on cloud (gated by executionContextSecretRedaction); the is_secret flag
+// is edition-agnostic. OSS convergence is tracked by the stigmer#405 spawned
+// EC-at-rest issue.
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -199,7 +202,7 @@ describe("ExecutionContext conformance — apply (create-or-fail)", () => {
 });
 
 describe("ExecutionContext conformance — secrets", () => {
-  it("read returns the secret value per the secretRedaction capability; is_secret is always preserved", async () => {
+  it("read returns the secret value per the executionContextSecretRedaction capability; is_secret is always preserved", async () => {
     const { org } = await target.provisionTenancy();
     const secretValue = "runtime-secret-value";
     const created = await createExecutionContext(org, uniqueName("ectx"), {
@@ -215,7 +218,7 @@ describe("ExecutionContext conformance — secrets", () => {
     expect(secretEntry?.isSecret, "is_secret is preserved on read in both editions").toBe(true);
     expect(fetched.spec?.data?.AWS_REGION?.value, "plaintext values are never redacted").toBe("us-east-1");
 
-    if (target.capabilities.secretRedaction) {
+    if (target.capabilities.executionContextSecretRedaction) {
       expect(secretEntry?.value, "redacting targets must not return the plaintext secret").not.toBe(secretValue);
       return;
     }
@@ -249,7 +252,7 @@ describe("ExecutionContext conformance — secrets", () => {
     expect(secretEntry?.isSecret, "is_secret is preserved on read in both editions").toBe(true);
     expect(fetched.spec?.data?.AWS_REGION?.value, "plaintext values are never redacted").toBe("us-east-1");
 
-    if (target.capabilities.secretRedaction) {
+    if (target.capabilities.executionContextSecretRedaction) {
       expect(secretEntry?.value, "redacting targets must not return the plaintext secret to a user token").not.toBe(
         secretValue,
       );

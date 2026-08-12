@@ -5,6 +5,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
+	envresolution "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/resolution"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
@@ -23,6 +24,7 @@ type AgentExecutionController struct {
 	agentInstanceClient    *agentinstance.Client
 	sessionClient          *session.Client
 	environmentClient      *environment.Client
+	environmentResolution  *envresolution.RuntimeResolutionService
 	executionContextClient *executioncontext.Client
 	workflowCreator        *temporal.InvokeAgentExecutionWorkflowCreator
 	temporalConfig         *temporal.Config
@@ -72,6 +74,13 @@ func (c *AgentExecutionController) SetClients(
 	c.sessionClient = sessionClient
 	c.environmentClient = environmentClient
 	c.executionContextClient = executionContextClient
+}
+
+// SetEnvironmentResolution sets the environment runtime-resolution service —
+// the decrypt-for-execution path the execution-context builder uses to
+// resolve environment_refs (the RPC surface redacts secret values, oss#405).
+func (c *AgentExecutionController) SetEnvironmentResolution(svc *envresolution.RuntimeResolutionService) {
+	c.environmentResolution = svc
 }
 
 // SetWorkflowCreator sets the Temporal workflow creator dependency

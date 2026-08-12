@@ -17,7 +17,11 @@ import (
 // 2. ResolveSlug - Generate slug from metadata.name
 // 3. LoadExisting - Load existing environment from repository by ID
 // 4. BuildUpdateState - Merge spec, preserve IDs, update timestamps, clear computed fields
-// 5. Persist - Save updated environment to repository
+// 5. PreserveRedactedSecrets - Restore marker-carrying secrets, reject enc:v<N>: input
+// 6. EncryptSecretValues - Encrypt is_secret values at rest (marker-restored ciphertext passes through unchanged)
+// 7. NormalizeReferences - Normalize cross-references
+// 8. Persist - Save updated environment to repository
+// 9. IndexSearch - Update search index
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)
@@ -32,7 +36,12 @@ func (c *EnvironmentController) Update(ctx context.Context, environment *environ
 		return nil, err
 	}
 
-	return reqCtx.NewState(), nil
+	// Redact AFTER persist: the store keeps ciphertext, the response
+	// carries markers (the round-trip contract: sending a marker back
+	// preserves the stored secret).
+	updated := reqCtx.NewState()
+	envsteps.RedactEnvironmentSecrets(updated)
+	return updated, nil
 }
 
 // buildUpdatePipeline constructs the pipeline for environment update
@@ -45,8 +54,9 @@ func (c *EnvironmentController) buildUpdatePipeline() *pipeline.Pipeline[*enviro
 		AddStep(steps.NewLoadExistingStep[*environmentv1.Environment](c.store)).                                   // 3. Load existing environment
 		AddStep(steps.NewBuildUpdateStateStep[*environmentv1.Environment]()).                                      // 4. Build updated state
 		AddStep(envsteps.NewPreserveRedactedSecretsStep()).                                                        // 5. Preserve secrets when redaction marker sent back
-		AddStep(steps.NewNormalizeReferencesStep[*environmentv1.Environment]()).                                   // 6. Normalize cross-references
-		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).                                        // 6. Persist environment
-		AddStep(steps.NewIndexSearchStep[*environmentv1.Environment](c.store, &extractor.EnvironmentExtractor{})). // 7. Update search index
+		AddStep(envsteps.NewEncryptSecretValuesStep(c.secretService)).                                             // 6. Encrypt is_secret values (must follow the sentinel guard)
+		AddStep(steps.NewNormalizeReferencesStep[*environmentv1.Environment]()).                                   // 7. Normalize cross-references
+		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).                                        // 8. Persist environment
+		AddStep(steps.NewIndexSearchStep[*environmentv1.Environment](c.store, &extractor.EnvironmentExtractor{})). // 9. Update search index
 		Build()
 }

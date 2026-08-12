@@ -24,7 +24,9 @@ func (c *EnvironmentController) RemoveVariables(ctx context.Context, req *enviro
 		return nil, err
 	}
 
-	return reqCtx.Get(envsteps.UpdatedEnvironmentKey).(*environmentv1.Environment), nil
+	updated := reqCtx.Get(envsteps.UpdatedEnvironmentKey).(*environmentv1.Environment)
+	envsteps.RedactEnvironmentSecrets(updated)
+	return updated, nil
 }
 
 func (c *EnvironmentController) buildRemoveVariablesPipeline() *pipeline.Pipeline[*environmentv1.RemoveEnvironmentVariablesRequest] {

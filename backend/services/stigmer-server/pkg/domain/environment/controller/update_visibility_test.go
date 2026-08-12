@@ -7,6 +7,7 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	envsteps "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller/steps"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -45,12 +46,22 @@ func TestEnvironmentController_UpdateVisibility_PrivateToOrg(t *testing.T) {
 		created.GetMetadata().GetVisibility(),
 		"environments must not default to org visibility - sharing is an explicit opt-in")
 
+	// Snapshot the STORED value before the visibility update — the response
+	// is redacted (oss#405), so the response value cannot serve as the
+	// spec-data-untouched baseline.
+	storedBefore := &environmentv1.Environment{}
+	require.NoError(t, s.GetResource(context.Background(),
+		apiresourcekind.ApiResourceKind_environment, created.GetMetadata().GetId(), storedBefore))
+
 	updated, err := controller.UpdateVisibility(contextWithEnvironmentKind(), &apiresource.UpdateVisibilityInput{
 		ResourceId: created.GetMetadata().GetId(),
 		Visibility: apiresource.ApiResourceVisibility_visibility_org,
 	})
 	require.NoError(t, err, "private -> org should succeed")
 	assert.Equal(t, apiresource.ApiResourceVisibility_visibility_org, updated.GetMetadata().GetVisibility())
+	// Responses never carry stored secret ciphertext or plaintext.
+	assert.Equal(t, envsteps.RedactedMarker, updated.GetSpec().GetData()["API_KEY"].GetValue(),
+		"updateVisibility response must redact secrets")
 
 	// Verify persistence, not just the response.
 	stored := &environmentv1.Environment{}
@@ -58,7 +69,7 @@ func TestEnvironmentController_UpdateVisibility_PrivateToOrg(t *testing.T) {
 		apiresourcekind.ApiResourceKind_environment, created.GetMetadata().GetId(), stored))
 	assert.Equal(t, apiresource.ApiResourceVisibility_visibility_org, stored.GetMetadata().GetVisibility(),
 		"org visibility must be persisted")
-	assert.Equal(t, created.GetSpec().GetData()["API_KEY"].GetValue(), stored.GetSpec().GetData()["API_KEY"].GetValue(),
+	assert.Equal(t, storedBefore.GetSpec().GetData()["API_KEY"].GetValue(), stored.GetSpec().GetData()["API_KEY"].GetValue(),
 		"visibility update must not touch spec data")
 }
 
