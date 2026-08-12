@@ -100,6 +100,10 @@ export type ListRecentActivityRequest = Message<"ai.stigmer.activity.v1.ListRece
    * When empty, results span every organization the caller has resource
    * access in.
    *
+   * On the OSS edition the filter is a no-op: the server is single-tenant,
+   * so org scoping has nothing to narrow — matching the per-kind OSS list
+   * RPCs this feed summarizes.
+   *
    * @generated from field: string org = 2;
    */
   org: string;
