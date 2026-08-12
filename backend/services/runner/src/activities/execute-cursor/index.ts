@@ -72,7 +72,6 @@ import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/stre
 import { createCursorEventRecorder } from "./cursor-event-recorder.js";
 import { resolveMcpServers, toCursorMcpConfig, validateMcpServerEnv } from "./mcp-resolver.js";
 import { resolveMcpTransportPosture } from "../../shared/mcp-transport-guard.js";
-import { synthesizeDatastoreAttachment } from "../../shared/datastore-attachment.js";
 import {
   discoverChannelMessaging,
   synthesizeChannelAttachment,
@@ -665,35 +664,16 @@ async function executeCursorInner(
       ?? config.stigmerTokenRef?.current
       ?? config.stigmerToken;
 
-    // Phase 4a2: Synthesize the datastore records attachment (T05).
-    // Deliberately AFTER resolve + backfill: the attachment has no
-    // McpServerUsage and reports discovered capabilities, so the
-    // backfill's destructiveHint tightener can never force-gate
-    // delete_record (which on channels would be silently skipped).
-    // Empty approval maps keep it approval-free by construction.
-    if (blueprint.datastoreUsages.length > 0) {
-      const attachment = synthesizeDatastoreAttachment(blueprint.datastoreUsages, {
-        bridgeEndpoint: config.mcpBridgeEndpoint,
-        credential: attachmentCredential,
-        backendEndpoint: config.stigmerBackendEndpoint,
-      });
-      if (attachment) {
-        const resolvedServers = injectSynthesizedAttachment(
-          mcpResolution.resolvedServers, attachment, "datastore records",
-        );
-        mcpResolution = {
-          resolvedServers,
-          cursorConfig: toCursorMcpConfig(resolvedServers),
-        };
-      }
-    }
-
-    // Phase 4a3: Synthesize the channel messaging attachment (DD-006
-    // D7/D8), the records attachment's twin. The discovery read is the
-    // attachment decision — the control plane runs the SAME candidate
-    // computation the send authorization uses — and every failure mode
-    // (no channel, OSS, registry down, pre-3a control plane) degrades
-    // to honest absence: no tool, no section, execution unharmed.
+    // Phase 4a2: Synthesize the channel messaging attachment (DD-006
+    // D7/D8). Deliberately AFTER resolve + backfill: the attachment has
+    // no McpServerUsage and reports discovered capabilities, so the
+    // backfill's destructiveHint tightener can never force-gate its
+    // tools; empty approval maps keep it approval-free by construction.
+    // The discovery read is the attachment decision — the control plane
+    // runs the SAME candidate computation the send authorization uses —
+    // and every failure mode (no channel, OSS, registry down, pre-3a
+    // control plane) degrades to honest absence: no tool, no section,
+    // execution unharmed.
     const channelMessaging = await discoverChannelMessaging(client, exchangedRunnerToken);
     if (channelMessaging.length > 0) {
       const attachment = synthesizeChannelAttachment(channelMessaging, {
@@ -1147,7 +1127,6 @@ async function executeCursorInner(
       instructions: blueprint.instructions,
       userMessage: spec.message,
       skills: skillMetadata,
-      datastoreUsages: blueprint.datastoreUsages,
       channelMessaging,
       subAgents: blueprint.subAgents,
       workspaceDirs: blueprint.workspaceDirs,
@@ -1821,7 +1800,6 @@ async function executeCursorInner(
             instructions: blueprint.instructions,
             userMessage: spec.message,
             skills: skillMetadata,
-            datastoreUsages: blueprint.datastoreUsages,
             channelMessaging,
             subAgents: blueprint.subAgents,
             workspaceDirs: blueprint.workspaceDirs,
@@ -2367,8 +2345,6 @@ export interface BuildPromptInput {
   instructions: string;
   userMessage: string;
   skills: import("./prompt-builder.js").SkillMetadata[];
-  /** Datastores attached via `datastore_usages` — the `<available_datastores>` section. */
-  datastoreUsages?: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").DatastoreUsage[];
   /**
    * Serving proactive channels + their templates (the DD-006 D2
    * discovery read) — the `<available_channel_templates>` section.
@@ -2546,7 +2522,6 @@ export function buildPrompt(input: BuildPromptInput): string {
           instructions,
           userMessage,
           skills,
-          datastoreUsages: input.datastoreUsages ?? [],
           channelMessaging: input.channelMessaging ?? [],
           subAgents,
           workspaceDirs,
@@ -2612,7 +2587,6 @@ export function buildPrompt(input: BuildPromptInput): string {
     instructions,
     userMessage,
     skills,
-    datastoreUsages: input.datastoreUsages ?? [],
     channelMessaging: input.channelMessaging ?? [],
     subAgents,
     workspaceDirs,

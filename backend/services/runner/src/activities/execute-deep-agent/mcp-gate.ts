@@ -17,8 +17,6 @@
 export interface McpToolSources {
   /** Declared MCP server usages (agent spec + session spec). */
   readonly mcpServerUsageCount: number;
-  /** Declared datastore usages (the records attachment, T05). */
-  readonly datastoreUsageCount: number;
   /** Serving proactive-messaging channels (the channels attachment, DD-006). */
   readonly channelMessagingCount: number;
   /** The serving channel id when this session IS a live channel
@@ -30,7 +28,6 @@ export interface McpToolSources {
 export function shouldConnectMcp(sources: McpToolSources): boolean {
   return (
     sources.mcpServerUsageCount > 0 ||
-    sources.datastoreUsageCount > 0 ||
     sources.channelMessagingCount > 0 ||
     sources.conversationChannelId !== undefined
   );

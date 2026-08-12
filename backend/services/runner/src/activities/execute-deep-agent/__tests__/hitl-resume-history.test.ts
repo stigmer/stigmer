@@ -219,7 +219,6 @@ function fakeDurableResumeSetup(): SetupResult {
     // path shared across files would serialize parallel test workers for real.
     workspaceBackend: { rootDir: "/tmp/stigmer-test-ws-hitl-history" },
     mcpConnection: null,
-    datastoreToolsMissing: [],
     mergedEnvVars: {},
     secretKeys: new Set<string>(),
     modelName: "claude-sonnet",

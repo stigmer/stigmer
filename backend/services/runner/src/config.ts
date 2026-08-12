@@ -61,11 +61,12 @@ export interface Config {
   readonly stigmerBackendEndpoint: string;
   readonly stigmerToken: string | null;
   /**
-   * The MCP bridge endpoint for the runner-synthesized datastore
-   * records attachment (STIGMER_MCP_BRIDGE_ENDPOINT, e.g.
-   * https://mcp.stigmer.ai). Null selects the OSS/local shape: a
-   * spawned `stigmer mcp-server` stdio child against the local backend.
-   * See shared/datastore-attachment.ts.
+   * The MCP bridge endpoint for the runner-synthesized attachments —
+   * channel messaging and conversation participation
+   * (STIGMER_MCP_BRIDGE_ENDPOINT, e.g. https://mcp.stigmer.ai). Null
+   * selects the OSS/local shape: a spawned `stigmer mcp-server` stdio
+   * child against the local backend. See shared/channel-attachment.ts
+   * and shared/conversation-attachment.ts.
    */
   readonly mcpBridgeEndpoint: string | null;
   /**

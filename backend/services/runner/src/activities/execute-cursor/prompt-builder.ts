@@ -17,12 +17,11 @@
  */
 
 import { resolve } from "node:path";
-import type { DatastoreUsage, SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { formatContextBridgeText } from "../../shared/context-bridge.js";
 import { formatConversationCatchupText } from "../../shared/conversation-catchup.js";
-import { formatDatastoresSection } from "../../shared/datastore-attachment.js";
 import {
   formatChannelTemplatesSection,
   type ChannelMessagingInfo,
@@ -88,15 +87,6 @@ export interface EnhancedPromptOptions {
   instructions: string;
   userMessage: string;
   skills: SkillMetadata[];
-  /**
-   * Datastores attached via `datastore_usages` — rendered as the
-   * `<available_datastores>` section (DD-005 SD-5, skills precedent)
-   * pointing the model at the synthesized record tools. Always the healthy
-   * rendering here: the Cursor SDK connects MCP itself, so this harness can
-   * never observe the live roster — the section's standing
-   * failure-disclosure instruction is its whole coverage (issue #325).
-   */
-  datastoreUsages?: DatastoreUsage[];
   /**
    * Serving proactive channels + their approved templates — rendered as
    * the `<available_channel_templates>` section (proactive-messaging
@@ -181,10 +171,6 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
 
   if (options.skills.length > 0) {
     sections.push(formatSkillsSection(options.skills));
-  }
-
-  if (options.datastoreUsages !== undefined && options.datastoreUsages.length > 0) {
-    sections.push(formatDatastoresSection(options.datastoreUsages));
   }
 
   if (options.channelMessaging !== undefined && options.channelMessaging.length > 0) {

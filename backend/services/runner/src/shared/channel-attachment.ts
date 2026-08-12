@@ -1,6 +1,6 @@
 /**
  * The runner-synthesized channel messaging attachment (proactive-messaging
- * DD-006 D7/D8) — the datastore records attachment's structural twin.
+ * DD-006 D7/D8).
  *
  * When the control plane says an agent serves at least one
  * proactive-messaging channel (the `listMessagingChannels` discovery

@@ -12,7 +12,6 @@ import { shouldConnectMcp } from "../mcp-gate.js";
 
 const nothing = {
   mcpServerUsageCount: 0,
-  datastoreUsageCount: 0,
   channelMessagingCount: 0,
   conversationChannelId: undefined,
 };
@@ -26,17 +25,13 @@ describe("shouldConnectMcp", () => {
     expect(shouldConnectMcp({ ...nothing, mcpServerUsageCount: 1 })).toBe(true);
   });
 
-  it("enters on datastore usages alone (the records attachment)", () => {
-    expect(shouldConnectMcp({ ...nothing, datastoreUsageCount: 1 })).toBe(true);
-  });
-
   it("enters on a serving proactive channel alone (the channels attachment)", () => {
     expect(shouldConnectMcp({ ...nothing, channelMessagingCount: 1 })).toBe(true);
   });
 
   it("enters on a channel conversation alone (the conversation attachment)", () => {
-    // The reply-only pilot shape: no declared servers, no datastores,
-    // no proactive channel — the escalation tool is the ONLY source.
+    // The reply-only pilot shape: no declared servers, no proactive
+    // channel — the escalation tool is the ONLY source.
     expect(shouldConnectMcp({ ...nothing, conversationChannelId: "agch_1" })).toBe(true);
   });
 });
