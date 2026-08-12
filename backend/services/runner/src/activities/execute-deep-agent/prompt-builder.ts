@@ -21,6 +21,10 @@ import {
   visionDisclosureLines,
   type NotViewableEntry,
 } from "../../shared/attachment-vision.js";
+import {
+  downloadUrlDisclosureLine,
+  type DownloadUrlKind,
+} from "../../shared/attachment-download-urls.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import {
   buildImplementPlanDirective,
@@ -115,6 +119,12 @@ export interface PromptBuilderInput {
    */
   vision?: VisionPromptInfo;
   /**
+   * What kind of URL the turn's storage backend mints (issue #532) — keys
+   * the Input Files section's hand-off wording (attachment-download-urls.ts).
+   * One turn-level fact: all attachments ride the one configured storage.
+   */
+  downloadUrlKind?: DownloadUrlKind;
+  /**
    * The execution's interaction mode. PLAN appends the shared plan-mode
    * directive so the model knows the turn's deliverable is a plan document.
    * Tool-level write enforcement is separate (see setup.ts permissions) —
@@ -208,7 +218,9 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
   }
 
   if (input.injectedFiles.length > 0) {
-    prompt += buildInjectedFilesSection(input.injectedFiles, input.vision);
+    prompt += buildInjectedFilesSection(
+      input.injectedFiles, input.vision, input.downloadUrlKind,
+    );
   }
 
   if (input.senderIdentity) {
@@ -389,6 +401,7 @@ function buildReferencedFilesSection(
 function buildInjectedFilesSection(
   files: readonly InjectedFile[],
   vision?: VisionPromptInfo,
+  downloadUrlKind?: DownloadUrlKind,
 ): string {
   let section = "\n\n## Input Files\n\n";
   section +=
@@ -404,12 +417,23 @@ function buildInjectedFilesSection(
     const sizeInfo = ` (${f.sizeBytes} bytes)`;
     // A duplicate-renamed file (attachment-naming.ts) discloses its original
     // name so the agent can connect "the two report.pdfs" in the user's
-    // message to distinct files on disk.
+    // message to distinct files on disk. A file with a minted download URL
+    // (attachment-download-urls.ts) lists it beside the path for the remote
+    // hand-off story.
     const renameInfo =
       f.renamedFrom !== undefined
         ? ` (renamed from duplicate '${f.renamedFrom}')`
         : "";
-    section += `- \`${f.path}\`${sizeInfo}${renameInfo}\n`;
+    const urlInfo =
+      f.downloadUrl !== undefined ? ` — download URL: ${f.downloadUrl}` : "";
+    section += `- \`${f.path}\`${sizeInfo}${renameInfo}${urlInfo}\n`;
+  }
+
+  // The URL hand-off line (shared wording, attachment-download-urls.ts)
+  // renders only when some listed file actually carries a URL — its wording
+  // keys on what kind of URL the storage backend mints.
+  if (downloadUrlKind !== undefined && files.some((f) => f.downloadUrl !== undefined)) {
+    section += "\n" + downloadUrlDisclosureLine(downloadUrlKind) + "\n";
   }
 
   // The vision lines (shared wording, attachment-vision.ts) tell the model

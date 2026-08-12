@@ -78,7 +78,11 @@ describe("resolveAttachments", () => {
     const result = await resolveAttachments([makeAttachment()], options({ storage }));
 
     expect(result).toEqual([
-      { filename: "plan.md", relativePath: ".stigmer/inputs/plan.md" },
+      {
+        filename: "plan.md",
+        relativePath: ".stigmer/inputs/plan.md",
+        downloadUrl: "mem://attachments/01ABC/plan.md",
+      },
     ]);
     expect(readFileSync(join(platformDir, "inputs", "plan.md"), "utf-8")).toBe("# The Plan");
   });
@@ -130,11 +134,16 @@ describe("resolveAttachments", () => {
     );
 
     expect(result).toEqual([
-      { filename: "report.pdf", relativePath: ".stigmer/inputs/report.pdf" },
+      {
+        filename: "report.pdf",
+        relativePath: ".stigmer/inputs/report.pdf",
+        downloadUrl: "mem://attachments/01AAA/report.pdf",
+      },
       {
         filename: "report-2.pdf",
         relativePath: ".stigmer/inputs/report-2.pdf",
         renamedFrom: "report.pdf",
+        downloadUrl: "mem://attachments/01BBB/report.pdf",
       },
     ]);
     expect(readFileSync(join(platformDir, "inputs", "report.pdf"), "utf-8")).toBe("first bytes");
@@ -155,12 +164,15 @@ describe("resolveAttachments", () => {
       options({ storage }),
     );
 
+    // The key-less local file lists no URL; the storage twin does — the
+    // per-file split the prompt renders.
     expect(result).toEqual([
       { filename: "notes.md", relativePath: ".stigmer/inputs/notes.md" },
       {
         filename: "notes-2.md",
         relativePath: ".stigmer/inputs/notes-2.md",
         renamedFrom: "notes.md",
+        downloadUrl: "mem://attachments/01ABC/notes.md",
       },
     ]);
     expect(readFileSync(join(platformDir, "inputs", "notes.md"), "utf-8")).toBe("local copy");
@@ -225,7 +237,11 @@ describe("resolveAttachments", () => {
     );
 
     expect(result).toEqual([
-      { filename: "evil.md", relativePath: ".stigmer/inputs/evil.md" },
+      {
+        filename: "evil.md",
+        relativePath: ".stigmer/inputs/evil.md",
+        downloadUrl: "mem://attachments/01ABC/x",
+      },
     ]);
     expect(readFileSync(join(platformDir, "inputs", "evil.md"), "utf-8")).toBe("contained");
     // Nothing escaped two levels up (where `../../evil.md` would have landed).
@@ -245,6 +261,50 @@ describe("resolveAttachments", () => {
       { filename: "evil.txt", relativePath: ".stigmer/inputs/evil.txt" },
     ]);
     expect(readFileSync(join(platformDir, "inputs", "evil.txt"), "utf-8")).toBe("local-contained");
+  });
+
+  // ── Download-URL hand-off (issue #532) ───────────────────────────────────
+  // The URL is strictly additive (shared/attachment-download-urls.ts): every
+  // case below also asserts the file materialized exactly as it would
+  // without one.
+
+  describe("download-URL minting during resolution", () => {
+    it("degrades to no URL when the mint fails — file still materialized, turn proceeds", async () => {
+      const { storage } = makeInMemoryArtifactStorage();
+      await storage.upload("attachments/01ABC/plan.md", Buffer.from("# The Plan"), "text/markdown");
+      storage.getDownloadUrl.mockRejectedValueOnce(new Error("presign endpoint unreachable"));
+
+      const result = await resolveAttachments([makeAttachment()], options({ storage }));
+
+      expect(result).toEqual([
+        { filename: "plan.md", relativePath: ".stigmer/inputs/plan.md" },
+      ]);
+      expect(readFileSync(join(platformDir, "inputs", "plan.md"), "utf-8")).toBe("# The Plan");
+    });
+
+    it("mints a URL on the localPath fast path when an uploaded copy also exists", async () => {
+      // The fast path skips storage for the BYTES; the mint rule is
+      // branch-independent, so the uploaded copy still backs the URL.
+      const srcPath = join(workspaceDir, "src.csv");
+      writeFileSync(srcPath, "a,b,c");
+      const { storage } = makeInMemoryArtifactStorage();
+
+      const result = await resolveAttachments(
+        [makeAttachment({ filename: "data.csv", storageKey: "attachments/01ABC/data.csv", localPath: srcPath })],
+        options({ storage }),
+      );
+
+      expect(result).toEqual([
+        {
+          filename: "data.csv",
+          relativePath: ".stigmer/inputs/data.csv",
+          downloadUrl: "mem://attachments/01ABC/data.csv",
+        },
+      ]);
+      // Bytes came off local disk, not storage — the fast path is intact.
+      expect(storage.download).not.toHaveBeenCalled();
+      expect(readFileSync(join(platformDir, "inputs", "data.csv"), "utf-8")).toBe("a,b,c");
+    });
   });
 
   // ── Vision selection (T04) ────────────────────────────────────────────────

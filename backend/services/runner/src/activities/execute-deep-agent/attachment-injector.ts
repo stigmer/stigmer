@@ -27,6 +27,7 @@ import { posix } from "node:path";
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
+import { mintAttachmentDownloadUrl } from "../../shared/attachment-download-urls.js";
 import { allocateUniqueName } from "../../shared/attachment-naming.js";
 import type {
   VisionBudget,
@@ -66,6 +67,17 @@ export interface InjectedFile {
    * Attachments that were never image-shaped carry neither field.
    */
   readonly visionDegraded?: VisionDegradedReason;
+  /**
+   * A download URL for the attachment's stored object, listed in the system
+   * prompt's Input Files section so the agent can hand the file to a tool
+   * whose backend cannot read the sandbox filesystem (issue #532). Minted
+   * whenever the attachment has a `storageKey` and a usable storage; never
+   * present on extracted ZIP entries (no attachment-level object). Absent
+   * when there is nothing to mint or the mint failed (non-fatal — policy,
+   * degrade log, and prompt wording live in
+   * shared/attachment-download-urls.ts).
+   */
+  readonly downloadUrl?: string;
 }
 
 export interface InjectAttachmentsOptions {
@@ -300,7 +312,10 @@ export async function injectAttachments(opts: InjectAttachmentsOptions): Promise
       );
       // A renamed mount DIR is visible through every extracted path; the
       // entries themselves were not renamed, so they carry no renamedFrom
-      // (per-file disclosure would misattribute the rename).
+      // (per-file disclosure would misattribute the rename). Extracted
+      // entries also carry no downloadUrl: the stored object is the ZIP, not
+      // any listed file, and a URL to bytes that differ from the listing
+      // would be a false promise.
       injectedFiles.push(...extracted);
     } else {
       await backend.writeFileBuffer(mountPath, content);
@@ -313,6 +328,9 @@ export async function injectAttachments(opts: InjectAttachmentsOptions): Promise
       // the vision budget before they go out of scope (the sniff decides
       // eligibility; the budget owns every size/count rule).
       const vision = visionBudget?.offer(filename, attachment.contentType, content);
+      const downloadUrl = await mintAttachmentDownloadUrl(
+        storage, attachment.storageKey, filename,
+      );
       injectedFiles.push({
         filename,
         path: mountPath,
@@ -320,6 +338,7 @@ export async function injectAttachments(opts: InjectAttachmentsOptions): Promise
         ...(renamedFrom !== undefined ? { renamedFrom } : {}),
         ...(vision?.kind === "accepted" ? { vision: vision.image } : {}),
         ...(vision?.kind === "degraded" ? { visionDegraded: vision.reason } : {}),
+        ...(downloadUrl !== undefined ? { downloadUrl } : {}),
       });
     }
   }

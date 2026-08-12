@@ -40,6 +40,7 @@ import { mkdir, copyFile, readFile, stat, writeFile } from "node:fs/promises";
 import { join, basename } from "node:path";
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
+import { mintAttachmentDownloadUrl } from "../../shared/attachment-download-urls.js";
 import { allocateUniqueName } from "../../shared/attachment-naming.js";
 import {
   isVisionCandidate,
@@ -73,6 +74,17 @@ export interface ResolvedAttachment {
    * Attachments that were never image-shaped carry neither field.
    */
   visionDegraded?: VisionDegradedReason;
+  /**
+   * A download URL for the attachment's stored object, listed in the prompt's
+   * `<input_files>` section so the agent can hand the file to a tool whose
+   * backend cannot read the sandbox filesystem (issue #532). Minted whenever
+   * the attachment has a `storageKey` and a usable storage — including on the
+   * localPath fast path when an uploaded copy also exists. Absent when there
+   * is nothing to mint or the mint failed (non-fatal — the policy, the
+   * degrade log, and the prompt wording all live in
+   * shared/attachment-download-urls.ts).
+   */
+  downloadUrl?: string;
 }
 
 export interface AttachmentResolverOptions {
@@ -165,11 +177,18 @@ async function resolveAttachment(
         `${err instanceof Error ? err.message : String(err)}`,
       );
     }
+    // The fast path skips storage for the BYTES, but an uploaded copy (an
+    // attachment carrying both localPath and storageKey) still supports the
+    // URL hand-off — the mint rule is branch-independent.
+    const downloadUrl = await mintAttachmentDownloadUrl(
+      options.storage, attachment.storageKey, filename,
+    );
     return {
       filename,
       relativePath: join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, filename),
       ...(renamedFrom !== undefined ? { renamedFrom } : {}),
       ...visionOutcomeFields(vision),
+      ...(downloadUrl !== undefined ? { downloadUrl } : {}),
     };
   }
 
@@ -209,11 +228,16 @@ async function resolveAttachment(
   // no pre-filter needed on this branch).
   const vision = options.visionBudget?.offer(filename, attachment.contentType, content);
 
+  const downloadUrl = await mintAttachmentDownloadUrl(
+    options.storage, attachment.storageKey, filename,
+  );
+
   return {
     filename,
     relativePath: join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, filename),
     ...(renamedFrom !== undefined ? { renamedFrom } : {}),
     ...visionOutcomeFields(vision),
+    ...(downloadUrl !== undefined ? { downloadUrl } : {}),
   };
 }
 

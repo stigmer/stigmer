@@ -425,6 +425,68 @@ describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)"
     expect(prompt).toContain("Attached inline and visible to you, in order: 1. a.jpg");
   });
 
+  it("lists a minted download URL beside its file with the presigned hand-off line (issue #532)", () => {
+    const prompt = buildPrompt(
+      input({
+        ...RESUMED,
+        attachments: [
+          { path: ".stigmer/inputs/lease.pdf", downloadUrl: "https://r2.example/lease?sig=abc" },
+          { path: ".stigmer/inputs/notes.md" },
+        ],
+        downloadUrlKind: "presigned",
+      }),
+    );
+    expect(prompt).toContain(
+      "- `.stigmer/inputs/lease.pdf` — download URL: https://r2.example/lease?sig=abc",
+    );
+    // The URL-less file keeps a clean entry.
+    expect(prompt).toContain("- `.stigmer/inputs/notes.md`\n");
+    expect(prompt).toContain("These URLs are time-limited");
+  });
+
+  it("words a local-serve URL honestly — reachable only from this machine", () => {
+    const prompt = buildPrompt(
+      input({
+        ...RESUMED,
+        attachments: [
+          { path: ".stigmer/inputs/lease.pdf", downloadUrl: "http://localhost:7235/attachments/01A/lease.pdf" },
+        ],
+        downloadUrlKind: "local-serve",
+      }),
+    );
+    expect(prompt).toContain("download URL: http://localhost:7235/attachments/01A/lease.pdf");
+    expect(prompt).toContain("reachable only from this machine");
+    expect(prompt).not.toContain("time-limited");
+  });
+
+  it("renders no hand-off line when no listed file carries a URL (kind alone is not enough)", () => {
+    const prompt = buildPrompt(
+      input({
+        ...RESUMED,
+        attachments: [{ path: ".stigmer/inputs/local-only.csv" }],
+        downloadUrlKind: "presigned",
+      }),
+    );
+    expect(prompt).toContain("<input_files>");
+    expect(prompt).not.toContain("download URL");
+    expect(prompt).not.toContain("time-limited");
+  });
+
+  it("renders the download URL inside the enhanced first-turn prompt too", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "created_first_execution"),
+        attachments: [
+          { path: ".stigmer/inputs/lease.pdf", downloadUrl: "https://r2.example/lease?sig=abc" },
+        ],
+        downloadUrlKind: "presigned",
+      }),
+    );
+    expect(prompt).toContain("<input_files>");
+    expect(prompt).toContain("download URL: https://r2.example/lease?sig=abc");
+    expect(prompt).toContain("These URLs are time-limited");
+  });
+
   it("a HITL re-invocation carries no input-files section — its prompt has no user message at all", () => {
     const prompt = buildPrompt(
       input({

@@ -566,6 +566,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       workspaceRoot: workspaceBackend.rootDir,
       injectedFiles,
       vision: visionPromptInfo,
+      downloadUrlKind: artifactStorage?.downloadUrlKind,
       interactionMode: execution.spec!.executionConfig?.interactionMode,
       buildFromPlan: execution.spec!.executionConfig?.buildFromPlan,
       contextBridge: readContextBridge(session.spec!.metadata),

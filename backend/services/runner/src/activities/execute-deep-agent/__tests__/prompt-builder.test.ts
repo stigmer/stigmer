@@ -190,6 +190,77 @@ describe("buildEnhancedSystemPrompt", () => {
     expect(prompt).toContain("`.stigmer/inputs/report.pdf` (10 bytes)\n");
   });
 
+  it("lists a minted download URL beside its file with the presigned hand-off line (issue #532)", () => {
+    const prompt = buildEnhancedSystemPrompt({
+      instructions: "Test",
+      provisionResults: [],
+      containerRoot: "",
+      skillsPromptSection: "",
+      workspaceFileRefs: [],
+      workspaceRoot: "/workspace",
+      injectedFiles: [
+        {
+          filename: "lease.pdf",
+          path: ".stigmer/inputs/lease.pdf",
+          sizeBytes: 2048,
+          downloadUrl: "https://r2.example/lease?sig=abc",
+        },
+        { filename: "notes.md", path: ".stigmer/inputs/notes.md", sizeBytes: 12 },
+      ],
+      downloadUrlKind: "presigned",
+    });
+
+    expect(prompt).toContain(
+      "`.stigmer/inputs/lease.pdf` (2048 bytes) — download URL: https://r2.example/lease?sig=abc",
+    );
+    // The URL-less file keeps a clean entry.
+    expect(prompt).toContain("`.stigmer/inputs/notes.md` (12 bytes)\n");
+    expect(prompt).toContain("These URLs are time-limited");
+  });
+
+  it("words a local-serve URL honestly — reachable only from this machine", () => {
+    const prompt = buildEnhancedSystemPrompt({
+      instructions: "Test",
+      provisionResults: [],
+      containerRoot: "",
+      skillsPromptSection: "",
+      workspaceFileRefs: [],
+      workspaceRoot: "/workspace",
+      injectedFiles: [
+        {
+          filename: "lease.pdf",
+          path: ".stigmer/inputs/lease.pdf",
+          sizeBytes: 2048,
+          downloadUrl: "http://localhost:7235/attachments/01A/lease.pdf",
+        },
+      ],
+      downloadUrlKind: "local-serve",
+    });
+
+    expect(prompt).toContain("download URL: http://localhost:7235/attachments/01A/lease.pdf");
+    expect(prompt).toContain("reachable only from this machine");
+    expect(prompt).not.toContain("time-limited");
+  });
+
+  it("renders no hand-off line when no listed file carries a URL (kind alone is not enough)", () => {
+    const prompt = buildEnhancedSystemPrompt({
+      instructions: "Test",
+      provisionResults: [],
+      containerRoot: "",
+      skillsPromptSection: "",
+      workspaceFileRefs: [],
+      workspaceRoot: "/workspace",
+      injectedFiles: [
+        { filename: "local.csv", path: ".stigmer/inputs/local.csv", sizeBytes: 5 },
+      ],
+      downloadUrlKind: "presigned",
+    });
+
+    expect(prompt).toContain("## Input Files");
+    expect(prompt).not.toContain("download URL");
+    expect(prompt).not.toContain("time-limited");
+  });
+
   it("produces a git repo description for git workspace entries", () => {
     const prompt = buildEnhancedSystemPrompt({
       instructions: "Test",
