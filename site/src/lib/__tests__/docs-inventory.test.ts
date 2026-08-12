@@ -113,10 +113,39 @@ describe("parseClassification", () => {
     expect(text).toContain('pages["bad"]: diataxis');
     expect(text).toContain('pages["bad"]: teaches');
     expect(text).toContain('pages["bad"]: medium');
-    expect(text).toContain('pages["needs-why"]: a non-"none" medium requires');
+    expect(text).toContain(
+      'pages["needs-why"]: a non-"none" medium and a non-"keep" fate each require',
+    );
     expect(text).toContain('pages["bad-embed"]: embeds["some-tour"]');
     expect(text).toContain('cohorts["no-slash"]: cohort prefixes must end with "/"');
     expect(text).toContain('cohorts["no-slash"]: generator');
+    // "bad" has an invalid fate AND an invalid medium — each already has
+    // its own error, so the why requirement must not pile on a third.
+    expect(errors.filter((message) => message.includes('"why"'))).toHaveLength(1);
+  });
+
+  it('requires a "why" for any non-"keep" fate, independent of medium', () => {
+    // The oss#315 hole: keying why on medium alone let a destructive plan
+    // (fate: split, medium: none) rest with no reason on the record.
+    const { errors } = parseClassification(
+      yamlOf({
+        pages: {
+          "silent-split": entry({ fate: "split" }),
+          "silent-move": entry({ fate: "move:concepts/elsewhere" }),
+          "explained-merge": entry({
+            fate: "merge:concepts/agents",
+            why: "Duplicates the agents page, section for section.",
+          }),
+          "plain-keep": entry(),
+        },
+        cohorts: {},
+      }),
+    );
+    const text = errors.join("\n");
+    expect(text).toContain('pages["silent-split"]');
+    expect(text).toContain('pages["silent-move"]');
+    expect(text).not.toContain('pages["explained-merge"]');
+    expect(text).not.toContain('pages["plain-keep"]');
   });
 
   it("rejects malformed YAML and non-mapping documents with one clear error", () => {
