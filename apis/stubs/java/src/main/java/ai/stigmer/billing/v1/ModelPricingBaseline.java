@@ -49,6 +49,8 @@ private static final long serialVersionUID = 0L;
     shortDescription_ = "";
     speedTier_ = "";
     costTier_ = "";
+    wireIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
     tokenCounterMethod_ = "";
     status_ = 0;
     supersedesBaselineId_ = "";
@@ -672,6 +674,103 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     return map.get(key);
   }
 
+  public static final int WIRE_IDS_FIELD_NUMBER = 24;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList wireIds_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Wire model names that resolve directly to this base entry — the
+   * base-level twin of PricingVariant.wire_ids, for served-model names
+   * that neither match the canonical id nor normalize to a clean
+   * "base + suffix" form (e.g. "gemini-3-flash-preview" for
+   * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+   * kimi-k2.7-code — Cursor's serving stack reports upstream serving
+   * names the catalog never uses). Matched case-insensitively; billed
+   * at the base rates.
+   *
+   * Distinct from api_model_id, which is the single OUTBOUND identifier
+   * the runner dispatches with. Wire ids are INBOUND aliases only: they
+   * must never appear in pickers or dispatch requests.
+   * </pre>
+   *
+   * <code>repeated string wire_ids = 24 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the wireIds.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getWireIdsList() {
+    return wireIds_;
+  }
+  /**
+   * <pre>
+   * Wire model names that resolve directly to this base entry — the
+   * base-level twin of PricingVariant.wire_ids, for served-model names
+   * that neither match the canonical id nor normalize to a clean
+   * "base + suffix" form (e.g. "gemini-3-flash-preview" for
+   * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+   * kimi-k2.7-code — Cursor's serving stack reports upstream serving
+   * names the catalog never uses). Matched case-insensitively; billed
+   * at the base rates.
+   *
+   * Distinct from api_model_id, which is the single OUTBOUND identifier
+   * the runner dispatches with. Wire ids are INBOUND aliases only: they
+   * must never appear in pickers or dispatch requests.
+   * </pre>
+   *
+   * <code>repeated string wire_ids = 24 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
+   * @return The count of wireIds.
+   */
+  public int getWireIdsCount() {
+    return wireIds_.size();
+  }
+  /**
+   * <pre>
+   * Wire model names that resolve directly to this base entry — the
+   * base-level twin of PricingVariant.wire_ids, for served-model names
+   * that neither match the canonical id nor normalize to a clean
+   * "base + suffix" form (e.g. "gemini-3-flash-preview" for
+   * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+   * kimi-k2.7-code — Cursor's serving stack reports upstream serving
+   * names the catalog never uses). Matched case-insensitively; billed
+   * at the base rates.
+   *
+   * Distinct from api_model_id, which is the single OUTBOUND identifier
+   * the runner dispatches with. Wire ids are INBOUND aliases only: they
+   * must never appear in pickers or dispatch requests.
+   * </pre>
+   *
+   * <code>repeated string wire_ids = 24 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The wireIds at the given index.
+   */
+  public java.lang.String getWireIds(int index) {
+    return wireIds_.get(index);
+  }
+  /**
+   * <pre>
+   * Wire model names that resolve directly to this base entry — the
+   * base-level twin of PricingVariant.wire_ids, for served-model names
+   * that neither match the canonical id nor normalize to a clean
+   * "base + suffix" form (e.g. "gemini-3-flash-preview" for
+   * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+   * kimi-k2.7-code — Cursor's serving stack reports upstream serving
+   * names the catalog never uses). Matched case-insensitively; billed
+   * at the base rates.
+   *
+   * Distinct from api_model_id, which is the single OUTBOUND identifier
+   * the runner dispatches with. Wire ids are INBOUND aliases only: they
+   * must never appear in pickers or dispatch requests.
+   * </pre>
+   *
+   * <code>repeated string wire_ids = 24 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the wireIds at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getWireIdsBytes(int index) {
+    return wireIds_.getByteString(index);
+  }
+
   public static final int CONTEXT_WINDOW_TOKENS_FIELD_NUMBER = 13;
   private int contextWindowTokens_ = 0;
   /**
@@ -1096,6 +1195,9 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     if (((bitField0_ & 0x00000010) != 0)) {
       output.writeMessage(23, getCreatedAt());
     }
+    for (int i = 0; i < wireIds_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 24, wireIds_.getRaw(i));
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -1190,6 +1292,14 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(23, getCreatedAt());
     }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < wireIds_.size(); i++) {
+        dataSize += computeStringSizeNoTag(wireIds_.getRaw(i));
+      }
+      size += dataSize;
+      size += 2 * getWireIdsList().size();
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1232,6 +1342,8 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     }
     if (!internalGetPricingVariants().equals(
         other.internalGetPricingVariants())) return false;
+    if (!getWireIdsList()
+        .equals(other.getWireIdsList())) return false;
     if (getContextWindowTokens()
         != other.getContextWindowTokens()) return false;
     if (getMaxOutputTokens()
@@ -1304,6 +1416,10 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     if (!internalGetPricingVariants().getMap().isEmpty()) {
       hash = (37 * hash) + PRICING_VARIANTS_FIELD_NUMBER;
       hash = (53 * hash) + internalGetPricingVariants().hashCode();
+    }
+    if (getWireIdsCount() > 0) {
+      hash = (37 * hash) + WIRE_IDS_FIELD_NUMBER;
+      hash = (53 * hash) + getWireIdsList().hashCode();
     }
     hash = (37 * hash) + CONTEXT_WINDOW_TOKENS_FIELD_NUMBER;
     hash = (53 * hash) + getContextWindowTokens();
@@ -1526,6 +1642,8 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
         pricingBuilder_ = null;
       }
       internalGetMutablePricingVariants().clear();
+      wireIds_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       contextWindowTokens_ = 0;
       maxOutputTokens_ = 0;
       tokenCounterMethod_ = "";
@@ -1627,45 +1745,49 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
         result.pricingVariants_ = internalGetPricingVariants().build(PricingVariantsDefaultEntryHolder.defaultEntry);
       }
       if (((from_bitField0_ & 0x00001000) != 0)) {
-        result.contextWindowTokens_ = contextWindowTokens_;
+        wireIds_.makeImmutable();
+        result.wireIds_ = wireIds_;
       }
       if (((from_bitField0_ & 0x00002000) != 0)) {
-        result.maxOutputTokens_ = maxOutputTokens_;
+        result.contextWindowTokens_ = contextWindowTokens_;
       }
       if (((from_bitField0_ & 0x00004000) != 0)) {
-        result.tokenCounterMethod_ = tokenCounterMethod_;
+        result.maxOutputTokens_ = maxOutputTokens_;
       }
       if (((from_bitField0_ & 0x00008000) != 0)) {
+        result.tokenCounterMethod_ = tokenCounterMethod_;
+      }
+      if (((from_bitField0_ & 0x00010000) != 0)) {
         result.summarization_ = summarizationBuilder_ == null
             ? summarization_
             : summarizationBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
-      if (((from_bitField0_ & 0x00010000) != 0)) {
+      if (((from_bitField0_ & 0x00020000) != 0)) {
         result.capabilities_ = capabilitiesBuilder_ == null
             ? capabilities_
             : capabilitiesBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
-      if (((from_bitField0_ & 0x00020000) != 0)) {
+      if (((from_bitField0_ & 0x00040000) != 0)) {
         result.status_ = status_;
       }
-      if (((from_bitField0_ & 0x00040000) != 0)) {
+      if (((from_bitField0_ & 0x00080000) != 0)) {
         result.supersedesBaselineId_ = supersedesBaselineId_;
       }
-      if (((from_bitField0_ & 0x00080000) != 0)) {
+      if (((from_bitField0_ & 0x00100000) != 0)) {
         result.decidedBy_ = decidedBy_;
       }
-      if (((from_bitField0_ & 0x00100000) != 0)) {
+      if (((from_bitField0_ & 0x00200000) != 0)) {
         result.decidedAt_ = decidedAtBuilder_ == null
             ? decidedAt_
             : decidedAtBuilder_.build();
         to_bitField0_ |= 0x00000008;
       }
-      if (((from_bitField0_ & 0x00200000) != 0)) {
+      if (((from_bitField0_ & 0x00400000) != 0)) {
         result.revisionNote_ = revisionNote_;
       }
-      if (((from_bitField0_ & 0x00400000) != 0)) {
+      if (((from_bitField0_ & 0x00800000) != 0)) {
         result.createdAt_ = createdAtBuilder_ == null
             ? createdAt_
             : createdAtBuilder_.build();
@@ -1740,6 +1862,16 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       internalGetMutablePricingVariants().mergeFrom(
           other.internalGetPricingVariants());
       bitField0_ |= 0x00000800;
+      if (!other.wireIds_.isEmpty()) {
+        if (wireIds_.isEmpty()) {
+          wireIds_ = other.wireIds_;
+          bitField0_ |= 0x00001000;
+        } else {
+          ensureWireIdsIsMutable();
+          wireIds_.addAll(other.wireIds_);
+        }
+        onChanged();
+      }
       if (other.getContextWindowTokens() != 0) {
         setContextWindowTokens(other.getContextWindowTokens());
       }
@@ -1748,7 +1880,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       }
       if (!other.getTokenCounterMethod().isEmpty()) {
         tokenCounterMethod_ = other.tokenCounterMethod_;
-        bitField0_ |= 0x00004000;
+        bitField0_ |= 0x00008000;
         onChanged();
       }
       if (other.hasSummarization()) {
@@ -1762,12 +1894,12 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       }
       if (!other.getSupersedesBaselineId().isEmpty()) {
         supersedesBaselineId_ = other.supersedesBaselineId_;
-        bitField0_ |= 0x00040000;
+        bitField0_ |= 0x00080000;
         onChanged();
       }
       if (!other.getDecidedBy().isEmpty()) {
         decidedBy_ = other.decidedBy_;
-        bitField0_ |= 0x00080000;
+        bitField0_ |= 0x00100000;
         onChanged();
       }
       if (other.hasDecidedAt()) {
@@ -1775,7 +1907,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       }
       if (!other.getRevisionNote().isEmpty()) {
         revisionNote_ = other.revisionNote_;
-        bitField0_ |= 0x00200000;
+        bitField0_ |= 0x00400000;
         onChanged();
       }
       if (other.hasCreatedAt()) {
@@ -1875,67 +2007,72 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
             } // case 98
             case 104: {
               contextWindowTokens_ = input.readInt32();
-              bitField0_ |= 0x00001000;
+              bitField0_ |= 0x00002000;
               break;
             } // case 104
             case 112: {
               maxOutputTokens_ = input.readInt32();
-              bitField0_ |= 0x00002000;
+              bitField0_ |= 0x00004000;
               break;
             } // case 112
             case 122: {
               tokenCounterMethod_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00004000;
+              bitField0_ |= 0x00008000;
               break;
             } // case 122
             case 130: {
               input.readMessage(
                   internalGetSummarizationFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00008000;
+              bitField0_ |= 0x00010000;
               break;
             } // case 130
             case 138: {
               input.readMessage(
                   internalGetCapabilitiesFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00010000;
+              bitField0_ |= 0x00020000;
               break;
             } // case 138
             case 144: {
               status_ = input.readEnum();
-              bitField0_ |= 0x00020000;
+              bitField0_ |= 0x00040000;
               break;
             } // case 144
             case 154: {
               supersedesBaselineId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00040000;
+              bitField0_ |= 0x00080000;
               break;
             } // case 154
             case 162: {
               decidedBy_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00080000;
+              bitField0_ |= 0x00100000;
               break;
             } // case 162
             case 170: {
               input.readMessage(
                   internalGetDecidedAtFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00100000;
+              bitField0_ |= 0x00200000;
               break;
             } // case 170
             case 178: {
               revisionNote_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00200000;
+              bitField0_ |= 0x00400000;
               break;
             } // case 178
             case 186: {
               input.readMessage(
                   internalGetCreatedAtFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00400000;
+              bitField0_ |= 0x00800000;
               break;
             } // case 186
+            case 194: {
+              ensureWireIdsIsMutable();
+              wireIds_.add(input.readStringRequireUtf8());
+              break;
+            } // case 194
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3202,6 +3339,252 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       return (ai.stigmer.billing.v1.PricingVariant.Builder) entry;
     }
 
+    private com.google.protobuf.LazyStringArrayList wireIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureWireIdsIsMutable() {
+      if (!wireIds_.isModifiable()) {
+        wireIds_ = new com.google.protobuf.LazyStringArrayList(wireIds_);
+      }
+      bitField0_ |= 0x00001000;
+    }
+    /**
+     * <pre>
+     * Wire model names that resolve directly to this base entry — the
+     * base-level twin of PricingVariant.wire_ids, for served-model names
+     * that neither match the canonical id nor normalize to a clean
+     * "base + suffix" form (e.g. "gemini-3-flash-preview" for
+     * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+     * kimi-k2.7-code — Cursor's serving stack reports upstream serving
+     * names the catalog never uses). Matched case-insensitively; billed
+     * at the base rates.
+     *
+     * Distinct from api_model_id, which is the single OUTBOUND identifier
+     * the runner dispatches with. Wire ids are INBOUND aliases only: they
+     * must never appear in pickers or dispatch requests.
+     * </pre>
+     *
+     * <code>repeated string wire_ids = 24 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
+     * @return A list containing the wireIds.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getWireIdsList() {
+      wireIds_.makeImmutable();
+      return wireIds_;
+    }
+    /**
+     * <pre>
+     * Wire model names that resolve directly to this base entry — the
+     * base-level twin of PricingVariant.wire_ids, for served-model names
+     * that neither match the canonical id nor normalize to a clean
+     * "base + suffix" form (e.g. "gemini-3-flash-preview" for
+     * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+     * kimi-k2.7-code — Cursor's serving stack reports upstream serving
+     * names the catalog never uses). Matched case-insensitively; billed
+     * at the base rates.
+     *
+     * Distinct from api_model_id, which is the single OUTBOUND identifier
+     * the runner dispatches with. Wire ids are INBOUND aliases only: they
+     * must never appear in pickers or dispatch requests.
+     * </pre>
+     *
+     * <code>repeated string wire_ids = 24 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
+     * @return The count of wireIds.
+     */
+    public int getWireIdsCount() {
+      return wireIds_.size();
+    }
+    /**
+     * <pre>
+     * Wire model names that resolve directly to this base entry — the
+     * base-level twin of PricingVariant.wire_ids, for served-model names
+     * that neither match the canonical id nor normalize to a clean
+     * "base + suffix" form (e.g. "gemini-3-flash-preview" for
+     * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+     * kimi-k2.7-code — Cursor's serving stack reports upstream serving
+     * names the catalog never uses). Matched case-insensitively; billed
+     * at the base rates.
+     *
+     * Distinct from api_model_id, which is the single OUTBOUND identifier
+     * the runner dispatches with. Wire ids are INBOUND aliases only: they
+     * must never appear in pickers or dispatch requests.
+     * </pre>
+     *
+     * <code>repeated string wire_ids = 24 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the element to return.
+     * @return The wireIds at the given index.
+     */
+    public java.lang.String getWireIds(int index) {
+      return wireIds_.get(index);
+    }
+    /**
+     * <pre>
+     * Wire model names that resolve directly to this base entry — the
+     * base-level twin of PricingVariant.wire_ids, for served-model names
+     * that neither match the canonical id nor normalize to a clean
+     * "base + suffix" form (e.g. "gemini-3-flash-preview" for
+     * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+     * kimi-k2.7-code — Cursor's serving stack reports upstream serving
+     * names the catalog never uses). Matched case-insensitively; billed
+     * at the base rates.
+     *
+     * Distinct from api_model_id, which is the single OUTBOUND identifier
+     * the runner dispatches with. Wire ids are INBOUND aliases only: they
+     * must never appear in pickers or dispatch requests.
+     * </pre>
+     *
+     * <code>repeated string wire_ids = 24 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the wireIds at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getWireIdsBytes(int index) {
+      return wireIds_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Wire model names that resolve directly to this base entry — the
+     * base-level twin of PricingVariant.wire_ids, for served-model names
+     * that neither match the canonical id nor normalize to a clean
+     * "base + suffix" form (e.g. "gemini-3-flash-preview" for
+     * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+     * kimi-k2.7-code — Cursor's serving stack reports upstream serving
+     * names the catalog never uses). Matched case-insensitively; billed
+     * at the base rates.
+     *
+     * Distinct from api_model_id, which is the single OUTBOUND identifier
+     * the runner dispatches with. Wire ids are INBOUND aliases only: they
+     * must never appear in pickers or dispatch requests.
+     * </pre>
+     *
+     * <code>repeated string wire_ids = 24 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
+     * @param index The index to set the value at.
+     * @param value The wireIds to set.
+     * @return This builder for chaining.
+     */
+    public Builder setWireIds(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureWireIdsIsMutable();
+      wireIds_.set(index, value);
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Wire model names that resolve directly to this base entry — the
+     * base-level twin of PricingVariant.wire_ids, for served-model names
+     * that neither match the canonical id nor normalize to a clean
+     * "base + suffix" form (e.g. "gemini-3-flash-preview" for
+     * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+     * kimi-k2.7-code — Cursor's serving stack reports upstream serving
+     * names the catalog never uses). Matched case-insensitively; billed
+     * at the base rates.
+     *
+     * Distinct from api_model_id, which is the single OUTBOUND identifier
+     * the runner dispatches with. Wire ids are INBOUND aliases only: they
+     * must never appear in pickers or dispatch requests.
+     * </pre>
+     *
+     * <code>repeated string wire_ids = 24 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
+     * @param value The wireIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addWireIds(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureWireIdsIsMutable();
+      wireIds_.add(value);
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Wire model names that resolve directly to this base entry — the
+     * base-level twin of PricingVariant.wire_ids, for served-model names
+     * that neither match the canonical id nor normalize to a clean
+     * "base + suffix" form (e.g. "gemini-3-flash-preview" for
+     * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+     * kimi-k2.7-code — Cursor's serving stack reports upstream serving
+     * names the catalog never uses). Matched case-insensitively; billed
+     * at the base rates.
+     *
+     * Distinct from api_model_id, which is the single OUTBOUND identifier
+     * the runner dispatches with. Wire ids are INBOUND aliases only: they
+     * must never appear in pickers or dispatch requests.
+     * </pre>
+     *
+     * <code>repeated string wire_ids = 24 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
+     * @param values The wireIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllWireIds(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureWireIdsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, wireIds_);
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Wire model names that resolve directly to this base entry — the
+     * base-level twin of PricingVariant.wire_ids, for served-model names
+     * that neither match the canonical id nor normalize to a clean
+     * "base + suffix" form (e.g. "gemini-3-flash-preview" for
+     * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+     * kimi-k2.7-code — Cursor's serving stack reports upstream serving
+     * names the catalog never uses). Matched case-insensitively; billed
+     * at the base rates.
+     *
+     * Distinct from api_model_id, which is the single OUTBOUND identifier
+     * the runner dispatches with. Wire ids are INBOUND aliases only: they
+     * must never appear in pickers or dispatch requests.
+     * </pre>
+     *
+     * <code>repeated string wire_ids = 24 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearWireIds() {
+      wireIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00001000);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Wire model names that resolve directly to this base entry — the
+     * base-level twin of PricingVariant.wire_ids, for served-model names
+     * that neither match the canonical id nor normalize to a clean
+     * "base + suffix" form (e.g. "gemini-3-flash-preview" for
+     * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+     * kimi-k2.7-code — Cursor's serving stack reports upstream serving
+     * names the catalog never uses). Matched case-insensitively; billed
+     * at the base rates.
+     *
+     * Distinct from api_model_id, which is the single OUTBOUND identifier
+     * the runner dispatches with. Wire ids are INBOUND aliases only: they
+     * must never appear in pickers or dispatch requests.
+     * </pre>
+     *
+     * <code>repeated string wire_ids = 24 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes of the wireIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addWireIdsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureWireIdsIsMutable();
+      wireIds_.add(value);
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+
     private int contextWindowTokens_ ;
     /**
      * <code>int32 context_window_tokens = 13 [json_name = "contextWindowTokens", (.buf.validate.field) = { ... }</code>
@@ -3219,7 +3602,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     public Builder setContextWindowTokens(int value) {
 
       contextWindowTokens_ = value;
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -3228,7 +3611,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearContextWindowTokens() {
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00002000);
       contextWindowTokens_ = 0;
       onChanged();
       return this;
@@ -3251,7 +3634,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     public Builder setMaxOutputTokens(int value) {
 
       maxOutputTokens_ = value;
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }
@@ -3260,7 +3643,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearMaxOutputTokens() {
-      bitField0_ = (bitField0_ & ~0x00002000);
+      bitField0_ = (bitField0_ & ~0x00004000);
       maxOutputTokens_ = 0;
       onChanged();
       return this;
@@ -3324,7 +3707,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       tokenCounterMethod_ = value;
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -3339,7 +3722,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      */
     public Builder clearTokenCounterMethod() {
       tokenCounterMethod_ = getDefaultInstance().getTokenCounterMethod();
-      bitField0_ = (bitField0_ & ~0x00004000);
+      bitField0_ = (bitField0_ & ~0x00008000);
       onChanged();
       return this;
     }
@@ -3358,7 +3741,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       tokenCounterMethod_ = value;
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -3371,7 +3754,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      * @return Whether the summarization field is set.
      */
     public boolean hasSummarization() {
-      return ((bitField0_ & 0x00008000) != 0);
+      return ((bitField0_ & 0x00010000) != 0);
     }
     /**
      * <code>.ai.stigmer.billing.v1.SummarizationConfig summarization = 16 [json_name = "summarization"];</code>
@@ -3396,7 +3779,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       } else {
         summarizationBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
@@ -3410,7 +3793,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       } else {
         summarizationBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
@@ -3419,7 +3802,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      */
     public Builder mergeSummarization(ai.stigmer.billing.v1.SummarizationConfig value) {
       if (summarizationBuilder_ == null) {
-        if (((bitField0_ & 0x00008000) != 0) &&
+        if (((bitField0_ & 0x00010000) != 0) &&
           summarization_ != null &&
           summarization_ != ai.stigmer.billing.v1.SummarizationConfig.getDefaultInstance()) {
           getSummarizationBuilder().mergeFrom(value);
@@ -3430,7 +3813,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
         summarizationBuilder_.mergeFrom(value);
       }
       if (summarization_ != null) {
-        bitField0_ |= 0x00008000;
+        bitField0_ |= 0x00010000;
         onChanged();
       }
       return this;
@@ -3439,7 +3822,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      * <code>.ai.stigmer.billing.v1.SummarizationConfig summarization = 16 [json_name = "summarization"];</code>
      */
     public Builder clearSummarization() {
-      bitField0_ = (bitField0_ & ~0x00008000);
+      bitField0_ = (bitField0_ & ~0x00010000);
       summarization_ = null;
       if (summarizationBuilder_ != null) {
         summarizationBuilder_.dispose();
@@ -3452,7 +3835,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      * <code>.ai.stigmer.billing.v1.SummarizationConfig summarization = 16 [json_name = "summarization"];</code>
      */
     public ai.stigmer.billing.v1.SummarizationConfig.Builder getSummarizationBuilder() {
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return internalGetSummarizationFieldBuilder().getBuilder();
     }
@@ -3492,7 +3875,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      * @return Whether the capabilities field is set.
      */
     public boolean hasCapabilities() {
-      return ((bitField0_ & 0x00010000) != 0);
+      return ((bitField0_ & 0x00020000) != 0);
     }
     /**
      * <code>.ai.stigmer.billing.v1.ModelCapabilities capabilities = 17 [json_name = "capabilities"];</code>
@@ -3517,7 +3900,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       } else {
         capabilitiesBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }
@@ -3531,7 +3914,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       } else {
         capabilitiesBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }
@@ -3540,7 +3923,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      */
     public Builder mergeCapabilities(ai.stigmer.billing.v1.ModelCapabilities value) {
       if (capabilitiesBuilder_ == null) {
-        if (((bitField0_ & 0x00010000) != 0) &&
+        if (((bitField0_ & 0x00020000) != 0) &&
           capabilities_ != null &&
           capabilities_ != ai.stigmer.billing.v1.ModelCapabilities.getDefaultInstance()) {
           getCapabilitiesBuilder().mergeFrom(value);
@@ -3551,7 +3934,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
         capabilitiesBuilder_.mergeFrom(value);
       }
       if (capabilities_ != null) {
-        bitField0_ |= 0x00010000;
+        bitField0_ |= 0x00020000;
         onChanged();
       }
       return this;
@@ -3560,7 +3943,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      * <code>.ai.stigmer.billing.v1.ModelCapabilities capabilities = 17 [json_name = "capabilities"];</code>
      */
     public Builder clearCapabilities() {
-      bitField0_ = (bitField0_ & ~0x00010000);
+      bitField0_ = (bitField0_ & ~0x00020000);
       capabilities_ = null;
       if (capabilitiesBuilder_ != null) {
         capabilitiesBuilder_.dispose();
@@ -3573,7 +3956,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      * <code>.ai.stigmer.billing.v1.ModelCapabilities capabilities = 17 [json_name = "capabilities"];</code>
      */
     public ai.stigmer.billing.v1.ModelCapabilities.Builder getCapabilitiesBuilder() {
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return internalGetCapabilitiesFieldBuilder().getBuilder();
     }
@@ -3621,7 +4004,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      */
     public Builder setStatusValue(int value) {
       status_ = value;
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00040000;
       onChanged();
       return this;
     }
@@ -3641,7 +4024,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      */
     public Builder setStatus(ai.stigmer.billing.v1.ModelPricingBaselineStatus value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00040000;
       status_ = value.getNumber();
       onChanged();
       return this;
@@ -3651,7 +4034,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearStatus() {
-      bitField0_ = (bitField0_ & ~0x00020000);
+      bitField0_ = (bitField0_ & ~0x00040000);
       status_ = 0;
       onChanged();
       return this;
@@ -3715,7 +4098,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       supersedesBaselineId_ = value;
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00080000;
       onChanged();
       return this;
     }
@@ -3730,7 +4113,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      */
     public Builder clearSupersedesBaselineId() {
       supersedesBaselineId_ = getDefaultInstance().getSupersedesBaselineId();
-      bitField0_ = (bitField0_ & ~0x00040000);
+      bitField0_ = (bitField0_ & ~0x00080000);
       onChanged();
       return this;
     }
@@ -3749,7 +4132,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       supersedesBaselineId_ = value;
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00080000;
       onChanged();
       return this;
     }
@@ -3812,7 +4195,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       decidedBy_ = value;
-      bitField0_ |= 0x00080000;
+      bitField0_ |= 0x00100000;
       onChanged();
       return this;
     }
@@ -3827,7 +4210,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      */
     public Builder clearDecidedBy() {
       decidedBy_ = getDefaultInstance().getDecidedBy();
-      bitField0_ = (bitField0_ & ~0x00080000);
+      bitField0_ = (bitField0_ & ~0x00100000);
       onChanged();
       return this;
     }
@@ -3846,7 +4229,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       decidedBy_ = value;
-      bitField0_ |= 0x00080000;
+      bitField0_ |= 0x00100000;
       onChanged();
       return this;
     }
@@ -3859,7 +4242,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      * @return Whether the decidedAt field is set.
      */
     public boolean hasDecidedAt() {
-      return ((bitField0_ & 0x00100000) != 0);
+      return ((bitField0_ & 0x00200000) != 0);
     }
     /**
      * <code>.google.protobuf.Timestamp decided_at = 21 [json_name = "decidedAt"];</code>
@@ -3884,7 +4267,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       } else {
         decidedAtBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00100000;
+      bitField0_ |= 0x00200000;
       onChanged();
       return this;
     }
@@ -3898,7 +4281,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       } else {
         decidedAtBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00100000;
+      bitField0_ |= 0x00200000;
       onChanged();
       return this;
     }
@@ -3907,7 +4290,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      */
     public Builder mergeDecidedAt(com.google.protobuf.Timestamp value) {
       if (decidedAtBuilder_ == null) {
-        if (((bitField0_ & 0x00100000) != 0) &&
+        if (((bitField0_ & 0x00200000) != 0) &&
           decidedAt_ != null &&
           decidedAt_ != com.google.protobuf.Timestamp.getDefaultInstance()) {
           getDecidedAtBuilder().mergeFrom(value);
@@ -3918,7 +4301,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
         decidedAtBuilder_.mergeFrom(value);
       }
       if (decidedAt_ != null) {
-        bitField0_ |= 0x00100000;
+        bitField0_ |= 0x00200000;
         onChanged();
       }
       return this;
@@ -3927,7 +4310,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      * <code>.google.protobuf.Timestamp decided_at = 21 [json_name = "decidedAt"];</code>
      */
     public Builder clearDecidedAt() {
-      bitField0_ = (bitField0_ & ~0x00100000);
+      bitField0_ = (bitField0_ & ~0x00200000);
       decidedAt_ = null;
       if (decidedAtBuilder_ != null) {
         decidedAtBuilder_.dispose();
@@ -3940,7 +4323,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      * <code>.google.protobuf.Timestamp decided_at = 21 [json_name = "decidedAt"];</code>
      */
     public com.google.protobuf.Timestamp.Builder getDecidedAtBuilder() {
-      bitField0_ |= 0x00100000;
+      bitField0_ |= 0x00200000;
       onChanged();
       return internalGetDecidedAtFieldBuilder().getBuilder();
     }
@@ -4027,7 +4410,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       revisionNote_ = value;
-      bitField0_ |= 0x00200000;
+      bitField0_ |= 0x00400000;
       onChanged();
       return this;
     }
@@ -4041,7 +4424,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      */
     public Builder clearRevisionNote() {
       revisionNote_ = getDefaultInstance().getRevisionNote();
-      bitField0_ = (bitField0_ & ~0x00200000);
+      bitField0_ = (bitField0_ & ~0x00400000);
       onChanged();
       return this;
     }
@@ -4059,7 +4442,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       revisionNote_ = value;
-      bitField0_ |= 0x00200000;
+      bitField0_ |= 0x00400000;
       onChanged();
       return this;
     }
@@ -4072,7 +4455,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      * @return Whether the createdAt field is set.
      */
     public boolean hasCreatedAt() {
-      return ((bitField0_ & 0x00400000) != 0);
+      return ((bitField0_ & 0x00800000) != 0);
     }
     /**
      * <code>.google.protobuf.Timestamp created_at = 23 [json_name = "createdAt"];</code>
@@ -4097,7 +4480,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       } else {
         createdAtBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00400000;
+      bitField0_ |= 0x00800000;
       onChanged();
       return this;
     }
@@ -4111,7 +4494,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
       } else {
         createdAtBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00400000;
+      bitField0_ |= 0x00800000;
       onChanged();
       return this;
     }
@@ -4120,7 +4503,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      */
     public Builder mergeCreatedAt(com.google.protobuf.Timestamp value) {
       if (createdAtBuilder_ == null) {
-        if (((bitField0_ & 0x00400000) != 0) &&
+        if (((bitField0_ & 0x00800000) != 0) &&
           createdAt_ != null &&
           createdAt_ != com.google.protobuf.Timestamp.getDefaultInstance()) {
           getCreatedAtBuilder().mergeFrom(value);
@@ -4131,7 +4514,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
         createdAtBuilder_.mergeFrom(value);
       }
       if (createdAt_ != null) {
-        bitField0_ |= 0x00400000;
+        bitField0_ |= 0x00800000;
         onChanged();
       }
       return this;
@@ -4140,7 +4523,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      * <code>.google.protobuf.Timestamp created_at = 23 [json_name = "createdAt"];</code>
      */
     public Builder clearCreatedAt() {
-      bitField0_ = (bitField0_ & ~0x00400000);
+      bitField0_ = (bitField0_ & ~0x00800000);
       createdAt_ = null;
       if (createdAtBuilder_ != null) {
         createdAtBuilder_.dispose();
@@ -4153,7 +4536,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
      * <code>.google.protobuf.Timestamp created_at = 23 [json_name = "createdAt"];</code>
      */
     public com.google.protobuf.Timestamp.Builder getCreatedAtBuilder() {
-      bitField0_ |= 0x00400000;
+      bitField0_ |= 0x00800000;
       onChanged();
       return internalGetCreatedAtFieldBuilder().getBuilder();
     }

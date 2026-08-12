@@ -75,7 +75,7 @@ class ModelCapabilities(_message.Message):
     def __init__(self, tool_use: bool = ..., vision: bool = ..., streaming: bool = ..., thinking: bool = ..., adaptive_thinking: bool = ...) -> None: ...
 
 class ModelPricingBaseline(_message.Message):
-    __slots__ = ("baseline_id", "model_id", "api_model_id", "provider", "harness", "display_name", "short_description", "speed_tier", "cost_tier", "featured", "pricing", "pricing_variants", "context_window_tokens", "max_output_tokens", "token_counter_method", "summarization", "capabilities", "status", "supersedes_baseline_id", "decided_by", "decided_at", "revision_note", "created_at")
+    __slots__ = ("baseline_id", "model_id", "api_model_id", "provider", "harness", "display_name", "short_description", "speed_tier", "cost_tier", "featured", "pricing", "pricing_variants", "wire_ids", "context_window_tokens", "max_output_tokens", "token_counter_method", "summarization", "capabilities", "status", "supersedes_baseline_id", "decided_by", "decided_at", "revision_note", "created_at")
     class PricingVariantsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -95,6 +95,7 @@ class ModelPricingBaseline(_message.Message):
     FEATURED_FIELD_NUMBER: _ClassVar[int]
     PRICING_FIELD_NUMBER: _ClassVar[int]
     PRICING_VARIANTS_FIELD_NUMBER: _ClassVar[int]
+    WIRE_IDS_FIELD_NUMBER: _ClassVar[int]
     CONTEXT_WINDOW_TOKENS_FIELD_NUMBER: _ClassVar[int]
     MAX_OUTPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     TOKEN_COUNTER_METHOD_FIELD_NUMBER: _ClassVar[int]
@@ -118,6 +119,7 @@ class ModelPricingBaseline(_message.Message):
     featured: bool
     pricing: PricingBlock
     pricing_variants: _containers.MessageMap[str, PricingVariant]
+    wire_ids: _containers.RepeatedScalarFieldContainer[str]
     context_window_tokens: int
     max_output_tokens: int
     token_counter_method: str
@@ -129,4 +131,4 @@ class ModelPricingBaseline(_message.Message):
     decided_at: _timestamp_pb2.Timestamp
     revision_note: str
     created_at: _timestamp_pb2.Timestamp
-    def __init__(self, baseline_id: _Optional[str] = ..., model_id: _Optional[str] = ..., api_model_id: _Optional[str] = ..., provider: _Optional[str] = ..., harness: _Optional[str] = ..., display_name: _Optional[str] = ..., short_description: _Optional[str] = ..., speed_tier: _Optional[str] = ..., cost_tier: _Optional[str] = ..., featured: bool = ..., pricing: _Optional[_Union[PricingBlock, _Mapping]] = ..., pricing_variants: _Optional[_Mapping[str, PricingVariant]] = ..., context_window_tokens: _Optional[int] = ..., max_output_tokens: _Optional[int] = ..., token_counter_method: _Optional[str] = ..., summarization: _Optional[_Union[SummarizationConfig, _Mapping]] = ..., capabilities: _Optional[_Union[ModelCapabilities, _Mapping]] = ..., status: _Optional[_Union[ModelPricingBaselineStatus, str]] = ..., supersedes_baseline_id: _Optional[str] = ..., decided_by: _Optional[str] = ..., decided_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., revision_note: _Optional[str] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(self, baseline_id: _Optional[str] = ..., model_id: _Optional[str] = ..., api_model_id: _Optional[str] = ..., provider: _Optional[str] = ..., harness: _Optional[str] = ..., display_name: _Optional[str] = ..., short_description: _Optional[str] = ..., speed_tier: _Optional[str] = ..., cost_tier: _Optional[str] = ..., featured: bool = ..., pricing: _Optional[_Union[PricingBlock, _Mapping]] = ..., pricing_variants: _Optional[_Mapping[str, PricingVariant]] = ..., wire_ids: _Optional[_Iterable[str]] = ..., context_window_tokens: _Optional[int] = ..., max_output_tokens: _Optional[int] = ..., token_counter_method: _Optional[str] = ..., summarization: _Optional[_Union[SummarizationConfig, _Mapping]] = ..., capabilities: _Optional[_Union[ModelCapabilities, _Mapping]] = ..., status: _Optional[_Union[ModelPricingBaselineStatus, str]] = ..., supersedes_baseline_id: _Optional[str] = ..., decided_by: _Optional[str] = ..., decided_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., revision_note: _Optional[str] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
