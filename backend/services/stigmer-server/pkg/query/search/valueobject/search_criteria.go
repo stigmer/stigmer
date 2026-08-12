@@ -55,9 +55,17 @@ var SearchableKinds = map[apiresourcekind.ApiResourceKind]bool{
 //   - Search mode: Query provided with specific kind(s), sorted by relevance
 //   - Discover mode: Query provided with no kinds (searches all), sorted by relevance
 //
-// Only kinds present in SearchableKinds are accepted (that map is the
-// single source of truth — enumerating it here rotted twice). Other kinds
-// are silently filtered out for forward compatibility.
+// kinds holds the request verbatim; filtering to SearchableKinds happens in
+// EffectiveKinds. Keeping the raw request is what lets EffectiveKinds
+// distinguish "no kinds requested" (discover mode) from "kinds requested but
+// none searchable" (empty result) — collapsing the two at construction time
+// made kind-targeted requests for non-searchable kinds silently degrade to
+// discover mode and return every other kind's resources
+// (stigmer/stigmer#440).
+//
+// Deliberate twin: the cloud edition's SearchCriteria.java implements the
+// same contract against its registry-driven searchable set — change the two
+// together.
 type SearchCriteria struct {
 	kinds          []apiresourcekind.ApiResourceKind
 	query          string
@@ -89,13 +97,10 @@ func NewSearchCriteria(
 	pageNumber int32,
 	pageSize int32,
 ) (*SearchCriteria, error) {
-	// Filter to searchable kinds only (non-searchable kinds are silently ignored)
-	filteredKinds := make([]apiresourcekind.ApiResourceKind, 0, len(kinds))
-	for _, k := range kinds {
-		if SearchableKinds[k] {
-			filteredKinds = append(filteredKinds, k)
-		}
-	}
+	// Keep the requested kinds verbatim (defensively copied); EffectiveKinds
+	// applies the searchable filter at read time (see the type comment).
+	requestedKinds := make([]apiresourcekind.ApiResourceKind, len(kinds))
+	copy(requestedKinds, kinds)
 
 	// Normalize and validate query
 	normalizedQuery := strings.TrimSpace(query)
@@ -118,7 +123,7 @@ func NewSearchCriteria(
 	}
 
 	return &SearchCriteria{
-		kinds:          filteredKinds,
+		kinds:          requestedKinds,
 		query:          normalizedQuery,
 		orgFilter:      normalizedOrg,
 		excludePublic:  excludePublic,
@@ -128,7 +133,8 @@ func NewSearchCriteria(
 	}, nil
 }
 
-// Kinds returns the requested resource kinds to search.
+// Kinds returns the requested resource kinds verbatim — including any that
+// are not searchable. Use EffectiveKinds for the set actually searched.
 // Returns an empty slice for discover mode (search all kinds).
 func (c *SearchCriteria) Kinds() []apiresourcekind.ApiResourceKind {
 	// Return a copy to preserve immutability
@@ -171,7 +177,8 @@ func (c *SearchCriteria) PageSize() int32 {
 }
 
 // IsDiscoverMode returns true if this is discover mode (search all resource types).
-// Discover mode is when no specific kinds are requested.
+// Discover mode is when no specific kinds are requested. A request naming
+// only non-searchable kinds is NOT discover mode — it searches nothing.
 func (c *SearchCriteria) IsDiscoverMode() bool {
 	return len(c.kinds) == 0
 }
@@ -188,8 +195,17 @@ func (c *SearchCriteria) HasOrgFilter() bool {
 }
 
 // EffectiveKinds returns the set of kinds to actually search.
-// In discover mode (no kinds specified), returns all searchable kinds.
-// Otherwise, returns the requested kinds (already filtered to searchable ones).
+//
+// In discover mode (no kinds requested), returns all searchable kinds.
+// Otherwise, returns the requested kinds filtered to SearchableKinds (that
+// map is the single source of truth — enumerating it here rotted twice);
+// non-searchable kinds are silently dropped, the forward-compatibility
+// contract documented on SearchRequest.kinds.
+//
+// The filtered set may be EMPTY: a request naming only non-searchable kinds
+// must return an empty result, and the stores short-circuit an empty
+// effective set. Falling back to all searchable kinds here instead served
+// every other kind's resources for such requests (stigmer/stigmer#440).
 func (c *SearchCriteria) EffectiveKinds() []apiresourcekind.ApiResourceKind {
 	if len(c.kinds) == 0 {
 		// Return all searchable kinds
@@ -199,9 +215,12 @@ func (c *SearchCriteria) EffectiveKinds() []apiresourcekind.ApiResourceKind {
 		}
 		return result
 	}
-	// Return a copy of the requested kinds
-	result := make([]apiresourcekind.ApiResourceKind, len(c.kinds))
-	copy(result, c.kinds)
+	result := make([]apiresourcekind.ApiResourceKind, 0, len(c.kinds))
+	for _, k := range c.kinds {
+		if SearchableKinds[k] {
+			result = append(result, k)
+		}
+	}
 	return result
 }
 

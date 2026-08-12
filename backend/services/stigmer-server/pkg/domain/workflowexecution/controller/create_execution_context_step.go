@@ -13,7 +13,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/envmerge"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/environment"
+	envresolution "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/resolution"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/executioncontext"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 )
@@ -27,12 +27,14 @@ import (
 //   - store.GetResource(workflow_id) -> Workflow.env_spec (follows WE controller's "same service" store-access pattern)
 //
 // Merge priority (lowest to highest):
-//  1. WorkflowInstance.env_refs resolved via environmentClient (in order)
+//  1. WorkflowInstance.env_refs resolved via the environment
+//     RuntimeResolutionService (in order; secret values decrypted — the
+//     RPC surface redacts them, oss#405)
 //  2. WorkflowExecution.spec.runtime_env (execution-time overrides)
 type createExecutionContextStep struct {
 	store                  store.Store
 	workflowInstanceClient *workflowinstance.Client
-	environmentClient      *environment.Client
+	environmentResolution  *envresolution.RuntimeResolutionService
 	executionCtxClient     *executioncontext.Client
 }
 
@@ -40,7 +42,7 @@ func (c *WorkflowExecutionController) newCreateExecutionContextStep() *createExe
 	return &createExecutionContextStep{
 		store:                  c.store,
 		workflowInstanceClient: c.workflowInstanceClient,
-		environmentClient:      c.environmentClient,
+		environmentResolution:  c.environmentResolution,
 		executionCtxClient:     c.executionContextClient,
 	}
 }
@@ -54,10 +56,10 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*workf
 	executionID := execution.GetMetadata().GetId()
 	executionOrg := execution.GetMetadata().GetOrg()
 
-	if s.workflowInstanceClient == nil || s.environmentClient == nil || s.executionCtxClient == nil {
+	if s.workflowInstanceClient == nil || s.environmentResolution == nil || s.executionCtxClient == nil {
 		log.Warn().
 			Str("execution_id", executionID).
-			Msg("ExecutionContext clients not available, skipping execution context creation")
+			Msg("ExecutionContext dependencies not available, skipping execution context creation")
 		return nil
 	}
 
@@ -196,7 +198,10 @@ func (s *createExecutionContextStep) resolveEnvironments(
 
 	environments := make([]*environmentv1.Environment, 0, len(refs))
 	for _, ref := range refs {
-		env, err := s.environmentClient.GetByReference(ctx.Context(), ref)
+		// Runtime resolution, not the GetByReference RPC: the RPC surface
+		// redacts secret values (oss#405); this internal path returns them
+		// decrypted for the execution-context merge.
+		env, err := s.environmentResolution.ResolveByReference(ctx.Context(), ref)
 		if err != nil {
 			return nil, fmt.Errorf("resolve environment ref (org=%s, slug=%s): %w",
 				ref.GetOrg(), ref.GetSlug(), err)

@@ -109,12 +109,25 @@ func TestEnvironmentController_Create(t *testing.T) {
 			t.Error("Expected AWS_REGION to not be secret")
 		}
 
-		if created.Spec.Data["AWS_ACCESS_KEY_ID"].Value != "AKIA1234567890ABCDEF" {
-			t.Errorf("Expected AWS_ACCESS_KEY_ID 'AKIA1234567890ABCDEF', got '%s'", created.Spec.Data["AWS_ACCESS_KEY_ID"].Value)
+		// Secret values are redacted in every response (oss#405); the
+		// stored value is verified via getSecretValue below.
+		if created.Spec.Data["AWS_ACCESS_KEY_ID"].Value != envsteps.RedactedMarker {
+			t.Errorf("Expected AWS_ACCESS_KEY_ID to be redacted, got '%s'", created.Spec.Data["AWS_ACCESS_KEY_ID"].Value)
 		}
 
 		if !created.Spec.Data["AWS_ACCESS_KEY_ID"].IsSecret {
 			t.Error("Expected AWS_ACCESS_KEY_ID to be secret")
+		}
+
+		revealed, err := controller.GetSecretValue(contextWithEnvironmentKind(), &environmentv1.EnvironmentSecretValueInput{
+			EnvironmentId: created.Metadata.Id,
+			Key:           "AWS_ACCESS_KEY_ID",
+		})
+		if err != nil {
+			t.Fatalf("GetSecretValue failed: %v", err)
+		}
+		if revealed.GetValue() != "AKIA1234567890ABCDEF" {
+			t.Errorf("Expected getSecretValue to reveal 'AKIA1234567890ABCDEF', got '%s'", revealed.GetValue())
 		}
 	})
 
@@ -297,9 +310,21 @@ func TestEnvironmentController_SecretSentinels(t *testing.T) {
 		if err != nil {
 			t.Fatalf("marker update failed: %v", err)
 		}
-		if updated.Spec.Data["API_KEY"].GetValue() != "original-secret" {
-			t.Errorf("marker must preserve the stored secret, got %q",
+		// The response is redacted (oss#405); preservation is verified
+		// through the reveal path.
+		if updated.Spec.Data["API_KEY"].GetValue() != envsteps.RedactedMarker {
+			t.Errorf("update response must redact the secret, got %q",
 				updated.Spec.Data["API_KEY"].GetValue())
+		}
+		revealed, err := controller.GetSecretValue(ctx, &environmentv1.EnvironmentSecretValueInput{
+			EnvironmentId: created.GetMetadata().GetId(),
+			Key:           "API_KEY",
+		})
+		if err != nil {
+			t.Fatalf("GetSecretValue failed: %v", err)
+		}
+		if revealed.GetValue() != "original-secret" {
+			t.Errorf("marker must preserve the stored secret, got %q", revealed.GetValue())
 		}
 	})
 
@@ -498,8 +523,9 @@ func TestEnvironmentController_Update(t *testing.T) {
 			t.Errorf("Expected KEY1 'value1', got '%s'", updated.Spec.Data["KEY1"].Value)
 		}
 
-		if updated.Spec.Data["KEY2"].Value != "value2" {
-			t.Errorf("Expected KEY2 'value2', got '%s'", updated.Spec.Data["KEY2"].Value)
+		// KEY2 is secret, so the response redacts it (oss#405).
+		if updated.Spec.Data["KEY2"].Value != envsteps.RedactedMarker {
+			t.Errorf("Expected KEY2 to be redacted, got '%s'", updated.Spec.Data["KEY2"].Value)
 		}
 
 		if !updated.Spec.Data["KEY2"].IsSecret {
@@ -539,12 +565,25 @@ func TestEnvironmentController_Update(t *testing.T) {
 			t.Fatalf("Update failed: %v", err)
 		}
 
-		if updated.Spec.Data["API_KEY"].Value != "new-key" {
-			t.Errorf("Expected API_KEY 'new-key', got '%s'", updated.Spec.Data["API_KEY"].Value)
+		// The response redacts the secret (oss#405); the new value is
+		// verified through the reveal path.
+		if updated.Spec.Data["API_KEY"].Value != envsteps.RedactedMarker {
+			t.Errorf("Expected API_KEY to be redacted, got '%s'", updated.Spec.Data["API_KEY"].Value)
 		}
 
 		if !updated.Spec.Data["API_KEY"].IsSecret {
 			t.Error("Expected API_KEY to remain secret")
+		}
+
+		revealed, err := controller.GetSecretValue(contextWithEnvironmentKind(), &environmentv1.EnvironmentSecretValueInput{
+			EnvironmentId: created.Metadata.Id,
+			Key:           "API_KEY",
+		})
+		if err != nil {
+			t.Fatalf("GetSecretValue failed: %v", err)
+		}
+		if revealed.GetValue() != "new-key" {
+			t.Errorf("Expected getSecretValue to reveal 'new-key', got '%s'", revealed.GetValue())
 		}
 	})
 
@@ -708,8 +747,10 @@ func TestEnvironmentController_Delete(t *testing.T) {
 			t.Fatalf("Delete failed: %v", err)
 		}
 
-		if deleted.Spec.Data["SECRET_KEY"].Value != "secret-value" {
-			t.Errorf("Expected SECRET_KEY 'secret-value', got '%s'", deleted.Spec.Data["SECRET_KEY"].Value)
+		// The delete response redacts secrets like every other response
+		// (oss#405) — the audit-trail return must not be a reveal path.
+		if deleted.Spec.Data["SECRET_KEY"].Value != envsteps.RedactedMarker {
+			t.Errorf("Expected SECRET_KEY to be redacted, got '%s'", deleted.Spec.Data["SECRET_KEY"].Value)
 		}
 
 		if !deleted.Spec.Data["SECRET_KEY"].IsSecret {

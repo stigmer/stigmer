@@ -19,8 +19,9 @@ import (
 // 4. EnforcePersonalEnvUniqueness - At most one personal env per org
 // 5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event), default visibility
 // 6. PreserveRedactedSecrets - Reject secret sentinels (redaction marker, enc:v<N>: prefix)
-// 7. Persist - Save environment to repository
-// 8. IndexSearch - Update search index
+// 7. EncryptSecretValues - Encrypt is_secret values at rest (sentinels → encrypt ordering)
+// 8. Persist - Save environment to repository
+// 9. IndexSearch - Update search index
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)
@@ -36,7 +37,12 @@ func (c *EnvironmentController) Create(ctx context.Context, environment *environ
 		return nil, err
 	}
 
-	return reqCtx.NewState(), nil
+	// Redact AFTER persist: the store keeps ciphertext, the response
+	// carries markers (never ciphertext — clients cannot round-trip it
+	// past the enc: prefix guard, and it is server-internal by design).
+	created := reqCtx.NewState()
+	domainSteps.RedactEnvironmentSecrets(created)
+	return created, nil
 }
 
 // buildCreatePipeline constructs the pipeline for environment creation
@@ -50,7 +56,8 @@ func (c *EnvironmentController) buildCreatePipeline() *pipeline.Pipeline[*enviro
 		AddStep(domainSteps.NewEnforcePersonalUniquenessStep(c.store)).                                            // 4. At most one personal env per org
 		AddStep(steps.NewBuildNewStateStep[*environmentv1.Environment]()).                                         // 5. Build new state
 		AddStep(domainSteps.NewPreserveRedactedSecretsStep()).                                                     // 6. Reject secret sentinels (no existing resource: marker and enc: prefix both refused)
-		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).                                        // 7. Persist environment
-		AddStep(steps.NewIndexSearchStep[*environmentv1.Environment](c.store, &extractor.EnvironmentExtractor{})). // 8. Update search index
+		AddStep(domainSteps.NewEncryptSecretValuesStep(c.secretService)).                                          // 7. Encrypt is_secret values (must follow the sentinel guard)
+		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).                                        // 8. Persist environment
+		AddStep(steps.NewIndexSearchStep[*environmentv1.Environment](c.store, &extractor.EnvironmentExtractor{})). // 9. Update search index
 		Build()
 }

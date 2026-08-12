@@ -24,6 +24,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	envresolution "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/resolution"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
 	scheduletemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/schedule/temporal"
 	workflowconverter "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/converter"
@@ -51,30 +52,34 @@ import (
 //   - Path B (session_id on the execution): sessionClient.Get -> Session.agent_instance_id -> agentInstanceClient.Get -> agentClient.Get
 //
 // Merge priority (lowest to highest):
-//  1. AgentInstance.environment_refs resolved via environmentClient (in order)
+//  1. AgentInstance.environment_refs resolved via the environment
+//     RuntimeResolutionService (in order; secret values decrypted — the
+//     RPC surface redacts them, oss#405)
 //  2. AgentExecution.spec.runtime_env (execution-time overrides; empty on
 //     recover — consumed into the original EC and cleared before persist)
 type executionContextBuilder struct {
-	agentClient         *agent.Client
-	agentInstanceClient *agentinstance.Client
-	sessionClient       *session.Client
-	environmentClient   *environment.Client
-	executionCtxClient  *executioncontext.Client
-	store               store.Store
-	oauthGrantStore     *oauth.OAuthGrantStore
-	managedEnvService   *oauth.ManagedEnvironmentService
+	agentClient           *agent.Client
+	agentInstanceClient   *agentinstance.Client
+	sessionClient         *session.Client
+	environmentClient     *environment.Client
+	environmentResolution *envresolution.RuntimeResolutionService
+	executionCtxClient    *executioncontext.Client
+	store                 store.Store
+	oauthGrantStore       *oauth.OAuthGrantStore
+	managedEnvService     *oauth.ManagedEnvironmentService
 }
 
 func (c *AgentExecutionController) newExecutionContextBuilder() *executionContextBuilder {
 	return &executionContextBuilder{
-		agentClient:         c.agentClient,
-		agentInstanceClient: c.agentInstanceClient,
-		sessionClient:       c.sessionClient,
-		environmentClient:   c.environmentClient,
-		executionCtxClient:  c.executionContextClient,
-		store:               c.store,
-		oauthGrantStore:     c.oauthGrantStore,
-		managedEnvService:   c.managedEnvService,
+		agentClient:           c.agentClient,
+		agentInstanceClient:   c.agentInstanceClient,
+		sessionClient:         c.sessionClient,
+		environmentClient:     c.environmentClient,
+		environmentResolution: c.environmentResolution,
+		executionCtxClient:    c.executionContextClient,
+		store:                 c.store,
+		oauthGrantStore:       c.oauthGrantStore,
+		managedEnvService:     c.managedEnvService,
 	}
 }
 
@@ -944,7 +949,10 @@ func (b *executionContextBuilder) resolveEnvironments(
 
 	environments := make([]*environmentv1.Environment, 0, len(refs))
 	for _, ref := range refs {
-		env, err := b.environmentClient.GetByReference(ctx, ref)
+		// Runtime resolution, not the GetByReference RPC: the RPC surface
+		// redacts secret values (oss#405); this internal path returns them
+		// decrypted for the execution-context merge.
+		env, err := b.environmentResolution.ResolveByReference(ctx, ref)
 		if err != nil {
 			return nil, fmt.Errorf("resolve environment ref (org=%s, slug=%s): %w",
 				ref.GetOrg(), ref.GetSlug(), err)

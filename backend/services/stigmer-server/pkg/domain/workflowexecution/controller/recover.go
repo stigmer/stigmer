@@ -86,7 +86,7 @@ func (c *WorkflowExecutionController) buildRecoverPipeline() *pipeline.Pipeline[
 		AddStep(NewValidateRecoverableStep[*workflowexecutionv1.RecoverWorkflowExecutionInput]()).
 		AddStep(NewTerminateExistingWorkflowStep[*workflowexecutionv1.RecoverWorkflowExecutionInput](c.temporalClient)).
 		AddStep(newRecreateExecutionContextStep(
-			c.store, c.workflowInstanceClient, c.environmentClient, c.executionContextClient,
+			c.store, c.workflowInstanceClient, c.environmentResolution, c.executionContextClient,
 		)).
 		AddStep(NewStartFreshWorkflowStep[*workflowexecutionv1.RecoverWorkflowExecutionInput](
 			c.workflowCreator, c.temporalConfig,

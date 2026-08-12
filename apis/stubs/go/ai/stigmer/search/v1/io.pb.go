@@ -51,7 +51,9 @@ type SearchRequest struct {
 	//
 	// The searchable set is edition-defined (the cloud and open-source servers
 	// each publish their own); kinds outside it are silently ignored
-	// (allows forward compatibility).
+	// (allows forward compatibility). A request naming ONLY non-searchable
+	// kinds returns an empty result — it does NOT fall back to discover mode
+	// (only an empty kinds list means discover).
 	Kinds []apiresourcekind.ApiResourceKind `protobuf:"varint,1,rep,packed,name=kinds,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind" json:"kinds,omitempty"`
 	// Text query for full-text search.
 	//

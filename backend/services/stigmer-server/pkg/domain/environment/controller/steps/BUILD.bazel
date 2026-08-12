@@ -3,11 +3,13 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "steps",
     srcs = [
+        "encrypt_secret_values.go",
         "enforce_personal_uniqueness.go",
         "extract_and_decrypt_single_key.go",
         "load_environment_by_id.go",
         "merge_variables_and_persist.go",
         "preserve_redacted_secrets.go",
+        "redact_secret_values.go",
         "remove_variable_keys_and_persist.go",
         "share_restricted.go",
     ],

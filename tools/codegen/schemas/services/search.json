@@ -67,7 +67,7 @@
               ]
             }
           },
-          "description": "Resource kinds to search.\n\n Behavior:\n - Empty: Search all searchable kinds (discover mode)\n - Single kind: Search only that resource type\n - Multiple kinds: Search specified types\n\n The searchable set is edition-defined (the cloud and open-source servers\n each publish their own); kinds outside it are silently ignored\n (allows forward compatibility).",
+          "description": "Resource kinds to search.\n\n Behavior:\n - Empty: Search all searchable kinds (discover mode)\n - Single kind: Search only that resource type\n - Multiple kinds: Search specified types\n\n The searchable set is edition-defined (the cloud and open-source servers\n each publish their own); kinds outside it are silently ignored\n (allows forward compatibility). A request naming ONLY non-searchable\n kinds returns an empty result — it does NOT fall back to discover mode\n (only an empty kinds list means discover).",
           "required": false
         },
         {

@@ -3,8 +3,9 @@
 //
 // Environment is a flat (non-versioned) platform resource whose spec.data holds
 // configuration and secret values keyed by name. Each EnvironmentValue carries
-// an is_secret flag; in OSS the value round-trips in plaintext, in cloud it is
-// redacted on read (gated by the secretRedaction capability).
+// an is_secret flag; secret values are redacted on read in BOTH editions
+// (edition-converged since stigmer#405 — OSS encrypts at rest and redacts
+// exactly like cloud; getSecretValue is the reveal path).
 //
 // The canonical builder is deliberately SECRET-FREE: a plain-only environment
 // keeps the create-vs-get parity check edition-stable (secret values would
