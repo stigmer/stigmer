@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption/payloadcodec"
 )
 
 // defaultGitHubOAuthClientID and defaultGitHubOAuthClientSecret are the
@@ -57,6 +58,12 @@ type Config struct {
 	// Override via STIGMER_OAUTH_REDIRECT_URI. When empty, OAuth Connect
 	// for MCP servers is unavailable.
 	OAuthRedirectURI string
+
+	// PayloadEncryption holds the Temporal payload-decryption keys
+	// (STIGMER_PAYLOAD_ENCRYPTION_KEY(_ID) + optional secondary pair —
+	// the same env vars the TS runner reads). Nil when encryption is not
+	// configured; the decode-only codec is then not installed.
+	PayloadEncryption *payloadcodec.Config
 }
 
 // LoadConfig loads configuration from environment variables
@@ -123,6 +130,15 @@ func LoadConfig() (*Config, error) {
 			return nil, fmt.Errorf("invalid R2 configuration: %w", err)
 		}
 	}
+
+	// A present-but-malformed payload encryption key fails the boot:
+	// the operator intended runner history to be encrypted, and without
+	// the decode codec every runner payload read would fail at runtime.
+	payloadEncryption, err := payloadcodec.LoadConfigFromEnv()
+	if err != nil {
+		return nil, err
+	}
+	config.PayloadEncryption = payloadEncryption
 
 	return config, nil
 }

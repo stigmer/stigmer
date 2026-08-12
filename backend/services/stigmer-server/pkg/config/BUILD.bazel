@@ -5,5 +5,8 @@ go_library(
     srcs = ["config.go"],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config",
     visibility = ["//visibility:public"],
-    deps = ["//backend/services/stigmer-server/pkg/domain/artifact/storage"],
+    deps = [
+        "//backend/services/stigmer-server/pkg/domain/artifact/storage",
+        "//backend/services/stigmer-server/pkg/encryption/payloadcodec",
+    ],
 )
