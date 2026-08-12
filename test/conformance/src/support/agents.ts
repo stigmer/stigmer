@@ -81,15 +81,19 @@ export function makeAgentSpec(opts: AgentSpecOptions = {}): MessageInitShape<typ
 export interface AgentOptions extends AgentSpecOptions {
   org: string;
   name: string;
+  // Metadata labels, passed through verbatim — label semantics live server-side.
+  // The suite's one consumer today is the platform default-agent label
+  // (stigmer.ai/default-agent) behind the getDefault determinism pin.
+  labels?: Record<string, string>;
 }
 
 // A complete, valid Agent resource ready to hand to create/apply/update.
 export function makeAgent(opts: AgentOptions): MessageInitShape<typeof AgentSchema> {
-  const { org, name, description, instructions, mcpServerRefs, mcpServerUsages, env } = opts;
+  const { org, name, labels, description, instructions, mcpServerRefs, mcpServerUsages, env } = opts;
   return {
     apiVersion: AGENT_API_VERSION,
     kind: AGENT_KIND,
-    metadata: { name, org },
+    metadata: { name, org, ...(labels !== undefined ? { labels } : {}) },
     spec: makeAgentSpec({ description, instructions, mcpServerRefs, mcpServerUsages, env }),
   };
 }
