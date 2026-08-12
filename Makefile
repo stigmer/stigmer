@@ -10,6 +10,17 @@ GO_MODULES := \
 
 RUNNER_DIR := backend/services/runner
 
+# Prettier renders formatting VERDICTS (format-docs-check, the gen-*-docs-check
+# freshness gates), so it must always run at the version package-lock.json pins.
+# Bare `npx prettier` is nondeterministic: when no node_modules exists on the
+# directory walk-up path (a fresh worktree outside this checkout, a machine
+# that never ran `npm install`), npx silently downloads the LATEST release —
+# and prettier releases change markdown formatting, so the same bytes pass on
+# one machine and fail on another (oss#531). Invoke the installed binary
+# directly, and fail loudly when it is missing instead of letting npx guess.
+PRETTIER := node_modules/.bin/prettier
+PRETTIER_GUARD := test -x $(PRETTIER) || { echo "error: $(PRETTIER) not found — run 'npm install' at the repo root (prettier must run at the version package-lock.json pins)"; exit 1; }
+
 .DEFAULT_GOAL := help
 
 # ─── Help ─────────────────────────────────────
@@ -134,7 +145,8 @@ gen-task-docs: ## Generate per-task reference docs from schemas
 	go run ./tools/codegen/generator --comprehensive --target=task-docs \
 		--schema-dir tools/codegen/schemas --output-dir docs/guides/workflows/task-types \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta --apis-dir apis
-	npx prettier --write --prose-wrap always docs/guides/workflows/task-types/*.mdx
+	@$(PRETTIER_GUARD)
+	$(PRETTIER) --write --prose-wrap always docs/guides/workflows/task-types/*.mdx
 
 gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync into the backend embed
 	go run ./tools/codegen/generator --comprehensive --target=task-registry \
@@ -215,11 +227,12 @@ gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 	echo "✓ Proto SDK docs are up to date"
 
 gen-task-docs-check: ## Verify task docs are up to date (CI)
+	@$(PRETTIER_GUARD)
 	@tmpdir=$$(mktemp -d) && \
 	go run ./tools/codegen/generator --comprehensive --target=task-docs \
 		--schema-dir tools/codegen/schemas --output-dir "$$tmpdir" \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta --apis-dir apis && \
-	npx prettier --write --prose-wrap always --config .prettierrc --ignore-path /dev/null "$$tmpdir"/*.mdx > /dev/null 2>&1; \
+	$(PRETTIER) --write --prose-wrap always --config .prettierrc --ignore-path /dev/null "$$tmpdir"/*.mdx > /dev/null 2>&1; \
 	rc=0; \
 	for f in "$$tmpdir"/*; do \
 		if ! diff -q "$$f" "docs/guides/workflows/task-types/$$(basename $$f)" > /dev/null 2>&1; then \
@@ -281,14 +294,16 @@ gen-theme-docs-check: ## Verify theme token docs are up to date (CI)
 
 gen-cli-docs: ## Generate CLI reference docs from the TypeScript command tree
 	cd client-apps/cli && npx tsx scripts/gen-cli-docs.ts --output ../../docs/cli/commands/
-	npx prettier --write --prose-wrap always docs/cli/commands/
+	@$(PRETTIER_GUARD)
+	$(PRETTIER) --write --prose-wrap always docs/cli/commands/
 
 gen-cli-docs-check: ## Verify CLI docs are up to date (CI)
+	@$(PRETTIER_GUARD)
 	@tmpdir=$$(mktemp -d) && \
 	(cd client-apps/cli && npx tsx scripts/gen-cli-docs.ts --output "$$tmpdir") && \
 	for f in "$$tmpdir"/*; do \
 		bn=$$(basename "$$f"); \
-		npx prettier --stdin-filepath "docs/cli/commands/$$bn" < "$$f" > "$$f.fmt" 2>/dev/null && mv "$$f.fmt" "$$f"; \
+		$(PRETTIER) --stdin-filepath "docs/cli/commands/$$bn" < "$$f" > "$$f.fmt" 2>/dev/null && mv "$$f.fmt" "$$f"; \
 	done; \
 	rc=0; \
 	for f in "$$tmpdir"/*; do \
@@ -757,7 +772,8 @@ check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, des
 check-site: ## check bucket: docs lint/format/links + site lint/typecheck/test/build + demo validation
 	@vale sync 2>/dev/null
 	@vale $(DOCS_SOURCES)
-	@npx prettier --check --prose-wrap always $(DOCS_SOURCES)
+	@$(PRETTIER_GUARD)
+	@$(PRETTIER) --check --prose-wrap always $(DOCS_SOURCES)
 	$(MAKE) check-docs-yaml
 	$(MAKE) check-docs-inventory
 	$(MAKE) -C site lint
@@ -801,10 +817,12 @@ lint-docs-audit: ## Audit docs with Vale (non-blocking report)
 	-@vale $(DOCS_SOURCES)
 
 format-docs: ## Format documentation with Prettier
-	@npx prettier --write --prose-wrap always $(DOCS_SOURCES)
+	@$(PRETTIER_GUARD)
+	@$(PRETTIER) --write --prose-wrap always $(DOCS_SOURCES)
 
 format-docs-check: ## Check documentation formatting (CI, no writes)
-	@npx prettier --check --prose-wrap always $(DOCS_SOURCES)
+	@$(PRETTIER_GUARD)
+	@$(PRETTIER) --check --prose-wrap always $(DOCS_SOURCES)
 
 check-docs-yaml: ## Validate every docs YAML block against the proto contracts (CI)
 	@go run ./tools/codegen/generator --comprehensive --target=docs-yaml-check --docs-dir docs
