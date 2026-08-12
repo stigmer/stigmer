@@ -5,6 +5,7 @@ import { DELETE_HANDLERS } from "../resources/delete.js";
 import { GET_BINDINGS } from "../resources/get-bindings.js";
 import { LIST_HANDLERS, SEARCH_KINDS } from "../resources/list.js";
 import { VALIDATE_SCHEMAS } from "../resources/validate.js";
+import { normalizeAlias } from "./aliases.js";
 import { defaultRegistry } from "./registry.js";
 import { Verb } from "./verbs.js";
 
@@ -24,6 +25,14 @@ describe("registry — alias resolution", () => {
     ["wfl", ApiResourceKind.workflow],
     ["org", ApiResourceKind.organization],
     ["oapp", ApiResourceKind.oauth_app],
+    // The canonical proto enum name and its kebab/plural companions
+    // (stigmer/stigmer#470) plus the historical split-derived spellings,
+    // which must keep working.
+    ["oauth_app", ApiResourceKind.oauth_app],
+    ["oauth-app", ApiResourceKind.oauth_app],
+    ["oauth_apps", ApiResourceKind.oauth_app],
+    ["o_auth_app", ApiResourceKind.oauth_app],
+    ["o-auth-app", ApiResourceKind.oauth_app],
     ["agentchannel", ApiResourceKind.agent_channel],
     ["agent-channel", ApiResourceKind.agent_channel],
     ["agent_channel", ApiResourceKind.agent_channel],
@@ -119,6 +128,45 @@ describe("registry — completeness", () => {
     }
   });
 
+  // The canonical proto enum name is the spelling a proto-literate user is most
+  // likely to type; it must resolve for EVERY kind by construction, not by
+  // accident of PascalCase spelling. OAuthApp was the counterexample
+  // (stigmer/stigmer#470): its split-derived aliases (o_auth_app) diverged from
+  // the proto name (oauth_app), so only it failed.
+  it("resolves every registered kind's canonical proto enum name (snake and kebab)", () => {
+    for (const info of registry.all()) {
+      const protoName = ApiResourceKind[info.kind];
+      expect(
+        registry.getByAlias(protoName)?.kind,
+        `canonical proto name '${protoName}' must resolve to its own kind`,
+      ).toBe(info.kind);
+      const kebab = protoName.replaceAll("_", "-");
+      expect(
+        registry.getByAlias(kebab)?.kind,
+        `kebab form '${kebab}' of the canonical proto name must resolve to its own kind`,
+      ).toBe(info.kind);
+    }
+  });
+
+  // buildRegistry's byAlias.set is last-wins: a collision between two kinds'
+  // alias sets would silently shadow the earlier kind. The one collision found
+  // by hand ("Agent Instance" nearly stealing "agent") is prevented inside
+  // generateAliases; this pin makes the whole class a red test instead of a
+  // hand-check as future kinds (and their derived forms) are added.
+  it("no two kinds share an alias (silent last-wins shadowing guard)", () => {
+    const claimedBy = new Map<string, string>();
+    for (const info of registry.all()) {
+      for (const alias of info.aliases) {
+        const key = normalizeAlias(alias);
+        const owner = claimedBy.get(key);
+        expect(
+          owner === undefined || owner === info.name,
+          `alias '${key}' is claimed by both ${owner} and ${info.name} — the later registration silently wins`,
+        ).toBe(true);
+        claimedBy.set(key, info.name);
+      }
+    }
+  });
 });
 
 // The verb matrix is a PROMISE (`list types` prints it; the command layer

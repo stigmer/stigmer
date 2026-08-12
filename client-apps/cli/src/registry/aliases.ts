@@ -1,8 +1,9 @@
-// Algorithmic alias generation — a faithful port of the Go types.GenerateAliases
-// family. Aliases are *derived* from proto kind metadata (name/display_name/
-// id_prefix), never hardcoded, so a new resource kind picks up its full set of
-// accepted spellings automatically. Keeping the algorithm byte-for-byte
-// identical to Go guarantees both CLIs accept exactly the same inputs.
+// Algorithmic alias generation. Aliases are *derived* from proto kind metadata
+// (name/display_name/id_prefix/proto enum name), never hardcoded, so a new
+// resource kind picks up its full set of accepted spellings automatically.
+// The algorithm was ported from the Go CLI's types.GenerateAliases; the Go CLI
+// was removed in the TypeScript migration (stigmer/stigmer#203), so this is the
+// only alias implementation.
 
 /**
  * Generate every accepted input form for a resource kind.
@@ -10,9 +11,11 @@
  * From name "McpServer":      "mcpserver", "mcp-server", "mcp_server", "McpServer"
  * From displayName "MCP Server": "mcp" / "MCP"
  * From idPrefix "mcp":         "mcp"
+ * From protoName "mcp_server": usually re-derives the forms above; for
+ *                              "OAuthApp" it contributes "oauth_app"/"oauth-app"
  * Plus the plural of every form above.
  */
-export function generateAliases(name: string, displayName: string, idPrefix: string): string[] {
+export function generateAliases(name: string, displayName: string, idPrefix: string, protoName: string): string[] {
   const seen = new Set<string>();
   const aliases: string[] = [];
 
@@ -30,6 +33,16 @@ export function generateAliases(name: string, displayName: string, idPrefix: str
   add(toKebabCase(name)); // "mcp-server"
   add(toSnakeCase(name)); // "mcp_server"
   add(name); // "McpServer"
+
+  // From the proto enum value name: "mcp_server". For most kinds this re-derives
+  // the snake/kebab forms above, but it is the only source that knows the true
+  // word boundaries when the PascalCase name has consecutive capitals — no split
+  // of "OAuthApp" can recover "oauth_app", because "OAuth" being one word is
+  // recorded only in the proto. Feeding it in makes "the canonical kind name
+  // always resolves" structural instead of an accident of PascalCase spelling
+  // (stigmer/stigmer#470).
+  add(protoName); // "oauth_app"
+  add(protoName.replaceAll("_", "-")); // "oauth-app"
 
   // From display_name: single-word names contribute lower/upper forms; for
   // multi-word names only the first word is added, and only when it does not
