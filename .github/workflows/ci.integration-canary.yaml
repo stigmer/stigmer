@@ -14,7 +14,14 @@
 #
 # Cost: under $0.05 per run.
 #
-# Secrets: ANTHROPIC_API_KEY and CURSOR_API_KEY from "provider-integration".
+# Secrets (from the "provider-integration" environment):
+#   ANTHROPIC_API_KEY — platform LLM proxy upstream key
+#   CURSOR_API_KEY    — user-scoped Cursor key (the shared-pool member key)
+#   CURSOR_ADMIN_KEY  — Cursor team Admin API key; the suite's boot-time
+#                       shared-pool CursorAccount seed live-validates it
+#                       (DD-008: DB-resident accounts are the only Cursor
+#                       credential source — without the seed every proxied
+#                       Cursor call 503s)
 # =============================================================================
 
 name: ci.integration-canary
@@ -134,6 +141,7 @@ jobs:
           STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          CURSOR_ADMIN_KEY: ${{ secrets.CURSOR_ADMIN_KEY }}
         run: make test-integration-canary
 
       - name: Upload canary test results

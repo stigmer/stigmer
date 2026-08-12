@@ -18,8 +18,14 @@ import (
 
 func requireCursorKey(t *testing.T) {
 	t.Helper()
+	// Same credential pair the suite-boot SeedSharedPoolCursorAccount
+	// needs: without both, the proxy's shared pool is empty and every
+	// cursor call 503s.
 	if cursorKey == "" {
 		t.Skip("CURSOR_API_KEY not set — skipping provider-backed E2E test")
+	}
+	if cursorAdminKey == "" {
+		t.Skip("CURSOR_ADMIN_KEY not set — skipping provider-backed E2E test (the shared-pool CursorAccount seed needs the team admin key)")
 	}
 }
 

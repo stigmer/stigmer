@@ -76,12 +76,12 @@ type ServiceConfig struct {
 	// AnthropicAPIKey is passed to the Java service as the LLM proxy's
 	// upstream Anthropic key. When set, the proxy can forward runner
 	// LLM calls to Anthropic and record per-call usage for billing.
+	//
+	// There is deliberately no Cursor counterpart: the DD-008 amendment
+	// removed the STIGMER_PROXY_CURSOR_API_KEY env path from the Cursor
+	// proxy — Cursor credentials are DB-resident CursorAccounts, seeded
+	// through the operator RPCs (SeedSharedPoolCursorAccount).
 	AnthropicAPIKey string
-
-	// CursorAPIKey is passed to the Java service as the Cursor proxy's
-	// upstream API key. When set, the CursorProxyController can forward
-	// cursor-runner requests to Cursor's API and record per-call usage.
-	CursorAPIKey string
 
 	// OpenFGA configuration. When all three are set, the Java service
 	// uses a real OpenFGA instance for authorization instead of the
@@ -592,12 +592,6 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	if cfg.AnthropicAPIKey != "" {
 		env = append(env,
 			fmt.Sprintf("STIGMER_PROXY_ANTHROPIC_API_KEY=%s", cfg.AnthropicAPIKey),
-		)
-	}
-
-	if cfg.CursorAPIKey != "" {
-		env = append(env,
-			fmt.Sprintf("STIGMER_PROXY_CURSOR_API_KEY=%s", cfg.CursorAPIKey),
 		)
 	}
 

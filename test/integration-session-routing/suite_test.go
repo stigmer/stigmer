@@ -21,6 +21,7 @@ var (
 	temporalClient client.Client
 	suiteLogger    *slog.Logger
 	cursorKey      string
+	cursorAdminKey string
 )
 
 func TestMain(m *testing.M) {
@@ -57,6 +58,7 @@ func TestMain(m *testing.M) {
 	logDir := testHarness.LogDir()
 
 	cursorKey = os.Getenv("CURSOR_API_KEY")
+	cursorAdminKey = os.Getenv("CURSOR_ADMIN_KEY")
 
 	svcCfg := harness.ServiceConfig{
 		JarPath:         jarPath,
@@ -70,7 +72,6 @@ func TestMain(m *testing.M) {
 		TemporalAddress: testHarness.Temporal.Address(),
 		VaultAddr:       testHarness.OpenBao.Addr,
 		VaultToken:      testHarness.OpenBao.RootToken,
-		CursorAPIKey:    cursorKey,
 		LogDir:          logDir,
 
 		// Session routing: all activities dispatch to session:{id} queues.
@@ -137,10 +138,22 @@ func TestMain(m *testing.M) {
 		suiteLogger.Info("default agent seeded")
 	}
 
+	// Cursor credentials are DB-resident CursorAccounts (DD-008) — without
+	// this seed every proxied Cursor call 503s on an empty shared pool
+	// (requireCursorKey skips the E2E tests when either key is absent).
+	if cursorKey != "" && cursorAdminKey != "" {
+		if err := harness.SeedSharedPoolCursorAccount(ctx, grpcConn, cursorAdminKey, cursorKey); err != nil {
+			suiteLogger.Warn("failed to seed shared-pool cursor account — cursor E2E tests will fail at key selection", "error", err)
+		} else {
+			suiteLogger.Info("shared-pool cursor account seeded")
+		}
+	}
+
 	suiteLogger.Info("session routing suite ready",
 		"grpc_address", svc.GRPCAddress(),
 		"activity_routing", "session",
 		"cursor_key_available", cursorKey != "",
+		"cursor_admin_key_available", cursorAdminKey != "",
 		"log_dir", logDir,
 	)
 
