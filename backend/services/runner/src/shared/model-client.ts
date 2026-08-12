@@ -55,8 +55,25 @@ export interface BuildChatModelOptions {
    * stays the caller's decision to avoid silently changing behavior.
    */
   readonly maxTokens?: number;
+  /**
+   * Per-request bound. When omitted, defaults to the operator's
+   * STIGMER_LLM_REQUEST_TIMEOUT_MS — resolved HERE, not per caller, so no
+   * call site can drop the bound by forgetting to plumb it (the sub-agent
+   * factory did exactly that; stigmer/stigmer#468). An explicit value wins.
+   */
   readonly timeoutMs?: number;
   readonly maxRetries?: number;
+}
+
+/**
+ * The operator's request-timeout bound. Only a positive integer means
+ * "bound the request" — unset, non-numeric, zero, and negative all
+ * normalize to no bound. Deployment-static env, read here the same way
+ * provider API keys are.
+ */
+function resolveDefaultTimeoutMs(): number | undefined {
+  const parsed = Number.parseInt(process.env.STIGMER_LLM_REQUEST_TIMEOUT_MS ?? "", 10);
+  return parsed > 0 ? parsed : undefined;
 }
 
 export interface BuiltChatModel {
@@ -82,6 +99,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
   const resolved = await resolveToApiModelId(opts.modelName);
   const provider = inferProvider(resolved);
   const apiModelId = stripProviderPrefix(resolved);
+  const timeoutMs = opts.timeoutMs ?? resolveDefaultTimeoutMs();
 
   // Backend precedence by construction: a proxied call never consults the
   // backend var — the proxy owns provider routing (the factories' preflight
@@ -201,7 +219,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     temperature: opts.temperature ?? 0,
     apiKey,
     ...(maxTokens ? { maxTokens } : {}),
-    ...(opts.timeoutMs ? { maxRetries: opts.maxRetries ?? 0 } : {}),
+    ...(timeoutMs ? { maxRetries: opts.maxRetries ?? 0 } : {}),
   };
 
   // The request timeout lives in a different slot per wrapper: ChatOpenAI
@@ -215,7 +233,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
   // that is LangChain's own retry knob, distinct from the SDK-level
   // maxRetries the factories receive.
   const anthropicClientOptions = {
-    ...(opts.timeoutMs ? { timeout: opts.timeoutMs } : {}),
+    ...(timeoutMs ? { timeout: timeoutMs } : {}),
     ...(baseUrl ? { baseURL: baseUrl } : {}),
     ...(headers ? { defaultHeaders: headers } : {}),
   };
@@ -231,7 +249,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     ? new ChatOpenAI({
         model: apiModelId,
         ...common,
-        ...(opts.timeoutMs ? { timeout: opts.timeoutMs } : {}),
+        ...(timeoutMs ? { timeout: timeoutMs } : {}),
         ...(baseUrl || headers
           ? {
               configuration: {

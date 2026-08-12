@@ -8,7 +8,12 @@
  * endpoint is unreachable.
  */
 
-import { resolveModelRegistryUrl, buildRegistryHeaders } from "../../shared/registry-endpoint.js";
+import {
+  resolveModelRegistryUrl,
+  buildRegistryHeaders,
+  REGISTRY_RETRY_POLICY,
+} from "../../shared/registry-endpoint.js";
+import { fetchWithRetry } from "../../shared/http-retry.js";
 
 /** Per-million rates for a speed/mode variant (e.g. "fast") of a base model. */
 export interface CursorVariantPricing {
@@ -53,6 +58,10 @@ interface RegistryEntry {
 }
 
 const CACHE_TTL_MS = 3_600_000; // 1 hour
+// Failed fetches are cached much shorter than successes (the model-registry.ts
+// policy): a transient failure must not pin DEFAULT_PRICING — wrong rates for
+// cost tracking — for a full hour.
+const FAILURE_CACHE_TTL_MS = 60_000;
 
 const DEFAULT_PRICING: CursorModelPricing = {
   model: "unknown",
@@ -104,7 +113,11 @@ function parseVariants(
 }
 
 async function fetchFromApi(): Promise<readonly CursorModelPricing[]> {
-  const res = await fetch(resolveModelRegistryUrl(), { headers: buildRegistryHeaders() });
+  const res = await fetchWithRetry(
+    resolveModelRegistryUrl(),
+    { headers: buildRegistryHeaders() },
+    REGISTRY_RETRY_POLICY,
+  );
   if (!res.ok) throw new Error(`Model registry fetch failed: ${res.status}`);
   const data: unknown = await res.json();
   const table = parsePricingTable(data);
@@ -138,7 +151,7 @@ export async function getPricingTable(): Promise<readonly CursorModelPricing[]> 
         `Failed to fetch model registry from API, using default pricing: ${err}`,
       );
       const fallback = [DEFAULT_PRICING];
-      cache = { data: fallback, expiresAt: Date.now() + CACHE_TTL_MS };
+      cache = { data: fallback, expiresAt: Date.now() + FAILURE_CACHE_TTL_MS };
       return fallback;
     })
     .finally(() => {
@@ -146,6 +159,12 @@ export async function getPricingTable(): Promise<readonly CursorModelPricing[]> 
     });
 
   return inflightFetch;
+}
+
+/** Exposed for testing — resets the in-memory cache. */
+export function _resetPricingCache(): void {
+  cache = null;
+  inflightFetch = null;
 }
 
 export { DEFAULT_PRICING };

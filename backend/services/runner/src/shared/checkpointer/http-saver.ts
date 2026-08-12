@@ -14,9 +14,9 @@
  * The Java proxy calls Document.parse(json) which handles $binary
  * natively, and doc.toJson() emits the same format on reads.
  *
- * Every request runs through {@link HttpCheckpointSaver.fetchWithRetry}:
- * bounded exponential backoff on transient failures (classified by
- * http-retry.ts) with a per-request abort timeout. This loop is the ONLY
+ * Every request runs through the shared bounded-backoff loop
+ * (http-retry.ts's fetchWithRetry, with this saver's policy: transient
+ * classification + a per-request abort timeout). That loop is the ONLY
  * retry layer between an agent execution and its checkpoints — the deep
  * agent activity is deliberately non-retryable at the Temporal level
  * (maximumAttempts: 1; replaying a whole agent run is not safe), so before
@@ -39,7 +39,7 @@ import {
 } from "@langchain/langgraph-checkpoint";
 import type { CheckpointMetadata, PendingWrite } from "@langchain/langgraph-checkpoint";
 import type { RetryOptions } from "../grpc-retry.js";
-import { isRetryableFetchError, isRetryableHttpStatus } from "../http-retry.js";
+import { fetchWithRetry, type FetchRetryPolicy } from "../http-retry.js";
 
 function encodeB64(data: Uint8Array): string {
   if (typeof Buffer !== "undefined") {
@@ -117,18 +117,10 @@ const DEFAULT_RETRY = {
   requestTimeoutMs: 30_000,
 } as const;
 
-function defaultDelay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export class HttpCheckpointSaver extends BaseCheckpointSaver {
   private readonly baseUrl: string;
   private readonly headers: Record<string, string>;
-  private readonly baseDelayMs: number;
-  private readonly backoffFactor: number;
-  private readonly maxRetries: number;
-  private readonly requestTimeoutMs: number;
-  private readonly delay: (ms: number) => Promise<void>;
+  private readonly retryPolicy: FetchRetryPolicy;
 
   constructor(
     proxyEndpoint: string,
@@ -141,55 +133,18 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
       Authorization: `Bearer ${authToken}`,
       "Content-Type": "application/json",
     };
-    this.baseDelayMs = options.baseDelayMs ?? DEFAULT_RETRY.baseDelayMs;
-    this.backoffFactor = options.backoffFactor ?? DEFAULT_RETRY.backoffFactor;
-    this.maxRetries = options.maxRetries ?? DEFAULT_RETRY.maxRetries;
-    this.requestTimeoutMs = options.requestTimeoutMs ?? DEFAULT_RETRY.requestTimeoutMs;
-    this.delay = options.delayFn ?? defaultDelay;
+    this.retryPolicy = {
+      label: "HttpCheckpointSaver",
+      baseDelayMs: options.baseDelayMs ?? DEFAULT_RETRY.baseDelayMs,
+      backoffFactor: options.backoffFactor ?? DEFAULT_RETRY.backoffFactor,
+      maxRetries: options.maxRetries ?? DEFAULT_RETRY.maxRetries,
+      requestTimeoutMs: options.requestTimeoutMs ?? DEFAULT_RETRY.requestTimeoutMs,
+      delayFn: options.delayFn,
+    };
   }
 
-  /**
-   * `fetch` with bounded exponential backoff on transient failures and a
-   * per-request abort timeout.
-   *
-   * Composition contract: on a non-retryable status — or when the budget is
-   * exhausted on a retryable one — the last `Response` is RETURNED, so every
-   * call site keeps its own `resp.ok` / 404 handling unchanged; this wrapper
-   * changes when a response arrives, never what call sites do with it. It
-   * throws only what `fetch` itself throws: a network-level rejection that is
-   * non-retryable or has exhausted the budget.
-   */
-  private async fetchWithRetry(url: string, init?: RequestInit): Promise<Response> {
-    for (let attempt = 0; ; attempt++) {
-      const canRetry = attempt < this.maxRetries;
-      let resp: Response;
-      try {
-        resp = await fetch(url, {
-          ...init,
-          signal: AbortSignal.timeout(this.requestTimeoutMs),
-        });
-      } catch (err) {
-        if (canRetry && isRetryableFetchError(err)) {
-          await this.backOff(attempt, String(err));
-          continue;
-        }
-        throw err;
-      }
-      if (canRetry && isRetryableHttpStatus(resp.status)) {
-        await this.backOff(attempt, `HTTP ${resp.status} ${resp.statusText}`);
-        continue;
-      }
-      return resp;
-    }
-  }
-
-  private async backOff(attempt: number, reason: string): Promise<void> {
-    const delayMs = this.baseDelayMs * Math.pow(this.backoffFactor, attempt);
-    console.warn(
-      `[HttpCheckpointSaver] retryable failure ` +
-      `(attempt ${attempt + 1}/${this.maxRetries + 1}, retry in ${delayMs}ms): ${reason}`,
-    );
-    await this.delay(delayMs);
+  private fetchWithRetry(url: string, init?: RequestInit): Promise<Response> {
+    return fetchWithRetry(url, init, this.retryPolicy);
   }
 
   private async serializeTyped(obj: unknown): Promise<[string, BinaryObj]> {

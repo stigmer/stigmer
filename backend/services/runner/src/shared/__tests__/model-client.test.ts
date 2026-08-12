@@ -56,6 +56,7 @@ describe("buildChatModel", () => {
     delete process.env.STIGMER_ANTHROPIC_BACKEND;
     delete process.env.STIGMER_OPENAI_BACKEND;
     delete process.env.CLOUD_ML_REGION;
+    delete process.env.STIGMER_LLM_REQUEST_TIMEOUT_MS;
   });
 
   afterEach(() => {
@@ -215,6 +216,51 @@ describe("buildChatModel", () => {
         },
       });
     });
+
+    // The env default resolves INSIDE buildChatModel (#468): before this,
+    // each caller parsed STIGMER_LLM_REQUEST_TIMEOUT_MS itself, and every
+    // caller except the deep-agent main path — including its own sub-agent
+    // modelFactory — dropped the bound.
+    it("defaults to STIGMER_LLM_REQUEST_TIMEOUT_MS when the caller passes no timeout", async () => {
+      process.env.STIGMER_LLM_REQUEST_TIMEOUT_MS = "7000";
+      mockRegistryResponse([
+        { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({ modelName: "claude-haiku-4.5" });
+
+      expect(lastAnthropicArgs()).toMatchObject({
+        clientOptions: { timeout: 7000 },
+        maxRetries: 0,
+      });
+    });
+
+    it("lets an explicit caller timeout win over the env default", async () => {
+      process.env.STIGMER_LLM_REQUEST_TIMEOUT_MS = "7000";
+      mockRegistryResponse([
+        { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({ modelName: "claude-haiku-4.5", timeoutMs: 5000 });
+
+      expect(lastAnthropicArgs()).toMatchObject({ clientOptions: { timeout: 5000 } });
+    });
+
+    it.each(["0", "-1", "not-a-number", ""])(
+      "normalizes a non-positive env value (%j) to no bound",
+      async (envValue) => {
+        process.env.STIGMER_LLM_REQUEST_TIMEOUT_MS = envValue;
+        mockRegistryResponse([
+          { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic" },
+        ]);
+
+        await buildChatModel({ modelName: "claude-haiku-4.5" });
+
+        const args = lastAnthropicArgs();
+        expect(args).not.toHaveProperty("clientOptions");
+        expect(args).not.toHaveProperty("maxRetries");
+      },
+    );
   });
 
   // ─── Provider backends (STIGMER_ANTHROPIC_BACKEND) ─────────────────────────

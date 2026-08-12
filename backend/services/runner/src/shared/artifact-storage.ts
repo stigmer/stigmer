@@ -13,6 +13,11 @@
  * The runner never holds R2/S3 credentials — in cloud mode it calls the proxy
  * to obtain a presigned upload URL, then PUTs content over plain HTTPS.
  *
+ * Every proxy-backend request rides the shared bounded-backoff loop
+ * (http-retry.ts) with a per-request abort timeout, so a momentary
+ * stigmer-service interruption is retried and a hung connection cannot
+ * stall an agent turn unboundedly (stigmer/stigmer#468).
+ *
  * DD-6: No direct R2 backend. Local + Proxy only.
  */
 
@@ -20,6 +25,8 @@ import { mkdir, writeFile, readFile, access, rm } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 import { homedir } from "node:os";
 import type { Config } from "../config.js";
+import type { RetryOptions } from "./grpc-retry.js";
+import { fetchWithRetry, type FetchRetryPolicy } from "./http-retry.js";
 
 // ── Interface ────────────────────────────────────────────────────────
 
@@ -117,13 +124,64 @@ export class LocalArtifactStorage implements ArtifactStorage {
 
 // ── Proxy Backend ────────────────────────────────────────────────────
 
+/** Retry policy plus the two per-request bounds; every field is defaulted. */
+export interface ProxyArtifactStorageOptions extends RetryOptions {
+  /** Bound for proxy presign calls and the 1-byte exists probe. Default 30 s. */
+  readonly requestTimeoutMs?: number;
+  /**
+   * Bound for the presigned R2 PUT/GET, which move whole artifact payloads
+   * (claim-check offloads, tool outputs, file-review captures — MB scale).
+   * Deliberately wider than requestTimeoutMs so a legitimate slow transfer
+   * is never aborted by a bound sized for JSON round-trips. Default 120 s.
+   */
+  readonly transferTimeoutMs?: number;
+}
+
+/**
+ * Default transient-retry policy (stigmer/stigmer#468): the checkpointer's
+ * budget — sized to span a pod-restart reroute, ~7.75 s of delays across
+ * 5 retries. Retrying is safe at every site: the presign POSTs are
+ * idempotent mints, the PUT re-sends identical bytes to the same key (a
+ * keyed overwrite), and the GETs are reads.
+ */
+const DEFAULT_RETRY = {
+  baseDelayMs: 250,
+  backoffFactor: 2,
+  maxRetries: 5,
+  requestTimeoutMs: 30_000,
+  transferTimeoutMs: 120_000,
+} as const;
+
 export class ProxyArtifactStorage implements ArtifactStorage {
   private readonly baseUrl: string;
   private readonly authTokenSource: ProxyAuthTokenSource;
+  /** Governs the proxy presign calls and the exists probe. */
+  private readonly requestPolicy: FetchRetryPolicy;
+  /** Governs the presigned R2 transfers; same budget, wider timeout. */
+  private readonly transferPolicy: FetchRetryPolicy;
 
-  constructor(proxyEndpoint: string, authToken: ProxyAuthTokenSource) {
+  constructor(
+    proxyEndpoint: string,
+    authToken: ProxyAuthTokenSource,
+    options: ProxyArtifactStorageOptions = {},
+  ) {
     this.baseUrl = `${proxyEndpoint.replace(/\/+$/, "")}/v1/proxy/artifacts`;
     this.authTokenSource = authToken;
+    const shared = {
+      label: "ProxyArtifactStorage",
+      baseDelayMs: options.baseDelayMs ?? DEFAULT_RETRY.baseDelayMs,
+      backoffFactor: options.backoffFactor ?? DEFAULT_RETRY.backoffFactor,
+      maxRetries: options.maxRetries ?? DEFAULT_RETRY.maxRetries,
+      delayFn: options.delayFn,
+    };
+    this.requestPolicy = {
+      ...shared,
+      requestTimeoutMs: options.requestTimeoutMs ?? DEFAULT_RETRY.requestTimeoutMs,
+    };
+    this.transferPolicy = {
+      ...shared,
+      requestTimeoutMs: options.transferTimeoutMs ?? DEFAULT_RETRY.transferTimeoutMs,
+    };
   }
 
   /**
@@ -141,14 +199,14 @@ export class ProxyArtifactStorage implements ArtifactStorage {
   async upload(key: string, content: Buffer, contentType?: string): Promise<string> {
     const ct = contentType ?? "application/octet-stream";
 
-    const presignResp = await fetch(`${this.baseUrl}/presigned-upload-url`, {
+    const presignResp = await fetchWithRetry(`${this.baseUrl}/presigned-upload-url`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${this.authToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ key, content_type: ct }),
-    });
+    }, this.requestPolicy);
     if (!presignResp.ok) {
       throw new Error(
         `Failed to get presigned upload URL (HTTP ${presignResp.status}): ` +
@@ -180,11 +238,14 @@ export class ProxyArtifactStorage implements ArtifactStorage {
       uploadHeaders["Content-Type"] = ct;
     }
 
-    const putResp = await fetch(data.url, {
+    // Retrying the PUT alone (not the presign+PUT pair) is deliberate: the
+    // retry budget's few seconds of delays sit far inside presign validity,
+    // and re-sending the same Buffer to the same key is a keyed overwrite.
+    const putResp = await fetchWithRetry(data.url, {
       method: "PUT",
       headers: uploadHeaders,
       body: content,
-    });
+    }, this.transferPolicy);
     if (!putResp.ok) {
       throw new Error(
         `Presigned upload failed (HTTP ${putResp.status}): ` +
@@ -196,14 +257,14 @@ export class ProxyArtifactStorage implements ArtifactStorage {
   }
 
   async getDownloadUrl(key: string): Promise<string> {
-    const resp = await fetch(`${this.baseUrl}/presigned-download-url`, {
+    const resp = await fetchWithRetry(`${this.baseUrl}/presigned-download-url`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${this.authToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ key }),
-    });
+    }, this.requestPolicy);
     if (!resp.ok) {
       throw new Error(
         `Failed to get presigned download URL (HTTP ${resp.status}): ` +
@@ -216,7 +277,7 @@ export class ProxyArtifactStorage implements ArtifactStorage {
 
   async download(key: string): Promise<Buffer> {
     const url = await this.getDownloadUrl(key);
-    const resp = await fetch(url);
+    const resp = await fetchWithRetry(url, undefined, this.transferPolicy);
     if (!resp.ok) {
       throw new Error(
         `Artifact download failed (HTTP ${resp.status}) for key '${key}': ` +
@@ -242,7 +303,11 @@ export class ProxyArtifactStorage implements ArtifactStorage {
       // addressed CAS blob dedup) then re-uploads, which is idempotent.
       return false;
     }
-    const resp = await fetch(url, { headers: { Range: "bytes=0-0" } });
+    const resp = await fetchWithRetry(
+      url,
+      { headers: { Range: "bytes=0-0" } },
+      this.requestPolicy,
+    );
     await resp.arrayBuffer().catch(() => undefined); // drain the <=1-byte body
     if (resp.status === 404) return false;
     if (resp.status === 200 || resp.status === 206 || resp.status === 416) return true;

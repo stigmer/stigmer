@@ -223,6 +223,28 @@ describe("resolveToApiModelId", () => {
     expect(result).toBe("claude-haiku-4.5");
   });
 
+  it("recovers from a transient network failure without engaging the failure cache (#468)", async () => {
+    // undici's retryable shape (TypeError) — the shared bounded-backoff loop
+    // absorbs it, so resolution succeeds on the SAME call and the 60 s
+    // degraded window never opens. Pre-#468 code failed the fetch outright.
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            models: [
+              { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic", costTier: "economy", harness: "native" },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+
+    expect(await resolveToApiModelId("claude-haiku-4.5")).toBe("claude-haiku-4-5-20251001");
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
   it("retries after the short failure TTL instead of caching the failure for an hour", async () => {
     vi.useFakeTimers();
     const fetchSpy = vi

@@ -20,9 +20,36 @@
  */
 
 import { normalizeEndpoint } from "../config.js";
+import type { FetchRetryPolicy } from "./http-retry.js";
 
 /** Default local stigmer-server origin — mirrors config.ts's local-mode default. */
 const DEFAULT_LOCAL_BACKEND = "http://localhost:7234";
+
+/**
+ * Shared retry policy for the three registry fetch clients (model-registry.ts
+ * and both model-pricing-data.ts modules) — stigmer/stigmer#468.
+ *
+ * The timeout is the load-bearing half: each consumer deduplicates callers
+ * through a single in-flight promise, so one hung fetch strands every
+ * concurrent caller behind it — model-registry.ts's sits in front of every
+ * LLM client build. 10 s (not the checkpointer's 30 s) because the response
+ * is a small JSON document and the callers degrade gracefully; what they must
+ * never do is wait forever.
+ *
+ * The retry half matters because the degrade is not free: a failed registry
+ * fetch is cached (60 s empty registry → unresolved model ids that 404 at the
+ * provider; pricing falls back to defaults), so a budget spanning a
+ * pod-restart reroute converts that poisoned window into ~1.75 s of backoff.
+ * Worst case fully bounded: ~31 s of cold-cache stall when the control plane
+ * is genuinely down, versus an infinite hang before #468.
+ */
+export const REGISTRY_RETRY_POLICY: FetchRetryPolicy = {
+  label: "registry-endpoint",
+  baseDelayMs: 250,
+  backoffFactor: 2,
+  maxRetries: 3,
+  requestTimeoutMs: 10_000,
+};
 
 /**
  * Resolve the base URL (origin, no path) for model-registry and pricing

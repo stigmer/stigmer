@@ -10,7 +10,12 @@
  * (getModelVisionCapability).
  */
 
-import { resolveModelRegistryUrl, buildRegistryHeaders } from "./registry-endpoint.js";
+import {
+  resolveModelRegistryUrl,
+  buildRegistryHeaders,
+  REGISTRY_RETRY_POLICY,
+} from "./registry-endpoint.js";
+import { fetchWithRetry } from "./http-retry.js";
 
 const CACHE_TTL_MS = 3_600_000;
 // Failed fetches are cached much shorter than successes: a transient failure
@@ -68,7 +73,7 @@ function parseVisionCapability(capabilities: unknown): boolean | undefined {
 
 async function fetchRegistry(): Promise<readonly RegistryModel[]> {
   const url = resolveModelRegistryUrl();
-  const res = await fetch(url, { headers: buildRegistryHeaders() });
+  const res = await fetchWithRetry(url, { headers: buildRegistryHeaders() }, REGISTRY_RETRY_POLICY);
   if (!res.ok) throw new Error(`Model registry fetch failed: ${res.status}`);
   const data: unknown = await res.json();
   return parseRegistry(data);

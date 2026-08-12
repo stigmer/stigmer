@@ -1,10 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { isRetryableHttpStatus, isRetryableFetchError } from "../http-retry.js";
 
-// The bounded-backoff loop that consumes these classifiers lives in
-// checkpointer/http-saver.ts (fetchWithRetry) and is exercised by
-// http-saver.test.ts ("retry behavior"). This file covers the classification
-// policy in isolation — the grpc-retry.test.ts twin.
+// The shared bounded-backoff loop (fetchWithRetry, same module) is exercised
+// through its consumers' suites — http-saver.test.ts ("retry behavior"),
+// artifact-storage.test.ts, registry-fetch tests — which pin the loop's
+// behavior at real call sites rather than in the abstract. This file covers
+// the classification policy in isolation — the grpc-retry.test.ts twin.
 
 describe("isRetryableHttpStatus", () => {
   it("returns true for 408 (request timeout)", () => {
