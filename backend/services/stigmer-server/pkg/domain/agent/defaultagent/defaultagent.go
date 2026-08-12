@@ -33,11 +33,13 @@
 //     agent deterministically capture the platform-wide default.
 //     Incumbent-wins keeps the seeded default serving until an operator
 //     explicitly removes its label — that removal is the rotation cutover.
-//   - Creation time: spec_audit.created_at is not operationally immutable —
-//     steps.SetAuditFieldsForUpdate resets it on every visibility update,
-//     skill push, and schedule trigger (stigmer/stigmer#453), so a
-//     visibility flip on the incumbent mid-rotation would silently flip the
-//     default. metadata.id never changes for the life of the row and is
+//   - Creation time: spec_audit.created_at is not trustworthy as an
+//     ordering key. When this resolver was designed,
+//     steps.SetAuditFieldsForUpdate reset it on every visibility update,
+//     skill push, and schedule trigger (stigmer/stigmer#453, since fixed);
+//     rows written before that fix may still carry rewritten timestamps,
+//     and audit metadata remains operationally mutable in a way identity
+//     is not. metadata.id never changes for the life of the row and is
 //     time-ordered for server-generated ULIDs.
 package defaultagent
 

@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 // TestPush_CreateNew_Success verifies that Push creates a new skill
@@ -286,14 +287,10 @@ func TestPush_Update_PreservesId(t *testing.T) {
 }
 
 // TestPush_Update_PreservesCreatedAt verifies that updating a skill
-// preserves the original created_at timestamp.
-//
-// NOTE: setAuditFieldsReflect currently rebuilds the entire AuditInfo on
-// every call (including created_at). The copy-then-overwrite in
-// PopulateSkillFieldsStep does not yet preserve created_at across the
-// SetAuditFieldsForUpdate call. This test verifies the intent; once the
-// production code is fixed, the assertion can be tightened to compare
-// full Timestamp equality instead of seconds-only.
+// preserves the original created_at/created_by exactly (the
+// stigmer/stigmer#453 regression pin at the push call site: the
+// SetAuditFieldsForUpdate helper used to rebuild the whole audit block,
+// resetting creation to system/now on every push).
 func TestPush_Update_PreservesCreatedAt(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
@@ -308,6 +305,7 @@ func TestPush_Update_PreservesCreatedAt(t *testing.T) {
 	result1, err := controller.Push(contextWithSkillKind(), req1)
 	require.NoError(t, err)
 	originalCreatedAt := result1.Status.Audit.SpecAudit.CreatedAt
+	originalCreatedBy := result1.Status.Audit.SpecAudit.CreatedBy
 
 	// Wait a moment to ensure timestamps differ
 	time.Sleep(1100 * time.Millisecond)
@@ -326,6 +324,19 @@ func TestPush_Update_PreservesCreatedAt(t *testing.T) {
 	require.NotNil(t, result2.Status.Audit)
 	require.NotNil(t, result2.Status.Audit.SpecAudit)
 	require.NotNil(t, result2.Status.Audit.SpecAudit.CreatedAt)
+
+	// Creation identity survives the update exactly — full Timestamp
+	// equality, not seconds-only.
+	assert.True(t,
+		proto.Equal(result2.Status.Audit.SpecAudit.CreatedAt, originalCreatedAt),
+		"created_at should be preserved exactly across an update: want %v, got %v",
+		originalCreatedAt, result2.Status.Audit.SpecAudit.CreatedAt,
+	)
+	assert.True(t,
+		proto.Equal(result2.Status.Audit.SpecAudit.CreatedBy, originalCreatedBy),
+		"created_by should be preserved exactly across an update: want %v, got %v",
+		originalCreatedBy, result2.Status.Audit.SpecAudit.CreatedBy,
+	)
 
 	// Verify updated_at is later than the original created_at
 	assert.Greater(t,
