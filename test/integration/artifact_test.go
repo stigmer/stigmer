@@ -12,11 +12,38 @@ import (
 
 	artifactv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/artifact/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+// newSourceExecution deploys a trivial workflow and creates one execution for
+// it, returning the execution's id for use as an artifact source.
+//
+// Artifact fixtures need REAL executions: artifact authorization anchors to
+// the source execution's org — the service resolves spec.source against the
+// store at create time and rejects unresolvable references with
+// FailedPrecondition (stigmer-cloud PR #295; pinned by
+// TestArtifact_Create_UnresolvableSourceRejected), and ListByExecution
+// authorizes can_view against the parent execution named in the request. A
+// fabricated wex_* id cannot work anywhere in this suite.
+//
+// The execution record is persisted and org-stamped by the create RPC itself,
+// so no phase wait — and no unified runner — is needed before artifacts can
+// anchor to it.
+func newSourceExecution(t *testing.T, ctx context.Context, deployer *harness.FixtureDeployer, workflowName string) string {
+	t.Helper()
+
+	wf, err := fastWorkflow(workflowName)
+	require.NoError(t, err, "build source workflow fixture")
+
+	_, execution, err := deployer.DeployAndExecute(ctx, wf, "artifact source execution")
+	require.NoError(t, err, "deploy and execute source workflow")
+
+	return execution.GetMetadata().GetId()
+}
 
 func TestArtifact_CreateAndGet(t *testing.T) {
 	require.NotNil(t, grpcConn)
@@ -24,8 +51,14 @@ func TestArtifact_CreateAndGet(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	clients := harness.NewClients(grpcConn)
+	deployer := harness.NewFixtureDeployer(clients, "artifact-create", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
 	commandClient := artifactv1.NewArtifactCommandControllerClient(grpcConn)
 	queryClient := artifactv1.NewArtifactQueryControllerClient(grpcConn)
+
+	sourceExecutionID := newSourceExecution(t, ctx, deployer, "integration-test-artifact-create")
 
 	content := []byte(`{"analysis": "test result", "score": 42}`)
 	hash := sha256.Sum256(content)
@@ -36,7 +69,7 @@ func TestArtifact_CreateAndGet(t *testing.T) {
 			ContentType: "application/json",
 			DisplayName: "analysis output",
 			Source: &artifactv1.ArtifactSource{
-				WorkflowExecutionId: "wex_integ_test_1",
+				WorkflowExecutionId: sourceExecutionID,
 				TaskName:            "analyze",
 			},
 		},
@@ -68,11 +101,18 @@ func TestArtifact_ListByWorkflowExecution(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	clients := harness.NewClients(grpcConn)
+	deployer := harness.NewFixtureDeployer(clients, "artifact-list", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
 	commandClient := artifactv1.NewArtifactCommandControllerClient(grpcConn)
 	queryClient := artifactv1.NewArtifactQueryControllerClient(grpcConn)
 
-	wexA := "wex_integ_list_A_" + t.Name()
-	wexB := "wex_integ_list_B_" + t.Name()
+	// Two distinct source executions: list-by-A must not see B's artifact.
+	// Execution ids are server-minted ULIDs, so the count assertion below
+	// cannot collide with artifacts from other tests.
+	wexA := newSourceExecution(t, ctx, deployer, "integration-test-artifact-list-a")
+	wexB := newSourceExecution(t, ctx, deployer, "integration-test-artifact-list-b")
 
 	for i, wex := range []string{wexA, wexA, wexB} {
 		_, err := commandClient.Create(ctx, &artifactv1.CreateArtifactInput{
@@ -100,14 +140,20 @@ func TestArtifact_GetDownloadUrl_LocalStorage(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	clients := harness.NewClients(grpcConn)
+	deployer := harness.NewFixtureDeployer(clients, "artifact-dl", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
 	commandClient := artifactv1.NewArtifactCommandControllerClient(grpcConn)
 	queryClient := artifactv1.NewArtifactQueryControllerClient(grpcConn)
+
+	sourceExecutionID := newSourceExecution(t, ctx, deployer, "integration-test-artifact-dl")
 
 	created, err := commandClient.Create(ctx, &artifactv1.CreateArtifactInput{
 		Spec: &artifactv1.ArtifactSpec{
 			ContentType: "text/plain",
 			DisplayName: "downloadable file",
-			Source:      &artifactv1.ArtifactSource{WorkflowExecutionId: "wex_dl_test"},
+			Source:      &artifactv1.ArtifactSource{WorkflowExecutionId: sourceExecutionID},
 		},
 		Content: []byte("downloadable content"),
 	})
@@ -127,14 +173,20 @@ func TestArtifact_Delete_SoftDelete(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	clients := harness.NewClients(grpcConn)
+	deployer := harness.NewFixtureDeployer(clients, "artifact-del", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
 	commandClient := artifactv1.NewArtifactCommandControllerClient(grpcConn)
 	queryClient := artifactv1.NewArtifactQueryControllerClient(grpcConn)
+
+	sourceExecutionID := newSourceExecution(t, ctx, deployer, "integration-test-artifact-del")
 
 	created, err := commandClient.Create(ctx, &artifactv1.CreateArtifactInput{
 		Spec: &artifactv1.ArtifactSpec{
 			ContentType: "text/plain",
 			DisplayName: "ephemeral",
-			Source:      &artifactv1.ArtifactSource{WorkflowExecutionId: "wex_del_test"},
+			Source:      &artifactv1.ArtifactSource{WorkflowExecutionId: sourceExecutionID},
 		},
 		Content: []byte("will be deleted"),
 	})
@@ -163,7 +215,16 @@ func TestArtifact_ContentHashDedup(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	clients := harness.NewClients(grpcConn)
+	deployer := harness.NewFixtureDeployer(clients, "artifact-dedup", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
 	commandClient := artifactv1.NewArtifactCommandControllerClient(grpcConn)
+
+	// One source execution for both creates: the claim under test is
+	// "same content, distinct artifacts, same hash" — the source is not
+	// part of the dedup key.
+	sourceExecutionID := newSourceExecution(t, ctx, deployer, "integration-test-artifact-dedup")
 
 	content := []byte(`{"dedup": "test"}`)
 
@@ -171,7 +232,7 @@ func TestArtifact_ContentHashDedup(t *testing.T) {
 		Spec: &artifactv1.ArtifactSpec{
 			ContentType: "application/json",
 			DisplayName: "first",
-			Source:      &artifactv1.ArtifactSource{WorkflowExecutionId: "wex_dedup_1"},
+			Source:      &artifactv1.ArtifactSource{WorkflowExecutionId: sourceExecutionID},
 		},
 		Content: content,
 	})
@@ -181,7 +242,7 @@ func TestArtifact_ContentHashDedup(t *testing.T) {
 		Spec: &artifactv1.ArtifactSpec{
 			ContentType: "application/json",
 			DisplayName: "second",
-			Source:      &artifactv1.ArtifactSource{WorkflowExecutionId: "wex_dedup_2"},
+			Source:      &artifactv1.ArtifactSource{WorkflowExecutionId: sourceExecutionID},
 		},
 		Content: content,
 	})
@@ -191,6 +252,33 @@ func TestArtifact_ContentHashDedup(t *testing.T) {
 		"different artifacts should have different IDs")
 	assert.Equal(t, a1.GetStatus().GetContentHash(), a2.GetStatus().GetContentHash(),
 		"same content should produce the same content hash")
+}
+
+// TestArtifact_Create_UnresolvableSourceRejected pins the enforcement that
+// broke this suite when it landed service-side (stigmer-cloud PR #295 /
+// oss#447): artifact create anchors authorization to the source execution's
+// org, so a source that resolves to no persisted execution must be rejected
+// with FailedPrecondition instead of minting an unanchored artifact.
+func TestArtifact_Create_UnresolvableSourceRejected(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	commandClient := artifactv1.NewArtifactCommandControllerClient(grpcConn)
+
+	_, err := commandClient.Create(ctx, &artifactv1.CreateArtifactInput{
+		Spec: &artifactv1.ArtifactSpec{
+			ContentType: "text/plain",
+			DisplayName: "orphan",
+			Source:      &artifactv1.ArtifactSource{WorkflowExecutionId: "wex_never_persisted"},
+		},
+		Content: []byte("content with no anchoring execution"),
+	})
+	require.Error(t, err, "create with an unresolvable source execution must be rejected")
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.FailedPrecondition, st.Code())
 }
 
 func TestArtifact_NotFound(t *testing.T) {
