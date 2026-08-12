@@ -301,6 +301,8 @@ Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix)
 
 The creator's organization owns the platform client. The creator is granted the owner role automatically.
 
+The slug `system-share-client` is platform-reserved (it identifies the org's system-managed share client) and is rejected with INVALID_ARGUMENT — including when derived from the resource name.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
