@@ -5,6 +5,7 @@ import type { EnvVarInput, McpServerUsageInput, ResourceRef } from "@stigmer/sdk
 import { create } from "@bufbuild/protobuf";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { GetOAuthGrantStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import type { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { DiscoveredTool } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStigmer } from "../hooks.js";
@@ -287,6 +288,11 @@ export function useMcpServerSetup(
           Object.keys(personalEnv.environment?.spec?.data ?? {}),
         );
 
+        // Carried onto the entry so consumers can tell a healthy grant
+        // that merely lacks tool discovery (offer bare discovery,
+        // stigmer/stigmer#418) apart from an expired one (offer re-auth).
+        let oauthConnectionHealth: OAuthConnectionHealth | undefined;
+
         const auth = mcpServer.spec?.auth;
         if (auth?.targetEnvVar && mcpServer.metadata?.id) {
           try {
@@ -296,6 +302,7 @@ export function useMcpServerSetup(
                 org,
               }),
             );
+            oauthConnectionHealth = grantStatus.connectionHealth;
             if (grantStatus.connected) {
               existingKeys.add(auth.targetEnvVar);
             }
@@ -319,6 +326,7 @@ export function useMcpServerSetup(
               mcpServer,
               discoveredTools,
             ),
+            oauthConnectionHealth,
           });
           return;
         }
@@ -330,6 +338,7 @@ export function useMcpServerSetup(
           missingVariables: requiredMissing,
           discoveredTools,
           toolApprovals,
+          oauthConnectionHealth,
         });
       } catch (err) {
         dispatch({ type: "SET_ERROR", key, error: toError(err) });

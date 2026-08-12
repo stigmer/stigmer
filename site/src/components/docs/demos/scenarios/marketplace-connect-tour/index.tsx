@@ -2,7 +2,6 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { McpServerDetailView } from "@stigmer/react";
-import { PreviewProvider } from "@scenar/preview/runtime";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { create } from "@bufbuild/protobuf";
@@ -14,7 +13,7 @@ import {
   Cursor,
   useStepInteractions,
 } from "@scenar/react";
-import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { StigmerPreviewProvider } from "../../shared/StigmerPreviewProvider";
 import { connectFixture } from "@scenar/preview/connect";
 import { AppShell } from "../../views/AppShell";
 import { ResourceListPage } from "../../views/ResourceListPage";
@@ -135,7 +134,7 @@ export function MarketplaceConnectTour() {
   });
 
   return (
-    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
+    <StigmerPreviewProvider fixtures={previewFixtures}>
       <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={marketplaceConnectSteps}
@@ -175,6 +174,6 @@ export function MarketplaceConnectTour() {
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
       </StigmerDemoViewport>
-    </PreviewProvider>
+    </StigmerPreviewProvider>
   );
 }

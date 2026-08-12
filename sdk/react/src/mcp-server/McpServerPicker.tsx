@@ -13,6 +13,7 @@ import { cn } from "@stigmer/theme";
 import type { EnvVarInput, McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import type { EnvVarFormSubmitOptions } from "../environment/EnvVarForm.js";
 import { useMcpServerSearch } from "./useMcpServerSearch.js";
@@ -20,6 +21,7 @@ import { useScrollShadows } from "../internal/useScrollShadows.js";
 import { ScrollFade } from "../internal/ScrollFade.js";
 import { McpServerConfigPanel } from "./McpServerConfigPanel.js";
 import type { McpServerSetupEntry } from "./mcpServerSetupReducer.js";
+import { useMcpServerConnect } from "./useMcpServerConnect.js";
 import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect.js";
 import { ScopeToggle } from "../library/ScopeToggle.js";
 import type { ResourceListScope } from "../search/index.js";
@@ -269,6 +271,17 @@ export function McpServerPicker({
   const { results, isLoading, error, query, setQuery } =
     useMcpServerSearch(org, { scope: activeScope });
   const oauth = useMcpServerOAuthConnect();
+  // Bare tool-discovery `connect`, used when sign-in already succeeded and
+  // only the chained discovery leg failed — relaunching the OAuth popup
+  // would burn a consent round for nothing (stigmer/stigmer#418).
+  const discovery = useMcpServerConnect();
+  // The oauth/discovery hooks are single instances shared by every server
+  // in the picker, so their error/phase/failedPhase signals are only
+  // meaningful for the server an attempt was started for. Without this
+  // key, server A's discovery failure would render under server B's
+  // configure view — and worse, make B's sign-in click retry discovery
+  // for a grant B never had.
+  const [oauthAttemptKey, setOauthAttemptKey] = useState<string | null>(null);
 
   const [focusIndex, setFocusIndex] = useState(-1);
   const [view, setView] = useState<PickerView>(() =>
@@ -431,25 +444,101 @@ export function McpServerPicker({
       (oauthStatus?.vendorApprovalStatus === VendorApprovalStatus.PENDING ||
         oauthStatus?.vendorApprovalStatus === VendorApprovalStatus.REJECTED);
 
+    // System env vars are only injected when the server declares them —
+    // the dialog and detail view pass these on every OAuth chain and
+    // bare connect; the picker must too.
+    const declaredEnvKeys = Object.keys(entry.mcpServer.spec?.env ?? {});
+
+    // Scope the shared hooks' signals to the server they belong to.
+    const isOwnOAuthAttempt = oauthAttemptKey === view.serverKey;
+    const oauthError = isOwnOAuthAttempt ? oauth.error : null;
+    const oauthFailedPhase = isOwnOAuthAttempt ? oauth.failedPhase : null;
+    const discoveryError = isOwnOAuthAttempt ? discovery.error : null;
+
+    // "Signed in — tools not discovered yet" (the stigmer/stigmer#229
+    // two-act persistence gap, picker arm: stigmer/stigmer#418). Two
+    // signals, mirroring the detail view:
+    // - In-flow: the OAuth chain broke in its "connecting" phase, so
+    //   sign-in succeeded and only discovery failed — the entry's own
+    //   data is still stale at this point.
+    // - Server truth: the entry resolved ready off a usable grant with
+    //   nothing discovered. Survives popover close/reopen, where the
+    //   in-flow signal dies with the hook. Token-expired grants are
+    //   excluded — re-auth, not discovery, is their next step.
+    const isDiscoveryRetry = oauthFailedPhase === "connecting";
+    const grantUsable =
+      entry.oauthConnectionHealth ===
+        OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY ||
+      entry.oauthConnectionHealth ===
+        OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE;
+    const isOAuthStranded =
+      isDiscoveryRetry ||
+      (hasOAuth &&
+        entry.status === "ready" &&
+        grantUsable &&
+        entry.discoveredTools.length === 0);
+
     const oauthSignInProps =
       hasOAuth && !isManualOverride
         ? {
             onSignIn: async () => {
               if (!entry.mcpServer.metadata?.id) return;
+              const serverId = entry.mcpServer.metadata.id;
+              const connectOrg = activeOrg ?? org;
+              setOauthAttemptKey(view.serverKey);
+
+              if (isOAuthStranded) {
+                // Sign-in already succeeded — the grant is stored
+                // server-side. Retry bare discovery; never relaunch the
+                // popup (stigmer/stigmer#418).
+                try {
+                  await discovery.connect(
+                    serverId,
+                    connectOrg,
+                    undefined,
+                    declaredEnvKeys,
+                  );
+                  // Discovery succeeded — retire the chain's stale
+                  // failure and re-evaluate the entry so it resolves
+                  // ready with the discovered tools.
+                  oauth.clearError();
+                  setup.onServerAdded(ref);
+                } catch {
+                  // error state managed by the discovery hook
+                }
+                return;
+              }
+
               try {
-                await oauth.startOAuth(
-                  entry.mcpServer.metadata.id,
-                  activeOrg ?? org,
-                );
+                await oauth.startOAuth(serverId, connectOrg, declaredEnvKeys);
                 setup.onServerAdded(ref);
               } catch {
                 // error state managed by oauth hook
               }
             },
-            phase: oauth.phase,
+            // oauth.phase stays unscoped on purpose: it disables every
+            // server's sign-in button while a popup flow is in flight,
+            // preventing two concurrent flows over the same hook.
+            phase:
+              discovery.isConnecting && isOwnOAuthAttempt
+                ? ("connecting" as const)
+                : oauth.phase,
             isConnected: !oauthTokenMissing,
-            error: oauth.error,
-            onClearError: oauth.clearError,
+            connectionHealth: entry.oauthConnectionHealth,
+            error: oauthError ?? discoveryError,
+            // A bare-discovery failure is by definition a discovery-leg
+            // failure — keep the honest "signed in, but discovery
+            // failed" copy for it.
+            failedPhase: oauthError
+              ? oauthFailedPhase
+              : discoveryError
+                ? ("connecting" as const)
+                : null,
+            isOAuthStranded,
+            onClearError: () => {
+              oauth.clearError();
+              discovery.clearError();
+            },
             isVendorApprovalPending,
             isVendorApprovalBlocked,
             vendorApprovalDocsUrl: oauthStatus?.vendorApprovalDocsUrl || null,
@@ -757,6 +846,7 @@ function SetupServerRow({
               "stg:text-warning stg:hover:bg-warning/10",
               "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
+            aria-label={`Configure ${slug}`}
           >
             Configure
           </button>
@@ -778,6 +868,7 @@ function SetupServerRow({
               "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
               "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
+            aria-label={`Configure ${slug}`}
           >
             {entry.discoveredTools.length > 0 && (
               <span>

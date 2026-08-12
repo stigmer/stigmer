@@ -2629,16 +2629,16 @@ __metadata:
 
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=a53894&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=bdb0f7&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:2.12.0"
-  checksum: 10c0/74faf41f26bee4ec4c805e8910ba0ddff227a053a9904d2ae3435449aa304a00497c8bb7dbc4ec0d39cb0e6702e890c5539457b0fe0dd683932bd91f0e1f53d2
+  checksum: 10c0/c48050bc6e10ce9ea102411b00fc56521cd251bca5e2e3fa1c13f74934bbb24b6714d3a0b625674a07e629645315a7db21da64399da44a7e8a487720c70b34fd
   languageName: node
   linkType: hard
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=48995f&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=1d65fb&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protovalidate": "npm:^1.1.1"
     "@dagrejs/dagre": "npm:^1.1.4"
@@ -2706,7 +2706,7 @@ __metadata:
       optional: true
     recharts:
       optional: true
-  checksum: 10c0/60ff241b841427d20beb0104ee36392f6f184d1a911953db422458b776732c27c852d6fe33c4812f720552a5619ceee5c55226c24d37c9c7f845c551c6285401
+  checksum: 10c0/7677c5e37b2c799895be679e0e070c479fb65e18c392d681a1409eb1d087cbdd222f5c6c5fdd77032841b576bcbf894fa57262118a35e790b49182cb8232497f
   languageName: node
   linkType: hard
 

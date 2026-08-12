@@ -297,6 +297,91 @@ ai.stigmer.billing.v1.PricingVariant defaultValue);
       java.lang.String key);
 
   /**
+   * <pre>
+   * Wire model names that resolve directly to this base entry — the
+   * base-level twin of PricingVariant.wire_ids, for served-model names
+   * that neither match the canonical id nor normalize to a clean
+   * "base + suffix" form (e.g. "gemini-3-flash-preview" for
+   * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+   * kimi-k2.7-code — Cursor's serving stack reports upstream serving
+   * names the catalog never uses). Matched case-insensitively; billed
+   * at the base rates.
+   *
+   * Distinct from api_model_id, which is the single OUTBOUND identifier
+   * the runner dispatches with. Wire ids are INBOUND aliases only: they
+   * must never appear in pickers or dispatch requests.
+   * </pre>
+   *
+   * <code>repeated string wire_ids = 24 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the wireIds.
+   */
+  java.util.List<java.lang.String>
+      getWireIdsList();
+  /**
+   * <pre>
+   * Wire model names that resolve directly to this base entry — the
+   * base-level twin of PricingVariant.wire_ids, for served-model names
+   * that neither match the canonical id nor normalize to a clean
+   * "base + suffix" form (e.g. "gemini-3-flash-preview" for
+   * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+   * kimi-k2.7-code — Cursor's serving stack reports upstream serving
+   * names the catalog never uses). Matched case-insensitively; billed
+   * at the base rates.
+   *
+   * Distinct from api_model_id, which is the single OUTBOUND identifier
+   * the runner dispatches with. Wire ids are INBOUND aliases only: they
+   * must never appear in pickers or dispatch requests.
+   * </pre>
+   *
+   * <code>repeated string wire_ids = 24 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
+   * @return The count of wireIds.
+   */
+  int getWireIdsCount();
+  /**
+   * <pre>
+   * Wire model names that resolve directly to this base entry — the
+   * base-level twin of PricingVariant.wire_ids, for served-model names
+   * that neither match the canonical id nor normalize to a clean
+   * "base + suffix" form (e.g. "gemini-3-flash-preview" for
+   * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+   * kimi-k2.7-code — Cursor's serving stack reports upstream serving
+   * names the catalog never uses). Matched case-insensitively; billed
+   * at the base rates.
+   *
+   * Distinct from api_model_id, which is the single OUTBOUND identifier
+   * the runner dispatches with. Wire ids are INBOUND aliases only: they
+   * must never appear in pickers or dispatch requests.
+   * </pre>
+   *
+   * <code>repeated string wire_ids = 24 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The wireIds at the given index.
+   */
+  java.lang.String getWireIds(int index);
+  /**
+   * <pre>
+   * Wire model names that resolve directly to this base entry — the
+   * base-level twin of PricingVariant.wire_ids, for served-model names
+   * that neither match the canonical id nor normalize to a clean
+   * "base + suffix" form (e.g. "gemini-3-flash-preview" for
+   * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
+   * kimi-k2.7-code — Cursor's serving stack reports upstream serving
+   * names the catalog never uses). Matched case-insensitively; billed
+   * at the base rates.
+   *
+   * Distinct from api_model_id, which is the single OUTBOUND identifier
+   * the runner dispatches with. Wire ids are INBOUND aliases only: they
+   * must never appear in pickers or dispatch requests.
+   * </pre>
+   *
+   * <code>repeated string wire_ids = 24 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the wireIds at the given index.
+   */
+  com.google.protobuf.ByteString
+      getWireIdsBytes(int index);
+
+  /**
    * <code>int32 context_window_tokens = 13 [json_name = "contextWindowTokens", (.buf.validate.field) = { ... }</code>
    * @return The contextWindowTokens.
    */
