@@ -11,6 +11,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/rs/zerolog/log"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -94,7 +95,7 @@ func (c *AgentExecutionController) UploadAttachment(ctx context.Context, req *ag
 			Err(err).
 			Str("storage_key", storageKey).
 			Msg("Failed to upload attachment to storage")
-		return nil, status.Errorf(codes.Internal, "failed to upload attachment: %v", err)
+		return nil, grpclib.InternalError(err, "failed to upload attachment")
 	}
 
 	log.Info().

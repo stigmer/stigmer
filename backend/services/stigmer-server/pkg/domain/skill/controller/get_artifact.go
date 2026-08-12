@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
@@ -82,7 +83,7 @@ func (s *loadArtifactStep) Execute(ctx *pipeline.RequestContext[*skillv1.GetArti
 		if strings.Contains(err.Error(), "not found") {
 			return status.Errorf(codes.NotFound, "skill artifact not found: %s", storageKey)
 		}
-		return status.Errorf(codes.Internal, "failed to load skill artifact: %v", err)
+		return grpclib.InternalError(err, "failed to load skill artifact")
 	}
 
 	// Store artifact bytes in context for the handler to retrieve

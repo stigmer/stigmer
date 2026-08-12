@@ -29,6 +29,7 @@ import (
 
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/handler"
 )
 
@@ -96,8 +97,10 @@ func toGRPCError(err error) error {
 		return status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	// Default to internal error
-	return status.Error(codes.Internal, err.Error())
+	// Default to internal error. The handler error's raw text is server
+	// internals and must stay off the wire (stigmer/stigmer#478); the call
+	// site has already logged the full error.
+	return grpclib.InternalError(err, "search failed")
 }
 
 // contains checks if s contains any of the substrings.
