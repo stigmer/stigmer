@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
           "outputType": "PlatformClientCreateResponse",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse",
-          "description": "Create a platform client.\n\n Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).\n The raw client_secret is included in the response and is never returned again.\n Store it securely before discarding the response.\n\n The creator's organization owns the platform client. The creator is granted\n the owner role automatically.\n\n @internal\n Authorization: Requires can_create_platform_client permission in the organization."
+          "description": "Create a platform client.\n\n Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).\n The raw client_secret is included in the response and is never returned again.\n Store it securely before discarding the response.\n\n The creator's organization owns the platform client. The creator is granted\n the owner role automatically."
         },
         {
           "name": "Update",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
           "outputType": "PlatformClient",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
-          "description": "Update an existing platform client.\n\n Only mutable fields can be changed: auto_provision_accounts, auto_grant_on_org,\n auto_grant_role, and allowed_origins. Credential fields (client_id,\n client_secret_hash, secret_fingerprint) are immutable after creation.\n Use rotateSecret to change the client secret.\n\n @internal\n Authorization: Requires can_edit permission on the platform client resource."
+          "description": "Update an existing platform client.\n\n Only mutable fields can be changed: auto_provision_accounts, auto_grant_on_org,\n auto_grant_role, and allowed_origins. Credential fields (client_id,\n client_secret_hash, secret_fingerprint) are immutable after creation.\n Use rotateSecret to change the client secret."
         },
         {
           "name": "Delete",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "PlatformClient",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
-          "description": "Delete a platform client.\n\n Immediately invalidates the client_id and client_secret. Any tokens\n previously minted by this platform client remain valid until their\n own expiration — deletion does not revoke already-issued tokens.\n\n @internal\n Authorization: Requires can_delete permission on the platform client resource."
+          "description": "Delete a platform client.\n\n Immediately invalidates the client_id and client_secret. Any tokens\n previously minted by this platform client remain valid until their\n own expiration — deletion does not revoke already-issued tokens."
         },
         {
           "name": "RotateSecret",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClientId",
           "outputType": "PlatformClientCreateResponse",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse",
-          "description": "Rotate the client secret.\n\n Generates a new client_secret, invalidates the old one immediately,\n and returns the new raw secret in the response. The client_id remains\n unchanged — platform builders do not need to update their client_id\n configuration after rotation.\n\n @internal\n Authorization: Requires can_edit permission on the platform client resource."
+          "description": "Rotate the client secret.\n\n Generates a new client_secret, invalidates the old one immediately,\n and returns the new raw secret in the response. The client_id remains\n unchanged — platform builders do not need to update their client_id\n configuration after rotation."
         }
       ]
     },
@@ -53,7 +53,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
           "outputType": "PlatformClient",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
-          "description": "Get a platform client by its unique identifier.\n\n @internal\n Authorization: Requires can_view permission on the platform client resource."
+          "description": "Get a platform client by its unique identifier."
         },
         {
           "name": "GetByReference",
@@ -61,7 +61,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "PlatformClient",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
-          "description": "Get a platform client by its organization-scoped reference (org/slug).\n\n Resolves a human-readable reference like \"acme/acme-dashboard\" to the full\n PlatformClient resource.\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions."
+          "description": "Get a platform client by its organization-scoped reference (org/slug).\n\n Resolves a human-readable reference like \"acme/acme-dashboard\" to the full\n PlatformClient resource."
         },
         {
           "name": "ListByOrg",
@@ -69,7 +69,7 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput",
           "outputType": "PlatformClients",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClients",
-          "description": "List all platform clients belonging to an organization.\n\n Returns every PlatformClient whose metadata.org matches the input org.\n Typically a small set per org, so results are not paginated.\n\n @internal\n Authorization: Requires can_view permission on the organization resource."
+          "description": "List all platform clients belonging to an organization.\n\n Returns every PlatformClient whose metadata.org matches the input org.\n Typically a small set per org, so results are not paginated."
         }
       ]
     },
@@ -84,7 +84,7 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.MintUserTokenRequest",
           "outputType": "MintUserTokenResponse",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.MintUserTokenResponse",
-          "description": "Mint a user-scoped JWT for browser-based access to Stigmer resources.\n\n The platform builder's backend calls this RPC with its PlatformClient\n credentials (client_id + client_secret) and the end user's identity.\n Stigmer validates the credentials, optionally JIT-provisions the user's\n identity account, and returns a Stigmer-signed JWT.\n\n The returned JWT can be used by the React SDK (via StigmerProvider's\n getAccessToken callback) to authenticate API calls from the browser.\n\n Authentication flow:\n 1. Validate client_id + client_secret against stored hash\n 2. Resolve or JIT-provision the identity account for user_id\n 3. If auto_grant_on_org is enabled, grant the configured role\n 4. Sign a JWT with Stigmer's private key containing the user's identity\n\n Error scenarios:\n - UNAUTHENTICATED: Invalid client_id or client_secret\n - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts\n   is false, or the PlatformClient secret has expired\n - INTERNAL: Account provisioning could not be completed (for example, the\n   auto_grant_on_org role grant failed). No partial account is left behind\n   — the account is rolled back — so the request is safe to retry.\n\n Origin enforcement (spec.allowed_origins) does NOT apply to this call:\n minting is server-to-server, so there is no browser Origin to check.\n It applies to the browser API calls that BEAR the minted token — when\n the PlatformClient lists allowed_origins, requests whose Origin header\n is not on the list are refused PERMISSION_DENIED (see the\n allowed_origins field docs in spec.proto for the exact semantics).\n\n @internal\n This RPC is public — no Bearer token is required. The caller authenticates\n by providing client_id + client_secret in the request body. The handler\n validates these credentials as business logic, not via the auth interceptor."
+          "description": "Mint a user-scoped JWT for browser-based access to Stigmer resources.\n\n The platform builder's backend calls this RPC with its PlatformClient\n credentials (client_id + client_secret) and the end user's identity.\n Stigmer validates the credentials, optionally JIT-provisions the user's\n identity account, and returns a Stigmer-signed JWT.\n\n The returned JWT can be used by the React SDK (via StigmerProvider's\n getAccessToken callback) to authenticate API calls from the browser.\n\n Authentication flow:\n 1. Validate client_id + client_secret against stored hash\n 2. Resolve or JIT-provision the identity account for user_id\n 3. If auto_grant_on_org is enabled, grant the configured role\n 4. Sign a JWT with Stigmer's private key containing the user's identity\n\n Error scenarios:\n - UNAUTHENTICATED: Invalid client_id or client_secret\n - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts\n   is false, or the PlatformClient secret has expired\n - INTERNAL: Account provisioning could not be completed (for example, the\n   auto_grant_on_org role grant failed). No partial account is left behind\n   — the account is rolled back — so the request is safe to retry.\n\n Origin enforcement (spec.allowed_origins) does NOT apply to this call:\n minting is server-to-server, so there is no browser Origin to check.\n It applies to the browser API calls that BEAR the minted token — when\n the PlatformClient lists allowed_origins, requests whose Origin header\n is not on the list are refused PERMISSION_DENIED (see the\n allowed_origins field docs in spec.proto for the exact semantics)."
         },
         {
           "name": "MintGuestToken",
@@ -92,7 +92,7 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest",
           "outputType": "MintGuestTokenResponse",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse",
-          "description": "Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.\n\n Resolves org+slug to an AgentShare, provisions the org's system-managed\n PlatformClient and guest identity account lazily, and returns a short-lived\n Stigmer-signed JWT scoped to that org.\n\n @internal\n Public — no Bearer token. No PlatformClient credentials. The handler gates\n on an enabled public-audience share (NOT_FOUND when disabled or missing)\n and stamps the resolved share's id into the guest JWT as the share_id\n claim — the create-time gate re-reads the live share by that id on every\n session/execution create (decision 011 D6)."
+          "description": "Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.\n\n Resolves org+slug to an AgentShare, provisions the org's system-managed\n PlatformClient and guest identity account lazily, and returns a short-lived\n Stigmer-signed JWT scoped to that org."
         }
       ]
     }
@@ -426,7 +426,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Web origin of the page embedding the shared agent (optional).\n\n Set by the hosted chat page when it runs inside an iframe (the embedding\n page's origin, e.g. \"https://docs.example.com\") and by direct SDK embeds\n (their own page origin). Leave empty on the unframed hosted page. The\n literal value \"null\" reports a framed page whose parent origin could not\n be determined (opaque origin).\n\n @internal\n Validated at mint against the share's spec.allowed_origins: empty list\n admits any origin; a non-empty list refuses PERMISSION_DENIED for\n unlisted origins and for \"null\". An empty field always passes (the\n anyone-with-link hosted page). The validated value is stamped into the\n guest JWT as the embed_origin claim and re-validated against the live\n list by the guest create-time gate. Self-reported by design: the widget\n code inside the iframe derives it from browser-authentic sources the\n embedder cannot alter; non-browser callers gain nothing by omitting it\n since the hosted link is anyone-with-link (decision 001) — rate limits\n and the billing gate remain the API guards.",
+          "description": "Web origin of the page embedding the shared agent (optional).\n\n Set by the hosted chat page when it runs inside an iframe (the embedding\n page's origin, e.g. \"https://docs.example.com\") and by direct SDK embeds\n (their own page origin). Leave empty on the unframed hosted page. The\n literal value \"null\" reports a framed page whose parent origin could not\n be determined (opaque origin).",
           "required": false
         },
         {
@@ -436,7 +436,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Link token from the share URL's `?k=` parameter (optional).\n\n Required when the share link has been locked with rotateShareLink;\n ignored for plain share links.\n\n @internal\n Validated at mint against the share's live status.share_link_token\n (mismatch or absence answers the same NOT_FOUND as a disabled share,\n so a killed link is indistinguishable from a nonexistent one). The\n validated value is stamped into the guest JWT as the link_token claim\n and re-validated against the live value by the guest create-time gate\n on every session/execution create — rotation therefore revokes live\n guest tokens on their next message, exactly like disabling the share.",
+          "description": "Link token from the share URL's `?k=` parameter (optional).\n\n Required when the share link has been locked with rotateShareLink;\n ignored for plain share links.",
           "required": false,
           "validation": {
             "maxLength": 128
@@ -649,7 +649,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -696,7 +696,7 @@
         {
           "name": "participant",
           "number": 5,
-          "description": "Conversation participant on an agent channel: may read the channel's\n conversations and speak to its customers as the business (reply, take\n over, hand back, clear attention). Not a channel configurator.\n\n @internal\n channel-conversations DD-010. Grantable only on agent_channel — the\n second kind-scoped role after organization's admin/member; the\n grantable_roles subsetting is the mechanism, not a new one. Team\n usersets ([team#member]) are the named widening the day a team FGA\n type lands."
+          "description": "Conversation participant on an agent channel: may read the channel's\n conversations and speak to its customers as the business (reply, take\n over, hand back, clear attention). Not a channel configurator."
         }
       ]
     }
@@ -775,7 +775,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Unique identifier of the actor.\n\n @internal\n Historically, some writers populate this with the actor's email address\n rather than the identity-account ID. New writers should use the\n identity-account ID and carry the email in the dedicated field below;\n renderers must treat this value as an opaque last-resort label.",
+          "description": "Unique identifier of the actor.",
           "required": false
         },
         {

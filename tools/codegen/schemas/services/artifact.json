@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.artifact.v1.CreateArtifactInput",
           "outputType": "Artifact",
           "outputFullType": "ai.stigmer.agentic.artifact.v1.Artifact",
-          "description": "Create a new artifact with content.\n\n Persists the artifact's metadata and content blob. The backend:\n 1. Computes SHA-256 hash of the content bytes\n 2. Checks for existing blob with same hash (content-addressable dedup)\n 3. If new: writes blob to storage (filesystem in OSS, S3 in Cloud)\n 4. Creates Artifact metadata record with status populated\n 5. Returns the created Artifact\n\n @internal\n Authorization: skip_authorization (system-level RPC, called by runners)\n The runner authenticates via service identity, not user credentials.\n\n Idempotent by content hash: creating the same content twice returns\n two distinct Artifact metadata records pointing to the same blob.\n This is intentional — different tasks may independently produce the\n same content, and each needs its own provenance trail.\n\n Error Cases:\n\n - INVALID_ARGUMENT: spec or content is missing/invalid\n - RESOURCE_EXHAUSTED: content exceeds 50MB limit\n - INTERNAL: blob storage write failure"
+          "description": "Create a new artifact with content.\n\n Persists the artifact's metadata and content blob. The backend:\n 1. Computes SHA-256 hash of the content bytes\n 2. Checks for existing blob with same hash (content-addressable dedup)\n 3. If new: writes blob to storage (filesystem in OSS, S3 in Cloud)\n 4. Creates Artifact metadata record with status populated\n 5. Returns the created Artifact"
         },
         {
           "name": "Delete",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
           "outputType": "Artifact",
           "outputFullType": "ai.stigmer.agentic.artifact.v1.Artifact",
-          "description": "Delete an artifact.\n\n Marks the artifact for deletion. The backend transitions the storage\n state to deleted and schedules the blob for garbage collection.\n If other artifacts reference the same content hash, the blob is\n retained until all references are deleted.\n\n @internal\n Authorization: requires can_edit permission on the artifact.\n\n Error Cases:\n\n - NOT_FOUND: Artifact with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission"
+          "description": "Delete an artifact.\n\n Marks the artifact for deletion. The backend transitions the storage\n state to deleted and schedules the blob for garbage collection.\n If other artifacts reference the same content hash, the blob is\n retained until all references are deleted."
         }
       ]
     },
@@ -61,7 +61,7 @@
           "inputFullType": "ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest",
           "outputType": "GetArtifactContentResponse",
           "outputFullType": "ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse",
-          "description": "Read artifact content bytes through the Stigmer API.\n\n Returns the artifact's raw bytes directly in the response, eliminating\n CORS concerns for SDK consumers who need to read content\n programmatically — e.g., rendering an artifact-backed review payload\n inside an embedded approval gate.\n\n For direct file downloads, use getDownloadUrl instead — it returns a\n presigned URL that avoids proxying bytes through the server.\n\n @internal\n Mirrors AgentExecutionQueryController.getArtifactContent (same\n truncation contract). Content is truncated to max_bytes (default:\n 512 KB); the response includes total_size_bytes and a truncated flag\n so callers can decide whether to offer a full download.\n\n Error Cases:\n\n - NOT_FOUND: No Artifact exists with the given ID\n - PERMISSION_DENIED: User doesn't have view access to the parent execution\n - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)\n\n @since Review Payloads (stigmer/stigmer#234)"
+          "description": "Read artifact content bytes through the Stigmer API.\n\n Returns the artifact's raw bytes directly in the response, eliminating\n CORS concerns for SDK consumers who need to read content\n programmatically — e.g., rendering an artifact-backed review payload\n inside an embedded approval gate.\n\n For direct file downloads, use getDownloadUrl instead — it returns a\n presigned URL that avoids proxying bytes through the server."
         }
       ]
     }
@@ -69,7 +69,7 @@
   "methodTypes": [
     {
       "name": "CreateArtifactInput",
-      "description": "CreateArtifactInput provides the data needed to create an artifact.\n\n @internal\n Used by the workflow-runner and agent-runner to persist task outputs.\n This is a system-level RPC — not exposed to end users or the SDK.\n\n The backend:\n 1. Computes SHA-256 hash of content\n 2. Checks if a blob with that hash already exists (deduplication)\n 3. If not, writes blob to storage (filesystem in OSS, S3 in Cloud)\n 4. Creates the Artifact metadata record\n 5. Returns the created Artifact with status populated\n\n Size limit: 50MB per request. This matches Temporal's max history size\n and covers all practical workflow task outputs. For larger artifacts,\n multipart upload will be added in a future phase.\n\n @since T07 (Artifact Store)",
+      "description": "CreateArtifactInput provides the data needed to create an artifact.",
       "protoType": "ai.stigmer.agentic.artifact.v1.CreateArtifactInput",
       "protoFile": "apis/ai/stigmer/agentic/artifact/v1/io.proto",
       "fields": [
@@ -94,7 +94,7 @@
           "type": {
             "kind": "bytes"
           },
-          "description": "Raw artifact content bytes.\n\n @internal\n Maximum size: 50MB (52,428,800 bytes).\n The backend computes the SHA-256 hash of this content for\n content-addressable storage and deduplication.",
+          "description": "Raw artifact content bytes.",
           "required": true,
           "validation": {
             "required": true,
@@ -105,7 +105,7 @@
     },
     {
       "name": "ListArtifactsByExecutionRequest",
-      "description": "ListArtifactsByExecutionRequest lists artifacts produced by a specific execution.\n\n @internal\n Supports listing by either workflow_execution_id or agent_execution_id.\n At least one must be provided.\n\n @since T07 (Artifact Store)",
+      "description": "ListArtifactsByExecutionRequest lists artifacts produced by a specific execution.",
       "protoType": "ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest",
       "protoFile": "apis/ai/stigmer/agentic/artifact/v1/io.proto",
       "fields": [
@@ -153,7 +153,7 @@
     },
     {
       "name": "ArtifactList",
-      "description": "ArtifactList contains a paginated list of artifacts.\n\n @internal\n Returned by list operations (listByExecution).\n\n @since T07 (Artifact Store)",
+      "description": "ArtifactList contains a paginated list of artifacts.",
       "protoType": "ai.stigmer.agentic.artifact.v1.ArtifactList",
       "protoFile": "apis/ai/stigmer/agentic/artifact/v1/io.proto",
       "fields": [
@@ -185,7 +185,7 @@
     },
     {
       "name": "ArtifactDownloadUrl",
-      "description": "ArtifactDownloadUrl provides a URL for downloading artifact content.\n\n @internal\n The download strategy differs by edition:\n - Cloud: pre-signed S3 URL with short TTL (e.g., 15 minutes)\n - OSS: direct URL to the local artifact server endpoint\n\n This pattern avoids streaming large blobs through the gRPC control plane.\n The client receives a URL and fetches the content via HTTP GET.\n\n @since T07 (Artifact Store)",
+      "description": "ArtifactDownloadUrl provides a URL for downloading artifact content.",
       "protoType": "ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl",
       "protoFile": "apis/ai/stigmer/agentic/artifact/v1/io.proto",
       "fields": [
@@ -196,7 +196,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "URL to download the artifact content via HTTP GET.\n\n @internal\n Cloud: pre-signed S3 URL (expires after ttl_seconds)\n OSS: http://localhost:{port}/artifacts/{hash}",
+          "description": "URL to download the artifact content via HTTP GET.",
           "required": false
         },
         {
@@ -233,7 +233,7 @@
     },
     {
       "name": "GetArtifactContentRequest",
-      "description": "GetArtifactContentRequest reads the raw content of an artifact.\n\n Unlike getDownloadUrl (which returns a presigned URL for direct\n browser download), this endpoint returns the artifact bytes through the\n Stigmer API. This eliminates CORS concerns for SDK consumers who need to\n read artifact content programmatically — e.g., rendering an artifact-backed\n review payload inside an embedded approval gate.\n\n @internal\n Mirrors AgentExecutionQueryController.getArtifactContent, which was added\n for the same reason on the agent-execution side. Artifacts are addressed\n by artifact ID here (the T07 store's identity) rather than by\n execution_id + storage_key.\n\n The server enforces a maximum content size (default: 512 KB). If the\n artifact exceeds max_bytes, the response contains the first max_bytes of\n content with truncated=true. Callers use total_size_bytes to decide\n whether to offer a full download via getDownloadUrl instead.\n\n @since Review Payloads (stigmer/stigmer#234)",
+      "description": "GetArtifactContentRequest reads the raw content of an artifact.\n\n Unlike getDownloadUrl (which returns a presigned URL for direct\n browser download), this endpoint returns the artifact bytes through the\n Stigmer API. This eliminates CORS concerns for SDK consumers who need to\n read artifact content programmatically — e.g., rendering an artifact-backed\n review payload inside an embedded approval gate.",
       "protoType": "ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest",
       "protoFile": "apis/ai/stigmer/agentic/artifact/v1/io.proto",
       "fields": [
@@ -314,7 +314,7 @@
   "enumTypes": [
     {
       "name": "ArtifactStorageState",
-      "description": "ArtifactStorageState tracks the lifecycle of an artifact's blob in storage.\n\n @internal\n The state machine is linear:\n storage_state_pending → storage_state_stored → storage_state_deleted\n\n Pending: metadata record created, blob upload not yet confirmed.\n Stored: blob successfully written to object storage and verified.\n Deleted: blob has been garbage-collected (metadata may be retained for audit).\n\n @since T07 (Artifact Store)",
+      "description": "ArtifactStorageState tracks the lifecycle of an artifact's blob in storage.",
       "protoType": "ai.stigmer.agentic.artifact.v1.ArtifactStorageState",
       "values": [
         {
@@ -342,7 +342,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -362,10 +362,10 @@
       ]
     }
   ],
-  "resourceDescription": "Artifact represents a persisted blob produced during execution.\n\n @internal\n Follows the standard Stigmer resource pattern:\n api_version + kind + metadata + spec + status.\n\n Artifacts are created by the workflow-runner or agent-runner when task\n outputs exceed the auto-promotion threshold or when the workflow author\n explicitly declares an artifact (Phase 1).\n\n The content blob is stored externally (local filesystem in OSS, S3 in Cloud).\n The Artifact resource holds metadata and a content hash that references\n the blob in the content-addressable store.\n\n Artifact lifecycle:\n 1. Runner calls create() with spec + content bytes\n 2. Backend hashes content, stores blob, creates metadata record\n 3. Runner replaces inline task output with artifact reference\n 4. Clients retrieve artifact via get() or download via getDownloadUrl()\n 5. Background GC deletes expired artifacts based on retention policy\n\n @since T07 (Artifact Store)",
+  "resourceDescription": "Artifact represents a persisted blob produced during execution.",
   "statusType": {
     "name": "ArtifactStatus",
-    "description": "ArtifactStatus contains system-managed state for an artifact.\n\n @internal\n Populated by the backend at creation time and updated by the GC job.\n Users cannot modify status fields directly.\n\n @since T07 (Artifact Store)",
+    "description": "ArtifactStatus contains system-managed state for an artifact.",
     "protoType": "ai.stigmer.agentic.artifact.v1.ArtifactStatus",
     "protoFile": "apis/ai/stigmer/agentic/artifact/v1/api.proto",
     "fields": [
@@ -387,7 +387,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "SHA-256 hash of the artifact content, hex-encoded (64 characters).\n\n @internal\n Used as the blob storage key in the content-addressable store.\n Two artifacts with identical content share the same blob.\n The hash is computed by the backend at creation time and verified\n on download to ensure integrity.",
+        "description": "SHA-256 hash of the artifact content, hex-encoded (64 characters).",
         "required": false
       },
       {
@@ -397,7 +397,7 @@
         "type": {
           "kind": "int64"
         },
-        "description": "Size of the artifact content in bytes.\n\n @internal\n Set at creation time. Used by the UI to display file sizes and\n by the GC job to track storage consumption per organization.",
+        "description": "Size of the artifact content in bytes.",
         "required": false
       },
       {
@@ -423,7 +423,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "ISO 8601 timestamp when this artifact expires and becomes eligible\n for garbage collection.\n\n @internal\n Computed at creation time from spec.retention.ttl_days:\n - ttl_days \u003e 0: created_at + ttl_days\n - ttl_days == 0: created_at + org_default_retention_days\n - ttl_days == -1: empty (permanent, never expires)\n\n The GC job scans for artifacts where expires_at \u003c now() and\n transitions them to storage_state_deleted.",
+        "description": "ISO 8601 timestamp when this artifact expires and becomes eligible\n for garbage collection.",
         "required": false
       }
     ]
@@ -472,7 +472,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Unique identifier of the actor.\n\n @internal\n Historically, some writers populate this with the actor's email address\n rather than the identity-account ID. New writers should use the\n identity-account ID and carry the email in the dedicated field below;\n renderers must treat this value as an opaque last-resort label.",
+          "description": "Unique identifier of the actor.",
           "required": false
         },
         {

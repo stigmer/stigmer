@@ -1,7 +1,7 @@
 {
   "name": "AgentSpec",
   "kind": "AGENT_SPEC",
-  "description": "AgentSpec defines the configurable properties of an agent.\n\n @internal\n This is the \"Template\" layer — declares capabilities and requirements.\n The overview.md file provides the SDK-facing description and example YAML.",
+  "description": "AgentSpec defines the configurable properties of an agent.",
   "protoType": "ai.stigmer.agentic.agent.v1.AgentSpec",
   "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
   "fields": [

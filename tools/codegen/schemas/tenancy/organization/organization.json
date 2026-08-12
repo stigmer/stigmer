@@ -1,7 +1,7 @@
 {
   "name": "OrganizationSpec",
   "kind": "ORGANIZATION_SPEC",
-  "description": "OrganizationSpec defines the configurable properties of an organization.\n\n @internal\n Organizations are the top-level container for all Stigmer resources.\n Similar to GitHub organizations, all agents, workflows, and other resources\n are scoped under an organization.",
+  "description": "OrganizationSpec defines the configurable properties of an organization.",
   "protoType": "ai.stigmer.tenancy.organization.v1.OrganizationSpec",
   "protoFile": "apis/ai/stigmer/tenancy/organization/v1/spec.proto",
   "fields": [
@@ -43,7 +43,7 @@
           "platform_managed"
         ]
       },
-      "description": "How this organization is operated.\n\n @internal\n Immutable after creation.\n - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.\n - platform_managed: Created programmatically by an external platform via an IdentityProvider.",
+      "description": "How this organization is operated.",
       "required": false
     },
     {
@@ -54,7 +54,7 @@
         "kind": "message",
         "messageType": "ApiResourceReference"
       },
-      "description": "Reference to the IdentityProvider that authenticates requests for this organization.\n\n @internal\n Required when management_mode is platform_managed; must be empty for self_managed.\n The referenced IdentityProvider must exist and be active at creation time.\n Immutable after creation.",
+      "description": "Reference to the IdentityProvider that authenticates requests for this organization.",
       "required": false
     },
     {
@@ -64,7 +64,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "External platform's organization identifier for reverse mapping.\n\n @internal\n Set only for platform_managed organizations. Stores the integrating platform's\n own org ID so the platform can look up the corresponding Stigmer org even if\n the Stigmer slug differs from the platform's original slug due to availability.",
+      "description": "External platform's organization identifier for reverse mapping.",
       "required": false
     },
     {
@@ -74,7 +74,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "Whether this is a personal organization, auto-created during identity provisioning.\n\n @internal\n Personal orgs serve as the user's default workspace (like GitHub personal accounts).\n Immutable after creation. Set by the server — clients cannot set this to true.",
+      "description": "Whether this is a personal organization, auto-created during identity provisioning.",
       "required": false
     }
   ]

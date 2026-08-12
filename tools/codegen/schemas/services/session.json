@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.Session",
           "outputType": "Session",
           "outputFullType": "ai.stigmer.agentic.session.v1.Session",
-          "description": "Create or update a session.\n\n @internal\n The authorization and state-operation are determined depending on whether the session\n is going to be created or updated which is determined as part of the request execution."
+          "description": "Create or update a session."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.Session",
           "outputType": "Session",
           "outputFullType": "ai.stigmer.agentic.session.v1.Session",
-          "description": "Create a session.\n\n @internal\n Requires can_create_session permission in the organization."
+          "description": "Create a session."
         },
         {
           "name": "Update",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest",
           "outputType": "Session",
           "outputFullType": "ai.stigmer.agentic.session.v1.Session",
-          "description": "Set the session subject.\n\n This is a targeted update that modifies only the subject field,\n leaving other session fields untouched. Use this instead of the full\n update RPC when you only need to change the session subject.\n\n @internal\n Server-side field-level update, race-safe. Atomically modifies only\n spec.subject without touching other fields."
+          "description": "Set the session subject.\n\n This is a targeted update that modifies only the subject field,\n leaving other session fields untouched. Use this instead of the full\n update RPC when you only need to change the session subject."
         },
         {
           "name": "Delete",
@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.SessionId",
           "outputType": "Session",
           "outputFullType": "ai.stigmer.agentic.session.v1.Session",
-          "description": "Delete a session.\n\n Deletion cascades to the session's agent executions. Billing usage\n records are immutable and unaffected — they carry their own copies of\n the session and execution identifiers.\n\n Fails with FAILED_PRECONDITION while any agent execution in the\n session is still active (pending, in progress, waiting for approval,\n or paused); cancel it or wait for it to finish first.\n\n @internal\n Requires can_delete on the session (owner-only — sessions are personal\n resources, so org admins have no implicit delete access)."
+          "description": "Delete a session.\n\n Deletion cascades to the session's agent executions. Billing usage\n records are immutable and unaffected — they carry their own copies of\n the session and execution identifiers.\n\n Fails with FAILED_PRECONDITION while any agent execution in the\n session is still active (pending, in progress, waiting for approval,\n or paused); cancel it or wait for it to finish first."
         }
       ]
     },
@@ -69,7 +69,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.ListSessionsRequest",
           "outputType": "SessionList",
           "outputFullType": "ai.stigmer.agentic.session.v1.SessionList",
-          "description": "List all sessions with pagination and optional filtering.\n\n @internal\n Authorization is handled in-handler via FGA-filtered queries."
+          "description": "List all sessions with pagination and optional filtering."
         },
         {
           "name": "ListByAgentInstance",
@@ -77,7 +77,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest",
           "outputType": "SessionList",
           "outputFullType": "ai.stigmer.agentic.session.v1.SessionList",
-          "description": "List all sessions for a specific agent instance.\n\n @internal\n Authorization is handled in handler via FGA query for authorized\n session_ids, then filtered by agent_instance_id."
+          "description": "List all sessions for a specific agent instance."
         },
         {
           "name": "ListByChannel",
@@ -85,7 +85,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest",
           "outputType": "SessionList",
           "outputFullType": "ai.stigmer.agentic.session.v1.SessionList",
-          "description": "List the conversations an agent channel created.\n\n Returns the sessions the channel runtime (Slack, WhatsApp) created for\n the given agent channel, newest first. The caller must be able to view\n the channel; results are additionally filtered to sessions the caller\n can view.\n\n @internal\n Authorization is two-stage in the handler: an explicit can_view check on\n the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),\n then an FGA query for authorized session_ids intersected with the\n stigmer.ai/channel-id label filter."
+          "description": "List the conversations an agent channel created.\n\n Returns the sessions the channel runtime (Slack, WhatsApp) created for\n the given agent channel, newest first. The caller must be able to view\n the channel; results are additionally filtered to sessions the caller\n can view."
         }
       ]
     }
@@ -93,7 +93,7 @@
   "methodTypes": [
     {
       "name": "UpdateSessionSubjectRequest",
-      "description": "UpdateSessionSubjectRequest sets the conversation title for a session.\n\n @internal\n Field-level update that atomically modifies only the subject field,\n avoiding the lost-update race condition that occurs when multiple\n activities concurrently perform full-resource updates on the same session.",
+      "description": "UpdateSessionSubjectRequest sets the conversation title for a session.",
       "protoType": "ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest",
       "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
       "fields": [
@@ -287,7 +287,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -325,7 +325,7 @@
     },
     {
       "name": "CursorMode",
-      "description": "CursorMode selects the Cursor SDK agent type for sessions using\n HARNESS_CURSOR.\n\n Determined once at session creation and never changed mid-session.\n Switching would lose Cursor-side conversation state because local\n agents (agent- prefix) and cloud agents (bc- prefix) maintain\n separate, incompatible conversation stores.\n\n Ignored when harness is not HARNESS_CURSOR.\n\n @internal\n Runner-owned, never user-set: determineCursorMode() in the cursor\n runner always returns LOCAL while cloud mode is disabled platform-wide\n (Cursor cloud agents clone via Cursor's own GitHub App and accept no\n per-request git credential, so Stigmer provisions the workspace itself\n and runs a local Cursor agent against it). The former workspace-based\n selection logic was removed 2026-06-03; STIGMER_CURSOR_CLOUD_MODE_ENABLED\n still parses into runner config but no longer drives mode selection.\n\n When UNSPECIFIED on an existing session, the runner treats it as LOCAL\n for backward compatibility with sessions created before this field existed.",
+      "description": "CursorMode selects the Cursor SDK agent type for sessions using\n HARNESS_CURSOR.\n\n Determined once at session creation and never changed mid-session.\n Switching would lose Cursor-side conversation state because local\n agents (agent- prefix) and cloud agents (bc- prefix) maintain\n separate, incompatible conversation stores.\n\n Ignored when harness is not HARNESS_CURSOR.",
       "protoType": "ai.stigmer.agentic.session.v1.CursorMode",
       "values": [
         {
@@ -342,7 +342,7 @@
     },
     {
       "name": "ExecutionTarget",
-      "description": "ExecutionTarget specifies where session activities are executed.\n\n Determines whether the runner that processes agent activities lives on the\n client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.\n Set at session creation time and immutable once an execution has run —\n workspace state may not be portable between local and cloud environments.\n\n @internal\n The control plane uses this field in dispatch to decide whether to route\n activities to a client-polled per-session queue (LOCAL) or provision a\n cloud sandbox (CLOUD). Both use task queues named \"session:{session_id}\".\n The difference is who provides the runner: the client (LOCAL) or the\n server (CLOUD).",
+      "description": "ExecutionTarget specifies where session activities are executed.\n\n Determines whether the runner that processes agent activities lives on the\n client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.\n Set at session creation time and immutable once an execution has run —\n workspace state may not be portable between local and cloud environments.",
       "protoType": "ai.stigmer.agentic.session.v1.ExecutionTarget",
       "values": [
         {
@@ -359,13 +359,13 @@
     },
     {
       "name": "GitWriteBackMode",
-      "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.\n\n @internal\n The platform enables write-back by default when credentials are\n available. Users can override this per-session by setting an\n explicit mode. The agent never sees or controls this setting.",
+      "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.",
       "protoType": "ai.stigmer.agentic.session.v1.GitWriteBackMode",
       "values": [
         {
           "name": "GIT_WRITE_BACK_BRANCH_AND_PR",
           "number": 1,
-          "description": "Create a branch and pull request from the agent's file changes after execution completes.\n\n @internal\n The platform automatically detects uncommitted changes via git diff,\n creates a branch (stigmer/{execution_id_short}), commits all changes,\n pushes the branch to the remote, and creates a pull request targeting\n the original branch. The write-back outcome is recorded in\n AgentExecutionStatus.workspace_write_backs."
+          "description": "Create a branch and pull request from the agent's file changes after execution completes."
         }
       ]
     },

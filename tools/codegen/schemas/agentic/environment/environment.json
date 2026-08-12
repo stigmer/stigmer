@@ -1,7 +1,7 @@
 {
   "name": "EnvironmentSpec",
   "kind": "ENVIRONMENT_SPEC",
-  "description": "EnvironmentSpec defines the configurable properties of an environment.\n\n @internal\n The overview.md file provides the SDK-facing description and example YAML.",
+  "description": "EnvironmentSpec defines the configurable properties of an environment.",
   "protoType": "ai.stigmer.agentic.environment.v1.EnvironmentSpec",
   "protoFile": "apis/ai/stigmer/agentic/environment/v1/spec.proto",
   "fields": [

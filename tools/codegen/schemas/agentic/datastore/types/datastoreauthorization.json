@@ -1,6 +1,6 @@
 {
   "name": "DatastoreAuthorization",
-  "description": "DatastoreAuthorization declares the record-layer access model: roles,\n subject bindings, and the default role for unbound callers.\n\n @internal\n Evaluated in datastore domain logic in both editions — deliberately\n NOT part of the kind registry's AuthorizationConfig, which governs\n only the resource layer (who may edit the datastore itself). Agents\n are never record-layer subjects; they reach records through their\n datastore_usages, and the caller resolved here is the channel sender\n or platform principal behind the session.",
+  "description": "DatastoreAuthorization declares the record-layer access model: roles,\n subject bindings, and the default role for unbound callers.",
   "protoType": "ai.stigmer.agentic.datastore.v1.DatastoreAuthorization",
   "protoFile": "apis/ai/stigmer/agentic/datastore/v1/spec.proto",
   "fields": [
@@ -32,7 +32,7 @@
           "messageType": "DatastoreRoleBinding"
         }
       },
-      "description": "Subject-to-role bindings.\n\n @internal\n Role-reference integrity (every binding names a declared role) is\n domain validation.",
+      "description": "Subject-to-role bindings.",
       "required": false,
       "validation": {
         "maxItems": 200

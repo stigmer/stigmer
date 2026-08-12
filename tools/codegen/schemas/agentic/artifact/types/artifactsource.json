@@ -1,6 +1,6 @@
 {
   "name": "ArtifactSource",
-  "description": "ArtifactSource identifies the execution context that produced an artifact.\n\n @internal\n Exactly one of workflow_execution_id or agent_execution_id should be set,\n identifying the producer. task_name is set when the artifact was produced\n by a specific task within a workflow execution.\n\n @since T07 (Artifact Store)",
+  "description": "ArtifactSource identifies the execution context that produced an artifact.",
   "protoType": "ai.stigmer.agentic.artifact.v1.ArtifactSource",
   "protoFile": "apis/ai/stigmer/agentic/artifact/v1/spec.proto",
   "fields": [

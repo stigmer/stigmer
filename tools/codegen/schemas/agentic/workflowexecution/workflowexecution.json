@@ -1,7 +1,7 @@
 {
   "name": "WorkflowExecutionSpec",
   "kind": "WORKFLOW_EXECUTION_SPEC",
-  "description": "WorkflowExecutionSpec defines the user-provided inputs for a workflow execution.\n\n @internal\n This is the \"Execution\" layer in the Template→Instance→Execution pattern.\n WorkflowExecutionSpec is ephemeral - it defines the inputs for a single runtime invocation.\n The spec is immutable after creation. To retry with different inputs, create a new\n WorkflowExecution with updated spec values.\n\n Instance Resolution (matches AgentExecution pattern):\n - Either workflow_instance_id OR workflow_id must be provided\n - If workflow_instance_id: Use the specified instance directly\n - If workflow_id: Resolve to workflow's default instance (auto-create if missing)\n - Handler enforces: at least one must be provided",
+  "description": "WorkflowExecutionSpec defines the user-provided inputs for a workflow execution.",
   "protoType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec",
   "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/spec.proto",
   "fields": [
@@ -12,7 +12,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "ID of the WorkflowInstance to execute.\n\n @internal\n Either workflow_instance_id OR workflow_id must be provided.\n Handler enforces this validation.\n\n The WorkflowInstance contains:\n - Reference to the Workflow template (orchestration definition)\n - Environment bindings (configuration and secrets)\n - Default configuration values\n\n Format: \"wfi-{slug}\" (e.g., \"wfi-customer-onboarding-prod\")\n\n Authorization:\n User must have \"execute\" permission on the referenced WorkflowInstance.",
+      "description": "ID of the WorkflowInstance to execute.",
       "required": false
     },
     {
@@ -22,7 +22,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "ID of the Workflow template to execute (alternative to workflow_instance_id).\n\n @internal\n When workflow_id is provided without workflow_instance_id, the system:\n 1. Checks if the Workflow has a default_instance_id in its status\n 2. If exists: Uses the default instance\n 3. If missing: Auto-creates a default instance (name: \"{workflow_slug}-default\")\n 4. Updates the Workflow status with the default_instance_id\n 5. Executes using the resolved instance\n\n Format: \"wf-{slug}\" (e.g., \"wf-customer-onboarding\")\n\n Either workflow_instance_id OR workflow_id must be provided.\n Handler enforces this validation.\n\n Authorization:\n User must have \"execute\" permission on the resolved WorkflowInstance.",
+      "description": "ID of the Workflow template to execute (alternative to workflow_instance_id).",
       "required": false
     },
     {
@@ -32,7 +32,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Input message or payload that triggers the workflow.\n\n @internal\n This is the primary input to the workflow - the \"trigger event\" or \"request payload\".\n It can be a human-readable message, a JSON payload, or an event description.\n\n The workflow can access this value using: {{workflow.input.trigger_message}}\n Tasks can reference it in their input configurations.\n\n The trigger_message is optional - some workflows don't need input (scheduled jobs,\n workflows that fetch data from APIs, etc.).",
+      "description": "Input message or payload that triggers the workflow.",
       "required": false
     },
     {
@@ -48,7 +48,7 @@
           "kind": "string"
         }
       },
-      "description": "Contextual metadata about what triggered this execution.\n\n @internal\n This metadata is NOT used by the workflow logic itself - it's for audit, debugging,\n and analytics.\n\n Common metadata keys:\n - \"source\": How was this triggered? (api, webhook, schedule, manual, ui)\n - \"caller_id\": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)\n - \"ip_address\": Client IP address (for API/UI triggers)\n - \"webhook_id\": Webhook ID (for webhook triggers)\n - \"schedule_id\": Schedule ID (for scheduled triggers)\n - \"timestamp\": When was it triggered? (ISO 8601)",
+      "description": "Contextual metadata about what triggered this execution.",
       "required": false
     },
     {
@@ -65,7 +65,7 @@
           "messageType": "ExecutionValue"
         }
       },
-      "description": "Execution-scoped environment variables and secrets that override instance defaults.\n\n @internal\n These values are only available for this specific execution and override values\n from Environments and Workflow defaults.\n\n Merge Priority (highest to lowest):\n 1. runtime_env (this field) - Execution-specific overrides\n 2. Environment values (from WorkflowInstance.environment_ids)\n 3. Workflow defaults (from Workflow.default_env)\n\n Value Types:\n - value: Plain text value (not encrypted, use for non-sensitive config)\n - secret_ref: Reference to a Secret resource (encrypted, use for API keys, passwords)\n\n Security:\n - runtime_env values are stored in ExecutionContext\n - ExecutionContext is deleted when execution completes (ephemeral secrets)\n - Secret references are resolved at runtime (never exposed in logs)\n\n Tasks can access these values using: {{env.VARIABLE_NAME}}",
+      "description": "Execution-scoped environment variables and secrets that override instance defaults.",
       "required": false
     },
     {
@@ -75,7 +75,7 @@
       "type": {
         "kind": "bytes"
       },
-      "description": "Opaque callback token for asynchronous completion by a parent orchestrator.\n\n @internal\n Enables async completion pattern where the caller (typically a parent workflow)\n waits for actual workflow completion without blocking worker threads.\n\n Flow:\n 1. Caller (Temporal activity) extracts its task token\n 2. Passes token in this field when creating WorkflowExecution\n 3. Returns activity.ErrResultPending (activity paused, thread released)\n 4. Workflow executes (minutes/hours later)\n 5. Workflow calls ActivityCompletionClient.complete(token, result)\n 6. Temporal resumes the paused activity with the result\n\n When empty: fire-and-forget or direct API call (backward compatible).\n When provided: workflow MUST complete the external activity using this token.\n\n Token format: opaque binary blob from Temporal SDK (typically 100-200 bytes).\n DO NOT parse or modify - treat as opaque handle.\n\n Same pattern as AgentExecution.spec.callback_token.\n\n References:\n - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md\n - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion\n\n @since 2026-01-22",
+      "description": "Opaque callback token for asynchronous completion by a parent orchestrator.",
       "required": false
     },
     {
@@ -90,7 +90,7 @@
           "EXECUTION_TARGET_CLOUD"
         ]
       },
-      "description": "Where workflow activities are executed — shared runner pool or dedicated sandbox.\n\n @internal\n Determines dispatch routing for the workflow and all child executions:\n - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)\n - LOCAL: workflow runs on global queue (stigmer_runner)\n - CLOUD: server provisions a dedicated sandbox with per-execution queue\n\n When CLOUD: all call:agent tasks within this workflow share the same sandbox.\n Child agent executions inherit this sandbox via activity_task_queue propagation\n on AgentExecutionSpec, avoiding N separate sandbox cold starts.\n\n Immutable after creation (sandbox provisioning is a one-time operation).\n\n @since Workflow Sandbox Affinity",
+      "description": "Where workflow activities are executed — shared runner pool or dedicated sandbox.",
       "required": false
     }
   ]

@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.tenancy.project.v1.Project",
           "outputType": "Project",
           "outputFullType": "ai.stigmer.tenancy.project.v1.Project",
-          "description": "Create or update a project.\n\n @internal\n The authorization and state-operation are determined depending on whether the project\n is going to be created or updated which is determined as part of the request execution."
+          "description": "Create or update a project."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.tenancy.project.v1.Project",
           "outputType": "Project",
           "outputFullType": "ai.stigmer.tenancy.project.v1.Project",
-          "description": "Create a project.\n\n @internal\n Authorization:\n - Organization-scoped projects: Caller must have can_create_project permission in the organization.\n - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step)."
+          "description": "Create a project."
         },
         {
           "name": "Update",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.tenancy.project.v1.Project",
           "outputType": "Project",
           "outputFullType": "ai.stigmer.tenancy.project.v1.Project",
-          "description": "Update an existing project.\n\n @internal\n Authorization: Requires can_edit permission on the project."
+          "description": "Update an existing project."
         },
         {
           "name": "Delete",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.tenancy.project.v1.ProjectId",
           "outputType": "Project",
           "outputFullType": "ai.stigmer.tenancy.project.v1.Project",
-          "description": "Delete a project.\n\n @internal\n Authorization: Requires can_delete permission on the project."
+          "description": "Delete a project."
         }
       ]
     },
@@ -61,7 +61,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "Project",
           "outputFullType": "ai.stigmer.tenancy.project.v1.Project",
-          "description": "Get a project by reference (org/name).\n\n @internal\n Custom authorization is handled in the controller implementation."
+          "description": "Get a project by reference (org/name)."
         }
       ]
     }
@@ -316,7 +316,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -336,7 +336,7 @@
       ]
     }
   ],
-  "resourceDescription": "Project groups related resources under a single unit of management with automatic orphan pruning.\n\n @internal\n Two tracks are supported:\n\n Declarative Track (no entry_point):\n   Place YAML resource files alongside stigmer.yaml. The CLI scans the\n   directory, applies each resource individually, and updates the project\n   membership. Resources removed from the directory are pruned.\n\n SDK Track (entry_point set):\n   The CLI executes the entry_point to synthesize resources, applies each\n   individually, and updates the project membership. The runtime is inferred\n   from the entry_point file extension (.go, .py, .ts, .js).\n\n In both tracks, the project stores only references (org/kind/slug) to its\n members — never full resource objects. Orphan pruning is a set-difference\n between previous and current members.",
+  "resourceDescription": "Project groups related resources under a single unit of management with automatic orphan pruning.",
   "statusType": {
     "name": "ProjectStatus",
     "description": "ProjectStatus contains system-managed state for a Project.\n\n Minimal by design:\n - audit.updated_at tracks when the project was last applied\n - Member counts are derivable from spec.members (no duplication)\n - Errors are returned in Apply() response, not stored in status",
@@ -411,7 +411,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Unique identifier of the actor.\n\n @internal\n Historically, some writers populate this with the actor's email address\n rather than the identity-account ID. New writers should use the\n identity-account ID and carry the email in the dedicated field below;\n renderers must treat this value as an opaque last-resort label.",
+          "description": "Unique identifier of the actor.",
           "required": false
         },
         {

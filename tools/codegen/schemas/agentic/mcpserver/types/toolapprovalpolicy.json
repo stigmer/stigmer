@@ -1,6 +1,6 @@
 {
   "name": "ToolApprovalPolicy",
-  "description": "ToolApprovalPolicy defines approval requirements for a specific tool.\n\n @internal\n The message field supports {{args.field}} placeholders that are resolved\n at runtime using the actual tool arguments. This enables contextual\n approval messages that help users make informed decisions.\n\n Placeholder syntax:\n   {{args.field_name}} - Replaced with the tool argument value\n   {{tool_name}} - Replaced with the tool name (always available)\n\n If a placeholder references a missing argument, it's replaced with \"\u003cunknown\u003e\".\n\n Policy chain (lowest to highest priority):\n 1. McpServerStatus.tool_approvals - System-generated defaults\n 2. McpServerSpec.pinned_tool_approvals - Manual overrides\n 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization\n 4. AgentExecution.auto_approve_all - Runtime bypass",
+  "description": "ToolApprovalPolicy defines approval requirements for a specific tool.",
   "protoType": "ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy",
   "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/spec.proto",
   "fields": [

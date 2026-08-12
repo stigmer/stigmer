@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.iam.iampolicy.v1.IamPolicySpec",
           "outputType": "IamPolicy",
           "outputFullType": "ai.stigmer.iam.iampolicy.v1.IamPolicy",
-          "description": "Create a new IAM policy\n\n Creates a single IAM policy that grants a principal access to a resource with a specific relation.\n This is the fundamental operation for establishing permissions.\n\n @internal\n The operation:\n 1. Validates the input (principal, resource, relation are all valid)\n 2. Checks for duplicates (skips if the exact policy already exists, idempotent)\n 3. Creates the policy in the database with auto-generated ID and metadata\n 4. Writes the corresponding tuple to OpenFGA (where authorization is enforced)\n\n Authorization:\n - Caller must have 'can_grant_access' permission on the RESOURCE being shared\n - This ensures only resource owners/admins can grant access to their resources\n\n Example:\n Input:\n   principal: {kind: \"identity_account\", id: \"ia_alice-123\"}\n   resource: {kind: \"organization\", id: \"org_demo-456\"}\n   relation: \"viewer\"\n Result:\n   Created IamPolicy with auto-generated ID (e.g., \"iamp_01HQ...\")\n   Alice can view (but not modify) the organization\n\n Input: IamPolicySpec containing principal, resource, and relation\n Output: The created IamPolicy with generated ID and metadata"
+          "description": "Create a new IAM policy\n\n Creates a single IAM policy that grants a principal access to a resource with a specific relation.\n This is the fundamental operation for establishing permissions."
         },
         {
           "name": "Delete",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.iam.iampolicy.v1.IamPolicySpec",
           "outputType": "IamPolicy",
           "outputFullType": "ai.stigmer.iam.iampolicy.v1.IamPolicy",
-          "description": "Delete a single IAM policy by spec\n\n Removes an existing IAM policy by matching the principal, resource, and relation.\n This is a surgical operation — it removes one specific policy without affecting others.\n\n @internal\n The operation:\n 1. Finds the policy by matching principal+resource+relation\n 2. Removes it from the database\n 3. Deletes the corresponding tuple from OpenFGA\n 4. If no matching policy exists, the operation is idempotent (no error)\n\n Authorization:\n - Caller must have 'can_grant_access' permission on the RESOURCE referenced in the policy\n\n Use Cases:\n - Revoking a specific permission from a user\n - Removing access after a team member leaves\n - Cleaning up individual policies\n\n Example:\n Input:\n   principal: {kind: \"identity_account\", id: \"ia_alice-123\"}\n   resource: {kind: \"organization\", id: \"org_demo-456\"}\n   relation: \"viewer\"\n Result: The policy granting Alice viewer access to the organization is deleted\n\n Input: IamPolicySpec identifying the policy to delete (principal, resource, relation)\n Output: The deleted IamPolicy object (for audit/confirmation purposes)"
+          "description": "Delete a single IAM policy by spec\n\n Removes an existing IAM policy by matching the principal, resource, and relation.\n This is a surgical operation — it removes one specific policy without affecting others."
         },
         {
           "name": "BootstrapPolicy",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.iam.iampolicy.v1.IamPolicySpec",
           "outputType": "IamPolicy",
           "outputFullType": "ai.stigmer.iam.iampolicy.v1.IamPolicy",
-          "description": "Bootstrap IAM policy during resource creation\n\n Creates IAM policies during resource creation when standard authorization cannot work yet\n because no tuples exist.\n\n @internal\n Solves the chicken-and-egg problem where creating the first policy for a resource\n requires authorization, but authorization requires that first policy.\n\n The operation:\n 1. Validates that caller has can_bootstrap_iam permission on platform:stigmer\n 2. Validates the input (principal, resource, relation are all valid)\n 3. Checks for duplicates (skips if the exact policy already exists, idempotent)\n 4. Creates the policy in the database with auto-generated ID and metadata\n 5. Writes the corresponding tuple to OpenFGA (where authorization is enforced)\n\n Authorization:\n - Caller must have 'can_bootstrap_iam' permission on platform:stigmer\n - This is typically only called by resource creation handlers running as machine accounts\n\n Use Cases:\n - Creating scope links (agent#organization@organization:acme) during agent creation\n - Creating owner relations (agent#owner@identity_account:alice) during agent creation\n - Establishing initial authorization tuples for any newly created resource\n\n Example:\n Input:\n   principal: {kind: \"organization\", id: \"org_demo-123\"}\n   resource: {kind: \"agent\", id: \"agt_abc-456\"}\n   relation: \"organization\"\n Result:\n   Created IamPolicy establishing agent's organization scope\n   Subsequent IAM policy operations can now use standard authorization\n\n Note: After the bootstrap policies are created, subsequent IAM policy modifications\n must use the standard 'create' RPC which requires 'can_grant_access' permission.\n\n Input: IamPolicySpec containing principal, resource, and relation\n Output: The created IamPolicy with generated ID and metadata"
+          "description": "Bootstrap IAM policy during resource creation\n\n Creates IAM policies during resource creation when standard authorization cannot work yet\n because no tuples exist."
         },
         {
           "name": "CleanupResourcePolicies",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.iam.iampolicy.v1.ApiResourceRef",
           "outputType": "Empty",
           "outputFullType": "google.protobuf.Empty",
-          "description": "Cleanup all IAM policies for a deleted resource.\n\n Removes all IAM policies associated with a deleted resource.\n\n @internal\n Performs bidirectional cleanup:\n 1. Policies where resource is the TARGET (policies granting access TO this resource)\n 2. Policies where resource is the PRINCIPAL (policies where this resource HAS access)\n\n The operation:\n 1. Validates can_bootstrap_iam permission on platform:stigmer\n 2. Finds all policies where resource_id appears (as principal OR resource)\n 3. Deletes all matching policies from MongoDB\n 4. Removes all corresponding tuples from OpenFGA\n 5. Returns Empty (idempotent if no policies exist)\n\n Authorization:\n - Caller must have 'can_bootstrap_iam' permission on platform:stigmer\n - This is typically only granted to platform services\n\n Use Cases:\n - Resource deletion cleanup\n - Preventing orphaned FGA tuples\n - Maintaining authorization system integrity\n\n Example:\n Input: {kind: \"organization\", id: \"org_demo-123\"}\n Result: All policies referencing org_demo-123 are deleted\n\n Input: ApiResourceRef with resource kind and ID\n Output: Empty (google.protobuf.Empty)"
+          "description": "Cleanup all IAM policies for a deleted resource.\n\n Removes all IAM policies associated with a deleted resource."
         },
         {
           "name": "RevokeOrgAccess",
@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput",
           "outputType": "Empty",
           "outputFullType": "google.protobuf.Empty",
-          "description": "Revoke all of a user's access to an organization.\n\n Removes every IAM policy that grants the specified identity account access to\n resources within the given organization, including policies on the organization\n itself and on child resources (environments, agents, etc.).\n\n @internal\n The operation:\n 1. Validates the input (identity_account_id and organization_id are present)\n 2. Authorizes caller (can_grant_access on the organization)\n 3. Loads all policies where the user is principal within the org scope\n 4. Deletes all matching policies from MongoDB\n 5. Removes all corresponding tuples from OpenFGA\n\n Authorization:\n - Caller must have 'can_grant_access' permission on the organization\n - System flows running as the platform machine account cannot satisfy this\n   check (the machine account holds no org-scoped grants by design) and must\n   use bootstrapRevokeOrgAccess instead\n\n Use Cases:\n - Removing a member from an organization\n - Offboarding a user from all org resources in one operation\n\n Input: RevokeOrgAccessInput with identity_account_id and organization_id\n Output: Empty (google.protobuf.Empty)"
+          "description": "Revoke all of a user's access to an organization.\n\n Removes every IAM policy that grants the specified identity account access to\n resources within the given organization, including policies on the organization\n itself and on child resources (environments, agents, etc.)."
         },
         {
           "name": "BootstrapRevokeOrgAccess",
@@ -54,7 +54,7 @@
           "inputFullType": "ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput",
           "outputType": "Empty",
           "outputFullType": "google.protobuf.Empty",
-          "description": "Revoke all of a user's access to an organization via the system (bootstrap) path.\n\n The system-flow twin of revokeOrgAccess: identical revocation behavior, but\n authorized by can_bootstrap_iam on platform:stigmer instead of\n can_grant_access on the organization.\n\n @internal\n Exists because system flows execute the revoke as the platform machine\n account, which by design holds no org-scoped grants. The system channel does\n NOT bypass authorization — it authenticates as the machine account, which\n can only satisfy platform-scoped permissions. revokeOrgAccess therefore\n always fails with PERMISSION_DENIED on the system channel; this RPC is the\n sanctioned path, mirroring how bootstrapPolicy is the system-path twin of\n create (see https://github.com/stigmer/stigmer/issues/332).\n\n The operation (identical to revokeOrgAccess after authorization):\n 1. Validates can_bootstrap_iam permission on platform:stigmer\n 2. Loads all policies where the identity account is principal within the org\n    scope, plus policies directly on the organization itself\n 3. Deletes all matching policies from MongoDB\n 4. Removes all corresponding tuples from OpenFGA (idempotent if none exist)\n\n Authorization:\n - Caller must have 'can_bootstrap_iam' permission on platform:stigmer\n - This is typically only granted to platform services (machine accounts)\n\n Use Cases:\n - Federated account deprovisioning (deprovisionFederatedAccount's revoke step)\n - Any platform-driven offboarding that runs under system credentials\n\n End-user member removal must use revokeOrgAccess, which checks\n can_grant_access on the organization.\n\n Input: RevokeOrgAccessInput with identity_account_id and organization_id\n Output: Empty (google.protobuf.Empty)"
+          "description": "Revoke all of a user's access to an organization via the system (bootstrap) path.\n\n The system-flow twin of revokeOrgAccess: identical revocation behavior, but\n authorized by can_bootstrap_iam on platform:stigmer instead of\n can_grant_access on the organization."
         }
       ]
     },
@@ -69,7 +69,7 @@
           "inputFullType": "ai.stigmer.iam.iampolicy.v1.IamPolicyId",
           "outputType": "IamPolicy",
           "outputFullType": "ai.stigmer.iam.iampolicy.v1.IamPolicy",
-          "description": "Get an IAM policy by its unique identifier.\n\n Returns the full IAM policy including its principal, resource, and relation binding.\n\n @internal\n Authorization: Requires can_view_access permission."
+          "description": "Get an IAM policy by its unique identifier.\n\n Returns the full IAM policy including its principal, resource, and relation binding."
         },
         {
           "name": "CheckMyPermission",
@@ -77,7 +77,7 @@
           "inputFullType": "ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput",
           "outputType": "CheckAuthorizationResult",
           "outputFullType": "ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult",
-          "description": "Check whether the AUTHENTICATED CALLER has a permission on a resource.\n\n This is the self-check RPC for clients (web console, desktop, SDKs):\n \"Do I have permission Y on resource Z?\"\n\n The principal is always derived server-side from the authenticated token.\n The input has no principal field by design — clients cannot name a\n principal, so cross-principal permission probing is structurally\n impossible (the Kubernetes SelfSubjectAccessReview pattern).\n\n Use Cases:\n - Pre-flight UI checks before showing buttons/actions\n - Permission-gated rendering (PermissionGate components)\n\n Input: CheckMyPermissionInput with resource, relation, and optional contextual policies\n Output: CheckAuthorizationResult with is_authorized boolean\n\n @internal\n Skips standard authorization because authorizing this RPC via IAM would\n recurse into IAM. Authentication is still required; the handler anchors\n the FGA check to the caller's identity account."
+          "description": "Check whether the AUTHENTICATED CALLER has a permission on a resource.\n\n This is the self-check RPC for clients (web console, desktop, SDKs):\n \"Do I have permission Y on resource Z?\"\n\n The principal is always derived server-side from the authenticated token.\n The input has no principal field by design — clients cannot name a\n principal, so cross-principal permission probing is structurally\n impossible (the Kubernetes SelfSubjectAccessReview pattern).\n\n Use Cases:\n - Pre-flight UI checks before showing buttons/actions\n - Permission-gated rendering (PermissionGate components)\n\n Input: CheckMyPermissionInput with resource, relation, and optional contextual policies\n Output: CheckAuthorizationResult with is_authorized boolean"
         },
         {
           "name": "CheckAuthorization",
@@ -85,7 +85,7 @@
           "inputFullType": "ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput",
           "outputType": "CheckAuthorizationResult",
           "outputFullType": "ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult",
-          "description": "Check if a principal is authorized to perform a relation on a resource\n\n This is the fundamental authorization check RPC that answers the question:\n \"Does principal X have permission Y on resource Z?\"\n\n It provides a simple boolean answer based on the complete authorization state,\n including existing IAM policies, inherited permissions, and group memberships.\n\n This RPC is an INTERNAL-FACING contract for the platform's own\n authorization pipeline (service-to-service and in-process checks).\n Client-facing self checks must use checkMyPermission instead.\n\n Use Cases:\n - API request authorization before processing operations\n - Service-to-service authorization\n - Team-based access checks\n\n Input: CheckAuthorizationInput with policy spec and optional contextual policies\n Output: CheckAuthorizationResult with is_authorized boolean\n\n @internal\n Skips standard authorization to avoid IAM-authorizing-IAM recursion.\n The handler enforces principal trust instead: the caller must either BE\n the principal being checked, or be a machine (system) account."
+          "description": "Check if a principal is authorized to perform a relation on a resource\n\n This is the fundamental authorization check RPC that answers the question:\n \"Does principal X have permission Y on resource Z?\"\n\n It provides a simple boolean answer based on the complete authorization state,\n including existing IAM policies, inherited permissions, and group memberships.\n\n This RPC is an INTERNAL-FACING contract for the platform's own\n authorization pipeline (service-to-service and in-process checks).\n Client-facing self checks must use checkMyPermission instead.\n\n Use Cases:\n - API request authorization before processing operations\n - Service-to-service authorization\n - Team-based access checks\n\n Input: CheckAuthorizationInput with policy spec and optional contextual policies\n Output: CheckAuthorizationResult with is_authorized boolean"
         },
         {
           "name": "ListAuthorizedResourceIds",
@@ -172,7 +172,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The permission being granted (e.g., \"admin\", \"viewer\", \"owner\").\n Maps to a role_code from ai.stigmer.iam.v1.IamRole.\n Examples: \"admin\", \"editor\", \"viewer\", \"owner\", \"member\"\n\n @internal\n This is the FGA relation in the authorization tuple:\n principal.kind:principal.id#principal.relation@resource.kind:resource.id#relation",
+          "description": "The permission being granted (e.g., \"admin\", \"viewer\", \"owner\").\n Maps to a role_code from ai.stigmer.iam.v1.IamRole.\n Examples: \"admin\", \"editor\", \"viewer\", \"owner\", \"member\"",
           "required": true,
           "validation": {
             "required": true,
@@ -225,7 +225,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Optional relation qualifier for the resource reference.\n Used when the reference needs additional context about the relationship.\n\n Primary use case: For team principals, this specifies the relation of the\n user to the team (e.g., \"member\", \"admin\").\n Example: principal { kind: \"team\", id: \"tm-123\", relation: \"member\" }\n means \"members of team tm-123\"\n\n This field qualifies HOW the principal relates to this resource reference,\n NOT the permission being granted (that's IamPolicySpec.relation).\n\n @internal\n In OpenFGA tuple notation: team:tm-123#member (as the subject of the tuple)",
+          "description": "Optional relation qualifier for the resource reference.\n Used when the reference needs additional context about the relationship.\n\n Primary use case: For team principals, this specifies the relation of the\n user to the team (e.g., \"member\", \"admin\").\n Example: principal { kind: \"team\", id: \"tm-123\", relation: \"member\" }\n means \"members of team tm-123\"\n\n This field qualifies HOW the principal relates to this resource reference,\n NOT the permission being granted (that's IamPolicySpec.relation).",
           "required": false,
           "validation": {
             "maxLength": 256
@@ -296,7 +296,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The permission to check (e.g., \"can_edit\", \"can_grant_access\").\n\n @internal\n This is the FGA relation checked against the resource object.",
+          "description": "The permission to check (e.g., \"can_edit\", \"can_grant_access\").",
           "required": true,
           "validation": {
             "required": true,
@@ -720,7 +720,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -741,7 +741,7 @@
     },
     {
       "name": "IdentityAccountProvisioningMode",
-      "description": "IdentityAccountProvisioningMode defines how an identity account was created.\n\n @internal\n Unspecified is the default for legacy accounts created before this enum was introduced.",
+      "description": "IdentityAccountProvisioningMode defines how an identity account was created.",
       "protoType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode",
       "values": [
         {

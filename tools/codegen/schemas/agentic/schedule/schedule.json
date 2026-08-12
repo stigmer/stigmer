@@ -1,7 +1,7 @@
 {
   "name": "ScheduleSpec",
   "kind": "SCHEDULE_SPEC",
-  "description": "ScheduleSpec defines when a schedule fires and what it runs.\n\n The spec is deliberately small: a cron expression, the IANA time zone\n it is evaluated in, the owner's enablement switch, and the target each\n fire runs. Everything the platform observes about firing lives in\n status — a declarative apply can never clobber it.\n\n @internal\n DD-008 D8 as amended by DD-009 and DD-018: the target oneof is inline\n (the AgentChannelSpec.provider_config shape, C-3) and the agent arm is\n the shared AgentInvocation (DD-018 D-3) — the owner-settable subset of\n an agent run, so the schedule speaks the composer's vocabulary instead\n of a schedule-only one. Apply-time cron validation is purely lexical\n (C-4) so no cron parser exists in either edition; the Temporal server\n owns calendar/DST semantics (D2).",
+  "description": "ScheduleSpec defines when a schedule fires and what it runs.\n\n The spec is deliberately small: a cron expression, the IANA time zone\n it is evaluated in, the owner's enablement switch, and the target each\n fire runs. Everything the platform observes about firing lives in\n status — a declarative apply can never clobber it.",
   "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleSpec",
   "protoFile": "apis/ai/stigmer/agentic/schedule/v1/spec.proto",
   "fields": [
@@ -12,7 +12,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Cron expression in the classic 5-field form (minute, hour,\n day-of-month, month, day-of-week), evaluated in `time_zone` — for\n example \"0 9 * * *\" for daily at 09:00. The shorthands @hourly,\n @daily, @weekly, @monthly, and @yearly are also accepted. Timezone\n prefixes (CRON_TZ=/TZ=), @every intervals, 6- or 7-field forms, and\n trailing comments are rejected.\n\n @internal\n DD-009 C-4: deliberately narrower than the Temporal server's cron\n grammar. CRON_TZ=/TZ= would carry a second timezone authority beside\n `time_zone` (Temporal itself rejects the combination at\n schedule-create time — accepting it here would store a spec that\n detonates when the clock lands); @every compiles to an interval spec\n and bypasses the calendar model; the 7-field form has a seconds\n column. The 5-field restriction is a structural one-minute firing\n floor with zero cron parsing. The configurable interval floor\n (stigmer.schedules.limits, DD-008 D7) lands with the clock, enforced\n against Temporal's own computed fire times. Widening this grammar\n later is additive; narrowing it would break stored specs.",
+      "description": "Cron expression in the classic 5-field form (minute, hour,\n day-of-month, month, day-of-week), evaluated in `time_zone` — for\n example \"0 9 * * *\" for daily at 09:00. The shorthands @hourly,\n @daily, @weekly, @monthly, and @yearly are also accepted. Timezone\n prefixes (CRON_TZ=/TZ=), @every intervals, 6- or 7-field forms, and\n trailing comments are rejected.",
       "required": false,
       "validation": {
         "minLength": 1
@@ -25,7 +25,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "IANA time zone the cron is evaluated in, e.g. \"Asia/Kolkata\".\n\n @internal\n The single timezone authority (DD-009 C-4): validation refuses cron\n strings carrying their own CRON_TZ=/TZ= prefix. Zone-name validity is\n checked against the platform tz database in both editions\n (time.LoadLocation / ZoneId.of); DST evaluation semantics are the\n Temporal server's concern (DD-008 D2), identical for both editions.",
+      "description": "IANA time zone the cron is evaluated in, e.g. \"Asia/Kolkata\".",
       "required": false,
       "validation": {
         "minLength": 1
@@ -38,7 +38,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "Whether the schedule fires. Off disables firing without deleting\n the schedule or its history.\n\n @internal\n The owner's switch — \"disabled\", deliberately distinct from\n \"paused\", the platform's failure-streak latch recorded on\n status.paused_reason and never on spec (DD-008 D7, DD-013 D-E:\n the two words name two levers with two writers). Sibling\n bool shape (AgentShareSpec/AgentChannelSpec.enabled): manifests set\n `enabled: true` explicitly, no edition defaults it, and no status\n field echoes it (DD-009 pinned behaviors — consoles derive\n owner-disabled state from spec on read).",
+      "description": "Whether the schedule fires. Off disables firing without deleting\n the schedule or its history.",
       "required": false
     },
     {
@@ -49,7 +49,7 @@
         "kind": "message",
         "messageType": "AgentInvocation"
       },
-      "description": "Run an agent with a configured prompt at each fire.\n\n @internal\n The shared owner-settable run shape (DD-018 D-3), replacing the\n deleted schedule-only AgentTarget/ScheduleRunConfig pair.\n Schedule-specific invariants enforced in create/update/apply\n handlers of both editions, never on the shared message:\n agent_ref.org must equal metadata.org (the schedule-owning org\n is the billing org for every fire; creation requires can_edit\n on the referenced agent, DD-009 C-6); workspace sources must be\n git_repo (no client is connected at fire time to serve a\n local_path); agent_ref is immutable across updates while\n harness, model, workspace, message, and environments stay\n mutable — every fire builds a fresh session, so nothing\n session-immutable is ever mutated mid-flight. environment_refs\n resolution is unchanged from DD-017 D-2/D-4: claim-driven in\n the execution-context step, org-shared environments only,\n LOWEST merge priority, enforcement solely at runtime\n resolution. run_config clamping is unchanged from DD-017 D-3:\n per-field min(owner, platform) in the run starter.",
+      "description": "Run an agent with a configured prompt at each fire.",
       "required": false,
       "oneofGroup": "target"
     }

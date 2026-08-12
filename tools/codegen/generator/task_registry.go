@@ -567,13 +567,19 @@ func toDisplayName(snakeCase string) string {
 	return strings.Join(parts, " ")
 }
 
+// cleanDescription flattens a proto description into a single registry line:
+// @since annotation lines are dropped and whitespace is collapsed.
+// @internal sections never reach this generator: proto2schema strips them at
+// extraction, the single owner of that convention (oss#327). The previous
+// per-line @internal filter here dropped only the marker line and shipped
+// the internal content into the registry — the exact divergence that fix
+// removed.
 func cleanDescription(desc string) string {
-	// Remove @internal annotations and leading whitespace from proto comments
 	lines := strings.Split(desc, "\n")
 	var cleaned []string
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "@internal") || strings.HasPrefix(trimmed, "@since") {
+		if strings.HasPrefix(trimmed, "@since") {
 			continue
 		}
 		cleaned = append(cleaned, trimmed)

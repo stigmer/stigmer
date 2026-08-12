@@ -1061,36 +1061,50 @@ func extractStringFromUnknownFields(raw []byte, targetFieldNumber protowire.Numb
 	return ""
 }
 
-// extractComments extracts documentation from a message descriptor
+// stripInternalSection reduces a raw proto leading comment to its SDK-facing
+// content: everything from the @internal marker line onward is discarded and
+// the result is whitespace-trimmed.
+//
+// Convention: a comment line that is exactly "@internal" (ignoring
+// surrounding whitespace) marks the start of proto-source-only content —
+// implementation notes, authorization details, storage strategy. That text
+// is for developers reading the proto files and must never reach a
+// generated surface: SDK type docs, MCP tool schemas (read by LLMs), the
+// task registry, or the docs site.
+//
+// This function is the single owner of that convention. It runs here, at
+// the only point where proto comments enter the codegen toolchain, so every
+// schema consumer — current and future — receives SDK-facing text only and
+// no generator needs to know the marker exists (oss#327). The marker must
+// be a full line: inline occurrences of "@internal" inside prose are left
+// alone, matching how every proto in apis/ uses the convention.
+func stripInternalSection(comment string) string {
+	lines := strings.Split(comment, "\n")
+	for i, line := range lines {
+		if strings.TrimSpace(line) == "@internal" {
+			lines = lines[:i]
+			break
+		}
+	}
+	return strings.TrimSpace(strings.Join(lines, "\n"))
+}
+
+// extractComments extracts SDK-facing documentation from a message descriptor.
 func extractComments(msg *desc.MessageDescriptor) string {
 	sourceInfo := msg.GetSourceInfo()
 	if sourceInfo == nil {
 		return ""
 	}
-
-	comments := sourceInfo.GetLeadingComments()
-	if comments != "" {
-		// Clean up comments (remove leading/trailing whitespace)
-		comments = strings.TrimSpace(comments)
-	}
-
-	return comments
+	return stripInternalSection(sourceInfo.GetLeadingComments())
 }
 
-// extractFieldComments extracts documentation from a field descriptor
+// extractFieldComments extracts SDK-facing documentation from a field descriptor.
 func extractFieldComments(field *desc.FieldDescriptor) string {
 	sourceInfo := field.GetSourceInfo()
 	if sourceInfo == nil {
 		return ""
 	}
-
-	comments := sourceInfo.GetLeadingComments()
-	if comments != "" {
-		// Clean up comments (remove leading/trailing whitespace)
-		comments = strings.TrimSpace(comments)
-	}
-
-	return comments
+	return stripInternalSection(sourceInfo.GetLeadingComments())
 }
 
 // extractTaskKind extracts task kind from message name
@@ -1625,7 +1639,7 @@ func parseEnumSchema(enumDesc *desc.EnumDescriptor) EnumSchema {
 		}
 		desc := ""
 		if si := v.GetSourceInfo(); si != nil {
-			desc = strings.TrimSpace(si.GetLeadingComments())
+			desc = stripInternalSection(si.GetLeadingComments())
 		}
 		values = append(values, EnumValueSchema{
 			Name:        v.GetName(),
@@ -1636,7 +1650,7 @@ func parseEnumSchema(enumDesc *desc.EnumDescriptor) EnumSchema {
 
 	enumComment := ""
 	if si := enumDesc.GetSourceInfo(); si != nil {
-		enumComment = strings.TrimSpace(si.GetLeadingComments())
+		enumComment = stripInternalSection(si.GetLeadingComments())
 	}
 
 	return EnumSchema{
@@ -1919,5 +1933,5 @@ func extractServiceMethodComments(method *desc.MethodDescriptor) string {
 	if sourceInfo == nil {
 		return ""
 	}
-	return strings.TrimSpace(sourceInfo.GetLeadingComments())
+	return stripInternalSection(sourceInfo.GetLeadingComments())
 }

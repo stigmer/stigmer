@@ -1,6 +1,6 @@
 {
   "name": "ConversationCatchup",
-  "description": "ConversationCatchup carries the channel-conversation events an agent\n missed, composed fresh for one execution.\n\n @internal\n Present on EVERY channel turn — even with an empty digest — so window_end\n can advance the conversation's agent_witnessed_through watermark when the\n turn settles (channel-conversations DD-006 as amended by T03 Sitting 3,\n A21). Content is composed in the cloud; presentation (preamble, framing,\n prompt placement) is owned by the OSS runner's shared/conversation-catchup\n module — the DD-013 content/presentation split.",
+  "description": "ConversationCatchup carries the channel-conversation events an agent\n missed, composed fresh for one execution.",
   "protoType": "ai.stigmer.agentic.agentexecution.v1.ConversationCatchup",
   "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/spec.proto",
   "fields": [
@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Plain-text digest of what the agent missed, oldest first; empty when\n nothing was missed.\n\n @internal\n Bare content lines (\"Customer: ...\" / \"Teammate: ...\" / \"System: ...\" /\n \"You escalated: ...\" / \"Note: ...\"), no model-facing framing — the\n runner owns the preamble and the prompt placement. Blank means \"inject\n nothing\" (the shared-module blank-is-absent convention).",
+      "description": "Plain-text digest of what the agent missed, oldest first; empty when\n nothing was missed.",
       "required": false
     },
     {
@@ -21,7 +21,7 @@
       "type": {
         "kind": "timestamp"
       },
-      "description": "The timeline instant this digest conveys through.\n\n @internal\n Cloud bookkeeping, NEVER read by the runner. The delivery settle path\n advances the conversation's agent_witnessed_through watermark to this\n instant when the execution COMPLETED and the settle won (DD-007 D-b as\n sharpened by A26). Set on every channel turn, digest or not (A21); its\n value is the broker's compose instant, which is strictly later than the\n turn's own inbound message (A24).",
+      "description": "The timeline instant this digest conveys through.",
       "required": false
     }
   ]

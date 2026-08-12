@@ -6,6 +6,74 @@ import (
 	"google.golang.org/protobuf/encoding/protowire"
 )
 
+func TestStripInternalSection(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			"no marker passes through trimmed",
+			"  Resource slug (unique within org).\n Format: lowercase alphanumeric.  ",
+			"Resource slug (unique within org).\n Format: lowercase alphanumeric.",
+		},
+		{
+			"marker mid-text keeps only the SDK-facing prefix",
+			"When true the value is treated as a secret.\n\n@internal\nWhen is_secret is true the value is encrypted at rest.",
+			"When true the value is treated as a secret.",
+		},
+		{
+			"marker on the first line yields empty",
+			"@internal\nAuthorization: requires can_edit on the resource.",
+			"",
+		},
+		{
+			"whitespace-padded marker line still counts",
+			"Public text.\n   @internal   \nHandler strategy notes.",
+			"Public text.",
+		},
+		{
+			"multi-paragraph SDK prefix is preserved byte-for-byte",
+			"First paragraph.\n\nSecond paragraph with detail.\n\n@internal\nInternal only.",
+			"First paragraph.\n\nSecond paragraph with detail.",
+		},
+		{
+			"truncates at the first of several markers",
+			"Public.\n@internal\nInternal one.\n@internal\nInternal two.",
+			"Public.",
+		},
+		{
+			"inline @internal inside prose is not a marker",
+			"See the @internal tag convention for details.",
+			"See the @internal tag convention for details.",
+		},
+		{
+			"line with trailing text after @internal is not a marker",
+			"Public text.\n@internal note that stays\nMore public text.",
+			"Public text.\n@internal note that stays\nMore public text.",
+		},
+		{
+			"marker only yields empty",
+			"@internal",
+			"",
+		},
+		{
+			"empty input",
+			"",
+			"",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := stripInternalSection(tc.input)
+			if got != tc.expected {
+				t.Errorf("stripInternalSection(%q) = %q, want %q", tc.input, got, tc.expected)
+			}
+		})
+	}
+}
+
 func TestExtractTaskKind(t *testing.T) {
 	tests := []struct {
 		name     string

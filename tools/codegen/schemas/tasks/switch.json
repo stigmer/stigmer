@@ -1,7 +1,7 @@
 {
   "name": "SwitchTaskConfig",
   "kind": "SWITCH",
-  "description": "SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally.\n\n @internal\n YAML Example:\n   - taskName:\n       switch:\n         - case1:\n             when: ${ $context.value \u003e 5 }\n             then: highValueTask\n         - defaultCase:\n             then: unknownTask\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 3",
+  "description": "SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally.",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/switch.proto",
   "discriminatorValue": "switch_case",

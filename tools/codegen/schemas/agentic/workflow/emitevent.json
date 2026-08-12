@@ -1,7 +1,7 @@
 {
   "name": "EmitEventSpec",
   "kind": "EMIT_EVENT_SPEC",
-  "description": "EmitEventSpec defines the CloudEvents envelope for an event to be emitted.\n\n @internal\n Follows CloudEvents semantics (type, source, subject, data) because:\n 1. CloudEvents is a graduated CNCF project with broad ecosystem support\n 2. The CNCF Serverless Workflow spec already uses CloudEvents\n 3. It provides a standard envelope that external consumers can parse\n\n Runtime-generated fields not authored here:\n - id: unique event identifier (UUID, generated at emit time)\n - specversion: always \"1.0\"\n - time: ISO 8601 timestamp of emission\n - datacontenttype: always \"application/json\" (since data is a Struct)\n\n The runtime (T13) decides how events are delivered: Temporal signals to\n other workflows, message queues, webhooks, or event buses. The proto\n carries the event specification; delivery is a runtime concern.\n\n @since T03 (P0 New Task Types)",
+  "description": "EmitEventSpec defines the CloudEvents envelope for an event to be emitted.",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.EmitEventSpec",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/emit_event.proto",
   "fields": [

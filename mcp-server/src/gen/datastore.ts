@@ -12,7 +12,7 @@ import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/ap
 import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import { z } from "zod";
 
-/** DatastoreSpec declares typed record collections with constraints and role-aware access grants. @internal The manifest is authoritative for structure, never for living data: schema changes sync on apply (additive-plus change matrix, gating), and records enter exclusively through the record RPCs — there is no seed path (DD-010 SD-5 removed seed_records; console, agent tools, and import scripts are the population surfaces). Structural limits here are v1 guardrails — raising a max_items later is a non-breaking change. Max datastores per org (25) cannot be expressed on this message; it is a domain validation constant in the create pipelines. */
+/** DatastoreSpec declares typed record collections with constraints and role-aware access grants. */
 export const DatastoreInputShape = {
   name: z.string().describe("Human-readable name of the resource."),
   slug: z.string().optional().describe("URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted."),
@@ -21,9 +21,9 @@ export const DatastoreInputShape = {
   labels: z.record(z.string()).optional().describe("Key-value labels for organization and filtering."),
   tags: z.array(z.string()).optional().describe("Tags for categorization and discovery."),
   description: z.string().optional().describe("Human-readable description of what this datastore holds."),
-  timezone: z.string().optional().describe("IANA timezone (e.g. 'Asia/Kolkata') for constraint evaluation. Bound as the constant 'tz' in check and exists constraint expressions. Optional; when unset, expressions that reference 'tz' are rejected at apply time. @internal IANA-name validity is domain validation (the proto layer cannot carry a timezone database)."),
+  timezone: z.string().optional().describe("IANA timezone (e.g. 'Asia/Kolkata') for constraint evaluation. Bound as the constant 'tz' in check and exists constraint expressions. Optional; when unset, expressions that reference 'tz' are rejected at apply time."),
   authorization: z.lazy(() => DatastoreAuthorizationInputSchema).optional().describe("Record-layer authorization: roles, subject bindings, and the default role for unbound callers."),
-  collections: z.array(z.lazy(() => CollectionDeclarationInputSchema)).optional().describe("Record collections declared by this datastore. @internal Collection-name uniqueness within the datastore is domain validation (protovalidate CEL has no portable uniqueness check over message lists)."),
+  collections: z.array(z.lazy(() => CollectionDeclarationInputSchema)).optional().describe("Record collections declared by this datastore."),
 } as const;
 
 export const DatastoreInputSchema = z.object(DatastoreInputShape);
@@ -36,20 +36,20 @@ type DatastoreRoleInput = z.infer<typeof DatastoreRoleInputSchema>;
 
 const ChannelSenderSubjectInputSchema = z.object({
   sender_kind: z.string().describe("Sender identity namespace. Must be a namespace the platform's channel brokers can stamp — today 'whatsapp_phone'; unrecognized namespaces are refused at apply time (they could never match)."),
-  value: z.string().describe("Sender identity value within the namespace, in the exact wire shape the channel broker stamps. For 'whatsapp_phone' this is Meta's wa_id: DIGITS ONLY, no '+', no separators (e.g. '919800000001' — NOT the '+'-prefixed E.164 form). Apply-time validation refuses any other shape, because subject matching is exact string equality and a mis-shaped value would bind and silently never match. @internal Bearer-adjacent: never logged raw, never filterable, never echoed into validation error strings, and only ever compared against broker-stamped session metadata."),
+  value: z.string().describe("Sender identity value within the namespace, in the exact wire shape the channel broker stamps. For 'whatsapp_phone' this is Meta's wa_id: DIGITS ONLY, no '+', no separators (e.g. '919800000001' — NOT the '+'-prefixed E.164 form). Apply-time validation refuses any other shape, because subject matching is exact string equality and a mis-shaped value would bind and silently never match."),
 });
 type ChannelSenderSubjectInput = z.infer<typeof ChannelSenderSubjectInputSchema>;
 
 const ApiResourceRefInputSchema = z.object({
   kind: z.string().describe("Type of the API resource being referenced This should be the resource kind as defined in ApiResourceKind enum. Examples: 'identity_account', 'team', 'organization', 'environment', 'cloud_resource', 'service', etc."),
   id: z.string().describe("Unique identifier of the resource This is the resource's ID field (e.g., ia-01HQUSER123, tm-01HQTEAM456)"),
-  relation: z.string().optional().describe("Optional relation qualifier for the resource reference. Used when the reference needs additional context about the relationship. Primary use case: For team principals, this specifies the relation of the user to the team (e.g., 'member', 'admin'). Example: principal { kind: 'team', id: 'tm-123', relation: 'member' } means 'members of team tm-123' This field qualifies HOW the principal relates to this resource reference, NOT the permission being granted (that's IamPolicySpec.relation). @internal In OpenFGA tuple notation: team:tm-123#member (as the subject of the tuple)"),
+  relation: z.string().optional().describe("Optional relation qualifier for the resource reference. Used when the reference needs additional context about the relationship. Primary use case: For team principals, this specifies the relation of the user to the team (e.g., 'member', 'admin'). Example: principal { kind: 'team', id: 'tm-123', relation: 'member' } means 'members of team tm-123' This field qualifies HOW the principal relates to this resource reference, NOT the permission being granted (that's IamPolicySpec.relation)."),
 });
 type ApiResourceRefInput = z.infer<typeof ApiResourceRefInputSchema>;
 
 const DatastoreSubjectInputSchema = z.object({
   channel_sender: z.lazy(() => ChannelSenderSubjectInputSchema).optional().describe("Channel sender identity, matched against the session metadata stamped by the channel broker."),
-  principal: z.lazy(() => ApiResourceRefInputSchema).optional().describe("Platform principal (an identity account today; teams later without schema change). @internal Matched by exact kind+id equality against the caller-derived subject; the relation qualifier is excluded from identity and rejected at apply. The id is the account id, never a slug or email — apply-time validation refuses unresolvable values with a membership-gated did-you-mean instead of letting them bind nothing silently (dont-dos/001)."),
+  principal: z.lazy(() => ApiResourceRefInputSchema).optional().describe("Platform principal (an identity account today; teams later without schema change)."),
 });
 type DatastoreSubjectInput = z.infer<typeof DatastoreSubjectInputSchema>;
 
@@ -61,7 +61,7 @@ type DatastoreRoleBindingInput = z.infer<typeof DatastoreRoleBindingInputSchema>
 
 const DatastoreAuthorizationInputSchema = z.object({
   roles: z.array(z.lazy(() => DatastoreRoleInputSchema)).optional().describe("Role names referenced by bindings and grants (e.g. 'admin', 'patient')."),
-  bindings: z.array(z.lazy(() => DatastoreRoleBindingInputSchema)).optional().describe("Subject-to-role bindings. @internal Role-reference integrity (every binding names a declared role) is domain validation."),
+  bindings: z.array(z.lazy(() => DatastoreRoleBindingInputSchema)).optional().describe("Subject-to-role bindings."),
   default_role: z.string().optional().describe("Role an unbound caller resolves to. Applies to channel senders with no binding and platform principals with no binding. When empty, unbound callers are denied every verb."),
 });
 type DatastoreAuthorizationInput = z.infer<typeof DatastoreAuthorizationInputSchema>;
@@ -70,7 +70,7 @@ const FieldDeclarationInputSchema = z.object({
   name: z.string().describe("Field name, unique within the collection. Format: lowercase snake_case. The record envelope's system field names (id, created_at, updated_at, created_by), 'org', and 'partition' are reserved."),
   type: z.string().describe("Value type for this field. Allowed values: string, integer, number, bool, timestamp, date, time, json."),
   required: z.boolean().optional().describe("Whether a value must be present on every record. Absent optional fields evaluate as null in constraint expressions."),
-  default: z.unknown().optional().describe("Default value applied when the field is absent on insert. @internal Type compatibility between the default and the declared type is domain validation (google.protobuf.Value is untyped here)."),
+  default: z.unknown().optional().describe("Default value applied when the field is absent on insert."),
   enum_values: z.array(z.string()).optional().describe("Allowed values for string fields. Declaring enum_values on a non-string field is rejected."),
   description: z.string().optional().describe("Human-readable description, surfaced to agents via describe_datastore."),
 });
@@ -85,7 +85,7 @@ type UniqueWhereInput = z.infer<typeof UniqueWhereInputSchema>;
 const UniqueConstraintInputSchema = z.object({
   name: z.string().describe("Constraint name, unique within the collection."),
   fields: z.array(z.string()).optional().describe("Declared fields whose combined values must be unique."),
-  where: z.lazy(() => UniqueWhereInputSchema).optional().describe("Limits the constraint to records matching this condition (e.g. only 'status == 'confirmed'' bookings must be unique per slot). @internal Structured, never an expression — it must compile to the substrate's partial-index dialect in both editions."),
+  where: z.lazy(() => UniqueWhereInputSchema).optional().describe("Limits the constraint to records matching this condition (e.g. only 'status == 'confirmed'' bookings must be unique per slot)."),
   message: z.string().describe("Error message returned on violation, written to be relayed to an end user by an agent (e.g. 'that slot is already booked')."),
 });
 type UniqueConstraintInput = z.infer<typeof UniqueConstraintInputSchema>;
@@ -111,7 +111,7 @@ const DatastoreGrantInputSchema = z.object({
   role: z.string().describe("Name of a declared role."),
   verbs: z.array(z.string()).optional().describe("Verbs granted to the role on this collection. Allowed values: read, insert, update, delete."),
   scope: z.string().optional().describe("Row scope of the grant. Defaults to all records. 'own' limits update and delete (and read) to records whose server-stamped created_by matches the caller. Allowed values: all, own."),
-  read_fields: z.array(z.string()).optional().describe("Field allowlist for the read verb: when set, reads by this role return only these fields, and filter conditions and order_by may reference only these fields. Empty means every field is readable. Entries name declared fields of the collection, or 'created_by' to expose the attribution subject. The system fields id, created_at, and updated_at are always readable. @internal The column-level GRANT SELECT of the record layer, closing the scope-all-reads-carry-PII residual (dont-dos/002): every record RPC response — find results AND write echoes — is projected to the caller's read-grant field set, and created_by is included only when listed (for channel senders it is the phone number, the most direct PII in the envelope). A caller with no read grant at all receives envelopes with id and timestamps only (write-only access). Empty = unrestricted is forced by proto3 repeated-field semantics (no presence) and mirrors 'scope' unset = all. Requires 'read' among the grant's verbs — read_fields on a write-only grant is declared intent with no effect and is refused at apply, same posture as the binding relation qualifier. Entry-to-declared-field resolution is domain validation (both editions, byte-identical messages)."),
+  read_fields: z.array(z.string()).optional().describe("Field allowlist for the read verb: when set, reads by this role return only these fields, and filter conditions and order_by may reference only these fields. Empty means every field is readable. Entries name declared fields of the collection, or 'created_by' to expose the attribution subject. The system fields id, created_at, and updated_at are always readable."),
 });
 type DatastoreGrantInput = z.infer<typeof DatastoreGrantInputSchema>;
 

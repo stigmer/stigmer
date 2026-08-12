@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Create or update an identity provider.\n\n If the resource does not exist, creates a new identity provider.\n If the resource exists, updates the existing identity provider.\n\n @internal\n The authorization and state-operation are determined depending on whether the\n identity provider is going to be created or updated, which is determined as\n part of the request execution."
+          "description": "Create or update an identity provider.\n\n If the resource does not exist, creates a new identity provider.\n If the resource exists, updates the existing identity provider."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Create an identity provider.\n\n The creator's organization owns the identity provider.\n\n @internal\n Authorization: Requires can_create_idp permission in the organization."
+          "description": "Create an identity provider.\n\n The creator's organization owns the identity provider."
         },
         {
           "name": "Update",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Update an existing identity provider.\n\n @internal\n Authorization: Requires can_edit permission on the identity provider resource."
+          "description": "Update an existing identity provider."
         },
         {
           "name": "Delete",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Delete an identity provider.\n\n Deletion is blocked if any platform-managed organizations reference this\n identity provider.\n\n @internal\n Authorization: Requires can_delete permission on the identity provider resource."
+          "description": "Delete an identity provider.\n\n Deletion is blocked if any platform-managed organizations reference this\n identity provider."
         }
       ]
     },
@@ -53,7 +53,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Get an identity provider by its unique identifier.\n\n @internal\n Authorization: Requires can_view permission on the identity provider resource."
+          "description": "Get an identity provider by its unique identifier."
         },
         {
           "name": "GetByReference",
@@ -61,7 +61,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Get an identity provider by its organization-scoped reference (org/slug).\n\n Resolves a human-readable reference like \"acme/planton\" to the full\n IdentityProvider resource.\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions."
+          "description": "Get an identity provider by its organization-scoped reference (org/slug).\n\n Resolves a human-readable reference like \"acme/planton\" to the full\n IdentityProvider resource."
         },
         {
           "name": "ListByOrg",
@@ -69,7 +69,7 @@
           "inputFullType": "ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput",
           "outputType": "IdentityProviders",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProviders",
-          "description": "List all identity providers belonging to an organization.\n\n Returns every IdentityProvider whose metadata.org matches the input org.\n Typically a small set (1-3 per org), so results are not paginated.\n\n @internal\n Authorization: Requires can_view permission on the organization resource."
+          "description": "List all identity providers belonging to an organization.\n\n Returns every IdentityProvider whose metadata.org matches the input org.\n Typically a small set (1-3 per org), so results are not paginated."
         },
         {
           "name": "GetSsoProvider",
@@ -77,7 +77,7 @@
           "inputFullType": "ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup",
           "outputType": "SsoProviderInfo",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.SsoProviderInfo",
-          "description": "Look up the SSO identity provider for an organization.\n\n Returns the SSO-relevant projection (display name, OIDC client ID, issuer)\n of the IdentityProvider where is_sso_provider is true for the given org.\n Returns NOT_FOUND if the organization has no SSO provider configured.\n\n This endpoint is called by the web app's login page before the user has\n authenticated, so it requires no authorization. The response intentionally\n omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).\n\n @internal\n Authorization: none — unauthenticated, public endpoint for login page rendering."
+          "description": "Look up the SSO identity provider for an organization.\n\n Returns the SSO-relevant projection (display name, OIDC client ID, issuer)\n of the IdentityProvider where is_sso_provider is true for the given org.\n Returns NOT_FOUND if the organization has no SSO provider configured.\n\n This endpoint is called by the web app's login page before the user has\n authenticated, so it requires no authorization. The response intentionally\n omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint)."
         }
       ]
     }
@@ -444,7 +444,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -491,7 +491,7 @@
         {
           "name": "participant",
           "number": 5,
-          "description": "Conversation participant on an agent channel: may read the channel's\n conversations and speak to its customers as the business (reply, take\n over, hand back, clear attention). Not a channel configurator.\n\n @internal\n channel-conversations DD-010. Grantable only on agent_channel — the\n second kind-scoped role after organization's admin/member; the\n grantable_roles subsetting is the mechanism, not a new one. Team\n usersets ([team#member]) are the named widening the day a team FGA\n type lands."
+          "description": "Conversation participant on an agent channel: may read the channel's\n conversations and speak to its customers as the business (reply, take\n over, hand back, clear attention). Not a channel configurator."
         }
       ]
     }

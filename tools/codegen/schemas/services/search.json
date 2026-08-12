@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.search.v1.SearchRequest",
           "outputType": "SearchResponse",
           "outputFullType": "ai.stigmer.search.v1.SearchResponse",
-          "description": "Search resources across one or more kinds.\n\n This is the unified entry point for list, search, and discover operations.\n The behavior is determined by the combination of request parameters:\n\n | Operation  | kinds   | query | org    | Behavior                               |\n |------------|---------|-------|--------|----------------------------------------|\n | List       | [X]     | \"\"    | \"acme\" | All X in org, sorted by created_at     |\n | List All   | [X]     | \"\"    | \"\"     | All accessible X, sorted by created_at |\n | Search     | [X]     | \"...\" | \"\"     | Search X by query, sorted by relevance |\n | Search Org | [X]     | \"...\" | \"acme\" | Search X in org, sorted by relevance   |\n | Discover   | []      | \"...\" | \"\"     | Search all kinds, sorted by relevance  |\n\n Sort Order:\n - With query: Results sorted by relevance score (descending)\n - Without query: Results sorted by created_at (descending, newer first)\n\n Pagination:\n Use page.num (1-indexed) and page.size to paginate results.\n Response includes total_count and total_pages for pagination controls.\n\n @internal\n Authorization: Returns only resources the caller has can_view permission on.\n The handler queries FGA per kind to get authorized IDs, then applies filters."
+          "description": "Search resources across one or more kinds.\n\n This is the unified entry point for list, search, and discover operations.\n The behavior is determined by the combination of request parameters:\n\n | Operation  | kinds   | query | org    | Behavior                               |\n |------------|---------|-------|--------|----------------------------------------|\n | List       | [X]     | \"\"    | \"acme\" | All X in org, sorted by created_at     |\n | List All   | [X]     | \"\"    | \"\"     | All accessible X, sorted by created_at |\n | Search     | [X]     | \"...\" | \"\"     | Search X by query, sorted by relevance |\n | Search Org | [X]     | \"...\" | \"acme\" | Search X in org, sorted by relevance   |\n | Discover   | []      | \"...\" | \"\"     | Search all kinds, sorted by relevance  |\n\n Sort Order:\n - With query: Results sorted by relevance score (descending)\n - Without query: Results sorted by created_at (descending, newer first)\n\n Pagination:\n Use page.num (1-indexed) and page.size to paginate results.\n Response includes total_count and total_pages for pagination controls."
         }
       ]
     }
@@ -22,7 +22,7 @@
   "methodTypes": [
     {
       "name": "SearchRequest",
-      "description": "SearchRequest specifies criteria for searching API resources.\n\n This single request type supports three use cases:\n - List: Return all accessible resources of specified kind(s)\n - Search: Find resources matching a text query\n - Discover: Search across all resource kinds\n\n @internal\n Examples:\n   List agents in org:         {kinds: [agent], org: \"acme\", query: \"\"}\n   Search agents by text:      {kinds: [agent], query: \"code review\"}\n   Discover all:               {kinds: [], query: \"kubernetes\"}\n   Search multiple kinds:      {kinds: [agent, skill], query: \"security\", org: \"acme\"}",
+      "description": "SearchRequest specifies criteria for searching API resources.\n\n This single request type supports three use cases:\n - List: Return all accessible resources of specified kind(s)\n - Search: Find resources matching a text query\n - Discover: Search across all resource kinds",
       "protoType": "ai.stigmer.search.v1.SearchRequest",
       "protoFile": "apis/ai/stigmer/search/v1/io.proto",
       "fields": [
@@ -90,7 +90,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization to scope the search.\n\n Format: lowercase alphanumeric with hyphens (e.g., \"acme\", \"stigmer\").\n\n Behavior:\n - Empty: Search all organizations the caller has access to\n - Non-empty: Search only within the specified organization\n\n @internal\n Caller must have access to at least one resource in the org.",
+          "description": "Organization to scope the search.\n\n Format: lowercase alphanumeric with hyphens (e.g., \"acme\", \"stigmer\").\n\n Behavior:\n - Empty: Search all organizations the caller has access to\n - Non-empty: Search only within the specified organization",
           "required": false,
           "validation": {
             "maxLength": 63,
@@ -345,7 +345,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",

@@ -3,7 +3,7 @@
   "additionalProperties": false,
   "properties": {
     "agent": {
-      "description": "Agent reference in \"org/slug\" or \"slug\" format. - \"slug\" only: uses the workflow's organization - \"org/slug\": explicit organization reference Examples: \"code-reviewer\", \"stigmer/code-reviewer\", \"acme/data-analyst\" Required field. The DSL string form of AgentInvocation.agent_ref. The structured ApiResourceReference shape is deliberately not used here: the authoring surface is YAML written by hand, and \"org/slug\" is its idiom.",
+      "description": "Agent reference in \"org/slug\" or \"slug\" format. - \"slug\" only: uses the workflow's organization - \"org/slug\": explicit organization reference Examples: \"code-reviewer\", \"stigmer/code-reviewer\", \"acme/data-analyst\" Required field.",
       "maxLength": 127,
       "minLength": 1,
       "type": "string"
@@ -16,7 +16,7 @@
       "type": "object"
     },
     "environment_refs": {
-      "description": "References to Environment resources whose values are provided to the child runs this task creates. This is how a tool-using agent becomes runnable from a workflow: bind an org-shared environment holding the needed credentials, and the child runs receive its values at runtime. The agent and its default instance stay untouched. The AgentShare/AgentChannel/Schedule environment_refs lineage. Never carried in the execution create request and never emitted into execution YAML: CreateExecutionContextStep resolves them from the Workflow row, gated on the trusted runner caller identity and keyed by parent_workflow_id + task label — prepended at LOWEST merge priority (instance refs and runtime_env override on key conflicts). No write-time existence or visibility check: enforcement lives solely at runtime resolution, which fails closed. When kind is unset in YAML, the DSL normalizer defaults it to environment.",
+      "description": "References to Environment resources whose values are provided to the child runs this task creates. This is how a tool-using agent becomes runnable from a workflow: bind an org-shared environment holding the needed credentials, and the child runs receive its values at runtime. The agent and its default instance stay untouched.",
       "items": {
         "additionalProperties": false,
         "properties": {
@@ -128,14 +128,14 @@
     },
     "run_config": {
       "additionalProperties": false,
-      "description": "Per-call model choice and run bounds. Unset fields inherit the platform defaults. The shared RunConfig (DD-018 D-2) — the same message schedules embed, so the run-bound vocabulary cannot drift between triggering surfaces. Semantics at the workflow surface: model_name replaces the agent's default outright; max_cost_usd maps to ExecutionConfig.max_cost_usd and is enforced by the runner's harness-generic cost guards; max_tool_rounds maps to ExecutionConfig.max_tool_rounds (native harness only — inert on cursor, whose sole bound is cost). No platform clamp profile is applied at this surface yet: per the RunConfig contract, an unset platform cap means the owner value stands.",
+      "description": "Per-call model choice and run bounds. Unset fields inherit the platform defaults.",
       "properties": {
         "max_cost_usd": {
           "description": "Maximum estimated cost in USD per run. The surface's platform execution profile caps this value; the lower bound wins.",
           "type": "number"
         },
         "max_tool_rounds": {
-          "description": "Maximum model-to-tools reasoning cycles per run. The surface's platform execution profile caps this value; the lower bound wins. An implementation knob, not a user concept: API-reachable for operators, deliberately absent from creation forms (DD-018 D-5).",
+          "description": "Maximum model-to-tools reasoning cycles per run. The surface's platform execution profile caps this value; the lower bound wins.",
           "type": "integer"
         },
         "model_name": {
@@ -154,7 +154,7 @@
       "type": "object"
     },
     "workspace_entries": {
-      "description": "Workspace the child run's session operates on. Empty means no workspace. The shared WorkspaceEntry type (AgentInvocation correspondence). Maps onto SessionSpec.workspace_entries of the session each call creates. Surface constraint, enforced in workflow validation (both editions): sources must be git_repo — no client is connected to serve a local_path when a workflow task fires. Credentials follow DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged environment; for private repos the supported contract is an org-visibility Environment holding GITHUB_TOKEN bound via environment_refs. Public repos need no token.",
+      "description": "Workspace the child run's session operates on. Empty means no workspace.",
       "items": {
         "additionalProperties": false,
         "properties": {
@@ -180,7 +180,7 @@
                     "type": "string"
                   },
                   "depth": {
-                    "description": "Number of commits to include in the clone history. When not set, defaults to a shallow clone with depth 1. Set to 0 for a full clone with complete history. Uses proto3 optional to distinguish \"not set\" from \"set to 0.\" Absent: shallow clone depth 1; 0: full clone; N \u003e 0: shallow clone depth N.",
+                    "description": "Number of commits to include in the clone history. When not set, defaults to a shallow clone with depth 1. Set to 0 for a full clone with complete history.",
                     "type": "integer"
                   },
                   "url": {
@@ -188,7 +188,7 @@
                     "type": "string"
                   },
                   "write_back_mode": {
-                    "description": "Controls whether the platform creates a branch and pull request from the agent's file changes. This is a platform-level workflow, not an agent-level decision. The agent focuses on making code changes; the platform packages them incrementally — the PR appears the moment the first file is written and the diff grows in real time as the agent works. Requires GITHUB_TOKEN in the execution environment. If credentials are not available, the write-back is silently skipped regardless of this setting. Default (UNSPECIFIED): platform decides. Currently defaults to write-back enabled when git credentials are available.",
+                    "description": "Controls whether the platform creates a branch and pull request from the agent's file changes.",
                     "enum": [
                       "GIT_WRITE_BACK_BRANCH_AND_PR"
                     ],

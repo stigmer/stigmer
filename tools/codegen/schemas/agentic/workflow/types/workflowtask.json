@@ -1,6 +1,6 @@
 {
   "name": "WorkflowTask",
-  "description": "WorkflowTask represents a single executable step in a workflow.\n\n @internal\n Uses the \"kind + Struct\" pattern (like CloudResource in Planton):\n - `kind` determines the task type (set_vars, http_call, switch_case, etc.)\n - `task_config` contains task-specific configuration as dynamic JSON\n - Backend unmarshals `task_config` to the appropriate Go struct based on `kind`\n\n Example (HTTP Call):\n {\n   \"name\": \"fetchData\",\n   \"kind\": \"http_call\",\n   \"task_config\": {\n     \"method\": \"GET\",\n     \"endpoint\": {\"uri\": \"https://api.example.com/data\"},\n     \"headers\": {\"Authorization\": \"Bearer ${TOKEN}\"}\n   },\n   \"export\": {\"as\": \"${.}\"},\n   \"flow\": {\"then\": \"processData\"}\n }",
+  "description": "WorkflowTask represents a single executable step in a workflow.",
   "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowTask",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/spec.proto",
   "fields": [
@@ -61,7 +61,7 @@
       "type": {
         "kind": "struct"
       },
-      "description": "Task-specific configuration whose structure depends on the `kind` field.\n\n @internal\n Backend unmarshals this Struct to the appropriate proto message:\n - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig\n - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig\n - grpc_call: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig\n - switch_case: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig\n - for_each: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig\n - fork: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig\n - try_catch: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig\n - listen: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig\n - wait: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig\n - activity_call: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig\n - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig\n - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig\n - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig\n - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig\n - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig\n - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig\n - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig\n - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig\n - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig\n\n See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.",
+      "description": "Task-specific configuration whose structure depends on the `kind` field.",
       "required": true,
       "discriminatedBy": "kind",
       "validation": {
@@ -101,7 +101,7 @@
           "messageType": "WorkflowTask"
         }
       },
-      "description": "Compensation tasks to execute if this task needs to be \"undone.\"\n\n @internal\n Saga-style compensation for workflows with side effects. When a\n try_catch block catches an error, it can optionally run the\n compensation tasks for all already-completed tasks in reverse order.\n\n The compensation tasks receive the original task's output in their\n input context, allowing them to construct the appropriate undo\n operation (e.g., cancel an API call, delete a created resource,\n send a reversal notification).\n\n Only executed when:\n 1. The task completed successfully (failed tasks are not compensated)\n 2. A subsequent task within the same try_catch scope fails\n 3. The catch block is configured to run compensations\n\n YAML Example:\n   try:\n     - create_order:\n         call: http\n         with:\n           method: POST\n           endpoint: { uri: \"https://api.example.com/orders\" }\n           body: { ... }\n         compensate:\n           - cancel_order:\n               call: http\n               with:\n                 method: DELETE\n                 endpoint: { uri: \"https://api.example.com/orders/${ $context.create_order.id }\" }\n         export:\n           as: \"${ . }\"\n     - charge_payment:\n         call: http\n         with:\n           method: POST\n           endpoint: { uri: \"https://api.example.com/payments\" }\n   catch:\n     as: error\n     compensate: true\n     do:\n       - log_failure:\n           call: notification\n           with: ...\n\n Optional - when empty, this task has no compensation action.\n\n @since T17 (Advanced Agentic Orchestration)",
+      "description": "Compensation tasks to execute if this task needs to be \"undone.\"",
       "required": false
     }
   ]

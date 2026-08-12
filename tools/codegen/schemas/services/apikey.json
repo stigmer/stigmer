@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
           "outputType": "ApiKey",
           "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
-          "description": "Create an API key for the authenticated user.\n\n The raw key value is included in the response and is never returned again.\n Store it securely before discarding the response.\n\n @internal\n Any authenticated user can create API keys, so authorization is skipped."
+          "description": "Create an API key for the authenticated user.\n\n The raw key value is included in the response and is never returned again.\n Store it securely before discarding the response."
         },
         {
           "name": "Update",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
           "outputType": "ApiKey",
           "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
-          "description": "Update an existing API key.\n\n @internal\n Authorization: Requires can_edit permission on the API key resource."
+          "description": "Update an existing API key."
         },
         {
           "name": "Delete",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKeyId",
           "outputType": "ApiKey",
           "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
-          "description": "Delete an API key.\n\n @internal\n Authorization: Requires can_delete permission on the API key resource."
+          "description": "Delete an API key."
         }
       ]
     },
@@ -53,7 +53,7 @@
           "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKeyHash",
           "outputType": "ApiKey",
           "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
-          "description": "Get an API key by its hashed key value.\n\n @internal\n Authorization is handled in the handler after loading the resource\n (input doesn't contain API key ID, so proto-level auth cannot work)."
+          "description": "Get an API key by its hashed key value."
         },
         {
           "name": "FindAll",
@@ -61,7 +61,7 @@
           "inputFullType": "google.protobuf.Empty",
           "outputType": "ApiKeys",
           "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKeys",
-          "description": "List all API keys belonging to the authenticated user.\n\n Returns only the keys owned by the identity account in the auth header.\n\n @internal\n Scoped to the caller's own keys, so authorization is skipped."
+          "description": "List all API keys belonging to the authenticated user.\n\n Returns only the keys owned by the identity account in the auth header."
         }
       ]
     }
@@ -120,7 +120,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -140,7 +140,7 @@
       ]
     }
   ],
-  "resourceDescription": "ApiKey provides programmatic access to the Stigmer API on behalf of an identity account.\n\n Each API key is scoped to a single identity account (user or machine) and\n can optionally be configured to expire.\n\n @internal\n The raw key value is returned only once in the create response. Only the\n hash and fingerprint are persisted.",
+  "resourceDescription": "ApiKey provides programmatic access to the Stigmer API on behalf of an identity account.\n\n Each API key is scoped to a single identity account (user or machine) and\n can optionally be configured to expire.",
   "statusType": {
     "name": "ApiKeyStatus",
     "description": "ApiKeyStatus contains system-managed state for an API key.",
@@ -214,7 +214,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Unique identifier of the actor.\n\n @internal\n Historically, some writers populate this with the actor's email address\n rather than the identity-account ID. New writers should use the\n identity-account ID and carry the email in the dedicated field below;\n renderers must treat this value as an opaque last-resort label.",
+          "description": "Unique identifier of the actor.",
           "required": false
         },
         {

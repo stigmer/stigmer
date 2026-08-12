@@ -1,6 +1,6 @@
 {
   "name": "StdioServerConfig",
-  "description": "StdioServerConfig defines an MCP server that runs as a subprocess.\n\n @internal\n Communication happens via stdin/stdout using JSON-RPC messages.\n The agent runner starts this process and communicates via stdio.\n\n Common examples:\n - Node.js servers: npx @modelcontextprotocol/server-github\n - Python servers: python -m mcp_server_sqlite\n - Go servers: ./mcp-server-binary",
+  "description": "StdioServerConfig defines an MCP server that runs as a subprocess.",
   "protoType": "ai.stigmer.agentic.mcpserver.v1.StdioServerConfig",
   "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/spec.proto",
   "fields": [

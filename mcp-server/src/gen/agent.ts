@@ -13,7 +13,7 @@ import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/a
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { z } from "zod";
 
-/** AgentSpec defines the configurable properties of an agent. @internal This is the "Template" layer — declares capabilities and requirements. The overview.md file provides the SDK-facing description and example YAML. */
+/** AgentSpec defines the configurable properties of an agent. */
 export const AgentInputShape = {
   name: z.string().describe("Human-readable name of the resource."),
   slug: z.string().optional().describe("URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted."),
@@ -49,7 +49,7 @@ type ToolApprovalOverrideInput = z.infer<typeof ToolApprovalOverrideInputSchema>
 
 const McpServerUsageInputSchema = z.object({
   mcp_server_ref: z.lazy(() => McpServerRefInputSchema).describe("Reference to the McpServer resource."),
-  enabled_tools: z.array(z.string()).optional().describe("Tools to enable from this MCP server for this agent. Empty list uses the McpServer's default_enabled_tools. Sub-agents can only restrict this set further, not expand it. @internal Tool names must match exactly what the MCP server reports via tools/list. Only names from discovered_capabilities.tools are valid here. Do NOT include names from discovered_capabilities.resource_templates — resource templates are read-only data endpoints, not callable tools. A name the server does not expose (including a resource template name) is warned and ignored at execution: the runner enforces the INTERSECTION with the server's live toolset, so a stale or mistyped entry narrows the toolset but never widens it or fails the run. Enforcement: the native (deep-agent) harness filters the discovered toolset before it reaches the model; the Cursor harness cannot hide a server's tools (its SDK config has no allow-list field), so its HITL hook permanently denies calls to non-enabled tools instead — the model may still see the tool listed, but every call is refused."),
+  enabled_tools: z.array(z.string()).optional().describe("Tools to enable from this MCP server for this agent. Empty list uses the McpServer's default_enabled_tools. Sub-agents can only restrict this set further, not expand it."),
   tool_approval_overrides: z.array(z.lazy(() => ToolApprovalOverrideInputSchema)).optional().describe("Override approval requirements for specific tools. Takes precedence over McpServerSpec.pinned_tool_approvals and McpServerStatus.tool_approvals. Scoped to THIS usage's server: an override applies only to tools of the McpServer referenced by mcp_server_ref — a same-named tool on another server is unaffected."),
 });
 type McpServerUsageInput = z.infer<typeof McpServerUsageInputSchema>;
@@ -78,9 +78,9 @@ const SubAgentInputSchema = z.object({
 type SubAgentInput = z.infer<typeof SubAgentInputSchema>;
 
 const EnvVarDeclarationInputSchema = z.object({
-  is_secret: z.boolean().optional().describe("Whether the resolved value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs and Temporal history. When false: stored as plaintext, visible in audit logs."),
+  is_secret: z.boolean().optional().describe("Whether the resolved value should be treated as a secret."),
   description: z.string().optional().describe("Human-readable description shown in the UI credential form. Should explain what the variable is used for and where to obtain it."),
-  optional: z.boolean().optional().describe("Whether this variable is optional. @internal When false (default): the execution pipeline rejects a run if this variable is missing from the user's environment. When true: a missing value is acceptable (the MCP server or agent degrades gracefully without it)."),
+  optional: z.boolean().optional().describe("Whether this variable is optional."),
 });
 type EnvVarDeclarationInput = z.infer<typeof EnvVarDeclarationInputSchema>;
 

@@ -123,7 +123,7 @@ func taskDocsGeneratePage(schema *TaskConfigSchema, meta *SidecarMeta, sharedTyp
 		description = meta.Description
 	}
 	if description == "" {
-		description = docFirstSentence(docStripInternal(schema.Description))
+		description = docFirstSentence(schema.Description)
 	}
 
 	// Frontmatter.
@@ -232,7 +232,7 @@ func taskDocsGeneratePage(schema *TaskConfigSchema, meta *SidecarMeta, sharedTyp
 func taskDocsWriteField(buf *bytes.Buffer, f *FieldSchema, documentedTypes map[string]bool) {
 	fieldName := f.ProtoField
 	fieldType := taskDocsTypeString(&f.Type)
-	desc := docEscapeJSString(docFirstSentence(docStripInternal(f.Description)))
+	desc := docEscapeJSString(docFirstSentence(f.Description))
 
 	link := taskDocsFieldTypeLink(&f.Type, documentedTypes)
 
@@ -286,7 +286,7 @@ func taskDocsWriteNestedType(buf *bytes.Buffer, f *FieldSchema, typeMap map[stri
 	fmt.Fprintf(buf, "### %s\n\n", msgName)
 
 	if ts.Description != "" {
-		content := docFirstSentence(docStripInternal(ts.Description))
+		content := docFirstSentence(ts.Description)
 		if content != "" {
 			buf.WriteString(docEscapeMDX(content))
 			buf.WriteString("\n\n")

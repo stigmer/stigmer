@@ -1,6 +1,6 @@
 {
   "name": "WorkflowDocument",
-  "description": "WorkflowDocument contains workflow-level metadata for versioning and identification.\n\n @internal\n Maps to the `document:` block in Zigflow DSL YAML.",
+  "description": "WorkflowDocument contains workflow-level metadata for versioning and identification.",
   "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowDocument",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/spec.proto",
   "fields": [

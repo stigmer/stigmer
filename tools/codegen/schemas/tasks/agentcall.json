@@ -1,7 +1,7 @@
 {
   "name": "AgentCallTaskConfig",
   "kind": "AGENT_CALL",
-  "description": "AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.\n\n @internal\n This message is the workflow DSL's adoption of the shared\n AgentInvocation vocabulary (agentexecution/v1/invocation.proto) at\n the TYPE level — issue stigmer/stigmer#358, per DD-018\n (whatsapp-proactive-messaging, stigmer-cloud). Because\n WorkflowTask.task_config is a \"kind + Struct\" envelope, this message\n IS the authoring schema: its field names are the YAML keys workflow\n authors write. Embedding AgentInvocation as a nested message would\n force either a nested `invocation:` authoring block or\n flatten/unflatten rewrites in every Struct consumer, so the DSL\n stays flat and shares the vocabulary type-by-type instead.\n\n Field-by-field correspondence to AgentInvocation (keep in lockstep;\n a field added there must be consciously adopted or consciously\n excluded here, with the reason recorded):\n - agent      ↔ agent_ref  — the DSL string form (\"org/slug\"); the\n                workflow runner parses it into an agent reference.\n - message    ↔ message    — expression-carrying in the DSL.\n - harness    ↔ harness    — same shared enum, same semantics.\n - run_config ↔ run_config — the shared message, embedded directly.\n - workspace_entries ↔ workspace_entries — same shared type; git\n                sources only (no client is connected to serve a\n                local_path when a workflow task fires).\n - environment_refs ↔ environment_refs — same shared type; resolved\n                server-side at execution create, never carried in the\n                create request (the schedule/channel/share posture).\n\n Surface-specific fields with their reasons (the DD-017/018 bucket\n discipline):\n - env: the workflow's context-forwarding channel. Values are JQ\n   expressions resolved from workflow state/secrets at run time, not\n   plaintext literals in a manifest — which is why AgentInvocation's\n   runtime_env exclusion does not apply to it.\n - output: the structured-output contract is a workflow-routing\n   concern (switch_case on typed fields), meaningless to other\n   invocation surfaces.\n\n Deleted in the #358 clean break (no reserved numbers; task configs\n are stored as JSON Structs, so field numbers never hit a wire):\n - org: redundant with the \"org/slug\" form of `agent`, and the\n   proto→YAML converter never emitted it.\n - AgentExecutionConfig (timeout, temperature, context_management,\n   max_cost_micros): declared knobs the runtime silently ignored.\n   The cost cap lives on run_config.max_cost_usd and is now actually\n   enforced; timeout/temperature had no runtime counterpart at all.\n\n The agent is referenced by org/slug format (e.g., \"stigmer/code-reviewer\").\n Resolution order:\n 1. \"org/slug\": look in that org's agents\n 2. \"slug\" only: use the workflow's org\n 3. Before external lookup, check manifest (current deployment)\n\n YAML Example (without structured output):\n   - analyze:\n       call: agent\n       with:\n         agent: \"code-reviewer\"\n         message: \"Review this code: ${ $context.fetchCode.body }\"\n         env:\n           GITHUB_TOKEN: \"${ .secrets.GH_TOKEN }\"\n         run_config:\n           model_name: \"claude-sonnet-4-6\"\n           max_cost_usd: 0.50\n\n YAML Example (with structured output):\n   - triage_ticket:\n       call: agent\n       with:\n         agent: \"support-triage\"\n         message: \"${ .ticket.description }\"\n         output:\n           schema:\n             type: object\n             required: [severity, category, customer_impact]\n             properties:\n               severity:\n                 type: string\n                 enum: [low, medium, high, critical]\n               category:\n                 type: string\n               customer_impact:\n                 type: boolean\n               rationale:\n                 type: string\n           on_invalid: ON_INVALID_RETRY\n           max_retries: 2\n           fallback_task: human_review\n       export:\n         as: \"${ .structured }\"",
+  "description": "AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto",
   "discriminatorValue": "agent_call",
@@ -13,7 +13,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Agent reference in \"org/slug\" or \"slug\" format.\n - \"slug\" only: uses the workflow's organization\n - \"org/slug\": explicit organization reference\n Examples: \"code-reviewer\", \"stigmer/code-reviewer\", \"acme/data-analyst\"\n Required field.\n\n @internal\n The DSL string form of AgentInvocation.agent_ref. The structured\n ApiResourceReference shape is deliberately not used here: the\n authoring surface is YAML written by hand, and \"org/slug\" is its\n idiom.",
+      "description": "Agent reference in \"org/slug\" or \"slug\" format.\n - \"slug\" only: uses the workflow's organization\n - \"org/slug\": explicit organization reference\n Examples: \"code-reviewer\", \"stigmer/code-reviewer\", \"acme/data-analyst\"\n Required field.",
       "required": true,
       "validation": {
         "required": true,
@@ -60,7 +60,7 @@
         "kind": "message",
         "messageType": "RunConfig"
       },
-      "description": "Per-call model choice and run bounds. Unset fields inherit the\n platform defaults.\n\n @internal\n The shared RunConfig (DD-018 D-2) — the same message schedules\n embed, so the run-bound vocabulary cannot drift between\n triggering surfaces. Semantics at the workflow surface:\n model_name replaces the agent's default outright; max_cost_usd\n maps to ExecutionConfig.max_cost_usd and is enforced by the\n runner's harness-generic cost guards; max_tool_rounds maps to\n ExecutionConfig.max_tool_rounds (native harness only — inert on\n cursor, whose sole bound is cost). No platform clamp profile is\n applied at this surface yet: per the RunConfig contract, an unset\n platform cap means the owner value stands.",
+      "description": "Per-call model choice and run bounds. Unset fields inherit the\n platform defaults.",
       "required": false
     },
     {
@@ -100,7 +100,7 @@
           "messageType": "WorkspaceEntry"
         }
       },
-      "description": "Workspace the child run's session operates on. Empty means no workspace.\n\n @internal\n The shared WorkspaceEntry type (AgentInvocation correspondence).\n Maps onto SessionSpec.workspace_entries of the session each call\n creates. Surface constraint, enforced in workflow validation (both\n editions): sources must be git_repo — no client is connected to\n serve a local_path when a workflow task fires. Credentials follow\n DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged\n environment; for private repos the supported contract is an\n org-visibility Environment holding GITHUB_TOKEN bound via\n environment_refs. Public repos need no token.",
+      "description": "Workspace the child run's session operates on. Empty means no workspace.",
       "required": false
     },
     {
@@ -114,7 +114,7 @@
           "messageType": "ApiResourceReference"
         }
       },
-      "description": "References to Environment resources whose values are provided to\n the child runs this task creates.\n\n This is how a tool-using agent becomes runnable from a workflow:\n bind an org-shared environment holding the needed credentials, and\n the child runs receive its values at runtime. The agent and its\n default instance stay untouched.\n\n @internal\n The AgentShare/AgentChannel/Schedule environment_refs lineage.\n Never carried in the execution create request and never emitted\n into execution YAML: CreateExecutionContextStep resolves them from\n the Workflow row, gated on the trusted runner caller identity and\n keyed by parent_workflow_id + task label — prepended at LOWEST\n merge priority (instance refs and runtime_env override on key\n conflicts). No write-time existence or visibility check:\n enforcement lives solely at runtime resolution, which fails closed.\n When kind is unset in YAML, the DSL normalizer defaults it to\n environment.",
+      "description": "References to Environment resources whose values are provided to\n the child runs this task creates.\n\n This is how a tool-using agent becomes runnable from a workflow:\n bind an org-shared environment holding the needed credentials, and\n the child runs receive its values at runtime. The agent and its\n default instance stay untouched.",
       "required": false,
       "referenceKind": 53
     }

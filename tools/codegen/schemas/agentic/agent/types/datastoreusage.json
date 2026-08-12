@@ -1,6 +1,6 @@
 {
   "name": "DatastoreUsage",
-  "description": "DatastoreUsage declares that this agent uses a Datastore resource.\n\n Attaching a datastore gives the agent the built-in record tools\n (find_records, insert_record, update_record, delete_record,\n describe_datastore) for it. What each caller may actually do is\n governed by the datastore's own authorization block, resolved per\n request from the verified sender or principal behind the session.\n\n @internal\n Usage-wrapper idiom (McpServerUsage precedent) so per-usage fields\n (approval tightening, verb caps, collection subsets — recorded growth\n slots) land additively. The usage edge is authorization-bearing for\n session-bound runner credentials (DD-006 SD-1): the record RPCs\n resolve reach through it live, per call, fail-closed. The runner\n synthesizes one bridge MCP attachment with an injected execution\n credential and empty approval maps — record tools are approval-free\n by construction.",
+  "description": "DatastoreUsage declares that this agent uses a Datastore resource.\n\n Attaching a datastore gives the agent the built-in record tools\n (find_records, insert_record, update_record, delete_record,\n describe_datastore) for it. What each caller may actually do is\n governed by the datastore's own authorization block, resolved per\n request from the verified sender or principal behind the session.",
   "protoType": "ai.stigmer.agentic.agent.v1.DatastoreUsage",
   "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
   "fields": [

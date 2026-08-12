@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
           "outputType": "OAuthApp",
           "outputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
-          "description": "Create or update an OAuth app.\n\n If the resource does not exist, creates a new OAuth app.\n If the resource exists, updates the existing OAuth app.\n\n @internal\n The authorization and state-operation are determined depending on whether the\n OAuth app is going to be created or updated, which is determined as\n part of the request execution."
+          "description": "Create or update an OAuth app.\n\n If the resource does not exist, creates a new OAuth app.\n If the resource exists, updates the existing OAuth app."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
           "outputType": "OAuthApp",
           "outputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
-          "description": "Create an OAuth app.\n\n The creator's organization owns the OAuth app. The creator is granted\n the owner role automatically.\n\n @internal\n Authorization: Requires can_create_oauth_app permission in the organization."
+          "description": "Create an OAuth app.\n\n The creator's organization owns the OAuth app. The creator is granted\n the owner role automatically."
         },
         {
           "name": "Update",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
           "outputType": "OAuthApp",
           "outputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
-          "description": "Update an existing OAuth app.\n\n @internal\n Authorization: Requires can_edit permission on the oauth_app resource."
+          "description": "Update an existing OAuth app."
         },
         {
           "name": "Delete",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "OAuthApp",
           "outputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
-          "description": "Delete an OAuth app.\n\n Deletion should be blocked if any McpServer resources reference this\n OAuth app via McpServerVendorOAuth.oauth_app_ref.\n\n @internal\n Authorization: Requires can_delete permission on the oauth_app resource."
+          "description": "Delete an OAuth app.\n\n Deletion should be blocked if any McpServer resources reference this\n OAuth app via McpServerVendorOAuth.oauth_app_ref."
         }
       ]
     },
@@ -53,7 +53,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
           "outputType": "OAuthApp",
           "outputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
-          "description": "Get an OAuth app by its unique identifier.\n\n @internal\n Authorization: Requires can_view permission on the oauth_app resource."
+          "description": "Get an OAuth app by its unique identifier."
         },
         {
           "name": "GetByReference",
@@ -61,7 +61,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "OAuthApp",
           "outputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
-          "description": "Get an OAuth app by its organization-scoped reference (org/slug).\n\n Resolves a human-readable reference like \"acme/slack-oauth\" to the full\n OAuthApp resource.\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions."
+          "description": "Get an OAuth app by its organization-scoped reference (org/slug).\n\n Resolves a human-readable reference like \"acme/slack-oauth\" to the full\n OAuthApp resource."
         },
         {
           "name": "ListByOrg",
@@ -69,7 +69,7 @@
           "inputFullType": "ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput",
           "outputType": "OAuthApps",
           "outputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApps",
-          "description": "List all OAuth apps belonging to an organization.\n\n Returns every OAuthApp whose metadata.org matches the input org.\n Typically a small set (1-5 per org), so results are not paginated.\n\n @internal\n Authorization: Requires can_view permission on the organization resource."
+          "description": "List all OAuth apps belonging to an organization.\n\n Returns every OAuthApp whose metadata.org matches the input org.\n Typically a small set (1-5 per org), so results are not paginated."
         }
       ]
     }
@@ -367,7 +367,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",

@@ -1,7 +1,7 @@
 {
   "name": "AgentShareSpec",
   "kind": "AGENT_SHARE_SPEC",
-  "description": "AgentShareSpec defines the configurable properties of an agent share.\n\n A share is a distribution channel for an agent's hosted chat experience.\n It carries its own audience, embed origins, visitor-facing messages, and\n tool credentials — all independent of the agent blueprint it references.\n\n @internal\n Sharing is channel configuration, not agent behavior (decision 011):\n applying an agent manifest never touches a share, and the share has its\n own writer, lifecycle, and change cadence. Guest admission is enforced\n app-level in the shared-profile/mint/create-time gates — a share writes\n NO FGA visibility tuples, because a public wildcard viewer tuple would\n expose the referenced agent's full blueprint (instructions included) to\n any authenticated account, conflating blueprint visibility with chat\n access. The overview.md file provides the SDK-facing description and\n example YAML.",
+  "description": "AgentShareSpec defines the configurable properties of an agent share.\n\n A share is a distribution channel for an agent's hosted chat experience.\n It carries its own audience, embed origins, visitor-facing messages, and\n tool credentials — all independent of the agent blueprint it references.",
   "protoType": "ai.stigmer.agentic.agentshare.v1.AgentShareSpec",
   "protoFile": "apis/ai/stigmer/agentic/agentshare/v1/spec.proto",
   "fields": [
@@ -13,7 +13,7 @@
         "kind": "message",
         "messageType": "ApiResourceReference"
       },
-      "description": "Reference to the agent this share distributes.\n\n The referenced agent may live in another organization when it is\n marketplace-public: the share then offers that agent from this share's\n org, billed to this share's org, with tool credentials bound from this\n share's org. Cross-org shares must have a public audience.\n\n @internal\n Cross-org contract (decision 013): making an agent visibility_public\n IS the origin org's consent to external shares — enforced app-level in\n both editions' defaults resolvers (spec-level CEL cannot see\n metadata.org), together with the public-audience-only rule and the\n dependency-publicness sweep (every skill/MCP the agent declares must be\n visibility_public, refused loudly naming blockers). The sharing org is\n always the billing org (decision 001 generalized) and guest tool\n credentials resolve in the share's org (secrets never cross orgs —\n org A's environments are structurally unreachable from org B's\n executions via OrgSharedEnvironmentPolicy). The agent's public\n visibility is re-verified on every guest turn, at the shared profile,\n and at guest mint, so revoking visibility kills external channels on\n the visitor's next message. status.agent_id pins the resolved agent\n against slug-reuse rebind.",
+      "description": "Reference to the agent this share distributes.\n\n The referenced agent may live in another organization when it is\n marketplace-public: the share then offers that agent from this share's\n org, billed to this share's org, with tool credentials bound from this\n share's org. Cross-org shares must have a public audience.",
       "required": true,
       "referenceKind": 40,
       "validation": {
@@ -42,7 +42,7 @@
           "agent_share_audience_org"
         ]
       },
-      "description": "Who can chat over this share. Unspecified means public (anyone with\n the link), so a manifest that omits audience creates a public share.\n\n To keep a share org-only, audience must be present in every apply:\n update/apply replace the spec wholesale, so a manifest that sets\n enabled without audience resets the share to public.\n\n @internal\n Org audience is enforced cloud-side only (org membership is a\n multi-tenant IAM concept): the guest mint and public profile handlers\n treat audience=org as NOT_FOUND, and the create-time blueprint gate\n admits authenticated org members via an app-level FGA member check\n (no visibility tuples written). The OSS single-user server stores and\n echoes the field.",
+      "description": "Who can chat over this share. Unspecified means public (anyone with\n the link), so a manifest that omits audience creates a public share.\n\n To keep a share org-only, audience must be present in every apply:\n update/apply replace the spec wholesale, so a manifest that sets\n enabled without audience resets the share to public.",
       "required": false
     },
     {
@@ -55,7 +55,7 @@
           "kind": "string"
         }
       },
-      "description": "Origins permitted to embed this share's chat widget.\n\n Each entry is an exact web origin (scheme://host[:port]) with no path,\n for example \"https://docs.example.com\". An empty list allows embedding\n from any site; listing origins restricts embedding to those sites. The\n first-party hosted chat page is always exempt.\n\n @internal\n Enforced since T04 against the embed_origin the widget reports at\n mintGuestToken time (stamped into the guest JWT as a claim) and\n re-validated against this live list by the guest create-time gate\n (SharedSessionBlueprintAccess) on every session/execution create — the\n same gate that re-checks enabled, so revocation latency is identical\n (immediate). Unframed hosted-page visitors report no origin and are\n exempt by construction. Exact origins only — loosening to wildcards\n later is a non-breaking change, tightening would not be.",
+      "description": "Origins permitted to embed this share's chat widget.\n\n Each entry is an exact web origin (scheme://host[:port]) with no path,\n for example \"https://docs.example.com\". An empty list allows embedding\n from any site; listing origins restricts embedding to those sites. The\n first-party hosted chat page is always exempt.",
       "required": false,
       "validation": {
         "maxItems": 32
@@ -69,7 +69,7 @@
         "kind": "message",
         "messageType": "AgentShareMessages"
       },
-      "description": "Owner-customizable copy shown to visitors when a launch-gate limit\n refuses their message. Unset fields fall back to platform defaults.\n\n @internal\n Resolved server-side at the refusal point and carried in the gRPC\n status description — deliberately NOT surfaced on SharedAgentProfile\n and NOT mapped client-side, so the copy reaches every client (web,\n embed, CLI) through the existing error-message path.",
+      "description": "Owner-customizable copy shown to visitors when a launch-gate limit\n refuses their message. Unset fields fall back to platform defaults.",
       "required": false
     },
     {
@@ -83,7 +83,7 @@
           "messageType": "ApiResourceReference"
         }
       },
-      "description": "References to Environment resources whose values are provided to guest\n conversations on this share.\n\n This is how a tool-using agent becomes chattable over a share link:\n bind an org-shared environment holding the needed credentials (for\n example a read-only API token), and guest executions receive its\n values at runtime. The agent and its default instance stay untouched.\n Valid on public-audience shares only.\n\n @internal\n Resolved in the share's org through the org-shared environment\n resolution seam (EnvironmentRuntimeResolutionService /\n OrgSharedEnvironmentPolicy — decision 006): each referenced environment\n must be visibility_org in the share's org, or the merge skips it with\n a diagnostic. Merged at guest execution-context build time only —\n never bound to the agent's system-managed default instance, which is\n recreated empty on lifecycle events and shared by every org member's\n casual chat (decision 011). Org-audience shares reject this field via\n the message-level CEL rule: member sessions carry no share linkage in\n Phase A, so bound credentials would silently never apply.",
+      "description": "References to Environment resources whose values are provided to guest\n conversations on this share.\n\n This is how a tool-using agent becomes chattable over a share link:\n bind an org-shared environment holding the needed credentials (for\n example a read-only API token), and guest executions receive its\n values at runtime. The agent and its default instance stay untouched.\n Valid on public-audience shares only.",
       "required": false,
       "referenceKind": 53
     },
@@ -95,7 +95,7 @@
         "kind": "message",
         "messageType": "RunConfig"
       },
-      "description": "Per-turn model choice and run bounds for guest conversations on this\n share, overriding the platform's guest execution profile.\n\n Unset fields inherit the platform default. model_name replaces the\n platform model outright, while max_cost_usd and max_tool_rounds can\n only lower the platform caps — a share owner can reduce what one\n guest turn may spend, never raise it past the platform profile.\n Valid on public-audience shares only.\n\n @internal\n DD-018 D-2's second embedder (stigmer/stigmer#360). This is the\n OWNER's stored config, not the guest's: the guest scope step still\n discards caller-supplied execution_config unconditionally, then\n merges this field — loaded server-side from the share — over the\n platform guest profile (GuestAgentExecutionCreateScopeStep, the\n promise recorded on GuestExecutionProfileProperties). The trust\n posture is unchanged. Org-audience shares reject the field via the\n message-level CEL rule for the same reason as environment_refs:\n member sessions carry no share linkage, so it would be stored but\n silently never applied. Enforcement is cloud-only — guest runtime\n is a cloud concept; OSS stores and echoes the field.",
+      "description": "Per-turn model choice and run bounds for guest conversations on this\n share, overriding the platform's guest execution profile.\n\n Unset fields inherit the platform default. model_name replaces the\n platform model outright, while max_cost_usd and max_tool_rounds can\n only lower the platform caps — a share owner can reduce what one\n guest turn may spend, never raise it past the platform profile.\n Valid on public-audience shares only.",
       "required": false
     }
   ]

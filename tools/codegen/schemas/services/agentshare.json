@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
           "outputType": "AgentShare",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
-          "description": "Create or update an agent share.\n\n @internal\n The authorization and state-operation are determined depending on\n whether the share is going to be created or updated, which is resolved\n as part of the request execution. The share slug defaults to the\n referenced agent's slug when omitted."
+          "description": "Create or update an agent share."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
           "outputType": "AgentShare",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
-          "description": "Create an agent share.\n\n Enabling a share is a billing-affecting decision: conversations over\n the hosted link consume the sharing organization's credits.\n\n @internal\n Authorization: requires can_edit on the REFERENCED AGENT\n (spec.agent_ref), checked in-handler — the same bar as the former\n updateSharing RPC, since creating a channel broadens who can chat with\n the agent runtime. The standard org-scoped create tuples (owner =\n creator) are written for the share itself; no visibility tuples are\n written for visitors (guest admission is app-level by design — see\n AgentShareSpec). Phase A invariant enforced here: metadata.org must\n equal spec.agent_ref.org."
+          "description": "Create an agent share.\n\n Enabling a share is a billing-affecting decision: conversations over\n the hosted link consume the sharing organization's credits."
         },
         {
           "name": "Update",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
           "outputType": "AgentShare",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
-          "description": "Update an existing agent share.\n\n Replaces the spec wholesale: a manifest that omits audience resets the\n share to public, and one that omits environment_refs unbinds them\n (fails closed). The slug and referenced agent are immutable.\n\n @internal\n Authorization: requires can_edit permission on the agent share.\n status.share_link_token is preserved verbatim (rotateShareLink is its\n sole writer)."
+          "description": "Update an existing agent share.\n\n Replaces the spec wholesale: a manifest that omits audience resets the\n share to public, and one that omits environment_refs unbinds them\n (fails closed). The slug and referenced agent are immutable."
         },
         {
           "name": "RotateShareLink",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput",
           "outputType": "AgentShare",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
-          "description": "Rotate the share's link token.\n\n Generates a fresh server-side token for the share's hosted chat link.\n The share URL becomes `/chat/\u003corg\u003e/\u003cslug\u003e?k=\u003ctoken\u003e` and the previous\n link (tokened or plain) stops working immediately — including for\n visitors mid-conversation. Use this to kill a leaked or over-shared\n public link without disabling the share or changing its slug.\n\n The token lives in status.share_link_token, so manifest applies never\n reset it. Rotation affects public-audience shares only; org-audience\n access is governed by live org membership instead.\n\n @internal\n Authorization: requires can_edit on the agent share — the same bar as\n update, since both control shared-link access. The handler is the sole\n writer of status.share_link_token (server-generated entropy; clients\n never supply the token)."
+          "description": "Rotate the share's link token.\n\n Generates a fresh server-side token for the share's hosted chat link.\n The share URL becomes `/chat/\u003corg\u003e/\u003cslug\u003e?k=\u003ctoken\u003e` and the previous\n link (tokened or plain) stops working immediately — including for\n visitors mid-conversation. Use this to kill a leaked or over-shared\n public link without disabling the share or changing its slug.\n\n The token lives in status.share_link_token, so manifest applies never\n reset it. Rotation affects public-audience shares only; org-audience\n access is governed by live org membership instead."
         },
         {
           "name": "Delete",
@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShareId",
           "outputType": "AgentShare",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
-          "description": "Delete an agent share.\n\n Full teardown of the channel: the hosted link stops resolving, live\n guest tokens die on their next message, and the share's configuration\n (origins, messages, credentials, link token) is gone. To pause serving\n while keeping configuration, update the share with enabled=false\n instead.\n\n @internal\n Authorization: requires can_delete permission on the agent share. The\n referenced agent is untouched."
+          "description": "Delete an agent share.\n\n Full teardown of the channel: the hosted link stops resolving, live\n guest tokens die on their next message, and the share's configuration\n (origins, messages, credentials, link token) is gone. To pause serving\n while keeping configuration, update the share with enabled=false\n instead."
         }
       ]
     },
@@ -69,7 +69,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "AgentShare",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
-          "description": "Get an agent share by its organization-scoped reference (org/slug).\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions."
+          "description": "Get an agent share by its organization-scoped reference (org/slug)."
         },
         {
           "name": "GetByAgent",
@@ -77,7 +77,7 @@
           "inputFullType": "ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest",
           "outputType": "AgentShareList",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShareList",
-          "description": "Get all shares of a specific agent.\n Returns only shares the caller has access to, optionally scoped to\n one organization via the request's org field.\n\n This is how the Share dialog and CLI resolve an agent's existing\n share regardless of its slug (a renamed share keeps working).\n\n @internal\n Authorization is handled in-handler: FGA-filtered in cloud, unrestricted\n in OSS (single-user edition)."
+          "description": "Get all shares of a specific agent.\n Returns only shares the caller has access to, optionally scoped to\n one organization via the request's org field.\n\n This is how the Share dialog and CLI resolve an agent's existing\n share regardless of its slug (a renamed share keeps working)."
         },
         {
           "name": "List",
@@ -85,7 +85,7 @@
           "inputFullType": "ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest",
           "outputType": "AgentShareList",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShareList",
-          "description": "List agent shares with optional label filtering.\n\n @internal\n Authorization is handled in-handler via FGA-filtered queries (cloud)\n or unrestricted store queries (OSS)."
+          "description": "List agent shares with optional label filtering."
         },
         {
           "name": "GetSharedProfile",
@@ -93,7 +93,7 @@
           "inputFullType": "ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest",
           "outputType": "SharedAgentProfile",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.SharedAgentProfile",
-          "description": "Get the public profile of a shared agent by the share's org/slug.\n\n This is the resolution path for the hosted chat page: anonymous\n visitors (no Stigmer account, no token) resolve a shared link to the\n trimmed SharedAgentProfile — never the full Agent, whose spec carries\n the system prompt, environment declarations, and MCP wiring.\n\n Returns NOT_FOUND when the share does not exist, is disabled, has the\n org audience (anonymous callers must not be able to distinguish an\n org-internal share from a nonexistent one; use\n getSharedProfileForMember instead), or the share link is locked and\n link_token does not match the share's current status.share_link_token.\n The cases are deliberately indistinguishable so an unshared, revoked,\n or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is\n empty: org+slug is the shared URL's identity, and cross-org slug\n matching on a public endpoint would enable enumeration.\n\n @internal\n Public by design (no authentication): enforcement is the app-level\n sharing gate in the handler, not FGA — see AgentShareSpec for why a\n share writes no visibility tuples."
+          "description": "Get the public profile of a shared agent by the share's org/slug.\n\n This is the resolution path for the hosted chat page: anonymous\n visitors (no Stigmer account, no token) resolve a shared link to the\n trimmed SharedAgentProfile — never the full Agent, whose spec carries\n the system prompt, environment declarations, and MCP wiring.\n\n Returns NOT_FOUND when the share does not exist, is disabled, has the\n org audience (anonymous callers must not be able to distinguish an\n org-internal share from a nonexistent one; use\n getSharedProfileForMember instead), or the share link is locked and\n link_token does not match the share's current status.share_link_token.\n The cases are deliberately indistinguishable so an unshared, revoked,\n or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is\n empty: org+slug is the shared URL's identity, and cross-org slug\n matching on a public endpoint would enable enumeration."
         },
         {
           "name": "GetSharedProfileForMember",
@@ -101,7 +101,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "SharedAgentProfile",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.SharedAgentProfile",
-          "description": "Get the profile of a shared agent as a signed-in organization member.\n\n This is the resolution path for the hosted chat page when a share has\n the org audience: the public getSharedProfile deliberately returns\n NOT_FOUND for such shares, so a signed-in member resolves the same\n trimmed SharedAgentProfile through this authenticated RPC instead.\n Also resolves public-audience shares, so an authenticated caller can\n use one resolution path for any share.\n\n Returns NOT_FOUND when the share does not exist, is disabled, the\n caller is not a member of the sharing organization, or the share is a\n public-audience share locked with a link token (this tokenless path\n must not reveal a killed link's profile) — the cases are deliberately\n indistinguishable so a share URL leaks nothing to non-members.\n Returns INVALID_ARGUMENT when org is empty.\n\n @internal\n Custom authorization in handler — requires authentication (not\n is_public), then an app-level organization#member FGA check for org\n shares. No standard resource_kind/permission config: the sharing gate\n is app-level by design (see AgentShareSpec), and membership is checked\n live on every call so revoked members lose access immediately."
+          "description": "Get the profile of a shared agent as a signed-in organization member.\n\n This is the resolution path for the hosted chat page when a share has\n the org audience: the public getSharedProfile deliberately returns\n NOT_FOUND for such shares, so a signed-in member resolves the same\n trimmed SharedAgentProfile through this authenticated RPC instead.\n Also resolves public-audience shares, so an authenticated caller can\n use one resolution path for any share.\n\n Returns NOT_FOUND when the share does not exist, is disabled, the\n caller is not a member of the sharing organization, or the share is a\n public-audience share locked with a link token (this tokenless path\n must not reveal a killed link's profile) — the cases are deliberately\n indistinguishable so a share URL leaks nothing to non-members.\n Returns INVALID_ARGUMENT when org is empty."
         }
       ]
     }
@@ -257,7 +257,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization slug to scope the results to.\n\n When set, only shares whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.\n\n @internal\n Optional by design: the field must stay empty-tolerant because\n pre-existing callers (and cross-org administrative flows) rely on the\n permission-bounded behavior. Filtering happens in the query/list step\n of each edition's handler, never client-side.",
+          "description": "Organization slug to scope the results to.\n\n When set, only shares whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.",
           "required": false
         }
       ]
@@ -344,7 +344,7 @@
     },
     {
       "name": "GetSharedProfileRequest",
-      "description": "Input for resolving a share's public profile.\n\n Identifies the share by the org and slug from the hosted chat URL, plus\n the link token when the share URL carries one.\n\n @internal\n org emptiness is validated in the handler (INVALID_ARGUMENT) rather than\n the proto to keep the anonymous path's existing error contract: org+slug\n is the shared URL's identity, and cross-org slug matching on a public\n endpoint would enable enumeration.",
+      "description": "Input for resolving a share's public profile.\n\n Identifies the share by the org and slug from the hosted chat URL, plus\n the link token when the share URL carries one.",
       "protoType": "ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest",
       "protoFile": "apis/ai/stigmer/agentic/agentshare/v1/io.proto",
       "fields": [
@@ -608,7 +608,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -646,13 +646,13 @@
     },
     {
       "name": "ServiceTier",
-      "description": "ServiceTier selects the provider-side speed/service tier for an execution's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what an execution pays (stigmer/stigmer#357).\n\n @internal\n Resolution of UNSPECIFIED → STANDARD happens exactly once, in the runner's\n translation layer; every upstream layer preserves the caller's raw value so\n \"user explicitly chose standard\" stays distinguishable from \"platform\n default\". v1 supports the Cursor harness only: FAST on a model without a\n registry fast variant is refused at create time (INVALID_ARGUMENT), which\n also covers native-harness models since only cursor-harness registry entries\n carry fast variants today. Native (Anthropic/OpenAI) service-tier mapping is\n a tracked follow-up.",
+      "description": "ServiceTier selects the provider-side speed/service tier for an execution's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what an execution pays (stigmer/stigmer#357).",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.ServiceTier",
       "values": [
         {
           "name": "SERVICE_TIER_STANDARD",
           "number": 1,
-          "description": "Standard tier: the model's base-priced configuration, requested\n explicitly.\n\n @internal\n For the Cursor harness the runner pins every price-bearing variant\n parameter to its base value (fast=false, and thinking=false where the\n parameter exists); price-neutral parameters (e.g. effort) follow the\n catalog default variant. Confirmed against the billing ledger 2026-08-06:\n explicit base params bill base wire ids on create AND resume (see\n stigmer-cloud _projects/2026-08/20260806.04.model-service-tier)."
+          "description": "Standard tier: the model's base-priced configuration, requested\n explicitly."
         },
         {
           "name": "SERVICE_TIER_FAST",
@@ -662,7 +662,7 @@
       ]
     }
   ],
-  "resourceDescription": "AgentShare turns an agent into a hosted chat link with its own audience, embed origins, and tool credentials.\n\n A share is a distribution channel: it controls who can chat with the\n referenced agent over `/chat/\u003corg\u003e/\u003cslug\u003e`, which sites may embed the\n chat widget, what visitors see when a limit refuses them, and which\n environment credentials guest conversations receive. Deleting the share\n tears the channel down; disabling it pauses serving while preserving\n configuration. The referenced agent is never modified by share\n operations.\n\n @internal\n Promoted from Agent.spec.sharing (decision 011): sharing is channel\n configuration with its own writer, lifecycle, and — in Phase B — its own\n billing org per channel. metadata.slug appears in the hosted chat URL,\n defaults to the referenced agent's slug, and is unique per org.",
+  "resourceDescription": "AgentShare turns an agent into a hosted chat link with its own audience, embed origins, and tool credentials.\n\n A share is a distribution channel: it controls who can chat with the\n referenced agent over `/chat/\u003corg\u003e/\u003cslug\u003e`, which sites may embed the\n chat widget, what visitors see when a limit refuses them, and which\n environment credentials guest conversations receive. Deleting the share\n tears the channel down; disabling it pauses serving while preserving\n configuration. The referenced agent is never modified by share\n operations.",
   "statusType": {
     "name": "AgentShareStatus",
     "description": "AgentShareStatus contains system-managed state for an agent share.",
@@ -687,7 +687,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "Rotatable token protecting the share's public link.\n\n Empty means the hosted chat link is the plain `/chat/\u003corg\u003e/\u003cslug\u003e` —\n the behavior of every share created without a token. When set, the\n link only resolves with the matching `?k=\u003ctoken\u003e` query parameter; the\n rotateShareLink RPC generates a fresh value, killing the old link\n immediately. Applies to public-audience shares only (org-audience\n access is governed by live membership instead).\n\n @internal\n Server-generated (rotateShareLink is the sole writer) and deliberately\n in status, not spec: status survives every apply/update verbatim in\n both editions, so a routine manifest apply can never wipe the token\n and silently fail open to the guessable URL. Enforced with the\n allowed_origins pattern — validated at guest mint, stamped into the\n guest JWT, and re-validated against this live value on every\n session/execution create, so rotation revokes live guest tokens on\n their next message. Not a security boundary: rate limits and the org\n credit cap remain the abuse controls; this is a traffic lever for\n over-shared links.",
+        "description": "Rotatable token protecting the share's public link.\n\n Empty means the hosted chat link is the plain `/chat/\u003corg\u003e/\u003cslug\u003e` —\n the behavior of every share created without a token. When set, the\n link only resolves with the matching `?k=\u003ctoken\u003e` query parameter; the\n rotateShareLink RPC generates a fresh value, killing the old link\n immediately. Applies to public-audience shares only (org-audience\n access is governed by live membership instead).",
         "required": false
       },
       {
@@ -697,7 +697,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "ID of the agent this share was created against.\n\n Pins the share to the exact agent (by immutable ID) that spec.agent_ref\n resolved to at creation. If that agent is deleted and a different one\n is later created at the same org/slug, the share stops resolving\n instead of silently attaching to the new agent.\n\n @internal\n Server-owned rebind guard (decision 013): agent_ref is org+slug, and\n slugs are reusable after delete — without the pin, a stale share's\n audience, link token, and bound credentials would transfer to whatever\n agent later claims the slug. Stamped once at create (the defaults\n resolver already loads the referenced agent); immutable like agent_ref\n itself; in status so no apply can wipe or forge it (the\n share_link_token posture). Every share-resolution gate (shared\n profile, guest mint, create-time gate, runner elevation) verifies it\n WHEN PRESENT; shares created before this field exists carry an empty\n pin and are tolerated — the same-org delete cascade already guarantees\n a same-org share never outlives its agent, so no backfill is needed.\n Cross-org shares (Phase B) always carry the pin.",
+        "description": "ID of the agent this share was created against.\n\n Pins the share to the exact agent (by immutable ID) that spec.agent_ref\n resolved to at creation. If that agent is deleted and a different one\n is later created at the same org/slug, the share stops resolving\n instead of silently attaching to the new agent.",
         "required": false
       }
     ]
@@ -746,7 +746,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Unique identifier of the actor.\n\n @internal\n Historically, some writers populate this with the actor's email address\n rather than the identity-account ID. New writers should use the\n identity-account ID and carry the email in the dedicated field below;\n renderers must treat this value as an opaque last-resort label.",
+          "description": "Unique identifier of the actor.",
           "required": false
         },
         {

@@ -1,6 +1,6 @@
 {
   "name": "SlackChannelConfig",
-  "description": "SlackChannelConfig selects Slack as the channel provider.\n\n Empty in v1 by design: with the multi-tenant Stigmer Slack app there is\n nothing for the user to declare before installing — workspace identity,\n bot user, and granted scopes are observed during the OAuth install and\n recorded in status. Future user-tunable Slack behavior lands here.\n\n @internal\n P1. An empty message is set explicitly in manifests (`slack: {}`),\n satisfying the required oneof. Do not add OAuth-observed facts here —\n that is the spec-clobbering bug class decision 004 rejected.",
+  "description": "SlackChannelConfig selects Slack as the channel provider.\n\n Empty in v1 by design: with the multi-tenant Stigmer Slack app there is\n nothing for the user to declare before installing — workspace identity,\n bot user, and granted scopes are observed during the OAuth install and\n recorded in status. Future user-tunable Slack behavior lands here.",
   "protoType": "ai.stigmer.agentic.agentchannel.v1.SlackChannelConfig",
   "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/spec.proto",
   "fields": []

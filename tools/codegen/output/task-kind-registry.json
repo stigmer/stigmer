@@ -300,7 +300,7 @@
         {
           "name": "activity",
           "displayName": "Activity",
-          "description": "Activity name to execute. Must match a registered Temporal activity.",
+          "description": "Activity name to execute.",
           "type": "string",
           "required": true,
           "groupId": "core",
@@ -331,7 +331,7 @@
         "additionalProperties": false,
         "properties": {
           "activity": {
-            "description": "Activity name to execute. Must match a registered Temporal activity.",
+            "description": "Activity name to execute.",
             "minLength": 1,
             "type": "string"
           },
@@ -531,7 +531,7 @@
               "additionalProperties": false,
               "properties": {
                 "compensate": {
-                  "description": "Compensation tasks to execute if this task needs to be \"undone.\" Saga-style compensation for workflows with side effects. When a try_catch block catches an error, it can optionally run the compensation tasks for all already-completed tasks in reverse order. The compensation tasks receive the original task's output in their input context, allowing them to construct the appropriate undo operation (e.g., cancel an API call, delete a created resource, send a reversal notification). Only executed when: 1. The task completed successfully (failed tasks are not compensated) 2. A subsequent task within the same try_catch scope fails 3. The catch block is configured to run compensations YAML Example: try: - create_order: call: http with: method: POST endpoint: { uri: \"https://api.example.com/orders\" } body: { ... } compensate: - cancel_order: call: http with: method: DELETE endpoint: { uri: \"https://api.example.com/orders/${ $context.create_order.id }\" } export: as: \"${ . }\" - charge_payment: call: http with: method: POST endpoint: { uri: \"https://api.example.com/payments\" } catch: as: error compensate: true do: - log_failure: call: notification with: ... Optional - when empty, this task has no compensation action.",
+                  "description": "Compensation tasks to execute if this task needs to be \"undone.\"",
                   "items": {
                     "type": "object"
                   },
@@ -593,7 +593,7 @@
                   "type": "string"
                 },
                 "task_config": {
-                  "description": "Task-specific configuration whose structure depends on the `kind` field. Backend unmarshals this Struct to the appropriate proto message: - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig - grpc_call: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig - switch_case: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig - for_each: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig - fork: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig - try_catch: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig - listen: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig - wait: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig - activity_call: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.",
+                  "description": "Task-specific configuration whose structure depends on the `kind` field.",
                   "type": "object"
                 }
               },
@@ -700,7 +700,7 @@
                     "additionalProperties": false,
                     "properties": {
                       "compensate": {
-                        "description": "Compensation tasks to execute if this task needs to be \"undone.\" Saga-style compensation for workflows with side effects. When a try_catch block catches an error, it can optionally run the compensation tasks for all already-completed tasks in reverse order. The compensation tasks receive the original task's output in their input context, allowing them to construct the appropriate undo operation (e.g., cancel an API call, delete a created resource, send a reversal notification). Only executed when: 1. The task completed successfully (failed tasks are not compensated) 2. A subsequent task within the same try_catch scope fails 3. The catch block is configured to run compensations YAML Example: try: - create_order: call: http with: method: POST endpoint: { uri: \"https://api.example.com/orders\" } body: { ... } compensate: - cancel_order: call: http with: method: DELETE endpoint: { uri: \"https://api.example.com/orders/${ $context.create_order.id }\" } export: as: \"${ . }\" - charge_payment: call: http with: method: POST endpoint: { uri: \"https://api.example.com/payments\" } catch: as: error compensate: true do: - log_failure: call: notification with: ... Optional - when empty, this task has no compensation action.",
+                        "description": "Compensation tasks to execute if this task needs to be \"undone.\"",
                         "items": {
                           "type": "object"
                         },
@@ -762,7 +762,7 @@
                         "type": "string"
                       },
                       "task_config": {
-                        "description": "Task-specific configuration whose structure depends on the `kind` field. Backend unmarshals this Struct to the appropriate proto message: - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig - grpc_call: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig - switch_case: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig - for_each: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig - fork: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig - try_catch: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig - listen: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig - wait: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig - activity_call: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.",
+                        "description": "Task-specific configuration whose structure depends on the `kind` field.",
                         "type": "object"
                       }
                     },
@@ -868,7 +868,7 @@
                   "additionalProperties": false,
                   "properties": {
                     "compensate": {
-                      "description": "Compensation tasks to execute if this task needs to be \"undone.\" Saga-style compensation for workflows with side effects. When a try_catch block catches an error, it can optionally run the compensation tasks for all already-completed tasks in reverse order. The compensation tasks receive the original task's output in their input context, allowing them to construct the appropriate undo operation (e.g., cancel an API call, delete a created resource, send a reversal notification). Only executed when: 1. The task completed successfully (failed tasks are not compensated) 2. A subsequent task within the same try_catch scope fails 3. The catch block is configured to run compensations YAML Example: try: - create_order: call: http with: method: POST endpoint: { uri: \"https://api.example.com/orders\" } body: { ... } compensate: - cancel_order: call: http with: method: DELETE endpoint: { uri: \"https://api.example.com/orders/${ $context.create_order.id }\" } export: as: \"${ . }\" - charge_payment: call: http with: method: POST endpoint: { uri: \"https://api.example.com/payments\" } catch: as: error compensate: true do: - log_failure: call: notification with: ... Optional - when empty, this task has no compensation action.",
+                      "description": "Compensation tasks to execute if this task needs to be \"undone.\"",
                       "items": {
                         "type": "object"
                       },
@@ -930,7 +930,7 @@
                       "type": "string"
                     },
                     "task_config": {
-                      "description": "Task-specific configuration whose structure depends on the `kind` field. Backend unmarshals this Struct to the appropriate proto message: - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig - grpc_call: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig - switch_case: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig - for_each: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig - fork: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig - try_catch: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig - listen: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig - wait: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig - activity_call: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.",
+                      "description": "Task-specific configuration whose structure depends on the `kind` field.",
                       "type": "object"
                     }
                   },
@@ -952,7 +952,7 @@
               "additionalProperties": false,
               "properties": {
                 "compensate": {
-                  "description": "Compensation tasks to execute if this task needs to be \"undone.\" Saga-style compensation for workflows with side effects. When a try_catch block catches an error, it can optionally run the compensation tasks for all already-completed tasks in reverse order. The compensation tasks receive the original task's output in their input context, allowing them to construct the appropriate undo operation (e.g., cancel an API call, delete a created resource, send a reversal notification). Only executed when: 1. The task completed successfully (failed tasks are not compensated) 2. A subsequent task within the same try_catch scope fails 3. The catch block is configured to run compensations YAML Example: try: - create_order: call: http with: method: POST endpoint: { uri: \"https://api.example.com/orders\" } body: { ... } compensate: - cancel_order: call: http with: method: DELETE endpoint: { uri: \"https://api.example.com/orders/${ $context.create_order.id }\" } export: as: \"${ . }\" - charge_payment: call: http with: method: POST endpoint: { uri: \"https://api.example.com/payments\" } catch: as: error compensate: true do: - log_failure: call: notification with: ... Optional - when empty, this task has no compensation action.",
+                  "description": "Compensation tasks to execute if this task needs to be \"undone.\"",
                   "items": {
                     "type": "object"
                   },
@@ -1014,7 +1014,7 @@
                   "type": "string"
                 },
                 "task_config": {
-                  "description": "Task-specific configuration whose structure depends on the `kind` field. Backend unmarshals this Struct to the appropriate proto message: - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig - grpc_call: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig - switch_case: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig - for_each: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig - fork: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig - try_catch: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig - listen: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig - wait: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig - activity_call: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.",
+                  "description": "Task-specific configuration whose structure depends on the `kind` field.",
                   "type": "object"
                 }
               },
@@ -1368,7 +1368,7 @@
         {
           "name": "agent",
           "displayName": "Agent",
-          "description": "Agent reference in \"org/slug\" or \"slug\" format. - \"slug\" only: uses the workflow's organization - \"org/slug\": explicit organization reference Examples: \"code-reviewer\", \"stigmer/code-reviewer\", \"acme/data-analyst\" Required field. The DSL string form of AgentInvocation.agent_ref. The structured ApiResourceReference shape is deliberately not used here: the authoring surface is YAML written by hand, and \"org/slug\" is its idiom.",
+          "description": "Agent reference in \"org/slug\" or \"slug\" format. - \"slug\" only: uses the workflow's organization - \"org/slug\": explicit organization reference Examples: \"code-reviewer\", \"stigmer/code-reviewer\", \"acme/data-analyst\" Required field.",
           "type": "string",
           "required": true,
           "groupId": "core",
@@ -1405,7 +1405,7 @@
         {
           "name": "run_config",
           "displayName": "Run Config",
-          "description": "Per-call model choice and run bounds. Unset fields inherit the platform defaults. The shared RunConfig (DD-018 D-2) — the same message schedules embed, so the run-bound vocabulary cannot drift between triggering surfaces. Semantics at the workflow surface: model_name replaces the agent's default outright; max_cost_usd maps to ExecutionConfig.max_cost_usd and is enforced by the runner's harness-generic cost guards; max_tool_rounds maps to ExecutionConfig.max_tool_rounds (native harness only — inert on cursor, whose sole bound is cost). No platform clamp profile is applied at this surface yet: per the RunConfig contract, an unset platform cap means the owner value stands.",
+          "description": "Per-call model choice and run bounds. Unset fields inherit the platform defaults.",
           "type": "message",
           "required": false,
           "fieldNumber": 4,
@@ -1436,7 +1436,7 @@
         {
           "name": "workspace_entries",
           "displayName": "Workspace Entries",
-          "description": "Workspace the child run's session operates on. Empty means no workspace. The shared WorkspaceEntry type (AgentInvocation correspondence). Maps onto SessionSpec.workspace_entries of the session each call creates. Surface constraint, enforced in workflow validation (both editions): sources must be git_repo — no client is connected to serve a local_path when a workflow task fires. Credentials follow DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged environment; for private repos the supported contract is an org-visibility Environment holding GITHUB_TOKEN bound via environment_refs. Public repos need no token.",
+          "description": "Workspace the child run's session operates on. Empty means no workspace.",
           "type": "repeated",
           "required": false,
           "fieldNumber": 7,
@@ -1445,7 +1445,7 @@
         {
           "name": "environment_refs",
           "displayName": "Environment Refs",
-          "description": "References to Environment resources whose values are provided to the child runs this task creates. This is how a tool-using agent becomes runnable from a workflow: bind an org-shared environment holding the needed credentials, and the child runs receive its values at runtime. The agent and its default instance stay untouched. The AgentShare/AgentChannel/Schedule environment_refs lineage. Never carried in the execution create request and never emitted into execution YAML: CreateExecutionContextStep resolves them from the Workflow row, gated on the trusted runner caller identity and keyed by parent_workflow_id + task label — prepended at LOWEST merge priority (instance refs and runtime_env override on key conflicts). No write-time existence or visibility check: enforcement lives solely at runtime resolution, which fails closed. When kind is unset in YAML, the DSL normalizer defaults it to environment.",
+          "description": "References to Environment resources whose values are provided to the child runs this task creates. This is how a tool-using agent becomes runnable from a workflow: bind an org-shared environment holding the needed credentials, and the child runs receive its values at runtime. The agent and its default instance stay untouched.",
           "type": "repeated",
           "required": false,
           "fieldNumber": 8,
@@ -1476,7 +1476,7 @@
         "additionalProperties": false,
         "properties": {
           "agent": {
-            "description": "Agent reference in \"org/slug\" or \"slug\" format. - \"slug\" only: uses the workflow's organization - \"org/slug\": explicit organization reference Examples: \"code-reviewer\", \"stigmer/code-reviewer\", \"acme/data-analyst\" Required field. The DSL string form of AgentInvocation.agent_ref. The structured ApiResourceReference shape is deliberately not used here: the authoring surface is YAML written by hand, and \"org/slug\" is its idiom.",
+            "description": "Agent reference in \"org/slug\" or \"slug\" format. - \"slug\" only: uses the workflow's organization - \"org/slug\": explicit organization reference Examples: \"code-reviewer\", \"stigmer/code-reviewer\", \"acme/data-analyst\" Required field.",
             "maxLength": 127,
             "minLength": 1,
             "type": "string"
@@ -1489,7 +1489,7 @@
             "type": "object"
           },
           "environment_refs": {
-            "description": "References to Environment resources whose values are provided to the child runs this task creates. This is how a tool-using agent becomes runnable from a workflow: bind an org-shared environment holding the needed credentials, and the child runs receive its values at runtime. The agent and its default instance stay untouched. The AgentShare/AgentChannel/Schedule environment_refs lineage. Never carried in the execution create request and never emitted into execution YAML: CreateExecutionContextStep resolves them from the Workflow row, gated on the trusted runner caller identity and keyed by parent_workflow_id + task label — prepended at LOWEST merge priority (instance refs and runtime_env override on key conflicts). No write-time existence or visibility check: enforcement lives solely at runtime resolution, which fails closed. When kind is unset in YAML, the DSL normalizer defaults it to environment.",
+            "description": "References to Environment resources whose values are provided to the child runs this task creates. This is how a tool-using agent becomes runnable from a workflow: bind an org-shared environment holding the needed credentials, and the child runs receive its values at runtime. The agent and its default instance stay untouched.",
             "items": {
               "additionalProperties": false,
               "properties": {
@@ -1601,14 +1601,14 @@
           },
           "run_config": {
             "additionalProperties": false,
-            "description": "Per-call model choice and run bounds. Unset fields inherit the platform defaults. The shared RunConfig (DD-018 D-2) — the same message schedules embed, so the run-bound vocabulary cannot drift between triggering surfaces. Semantics at the workflow surface: model_name replaces the agent's default outright; max_cost_usd maps to ExecutionConfig.max_cost_usd and is enforced by the runner's harness-generic cost guards; max_tool_rounds maps to ExecutionConfig.max_tool_rounds (native harness only — inert on cursor, whose sole bound is cost). No platform clamp profile is applied at this surface yet: per the RunConfig contract, an unset platform cap means the owner value stands.",
+            "description": "Per-call model choice and run bounds. Unset fields inherit the platform defaults.",
             "properties": {
               "max_cost_usd": {
                 "description": "Maximum estimated cost in USD per run. The surface's platform execution profile caps this value; the lower bound wins.",
                 "type": "number"
               },
               "max_tool_rounds": {
-                "description": "Maximum model-to-tools reasoning cycles per run. The surface's platform execution profile caps this value; the lower bound wins. An implementation knob, not a user concept: API-reachable for operators, deliberately absent from creation forms (DD-018 D-5).",
+                "description": "Maximum model-to-tools reasoning cycles per run. The surface's platform execution profile caps this value; the lower bound wins.",
                 "type": "integer"
               },
               "model_name": {
@@ -1627,7 +1627,7 @@
             "type": "object"
           },
           "workspace_entries": {
-            "description": "Workspace the child run's session operates on. Empty means no workspace. The shared WorkspaceEntry type (AgentInvocation correspondence). Maps onto SessionSpec.workspace_entries of the session each call creates. Surface constraint, enforced in workflow validation (both editions): sources must be git_repo — no client is connected to serve a local_path when a workflow task fires. Credentials follow DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged environment; for private repos the supported contract is an org-visibility Environment holding GITHUB_TOKEN bound via environment_refs. Public repos need no token.",
+            "description": "Workspace the child run's session operates on. Empty means no workspace.",
             "items": {
               "additionalProperties": false,
               "properties": {
@@ -1653,7 +1653,7 @@
                           "type": "string"
                         },
                         "depth": {
-                          "description": "Number of commits to include in the clone history. When not set, defaults to a shallow clone with depth 1. Set to 0 for a full clone with complete history. Uses proto3 optional to distinguish \"not set\" from \"set to 0.\" Absent: shallow clone depth 1; 0: full clone; N \u003e 0: shallow clone depth N.",
+                          "description": "Number of commits to include in the clone history. When not set, defaults to a shallow clone with depth 1. Set to 0 for a full clone with complete history.",
                           "type": "integer"
                         },
                         "url": {
@@ -1661,7 +1661,7 @@
                           "type": "string"
                         },
                         "write_back_mode": {
-                          "description": "Controls whether the platform creates a branch and pull request from the agent's file changes. This is a platform-level workflow, not an agent-level decision. The agent focuses on making code changes; the platform packages them incrementally — the PR appears the moment the first file is written and the diff grows in real time as the agent works. Requires GITHUB_TOKEN in the execution environment. If credentials are not available, the write-back is silently skipped regardless of this setting. Default (UNSPECIFIED): platform decides. Currently defaults to write-back enabled when git credentials are available.",
+                          "description": "Controls whether the platform creates a branch and pull request from the agent's file changes.",
                           "enum": [
                             "GIT_WRITE_BACK_BRANCH_AND_PR"
                           ],
@@ -2196,7 +2196,7 @@
         {
           "name": "payload",
           "displayName": "Payload",
-          "description": "Structured material for the reviewer to examine before deciding. Supports ${ } expression interpolation: the whole value can be a single expression string (\"${ $context.draft_revision }\") or an inline object/array whose nested strings carry embedded expressions. The runtime resolves expressions when the gate activates and attaches the resolved payload to the approval_requested event, so the approval record is permanently bound to exactly what the reviewer saw. Distinct from prompt (the instruction to the reviewer) and form_schema (the shape of the reviewer's response): payload is the thing under review — an article diff, a proposed record set, a generated plan. Resolved payloads at or above the artifact promotion threshold (256KB) are stored in the artifact store; the approval_requested event then carries payload_artifact_id instead of the inline value. See ApprovalRequestedPayload in workflowexecution/v1/event.proto. Expression support is documented here rather than via the is_expression option, which annotates string fields only — matching how other Struct/Value-typed expression-bearing configs are handled.",
+          "description": "Structured material for the reviewer to examine before deciding. Supports ${ } expression interpolation: the whole value can be a single expression string (\"${ $context.draft_revision }\") or an inline object/array whose nested strings carry embedded expressions. The runtime resolves expressions when the gate activates and attaches the resolved payload to the approval_requested event, so the approval record is permanently bound to exactly what the reviewer saw. Distinct from prompt (the instruction to the reviewer) and form_schema (the shape of the reviewer's response): payload is the thing under review — an article diff, a proposed record set, a generated plan.",
           "type": "value",
           "required": false,
           "fieldNumber": 8
@@ -2204,7 +2204,7 @@
         {
           "name": "ui_hint",
           "displayName": "Ui Hint",
-          "description": "Hint identifying which UI should present the payload. A plain discriminator string (e.g. \"article-diff\", \"infra-proposal\") that embedding applications match against their registered review renderers. When no renderer is registered for the hint — or the gate is viewed from a surface without custom renderers (CLI, plain console) — the payload is shown as structured data by the built-in approval card, so workflows stay portable across surfaces. Deliberately a hint, not a contract: an unrecognized value must never block the gate. Not expression-valued — the hint is workflow design, not runtime data.",
+          "description": "Hint identifying which UI should present the payload. A plain discriminator string (e.g. \"article-diff\", \"infra-proposal\") that embedding applications match against their registered review renderers. When no renderer is registered for the hint — or the gate is viewed from a surface without custom renderers (CLI, plain console) — the payload is shown as structured data by the built-in approval card, so workflows stay portable across surfaces.",
           "type": "string",
           "required": false,
           "fieldNumber": 9,
@@ -2291,7 +2291,7 @@
             "type": "array"
           },
           "payload": {
-            "description": "Structured material for the reviewer to examine before deciding. Supports ${ } expression interpolation: the whole value can be a single expression string (\"${ $context.draft_revision }\") or an inline object/array whose nested strings carry embedded expressions. The runtime resolves expressions when the gate activates and attaches the resolved payload to the approval_requested event, so the approval record is permanently bound to exactly what the reviewer saw. Distinct from prompt (the instruction to the reviewer) and form_schema (the shape of the reviewer's response): payload is the thing under review — an article diff, a proposed record set, a generated plan. Resolved payloads at or above the artifact promotion threshold (256KB) are stored in the artifact store; the approval_requested event then carries payload_artifact_id instead of the inline value. See ApprovalRequestedPayload in workflowexecution/v1/event.proto. Expression support is documented here rather than via the is_expression option, which annotates string fields only — matching how other Struct/Value-typed expression-bearing configs are handled."
+            "description": "Structured material for the reviewer to examine before deciding. Supports ${ } expression interpolation: the whole value can be a single expression string (\"${ $context.draft_revision }\") or an inline object/array whose nested strings carry embedded expressions. The runtime resolves expressions when the gate activates and attaches the resolved payload to the approval_requested event, so the approval record is permanently bound to exactly what the reviewer saw. Distinct from prompt (the instruction to the reviewer) and form_schema (the shape of the reviewer's response): payload is the thing under review — an article diff, a proposed record set, a generated plan."
           },
           "prompt": {
             "description": "Message shown to the reviewer explaining what needs approval or input. Supports ${ } expression interpolation for injecting workflow context. Example: \"Approve escalation for ticket ${ $context.ticket.id }?\"",
@@ -2304,7 +2304,7 @@
             "type": "integer"
           },
           "ui_hint": {
-            "description": "Hint identifying which UI should present the payload. A plain discriminator string (e.g. \"article-diff\", \"infra-proposal\") that embedding applications match against their registered review renderers. When no renderer is registered for the hint — or the gate is viewed from a surface without custom renderers (CLI, plain console) — the payload is shown as structured data by the built-in approval card, so workflows stay portable across surfaces. Deliberately a hint, not a contract: an unrecognized value must never block the gate. Not expression-valued — the hint is workflow design, not runtime data.",
+            "description": "Hint identifying which UI should present the payload. A plain discriminator string (e.g. \"article-diff\", \"infra-proposal\") that embedding applications match against their registered review renderers. When no renderer is registered for the hint — or the gate is viewed from a surface without custom renderers (CLI, plain console) — the payload is shown as structured data by the built-in approval card, so workflows stay portable across surfaces.",
             "maxLength": 63,
             "type": "string"
           }

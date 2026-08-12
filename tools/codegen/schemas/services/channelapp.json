@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
           "outputType": "ChannelApp",
           "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
-          "description": "Create or update a channel app.\n\n If the resource does not exist, creates a new channel app.\n If the resource exists, updates the existing channel app. Sending\n the redaction marker for a secret field preserves the stored value.\n\n @internal\n The authorization and state-operation are determined depending on\n whether the channel app is going to be created or updated, resolved\n as part of request execution."
+          "description": "Create or update a channel app.\n\n If the resource does not exist, creates a new channel app.\n If the resource exists, updates the existing channel app. Sending\n the redaction marker for a secret field preserves the stored value."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
           "outputType": "ChannelApp",
           "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
-          "description": "Create a channel app.\n\n The creator's organization owns the channel app. The creator is\n granted the owner role automatically.\n\n @internal\n Authorization: requires can_create_channel_app permission in the\n organization (admin-gated like can_create_oauth_app — the resource\n holds org-wide webhook credentials)."
+          "description": "Create a channel app.\n\n The creator's organization owns the channel app. The creator is\n granted the owner role automatically."
         },
         {
           "name": "Update",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
           "outputType": "ChannelApp",
           "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
-          "description": "Update an existing channel app.\n\n Sending the redaction marker for a secret field preserves the\n stored value; the provider arm is immutable.\n\n @internal\n Authorization: requires can_edit permission on the channel_app\n resource."
+          "description": "Update an existing channel app.\n\n Sending the redaction marker for a secret field preserves the\n stored value; the provider arm is immutable."
         },
         {
           "name": "Delete",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "ChannelApp",
           "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
-          "description": "Delete a channel app.\n\n Deletion is blocked while any AgentChannel references this app via\n spec.app_ref — disconnect or delete those channels first.\n\n @internal\n Authorization: requires can_delete permission on the channel_app\n resource. The referencing-channels block mirrors OAuthApp's\n referencing-mcp-servers check and fails with FAILED_PRECONDITION\n naming a referencing channel."
+          "description": "Delete a channel app.\n\n Deletion is blocked while any AgentChannel references this app via\n spec.app_ref — disconnect or delete those channels first."
         }
       ]
     },
@@ -53,7 +53,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
           "outputType": "ChannelApp",
           "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
-          "description": "Get a channel app by its unique identifier.\n\n Secret fields are redacted in the response.\n\n @internal\n Authorization: requires can_view permission on the channel_app\n resource."
+          "description": "Get a channel app by its unique identifier.\n\n Secret fields are redacted in the response."
         },
         {
           "name": "GetByReference",
@@ -61,7 +61,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "ChannelApp",
           "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
-          "description": "Get a channel app by its organization-scoped reference (org/slug).\n\n Secret fields are redacted in the response.\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions (the OAuthApp pattern)."
+          "description": "Get a channel app by its organization-scoped reference (org/slug).\n\n Secret fields are redacted in the response."
         },
         {
           "name": "ListByOrg",
@@ -69,7 +69,7 @@
           "inputFullType": "ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput",
           "outputType": "ChannelApps",
           "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApps",
-          "description": "List all channel apps belonging to an organization.\n\n Returns every ChannelApp whose metadata.org matches the input org,\n with secret fields redacted. Typically a small set, so results are\n not paginated.\n\n @internal\n Authorization: requires can_view permission on the organization\n resource."
+          "description": "List all channel apps belonging to an organization.\n\n Returns every ChannelApp whose metadata.org matches the input org,\n with secret fields redacted. Typically a small set, so results are\n not paginated."
         }
       ]
     }
@@ -367,7 +367,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -387,5 +387,5 @@
       ]
     }
   ],
-  "resourceDescription": "ChannelApp registers your own messaging-platform app (e.g. a Slack app) for serving agent channels.\n\n By default, agent channels install through the platform's shared\n Stigmer app. A ChannelApp lets an organization bring its own provider\n app instead: the bot carries the app's own name and icon, and because\n each provider app is a distinct bot identity, multiple agents can\n serve the same workspace side by side. One ChannelApp can be\n referenced by many AgentChannel connections via spec.app_ref.\n\n @internal\n T04 item 2 (channel strategy tasks/T03_4). Structural sibling of\n OAuthApp (kind 22) — an org-owned credential holder with encrypted\n inline secrets — but a different trust surface: OAuthApp models\n user-authorization OAuth (authorize/token/userinfo URLs); a ChannelApp\n carries webhook signing secrets and install credentials, so it is a\n separate kind in the agentic group, never a reuse. Provider variance\n is a oneof (the AgentChannelSpec.provider_config idiom); WhatsApp\n (T05) extends the oneof, touching zero kinds."
+  "resourceDescription": "ChannelApp registers your own messaging-platform app (e.g. a Slack app) for serving agent channels.\n\n By default, agent channels install through the platform's shared\n Stigmer app. A ChannelApp lets an organization bring its own provider\n app instead: the bot carries the app's own name and icon, and because\n each provider app is a distinct bot identity, multiple agents can\n serve the same workspace side by side. One ChannelApp can be\n referenced by many AgentChannel connections via spec.app_ref."
 }

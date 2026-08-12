@@ -1,6 +1,6 @@
 {
   "name": "SubAgent",
-  "description": "SubAgent defines a specialized agent that the parent can delegate to.\n\n A sub-agent can only access MCP servers that the parent has in\n mcp_server_usages, and its tools must be a subset of the parent's\n enabled tools. Skills are independent of the parent.\n\n @internal\n Permission model enforced at execution time by the delegation handler.",
+  "description": "SubAgent defines a specialized agent that the parent can delegate to.\n\n A sub-agent can only access MCP servers that the parent has in\n mcp_server_usages, and its tools must be a subset of the parent's\n enabled tools. Skills are independent of the parent.",
   "protoType": "ai.stigmer.agentic.agent.v1.SubAgent",
   "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
   "fields": [

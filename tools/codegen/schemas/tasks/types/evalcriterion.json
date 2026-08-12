@@ -1,6 +1,6 @@
 {
   "name": "EvalCriterion",
-  "description": "EvalCriterion defines a single evaluation dimension for multi-criteria mode.\n\n @internal\n When scoring_mode is EVAL_MULTI_CRITERIA, these criteria are included\n in the judge prompt as distinct evaluation axes. Each criterion gets\n its own score and reasoning in the output.\n\n @since T17 (Advanced Agentic Orchestration)",
+  "description": "EvalCriterion defines a single evaluation dimension for multi-criteria mode.",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.EvalCriterion",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/eval.proto",
   "fields": [

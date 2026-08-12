@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Create or update an organization.\n\n @internal\n The authorization and state-operation are determined depending on whether the organization\n is going to be created or updated which is determined as part of the request execution."
+          "description": "Create or update an organization."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Create an organization.\n\n @internal\n No authorization required — any authenticated user can create an organization.\n The creator automatically becomes the owner of the organization."
+          "description": "Create an organization."
         },
         {
           "name": "Update",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Update an existing organization.\n\n @internal\n Authorization: Requires can_edit permission on the organization."
+          "description": "Update an existing organization."
         },
         {
           "name": "Delete",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.tenancy.organization.v1.OrganizationId",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Delete an organization.\n\n @internal\n Authorization: Requires can_delete permission on the organization.\n This will cascade-delete all resources under the organization."
+          "description": "Delete an organization."
         }
       ]
     },
@@ -53,7 +53,7 @@
           "inputFullType": "ai.stigmer.tenancy.organization.v1.OrganizationId",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Get an organization by ID.\n\n @internal\n Authorization: Requires can_view permission on the organization."
+          "description": "Get an organization by ID."
         },
         {
           "name": "Find",
@@ -61,7 +61,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.FindApiResourcesRequest",
           "outputType": "OrganizationList",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.OrganizationList",
-          "description": "List organizations with pagination and filtering.\n\n @internal\n Authorization: Requires platform admin permission. Administrative use only."
+          "description": "List organizations with pagination and filtering."
         },
         {
           "name": "FindMyOrganizations",
@@ -69,7 +69,7 @@
           "inputFullType": "google.protobuf.Empty",
           "outputType": "Organizations",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organizations",
-          "description": "Find organizations the authenticated user is a member of.\n Returns only organizations the caller has access to.\n\n @internal\n Authorization handled in handler via IAM Policy listAuthorizedResourceIds."
+          "description": "Find organizations the authenticated user is a member of.\n Returns only organizations the caller has access to."
         },
         {
           "name": "GetByExternalOrgId",
@@ -77,7 +77,7 @@
           "inputFullType": "ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Look up a platform-managed organization by its external platform coordinates.\n Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.\n\n @internal\n Authorization: custom — checks can_view on the referenced IdentityProvider."
+          "description": "Look up a platform-managed organization by its external platform coordinates.\n Returns the Stigmer organization mapped to the given IdentityProvider + external org ID."
         }
       ]
     }
@@ -244,7 +244,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -265,7 +265,7 @@
     },
     {
       "name": "ManagementMode",
-      "description": "ManagementMode defines how an organization is operated.\n\n @internal\n Immutable after organization creation.\n - self_managed: User signed up directly, manages the org via Stigmer UI/CLI/API.\n - platform_managed: Created programmatically by an external platform (e.g., Planton)\n   via an IdentityProvider. Operated by the platform on behalf of its users.",
+      "description": "ManagementMode defines how an organization is operated.",
       "protoType": "ai.stigmer.tenancy.organization.v1.ManagementMode",
       "values": [
         {
@@ -428,5 +428,5 @@
       ]
     }
   ],
-  "resourceDescription": "Organization is the top-level container for all Stigmer resources.\n\n An Organization's metadata.id equals its metadata.slug: unlike every other\n resource (which is assigned a generated prefixed id), the tenancy root is\n addressed by its slug, which is globally unique.\n\n @internal\n Similar to GitHub organizations, all agents, workflows, sessions, and other\n resources are scoped under an organization. This enables multi-tenancy and\n proper resource isolation. Child resources reference their owning org by slug\n (metadata.org), which is why the org's id is set to its slug rather than a\n minted org_\u003culid\u003e (see OrganizationCommandController create pipeline)."
+  "resourceDescription": "Organization is the top-level container for all Stigmer resources.\n\n An Organization's metadata.id equals its metadata.slug: unlike every other\n resource (which is assigned a generated prefixed id), the tenancy root is\n addressed by its slug, which is globally unique."
 }

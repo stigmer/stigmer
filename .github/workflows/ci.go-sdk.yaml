@@ -74,6 +74,9 @@ jobs:
           go vet ./...
           go test ./... -count=1
 
-      - name: Run the client generator's own tests
+      # ./codegen/... (not just ./codegen/generator/...) so the proto2schema
+      # extraction tests run too — the @internal strip (oss#327) lives there
+      # and the generator package's leak gate depends on it.
+      - name: Run the codegen toolchain's own tests
         working-directory: tools
-        run: go test ./codegen/generator/... -count=1
+        run: go test ./codegen/... -count=1
