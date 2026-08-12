@@ -158,6 +158,9 @@ function parsePath(path: string): (string | number)[] {
 
 const RUNTIME_PLACEHOLDER_RE = /\$\{\.(secrets|env_vars)\.\w+\}/;
 
+/** Substitution form of {@link RUNTIME_PLACEHOLDER_RE} (global, capturing). */
+const RUNTIME_PLACEHOLDER_SUB_RE = /\$\{\.(secrets|env_vars)\.(\w+)\}/g;
+
 /**
  * Checks whether a string contains a runtime placeholder that should
  * NOT be evaluated in the workflow (deterministic) phase. These are
@@ -172,7 +175,9 @@ export function isRuntimePlaceholder(value: string): boolean {
 
 /**
  * Resolves runtime placeholders (`${.secrets.KEY}`, `${.env_vars.KEY}`)
- * in a string using values from the runtime environment map.
+ * in a string using values from the runtime environment map. Missing
+ * keys resolve to `""` — callers that must fail loudly instead use
+ * {@link resolveRuntimePlaceholdersStrict}.
  *
  * This runs in activities only — never in the workflow sandbox.
  */
@@ -181,10 +186,51 @@ export function resolveRuntimePlaceholders(
   runtimeEnv: Record<string, unknown>,
 ): string {
   return value.replace(
-    /\$\{\.(secrets|env_vars)\.(\w+)\}/g,
+    RUNTIME_PLACEHOLDER_SUB_RE,
     (_match, _ns: string, key: string) => {
       const resolved = runtimeEnv[key];
       return resolved !== undefined ? String(resolved) : "";
+    },
+  );
+}
+
+/** Thrown by {@link resolveRuntimePlaceholdersStrict} for a missing key. */
+export class RuntimePlaceholderResolutionError extends Error {
+  constructor(
+    public readonly variableName: string,
+    public readonly context?: string,
+  ) {
+    const where = context ? ` in ${context}` : "";
+    super(
+      `Unresolved runtime placeholder for "${variableName}"${where}: ` +
+        `variable is not present in the workflow's runtime environment`,
+    );
+    this.name = "RuntimePlaceholderResolutionError";
+  }
+}
+
+/**
+ * Strict variant of {@link resolveRuntimePlaceholders}: a placeholder
+ * whose key is missing from the runtime environment throws instead of
+ * resolving to `""` — a silently-empty credential produces cryptic
+ * downstream failures, so declared-value consumers (the run task's env
+ * contract) fail fast with the variable named.
+ *
+ * This runs in activities only — never in the workflow sandbox.
+ */
+export function resolveRuntimePlaceholdersStrict(
+  value: string,
+  runtimeEnv: Record<string, unknown>,
+  context?: string,
+): string {
+  return value.replace(
+    RUNTIME_PLACEHOLDER_SUB_RE,
+    (_match, _ns: string, key: string) => {
+      const resolved = runtimeEnv[key];
+      if (resolved === undefined) {
+        throw new RuntimePlaceholderResolutionError(key, context);
+      }
+      return String(resolved);
     },
   );
 }
