@@ -62,6 +62,8 @@ private static final long serialVersionUID = 0L;
     receiptState_ = 0;
     receiptDetail_ = "";
     renderedBody_ = "";
+    failureKind_ = 0;
+    attemptDetail_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -954,6 +956,119 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int FAILURE_KIND_FIELD_NUMBER = 21;
+  private int failureKind_ = 0;
+  /**
+   * <pre>
+   * Why the send FAILED, in the platform's classification. Unspecified
+   * unless status is failed (and on rows terminal before this field
+   * existed). A third axis fact beside status and the receipt pair.
+   *
+   * &#64;internal
+   * cloud#262 (channel-conversations F-25): the classification that
+   * decides whether the failure's explanation may reach the conversation
+   * timeline. Written only by markFailed and the delete cascade, never by
+   * markRetry — a scheduled retry is not a verdict. The ChannelDelivery
+   * twin (its fields 18/19) carries the same contract.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 21 [json_name = "failureKind"];</code>
+   * @return The enum numeric value on the wire for failureKind.
+   */
+  @java.lang.Override public int getFailureKindValue() {
+    return failureKind_;
+  }
+  /**
+   * <pre>
+   * Why the send FAILED, in the platform's classification. Unspecified
+   * unless status is failed (and on rows terminal before this field
+   * existed). A third axis fact beside status and the receipt pair.
+   *
+   * &#64;internal
+   * cloud#262 (channel-conversations F-25): the classification that
+   * decides whether the failure's explanation may reach the conversation
+   * timeline. Written only by markFailed and the delete cascade, never by
+   * markRetry — a scheduled retry is not a verdict. The ChannelDelivery
+   * twin (its fields 18/19) carries the same contract.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 21 [json_name = "failureKind"];</code>
+   * @return The failureKind.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind getFailureKind() {
+    ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind result = ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind.forNumber(failureKind_);
+    return result == null ? ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind.UNRECOGNIZED : result;
+  }
+
+  public static final int ATTEMPT_DETAIL_FIELD_NUMBER = 22;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object attemptDetail_ = "";
+  /**
+   * <pre>
+   * The thread-safe explanation of a FAILED send, when one was authored
+   * for the conversation surface. Empty unless failure_kind is
+   * attempt_refused or attempt_withdrawn.
+   *
+   * &#64;internal
+   * cloud#262: PLATFORM-authored copy — for refusals this is the
+   * TERMINAL_REFUSALS mapped explanation (plus the provider's own
+   * error_data details when present), NOT the receipt axis's
+   * provider-owned vocabulary. The write side is the guarantee: only the
+   * refusal and withdrawal arms carry copy here, so raw exception text
+   * (which stays in last_error, an operator-only fact) can structurally
+   * never reach the timeline relay.
+   * </pre>
+   *
+   * <code>string attempt_detail = 22 [json_name = "attemptDetail"];</code>
+   * @return The attemptDetail.
+   */
+  @java.lang.Override
+  public java.lang.String getAttemptDetail() {
+    java.lang.Object ref = attemptDetail_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      attemptDetail_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The thread-safe explanation of a FAILED send, when one was authored
+   * for the conversation surface. Empty unless failure_kind is
+   * attempt_refused or attempt_withdrawn.
+   *
+   * &#64;internal
+   * cloud#262: PLATFORM-authored copy — for refusals this is the
+   * TERMINAL_REFUSALS mapped explanation (plus the provider's own
+   * error_data details when present), NOT the receipt axis's
+   * provider-owned vocabulary. The write side is the guarantee: only the
+   * refusal and withdrawal arms carry copy here, so raw exception text
+   * (which stays in last_error, an operator-only fact) can structurally
+   * never reach the timeline relay.
+   * </pre>
+   *
+   * <code>string attempt_detail = 22 [json_name = "attemptDetail"];</code>
+   * @return The bytes for attemptDetail.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getAttemptDetailBytes() {
+    java.lang.Object ref = attemptDetail_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      attemptDetail_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1027,6 +1142,12 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(renderedBody_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 20, renderedBody_);
+    }
+    if (failureKind_ != ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind.attempt_failure_unspecified.getNumber()) {
+      output.writeEnum(21, failureKind_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(attemptDetail_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 22, attemptDetail_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1107,6 +1228,13 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(renderedBody_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(20, renderedBody_);
     }
+    if (failureKind_ != ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind.attempt_failure_unspecified.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(21, failureKind_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(attemptDetail_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(22, attemptDetail_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1174,6 +1302,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!getRenderedBody()
         .equals(other.getRenderedBody())) return false;
+    if (failureKind_ != other.failureKind_) return false;
+    if (!getAttemptDetail()
+        .equals(other.getAttemptDetail())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1235,6 +1366,10 @@ private static final long serialVersionUID = 0L;
     }
     hash = (37 * hash) + RENDERED_BODY_FIELD_NUMBER;
     hash = (53 * hash) + getRenderedBody().hashCode();
+    hash = (37 * hash) + FAILURE_KIND_FIELD_NUMBER;
+    hash = (53 * hash) + failureKind_;
+    hash = (37 * hash) + ATTEMPT_DETAIL_FIELD_NUMBER;
+    hash = (53 * hash) + getAttemptDetail().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1437,6 +1572,8 @@ private static final long serialVersionUID = 0L;
         receiptAtBuilder_ = null;
       }
       renderedBody_ = "";
+      failureKind_ = 0;
+      attemptDetail_ = "";
       return this;
     }
 
@@ -1546,6 +1683,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00080000) != 0)) {
         result.renderedBody_ = renderedBody_;
       }
+      if (((from_bitField0_ & 0x00100000) != 0)) {
+        result.failureKind_ = failureKind_;
+      }
+      if (((from_bitField0_ & 0x00200000) != 0)) {
+        result.attemptDetail_ = attemptDetail_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1639,6 +1782,14 @@ private static final long serialVersionUID = 0L;
       if (!other.getRenderedBody().isEmpty()) {
         renderedBody_ = other.renderedBody_;
         bitField0_ |= 0x00080000;
+        onChanged();
+      }
+      if (other.failureKind_ != 0) {
+        setFailureKindValue(other.getFailureKindValue());
+      }
+      if (!other.getAttemptDetail().isEmpty()) {
+        attemptDetail_ = other.attemptDetail_;
+        bitField0_ |= 0x00200000;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -1777,6 +1928,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00080000;
               break;
             } // case 162
+            case 168: {
+              failureKind_ = input.readEnum();
+              bitField0_ |= 0x00100000;
+              break;
+            } // case 168
+            case 178: {
+              attemptDetail_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00200000;
+              break;
+            } // case 178
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -4059,6 +4220,270 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       renderedBody_ = value;
       bitField0_ |= 0x00080000;
+      onChanged();
+      return this;
+    }
+
+    private int failureKind_ = 0;
+    /**
+     * <pre>
+     * Why the send FAILED, in the platform's classification. Unspecified
+     * unless status is failed (and on rows terminal before this field
+     * existed). A third axis fact beside status and the receipt pair.
+     *
+     * &#64;internal
+     * cloud#262 (channel-conversations F-25): the classification that
+     * decides whether the failure's explanation may reach the conversation
+     * timeline. Written only by markFailed and the delete cascade, never by
+     * markRetry — a scheduled retry is not a verdict. The ChannelDelivery
+     * twin (its fields 18/19) carries the same contract.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 21 [json_name = "failureKind"];</code>
+     * @return The enum numeric value on the wire for failureKind.
+     */
+    @java.lang.Override public int getFailureKindValue() {
+      return failureKind_;
+    }
+    /**
+     * <pre>
+     * Why the send FAILED, in the platform's classification. Unspecified
+     * unless status is failed (and on rows terminal before this field
+     * existed). A third axis fact beside status and the receipt pair.
+     *
+     * &#64;internal
+     * cloud#262 (channel-conversations F-25): the classification that
+     * decides whether the failure's explanation may reach the conversation
+     * timeline. Written only by markFailed and the delete cascade, never by
+     * markRetry — a scheduled retry is not a verdict. The ChannelDelivery
+     * twin (its fields 18/19) carries the same contract.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 21 [json_name = "failureKind"];</code>
+     * @param value The enum numeric value on the wire for failureKind to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setFailureKindValue(int value) {
+      failureKind_ = value;
+      bitField0_ |= 0x00100000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Why the send FAILED, in the platform's classification. Unspecified
+     * unless status is failed (and on rows terminal before this field
+     * existed). A third axis fact beside status and the receipt pair.
+     *
+     * &#64;internal
+     * cloud#262 (channel-conversations F-25): the classification that
+     * decides whether the failure's explanation may reach the conversation
+     * timeline. Written only by markFailed and the delete cascade, never by
+     * markRetry — a scheduled retry is not a verdict. The ChannelDelivery
+     * twin (its fields 18/19) carries the same contract.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 21 [json_name = "failureKind"];</code>
+     * @return The failureKind.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind getFailureKind() {
+      ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind result = ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind.forNumber(failureKind_);
+      return result == null ? ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Why the send FAILED, in the platform's classification. Unspecified
+     * unless status is failed (and on rows terminal before this field
+     * existed). A third axis fact beside status and the receipt pair.
+     *
+     * &#64;internal
+     * cloud#262 (channel-conversations F-25): the classification that
+     * decides whether the failure's explanation may reach the conversation
+     * timeline. Written only by markFailed and the delete cascade, never by
+     * markRetry — a scheduled retry is not a verdict. The ChannelDelivery
+     * twin (its fields 18/19) carries the same contract.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 21 [json_name = "failureKind"];</code>
+     * @param value The failureKind to set.
+     * @return This builder for chaining.
+     */
+    public Builder setFailureKind(ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00100000;
+      failureKind_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Why the send FAILED, in the platform's classification. Unspecified
+     * unless status is failed (and on rows terminal before this field
+     * existed). A third axis fact beside status and the receipt pair.
+     *
+     * &#64;internal
+     * cloud#262 (channel-conversations F-25): the classification that
+     * decides whether the failure's explanation may reach the conversation
+     * timeline. Written only by markFailed and the delete cascade, never by
+     * markRetry — a scheduled retry is not a verdict. The ChannelDelivery
+     * twin (its fields 18/19) carries the same contract.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 21 [json_name = "failureKind"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearFailureKind() {
+      bitField0_ = (bitField0_ & ~0x00100000);
+      failureKind_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object attemptDetail_ = "";
+    /**
+     * <pre>
+     * The thread-safe explanation of a FAILED send, when one was authored
+     * for the conversation surface. Empty unless failure_kind is
+     * attempt_refused or attempt_withdrawn.
+     *
+     * &#64;internal
+     * cloud#262: PLATFORM-authored copy — for refusals this is the
+     * TERMINAL_REFUSALS mapped explanation (plus the provider's own
+     * error_data details when present), NOT the receipt axis's
+     * provider-owned vocabulary. The write side is the guarantee: only the
+     * refusal and withdrawal arms carry copy here, so raw exception text
+     * (which stays in last_error, an operator-only fact) can structurally
+     * never reach the timeline relay.
+     * </pre>
+     *
+     * <code>string attempt_detail = 22 [json_name = "attemptDetail"];</code>
+     * @return The attemptDetail.
+     */
+    public java.lang.String getAttemptDetail() {
+      java.lang.Object ref = attemptDetail_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        attemptDetail_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The thread-safe explanation of a FAILED send, when one was authored
+     * for the conversation surface. Empty unless failure_kind is
+     * attempt_refused or attempt_withdrawn.
+     *
+     * &#64;internal
+     * cloud#262: PLATFORM-authored copy — for refusals this is the
+     * TERMINAL_REFUSALS mapped explanation (plus the provider's own
+     * error_data details when present), NOT the receipt axis's
+     * provider-owned vocabulary. The write side is the guarantee: only the
+     * refusal and withdrawal arms carry copy here, so raw exception text
+     * (which stays in last_error, an operator-only fact) can structurally
+     * never reach the timeline relay.
+     * </pre>
+     *
+     * <code>string attempt_detail = 22 [json_name = "attemptDetail"];</code>
+     * @return The bytes for attemptDetail.
+     */
+    public com.google.protobuf.ByteString
+        getAttemptDetailBytes() {
+      java.lang.Object ref = attemptDetail_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        attemptDetail_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The thread-safe explanation of a FAILED send, when one was authored
+     * for the conversation surface. Empty unless failure_kind is
+     * attempt_refused or attempt_withdrawn.
+     *
+     * &#64;internal
+     * cloud#262: PLATFORM-authored copy — for refusals this is the
+     * TERMINAL_REFUSALS mapped explanation (plus the provider's own
+     * error_data details when present), NOT the receipt axis's
+     * provider-owned vocabulary. The write side is the guarantee: only the
+     * refusal and withdrawal arms carry copy here, so raw exception text
+     * (which stays in last_error, an operator-only fact) can structurally
+     * never reach the timeline relay.
+     * </pre>
+     *
+     * <code>string attempt_detail = 22 [json_name = "attemptDetail"];</code>
+     * @param value The attemptDetail to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAttemptDetail(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      attemptDetail_ = value;
+      bitField0_ |= 0x00200000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The thread-safe explanation of a FAILED send, when one was authored
+     * for the conversation surface. Empty unless failure_kind is
+     * attempt_refused or attempt_withdrawn.
+     *
+     * &#64;internal
+     * cloud#262: PLATFORM-authored copy — for refusals this is the
+     * TERMINAL_REFUSALS mapped explanation (plus the provider's own
+     * error_data details when present), NOT the receipt axis's
+     * provider-owned vocabulary. The write side is the guarantee: only the
+     * refusal and withdrawal arms carry copy here, so raw exception text
+     * (which stays in last_error, an operator-only fact) can structurally
+     * never reach the timeline relay.
+     * </pre>
+     *
+     * <code>string attempt_detail = 22 [json_name = "attemptDetail"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAttemptDetail() {
+      attemptDetail_ = getDefaultInstance().getAttemptDetail();
+      bitField0_ = (bitField0_ & ~0x00200000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The thread-safe explanation of a FAILED send, when one was authored
+     * for the conversation surface. Empty unless failure_kind is
+     * attempt_refused or attempt_withdrawn.
+     *
+     * &#64;internal
+     * cloud#262: PLATFORM-authored copy — for refusals this is the
+     * TERMINAL_REFUSALS mapped explanation (plus the provider's own
+     * error_data details when present), NOT the receipt axis's
+     * provider-owned vocabulary. The write side is the guarantee: only the
+     * refusal and withdrawal arms carry copy here, so raw exception text
+     * (which stays in last_error, an operator-only fact) can structurally
+     * never reach the timeline relay.
+     * </pre>
+     *
+     * <code>string attempt_detail = 22 [json_name = "attemptDetail"];</code>
+     * @param value The bytes for attemptDetail to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAttemptDetailBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      attemptDetail_ = value;
+      bitField0_ |= 0x00200000;
       onChanged();
       return this;
     }

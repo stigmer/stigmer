@@ -105,6 +105,83 @@ func (ChannelDeliveryStatus) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDescGZIP(), []int{0}
 }
 
+// ChannelAttemptFailureKind classifies WHY a send attempt reached
+// status failed — and with it, whether the failure's stored explanation
+// was authored for the conversation surface (attempt_detail) or is an
+// operator-only diagnostic (last_error).
+//
+// @internal
+// cloud#262 (channel-conversations F-25, the DD-014 D-d deferred copy
+// ruling). Values carry the attempt_ prefix because proto3 enum values
+// are package-scoped — and, as with ChannelReceiptState's receipt_
+// prefix, that is also a feature: the attempt axis and the receipt axis
+// can never be confused on the wire. Shared by ChannelDelivery and
+// ChannelOutboundMessage exactly like ChannelDeliveryStatus (a twin
+// enum would not compile).
+type ChannelAttemptFailureKind int32
+
+const (
+	// Default value when no classification is set (non-failed rows, and
+	// rows that failed before this classification existed).
+	ChannelAttemptFailureKind_attempt_failure_unspecified ChannelAttemptFailureKind = 0
+	// The provider terminally refused the send; attempt_detail carries
+	// the platform's mapped human explanation (e.g. the 24-hour
+	// customer-service-window copy for WhatsApp code 131047).
+	ChannelAttemptFailureKind_attempt_refused ChannelAttemptFailureKind = 1
+	// A technical failure (transport error, unexpected provider error,
+	// unresolvable credentials — exhausted retries or unattemptable at
+	// the first try). attempt_detail is EMPTY by construction; the raw
+	// diagnostic lives in last_error and never reaches the thread.
+	ChannelAttemptFailureKind_attempt_errored ChannelAttemptFailureKind = 2
+	// The platform withdrew the send for a structural reason;
+	// attempt_detail carries the short fact ("channel deleted",
+	// "execution no longer exists").
+	ChannelAttemptFailureKind_attempt_withdrawn ChannelAttemptFailureKind = 3
+)
+
+// Enum value maps for ChannelAttemptFailureKind.
+var (
+	ChannelAttemptFailureKind_name = map[int32]string{
+		0: "attempt_failure_unspecified",
+		1: "attempt_refused",
+		2: "attempt_errored",
+		3: "attempt_withdrawn",
+	}
+	ChannelAttemptFailureKind_value = map[string]int32{
+		"attempt_failure_unspecified": 0,
+		"attempt_refused":             1,
+		"attempt_errored":             2,
+		"attempt_withdrawn":           3,
+	}
+)
+
+func (x ChannelAttemptFailureKind) Enum() *ChannelAttemptFailureKind {
+	p := new(ChannelAttemptFailureKind)
+	*p = x
+	return p
+}
+
+func (x ChannelAttemptFailureKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ChannelAttemptFailureKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_enumTypes[1].Descriptor()
+}
+
+func (ChannelAttemptFailureKind) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_enumTypes[1]
+}
+
+func (x ChannelAttemptFailureKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ChannelAttemptFailureKind.Descriptor instead.
+func (ChannelAttemptFailureKind) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDescGZIP(), []int{1}
+}
+
 // ChannelDelivery tracks the delivery of one agent reply to one external
 // conversation.
 //
@@ -169,7 +246,28 @@ type ChannelDelivery struct {
 	// Written by the processor on markDelivered AND markFailed (a
 	// dead-lettered reply's text is what a human taking over needs to see);
 	// deliberately not on markRetry, which is non-terminal and re-extracts.
-	ReplyText     string `protobuf:"bytes,17,opt,name=reply_text,json=replyText,proto3" json:"reply_text,omitempty"`
+	ReplyText string `protobuf:"bytes,17,opt,name=reply_text,json=replyText,proto3" json:"reply_text,omitempty"`
+	// Why the delivery FAILED, in the platform's classification. Unspecified
+	// unless status is failed (and on rows terminal before this field
+	// existed).
+	//
+	// @internal
+	// cloud#262 (channel-conversations F-25): the classification that
+	// decides whether the failure's explanation may reach the conversation
+	// timeline. Written only by markFailed and the delete cascade, never by
+	// markRetry — a scheduled retry is not a verdict.
+	FailureKind ChannelAttemptFailureKind `protobuf:"varint,18,opt,name=failure_kind,json=failureKind,proto3,enum=ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind" json:"failure_kind,omitempty"`
+	// The thread-safe explanation of a FAILED delivery, when one was
+	// authored for the conversation surface. Empty unless failure_kind is
+	// attempt_refused or attempt_withdrawn.
+	//
+	// @internal
+	// cloud#262: PLATFORM-authored copy, unlike the outbound ledger's
+	// provider-owned receipt_detail. The write side is the guarantee: only
+	// the refusal and withdrawal arms carry copy here, so raw exception
+	// text (which stays in last_error, an operator-only fact) can
+	// structurally never reach the timeline relay.
+	AttemptDetail string `protobuf:"bytes,19,opt,name=attempt_detail,json=attemptDetail,proto3" json:"attempt_detail,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -334,6 +432,20 @@ func (x *ChannelDelivery) GetReplyText() string {
 	return ""
 }
 
+func (x *ChannelDelivery) GetFailureKind() ChannelAttemptFailureKind {
+	if x != nil {
+		return x.FailureKind
+	}
+	return ChannelAttemptFailureKind_attempt_failure_unspecified
+}
+
+func (x *ChannelDelivery) GetAttemptDetail() string {
+	if x != nil {
+		return x.AttemptDetail
+	}
+	return ""
+}
+
 type isChannelDelivery_DeliveryContext interface {
 	isChannelDelivery_DeliveryContext()
 }
@@ -489,7 +601,7 @@ var File_ai_stigmer_agentic_agentchannel_v1_delivery_proto protoreflect.FileDesc
 
 const file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDesc = "" +
 	"\n" +
-	"1ai/stigmer/agentic/agentchannel/v1/delivery.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd8\x06\n" +
+	"1ai/stigmer/agentic/agentchannel/v1/delivery.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe1\a\n" +
 	"\x0fChannelDelivery\x12\x1f\n" +
 	"\vdelivery_id\x18\x01 \x01(\tR\n" +
 	"deliveryId\x12(\n" +
@@ -514,7 +626,9 @@ const file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDesc = "" +
 	"updated_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12B\n" +
 	"\x0fnext_attempt_at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\rnextAttemptAt\x12\x1d\n" +
 	"\n" +
-	"reply_text\x18\x11 \x01(\tR\treplyTextB\x12\n" +
+	"reply_text\x18\x11 \x01(\tR\treplyText\x12`\n" +
+	"\ffailure_kind\x18\x12 \x01(\x0e2=.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKindR\vfailureKind\x12%\n" +
+	"\x0eattempt_detail\x18\x13 \x01(\tR\rattemptDetailB\x12\n" +
 	"\x10delivery_context\"y\n" +
 	"\x14SlackDeliveryContext\x12\x1d\n" +
 	"\n" +
@@ -533,7 +647,12 @@ const file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDesc = "" +
 	"\n" +
 	"\x06failed\x10\x04\x12\x0e\n" +
 	"\n" +
-	"suppressed\x10\x05B\xc0\x02\n" +
+	"suppressed\x10\x05*}\n" +
+	"\x19ChannelAttemptFailureKind\x12\x1f\n" +
+	"\x1battempt_failure_unspecified\x10\x00\x12\x13\n" +
+	"\x0fattempt_refused\x10\x01\x12\x13\n" +
+	"\x0fattempt_errored\x10\x02\x12\x15\n" +
+	"\x11attempt_withdrawn\x10\x03B\xc0\x02\n" +
 	"&com.ai.stigmer.agentic.agentchannel.v1B\rDeliveryProtoP\x01ZZgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
 
 var (
@@ -548,27 +667,29 @@ func file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDescGZIP() []byte
 	return file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_goTypes = []any{
 	(ChannelDeliveryStatus)(0),      // 0: ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
-	(*ChannelDelivery)(nil),         // 1: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery
-	(*SlackDeliveryContext)(nil),    // 2: ai.stigmer.agentic.agentchannel.v1.SlackDeliveryContext
-	(*WhatsAppDeliveryContext)(nil), // 3: ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext
-	(*timestamppb.Timestamp)(nil),   // 4: google.protobuf.Timestamp
+	(ChannelAttemptFailureKind)(0),  // 1: ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind
+	(*ChannelDelivery)(nil),         // 2: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery
+	(*SlackDeliveryContext)(nil),    // 3: ai.stigmer.agentic.agentchannel.v1.SlackDeliveryContext
+	(*WhatsAppDeliveryContext)(nil), // 4: ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext
+	(*timestamppb.Timestamp)(nil),   // 5: google.protobuf.Timestamp
 }
 var file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.status:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
-	2, // 1: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.slack:type_name -> ai.stigmer.agentic.agentchannel.v1.SlackDeliveryContext
-	3, // 2: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.whatsapp:type_name -> ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext
-	4, // 3: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.created_at:type_name -> google.protobuf.Timestamp
-	4, // 4: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.updated_at:type_name -> google.protobuf.Timestamp
-	4, // 5: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.next_attempt_at:type_name -> google.protobuf.Timestamp
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	3, // 1: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.slack:type_name -> ai.stigmer.agentic.agentchannel.v1.SlackDeliveryContext
+	4, // 2: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.whatsapp:type_name -> ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext
+	5, // 3: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.created_at:type_name -> google.protobuf.Timestamp
+	5, // 4: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.updated_at:type_name -> google.protobuf.Timestamp
+	5, // 5: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.next_attempt_at:type_name -> google.protobuf.Timestamp
+	1, // 6: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.failure_kind:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_init() }
@@ -585,7 +706,7 @@ func file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDesc), len(file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,

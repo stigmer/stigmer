@@ -53,7 +53,7 @@ public final class DeliveryProto extends com.google.protobuf.GeneratedFile {
       "\n1ai/stigmer/agentic/agentchannel/v1/del" +
       "ivery.proto\022\"ai.stigmer.agentic.agentcha" +
       "nnel.v1\032\037google/protobuf/timestamp.proto" +
-      "\"\330\006\n\017ChannelDelivery\022\037\n\013delivery_id\030\001 \001(" +
+      "\"\341\007\n\017ChannelDelivery\022\037\n\013delivery_id\030\001 \001(" +
       "\tR\ndeliveryId\022(\n\020agent_channel_id\030\002 \001(\tR" +
       "\016agentChannelId\022\020\n\003org\030\003 \001(\tR\003org\022!\n\014exe" +
       "cution_id\030\004 \001(\tR\013executionId\022\035\n\nsession_" +
@@ -73,22 +73,29 @@ public final class DeliveryProto extends com.google.protobuf.GeneratedFile {
       "t\0229\n\nupdated_at\030\016 \001(\0132\032.google.protobuf." +
       "TimestampR\tupdatedAt\022B\n\017next_attempt_at\030" +
       "\017 \001(\0132\032.google.protobuf.TimestampR\rnextA" +
-      "ttemptAt\022\035\n\nreply_text\030\021 \001(\tR\treplyTextB" +
-      "\022\n\020delivery_context\"y\n\024SlackDeliveryCont" +
-      "ext\022\035\n\nchannel_id\030\001 \001(\tR\tchannelId\022\033\n\tth" +
-      "read_ts\030\002 \001(\tR\010threadTs\022%\n\016placeholder_t" +
-      "s\030\003 \001(\tR\rplaceholderTs\"i\n\027WhatsAppDelive" +
-      "ryContext\022&\n\017phone_number_id\030\001 \001(\tR\rphon" +
-      "eNumberId\022&\n\017recipient_wa_id\030\002 \001(\tR\rreci" +
-      "pientWaId*\210\001\n\025ChannelDeliveryStatus\022\'\n#c" +
-      "hannel_delivery_status_unspecified\020\000\022\013\n\007" +
-      "pending\020\001\022\016\n\ndelivering\020\002\022\r\n\tdelivered\020\003" +
-      "\022\n\n\006failed\020\004\022\016\n\nsuppressed\020\005B\274\001B\rDeliver" +
-      "yProtoP\001\242\002\004ASAA\252\002\"Ai.Stigmer.Agentic.Age" +
-      "ntchannel.V1\312\002\"Ai\\Stigmer\\Agentic\\Agentc" +
-      "hannel\\V1\342\002.Ai\\Stigmer\\Agentic\\Agentchan" +
-      "nel\\V1\\GPBMetadata\352\002&Ai::Stigmer::Agenti" +
-      "c::Agentchannel::V1b\006proto3"
+      "ttemptAt\022\035\n\nreply_text\030\021 \001(\tR\treplyText\022" +
+      "`\n\014failure_kind\030\022 \001(\0162=.ai.stigmer.agent" +
+      "ic.agentchannel.v1.ChannelAttemptFailure" +
+      "KindR\013failureKind\022%\n\016attempt_detail\030\023 \001(" +
+      "\tR\rattemptDetailB\022\n\020delivery_context\"y\n\024" +
+      "SlackDeliveryContext\022\035\n\nchannel_id\030\001 \001(\t" +
+      "R\tchannelId\022\033\n\tthread_ts\030\002 \001(\tR\010threadTs" +
+      "\022%\n\016placeholder_ts\030\003 \001(\tR\rplaceholderTs\"" +
+      "i\n\027WhatsAppDeliveryContext\022&\n\017phone_numb" +
+      "er_id\030\001 \001(\tR\rphoneNumberId\022&\n\017recipient_" +
+      "wa_id\030\002 \001(\tR\rrecipientWaId*\210\001\n\025ChannelDe" +
+      "liveryStatus\022\'\n#channel_delivery_status_" +
+      "unspecified\020\000\022\013\n\007pending\020\001\022\016\n\ndelivering" +
+      "\020\002\022\r\n\tdelivered\020\003\022\n\n\006failed\020\004\022\016\n\nsuppres" +
+      "sed\020\005*}\n\031ChannelAttemptFailureKind\022\037\n\033at" +
+      "tempt_failure_unspecified\020\000\022\023\n\017attempt_r" +
+      "efused\020\001\022\023\n\017attempt_errored\020\002\022\025\n\021attempt" +
+      "_withdrawn\020\003B\274\001B\rDeliveryProtoP\001\242\002\004ASAA\252" +
+      "\002\"Ai.Stigmer.Agentic.Agentchannel.V1\312\002\"A" +
+      "i\\Stigmer\\Agentic\\Agentchannel\\V1\342\002.Ai\\S" +
+      "tigmer\\Agentic\\Agentchannel\\V1\\GPBMetada" +
+      "ta\352\002&Ai::Stigmer::Agentic::Agentchannel:" +
+      ":V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -100,7 +107,7 @@ public final class DeliveryProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentchannel_v1_ChannelDelivery_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentchannel_v1_ChannelDelivery_descriptor,
-        new java.lang.String[] { "DeliveryId", "AgentChannelId", "Org", "ExecutionId", "SessionId", "ConversationKey", "ExternalUserKey", "Status", "Attempts", "LastError", "IdempotencyKey", "Slack", "Whatsapp", "CreatedAt", "UpdatedAt", "NextAttemptAt", "ReplyText", "DeliveryContext", });
+        new java.lang.String[] { "DeliveryId", "AgentChannelId", "Org", "ExecutionId", "SessionId", "ConversationKey", "ExternalUserKey", "Status", "Attempts", "LastError", "IdempotencyKey", "Slack", "Whatsapp", "CreatedAt", "UpdatedAt", "NextAttemptAt", "ReplyText", "FailureKind", "AttemptDetail", "DeliveryContext", });
     internal_static_ai_stigmer_agentic_agentchannel_v1_SlackDeliveryContext_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_agentchannel_v1_SlackDeliveryContext_fieldAccessorTable = new

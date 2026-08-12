@@ -299,7 +299,31 @@ type ChannelOutboundMessage struct {
 	// point where the language-resolved payload is fixed), before any
 	// provider I/O; no later writer touches it. No backfill is possible —
 	// pre-field history stays honestly unavailable (the D1-A consequence).
-	RenderedBody  string `protobuf:"bytes,20,opt,name=rendered_body,json=renderedBody,proto3" json:"rendered_body,omitempty"`
+	RenderedBody string `protobuf:"bytes,20,opt,name=rendered_body,json=renderedBody,proto3" json:"rendered_body,omitempty"`
+	// Why the send FAILED, in the platform's classification. Unspecified
+	// unless status is failed (and on rows terminal before this field
+	// existed). A third axis fact beside status and the receipt pair.
+	//
+	// @internal
+	// cloud#262 (channel-conversations F-25): the classification that
+	// decides whether the failure's explanation may reach the conversation
+	// timeline. Written only by markFailed and the delete cascade, never by
+	// markRetry — a scheduled retry is not a verdict. The ChannelDelivery
+	// twin (its fields 18/19) carries the same contract.
+	FailureKind ChannelAttemptFailureKind `protobuf:"varint,21,opt,name=failure_kind,json=failureKind,proto3,enum=ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind" json:"failure_kind,omitempty"`
+	// The thread-safe explanation of a FAILED send, when one was authored
+	// for the conversation surface. Empty unless failure_kind is
+	// attempt_refused or attempt_withdrawn.
+	//
+	// @internal
+	// cloud#262: PLATFORM-authored copy — for refusals this is the
+	// TERMINAL_REFUSALS mapped explanation (plus the provider's own
+	// error_data details when present), NOT the receipt axis's
+	// provider-owned vocabulary. The write side is the guarantee: only the
+	// refusal and withdrawal arms carry copy here, so raw exception text
+	// (which stays in last_error, an operator-only fact) can structurally
+	// never reach the timeline relay.
+	AttemptDetail string `protobuf:"bytes,22,opt,name=attempt_detail,json=attemptDetail,proto3" json:"attempt_detail,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -474,11 +498,25 @@ func (x *ChannelOutboundMessage) GetRenderedBody() string {
 	return ""
 }
 
+func (x *ChannelOutboundMessage) GetFailureKind() ChannelAttemptFailureKind {
+	if x != nil {
+		return x.FailureKind
+	}
+	return ChannelAttemptFailureKind_attempt_failure_unspecified
+}
+
+func (x *ChannelOutboundMessage) GetAttemptDetail() string {
+	if x != nil {
+		return x.AttemptDetail
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_agentchannel_v1_outbound_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_rawDesc = "" +
 	"\n" +
-	"1ai/stigmer/agentic/agentchannel/v1/outbound.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a1ai/stigmer/agentic/agentchannel/v1/delivery.proto\x1a3ai/stigmer/agentic/agentchannel/v1/message_io.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9e\b\n" +
+	"1ai/stigmer/agentic/agentchannel/v1/outbound.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a1ai/stigmer/agentic/agentchannel/v1/delivery.proto\x1a3ai/stigmer/agentic/agentchannel/v1/message_io.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa7\t\n" +
 	"\x16ChannelOutboundMessage\x12.\n" +
 	"\x13outbound_message_id\x18\x01 \x01(\tR\x11outboundMessageId\x12(\n" +
 	"\x10agent_channel_id\x18\x02 \x01(\tR\x0eagentChannelId\x12\x10\n" +
@@ -505,7 +543,9 @@ const file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_rawDesc = "" +
 	"\x12receipt_error_code\x18\x12 \x01(\x05R\x10receiptErrorCode\x129\n" +
 	"\n" +
 	"receipt_at\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\treceiptAt\x12#\n" +
-	"\rrendered_body\x18\x14 \x01(\tR\frenderedBody*\x83\x01\n" +
+	"\rrendered_body\x18\x14 \x01(\tR\frenderedBody\x12`\n" +
+	"\ffailure_kind\x18\x15 \x01(\x0e2=.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKindR\vfailureKind\x12%\n" +
+	"\x0eattempt_detail\x18\x16 \x01(\tR\rattemptDetail*\x83\x01\n" +
 	"\x13ChannelReceiptState\x12\x1d\n" +
 	"\x19receipt_state_unspecified\x10\x00\x12\x10\n" +
 	"\freceipt_sent\x10\x01\x12\x15\n" +
@@ -541,6 +581,7 @@ var file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_goTypes = []any{
 	(*ChannelOutboundPayload)(nil), // 3: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
 	(ChannelDeliveryStatus)(0),     // 4: ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
 	(*timestamppb.Timestamp)(nil),  // 5: google.protobuf.Timestamp
+	(ChannelAttemptFailureKind)(0), // 6: ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind
 }
 var file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.origin:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin
@@ -551,11 +592,12 @@ var file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_depIdxs = []int32{
 	5, // 5: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.next_attempt_at:type_name -> google.protobuf.Timestamp
 	0, // 6: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.receipt_state:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState
 	5, // 7: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.receipt_at:type_name -> google.protobuf.Timestamp
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	6, // 8: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.failure_kind:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_init() }
