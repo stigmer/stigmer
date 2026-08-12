@@ -334,7 +334,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Optional organization to scope the minted token to.\n When set, the JWT's claims include this org context, and the user must\n have access to this organization. When empty, the token is scoped to\n the PlatformClient's owning organization.",
+          "description": "Optional confirmation of the organization the token is scoped to.\n The minted token is ALWAYS scoped to the PlatformClient's owning\n organization (metadata.org) — identity resolution and the optional\n auto-grant are keyed on it, so cross-organization minting is not\n supported. When set, this value must equal that owning organization;\n any other value is rejected INVALID_ARGUMENT before the user is\n resolved or provisioned. When empty, the owning organization applies.",
           "required": false
         }
       ]

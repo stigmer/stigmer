@@ -51,10 +51,13 @@ type MintUserTokenRequest struct {
 	// User's display name. Used for profile enrichment when JIT-provisioning
 	// an identity account. Updated on each token mint if the account exists.
 	UserName string `protobuf:"bytes,5,opt,name=user_name,json=userName,proto3" json:"user_name,omitempty"`
-	// Optional organization to scope the minted token to.
-	// When set, the JWT's claims include this org context, and the user must
-	// have access to this organization. When empty, the token is scoped to
-	// the PlatformClient's owning organization.
+	// Optional confirmation of the organization the token is scoped to.
+	// The minted token is ALWAYS scoped to the PlatformClient's owning
+	// organization (metadata.org) — identity resolution and the optional
+	// auto-grant are keyed on it, so cross-organization minting is not
+	// supported. When set, this value must equal that owning organization;
+	// any other value is rejected INVALID_ARGUMENT before the user is
+	// resolved or provisioned. When empty, the owning organization applies.
 	OrgId         string `protobuf:"bytes,6,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
