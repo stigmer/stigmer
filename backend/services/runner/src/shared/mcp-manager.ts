@@ -4,6 +4,10 @@
  * Wraps @langchain/mcp-adapters MultiServerMCPClient with:
  * - Conversion from ResolvedMcpServer[] to the SDK's Connection config
  * - Proper async cleanup via close()
+ * - Input-schema sanitization of unicode-invalid regex patterns
+ *   (issue #420; semantics in shared/mcp-schema-sanitizer.ts) — a vendor
+ *   pattern that cannot compile under the /u flag must not leave its tool
+ *   permanently uncallable
  * - Tool filtering by each server's effective enabled_tools allow-list
  *   (issue #350; semantics in shared/mcp-enabled-tools.ts) — the model only
  *   ever sees the tools the agent's manifest enables
@@ -35,6 +39,7 @@ import type { Connection } from "@langchain/mcp-adapters";
 import type { DynamicStructuredTool } from "@langchain/core/tools";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
 import { filterToolsByEnabledTools } from "./mcp-enabled-tools.js";
+import { sanitizeSchemaPatterns } from "./mcp-schema-sanitizer.js";
 
 /**
  * Convert harness-agnostic ResolvedMcpServer[] into the
@@ -99,6 +104,32 @@ export async function connectMcpServers(
 
   const client = new MultiServerMCPClient(connectionConfig);
   const discoveredToolMap = await client.initializeConnections();
+
+  // Drop unicode-invalid regex patterns from every discovered tool's input
+  // schema BEFORE anything downstream holds a reference (issue #420):
+  // @langchain/core re-validates against tool.schema on every invocation,
+  // so one vendor pattern that cannot compile under the /u flag would
+  // otherwise make its tool permanently uncallable. Semantics and the
+  // loosen-never-tighten invariant live in shared/mcp-schema-sanitizer.ts.
+  for (const [slug, discovered] of Object.entries(discoveredToolMap)) {
+    for (const tool of discovered) {
+      const droppedPatterns = sanitizeSchemaPatterns(tool.schema);
+      if (droppedPatterns.length > 0) {
+        console.warn(
+          `[MCP] Server '${slug}' tool '${tool.name}': dropped ` +
+          `${droppedPatterns.length} regex pattern(s) that cannot compile ` +
+          `under the unicode flag — the tool stays callable, the server ` +
+          `still validates its own inputs (issue #420): ` +
+          droppedPatterns
+            .map((d) =>
+              `${d.location} ${JSON.stringify(d.pattern)}` +
+              (d.compilesWithoutUnicodeFlag ? "" : " (invalid without /u too)"),
+            )
+            .join(", "),
+        );
+      }
+    }
+  }
 
   // Enforce each server's effective enabled_tools allow-list (issue #350)
   // HERE, before anything downstream sees the tools: the parent tool list,
