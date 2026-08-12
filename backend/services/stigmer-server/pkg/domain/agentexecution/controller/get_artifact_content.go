@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/filereview"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -125,7 +126,7 @@ func (c *AgentExecutionController) GetArtifactContent(
 			Str("execution_id", req.ExecutionId).
 			Str("storage_key", req.StorageKey).
 			Msg("Failed to download artifact content")
-		return nil, status.Errorf(codes.Internal, "failed to read artifact content: %v", err)
+		return nil, grpclib.InternalError(err, "failed to read artifact content")
 	}
 
 	// Serve-time integrity check for CAS blobs. A CAS blob key encodes its own

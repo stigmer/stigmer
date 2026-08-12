@@ -7,6 +7,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -68,7 +69,7 @@ func (c *SkillController) PushFromExecutionArtifact(
 			Str("execution_id", req.ExecutionId).
 			Str("storage_key", req.StorageKey).
 			Msg("Failed to download execution artifact")
-		return nil, status.Errorf(codes.Internal, "failed to download execution artifact: %v", err)
+		return nil, grpclib.InternalError(err, "failed to download execution artifact")
 	}
 
 	pushReq := &skillv1.PushSkillRequest{

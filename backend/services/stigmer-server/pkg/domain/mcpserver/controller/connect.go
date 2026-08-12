@@ -562,6 +562,12 @@ func (c *McpServerController) executeConnectWorkflow(
 			return nil, grpclib.UnavailableError(
 				"connect service temporarily unavailable for MCP server '%s'", mcpServerID)
 		default:
+			// Deliberate exception to the "internal causes stay off the wire"
+			// rule (stigmer/stigmer#478): the cause here is the runner's own
+			// CLASSIFIED, user-facing connect-failure text (see the runner's
+			// error classification and buildConnectFailureMessage below), not
+			// raw server internals. Connect failures are user-debugged
+			// configuration problems — the classified cause is the product.
 			return nil, status.Error(codes.Internal,
 				buildConnectFailureMessage(mcpServer, err.Error()))
 		}

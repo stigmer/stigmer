@@ -11,6 +11,7 @@ import (
 	artifactv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/artifact/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	storelib "github.com/stigmer/stigmer/backend/libs/go/store"
 	"google.golang.org/grpc/codes"
@@ -77,7 +78,7 @@ func (c *ArtifactController) Create(ctx context.Context, input *artifactv1.Creat
 
 	if err := c.artifactStorage.Upload(ctx, contentHash, content, spec.GetContentType()); err != nil {
 		log.Error().Err(err).Str("content_hash", contentHash).Msg("Failed to upload artifact blob")
-		return nil, status.Errorf(codes.Internal, "failed to upload artifact content: %v", err)
+		return nil, grpclib.InternalError(err, "failed to upload artifact content")
 	}
 
 	// --- Derive org from producing execution ---
@@ -114,7 +115,7 @@ func (c *ArtifactController) Create(ctx context.Context, input *artifactv1.Creat
 
 	if err := c.store.SaveResource(ctx, apiresourcekind.ApiResourceKind_artifact, artifactID, artifact); err != nil {
 		log.Error().Err(err).Str("artifact_id", artifactID).Msg("Failed to persist artifact metadata")
-		return nil, status.Errorf(codes.Internal, "failed to persist artifact: %v", err)
+		return nil, grpclib.InternalError(err, "failed to persist artifact")
 	}
 
 	log.Info().

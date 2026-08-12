@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	artifactv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/artifact/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -75,7 +76,7 @@ func (c *ArtifactController) GetContent(ctx context.Context, req *artifactv1.Get
 			Str("artifact_id", artifactID).
 			Str("content_hash", contentHash).
 			Msg("Failed to download artifact content")
-		return nil, status.Errorf(codes.Internal, "failed to read artifact content: %v", err)
+		return nil, grpclib.InternalError(err, "failed to read artifact content")
 	}
 
 	totalSize := int64(len(data))

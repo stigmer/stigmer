@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -126,7 +127,7 @@ func (c *AgentExecutionController) GetArtifactDownloadUrl(ctx context.Context, r
 			Str("execution_id", req.ExecutionId).
 			Str("storage_key", req.StorageKey).
 			Msg("Failed to generate presigned URL for artifact")
-		return nil, status.Errorf(codes.Internal, "failed to generate download URL: %v", err)
+		return nil, grpclib.InternalError(err, "failed to generate download URL")
 	}
 
 	log.Info().

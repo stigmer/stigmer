@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	artifactv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/artifact/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -65,7 +66,7 @@ func (c *ArtifactController) GetDownloadUrl(ctx context.Context, id *artifactv1.
 			Str("artifact_id", resourceID).
 			Str("content_hash", contentHash).
 			Msg("Failed to generate download URL for artifact")
-		return nil, status.Errorf(codes.Internal, "failed to generate download URL: %v", err)
+		return nil, grpclib.InternalError(err, "failed to generate download URL")
 	}
 
 	ttlSeconds := int32(downloadURLExpiration.Seconds())

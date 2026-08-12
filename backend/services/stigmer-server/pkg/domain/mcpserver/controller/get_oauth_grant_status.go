@@ -5,6 +5,7 @@ import (
 	"time"
 
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -44,7 +45,7 @@ func (c *McpServerController) GetOAuthGrantStatus(
 
 	grant, err := c.oauthGrantStore.Find(ctx, "", input.GetResourceId(), input.GetOrg())
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to look up OAuth grant: %v", err)
+		return nil, grpclib.InternalError(err, "failed to look up OAuth grant")
 	}
 
 	if grant == nil {

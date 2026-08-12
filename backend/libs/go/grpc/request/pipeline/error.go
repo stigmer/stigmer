@@ -28,6 +28,14 @@ func (e *PipelineError) Unwrap() error {
 	return e.Err
 }
 
+// internalFallbackMessage is the wire description for a step that returned a
+// plain (un-statused) error. It is deliberately generic: the real error text
+// can carry storage-engine detail, filesystem paths, or other internals, and
+// the status description is client-visible — on an anonymous surface that is
+// information disclosure (stigmer/stigmer#478). The step name and cause stay
+// in Error(), which the transport logging interceptors record server-side.
+const internalFallbackMessage = "internal server error"
+
 // GRPCStatus lets the transport recover the step's intended gRPC code. A step
 // that returns a typed status (AlreadyExists, InvalidArgument, FailedPrecondition,
 // NotFound) has it preserved verbatim; any un-statused error becomes Internal
@@ -40,11 +48,18 @@ func (e *PipelineError) Unwrap() error {
 // directly also strips the "pipeline step X failed:" prefix from the wire
 // message on typed errors, giving clients the clean domain message; the step
 // name is still retained in server logs and in Error() for debugging.
+//
+// The un-statused arm carries only internalFallbackMessage on the wire —
+// never e.Error(), whose step name and raw cause are internals a client (and
+// on anonymous surfaces, an unauthenticated visitor) must not see. Steps that
+// want a meaningful client-visible message for an internal failure return
+// grpclib.InternalError(err, "failed to <do thing>"), whose sanitized status
+// the typed arm preserves.
 func (e *PipelineError) GRPCStatus() *status.Status {
 	if st, ok := status.FromError(e.Err); ok {
 		return st
 	}
-	return status.New(codes.Internal, e.Error())
+	return status.New(codes.Internal, internalFallbackMessage)
 }
 
 // StepError creates a new PipelineError wrapping the given error.

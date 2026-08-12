@@ -6,8 +6,6 @@ import (
 	"github.com/rs/zerolog/log"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // DisconnectOAuth tears down a user's OAuth connection for an MCP server.
@@ -43,7 +41,7 @@ func (c *McpServerController) DisconnectOAuth(
 	// OSS mode: single user, empty identity_account_id.
 	grant, err := c.oauthGrantStore.Find(ctx, "", resourceID, org)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to look up OAuth grant: %v", err)
+		return nil, grpclib.InternalError(err, "failed to look up OAuth grant")
 	}
 
 	if grant == nil {
@@ -65,7 +63,7 @@ func (c *McpServerController) DisconnectOAuth(
 	}
 
 	if err := c.oauthGrantStore.Delete(ctx, "", resourceID, org); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to delete OAuth grant: %v", err)
+		return nil, grpclib.InternalError(err, "failed to delete OAuth grant")
 	}
 
 	log.Info().

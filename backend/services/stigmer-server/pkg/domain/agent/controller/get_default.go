@@ -69,8 +69,9 @@ func (s *loadDefaultAgentStep) Execute(ctx *pipeline.RequestContext[*agentv1.Get
 			"Default agent exists but is not visibility_public")
 	case err != nil:
 		// Store/decode failure — an internal fault, not "no default agent".
+		// InternalError keeps the cause off the wire (stigmer/stigmer#478).
 		log.Error().Err(err).Msg("Failed to resolve platform default agent")
-		return grpclib.WrapError(err, codes.Internal, "failed to resolve the platform default agent")
+		return grpclib.InternalError(err, "failed to resolve the platform default agent")
 	}
 
 	log.Info().
