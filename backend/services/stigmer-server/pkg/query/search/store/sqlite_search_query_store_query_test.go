@@ -29,18 +29,20 @@ import (
 // exercised index→query as one path. The companion invariant test
 // (TestSearchableKinds_CoverSearchIndexedProtoKinds, valueobject package)
 // guards the allowlist contract; this one guards the wiring underneath it.
-func TestSearch_SessionListMode_ReturnsIndexedSessions(t *testing.T) {
-	ctx := context.Background()
+// newSeededSQLiteStore creates a real SQLite store in a temp dir plus a seed
+// function that writes through the same seams production writes use:
+// SaveResource for the document, the kind's extractor + UpsertSearchIndex for
+// the FTS entry. The store is closed via t.Cleanup.
+func newSeededSQLiteStore(t *testing.T, ctx context.Context) (*sqlite.Store, func(kind apiresourcekind.ApiResourceKind, id string, msg proto.Message)) {
+	t.Helper()
 
 	dbPath := filepath.Join(t.TempDir(), "test.sqlite")
 	s, err := sqlite.NewStore(dbPath)
 	if err != nil {
 		t.Fatalf("create sqlite store: %v", err)
 	}
-	defer s.Close()
+	t.Cleanup(func() { s.Close() })
 
-	// Seed through the same seams production writes use: SaveResource for the
-	// document, the kind's extractor + UpsertSearchIndex for the FTS entry.
 	seed := func(kind apiresourcekind.ApiResourceKind, id string, msg proto.Message) {
 		t.Helper()
 		if err := s.SaveResource(ctx, kind, id, msg); err != nil {
@@ -58,6 +60,14 @@ func TestSearch_SessionListMode_ReturnsIndexedSessions(t *testing.T) {
 			t.Fatalf("index %s %s: %v", kind, id, err)
 		}
 	}
+
+	return s, seed
+}
+
+func TestSearch_SessionListMode_ReturnsIndexedSessions(t *testing.T) {
+	ctx := context.Background()
+
+	s, seed := newSeededSQLiteStore(t, ctx)
 
 	newSession := func(id, org, subject string) *sessionv1.Session {
 		return &sessionv1.Session{
@@ -119,5 +129,84 @@ func TestSearch_SessionListMode_ReturnsIndexedSessions(t *testing.T) {
 	}
 	if got.GetDescription() != "Fix the deploy pipeline" {
 		t.Errorf("expected the session subject as description, got %q", got.GetDescription())
+	}
+}
+
+// TestSearch_OnlyNonSearchableKinds_ReturnsEmpty is the negative-space twin
+// of the list-mode test above and the end-to-end pin for stigmer/stigmer#440:
+// a request naming ONLY non-searchable kinds must return an empty page even
+// when the org has indexed resources.
+//
+// The defect this kills: SearchCriteria used to filter requested kinds at
+// construction, and EffectiveKinds read the emptied set as discover mode —
+// so a raw search.query({kinds: [agent_execution]}) returned the org's
+// agents, sessions, workflows... masquerading as the requested kind instead
+// of an empty result. The store's empty-effective-kinds short-circuit is the
+// contract for this state; this test proves the criteria actually reach it.
+func TestSearch_OnlyNonSearchableKinds_ReturnsEmpty(t *testing.T) {
+	ctx := context.Background()
+
+	s, seed := newSeededSQLiteStore(t, ctx)
+
+	// The org is NOT empty: a session and an agent are indexed. Before the
+	// fix, exactly these came back as the "agent_execution" results.
+	seed(apiresourcekind.ApiResourceKind_session, "ses-acme-1", &sessionv1.Session{
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   "ses-acme-1",
+			Name: "ses-acme-1",
+			Org:  "acme",
+		},
+		Spec: &sessionv1.SessionSpec{Subject: "Fix the deploy pipeline"},
+		Status: &apiresource.ApiResourceAuditStatus{
+			Audit: &apiresource.ApiResourceAudit{
+				SpecAudit: &apiresource.ApiResourceAuditInfo{
+					CreatedAt: timestamppb.New(time.Now()),
+				},
+			},
+		},
+	})
+	seed(apiresourcekind.ApiResourceKind_agent, "agt-acme-1", &agentv1.Agent{
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   "agt-acme-1",
+			Name: "acme-agent",
+			Org:  "acme",
+		},
+		Spec: &agentv1.AgentSpec{Description: "An agent in the same org"},
+	})
+
+	queryStore := NewSQLiteSearchQueryStore(s.DB(), s, extractor.GetRegistry())
+
+	// agent_execution is indexed on write but deliberately not searchable
+	// (read-side decision pending, stigmer/stigmer#439) — the exact request
+	// shape the issue reproduced. Both list mode and query mode must be
+	// empty.
+	for _, tc := range []struct {
+		name  string
+		query string
+	}{
+		{"list mode", ""},
+		{"query mode", "acme"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			criteria, err := valueobject.NewSearchCriteria(
+				[]apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent_execution},
+				tc.query, "acme", false, false, 1, 20,
+			)
+			if err != nil {
+				t.Fatalf("build criteria: %v", err)
+			}
+
+			result, err := queryStore.Search(ctx, criteria)
+			if err != nil {
+				t.Fatalf("search: %v", err)
+			}
+
+			if result.TotalCount() != 0 || len(result.Results()) != 0 {
+				t.Fatalf(
+					"expected an empty result for a request naming only non-searchable kinds, got %d results (total %d) — other kinds' resources are masquerading as the requested kind",
+					len(result.Results()), result.TotalCount(),
+				)
+			}
+		})
 	}
 }

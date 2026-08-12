@@ -92,7 +92,9 @@ private static final long serialVersionUID = 0L;
    *
    * The searchable set is edition-defined (the cloud and open-source servers
    * each publish their own); kinds outside it are silently ignored
-   * (allows forward compatibility).
+   * (allows forward compatibility). A request naming ONLY non-searchable
+   * kinds returns an empty result — it does NOT fall back to discover mode
+   * (only an empty kinds list means discover).
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [json_name = "kinds", (.buf.validate.field) = { ... }</code>
@@ -114,7 +116,9 @@ private static final long serialVersionUID = 0L;
    *
    * The searchable set is edition-defined (the cloud and open-source servers
    * each publish their own); kinds outside it are silently ignored
-   * (allows forward compatibility).
+   * (allows forward compatibility). A request naming ONLY non-searchable
+   * kinds returns an empty result — it does NOT fall back to discover mode
+   * (only an empty kinds list means discover).
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [json_name = "kinds", (.buf.validate.field) = { ... }</code>
@@ -135,7 +139,9 @@ private static final long serialVersionUID = 0L;
    *
    * The searchable set is edition-defined (the cloud and open-source servers
    * each publish their own); kinds outside it are silently ignored
-   * (allows forward compatibility).
+   * (allows forward compatibility). A request naming ONLY non-searchable
+   * kinds returns an empty result — it does NOT fall back to discover mode
+   * (only an empty kinds list means discover).
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [json_name = "kinds", (.buf.validate.field) = { ... }</code>
@@ -157,7 +163,9 @@ private static final long serialVersionUID = 0L;
    *
    * The searchable set is edition-defined (the cloud and open-source servers
    * each publish their own); kinds outside it are silently ignored
-   * (allows forward compatibility).
+   * (allows forward compatibility). A request naming ONLY non-searchable
+   * kinds returns an empty result — it does NOT fall back to discover mode
+   * (only an empty kinds list means discover).
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [json_name = "kinds", (.buf.validate.field) = { ... }</code>
@@ -179,7 +187,9 @@ private static final long serialVersionUID = 0L;
    *
    * The searchable set is edition-defined (the cloud and open-source servers
    * each publish their own); kinds outside it are silently ignored
-   * (allows forward compatibility).
+   * (allows forward compatibility). A request naming ONLY non-searchable
+   * kinds returns an empty result — it does NOT fall back to discover mode
+   * (only an empty kinds list means discover).
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [json_name = "kinds", (.buf.validate.field) = { ... }</code>
@@ -928,7 +938,9 @@ private static final long serialVersionUID = 0L;
      *
      * The searchable set is edition-defined (the cloud and open-source servers
      * each publish their own); kinds outside it are silently ignored
-     * (allows forward compatibility).
+     * (allows forward compatibility). A request naming ONLY non-searchable
+     * kinds returns an empty result — it does NOT fall back to discover mode
+     * (only an empty kinds list means discover).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [json_name = "kinds", (.buf.validate.field) = { ... }</code>
@@ -949,7 +961,9 @@ private static final long serialVersionUID = 0L;
      *
      * The searchable set is edition-defined (the cloud and open-source servers
      * each publish their own); kinds outside it are silently ignored
-     * (allows forward compatibility).
+     * (allows forward compatibility). A request naming ONLY non-searchable
+     * kinds returns an empty result — it does NOT fall back to discover mode
+     * (only an empty kinds list means discover).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [json_name = "kinds", (.buf.validate.field) = { ... }</code>
@@ -969,7 +983,9 @@ private static final long serialVersionUID = 0L;
      *
      * The searchable set is edition-defined (the cloud and open-source servers
      * each publish their own); kinds outside it are silently ignored
-     * (allows forward compatibility).
+     * (allows forward compatibility). A request naming ONLY non-searchable
+     * kinds returns an empty result — it does NOT fall back to discover mode
+     * (only an empty kinds list means discover).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [json_name = "kinds", (.buf.validate.field) = { ... }</code>
@@ -990,7 +1006,9 @@ private static final long serialVersionUID = 0L;
      *
      * The searchable set is edition-defined (the cloud and open-source servers
      * each publish their own); kinds outside it are silently ignored
-     * (allows forward compatibility).
+     * (allows forward compatibility). A request naming ONLY non-searchable
+     * kinds returns an empty result — it does NOT fall back to discover mode
+     * (only an empty kinds list means discover).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [json_name = "kinds", (.buf.validate.field) = { ... }</code>
@@ -1017,7 +1035,9 @@ private static final long serialVersionUID = 0L;
      *
      * The searchable set is edition-defined (the cloud and open-source servers
      * each publish their own); kinds outside it are silently ignored
-     * (allows forward compatibility).
+     * (allows forward compatibility). A request naming ONLY non-searchable
+     * kinds returns an empty result — it does NOT fall back to discover mode
+     * (only an empty kinds list means discover).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [json_name = "kinds", (.buf.validate.field) = { ... }</code>
@@ -1042,7 +1062,9 @@ private static final long serialVersionUID = 0L;
      *
      * The searchable set is edition-defined (the cloud and open-source servers
      * each publish their own); kinds outside it are silently ignored
-     * (allows forward compatibility).
+     * (allows forward compatibility). A request naming ONLY non-searchable
+     * kinds returns an empty result — it does NOT fall back to discover mode
+     * (only an empty kinds list means discover).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [json_name = "kinds", (.buf.validate.field) = { ... }</code>
@@ -1069,7 +1091,9 @@ private static final long serialVersionUID = 0L;
      *
      * The searchable set is edition-defined (the cloud and open-source servers
      * each publish their own); kinds outside it are silently ignored
-     * (allows forward compatibility).
+     * (allows forward compatibility). A request naming ONLY non-searchable
+     * kinds returns an empty result — it does NOT fall back to discover mode
+     * (only an empty kinds list means discover).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [json_name = "kinds", (.buf.validate.field) = { ... }</code>
@@ -1092,7 +1116,9 @@ private static final long serialVersionUID = 0L;
      *
      * The searchable set is edition-defined (the cloud and open-source servers
      * each publish their own); kinds outside it are silently ignored
-     * (allows forward compatibility).
+     * (allows forward compatibility). A request naming ONLY non-searchable
+     * kinds returns an empty result — it does NOT fall back to discover mode
+     * (only an empty kinds list means discover).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [json_name = "kinds", (.buf.validate.field) = { ... }</code>
@@ -1114,7 +1140,9 @@ private static final long serialVersionUID = 0L;
      *
      * The searchable set is edition-defined (the cloud and open-source servers
      * each publish their own); kinds outside it are silently ignored
-     * (allows forward compatibility).
+     * (allows forward compatibility). A request naming ONLY non-searchable
+     * kinds returns an empty result — it does NOT fall back to discover mode
+     * (only an empty kinds list means discover).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [json_name = "kinds", (.buf.validate.field) = { ... }</code>
@@ -1135,7 +1163,9 @@ private static final long serialVersionUID = 0L;
      *
      * The searchable set is edition-defined (the cloud and open-source servers
      * each publish their own); kinds outside it are silently ignored
-     * (allows forward compatibility).
+     * (allows forward compatibility). A request naming ONLY non-searchable
+     * kinds returns an empty result — it does NOT fall back to discover mode
+     * (only an empty kinds list means discover).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [json_name = "kinds", (.buf.validate.field) = { ... }</code>
@@ -1161,7 +1191,9 @@ private static final long serialVersionUID = 0L;
      *
      * The searchable set is edition-defined (the cloud and open-source servers
      * each publish their own); kinds outside it are silently ignored
-     * (allows forward compatibility).
+     * (allows forward compatibility). A request naming ONLY non-searchable
+     * kinds returns an empty result — it does NOT fall back to discover mode
+     * (only an empty kinds list means discover).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [json_name = "kinds", (.buf.validate.field) = { ... }</code>
@@ -1186,7 +1218,9 @@ private static final long serialVersionUID = 0L;
      *
      * The searchable set is edition-defined (the cloud and open-source servers
      * each publish their own); kinds outside it are silently ignored
-     * (allows forward compatibility).
+     * (allows forward compatibility). A request naming ONLY non-searchable
+     * kinds returns an empty result — it does NOT fall back to discover mode
+     * (only an empty kinds list means discover).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [json_name = "kinds", (.buf.validate.field) = { ... }</code>
