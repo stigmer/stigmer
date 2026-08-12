@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
+import { openMenu } from "../../__tests__/helpers/open-menu";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 
 // Controllable agent-setup state — lets these tests drive the lock × setup
@@ -79,17 +80,11 @@ function renderComposer(
   );
 }
 
-/**
- * Opens the composer's Configure menu and resolves once the portaled menu
- * content mounts. Menu items render asynchronously in a portal, so a
- * synchronous item query straight after the click races the mount (the
- * openRowMenu idiom; see stigmer/stigmer#323).
- */
+/** Opens the composer's Configure menu via the shared readiness-gated helper. */
 async function openConfigureMenu() {
-  fireEvent.click(
+  await openMenu(
     screen.getByRole("button", { name: "Configure agent, tools, and skills" }),
   );
-  await screen.findByRole("menu");
 }
 
 beforeEach(() => {

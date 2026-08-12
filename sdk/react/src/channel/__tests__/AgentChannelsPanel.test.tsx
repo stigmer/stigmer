@@ -5,6 +5,7 @@ import type { AgentChannelInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DeploymentModeContext } from "../../deployment-mode";
+import { openMenu } from "../../__tests__/helpers/open-menu";
 import { AgentChannelsPanel } from "../AgentChannelsPanel";
 
 // Toasts are visual feedback owned by the feedback module; keep them inert.
@@ -272,7 +273,7 @@ describe("AgentChannelsPanel", () => {
     );
 
     await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
-    fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
+    await openMenu(screen.getByRole("button", { name: /actions for/i }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Disconnect" }));
 
     // The confirmation explains teardown vs pause before anything happens.
@@ -409,14 +410,18 @@ describe("AgentChannelsPanel", () => {
     await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
     await waitFor(() => expect(checkMyPermission).toHaveBeenCalled());
 
-    expect(screen.queryByRole("switch")).toBeNull();
+    // The panel renders mutation affordances optimistic-visible and hides
+    // them when the denial lands. "Mock was called" precedes "denial
+    // rendered", so wait for the state this test is actually about instead
+    // of racing the re-render (flaked under CPU contention, ~1/20).
+    await waitFor(() => expect(screen.queryByRole("switch")).toBeNull());
     expect(screen.queryByRole("button", { name: /connect to slack/i })).toBeNull();
 
     // The card menu still renders: Sessions is a viewer-level action
     // (everyone who sees the card holds can_view on the channel — the same
     // bar as viewing its sessions, DD-012). Mutation items stay
     // permission-gated and absent.
-    fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
+    await openMenu(screen.getByRole("button", { name: /actions for/i }));
     // The awaited query anchors on the portaled menu's mount (#323) — only
     // then are the absence assertions below meaningful rather than vacuous.
     expect(await screen.findByRole("menuitem", { name: /sessions/i })).toBeTruthy();
@@ -441,7 +446,7 @@ describe("AgentChannelsPanel", () => {
     );
     await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
 
-    fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
+    await openMenu(screen.getByRole("button", { name: /actions for/i }));
     fireEvent.click(await screen.findByRole("menuitem", { name: /manage access/i }));
 
     // The one canonical dialog opens, and its subtitle names the channel
@@ -501,7 +506,7 @@ describe("AgentChannelsPanel", () => {
     );
 
     await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
-    fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
+    await openMenu(screen.getByRole("button", { name: /actions for/i }));
     fireEvent.click(
       await screen.findByRole("menuitem", { name: "Tool credentials" }),
     );
@@ -629,7 +634,7 @@ describe("AgentChannelsPanel", () => {
     await waitFor(() =>
       expect(screen.getByText("Support WhatsApp")).toBeTruthy(),
     );
-    fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
+    await openMenu(screen.getByRole("button", { name: /actions for/i }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Disconnect" }));
 
     // WhatsApp credentials live on the shared ChannelApp and survive the
@@ -652,7 +657,7 @@ describe("AgentChannelsPanel", () => {
     await waitFor(() =>
       expect(screen.getByText("Support WhatsApp")).toBeTruthy(),
     );
-    fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
+    await openMenu(screen.getByRole("button", { name: /actions for/i }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Templates" }));
 
     expect(
@@ -676,7 +681,7 @@ describe("AgentChannelsPanel", () => {
     );
 
     await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
-    fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
+    await openMenu(screen.getByRole("button", { name: /actions for/i }));
 
     // Slack has no template concept: hidden, not disabled — a disabled
     // item would imply the capability might one day exist there.
@@ -704,7 +709,7 @@ describe("AgentChannelsPanel", () => {
       expect(screen.getByText("Support WhatsApp")).toBeTruthy(),
     );
     await waitFor(() => expect(checkMyPermission).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
+    await openMenu(screen.getByRole("button", { name: /actions for/i }));
 
     expect(
       await screen.findByRole("menuitem", { name: /sessions/i }),

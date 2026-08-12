@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { openMenu } from "../../../__tests__/helpers/open-menu";
 import { WorkflowInstanceList } from "../WorkflowInstanceList";
 
 // Isolate the row-actions behavior under test from the data, environment,
@@ -78,7 +79,7 @@ describe("WorkflowInstanceList row actions", () => {
 
     // No always-visible action buttons; the row shows a single kebab.
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /^Actions for/ }));
+    await openMenu(screen.getByRole("button", { name: /^Actions for/ }));
 
     expect(await screen.findByRole("menuitem", { name: "Run" })).toBeTruthy();
     expect(screen.getByRole("menuitem", { name: "Delete" })).toBeTruthy();
@@ -97,7 +98,7 @@ describe("WorkflowInstanceList row actions", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /^Actions for/ }));
+    await openMenu(screen.getByRole("button", { name: /^Actions for/ }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Run" }));
 
     expect(onRun).toHaveBeenCalledTimes(1);
@@ -117,7 +118,7 @@ describe("WorkflowInstanceList row actions", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /^Actions for/ }));
+    await openMenu(screen.getByRole("button", { name: /^Actions for/ }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
 
     expect(onDelete).toHaveBeenCalledWith(inst);
@@ -135,7 +136,7 @@ describe("WorkflowInstanceList row actions", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /^Actions for/ }));
+    await openMenu(screen.getByRole("button", { name: /^Actions for/ }));
     expect(await screen.findByRole("menuitem", { name: "Run" })).toBeTruthy();
     expect(screen.queryByRole("menuitem", { name: "Delete" })).toBeNull();
   });

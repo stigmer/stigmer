@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, afterEach } from "vitest";
 import { render, renderHook, screen, cleanup } from "@testing-library/react";
-import { fireEvent } from "@testing-library/react";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerProvider } from "../provider";
 import { useStigmerPortalContainer } from "../portal-container";
 import { Menu, MenuTrigger, MenuContent, MenuItem } from "../internal/menu";
+import { openMenu } from "./helpers/open-menu";
 
 // Regression tests for stigmer-cloud#271: Base UI treats an EXPLICIT
 // `container={null}` as "wait for a container" and renders the popup
@@ -85,9 +85,9 @@ describe("standalone portal rendering (no StigmerProvider)", () => {
       </Menu>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Open actions" }));
+    await openMenu(screen.getByRole("button", { name: "Open actions" }));
 
-    const item = await screen.findByRole("menuitem", { name: "Rename" });
+    const item = screen.getByRole("menuitem", { name: "Rename" });
 
     // Portaled for real: in the document, but NOT inside the render
     // container — Base UI appended it to document.body.

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { openMenu } from "../../__tests__/helpers/open-menu";
 import { AgentInstanceList } from "../AgentInstanceList";
 
 // Isolate the row-actions behavior under test from the data, environment,
@@ -79,7 +80,7 @@ describe("AgentInstanceList row actions", () => {
 
     // No always-visible action buttons; the row shows a single kebab.
     expect(screen.queryByRole("button", { name: "Start session" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /^Actions for/ }));
+    await openMenu(screen.getByRole("button", { name: /^Actions for/ }));
 
     expect(
       await screen.findByRole("menuitem", { name: "Start session" }),
@@ -100,7 +101,7 @@ describe("AgentInstanceList row actions", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /^Actions for/ }));
+    await openMenu(screen.getByRole("button", { name: /^Actions for/ }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Start session" }));
 
     expect(onStart).toHaveBeenCalledTimes(1);
@@ -120,7 +121,7 @@ describe("AgentInstanceList row actions", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /^Actions for/ }));
+    await openMenu(screen.getByRole("button", { name: /^Actions for/ }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
 
     expect(onDelete).toHaveBeenCalledWith(inst);
@@ -138,7 +139,7 @@ describe("AgentInstanceList row actions", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /^Actions for/ }));
+    await openMenu(screen.getByRole("button", { name: /^Actions for/ }));
     expect(
       await screen.findByRole("menuitem", { name: "Start session" }),
     ).toBeTruthy();
