@@ -1632,7 +1632,7 @@
         {
           "name": "failed",
           "number": 4,
-          "description": "Dead-lettered after exhausting attempts; last_error records why."
+          "description": "Dead-lettered: attempts were exhausted, or the provider's verdict was\n known-terminal and retries were skipped (attempts can be 1);\n last_error records why."
         },
         {
           "name": "suppressed",
