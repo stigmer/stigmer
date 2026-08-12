@@ -677,7 +677,7 @@ test-e2e-approval: ## Run the deterministic HITL approval E2E (mock LLM, serial,
 #      toolchain/directory so they never write to the same files:
 #        check-go    — go vet/test/build + buf lint + go binaries
 #        check-node  — npm typecheck/lint/build/test (web, react, sdk, desktop TS,
-#                      runner) + tsdoc + dep hygiene
+#                      runner, e2e specs) + tsdoc + dep hygiene
 #        check-site  — vale, prettier --check, site lint/typecheck/build,
 #                      demo validation, link check (all under docs/ + site/)
 #        check-rust  — desktop cargo check + runner-host crate
@@ -725,11 +725,15 @@ check-go: ## check bucket: Go vet/test/build + buf lint + binaries
 	@mkdir -p bin
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
 
-check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, desktop, runner, demos)
+check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, desktop, runner, demos, e2e)
 	npm run typecheck -w @stigmer/sdk
 	npm run lint -w @stigmer/react
 	npm run typecheck -w @stigmer/react
 	npm run typecheck -w @stigmer/demos
+	# E2E specs typecheck against @stigmer/sdk + @stigmer/protos workspace
+	# source; this catches spec/helper drift that nothing else runs
+	# (the interactive Playwright project has no CI lane — cloud#275).
+	npm run typecheck -w @stigmer/e2e
 	node scripts/verify-scenar-tours.mjs
 	npm run lint -w client-apps/web
 	npm run typecheck -w desktop

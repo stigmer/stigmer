@@ -13,7 +13,9 @@ import { defineConfig, devices } from "@playwright/test";
  *
  * - **interactive**: tests that require the full backend stack (stigmer-server,
  *   Temporal, unified runner). Create real resources via API, verify they render
- *   correctly, and exercise complete user flows. Run via `make test-e2e-interactive`.
+ *   correctly, and exercise complete user flows. No Makefile target — run
+ *   `npm run test:interactive` in test/e2e (global-setup boots the stack
+ *   when nothing is listening on the API port).
  *
  * - **interactive-approval**: the HITL approval/disclosure flow, made
  *   deterministic by a mock LLM proxy wired into the runner (opt-in via

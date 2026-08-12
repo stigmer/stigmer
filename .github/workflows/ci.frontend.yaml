@@ -22,6 +22,10 @@ on:
       # Scenar tours consume the @stigmer/* workspace source; an SDK change
       # can break them (and vice versa), so tour changes gate here too.
       - "demos/**"
+      # E2E specs typecheck against @stigmer/sdk + @stigmer/protos workspace
+      # source — the same coupling as demos (see cloud#275: spec/helper
+      # drift rode to main because nothing typechecked test/e2e).
+      - "test/e2e/**"
       - "client-apps/web/**"
       - "client-apps/desktop/**"
       - "client-apps/cli/**"
@@ -46,6 +50,7 @@ on:
       - "sdk/ink/**"
       - "sdk/embed/**"
       - "demos/**"
+      - "test/e2e/**"
       - "client-apps/web/**"
       - "client-apps/desktop/**"
       - "client-apps/cli/**"
@@ -224,6 +229,13 @@ jobs:
       # (bundles are only packed by release.website.yaml).
       - name: Typecheck Scenar tours
         run: npm run typecheck -w @stigmer/demos
+
+      # Same coupling as the tours: e2e specs typecheck against @stigmer/sdk
+      # + @stigmer/protos workspace source, and no other lane typechecks
+      # test/e2e (the interactive Playwright project never runs in CI), so
+      # spec/helper drift is invisible without this step (cloud#275).
+      - name: Typecheck e2e specs
+        run: npm run typecheck -w @stigmer/e2e
 
       # Determinism (DD-006), timeline shape, and docs embed-id resolution.
       # Also wired in ci.docs.yaml: this workflow doesn't trigger on docs/**,

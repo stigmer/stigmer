@@ -1,5 +1,8 @@
 import { test, expect } from "../../fixtures";
-import { createTestWorkflowExecution } from "../../fixtures/seed-helpers";
+import {
+  createTestWaitWorkflow,
+  createTestWorkflowExecution,
+} from "../../fixtures/seed-helpers";
 import {
   navigateToExecution,
   waitForPhaseBadge,
@@ -32,22 +35,33 @@ test.describe("Workflow execution comparison", () => {
   test("Compare button is hidden on running execution", async ({
     page,
     stigmerClient,
-    testWorkflow,
   }) => {
+    // A bespoke wait workflow (not the shared testWaitWorkflow fixture): the
+    // running-window clock starts at API create, BEFORE navigation, and a
+    // cold dev-server compile of the execution route can exceed the
+    // fixture's 10s default — the execution would complete before the
+    // header renders. 30s matches this spec's sibling tolerances.
+    const waitWorkflow = await createTestWaitWorkflow(stigmerClient, {
+      waitDurationSeconds: 30,
+    });
     const execution = await createTestWorkflowExecution(
       stigmerClient,
-      testWorkflow.id,
-      { waitForCompletion: false },
+      waitWorkflow.id,
     );
 
     try {
       await navigateToExecution(page, execution.id);
       await assertNoErrorBoundary(page);
 
+      // Anchor on the non-terminal badge first so the hidden-assertion
+      // below cannot pass vacuously on an unrendered header.
+      await waitForPhaseBadge(page, "Running", { timeout: 15_000 });
+
       const compareButton = page.getByRole("button", { name: /Compare with/ });
-      await expect(compareButton).toBeHidden({ timeout: 5_000 });
+      await expect(compareButton).toBeHidden();
     } finally {
       await execution.cleanup();
+      await waitWorkflow.cleanup();
     }
   });
 
