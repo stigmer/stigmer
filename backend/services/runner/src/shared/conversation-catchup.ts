@@ -1,8 +1,11 @@
 /**
  * Conversation catchup (cloud channel-conversations DD-006): what happened on
  * a live channel conversation that the agent has not seen — customer messages
- * handled by a human teammate, the teammate's replies, platform notices the
- * customer received, notes, and the agent's own earlier escalations.
+ * handled by a human teammate, the teammate's replies, platform notices,
+ * notes, and the agent's own earlier escalations. Since cloud#347 a line
+ * whose send is known-undelivered carries a `(not delivered)` speaker
+ * annotation and an in-flight one carries `(sending)` — the digest no longer
+ * implies every public-lane line reached the customer.
  *
  * The cloud composes the CONTENT (bare `Customer:` / `Teammate:` / `System:` /
  * `You escalated:` / `Note:` lines, oldest first) on the execution spec's
@@ -29,16 +32,26 @@ import type { ConversationCatchup } from "@stigmer/protos/ai/stigmer/agentic/age
  * drift between them. Deliberately takeover-neutral: a digest can exist with
  * no human handoff at all (a failed turn's re-composed window), so the
  * preamble asserts only what is always true (the A15/A20 honesty bar).
+ *
+ * The send-status annotations (cloud#347) get an explicit exception from the
+ * don't-re-answer contract: a `(not delivered)` teammate reply is words the
+ * customer never got, so treating it as settled history would silently
+ * abandon whatever it was meant to convey. The preamble defines the
+ * annotations — the DD-013 split puts model-facing meaning here, while the
+ * cloud composer owns which lines earn them.
  */
 const CONVERSATION_CATCHUP_PREAMBLE =
   "Below is activity from this conversation that you have not seen — " +
   "oldest first. It may include customer messages that were handled by a " +
-  "human teammate, the teammate's own replies, notices the customer " +
-  "received, internal notes, and escalations you raised earlier. Treat it " +
+  "human teammate, the teammate's own replies, notices sent to the " +
+  "customer, internal notes, and escalations you raised earlier. Treat it " +
   "as conversation history you already know: do not answer or re-answer " +
   "these messages, do not repeat or summarize them back, and do not " +
-  "mention any handoff unless asked. Continue from the customer's newest " +
-  "message.";
+  "mention any handoff unless asked. One exception: lines marked " +
+  "(not delivered) never reached the customer, and lines marked (sending) " +
+  "were still on their way when this summary was built — the customer may " +
+  "not have seen those words, so weigh that when deciding what still needs " +
+  "saying. Continue from the customer's newest message.";
 
 /**
  * Read the catchup digest from an execution spec's `conversation_catchup`.
