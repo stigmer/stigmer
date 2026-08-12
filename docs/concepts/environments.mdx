@@ -146,15 +146,17 @@ When an Agent runs, Stigmer merges the Environments attached to its Agent
 Instance into a single **ExecutionContext**. That merged map is what the runner
 uses at execution time. Different surfaces see different slices of it:
 
-| Surface                                            | What the Agent sees                                                                                                                                                                                                                   |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Shell commands** (native harness `execute` tool) | The runner's own process variables, minus runner-internal credentials, with ExecutionContext values overlaid on top. Overlay wins when a name exists in both.                                                                         |
-| **MCP stdio servers**                              | Only variables declared in the MCP server's `env` map, taken from ExecutionContext, plus a minimal base set (`PATH`, `HOME`, and similar). A server that declares nothing gets only that base set — never the runner's own variables. |
+| Surface                                              | What the Agent sees                                                                                                                                                                                                                                                                                                                  |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Shell commands** (native harness `execute` tool)   | The runner's own process variables, minus runner-internal credentials, with ExecutionContext values overlaid on top. Overlay wins when a name exists in both.                                                                                                                                                                        |
+| **MCP stdio servers**                                | Only variables declared in the MCP server's `env` map, taken from ExecutionContext, plus a minimal base set (`PATH`, `HOME`, and similar). A server that declares nothing gets only that base set — never the runner's own variables.                                                                                                |
+| **Workflow `run` tasks** (`run.shell`, `run.script`) | Only variables declared in the task's `environment` map, plus the same minimal base set. Declared values may reference `${.secrets.KEY}` / `${.env_vars.KEY}` — resolved at execution time; a missing key fails the task with a clear error. A task that declares nothing gets only the base set — never the runner's own variables. |
 
-Shell commands inherit `PATH` and other host settings from the runner so local
-CLIs work, while ExecutionContext supplies API keys and service URLs your Agent
-declares. Secrets marked `is_secret: true` are still redacted in logs and the UI
-regardless of which surface consumes them.
+Agent shell commands inherit `PATH` and other host settings from the runner so
+local CLIs work, while ExecutionContext supplies API keys and service URLs your
+Agent declares. Workflow `run` tasks follow the stricter declare-to-receive rule
+in the table above. Secrets marked `is_secret: true` are still redacted in logs
+and the UI regardless of which surface consumes them.
 
 ## What's next
 

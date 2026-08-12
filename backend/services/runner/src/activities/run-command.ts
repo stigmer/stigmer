@@ -5,8 +5,11 @@
  * - RunScript: writes inline code to a temp file, executes via node/python
  * - RunShell: executes a shell command directly
  *
- * Both resolve runtime placeholders (JIT secrets) before execution
- * and capture stdout as the activity result.
+ * The child environment follows the declare-to-receive contract in
+ * run-env.ts: a minimal base plus the task's declared `environment`,
+ * with runtime placeholders (JIT secrets) resolved here in the activity
+ * so secret values never enter Temporal history. Both activities capture
+ * stdout as the activity result.
  */
 
 import { execFile, exec } from "node:child_process";
@@ -16,7 +19,9 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { ApplicationFailure } from "@temporalio/activity";
 import type { RunCommandConfig } from "../workflow-engine/types.js";
+import { RuntimePlaceholderResolutionError } from "../workflow-engine/resolve.js";
 import { startHeartbeat } from "../shared/heartbeat.js";
+import { buildRunEnv } from "./run-env.js";
 
 const execFileAsync = promisify(execFile);
 const execAsync = promisify(exec);
@@ -49,7 +54,7 @@ async function runScriptImpl(config: RunCommandConfig): Promise<unknown> {
 
   const language = config.language!;
   const code = config.code!;
-  const env = buildEnv(config.environment);
+  const env = buildTaskEnv(config);
 
   const ext = language === "js" ? ".js" : ".py";
   const interpreter = language === "js" ? "node" : "python3";
@@ -94,7 +99,7 @@ async function runShellImpl(config: RunCommandConfig): Promise<unknown> {
   const fullCommand = args.length > 0
     ? `${command} ${args.join(" ")}`
     : command;
-  const env = buildEnv(config.environment);
+  const env = buildTaskEnv(config);
 
   try {
     const { stdout } = await execAsync(fullCommand, {
@@ -116,16 +121,24 @@ async function runShellImpl(config: RunCommandConfig): Promise<unknown> {
   }
 }
 
-function buildEnv(
-  taskEnv?: Record<string, string>,
-): Record<string, string | undefined> {
-  const base = { ...process.env };
-  if (taskEnv) {
-    for (const [k, v] of Object.entries(taskEnv)) {
-      base[k] = v;
+/**
+ * Build the child env per the run-env.ts contract, translating a missing
+ * placeholder key into a non-retryable failure — retrying cannot conjure
+ * a variable the workflow's runtime env does not have.
+ */
+function buildTaskEnv(config: RunCommandConfig): Record<string, string> {
+  try {
+    return buildRunEnv(config.environment, config.runtimeEnv);
+  } catch (err: unknown) {
+    if (err instanceof RuntimePlaceholderResolutionError) {
+      throw ApplicationFailure.nonRetryable(
+        err.message,
+        "RUN_ENV_UNRESOLVED_PLACEHOLDER",
+        { variable: err.variableName },
+      );
     }
+    throw err;
   }
-  return base;
 }
 
 function buildArgsList(args: unknown): string[] {
