@@ -207,11 +207,16 @@ func TestMain(m *testing.M) {
 	// Billing policies are seeded by the Java service itself at startup
 	// (BillingPolicySeeder); usage-record uniqueness is enforced by the
 	// Flyway DDL, so no manual index creation remains.
+	//
+	// A failed seed is fatal, not degraded: a half-seeded default agent fails
+	// every session-dependent test with a misleading PERMISSION_DENIED
+	// instead of the one real error here (oss#541).
 	if err := harness.SeedDefaultAgent(ctx, grpcConn); err != nil {
-		suiteLogger.Warn("failed to seed default agent — tests requiring a default agent may fail", "error", err)
-	} else {
-		suiteLogger.Info("default agent seeded")
+		suiteLogger.Error("failed to seed default agent — aborting suite", "error", err)
+		testHarness.Stop(ctx)
+		os.Exit(1)
 	}
+	suiteLogger.Info("default agent seeded")
 
 	// Cursor credentials are DB-resident CursorAccounts (DD-008) — without
 	// this seed every proxied Cursor call 503s on an empty shared pool.

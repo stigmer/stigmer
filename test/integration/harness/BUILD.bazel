@@ -142,11 +142,13 @@ go_test(
     srcs = [
         "benchmark_helpers_test.go",
         "benchmark_stats_test.go",
+        "fixture_seed_test.go",
         "ipc_fixtures_test.go",
         "unified_runner_test.go",
     ],
     embed = [":harness"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",

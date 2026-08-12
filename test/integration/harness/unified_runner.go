@@ -525,7 +525,9 @@ func StartUnifiedRunnerStatic(ctx context.Context, cfg UnifiedRunnerConfig, task
 			return nil, fmt.Errorf("create log dir: %w", mkErr)
 		}
 	}
-	logPath := filepath.Join(logDir, fmt.Sprintf("unified-runner-static-%s.log", taskQueue))
+	// sanitizeLabel: task queues are colon-namespaced (session:ses_<id>) and a
+	// colon in the filename fails the whole suite's CI artifact upload.
+	logPath := filepath.Join(logDir, fmt.Sprintf("unified-runner-static-%s.log", sanitizeLabel(taskQueue)))
 	logFile, err := os.Create(logPath)
 	if err != nil {
 		return nil, fmt.Errorf("create log file: %w", err)

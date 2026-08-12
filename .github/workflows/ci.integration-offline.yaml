@@ -278,6 +278,12 @@ jobs:
 
       # ── Artifacts & report ───────────────────────────────────────────────
 
+      # include-hidden-files: the suite output dirs are dot-named
+      # (.test-output-*), and upload-artifact@v4 excludes hidden paths by
+      # default — without the flag this step silently uploads nothing
+      # (if-no-files-found: ignore), which left oss#541's only red run with
+      # no service log to diagnose from. Canary hit the same class in #323;
+      # this sweep propagates its fix to every sibling lane.
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -286,6 +292,7 @@ jobs:
           path: ${{ matrix.output }}/
           retention-days: 30
           if-no-files-found: ignore
+          include-hidden-files: true
 
       - name: Upload trace bundles
         if: failure() && matrix.suite == 'integration' && hashFiles('test/integration/.test-output/traces/*.json') != ''
@@ -294,6 +301,7 @@ jobs:
           name: integration-trace-bundles
           path: test/integration/.test-output/traces/
           retention-days: 30
+          include-hidden-files: true
 
       - name: Publish test report
         if: always() && hashFiles(format('{0}/junit.xml', matrix.output)) != ''

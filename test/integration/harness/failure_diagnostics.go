@@ -97,11 +97,18 @@ func (h *TestHarness) snapshotServiceLogs(t *testing.T, bundleDir string) {
 	}
 }
 
-// sanitizeLabel makes a test name safe to use as a directory name. Go subtest
-// names contain "/" and spaces, which would otherwise create nested or
-// awkwardly-named directories.
+// sanitizeLabel makes a label safe to use as a file or directory name. Go
+// subtest names contain "/" and spaces (nested or awkward directories), and
+// Temporal task queues contain ":" — which actions/upload-artifact rejects
+// outright (NTFS-invalid), so one colon-named log used to fail a whole
+// suite's artifact upload. The remaining characters cover the rest of the
+// upload-artifact deny list.
 func sanitizeLabel(label string) string {
-	replacer := strings.NewReplacer("/", "_", " ", "_")
+	replacer := strings.NewReplacer(
+		"/", "_", " ", "_", ":", "_",
+		"\"", "_", "<", "_", ">", "_", "|", "_", "*", "_", "?", "_",
+		"\r", "_", "\n", "_",
+	)
 	return replacer.Replace(label)
 }
 

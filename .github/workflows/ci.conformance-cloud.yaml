@@ -177,3 +177,7 @@ jobs:
           path: test/integration/.test-output/logs/
           retention-days: 14
           if-no-files-found: ignore
+          # The output dir is dot-prefixed and upload-artifact@v4 excludes
+          # hidden paths by default — without this the artifact is silently
+          # empty (the #323 class, swept in oss#541).
+          include-hidden-files: true

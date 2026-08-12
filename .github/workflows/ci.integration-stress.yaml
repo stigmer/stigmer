@@ -148,6 +148,10 @@ jobs:
           name: stress-test-results
           path: test/integration/.test-output-stress/
           retention-days: 30
+          # The output dir is dot-prefixed and upload-artifact@v4 excludes
+          # hidden paths by default — without this the artifact is silently
+          # empty (the #323 class, swept in oss#541).
+          include-hidden-files: true
 
       - name: Publish test report
         if: always() && hashFiles('test/integration/.test-output-stress/junit.xml') != ''
