@@ -32,6 +32,7 @@ go_library(
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
         "//backend/services/stigmer-server/pkg/domain/agent/defaultagent",
+        "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal",
         "//backend/services/stigmer-server/pkg/domain/session/controller/steps",
         "//backend/services/stigmer-server/pkg/downstream/agent",
         "//backend/services/stigmer-server/pkg/downstream/agentinstance",
@@ -51,6 +52,7 @@ go_test(
         "record_harness_state_history_test.go",
         "session_controller_test.go",
         "update_subject_test.go",
+        "validate_execution_target_immutability_test.go",
     ],
     embed = [":controller"],
     deps = [
@@ -63,6 +65,7 @@ go_test(
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
         "//backend/libs/go/store/sqlite",
+        "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_grpc//codes",

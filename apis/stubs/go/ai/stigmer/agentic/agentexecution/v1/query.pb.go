@@ -26,7 +26,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_query_proto protoreflect.FileDescr
 
 const file_ai_stigmer_agentic_agentexecution_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"0ai/stigmer/agentic/agentexecution/v1/query.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a-ai/stigmer/agentic/agentexecution/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xfa\x10\n" +
+	"0ai/stigmer/agentic/agentexecution/v1/query.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a-ai/stigmer/agentic/agentexecution/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xaf\x11\n" +
 	"\x1dAgentExecutionQueryController\x12\xa9\x01\n" +
 	"\x03get\x126.ai.stigmer.agentic.agentexecution.v1.AgentExecutionId\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"4¸\x180\b\x01\x10)\"\x05value*#unauthorized to get agent execution\x12\x88\x01\n" +
 	"\x04list\x12@.ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest\x1a8.ai.stigmer.agentic.agentexecution.v1.AgentExecutionList\"\x04и\x18\x01\x12\x9a\x01\n" +
@@ -36,8 +36,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_query_proto_rawDesc = "" +
 	"\x12getArtifactContent\x12?.ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest\x1a@.ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse\"R¸\x18N\b\x01\x10)\"\fexecution_id*:unauthorized to read artifact content from agent execution\x12\xe7\x01\n" +
 	"\x17getExecutionUsageReport\x12B.ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput\x1aC.ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput\"C¸\x18?\b\x01\x10)\"\fexecution_id*+unauthorized to view execution usage report\x12\xdd\x01\n" +
 	"\x15getSessionUsageReport\x12@.ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput\x1aA.ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput\"?¸\x18;\b\x01\x10*\"\n" +
-	"session_id*)unauthorized to view session usage report\x12\x9c\x01\n" +
-	"\x13getAgentUsageReport\x12>.ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput\x1a?.ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput\"\x04и\x18\x01\x12\xd2\x01\n" +
+	"session_id*)unauthorized to view session usage report\x12\xd1\x01\n" +
+	"\x13getAgentUsageReport\x12>.ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput\x1a?.ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput\"9¸\x185\b\x01\x10\x1e\"\x06org_id*'unauthorized to view agent usage report\x12\xd2\x01\n" +
 	"\x11getOrgUsageReport\x12<.ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput\x1a=.ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput\"@¸\x18<\b\x01\x10\x1e\"\x06org_id*.unauthorized to view organization usage report\x12\x9f\x01\n" +
 	"\x13getExecutionSummary\x12E.ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest\x1a;.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary\"\x04и\x18\x01\x1a\x04\xa0\xff+)B\xcb\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\n" +

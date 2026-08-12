@@ -15,13 +15,15 @@ import (
 
 const agentUsageReportKey = "agent_usage_report"
 
-// GetAgentUsageReport returns aggregated usage metrics for all executions
-// of an agent within an optional date range. Provides agent-level totals
-// and per-session breakdown.
+// GetAgentUsageReport returns aggregated usage metrics for one org's
+// executions of an agent within an optional date range. Provides
+// agent-level totals and per-session breakdown. Org-scoped per oss#389:
+// executions outside the requested org are never included (in cloud the
+// interceptor also gates the call on org can_view; OSS is single-user).
 //
 // Pipeline:
-// 1. Validate   -- Ensure agent_id is provided
-// 2. Load       -- Load all executions for the agent, filter by date range
+// 1. Validate   -- Ensure agent_id and org_id are provided
+// 2. Load       -- Load the org's executions for the agent, filter by date range
 // 3. Aggregate  -- Compute totals, per-session summaries, model breakdown
 // 4. Respond    -- Build the GetAgentUsageReportOutput
 func (c *AgentExecutionController) GetAgentUsageReport(ctx context.Context, req *agentexecutionv1.GetAgentUsageReportInput) (*agentexecutionv1.GetAgentUsageReportOutput, error) {
@@ -63,6 +65,9 @@ func (s *validateAgentUsageReportStep) Execute(ctx *pipeline.RequestContext[*age
 	if ctx.Input().GetAgentId() == "" {
 		return grpclib.InvalidArgumentError("agent_id is required")
 	}
+	if ctx.Input().GetOrgId() == "" {
+		return grpclib.InvalidArgumentError("org_id is required")
+	}
 	return nil
 }
 
@@ -99,11 +104,13 @@ func (s *loadAgentExecutionsStep) Execute(ctx *pipeline.RequestContext[*agentexe
 		all = append(all, exec)
 	}
 
-	filtered := filterByAgentID(all, agentID)
+	filtered := filterByOrg(all, req.GetOrgId())
+	filtered = filterByAgentID(filtered, agentID)
 	filtered = filterByDateRange(filtered, req.GetFromDate(), req.GetToDate())
 
 	log.Debug().
 		Str("agent_id", agentID).
+		Str("org_id", req.GetOrgId()).
 		Int("count", len(filtered)).
 		Msg("Loaded executions for agent usage report")
 
@@ -132,7 +139,14 @@ func (s *buildAgentUsageReportStep) Execute(ctx *pipeline.RequestContext[*agente
 	}
 
 	agentID := ctx.Input().GetAgentId()
-	agentName := s.resolveAgentName(ctx.Context(), agentID)
+
+	// Resolve the display name only when the org has executions of the
+	// agent. Contract parity with cloud, where this prevents the report
+	// from acting as an id-to-name oracle for agents the org never used.
+	agentName := agentID
+	if len(executions) > 0 {
+		agentName = s.resolveAgentName(ctx.Context(), agentID)
+	}
 
 	sortExecutionsByStartedAt(executions)
 

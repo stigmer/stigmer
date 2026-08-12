@@ -10,6 +10,7 @@ import (
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
+	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 )
 
 // contextWithSessionKind creates a context with the session resource kind injected
@@ -18,7 +19,10 @@ func contextWithSessionKind() context.Context {
 	return context.WithValue(context.Background(), apiresourceinterceptor.ApiResourceKindKey, apiresourcekind.ApiResourceKind_session)
 }
 
-// setupTestController creates a test controller with necessary dependencies
+// setupTestController creates a test controller with necessary dependencies.
+// The temporal config pins the OSS deployment default (UNSPECIFIED → LOCAL);
+// the two-default resolution matrix is covered by the focused step test in
+// validate_execution_target_immutability_test.go.
 func setupTestController(t *testing.T) (*SessionController, store.Store) {
 	// Create temporary SQLite store
 	store, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
@@ -26,7 +30,9 @@ func setupTestController(t *testing.T) (*SessionController, store.Store) {
 		t.Fatalf("failed to create store: %v", err)
 	}
 
-	controller := NewSessionController(store)
+	controller := NewSessionController(store, &agentexecutiontemporal.Config{
+		DefaultExecutionTarget: agentexecutiontemporal.DefaultExecutionTargetLocal,
+	})
 
 	return controller, store
 }

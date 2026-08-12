@@ -58,7 +58,7 @@ AgentExecution agentExecution = client.agentExecutions().get("aex_01j5q3k7m8r2s4
 | Method | Description | Streaming |
 |--------|-------------|-----------|
 | [`get`](#get) | Get a single agent execution by ID. | |
-| [`getAgentUsageReport`](#getagentusagereport) | Get a usage report for an agent. | |
+| [`getAgentUsageReport`](#getagentusagereport) | Get a usage report for an agent within an organization. | |
 | [`getArtifactContent`](#getartifactcontent) | Read the raw content of an execution artifact. | |
 | [`getArtifactDownloadUrl`](#getartifactdownloadurl) | Get a presigned download URL for an execution artifact or attachment. | |
 | [`getExecutionSummary`](#getexecutionsummary) | Get aggregated execution statistics for an organization's agent executions. | |
@@ -118,9 +118,9 @@ AgentExecution agentExecution = client.agentExecutions().get(id);
 
 ### getAgentUsageReport
 
-Get a usage report for an agent.
+Get a usage report for an agent within an organization.
 
-Returns aggregated tokens, cost, and per-session breakdown with pagination.
+Returns aggregated tokens, cost, and per-session breakdown for one organization's executions of the agent. Requires can_view on the organization named in org_id; executions outside that organization are never included, so the report is the per-agent drill-down of getOrgUsageReport.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -131,6 +131,7 @@ const getAgentUsageReportOutput = await stigmer.agentExecution.getAgentUsageRepo
   toDate: "...",
   pageSize: 0,
   pageToken: "...",
+  orgId: "...",
 });
 ```
 </Tab>
@@ -142,6 +143,7 @@ getAgentUsageReportOutput, err := client.AgentExecution.GetAgentUsageReport(ctx,
   ToDate:    "...",
   PageSize:  0,
   PageToken: "...",
+  OrgId:     "...",
 })
 ```
 </Tab>
@@ -153,6 +155,7 @@ get_agent_usage_report_output = client.agent_executions.get_agent_usage_report(G
     to_date="...",
     page_size=0,
     page_token="...",
+    org_id="...",
 ))
 ```
 </Tab>
@@ -164,6 +167,7 @@ GetAgentUsageReportOutput getAgentUsageReportOutput = client.agentExecutions().g
     .toDate("...")
     .pageSize(0)
     .pageToken("...")
+    .orgId("...")
     .build());
 ```
 </Tab>
@@ -1746,7 +1750,7 @@ GetSessionUsageReportOutput returns aggregated usage for a session.
 
 ### GetAgentUsageReportInput
 
-GetAgentUsageReportInput requests a usage report for a specific agent.
+GetAgentUsageReportInput requests a usage report for a specific agent within one organization.
 
 <TypeTable
   type={{
@@ -1755,6 +1759,7 @@ GetAgentUsageReportInput requests a usage report for a specific agent.
     toDate: { type: "string", description: "End of time range filter (ISO 8601, inclusive)." },
     pageSize: { type: "number", description: "Maximum number of sessions to return per page." },
     pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
+    orgId: { type: "string", description: "Organization scope for the report: usage of this agent within this organization." },
   }}
 />
 

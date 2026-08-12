@@ -926,9 +926,9 @@ message GetSessionUsageReportOutput {
   bool is_estimated = 8;
 }
 
-// GetAgentUsageReportInput requests a usage report for a specific agent.
-// Aggregates cost and token data across all sessions for the agent within
-// a time range.
+// GetAgentUsageReportInput requests a usage report for a specific agent
+// within one organization. Aggregates cost and token data across the org's
+// sessions of the agent within a time range.
 message GetAgentUsageReportInput {
   // Agent ID to get usage report for.
   string agent_id = 1 [(buf.validate.field).string.min_len = 1];
@@ -946,6 +946,11 @@ message GetAgentUsageReportInput {
 
   // Token for pagination, obtained from previous response.
   string page_token = 5;
+
+  // Organization scope for the report: usage of this agent within this
+  // organization. Only executions belonging to this organization are
+  // aggregated. The caller must hold can_view on the organization.
+  string org_id = 6 [(buf.validate.field).string.min_len = 1];
 }
 
 // GetAgentUsageReportOutput returns aggregated usage for an agent.

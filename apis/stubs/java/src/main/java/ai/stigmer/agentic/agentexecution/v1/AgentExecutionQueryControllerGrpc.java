@@ -567,11 +567,19 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a usage report for an agent.
-     * Returns aggregated tokens, cost, and per-session breakdown with pagination.
+     * Get a usage report for an agent within an organization.
+     * Returns aggregated tokens, cost, and per-session breakdown for one
+     * organization's executions of the agent. Requires can_view on the
+     * organization named in org_id; executions outside that organization are
+     * never included, so the report is the per-agent drill-down of
+     * getOrgUsageReport.
      * &#64;internal
-     * Not consumed by any UI. Authorization model TBD — when a product need
-     * arises, this should likely be org-scoped (usage of agent X within org Y).
+     * Org-scoped by design (oss#389). Agent can_view is a consumption
+     * permission — public agents grant it to every authenticated account via
+     * the FGA wildcard — so gating on the agent would leak cross-tenant usage.
+     * Gating on the organization also keeps other tenants' sessions of a
+     * shared agent out of the report. Consumed by the CLI (`stigmer usage
+     * agent`).
      * </pre>
      */
     default void getAgentUsageReport(ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput request,
@@ -801,11 +809,19 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a usage report for an agent.
-     * Returns aggregated tokens, cost, and per-session breakdown with pagination.
+     * Get a usage report for an agent within an organization.
+     * Returns aggregated tokens, cost, and per-session breakdown for one
+     * organization's executions of the agent. Requires can_view on the
+     * organization named in org_id; executions outside that organization are
+     * never included, so the report is the per-agent drill-down of
+     * getOrgUsageReport.
      * &#64;internal
-     * Not consumed by any UI. Authorization model TBD — when a product need
-     * arises, this should likely be org-scoped (usage of agent X within org Y).
+     * Org-scoped by design (oss#389). Agent can_view is a consumption
+     * permission — public agents grant it to every authenticated account via
+     * the FGA wildcard — so gating on the agent would leak cross-tenant usage.
+     * Gating on the organization also keeps other tenants' sessions of a
+     * shared agent out of the report. Consumed by the CLI (`stigmer usage
+     * agent`).
      * </pre>
      */
     public void getAgentUsageReport(ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput request,
@@ -1018,11 +1034,19 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a usage report for an agent.
-     * Returns aggregated tokens, cost, and per-session breakdown with pagination.
+     * Get a usage report for an agent within an organization.
+     * Returns aggregated tokens, cost, and per-session breakdown for one
+     * organization's executions of the agent. Requires can_view on the
+     * organization named in org_id; executions outside that organization are
+     * never included, so the report is the per-agent drill-down of
+     * getOrgUsageReport.
      * &#64;internal
-     * Not consumed by any UI. Authorization model TBD — when a product need
-     * arises, this should likely be org-scoped (usage of agent X within org Y).
+     * Org-scoped by design (oss#389). Agent can_view is a consumption
+     * permission — public agents grant it to every authenticated account via
+     * the FGA wildcard — so gating on the agent would leak cross-tenant usage.
+     * Gating on the organization also keeps other tenants' sessions of a
+     * shared agent out of the report. Consumed by the CLI (`stigmer usage
+     * agent`).
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput getAgentUsageReport(ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput request) throws io.grpc.StatusException {
@@ -1231,11 +1255,19 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a usage report for an agent.
-     * Returns aggregated tokens, cost, and per-session breakdown with pagination.
+     * Get a usage report for an agent within an organization.
+     * Returns aggregated tokens, cost, and per-session breakdown for one
+     * organization's executions of the agent. Requires can_view on the
+     * organization named in org_id; executions outside that organization are
+     * never included, so the report is the per-agent drill-down of
+     * getOrgUsageReport.
      * &#64;internal
-     * Not consumed by any UI. Authorization model TBD — when a product need
-     * arises, this should likely be org-scoped (usage of agent X within org Y).
+     * Org-scoped by design (oss#389). Agent can_view is a consumption
+     * permission — public agents grant it to every authenticated account via
+     * the FGA wildcard — so gating on the agent would leak cross-tenant usage.
+     * Gating on the organization also keeps other tenants' sessions of a
+     * shared agent out of the report. Consumed by the CLI (`stigmer usage
+     * agent`).
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput getAgentUsageReport(ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput request) {
@@ -1438,11 +1470,19 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a usage report for an agent.
-     * Returns aggregated tokens, cost, and per-session breakdown with pagination.
+     * Get a usage report for an agent within an organization.
+     * Returns aggregated tokens, cost, and per-session breakdown for one
+     * organization's executions of the agent. Requires can_view on the
+     * organization named in org_id; executions outside that organization are
+     * never included, so the report is the per-agent drill-down of
+     * getOrgUsageReport.
      * &#64;internal
-     * Not consumed by any UI. Authorization model TBD — when a product need
-     * arises, this should likely be org-scoped (usage of agent X within org Y).
+     * Org-scoped by design (oss#389). Agent can_view is a consumption
+     * permission — public agents grant it to every authenticated account via
+     * the FGA wildcard — so gating on the agent would leak cross-tenant usage.
+     * Gating on the organization also keeps other tenants' sessions of a
+     * shared agent out of the report. Consumed by the CLI (`stigmer usage
+     * agent`).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput> getAgentUsageReport(
