@@ -7,8 +7,14 @@
 // registered in LIST_HANDLERS — the same map-dispatch shape as the get,
 // delete, and apply registries, so the conformance test in
 // registry/registry.test.ts can hold all four to the verb matrix.
+//
+// Handlers FETCH, the dispatcher RENDERS: every handler returns entries plus
+// its schema/table pair, and listResources alone applies --limit and renders.
+// That split is deliberate (stigmer/stigmer#312): when handlers owned
+// rendering, honoring --limit was per-handler discipline, and the two
+// unpaginated branches (organization, api_key) shipped silently ignoring it.
 
-import { create } from "@bufbuild/protobuf";
+import { create, type DescMessage, type Message } from "@bufbuild/protobuf";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { ListAgentChannelsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
 import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
@@ -43,7 +49,19 @@ export const SEARCH_KINDS: ReadonlySet<ApiResourceKind> = new Set<ApiResourceKin
   ApiResourceKind.environment,
 ]);
 
-type ListFn = (client: Stigmer, org: string, limit: number, format: OutputFormat) => Promise<string>;
+// One fetched page of a listing: what to render (entries + schema) and how
+// (table). Rendering and --limit truncation happen centrally in
+// listResources — a handler cannot opt out of either.
+interface ListPage {
+  readonly schema: DescMessage;
+  readonly entries: readonly Message[];
+  readonly table: TableShape;
+}
+
+// Where the RPC paginates, the handler still forwards `limit` as the page
+// size so the server does the bounding; the dispatcher's slice is then a
+// no-op. Where it doesn't, the slice IS the bound.
+type ListFn = (client: Stigmer, org: string, limit: number) => Promise<ListPage>;
 
 // Dedicated-RPC list handlers for the non-search-indexed kinds. Every kind
 // declaring List in the verb matrix must appear here or in SEARCH_KINDS —
@@ -51,49 +69,53 @@ type ListFn = (client: Stigmer, org: string, limit: number, format: OutputFormat
 export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<ApiResourceKind, ListFn>([
   [
     ApiResourceKind.organization,
-    async (client, _org, _limit, format) => {
+    async (client) => {
+      // findMyOrganizations is caller-scoped and unpaginated (Empty request;
+      // a caller's org set is small by nature). The paginated `find` RPC is
+      // platform-admin-only — the wrong surface for `list organization`.
       const result = await client.organization.findMyOrganizations();
-      return renderCollection(OrganizationSchema, result.entries, format, ORG_TABLE);
+      return { schema: OrganizationSchema, entries: result.entries, table: ORG_TABLE };
     },
   ],
   [
     ApiResourceKind.api_key,
-    async (client, _org, _limit, format) => {
+    async (client) => {
+      // findAll is caller-scoped and unpaginated (Empty request).
       const result = await client.apiKey.findAll();
-      return renderCollection(ApiKeySchema, result.entries, format, APIKEY_TABLE);
+      return { schema: ApiKeySchema, entries: result.entries, table: APIKEY_TABLE };
     },
   ],
   [
     ApiResourceKind.agent_instance,
-    async (client, org, limit, format) => {
+    async (client, org, limit) => {
       const result = await client.agentInstance.list(
         create(ListAgentInstancesRequestSchema, { org, pageInfo: create(PageInfoSchema, { num: 1, size: limit }) }),
       );
-      return renderCollection(AgentInstanceSchema, result.items, format, INSTANCE_TABLE);
+      return { schema: AgentInstanceSchema, entries: result.items, table: INSTANCE_TABLE };
     },
   ],
   [
     ApiResourceKind.agent_channel,
-    async (client, org, limit, format) => {
+    async (client, org, limit) => {
       const result = await client.agentChannel.list(
         create(ListAgentChannelsRequestSchema, { org, pageInfo: create(PageInfoSchema, { num: 1, size: limit }) }),
       );
-      return renderCollection(AgentChannelSchema, result.items, format, AGENT_CHANNEL_TABLE);
+      return { schema: AgentChannelSchema, entries: result.items, table: AGENT_CHANNEL_TABLE };
     },
   ],
   [
     ApiResourceKind.channel_app,
-    async (client, org, limit, format) => {
+    async (client, org) => {
       // listByOrg has no pagination on its contract (the per-org set is small
-      // by design); the limit is applied client-side so --limit stays honest.
+      // by design); the dispatcher's slice bounds the output.
       // `channelapp` (not `channelApp`) is a recorded SDK codegen naming quirk.
       const result = await client.channelapp.listByOrg(create(ListChannelAppsByOrgInputSchema, { org }));
-      return renderCollection(ChannelAppSchema, result.entries.slice(0, limit), format, CHANNEL_APP_TABLE);
+      return { schema: ChannelAppSchema, entries: result.entries, table: CHANNEL_APP_TABLE };
     },
   ],
   [
     ApiResourceKind.schedule,
-    async (client, org, limit, format) => {
+    async (client, org, limit) => {
       // ListSchedulesRequest requires an org (min_len 1), but an unset cloud
       // context resolves to "" — refuse with actionable copy instead of
       // relaying the server's raw validation error.
@@ -105,7 +127,7 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<ApiRe
       const result = await client.schedule.list(
         create(ListSchedulesRequestSchema, { org, pageInfo: create(PageInfoSchema, { num: 1, size: limit }) }),
       );
-      return renderCollection(ScheduleSchema, result.items, format, SCHEDULE_TABLE);
+      return { schema: ScheduleSchema, entries: result.items, table: SCHEDULE_TABLE };
     },
   ],
 ]);
@@ -117,15 +139,31 @@ export async function listResources(
   limit: number,
   format: OutputFormat,
 ): Promise<string> {
+  const page = await fetchListPage(client, kind, org, limit);
+  // The single point where --limit binds the output. For paginated RPCs the
+  // handler already asked the server for at most `limit` entries and this is
+  // a no-op; for unpaginated RPCs it is the truncation itself. Slicing here
+  // rather than per-handler is what keeps the flag honest for every kind —
+  // organization and api_key shipped ignoring it when handlers owned this
+  // (stigmer/stigmer#312).
+  return renderCollection(page.schema, page.entries.slice(0, limit), format, page.table);
+}
+
+async function fetchListPage(
+  client: Stigmer,
+  kind: ApiResourceKind,
+  org: string,
+  limit: number,
+): Promise<ListPage> {
   const dedicated = LIST_HANDLERS.get(kind);
   if (dedicated !== undefined) {
-    return dedicated(client, org, limit, format);
+    return dedicated(client, org, limit);
   }
   if (!SEARCH_KINDS.has(kind)) {
     throw new UsageError("list is not implemented for this resource type");
   }
   const result = await client.search.query({ kinds: [kind], org, page: { num: 1, size: limit } });
-  return renderCollection(SearchResultSchema, result.entries, format, SEARCH_TABLE);
+  return { schema: SearchResultSchema, entries: result.entries, table: SEARCH_TABLE };
 }
 
 // Shared with `search` — both render SearchService results identically.
