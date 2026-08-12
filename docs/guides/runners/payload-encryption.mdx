@@ -1,0 +1,88 @@
+---
+title: Encrypt Temporal payloads at rest
+description:
+  Opt-in AES-256-GCM encryption for every Temporal payload the runner produces,
+  so decrypted workflow secrets never rest in Temporal history or appear in the
+  Temporal UI. Two environment variables on the runner and the server.
+---
+
+Workflow and agent executions move data through Temporal: activity inputs and
+results, expression markers, workflow results. Without encryption, that data —
+including execution-context secrets a workflow interpolates into task configs —
+rests in durable Temporal history, readable by anyone with access to the
+Temporal UI or database.
+
+Payload encryption closes the whole class at the codec layer: the runner
+encrypts **every payload its workers hand to Temporal** with AES-256-GCM before
+it leaves the process, and decrypts on the way back in. The Stigmer server
+carries a **decode-only** twin of the codec, so it can read runner results
+(agent activity results, MCP connect results) while its own orchestration
+history stays plaintext and UI-readable.
+
+Encryption is off by default and enabled by configuration alone — no code or
+workflow changes.
+
+## Enable it
+
+Generate a 32-byte key and give it an id:
+
+```bash
+openssl rand -base64 32
+```
+
+Set the **same two variables on both processes** — the stigmer-server and the
+runner:
+
+```bash
+STIGMER_PAYLOAD_ENCRYPTION_KEY="<base64 key>"
+STIGMER_PAYLOAD_ENCRYPTION_KEY_ID="key-2026-08"
+```
+
+The key id is stamped on every encrypted payload so rotation can tell keys
+apart; it is required whenever the key is set. A malformed key — or a key
+without its id — fails the boot on both sides. Misconfiguration never degrades
+to silent plaintext.
+
+<Callout type="warn">
+  Both processes need the key. The server holds it to *decode* runner results —
+  with the key set only on the runner, every agent execution and MCP connect
+  fails on the server's first read. Upgrade both to a release that ships the
+  server-side codec, then set the key on both together.
+</Callout>
+
+Existing in-flight executions are unaffected: decode passes through payloads
+that were never encrypted, so pre-rollout histories and the server's own
+plaintext payloads keep working with zero migration.
+
+## Rotate keys
+
+Payloads name the key that encrypted them, so rotation is a two-key window:
+
+1. Set the new key as primary and demote the old pair to
+   `STIGMER_PAYLOAD_ENCRYPTION_SECONDARY_KEY` /
+   `STIGMER_PAYLOAD_ENCRYPTION_SECONDARY_KEY_ID` on both processes, then
+   restart. New payloads are written under the new key; histories written under
+   the old key stay readable.
+2. Once executions started before the rotation have drained, drop the secondary
+   pair.
+
+## What stays plaintext
+
+The codec encrypts what the **runner** produces. By design, these stay readable
+without a key:
+
+- **Server-side history** — orchestrator workflow inputs, signals sent by the
+  server (approvals, pause/resume), memos, and search attributes.
+- **Workflow completion results** on the execution path — the runner completes
+  the cross-language child workflow with a data-less (void) result; outputs
+  reach you through the event log instead.
+- **Failure messages and stack traces** — Temporal stores these outside
+  payloads, so errors stay debuggable in the UI.
+- **Event signals sent by `emit` tasks** — the emit task's delivery client is
+  deliberately not encrypted: it is the one direct runner-to-runner channel, and
+  its targets cannot be assumed to hold the sender's key. Treat event payloads
+  as boundary-crossing messages, not secret carriers.
+
+Encrypted payloads appear as opaque `binary/encrypted` blobs in the Temporal UI.
+Decoding them in the UI would require a Temporal codec server, which Stigmer
+does not ship today.

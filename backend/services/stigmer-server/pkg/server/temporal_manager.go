@@ -18,6 +18,7 @@ import (
 	workflowexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
 	workflowexecutionactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
 	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption/payloadcodec"
 	"go.temporal.io/sdk/client"
 	temporallog "go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/worker"
@@ -361,11 +362,26 @@ func (tm *TemporalManager) calculateBackoff() time.Duration {
 
 // dialTemporal creates a new Temporal client connection
 func (tm *TemporalManager) dialTemporal(ctx context.Context) (client.Client, error) {
-	return client.Dial(client.Options{
+	opts := client.Options{
 		HostPort:  tm.cfg.TemporalHostPort,
 		Namespace: tm.namespace,
 		Logger:    temporallog.NewStructuredLogger(slog.New(slog.NewTextHandler(io.Discard, nil))),
-	})
+	}
+
+	// When payload encryption is configured, install the decode-only codec
+	// on the client — the single choke point that covers every worker AND
+	// client-side reads of runner-produced payloads (agent-execution
+	// activity results, the MCP connect workflow result). The server's own
+	// payloads stay plaintext (encode is the identity).
+	if tm.cfg.PayloadEncryption != nil {
+		dataConverter, err := payloadcodec.NewDataConverter(tm.cfg.PayloadEncryption)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build payload decryption data converter: %w", err)
+		}
+		opts.DataConverter = dataConverter
+	}
+
+	return client.Dial(opts)
 }
 
 // restartWorkers stops old workers and starts new ones with the new client
