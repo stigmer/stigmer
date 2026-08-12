@@ -276,10 +276,16 @@ func (c *McpServerController) initiateVendorOAuth(
 		if approvalStatus == oauthappv1.VendorApprovalStatus_VENDOR_APPROVAL_STATUS_REJECTED {
 			statusLabel = "rejected"
 		}
+		// The suggested alternative must be one that can actually work:
+		// oauth_only endpoints reject static tokens, so recommending manual
+		// entry there sends the user down a dead end (stigmer/stigmer#412).
+		alternative := "Please enter a token manually instead."
+		if mcpServer.GetSpec().GetAuth().GetOauthOnly() {
+			alternative = "This server only accepts OAuth sign-in; an org admin can configure your own OAuth app instead."
+		}
 		return nil, grpclib.FailedPreconditionError(
-			"OAuth sign-in is unavailable: the platform's OAuth app for '%s' is %s by the vendor. "+
-				"Please enter a token manually instead.",
-			oauthApp.GetSpec().GetProvider(), statusLabel)
+			"OAuth sign-in is unavailable: the platform's OAuth app for '%s' is %s by the vendor. %s",
+			oauthApp.GetSpec().GetProvider(), statusLabel, alternative)
 	}
 
 	clientSecret := oauthApp.GetSpec().GetClientSecret()

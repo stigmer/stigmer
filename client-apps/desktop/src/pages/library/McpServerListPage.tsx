@@ -157,6 +157,12 @@ export default function McpServerListPage() {
         activeOrg={org}
         open={connectTarget !== null}
         onClose={() => setConnectTarget(null)}
+        onOpenDetails={() => {
+          if (!connectTarget) return;
+          const { org: targetOrg, slug } = connectTarget;
+          setConnectTarget(null);
+          navigate(`/library/mcp-servers/${targetOrg}/${slug}`);
+        }}
       />
 
       <ApplyManifestDialog

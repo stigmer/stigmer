@@ -13,6 +13,7 @@ import { EnvVarForm } from "../environment/EnvVarForm.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { StdioSandboxNotice } from "./StdioSandboxNotice.js";
 import { OAuthRequiredNotice } from "./OAuthRequiredNotice.js";
+import { VendorApprovalBlockedNotice } from "./VendorApprovalBlockedNotice.js";
 
 /** Props for {@link McpServerConnectDialog}. */
 export interface McpServerConnectDialogProps {
@@ -33,6 +34,17 @@ export interface McpServerConnectDialogProps {
   readonly onClose: () => void;
   /** Called after a successful connect with the server name. */
   readonly onConnected?: (serverName: string) => void;
+  /**
+   * Called when the user needs the server's detail page — today the
+   * "Use your own OAuth app" escape hatch shown when the platform OAuth
+   * app is vendor-approval blocked on an `oauth_only` server, since the
+   * BYOA form lives on the detail page, not in this dialog.
+   *
+   * The host owns navigation (and should close the dialog itself if its
+   * route keeps this component mounted). When omitted, the blocked notice
+   * still explains the state; only the navigation affordance is dropped.
+   */
+  readonly onOpenDetails?: () => void;
   /** Additional CSS classes for the dialog element. */
   readonly className?: string;
 }
@@ -73,6 +85,7 @@ export function McpServerConnectDialog({
   open,
   onClose,
   onConnected,
+  onOpenDetails,
   className,
 }: McpServerConnectDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -125,6 +138,7 @@ export function McpServerConnectDialog({
           activeOrg={resolvedOrg}
           onClose={onClose}
           onConnected={onConnected}
+          onOpenDetails={onOpenDetails}
         />
       </div>
     </dialog>
@@ -137,12 +151,14 @@ function ConnectDialogContent({
   activeOrg,
   onClose,
   onConnected,
+  onOpenDetails,
 }: {
   readonly org: string;
   readonly slug: string;
   readonly activeOrg: string;
   readonly onClose: () => void;
   readonly onConnected?: (serverName: string) => void;
+  readonly onOpenDetails?: () => void;
 }) {
   const { mcpServer, isLoading: isServerLoading, error: serverError } = useMcpServer(org, slug);
   const creds = useMcpServerCredentials(activeOrg, mcpServer);
@@ -327,11 +343,16 @@ function ConnectDialogContent({
           phase={oauth.phase}
           onSignIn={handleOAuthSignIn}
           isVendorApprovalBlocked={creds.isVendorApprovalBlocked}
+          isVendorApprovalPending={creds.isVendorApprovalPending}
+          manualEntrySupported={creds.manualEntrySupported}
+          canBringOwnApp={creds.canBringOwnApp}
+          vendorApprovalDocsUrl={creds.vendorApprovalDocsUrl}
           onSwitchToManual={
             creds.manualEntrySupported
               ? () => creds.setManualOverride(true)
               : undefined
           }
+          onOpenDetails={onOpenDetails}
           disabled={isConnectingPhase}
         />
       )}
@@ -437,15 +458,26 @@ function OAuthSection({
   phase,
   onSignIn,
   isVendorApprovalBlocked,
+  isVendorApprovalPending,
+  manualEntrySupported,
+  canBringOwnApp,
+  vendorApprovalDocsUrl,
   onSwitchToManual,
+  onOpenDetails,
   disabled,
 }: {
   readonly isConnected: boolean;
   readonly phase: OAuthConnectPhase;
   readonly onSignIn: () => void;
   readonly isVendorApprovalBlocked: boolean;
+  readonly isVendorApprovalPending: boolean;
+  readonly manualEntrySupported: boolean;
+  readonly canBringOwnApp: boolean;
+  readonly vendorApprovalDocsUrl: string | null;
   /** When omitted (e.g. `oauth_only` servers), no manual-entry link is shown. */
   readonly onSwitchToManual?: () => void;
+  /** Navigates to the detail page, where the BYOA form lives. */
+  readonly onOpenDetails?: () => void;
   readonly disabled?: boolean;
 }) {
   if (isConnected) {
@@ -482,11 +514,15 @@ function OAuthSection({
         {isInProgress && <LoadingSpinner size="sm" />}
         {isInProgress ? (phaseLabel[phase] ?? "Connecting...") : "Sign in with OAuth"}
       </button>
-      {isVendorApprovalBlocked && onSwitchToManual && (
-        <p className="stg:text-xs stg:text-muted-foreground">
-          OAuth sign-in is pending vendor approval. You can enter your token manually instead.
-        </p>
-      )}
+      <VendorApprovalBlockedNotice
+        blocked={isVendorApprovalBlocked}
+        pending={isVendorApprovalPending}
+        manualEntrySupported={manualEntrySupported}
+        canBringOwnApp={canBringOwnApp}
+        docsUrl={vendorApprovalDocsUrl}
+        onBringOwnApp={onOpenDetails}
+        className="stg:rounded-md stg:border stg:border-amber-500/20"
+      />
       {onSwitchToManual && (
         <button
           type="button"

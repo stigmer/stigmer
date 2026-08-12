@@ -26,6 +26,7 @@ import {
 import type { OAuthConnectPhase } from "./useMcpServerOAuthConnect.js";
 import { StdioSandboxNotice } from "./StdioSandboxNotice.js";
 import { OAuthRequiredNotice } from "./OAuthRequiredNotice.js";
+import { VendorApprovalBlockedNotice } from "./VendorApprovalBlockedNotice.js";
 import { useDisconnectOAuth } from "./useDisconnectOAuth.js";
 import { useOrgOAuthApp } from "./useOrgOAuthApp.js";
 import { OAuthAppForm } from "./OAuthAppForm.js";
@@ -1136,38 +1137,15 @@ function ConnectBar({
 
       {/* Vendor approval blocked banner with BYOA CTA */}
       {oauthSignInDisabled && (
-        <div className="stg:flex stg:items-start stg:gap-2 stg:border-t stg:border-amber-500/20 stg:bg-amber-500/5 stg:px-3 stg:py-2">
-          <WarningIcon className="stg:mt-0.5 stg:size-3.5 stg:shrink-0 stg:text-amber-600 stg:dark:text-amber-400" />
-          <div className="stg:flex-1 stg:text-xs stg:text-amber-700 stg:dark:text-amber-300">
-            <p>
-              The platform&apos;s OAuth app is awaiting vendor approval.
-              {canBringOwnApp
-                ? " You can use your own OAuth app or enter a token manually."
-                : " You can still connect by entering your own token manually."}
-            </p>
-            {canBringOwnApp && (
-              <button
-                type="button"
-                onClick={onBringOwnApp}
-                data-cursor-target="byoa-cta-button"
-                className="stg:mt-1.5 stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:bg-amber-600 stg:px-2.5 stg:py-1 stg:text-[11px] stg:font-medium stg:text-white stg:hover:bg-amber-700 stg:dark:bg-amber-500 stg:dark:text-amber-950 stg:dark:hover:bg-amber-400"
-              >
-                Use your own OAuth app
-              </button>
-            )}
-            {vendorApprovalDocsUrl && !canBringOwnApp && (
-              <a
-                href={vendorApprovalDocsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="stg:mt-1 stg:inline-flex stg:items-center stg:gap-1 stg:underline stg:decoration-amber-600/40 stg:underline-offset-2 stg:hover:decoration-amber-600 stg:dark:decoration-amber-400/40 stg:dark:hover:decoration-amber-400"
-              >
-                Learn how to bring your own token
-                <ExternalLinkIcon className="stg:size-3 stg:shrink-0" />
-              </a>
-            )}
-          </div>
-        </div>
+        <VendorApprovalBlockedNotice
+          blocked
+          pending={isVendorApprovalPending}
+          manualEntrySupported={manualEntrySupported}
+          canBringOwnApp={canBringOwnApp}
+          docsUrl={vendorApprovalDocsUrl}
+          onBringOwnApp={onBringOwnApp}
+          className="stg:border-t stg:border-amber-500/20"
+        />
       )}
 
       {/* Secondary actions: manual entry, BYOA, back to OAuth. Suppressed
