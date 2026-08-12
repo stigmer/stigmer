@@ -16,7 +16,8 @@
     "client-apps/desktop",
     "tools/eslint-plugin-stigmer",
     "test/conformance",
-    "test/e2e"
+    "test/e2e",
+    "test/integration/testdata/sdk-smoke-ts"
   ],
   "scripts": {
     "prepare": "husky || true",

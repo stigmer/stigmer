@@ -154,16 +154,12 @@ type StigmerMcpLaunch struct {
 // The server connects to the Stigmer backend via gRPC and exposes the
 // workflow-related MCP tools (get_task_kind_registry, validate_workflow_yaml, …).
 func ResolveStigmerMcpLaunch() (StigmerMcpLaunch, error) {
-	_, thisFile, _, _ := runtime.Caller(0)
-	// test/integration/harness/mcp_helpers.go → repo root is three levels up.
-	repoRoot := filepath.Join(filepath.Dir(thisFile), "..", "..", "..")
-
-	tsxBin := filepath.Join(repoRoot, "node_modules", ".bin", "tsx")
-	entry := filepath.Join(repoRoot, "mcp-server", "src", "cli", "mcp-server-stigmer.ts")
-
-	if _, err := os.Stat(tsxBin); err != nil {
-		return StigmerMcpLaunch{}, fmt.Errorf("workspace tsx not found at %s (run `npm install` at the repo root): %w", tsxBin, err)
+	tsxBin, err := ResolveWorkspaceTsx()
+	if err != nil {
+		return StigmerMcpLaunch{}, err
 	}
+
+	entry := filepath.Join(MonorepoRoot(), "mcp-server", "src", "cli", "mcp-server-stigmer.ts")
 	if _, err := os.Stat(entry); err != nil {
 		return StigmerMcpLaunch{}, fmt.Errorf("mcp-server entry not found at %s: %w", entry, err)
 	}
