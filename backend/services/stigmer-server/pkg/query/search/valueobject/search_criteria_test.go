@@ -71,7 +71,7 @@ func TestNewSearchCriteria_QueryAtMaxLength(t *testing.T) {
 	}
 }
 
-func TestNewSearchCriteria_FiltersNonSearchableKinds(t *testing.T) {
+func TestSearchCriteria_EffectiveKindsFilterNonSearchableKinds(t *testing.T) {
 	kinds := []apiresourcekind.ApiResourceKind{
 		apiresourcekind.ApiResourceKind_agent,
 		// session is searchable: the React SDK's useSessionSearch hook lists
@@ -100,13 +100,22 @@ func TestNewSearchCriteria_FiltersNonSearchableKinds(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	// Kinds() carries the request verbatim; the searchable filter is
+	// EffectiveKinds()'s job (stigmer/stigmer#440 — filtering at
+	// construction collapsed "all requested kinds unsearchable" into
+	// discover mode).
+	if len(criteria.Kinds()) != len(kinds) {
+		t.Errorf("expected Kinds() to return all %d requested kinds verbatim, got %d", len(kinds), len(criteria.Kinds()))
+	}
+
 	// Should only contain agent, session, skill, environment, and project
-	if len(criteria.Kinds()) != 5 {
-		t.Errorf("expected 5 kinds after filtering, got %d", len(criteria.Kinds()))
+	effective := criteria.EffectiveKinds()
+	if len(effective) != 5 {
+		t.Errorf("expected 5 effective kinds after filtering, got %d", len(effective))
 	}
 
 	kindsMap := make(map[apiresourcekind.ApiResourceKind]bool)
-	for _, k := range criteria.Kinds() {
+	for _, k := range effective {
 		kindsMap[k] = true
 	}
 
@@ -271,6 +280,28 @@ func TestSearchCriteria_EffectiveKinds(t *testing.T) {
 		}
 		if effective[0] != apiresourcekind.ApiResourceKind_agent {
 			t.Errorf("expected agent kind, got %v", effective[0])
+		}
+	})
+
+	// The stigmer/stigmer#440 pin: a request naming ONLY non-searchable
+	// kinds must yield an empty effective set — NOT fall back to all
+	// searchable kinds. Before the fix, the constructor-time filter emptied
+	// the kinds and EffectiveKinds read that as discover mode, so a
+	// kind-targeted request returned every other kind's resources
+	// masquerading as the requested kind. The stores short-circuit an empty
+	// effective set to an empty result, which is the documented contract for
+	// this state.
+	t.Run("only non-searchable kinds returns empty, not discover mode", func(t *testing.T) {
+		criteria, _ := NewSearchCriteria(
+			[]apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent_execution},
+			"", "", false, false, 1, 20,
+		)
+
+		if got := criteria.EffectiveKinds(); len(got) != 0 {
+			t.Errorf("expected empty effective kinds, got %v", got)
+		}
+		if criteria.IsDiscoverMode() {
+			t.Error("a kind-targeted request must not be discover mode, even when no kind survives the searchable filter")
 		}
 	})
 }

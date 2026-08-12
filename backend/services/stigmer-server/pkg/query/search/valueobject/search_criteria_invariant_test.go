@@ -84,7 +84,8 @@ func TestSearchableKinds_CoverSearchIndexedProtoKinds(t *testing.T) {
 		case !SearchableKinds[kind] && !pending:
 			t.Errorf(
 				"kind %s: declared search-indexed (not_search_indexed: false) but absent from both SearchableKinds and searchDecisionPending — "+
-					"its writes are indexed while reads silently drop the kind (and a request for it alone degrades to discover mode, stigmer/stigmer#440). "+
+					"its writes are indexed while reads silently drop the kind (a request for it alone returns empty; "+
+					"it degrading to discover mode instead was stigmer/stigmer#440). "+
 					"This is the environment/project/session defect (stigmer/stigmer#310). "+
 					"Add it to SearchableKinds or record the pending decision with an issue citation",
 				kind,
