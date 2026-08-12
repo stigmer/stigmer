@@ -1,8 +1,8 @@
 /**
  * Shared mechanics of runner-synthesized MCP attachments — the pieces
- * the datastore records attachment (T05) and the channel messaging
- * attachment (proactive-messaging DD-006 D8) have in common, extracted
- * when the second attachment arrived.
+ * the channel messaging attachment (proactive-messaging DD-006 D8) and
+ * the conversation participation attachment (DD-008 D-c) have in
+ * common, extracted when the second attachment arrived.
  *
  * A synthesized attachment is a first-party MCP server entry the runner
  * builds itself (no McpServer resource, no Environment, no credential in
@@ -44,7 +44,7 @@ export interface SynthesizedAttachmentOptions {
  * Inject a synthesized attachment into a resolved server list — AFTER
  * resolve + backfill (see the module header). A user server shadowing
  * the reserved slug is replaced, loudly; `label` names the attachment
- * in that warning (e.g. "datastore records").
+ * in that warning (e.g. "channel messaging").
  */
 export function injectSynthesizedAttachment(
   resolvedServers: ResolvedMcpServer[],

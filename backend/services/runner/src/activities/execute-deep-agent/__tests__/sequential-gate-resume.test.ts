@@ -196,7 +196,6 @@ function fakeMemoryGateSetup(opts: {
       readFile: vi.fn(async () => ""),
     },
     mcpConnection: null,
-    datastoreToolsMissing: [],
     mergedEnvVars: {},
     secretKeys: new Set<string>(),
     modelName: "claude-sonnet",

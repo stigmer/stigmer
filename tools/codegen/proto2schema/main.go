@@ -1270,7 +1270,6 @@ var searchListResources = map[string]bool{
 	"skill":     true,
 	"mcpserver": true,
 	"workflow":  true,
-	"datastore": true,
 }
 
 // extractServiceSchemas parses proto files for a resource and extracts service definitions.

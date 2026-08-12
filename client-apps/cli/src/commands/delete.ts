@@ -19,7 +19,7 @@ export function registerDelete(program: Command): void {
   const del = program
     .command("delete <type> <reference>")
     .description("delete a resource by type and reference (slug, org/slug, or ID)")
-    .option("-f, --force", "skip the confirmation prompt and acknowledge destructive side effects (e.g. destroying a datastore's records)")
+    .option("-f, --force", "skip the confirmation prompt and acknowledge destructive side effects")
     .action((type: string, reference: string, options: DeleteFlags, command: Command) =>
       runDelete(type, reference, options, command),
     );
@@ -42,7 +42,7 @@ async function runDelete(type: string, reference: string, options: DeleteFlags, 
 
   // `-f/--force` carries double duty by design: it skips the prompt below AND
   // rides the delete RPC as the force acknowledgment for kinds with
-  // server-side destruction guards (e.g. a non-empty datastore).
+  // server-side destruction guards.
   const plan = await planDelete(client.stigmer, type, reference, org, options.force === true);
 
   if (options.force !== true) {

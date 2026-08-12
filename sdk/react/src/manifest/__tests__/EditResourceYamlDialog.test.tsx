@@ -1,13 +1,13 @@
 // Tests for the shared Edit-YAML dialog's apply-error affordance
 // (DD-008 SD-6): the server's refusal renders verbatim with
-// Try-again/Dismiss — shared by every kind (McpServer, Agent, Skill,
-// Datastore), so the datastore collection-removal rejection and any
-// other apply-time guard get the same acknowledge-and-retry treatment.
+// Try-again/Dismiss — shared by every kind (McpServer, Agent, Skill),
+// so any apply-time guard gets the same acknowledge-and-retry
+// treatment.
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { DatastoreSchema } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
+import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { EditResourceYamlDialog } from "../EditResourceYamlDialog";
 import type { useEditResourceYaml } from "../useEditResourceYaml";
 
@@ -34,7 +34,7 @@ let editState: Partial<EditState>;
 
 vi.mock("../useEditResourceYaml", () => ({
   useEditResourceYaml: () => ({
-    yaml: "kind: Datastore",
+    yaml: "kind: McpServer",
     setYaml: vi.fn(),
     validation: { status: "valid" as const },
     target: { action: "update" as const, slug: "clinic" },
@@ -54,8 +54,8 @@ vi.mock("../YamlEditor", () => ({
   YamlEditor: () => <div data-testid="yaml-editor" />,
 }));
 
-const RESOURCE = create(DatastoreSchema, {
-  metadata: { id: "dst_1", slug: "clinic", org: "acme", name: "Clinic" },
+const RESOURCE = create(McpServerSchema, {
+  metadata: { id: "mcp_1", slug: "clinic", org: "acme", name: "Clinic" },
 });
 
 function renderDialog() {
@@ -73,14 +73,14 @@ describe("EditResourceYamlDialog — apply-error affordance", () => {
   it("renders the server's refusal verbatim with Try again and Dismiss", () => {
     editState = {
       error: new Error(
-        'collection "old_notes" was removed from the spec; re-apply with the removal acknowledged',
+        'spec change refused by an apply-time guard; re-apply with the change acknowledged',
       ),
     };
     renderDialog();
 
     const alert = screen.getByRole("alert");
     expect(alert.textContent).toContain(
-      'collection "old_notes" was removed from the spec',
+      "spec change refused by an apply-time guard",
     );
     expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Dismiss error" })).toBeTruthy();

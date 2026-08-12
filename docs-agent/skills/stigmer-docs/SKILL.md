@@ -4,7 +4,7 @@ visibility: org
 description: >
   Answer questions about Stigmer from the official documentation at
   stigmer.ai/docs. Use this skill whenever someone asks what Stigmer is, how
-  a concept works (Agent, Skill, MCP Server, Session, Workflow, Datastore,
+  a concept works (Agent, Skill, MCP Server, Session, Workflow,
   Environment, Organization, approval flows), or how to do something with
   the product, CLI, or SDKs. It carries the map of the documentation and the
   answering methodology; the content itself is read live from the published
@@ -62,7 +62,6 @@ The docs are organized by capability. Stable anchor pages, by area:
   https://stigmer.ai/docs/guides/workflows
 
 **Platform** — the infrastructure around agents.
-- Datastores: https://stigmer.ai/docs/concepts/datastores
 - Environments: https://stigmer.ai/docs/concepts/environments
 - Runners: https://stigmer.ai/docs/concepts/runners
 - Harnesses: https://stigmer.ai/docs/concepts/harnesses

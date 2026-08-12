@@ -136,7 +136,7 @@ func waitForSettledSessionUsageReport(ctx context.Context, query sessionUsageRep
 //
 // The agent is caller-supplied (by instance id) rather than created here so
 // scenarios can attach the fixtures that shape real context: MCP servers
-// (tool schemas re-enter context every turn), datastores, skills.
+// (tool schemas re-enter context every turn), skills.
 //
 // Returns nil when any turn fails — a partial conversation's cost is not
 // comparable to a complete one.

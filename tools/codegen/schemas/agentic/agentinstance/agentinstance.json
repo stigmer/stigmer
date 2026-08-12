@@ -42,20 +42,6 @@
       "description": "References to Environment resources providing secrets and configuration at runtime.",
       "required": false,
       "referenceKind": 53
-    },
-    {
-      "name": "DatastorePartition",
-      "jsonName": "datastorePartition",
-      "protoField": "datastore_partition",
-      "type": {
-        "kind": "string"
-      },
-      "description": "Data partition this instance's record operations are scoped to, for\n every datastore the agent uses. Unset means the shared \"default\"\n partition.\n\n Instances declaring the same label share records (e.g. the prod\n instances of two agents on one datastore); a different label is a\n fully isolated dataset (e.g. a dev instance whose test records\n never touch prod).",
-      "required": false,
-      "validation": {
-        "maxLength": 63,
-        "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
-      }
     }
   ]
 }

@@ -1,8 +1,7 @@
 /**
  * The runner-synthesized conversation participation attachment
- * (channel-conversations DD-008 D-c, A14) — the third synthesized
- * attachment, on the datastore module's shape (a cheap local predicate,
- * not the channel module's discovery machinery).
+ * (channel-conversations DD-008 D-c, A14) — a cheap local predicate,
+ * not the channel module's discovery machinery.
  *
  * When the session IS a live channel conversation, the runner
  * synthesizes ONE MCP attachment serving `escalate_to_human`, so the

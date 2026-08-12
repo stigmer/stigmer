@@ -1137,7 +1137,7 @@ func TestJavaCamel(t *testing.T) {
 		{"static", "static_"},
 		{"null", "null_"},
 		// java.lang.Object method names too: `Builder equals(Object)` is an
-		// invalid override of Object.equals (datastore UniqueWhere.equals).
+		// invalid override of Object.equals.
 		{"equals", "equals_"},
 		{"hash_code", "hashCode_"},
 		{"to_string", "toString_"},

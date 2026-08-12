@@ -25,10 +25,10 @@ import (
 //
 // Examples must be written in the authoring form users put under spec.tasks:
 //
-//	- name: classify_ticket
-//	  kind: llm_call
-//	  task_config:
-//	    model: "gpt-4o-mini"
+//   - name: classify_ticket
+//     kind: llm_call
+//     task_config:
+//     model: "gpt-4o-mini"
 //
 // and NOT in the internal CNCF Serverless Workflow DSL form that the platform
 // generates for the runner (`- taskName: { call: llm, with: ... }`). Sidecar

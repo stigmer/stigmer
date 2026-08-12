@@ -1658,7 +1658,7 @@ func TestEmitJavaToProtoField_StructAndValueThreadFieldPath(t *testing.T) {
 		var buf bytes.Buffer
 		emitJavaToProtoField(&buf,
 			field("Default", "default", "default", TypeSpec{Kind: "value"}),
-			map[string]*TypeSchema{}, "datastorev1", "        ")
+			map[string]*TypeSchema{}, "workflowv1", "        ")
 		got := buf.String()
 
 		mustContain(t, got, `spec.setDefault(ProtoConvert.objectToValue(this.default_, "default_"));`)
@@ -1678,7 +1678,7 @@ func TestEmitJavaToProtoField_StructAndValueThreadFieldPath(t *testing.T) {
 		var buf bytes.Buffer
 		emitJavaNestedToProtoField(&buf,
 			field("Equals", "equals", "equals", TypeSpec{Kind: "value"}),
-			map[string]*TypeSchema{}, "datastorev1", "            ")
+			map[string]*TypeSchema{}, "workflowv1", "            ")
 		got := buf.String()
 
 		mustContain(t, got, `builder.setEquals(ProtoConvert.objectToValue(this.equals_, "equals_"));`)

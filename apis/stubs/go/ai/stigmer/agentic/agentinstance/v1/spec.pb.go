@@ -41,25 +41,8 @@ type AgentInstanceSpec struct {
 	// Example: [base-env, aws-prod-env, github-team-env]
 	// This allows layering of configurations (base → specific overrides).
 	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,3,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
-	// Data partition this instance's record operations are scoped to, for
-	// every datastore the agent uses. Unset means the shared "default"
-	// partition.
-	//
-	// Instances declaring the same label share records (e.g. the prod
-	// instances of two agents on one datastore); a different label is a
-	// fully isolated dataset (e.g. a dev instance whose test records
-	// never touch prod).
-	//
-	// @internal
-	// DD-010: the record RPCs derive the partition from the session's
-	// resolved instance — server-side, per call, never from tool
-	// arguments — so the label (not the instance id, which changes when
-	// default instances are recreated) is the durable partition key.
-	// One label per instance in v1; a per-datastore map is a recorded
-	// additive growth slot.
-	DatastorePartition string `protobuf:"bytes,4,opt,name=datastore_partition,json=datastorePartition,proto3" json:"datastore_partition,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *AgentInstanceSpec) Reset() {
@@ -113,24 +96,16 @@ func (x *AgentInstanceSpec) GetEnvironmentRefs() []*apiresource.ApiResourceRefer
 	return nil
 }
 
-func (x *AgentInstanceSpec) GetDatastorePartition() string {
-	if x != nil {
-		return x.DatastorePartition
-	}
-	return ""
-}
-
 var File_ai_stigmer_agentic_agentinstance_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentinstance_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/agentic/agentinstance/v1/spec.proto\x12#ai.stigmer.agentic.agentinstance.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x8d\x03\n" +
+	".ai/stigmer/agentic/agentinstance/v1/spec.proto\x12#ai.stigmer.agentic.agentinstance.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xd0\x02\n" +
 	"\x11AgentInstanceSpec\x12\"\n" +
 	"\bagent_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aagentId\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\xd9\x01\n" +
 	"\x10environment_refs\x18\x03 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
-	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x12V\n" +
-	"\x13datastore_partition\x18\x04 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\x12datastorePartitionB\xc3\x02\n" +
+	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefsJ\x04\b\x04\x10\x05R\x13datastore_partitionB\xc3\x02\n" +
 	"'com.ai.stigmer.agentic.agentinstance.v1B\tSpecProtoP\x01Z\\github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1;agentinstancev1\xa2\x02\x04ASAA\xaa\x02#Ai.Stigmer.Agentic.Agentinstance.V1\xca\x02#Ai\\Stigmer\\Agentic\\Agentinstance\\V1\xe2\x02/Ai\\Stigmer\\Agentic\\Agentinstance\\V1\\GPBMetadata\xea\x02'Ai::Stigmer::Agentic::Agentinstance::V1b\x06proto3"
 
 var (

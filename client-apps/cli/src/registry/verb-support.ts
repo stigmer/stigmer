@@ -49,10 +49,6 @@ export const VERB_SUPPORT: ReadonlyMap<ApiResourceKind, ReadonlySet<Verb>> = new
   // Secret fields round-trip as ***REDACTED***; applying a fetched manifest
   // preserves the stored secrets (the OAuthApp marker convention).
   [ApiResourceKind.channel_app, new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete])],
-  // Record reads/writes are agent tools and record RPCs, not CLI verbs; the
-  // generic verbs cover the declarative path (apply a manifest, inspect,
-  // tear down — delete is guarded server-side for non-empty datastores).
-  [ApiResourceKind.datastore, new Set<Verb>([Verb.Apply, Verb.Validate, Verb.Get, Verb.List, Verb.Delete])],
   // Firing is the platform's job (Temporal Schedules); the generic verbs
   // cover the declarative path, and get/list surface the state the dedicated
   // `stigmer schedule` commands act on — spec.enabled (the owner's switch)

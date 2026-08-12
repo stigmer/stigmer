@@ -96,18 +96,6 @@ type ServiceConfig struct {
 	MinIOAccessKey string
 	MinIOSecretKey string
 
-	// Records Postgres — the Datastore record substrate behind the
-	// always-active records-postgres profile. When RecordsPGHost is set,
-	// RECORDS_PG_* env vars point the (lazy) records pool at a live
-	// database and the record RPCs are fully functional; when empty, the
-	// service still boots (initializationFailTimeout = -1) and record
-	// RPCs fail loudly on first use.
-	RecordsPGHost     string
-	RecordsPGPort     string
-	RecordsPGDatabase string
-	RecordsPGUser     string
-	RecordsPGPassword string
-
 	// App Postgres — the application's system of record behind the
 	// app-postgres Spring profile. APP_PG_* env vars point at this database,
 	// and the service runs its Flyway baseline against it during startup — a
@@ -364,19 +352,11 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	// container (StartAppPostgres) and suites pass it via
 	// ServiceConfig.AppPG*; Flyway migrates it during service startup.
 	//
-	// records-postgres: required for the Datastore record-substrate beans to
-	// exist (an unconditional pipeline step injects DatastoreRecordStore).
-	// The harness starts a Postgres container (StartPostgres) and suites
-	// pass it via ServiceConfig.RecordsPG*, making the record RPCs fully
-	// live. When a suite leaves RecordsPGHost empty, the lazy pool
-	// (initializationFailTimeout = -1) still lets the service boot against
-	// the localhost:5432 defaults; record RPCs then fail loudly on first use.
-	//
 	// vault + encryption: required for the secret codecs to exist. Vault was
 	// once "what tests stub out"; since the v1 static-key retirement every
 	// codec is vault-backed, so the harness always starts an OpenBAO
 	// container (StartOpenBao) and suites pass it via ServiceConfig.Vault*.
-	profiles := "temporal,iam,logging,auth0,skill-r2,agent-execution-r2,claimcheck-r2,records-postgres,vault,encryption"
+	profiles := "temporal,iam,logging,auth0,skill-r2,agent-execution-r2,claimcheck-r2,vault,encryption"
 	if cfg.SandboxType != "" {
 		profiles += ",sandbox"
 	}
@@ -483,22 +463,7 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		fmt.Sprintf("STIGMER_JWT_SIGNING_KEY=%s", StigmerJWTSigningKeyBase64),
 	)
 
-	// Records Postgres — the Datastore record substrate. When unset, the
-	// application-records-postgres.yaml localhost defaults apply and the
-	// lazy pool leaves record RPCs failing loudly on first use.
-	if cfg.RecordsPGHost != "" {
-		env = append(env,
-			fmt.Sprintf("RECORDS_PG_HOST=%s", cfg.RecordsPGHost),
-			fmt.Sprintf("RECORDS_PG_PORT=%s", cfg.RecordsPGPort),
-			fmt.Sprintf("RECORDS_PG_DATABASE=%s", cfg.RecordsPGDatabase),
-			fmt.Sprintf("RECORDS_PG_USERNAME=%s", cfg.RecordsPGUser),
-			fmt.Sprintf("RECORDS_PG_PASSWORD=%s", cfg.RecordsPGPassword),
-		)
-	}
-
-	// App Postgres — the ApiResource system of record. Deliberately a
-	// different database than records: the two datasources are separate
-	// clusters in production (DD-011) and must never share configuration.
+	// App Postgres — the ApiResource system of record.
 	if cfg.AppPGHost != "" {
 		env = append(env,
 			fmt.Sprintf("APP_PG_HOST=%s", cfg.AppPGHost),

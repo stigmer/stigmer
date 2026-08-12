@@ -6,7 +6,6 @@ go_library(
         "agent_controller.go",
         "apply.go",
         "create.go",
-        "datastore_exposure_guard.go",
         "delete.go",
         "delete_cascade.go",
         "get.go",

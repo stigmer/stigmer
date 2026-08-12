@@ -84,15 +84,14 @@ func (a *AgentInstanceClient) List(ctx context.Context, input *agentinstancev1.L
 
 // AgentInstanceInput holds the fields for creating/updating a AgentInstance.
 type AgentInstanceInput struct {
-	Name               string
-	Slug               string
-	Org                string
-	Labels             map[string]string
-	Visibility         apiresource.ApiResourceVisibility
-	AgentId            string
-	Description        string
-	EnvironmentRefs    []ResourceRef
-	DatastorePartition string
+	Name            string
+	Slug            string
+	Org             string
+	Labels          map[string]string
+	Visibility      apiresource.ApiResourceVisibility
+	AgentId         string
+	Description     string
+	EnvironmentRefs []ResourceRef
 }
 
 func (i *AgentInstanceInput) toProto() (*agentinstancev1.AgentInstance, error) {
@@ -115,7 +114,6 @@ func (i *AgentInstanceInput) toProto() (*agentinstancev1.AgentInstance, error) {
 		ref.Kind = apiresourcekind.ApiResourceKind_environment
 		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, ref)
 	}
-	resource.Spec.DatastorePartition = i.DatastorePartition
 	return resource, nil
 }
 
@@ -138,7 +136,6 @@ func AgentInstanceInputFromProto(p *agentinstancev1.AgentInstance) *AgentInstanc
 		for _, r := range s.GetEnvironmentRefs() {
 			input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
 		}
-		input.DatastorePartition = s.GetDatastorePartition()
 	}
 	return input
 }

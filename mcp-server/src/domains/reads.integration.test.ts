@@ -1,5 +1,5 @@
 // In-process integration test for the read tools (get_mcp_server, get_skill,
-// get_workflow, get_environment, get_datastore). Stands up a real Connect
+// get_workflow, get_environment). Stands up a real Connect
 // backend serving the query controllers, drives the MCP server through an
 // in-memory client, and asserts each tool returns the backend's protojson
 // verbatim (the parity contract) and that get_skill forwards its optional
@@ -17,8 +17,6 @@ import type { AddressInfo } from "node:net";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { DatastoreSchema } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
-import { DatastoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/query_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -61,11 +59,6 @@ const knownEnvironment = create(EnvironmentSchema, {
   spec: { data: { API_KEY: { value: "***REDACTED***", isSecret: true } } },
 });
 
-const knownDatastore = create(DatastoreSchema, {
-  apiVersion: "v1",
-  kind: "datastore",
-  metadata: { name: "Bookings", slug: "bookings", org: "acme", id: "dst-1" },
-});
 
 let backend: Http2Server;
 let client: Client;
@@ -92,7 +85,6 @@ beforeAll(async () => {
     });
     router.service(WorkflowQueryController, { getByReference: () => knownWorkflow });
     router.service(EnvironmentQueryController, { getByReference: () => knownEnvironment });
-    router.service(DatastoreQueryController, { getByReference: () => knownDatastore });
   };
   backend = createHttp2Server(connectNodeAdapter({ routes }));
   // Force keep-alive sessions closed on teardown, else backend.close() blocks.
@@ -125,7 +117,6 @@ describe("read tools integration", () => {
         "get_skill",
         "get_workflow",
         "get_environment",
-        "get_datastore",
       ]),
     );
   });
@@ -168,13 +159,5 @@ describe("read tools integration", () => {
     expect(body).toEqual(toJson(EnvironmentSchema, knownEnvironment, { useProtoFieldName: true }));
     const data = (body.spec as { data: Record<string, { value: string }> }).data;
     expect(data.API_KEY?.value).toBe("***REDACTED***");
-  });
-
-  it("get_datastore returns the backend protojson", async () => {
-    const result = await callTool("get_datastore", { org: "acme", slug: "bookings" });
-    expect(result.isError).toBeFalsy();
-    expect(JSON.parse(result.content[0]?.text ?? "{}")).toEqual(
-      toJson(DatastoreSchema, knownDatastore, { useProtoFieldName: true }),
-    );
   });
 });

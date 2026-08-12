@@ -23,10 +23,8 @@ export {
   CONVERSATION_ROUTE,
   createChannelsServer,
   createConversationServer,
-  createRecordsServer,
   createServer,
   FULL_ROUTE,
-  RECORDS_ROUTE,
   SERVER_VERSION,
 } from "./server.js";
 

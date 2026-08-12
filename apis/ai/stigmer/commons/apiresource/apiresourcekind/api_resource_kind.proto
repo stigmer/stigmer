@@ -492,35 +492,12 @@ enum ApiResourceKind {
     }
   }];
 
-  // Declared collections of typed business records with role-aware access
-  // grants; agents read and write records through grant-checked tools.
-  datastore = 49 [(kind_meta) = {
-    group: agentic
-    version: v1
-    name: "Datastore"
-    display_name: "Datastore"
-    id_prefix: "dst"
-    is_versioned: false
-    not_search_indexed: false
-    tier: open_source
-    authorization: {
-      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      requires_creator_tuple: true
-      // ORG is the ceiling: business records must never be resolvable
-      // across the org boundary. public/platform are deliberately absent,
-      // and defaults_to_org_visibility is deliberately absent — sharing
-      // business records is an explicit opt-in, never a creation default.
-      // Visibility governs human administrative reach only; agents reach
-      // records through their declared datastore_usages, never through
-      // visibility.
-      visibility: {supports_org: true}
-      grantable_roles: [
-        owner,
-        viewer
-      ]
-    }
-  }];
+  // Value 49 held the Datastore kind (id prefix "dst" — declared
+  // collections of typed business records) until the domain was removed
+  // platform-wide. Reserved so the number is never reused for a
+  // different kind.
+  reserved 49;
+  reserved "datastore";
 
   // Agentic - Workflow orchestration
 

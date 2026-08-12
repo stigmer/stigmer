@@ -18,8 +18,7 @@ export const file_ai_stigmer_agentic_agentchannel_v1_message_io: GenFile = /*@__
  *
  * @internal
  * proactive-messaging DD-002 D4, amended: channel + org are separate
- * fields (the FindRecordsRequest slug/org precedent), never a
- * slug-or-id union. Dispatch mirrors the datastore record surface:
+ * fields, never a slug-or-id union. Dispatch is token-class-driven:
  * session-bound runner credentials leave both empty and the server
  * derives them from the session's serving channel; direct principals
  * (console, CLI, SDK) set them. Ambiguity — the caller's agent has more

@@ -408,9 +408,9 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	needsTimestamppb := false
 	needsRefKindOverride := false
 	// Cross-package proto imports (alias → Go import path) for nested spec
-	// types living in another proto package (e.g. a datastore subject
-	// referencing iampolicy's ApiResourceRef). environmentv1 and
-	// executioncontextv1 keep their dedicated flags above.
+	// types living in another proto package (e.g. a spec type referencing
+	// iampolicy's ApiResourceRef). environmentv1 and executioncontextv1
+	// keep their dedicated flags above.
 	crossPkgImports := make(map[string]string)
 	if specSchema != nil {
 		scanFieldsForImports := func(fields []*FieldSchema) {

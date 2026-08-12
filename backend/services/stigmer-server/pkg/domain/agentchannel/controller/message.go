@@ -16,8 +16,8 @@ const proactiveMessagingUnavailableMessage = "proactive channel messaging requir
 
 // ChannelMessageController implements ChannelMessageCommandController and
 // ChannelMessageQueryController — the runtime messaging surface beside
-// the AgentChannel resource controllers (the DatastoreRecordController
-// split).
+// the AgentChannel resource controllers, kept off the resource CRUD
+// surface.
 //
 // Both RPCs are cloud-only runtime and refuse with FAILED_PRECONDITION.
 // Unlike the install refusal (install.go), there is deliberately NO

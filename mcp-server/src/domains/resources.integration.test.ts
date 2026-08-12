@@ -17,8 +17,6 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { DatastoreSchema } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
-import { DatastoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/query_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -51,11 +49,6 @@ const environment = create(EnvironmentSchema, {
   kind: "environment",
   metadata: { slug: "e", org: "acme" },
 });
-const datastore = create(DatastoreSchema, {
-  apiVersion: "v1",
-  kind: "datastore",
-  metadata: { slug: "d", org: "acme" },
-});
 
 let backend: Http2Server;
 let client: Client;
@@ -78,7 +71,6 @@ beforeAll(async () => {
     });
     router.service(WorkflowQueryController, { getByReference: () => workflow });
     router.service(EnvironmentQueryController, { getByReference: () => environment });
-    router.service(DatastoreQueryController, { getByReference: () => datastore });
   };
   backend = createHttp2Server(connectNodeAdapter({ routes }));
   backend.on("session", (session) => {
@@ -111,7 +103,6 @@ describe("resource templates integration", () => {
         "stigmer_skill_version",
         "stigmer_workflow",
         "stigmer_environment",
-        "stigmer_datastore",
       ]),
     );
   });
@@ -161,15 +152,6 @@ describe("resource templates integration", () => {
     })) as ResourceResult;
     expect(JSON.parse(result.contents[0]?.text ?? "{}")).toEqual(
       toJson(EnvironmentSchema, environment, { useProtoFieldName: true }),
-    );
-  });
-
-  it("reads a datastore resource", async () => {
-    const result = (await client.readResource({
-      uri: "stigmer://datastores/acme/d",
-    })) as ResourceResult;
-    expect(JSON.parse(result.contents[0]?.text ?? "{}")).toEqual(
-      toJson(DatastoreSchema, datastore, { useProtoFieldName: true }),
     );
   });
 });

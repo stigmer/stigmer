@@ -29,7 +29,6 @@ go_library(
         "//apis/stubs/go/ai/stigmer/agentic/agentshare/v1:agentshare",
         "//apis/stubs/go/ai/stigmer/agentic/artifact/v1:artifact",
         "//apis/stubs/go/ai/stigmer/agentic/channelapp/v1:channelapp",
-        "//apis/stubs/go/ai/stigmer/agentic/datastore/v1:datastore",
         "//apis/stubs/go/ai/stigmer/agentic/environment/v1:environment",
         "//apis/stubs/go/ai/stigmer/agentic/executioncontext/v1:executioncontext",
         "//apis/stubs/go/ai/stigmer/agentic/mcpserver/v1:mcpserver",

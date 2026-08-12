@@ -100,14 +100,6 @@ export interface PromptBuilderInput {
   containerRoot: string;
   skillsPromptSection: string;
   /**
-   * The datastores section (shared/datastore-attachment.ts
-   * formatDatastoresSection): `<available_datastores>` when the connected
-   * record-tool roster is complete, `<unavailable_datastores>` when setup's
-   * reconciliation found record tools missing (issue #325). Empty when the
-   * agent uses no datastores.
-   */
-  datastoresPromptSection?: string;
-  /**
    * The `<available_channel_templates>` section
    * (shared/channel-attachment.ts formatChannelTemplatesSection); absent
    * when the agent serves no proactive channel or nothing is sendable.
@@ -199,10 +191,6 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
 
   if (input.skillsPromptSection) {
     prompt += input.skillsPromptSection;
-  }
-
-  if (input.datastoresPromptSection) {
-    prompt += "\n\n" + input.datastoresPromptSection;
   }
 
   if (input.channelTemplatesPromptSection) {

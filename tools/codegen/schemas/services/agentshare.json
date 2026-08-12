@@ -175,7 +175,6 @@
               "agent_share",
               "agent_channel",
               "channel_app",
-              "datastore",
               "workflow",
               "workflow_instance",
               "workflow_execution",
@@ -552,11 +551,6 @@
           "name": "channel_app",
           "number": 48,
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
-        },
-        {
-          "name": "datastore",
-          "number": 49,
-          "description": "Declared collections of typed business records with role-aware access\n grants; agents read and write records through grant-checked tools."
         },
         {
           "name": "workflow",

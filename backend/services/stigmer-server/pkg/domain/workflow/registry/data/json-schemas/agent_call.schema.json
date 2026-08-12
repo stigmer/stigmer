@@ -42,7 +42,6 @@
               "agent_share",
               "agent_channel",
               "channel_app",
-              "datastore",
               "workflow",
               "workflow_instance",
               "workflow_execution",

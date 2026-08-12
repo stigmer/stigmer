@@ -45,7 +45,6 @@ export const SEARCH_KINDS: ReadonlySet<ApiResourceKind> = new Set<ApiResourceKin
   ApiResourceKind.mcp_server,
   ApiResourceKind.project,
   ApiResourceKind.skill,
-  ApiResourceKind.datastore,
   ApiResourceKind.environment,
 ]);
 

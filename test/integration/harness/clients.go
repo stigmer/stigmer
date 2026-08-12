@@ -8,7 +8,6 @@ import (
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	agentsharev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1"
 	channelappv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/channelapp/v1"
-	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executionctxv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
@@ -67,14 +66,6 @@ type Clients struct {
 	// answer UNIMPLEMENTED until Sitting 4. Cloud-only runtime; OSS refuses
 	// FAILED_PRECONDITION.
 	ChannelConversationCommand agentchannelv1.ChannelConversationCommandControllerClient
-
-	// Datastore services — resource lifecycle plus the slug-addressed
-	// record layer (reach + grants enforced in-handler, not via FGA
-	// interceptors; see the record controller proto docs)
-	DatastoreCommand       datastorev1.DatastoreCommandControllerClient
-	DatastoreQuery         datastorev1.DatastoreQueryControllerClient
-	DatastoreRecordCommand datastorev1.DatastoreRecordCommandControllerClient
-	DatastoreRecordQuery   datastorev1.DatastoreRecordQueryControllerClient
 
 	// Schedule services
 	ScheduleCommand schedulev1.ScheduleCommandControllerClient
@@ -152,25 +143,20 @@ func NewClients(conn grpc.ClientConnInterface) *Clients {
 		ExecutionCommand: workflowexecutionv1.NewWorkflowExecutionCommandControllerClient(conn),
 		ExecutionQuery:   workflowexecutionv1.NewWorkflowExecutionQueryControllerClient(conn),
 
-		AgentCommand:          agentv1.NewAgentCommandControllerClient(conn),
-		AgentQuery:            agentv1.NewAgentQueryControllerClient(conn),
-		AgentInstanceCommand:  agentinstancev1.NewAgentInstanceCommandControllerClient(conn),
-		AgentInstanceQuery:    agentinstancev1.NewAgentInstanceQueryControllerClient(conn),
-		AgentExecutionCommand: agentexecv1.NewAgentExecutionCommandControllerClient(conn),
-		AgentExecutionQuery:   agentexecv1.NewAgentExecutionQueryControllerClient(conn),
-		AgentShareCommand:     agentsharev1.NewAgentShareCommandControllerClient(conn),
-		AgentShareQuery:       agentsharev1.NewAgentShareQueryControllerClient(conn),
-		AgentChannelCommand:   agentchannelv1.NewAgentChannelCommandControllerClient(conn),
-		AgentChannelQuery:     agentchannelv1.NewAgentChannelQueryControllerClient(conn),
-		ChannelAppCommand:     channelappv1.NewChannelAppCommandControllerClient(conn),
-		ChannelAppQuery:       channelappv1.NewChannelAppQueryControllerClient(conn),
+		AgentCommand:               agentv1.NewAgentCommandControllerClient(conn),
+		AgentQuery:                 agentv1.NewAgentQueryControllerClient(conn),
+		AgentInstanceCommand:       agentinstancev1.NewAgentInstanceCommandControllerClient(conn),
+		AgentInstanceQuery:         agentinstancev1.NewAgentInstanceQueryControllerClient(conn),
+		AgentExecutionCommand:      agentexecv1.NewAgentExecutionCommandControllerClient(conn),
+		AgentExecutionQuery:        agentexecv1.NewAgentExecutionQueryControllerClient(conn),
+		AgentShareCommand:          agentsharev1.NewAgentShareCommandControllerClient(conn),
+		AgentShareQuery:            agentsharev1.NewAgentShareQueryControllerClient(conn),
+		AgentChannelCommand:        agentchannelv1.NewAgentChannelCommandControllerClient(conn),
+		AgentChannelQuery:          agentchannelv1.NewAgentChannelQueryControllerClient(conn),
+		ChannelAppCommand:          channelappv1.NewChannelAppCommandControllerClient(conn),
+		ChannelAppQuery:            channelappv1.NewChannelAppQueryControllerClient(conn),
 		ChannelConversationQuery:   agentchannelv1.NewChannelConversationQueryControllerClient(conn),
 		ChannelConversationCommand: agentchannelv1.NewChannelConversationCommandControllerClient(conn),
-
-		DatastoreCommand:       datastorev1.NewDatastoreCommandControllerClient(conn),
-		DatastoreQuery:         datastorev1.NewDatastoreQueryControllerClient(conn),
-		DatastoreRecordCommand: datastorev1.NewDatastoreRecordCommandControllerClient(conn),
-		DatastoreRecordQuery:   datastorev1.NewDatastoreRecordQueryControllerClient(conn),
 
 		ScheduleCommand: schedulev1.NewScheduleCommandControllerClient(conn),
 		ScheduleQuery:   schedulev1.NewScheduleQueryControllerClient(conn),

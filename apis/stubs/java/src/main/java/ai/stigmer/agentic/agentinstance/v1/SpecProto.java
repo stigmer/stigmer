@@ -45,22 +45,20 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "ce.v1\0322ai/stigmer/commons/apiresource/fi" +
       "eld_options.proto\032\'ai/stigmer/commons/ap" +
       "iresource/io.proto\032\033buf/validate/validat" +
-      "e.proto\"\215\003\n\021AgentInstanceSpec\022\"\n\010agent_i" +
+      "e.proto\"\320\002\n\021AgentInstanceSpec\022\"\n\010agent_i" +
       "d\030\001 \001(\tB\007\272H\004r\002\020\001R\007agentId\022 \n\013description" +
       "\030\002 \001(\tR\013description\022\331\001\n\020environment_refs" +
       "\030\003 \003(\01324.ai.stigmer.commons.apiresource." +
       "ApiResourceReferenceBx\272Hq\222\001n\"l\272\001i\n\025envir" +
       "onment_refs.kind\022?environment_refs must " +
       "reference resources with kind=environmen" +
-      "t\032\017this.kind == 53\340\205,5R\017environmentRefs\022" +
-      "V\n\023datastore_partition\030\004 \001(\tB%\272H\"r \030?2\034^" +
-      "$|^[a-z][a-z0-9-]*[a-z0-9]$R\022datastorePa" +
-      "rtitionB\274\001B\tSpecProtoP\001\242\002\004ASAA\252\002#Ai.Stig" +
-      "mer.Agentic.Agentinstance.V1\312\002#Ai\\Stigme" +
-      "r\\Agentic\\Agentinstance\\V1\342\002/Ai\\Stigmer\\" +
-      "Agentic\\Agentinstance\\V1\\GPBMetadata\352\002\'A" +
-      "i::Stigmer::Agentic::Agentinstance::V1b\006" +
-      "proto3"
+      "t\032\017this.kind == 53\340\205,5R\017environmentRefsJ" +
+      "\004\010\004\020\005R\023datastore_partitionB\274\001B\tSpecProto" +
+      "P\001\242\002\004ASAA\252\002#Ai.Stigmer.Agentic.Agentinst" +
+      "ance.V1\312\002#Ai\\Stigmer\\Agentic\\Agentinstan" +
+      "ce\\V1\342\002/Ai\\Stigmer\\Agentic\\Agentinstance" +
+      "\\V1\\GPBMetadata\352\002\'Ai::Stigmer::Agentic::" +
+      "Agentinstance::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -74,7 +72,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentinstance_v1_AgentInstanceSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentinstance_v1_AgentInstanceSpec_descriptor,
-        new java.lang.String[] { "AgentId", "Description", "EnvironmentRefs", "DatastorePartition", });
+        new java.lang.String[] { "AgentId", "Description", "EnvironmentRefs", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();

@@ -97,20 +97,6 @@
       },
       "description": "Environment variable declarations for this agent.\n Keys are variable names; values describe their metadata and optionality.",
       "required": false
-    },
-    {
-      "name": "DatastoreUsages",
-      "jsonName": "datastoreUsages",
-      "protoField": "datastore_usages",
-      "type": {
-        "kind": "array",
-        "elementType": {
-          "kind": "message",
-          "messageType": "DatastoreUsage"
-        }
-      },
-      "description": "Datastores this agent can use.\n Each entry must reference a Datastore resource by slug.",
-      "required": false
     }
   ]
 }

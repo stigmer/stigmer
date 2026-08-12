@@ -66,7 +66,6 @@ definitions, API names, and examples follow below.
 | **Organization**  | Organization          | Organization                     | Organization        | Organization, `kind: organization`     | Organization   |
 | **Project**       | Project               | Project                          | Project             | Project, `kind: project`               | Project        |
 | **Environment**   | Environment           | Environment                      | Environment         | Environment, `kind: Environment`       | Environment    |
-| **Datastore**     | records               | Datastore ("your records")       | Datastore           | Datastore, `kind: Datastore`           | Datastore      |
 
 <!-- vale Stigmer.terms = NO -->
 
@@ -467,28 +466,6 @@ used generically ("environment variables").
 - **Note**: Do not confuse with "Execution Context" (`kind: execution_context`,
   prefix `ectx`), which provides ephemeral runtime secrets to a specific
   execution. See [Execution Context](#execution-context).
-
----
-
-#### Datastore
-
-A set of typed record collections (like "bookings" or "schedules") that Agents
-read and write through built-in, permission-checked tools.
-
-- **Capitalize**: Yes, when referring to the Stigmer concept. Lowercase when
-  used generically ("a datastore for your records").
-- **API surface**: `kind: Datastore`, prefix `dst`. proto:
-  `agentic/datastore/v1/spec.proto`. Agents attach via `datastore_usages`. CLI:
-  `stigmer get datastore`, `stigmer list datastore`.
-- **Key fields**: `collections` (each with typed `fields`, `uniques`, `checks`,
-  and `grants`), `authorization` (roles and sender bindings), `timezone`.
-- **Companion terms**: a Datastore holds **collections**; a collection holds
-  **records** (prefix `dsr`). Always "collection" and "record" — never
-  "table"/"row" (SQL framing) or "document" (Mongo framing).
-- **Note**: Do not confuse with Skills (knowledge the Agent reads) or
-  conversation memory (an execution's short-term context). A Datastore is the
-  system of record for exact, durable business data with store-enforced
-  constraints.
 
 ---
 

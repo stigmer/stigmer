@@ -18,7 +18,6 @@ public final class AgentInstanceInput {
     private final String agentId;
     private final String description;
     private final java.util.List<ResourceRef> environmentRefs;
-    private final String datastorePartition;
 
     private AgentInstanceInput(Builder builder) {
         this.name = builder.name;
@@ -29,7 +28,6 @@ public final class AgentInstanceInput {
         this.agentId = builder.agentId;
         this.description = builder.description;
         this.environmentRefs = builder.environmentRefs;
-        this.datastorePartition = builder.datastorePartition;
     }
 
     AgentInstance toProto() {
@@ -45,9 +43,6 @@ public final class AgentInstanceInput {
                 spec.addEnvironmentRefs(item.toProto().toBuilder()
                     .setKind(ApiResourceKind.environment).build());
             }
-        }
-        if (this.datastorePartition != null) {
-            spec.setDatastorePartition(this.datastorePartition);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -80,7 +75,6 @@ public final class AgentInstanceInput {
         private String agentId;
         private String description;
         private java.util.List<ResourceRef> environmentRefs;
-        private String datastorePartition;
 
         private Builder() {}
 
@@ -92,7 +86,6 @@ public final class AgentInstanceInput {
         public Builder agentId(String agentId) { this.agentId = agentId; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
-        public Builder datastorePartition(String datastorePartition) { this.datastorePartition = datastorePartition; return this; }
 
         public AgentInstanceInput build() { return new AgentInstanceInput(this); }
     }

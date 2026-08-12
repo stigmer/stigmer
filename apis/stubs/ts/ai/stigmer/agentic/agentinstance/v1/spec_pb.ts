@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentinstance/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agentinstance_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRpbnN0YW5jZS92MS9zcGVjLnByb3RvEiNhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRpbnN0YW5jZS52MSLSAgoRQWdlbnRJbnN0YW5jZVNwZWMSGQoIYWdlbnRfaWQYASABKAlCB7pIBHICEAESEwoLZGVzY3JpcHRpb24YAiABKAkSyAEKEGVudmlyb25tZW50X3JlZnMYAyADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCeLpIcZIBbiJsugFpChVlbnZpcm9ubWVudF9yZWZzLmtpbmQSP2Vudmlyb25tZW50X3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1lbnZpcm9ubWVudBoPdGhpcy5raW5kID09IDUz4IUsNRJCChNkYXRhc3RvcmVfcGFydGl0aW9uGAQgASgJQiW6SCJyIBg/MhxeJHxeW2Etel1bYS16MC05LV0qW2EtejAtOV0kYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRpbnN0YW5jZS92MS9zcGVjLnByb3RvEiNhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRpbnN0YW5jZS52MSKpAgoRQWdlbnRJbnN0YW5jZVNwZWMSGQoIYWdlbnRfaWQYASABKAlCB7pIBHICEAESEwoLZGVzY3JpcHRpb24YAiABKAkSyAEKEGVudmlyb25tZW50X3JlZnMYAyADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCeLpIcZIBbiJsugFpChVlbnZpcm9ubWVudF9yZWZzLmtpbmQSP2Vudmlyb25tZW50X3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1lbnZpcm9ubWVudBoPdGhpcy5raW5kID09IDUz4IUsNUoECAQQBVITZGF0YXN0b3JlX3BhcnRpdGlvbmIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentInstanceSpec defines the configurable properties of an agent instance.
@@ -51,28 +51,6 @@ export type AgentInstanceSpec = Message<"ai.stigmer.agentic.agentinstance.v1.Age
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3;
    */
   environmentRefs: ApiResourceReference[];
-
-  /**
-   * Data partition this instance's record operations are scoped to, for
-   * every datastore the agent uses. Unset means the shared "default"
-   * partition.
-   *
-   * Instances declaring the same label share records (e.g. the prod
-   * instances of two agents on one datastore); a different label is a
-   * fully isolated dataset (e.g. a dev instance whose test records
-   * never touch prod).
-   *
-   * @internal
-   * DD-010: the record RPCs derive the partition from the session's
-   * resolved instance — server-side, per call, never from tool
-   * arguments — so the label (not the instance id, which changes when
-   * default instances are recreated) is the durable partition key.
-   * One label per instance in v1; a per-datastore map is a recorded
-   * additive growth slot.
-   *
-   * @generated from field: string datastore_partition = 4;
-   */
-  datastorePartition: string;
 };
 
 /**

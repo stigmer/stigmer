@@ -26,8 +26,8 @@ const (
 //
 // Must stay in step with the extractor registry (pkg/query/search/extractor):
 // a kind indexed on write but absent here is silently unqueryable — the
-// datastore Library list, the CLI's search-backed `list environment`, and
-// the React SDK's useSessionSearch hook depend on their entries.
+// CLI's search-backed `list environment` and the React SDK's
+// useSessionSearch hook depend on their entries.
 // agent_channel and channel_app are deliberately absent (not_search_indexed
 // by design; the CLI lists them via their dedicated query RPCs).
 //
@@ -42,7 +42,6 @@ var SearchableKinds = map[apiresourcekind.ApiResourceKind]bool{
 	apiresourcekind.ApiResourceKind_mcp_server:  true,
 	apiresourcekind.ApiResourceKind_workflow:    true,
 	apiresourcekind.ApiResourceKind_project:     true,
-	apiresourcekind.ApiResourceKind_datastore:   true,
 	apiresourcekind.ApiResourceKind_environment: true,
 	apiresourcekind.ApiResourceKind_session:     true,
 }

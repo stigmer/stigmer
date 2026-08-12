@@ -20,7 +20,6 @@
     "mcp-server",
     "skill",
     "library",
-    "datastore",
     "---Environment & Config---",
     "environment",
     "workspace",

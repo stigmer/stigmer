@@ -2,7 +2,7 @@
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server for the
 Stigmer platform. It exposes Stigmer **agents, skills, MCP servers, workflows,
-environments, and datastores** as MCP tools and resources — covering both the
+and environments** as MCP tools and resources — covering both the
 authoring loop (create, read, update, delete, version) and the execution loop
 (run, observe, approve, cancel) — so any MCP-capable client (Claude Desktop,
 Cursor, the Stigmer CLI, etc.) can build on Stigmer through a uniform protocol.
@@ -40,13 +40,13 @@ MCP client ──JSON-RPC──▶ stdio | HTTP session ──▶ tool handler
   flattening, oneof / `task_config` expansion) are produced at build time by the
   codegen in `tools/codegen/generator/mcp_ts.go`. Never hand-edit `src/gen/`.
 
-## Tools (38)
+## Tools (30)
 
 ### Discovery
 
 | Tool | Description |
 | --- | --- |
-| `search` | Search across agents, skills, MCP servers, workflows, environments, and datastores; results are enriched with `stigmer://` resource URIs. |
+| `search` | Search across agents, skills, MCP servers, workflows, and environments; results are enriched with `stigmer://` resource URIs. |
 
 ### Authoring
 
@@ -72,9 +72,6 @@ MCP client ──JSON-RPC──▶ stdio | HTTP session ──▶ tool handler
 | `get_environment` | Read an environment (secret values arrive server-redacted). |
 | `apply_environment` | Create or update an environment; echoing `***REDACTED***` preserves existing secrets. |
 | `delete_environment` | Delete an environment. |
-| `get_datastore` | Read a datastore definition (collections, constraints, grants). |
-| `apply_datastore` | Create or update a datastore definition (structure only, never records). |
-| `delete_datastore` | Delete a datastore and all records in it. |
 
 ### Execution
 
@@ -93,21 +90,7 @@ ID and the assistant polls the observation tools.
 | `submit_workflow_task_approval` | Submit a reviewer decision (outcome + optional form data) for a workflow task. |
 | `cancel_execution` | Gracefully cancel an agent (`aex_*`) or workflow (`wex_*`) execution by ID prefix. |
 
-### Datastore records
-
-Registered on the full roster with an `org` argument; a records-only roster
-(`STIGMER_MCP_ROSTER=records`, HTTP `/records` route) serves the same five tools
-with the agent-facing surface and nothing else.
-
-| Tool | Description |
-| --- | --- |
-| `describe_datastore` | Collections, fields, constraints, and the caller's allowed verbs. |
-| `find_records` | Typed filter query with ordering and paging. |
-| `insert_record` | Insert one record. |
-| `update_record` | Partial-merge update by id. |
-| `delete_record` | Delete one record by id. |
-
-## Resources (7)
+## Resources (6)
 
 Resource templates let clients discover and read resources by `stigmer://` URI:
 
@@ -119,7 +102,6 @@ Resource templates let clients discover and read resources by `stigmer://` URI:
 | `stigmer_skill_version` | `stigmer://skills/{org}/{slug}/{version}` |
 | `stigmer_workflow` | `stigmer://workflows/{org}/{slug}` |
 | `stigmer_environment` | `stigmer://environments/{org}/{slug}` |
-| `stigmer_datastore` | `stigmer://datastores/{org}/{slug}` |
 
 ## Configuration
 

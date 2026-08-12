@@ -8,7 +8,6 @@ import {
   isTransientStreamError,
   getUserMessage,
   getErrorReason,
-  getRecordConstraint,
   annotateRpcError,
   getRpcMetadata,
   type ErrorCategory,
@@ -329,62 +328,6 @@ describe("getErrorReason", () => {
   });
 });
 
-describe("getRecordConstraint", () => {
-  const recordViolation = (metadata: Record<string, string>) =>
-    new ConnectError("that slot is already booked", Code.AlreadyExists, undefined, [
-      {
-        desc: ErrorInfoSchema,
-        value: {
-          domain: "datastore.stigmer.ai",
-          reason: "CONSTRAINT_VIOLATION",
-          metadata,
-        },
-      },
-    ]);
-
-  it("extracts the constraint name from a record-RPC violation", () => {
-    expect(getRecordConstraint(recordViolation({ constraint: "one_confirmed_per_slot" })))
-      .toBe("one_confirmed_per_slot");
-  });
-
-  it("walks the cause chain of an SDK-wrapped StigmerError", () => {
-    const connectError = recordViolation({ constraint: "one_confirmed_per_slot" });
-    const wrapped = new StigmerError(
-      "already-exists",
-      connectError.rawMessage,
-      Code.AlreadyExists,
-      { cause: connectError },
-    );
-    expect(getRecordConstraint(wrapped)).toBe("one_confirmed_per_slot");
-  });
-
-  it("returns null when the ErrorInfo domain is not the records domain", () => {
-    const foreign = new ConnectError("workspace taken", Code.FailedPrecondition, undefined, [
-      {
-        desc: ErrorInfoSchema,
-        value: {
-          domain: "stigmer.ai",
-          reason: "SLACK_WORKSPACE_ALREADY_CONNECTED",
-          metadata: { constraint: "should_not_leak" },
-        },
-      },
-    ]);
-    expect(getRecordConstraint(foreign)).toBeNull();
-  });
-
-  it("returns null when the violation carries no constraint metadata", () => {
-    expect(getRecordConstraint(recordViolation({}))).toBeNull();
-    expect(getRecordConstraint(recordViolation({ constraint: "" }))).toBeNull();
-  });
-
-  it("returns null for errors without ErrorInfo", () => {
-    expect(
-      getRecordConstraint(new ConnectError("bare", Code.AlreadyExists)),
-    ).toBeNull();
-    expect(getRecordConstraint(new Error("plain"))).toBeNull();
-    expect(getRecordConstraint(null)).toBeNull();
-  });
-});
 
 describe("annotateRpcError / getRpcMetadata", () => {
   it("roundtrips metadata on an error object", () => {

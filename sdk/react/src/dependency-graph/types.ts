@@ -4,10 +4,9 @@
  * - `"agent"` — the root agent (always the tree root)
  * - `"mcp-server"` — an MCP server referenced via `mcpServerUsages` or `mcpAccess`
  * - `"skill"` — a skill referenced via `skillRefs`
- * - `"datastore"` — a datastore referenced via `datastoreUsages`
  * - `"sub-agent"` — an inline sub-agent definition with its own dependencies
  */
-export type NodeKind = "agent" | "mcp-server" | "skill" | "datastore" | "sub-agent";
+export type NodeKind = "agent" | "mcp-server" | "skill" | "sub-agent";
 
 /**
  * A single node in the agent dependency tree.
@@ -16,9 +15,9 @@ export type NodeKind = "agent" | "mcp-server" | "skill" | "datastore" | "sub-age
  * (MCP servers and skills they access). Edges are implicit in the
  * parent-child relationship — no separate edge type is needed.
  *
- * Nodes are navigable when `ref` is defined (MCP servers, skills,
- * datastores). Sub-agent nodes have no `ref` because they are inline
- * definitions within the agent spec, not standalone resources.
+ * Nodes are navigable when `ref` is defined (MCP servers and skills).
+ * Sub-agent nodes have no `ref` because they are inline definitions
+ * within the agent spec, not standalone resources.
  */
 export interface DependencyNode {
   /**
@@ -47,9 +46,9 @@ export interface DependencyNode {
   /** Child nodes. Empty array for leaf nodes (MCP servers, skills). */
   readonly children: readonly DependencyNode[];
   /**
-   * Navigation reference for clickable nodes. Defined for MCP servers,
-   * skills, and datastores (standalone resources). Undefined for
-   * sub-agents (inline definitions) and the root agent.
+   * Navigation reference for clickable nodes. Defined for MCP servers
+   * and skills (standalone resources). Undefined for sub-agents (inline
+   * definitions) and the root agent.
    */
   readonly ref?: { readonly org: string; readonly slug: string };
 }
@@ -71,7 +70,7 @@ export interface DependencyGraphProps {
   /**
    * Called when a navigable node is clicked. The `node.ref` field
    * contains the `org` and `slug` for routing. Only fired for nodes
-   * where `ref` is defined (MCP servers, skills, datastores).
+   * where `ref` is defined (MCP servers and skills).
    */
   readonly onNodeClick?: (node: DependencyNode) => void;
   /**
@@ -119,17 +118,6 @@ export interface UseDependencyGraphOptions {
         readonly slug: string;
       }[];
       readonly modelOverride: string;
-    }[];
-    /**
-     * Datastore attachments (`spec.datastoreUsages`). Optional because
-     * this hook is a public SDK export: callers passing hand-built spec
-     * objects written before the field existed must keep compiling.
-     */
-    readonly datastoreUsages?: readonly {
-      readonly datastoreRef?: {
-        readonly org: string;
-        readonly slug: string;
-      };
     }[];
   } | undefined;
 }

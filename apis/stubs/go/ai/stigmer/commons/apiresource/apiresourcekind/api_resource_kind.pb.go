@@ -223,9 +223,6 @@ const (
 	// Customer-owned messaging-platform app (e.g. a Slack app) that agent
 	// channels can install through instead of the shared platform app.
 	ApiResourceKind_channel_app ApiResourceKind = 48
-	// Declared collections of typed business records with role-aware access
-	// grants; agents read and write records through grant-checked tools.
-	ApiResourceKind_datastore ApiResourceKind = 49
 	// Multi-step orchestration defining how agents collaborate on a task.
 	ApiResourceKind_workflow ApiResourceKind = 50
 	// Configured deployment of a workflow with environment-specific bindings.
@@ -267,7 +264,6 @@ var (
 		46: "agent_share",
 		47: "agent_channel",
 		48: "channel_app",
-		49: "datastore",
 		50: "workflow",
 		51: "workflow_instance",
 		52: "workflow_execution",
@@ -298,7 +294,6 @@ var (
 		"agent_share":               46,
 		"agent_channel":             47,
 		"channel_app":               48,
-		"datastore":                 49,
 		"workflow":                  50,
 		"workflow_instance":         51,
 		"workflow_execution":        52,
@@ -497,7 +492,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"cloud_only\x10\x02*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xc5\x11\n" +
+	"\astigmer\x10\x01*\x90\x11\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -532,8 +527,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"AgentShare\"\vAgent Share*\x03ash8\x01@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12L\n" +
 	"\ragent_channel\x10/\x1a9\xaa\xff+5\b\x01\x10\x01\x1a\fAgentChannel\"\rAgent Channel*\x03ach8\x01@\x01J\t\b\x02\x10\x01:\x03\x01\x04\x05\x12G\n" +
 	"\vchannel_app\x100\x1a6\xaa\xff+2\b\x01\x10\x01\x1a\n" +
-	"ChannelApp\"\vChannel App*\x05chapp8\x01@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12D\n" +
-	"\tdatastore\x101\x1a5\xaa\xff+1\b\x01\x10\x01\x1a\tDatastore\"\tDatastore*\x03dst@\x01J\x0e\b\x02\x10\x01*\x02\x18\x010\x01:\x02\x01\x04\x12G\n" +
+	"ChannelApp\"\vChannel App*\x05chapp8\x01@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12G\n" +
 	"\bworkflow\x102\x1a9\xaa\xff+5\b\x01\x10\x01\x1a\bWorkflow\"\bWorkflow*\x03wfl0\x01@\x01J\x12\b\x02\x10\x01*\b\b\x01\x10\x01\x18\x01 \x01:\x02\x01\x04\x12~\n" +
 	"\x11workflow_instance\x103\x1ag\xaa\xff+c\b\x01\x10\x01\x1a\x10WorkflowInstance\"\x11Workflow Instance*\x03win@\x01J1\b\x02\x10\x01\"!\n" +
 	"\bworkflow\x12\bworkflow\x1a\vworkflow_id*\x04\b\x01\x18\x01:\x02\x01\x04\x12\x96\x01\n" +
@@ -543,7 +537,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\bartifact\x107\x1a-\xaa\xff+)\b\x01\x10\x01\x1a\bArtifact\"\bArtifact*\x03art@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12R\n" +
 	"\x11execution_context\x106\x1a;\xaa\xff+7\b\x01\x10\x01\x1a\x10ExecutionContext\"\x11Execution Context*\x04ectx@\x01J\x04\b\x04\x10\x01\x12=\n" +
 	"\bschedule\x108\x1a/\xaa\xff++\b\x01\x10\x01\x1a\bSchedule\"\bSchedule*\x03sch8\x01@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x128\n" +
-	"\aproject\x10<\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\aProject\"\aProject*\x03prj@\x01J\b\b\x02\x10\x01:\x02\x01\x04:\x85\x01\n" +
+	"\aproject\x10<\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\aProject\"\aProject*\x03prj@\x01J\b\b\x02\x10\x01:\x02\x01\x04\"\x04\b1\x101*\tdatastore:\x85\x01\n" +
 	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x81\x03\n" +
 	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x14ApiResourceKindProtoP\x01ZWgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"
 

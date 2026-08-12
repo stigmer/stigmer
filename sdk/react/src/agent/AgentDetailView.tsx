@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type {
-  DatastoreUsage,
   McpServerUsage,
   SubAgent,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -17,7 +16,6 @@ import { useUpdateAgent } from "./useUpdateAgent.js";
 import { agentToInput } from "./internal/agentToInput.js";
 import { toError } from "../internal/toError.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
-import { DatastoreIcon } from "../datastore/DatastoreDetailView.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
 import { AgentShareList } from "../sharing/AgentShareList.js";
@@ -61,13 +59,6 @@ export interface AgentDetailViewProps {
    * Provides `org` and `slug` of the referenced skill.
    */
   readonly onSkillClick?: (ref: { org: string; slug: string }) => void;
-  /**
-   * Called when a datastore reference is clicked.
-   * Provides `org` and `slug` of the referenced datastore so the
-   * consumer can wire navigation. When the reference has no explicit
-   * org, the agent's own org is used as fallback.
-   */
-  readonly onDatastoreClick?: (ref: { org: string; slug: string }) => void;
   /**
    * Called once when the agent resource has been fetched successfully.
    * Provides the resource display name for use cases like breadcrumbs,
@@ -186,7 +177,7 @@ export interface AgentDetailViewProps {
  * Fetches the agent via {@link useAgent} internally and renders its
  * full configuration inside a {@link ResourceDetailShell}: a
  * standardized header with action bar, followed by structured content
- * sections (instructions, MCP server usages, skills, datastores,
+ * sections (instructions, MCP server usages, skills,
  * sub-agents, and environment variables). Sections with no data are
  * omitted entirely — reducing visual noise per Nielsen heuristic #8.
  *
@@ -225,7 +216,6 @@ export function AgentDetailView({
   slug,
   onMcpServerClick,
   onSkillClick,
-  onDatastoreClick,
   onResourceLoad,
   primaryAction,
   actions,
@@ -249,8 +239,8 @@ export function AgentDetailView({
 
   // Last failed inline save, attributed to the field that was edited so
   // only that section shows the message. The backend's message is the
-  // UX (DD-006): e.g. the datastore exposure guard refuses public +
-  // datastore_usages with an actionable FAILED_PRECONDITION message.
+  // UX (DD-006): server refusals arrive as actionable FAILED_PRECONDITION
+  // messages.
   const [saveError, setSaveError] = useState<{
     field: string;
     message: string;
@@ -314,11 +304,9 @@ export function AgentDetailView({
         onMcpServerClick?.(node.ref);
       } else if (node.kind === "skill") {
         onSkillClick?.(node.ref);
-      } else if (node.kind === "datastore") {
-        onDatastoreClick?.(node.ref);
       }
     },
-    [onMcpServerClick, onSkillClick, onDatastoreClick],
+    [onMcpServerClick, onSkillClick],
   );
 
   const onResourceLoadRef = useRef(onResourceLoad);
@@ -456,7 +444,6 @@ export function AgentDetailView({
         description={spec?.description}
         onMcpServerClick={onMcpServerClick}
         onSkillClick={onSkillClick}
-        onDatastoreClick={onDatastoreClick}
         editable={editable}
         isSaving={isUpdating}
         saveField={saveField}
@@ -496,7 +483,6 @@ function AgentOverview({
   description,
   onMcpServerClick,
   onSkillClick,
-  onDatastoreClick,
   editable,
   isSaving,
   saveField,
@@ -508,7 +494,6 @@ function AgentOverview({
   readonly description?: string;
   readonly onMcpServerClick?: (ref: { org: string; slug: string }) => void;
   readonly onSkillClick?: (ref: { org: string; slug: string }) => void;
-  readonly onDatastoreClick?: (ref: { org: string; slug: string }) => void;
   readonly editable?: boolean;
   readonly isSaving?: boolean;
   readonly saveField?: <K extends keyof import("@stigmer/sdk").AgentInput>(
@@ -519,8 +504,8 @@ function AgentOverview({
   readonly clearSaveError?: () => void;
 }) {
   // The failed save's message, shown only under the section that owns
-  // the field — a rejection of a datastore edit must not appear under
-  // the skills editor.
+  // the field — a rejection of one section's edit must not appear under
+  // another section's editor.
   const errorFor = (field: keyof import("@stigmer/sdk").AgentInput) =>
     saveError?.field === field ? saveError.message : undefined;
   const handleInstructionsSave = useCallback(
@@ -544,15 +529,6 @@ function AgentOverview({
       saveField?.(
         "skillRefs",
         refs.map((r) => ({ org: r.org, slug: r.slug })),
-      ) ?? false,
-    [saveField],
-  );
-
-  const handleDatastoresSave = useCallback(
-    async (refs: ResourceRefRow[]) =>
-      saveField?.(
-        "datastoreUsages",
-        refs.map((r) => ({ datastoreRef: { org: r.org, slug: r.slug } })),
       ) ?? false,
     [saveField],
   );
@@ -600,19 +576,6 @@ function AgentOverview({
     [spec?.skillRefs, agentOrg],
   );
 
-  const datastoreRefRows: ResourceRefRow[] = useMemo(
-    () =>
-      (spec?.datastoreUsages ?? []).map((usage) => ({
-        org: usage.datastoreRef?.org || agentOrg,
-        slug: usage.datastoreRef?.slug ?? "",
-        label:
-          usage.datastoreRef?.org && usage.datastoreRef.org !== agentOrg
-            ? `${usage.datastoreRef.org}/${usage.datastoreRef.slug}`
-            : usage.datastoreRef?.slug ?? "",
-      })),
-    [spec?.datastoreUsages, agentOrg],
-  );
-
   const envRows: KeyValueRow[] = useMemo(
     () =>
       Object.entries(spec?.env ?? {})
@@ -631,13 +594,11 @@ function AgentOverview({
   const showInstructions = editable || !!spec?.instructions;
   const showMcpServers = editable || (spec && spec.mcpServerUsages.length > 0);
   const showSkills = editable || (spec && spec.skillRefs.length > 0);
-  const showDatastores = editable || (spec && spec.datastoreUsages.length > 0);
   const showSubAgents = editable || (spec && spec.subAgents.length > 0);
   const showEnv = editable || (spec?.env && Object.keys(spec.env).length > 0);
 
   const [mcpEditing, setMcpEditing] = useState(false);
   const [skillsEditing, setSkillsEditing] = useState(false);
-  const [datastoresEditing, setDatastoresEditing] = useState(false);
   const [envEditing, setEnvEditing] = useState(false);
 
   // Entering edit mode discards the previous attempt's error — the
@@ -653,13 +614,6 @@ function AgentOverview({
     (editing: boolean) => {
       if (editing) clearSaveError?.();
       setSkillsEditing(editing);
-    },
-    [clearSaveError],
-  );
-  const handleDatastoresEditingChange = useCallback(
-    (editing: boolean) => {
-      if (editing) clearSaveError?.();
-      setDatastoresEditing(editing);
     },
     [clearSaveError],
   );
@@ -760,31 +714,6 @@ function AgentOverview({
               refs={spec?.skillRefs ?? []}
               defaultOrg={agentOrg}
               onSkillClick={onSkillClick}
-            />
-          )}
-        </Section>
-      )}
-
-      {showDatastores && (
-        <Section title="Datastores" count={spec?.datastoreUsages.length} onEdit={editable ? () => handleDatastoresEditingChange(!datastoresEditing) : undefined}>
-          {editable ? (
-            <InlineEditResourceList
-              value={datastoreRefRows}
-              onSave={handleDatastoresSave}
-              isSaving={isSaving}
-              error={errorFor("datastoreUsages")}
-              editing={datastoresEditing}
-              onEditingChange={handleDatastoresEditingChange}
-              onItemClick={onDatastoreClick ? (ref) => onDatastoreClick({ org: ref.org, slug: ref.slug }) : undefined}
-              itemIcon={<DatastoreIcon className="stg:size-4" />}
-              resourceLabel="datastore"
-              defaultOrg={agentOrg}
-            />
-          ) : (
-            <DatastoresContent
-              usages={spec?.datastoreUsages ?? []}
-              defaultOrg={agentOrg}
-              onDatastoreClick={onDatastoreClick}
             />
           )}
         </Section>
@@ -968,59 +897,6 @@ function SkillsContent({
             key={ref.slug || index}
             type="button"
             onClick={() => onSkillClick({ org: refOrg, slug: ref.slug })}
-            className={cn(
-              "stg:w-full stg:rounded-md stg:px-3 stg:py-2 stg:text-left stg:transition-colors",
-              "stg:hover:bg-accent-hover",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
-            )}
-          >
-            {row}
-          </button>
-        ) : (
-          <div key={ref.slug || index} className="stg:px-3 stg:py-2">
-            {row}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function DatastoresContent({
-  usages,
-  defaultOrg,
-  onDatastoreClick,
-}: {
-  readonly usages: readonly DatastoreUsage[];
-  readonly defaultOrg: string;
-  readonly onDatastoreClick?: (ref: { org: string; slug: string }) => void;
-}) {
-  return (
-    <div className="stg:flex stg:flex-col">
-      {usages.map((usage, index) => {
-        const ref = usage.datastoreRef;
-        if (!ref) return null;
-
-        const refOrg = ref.org || defaultOrg;
-        const label =
-          ref.org && ref.org !== defaultOrg
-            ? `${ref.org}/${ref.slug}`
-            : ref.slug;
-
-        const row = (
-          <div className="stg:flex stg:items-center stg:gap-3">
-            <DatastoreIcon className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" />
-            <span className="stg:text-sm stg:font-medium stg:text-foreground">
-              {label}
-            </span>
-          </div>
-        );
-
-        return onDatastoreClick ? (
-          <button
-            key={ref.slug || index}
-            type="button"
-            onClick={() => onDatastoreClick({ org: refOrg, slug: ref.slug })}
             className={cn(
               "stg:w-full stg:rounded-md stg:px-3 stg:py-2 stg:text-left stg:transition-colors",
               "stg:hover:bg-accent-hover",

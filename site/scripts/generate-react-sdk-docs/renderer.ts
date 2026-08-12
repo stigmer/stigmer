@@ -42,7 +42,7 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
   },
   {
     label: "Tools & Knowledge",
-    slugs: ["mcp-server", "skill", "library", "datastore"],
+    slugs: ["mcp-server", "skill", "library"],
   },
   {
     label: "Environment & Config",

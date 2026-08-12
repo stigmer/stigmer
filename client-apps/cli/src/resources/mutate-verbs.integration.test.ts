@@ -25,9 +25,6 @@ import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
-import { DatastoreSchema } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
-import { DatastoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/command_pb";
-import { DatastoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/query_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
@@ -68,16 +65,6 @@ const knownMcp = create(McpServerSchema, {
 const knownWorkflow = create(WorkflowSchema, {
   metadata: { name: "Deploy", slug: "deploy", org: "acme", id: "wfl_1" },
 });
-
-// The mock treats this datastore as NON-EMPTY: delete refuses without the
-// force acknowledgment, mirroring the server's GuardNonEmptyStep contract.
-const knownDatastore = create(DatastoreSchema, {
-  metadata: { name: "clinic-records", slug: "clinic-records", org: "acme", id: "dst_1" },
-});
-
-// Byte-shaped like the Go server's GuardNonEmptyStep refusal (delete_guards.go).
-const nonEmptyGuardMessage =
-  'datastore "clinic-records" holds 12 records across 3 collections; deleting destroys them — pass force to acknowledge';
 
 const knownEnvironment = create(EnvironmentSchema, {
   metadata: { name: "clinic-patient-db", slug: "clinic-patient-db", org: "acme", id: "env_1" },
@@ -121,7 +108,6 @@ const openSessions = new Set<ServerHttp2Session>();
 let cancelCalls: string[] = [];
 let tagCalls: { workflowId: string; versionHash: string; tag: string }[] = [];
 // Force-carrying deletes record what actually rode the RPC.
-let datastoreDeletes: { resourceId: string; force: boolean }[] = [];
 let environmentDeletes: { resourceId: string; force: boolean }[] = [];
 let channelAppDeletes: { resourceId: string; force: boolean }[] = [];
 // agent_channel, schedule, and workflow_instance delete by typed ID — no
@@ -133,7 +119,6 @@ let workflowInstanceDeleteIds: string[] = [];
 beforeEach(() => {
   cancelCalls = [];
   tagCalls = [];
-  datastoreDeletes = [];
   environmentDeletes = [];
   channelAppDeletes = [];
   channelDeleteIds = [];
@@ -178,21 +163,6 @@ beforeAll(async () => {
       delete: (req) => {
         if (req.resourceId !== "mcp_1") throw new ConnectError("bad id", Code.InvalidArgument);
         return knownMcp;
-      },
-    });
-
-    router.service(DatastoreQueryController, {
-      getByReference: (req) => {
-        if (req.slug !== "clinic-records") throw new ConnectError("datastore not found", Code.NotFound);
-        return knownDatastore;
-      },
-    });
-    router.service(DatastoreCommandController, {
-      delete: (req) => {
-        datastoreDeletes.push({ resourceId: req.resourceId, force: req.force });
-        // Mirrors GuardNonEmptyStep: a non-empty datastore refuses without force.
-        if (!req.force) throw new ConnectError(nonEmptyGuardMessage, Code.FailedPrecondition);
-        return knownDatastore;
       },
     });
 
@@ -374,7 +344,6 @@ describe("delete (standard kinds)", () => {
     // it must name the wired kinds and never the narrowed ones (#354).
     const message = String(err.message);
     for (const wired of [
-      "datastore",
       "environment",
       "agentchannel",
       "channelapp",
@@ -396,37 +365,6 @@ describe("delete (standard kinds)", () => {
     const err = await planDelete(client, "session", "ses_1", "acme").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
     expect(String(err.message)).toContain("does not support");
-  });
-});
-
-describe("delete (force acknowledgment)", () => {
-  it("threads --force to the datastore delete RPC as the destroy-records ack", async () => {
-    const plan = await planDelete(client, "datastore", "clinic-records", "acme", true);
-    const result = await plan.perform();
-
-    expect(result.status).toBe("success");
-    expect(result.message).toBe("Datastore deleted successfully");
-    expect(datastoreDeletes).toEqual([{ resourceId: "dst_1", force: true }]);
-  });
-
-  it("surfaces the non-empty guard refusal verbatim when force is absent", async () => {
-    const plan = await planDelete(client, "datastore", "clinic-records", "acme");
-    const err = await plan.perform().catch((e) => e);
-
-    // A confirmed-but-unforced delete must NOT bypass the server guard: the
-    // RPC carries force=false and the refusal reaches the user verbatim.
-    expect(datastoreDeletes).toEqual([{ resourceId: "dst_1", force: false }]);
-    const classified = classify(err);
-    expect(classified?.exitCode).toBe(ExitCode.Usage);
-    expect(classified?.message).toBe(`Precondition failed: ${nonEmptyGuardMessage}`);
-  });
-
-  it("warns up front that datastore records are destroyed and force-guarded", async () => {
-    const plan = await planDelete(client, "datastore", "clinic-records", "acme");
-    expect(plan.warning.hints).toContain("All records held by this datastore will be destroyed.");
-    expect(plan.warning.hints).toContain(
-      "A datastore holding records is refused unless --force acknowledges destroying them.",
-    );
   });
 });
 

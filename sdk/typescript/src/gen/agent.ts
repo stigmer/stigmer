@@ -9,7 +9,7 @@ import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agen
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentIdSchema, GetDefaultAgentRequestSchema, type GetDefaultAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema, DatastoreUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -112,7 +112,6 @@ export interface AgentInput {
   skillRefs?: ResourceRef[];
   subAgents?: SubAgentInput[];
   env?: Record<string, EnvVarDeclarationInput>;
-  datastoreUsages?: DatastoreUsageInput[];
 }
 
 /** SDK input type for McpServerUsage. */
@@ -150,11 +149,6 @@ export interface EnvVarDeclarationInput {
   isSecret?: boolean;
   description?: string;
   optional?: boolean;
-}
-
-/** SDK input type for DatastoreUsage. */
-export interface DatastoreUsageInput {
-  datastoreRef: ResourceRef;
 }
 
 function buildToolApprovalOverrideProto(input: ToolApprovalOverrideInput) {
@@ -199,12 +193,6 @@ function buildEnvVarDeclarationProto(input: EnvVarDeclarationInput) {
   }));
 }
 
-function buildDatastoreUsageProto(input: DatastoreUsageInput) {
-  const msg = create(DatastoreUsageSchema);
-  if (input.datastoreRef?.slug || input.datastoreRef?.org) msg.datastoreRef = create(ApiResourceReferenceSchema, { ...input.datastoreRef, kind: 49 });
-  return msg;
-}
-
 export function buildAgentProto(input: AgentInput): Agent {
   const mcpServerUsages = input.mcpServerUsages?.map(buildMcpServerUsageProto);
   const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
@@ -213,7 +201,6 @@ export function buildAgentProto(input: AgentInput): Agent {
   if (input.env) {
     env = Object.fromEntries(Object.entries(input.env).map(([k, v]) => [k, buildEnvVarDeclarationProto(v)]));
   }
-  const datastoreUsages = input.datastoreUsages?.map(buildDatastoreUsageProto);
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -232,7 +219,6 @@ export function buildAgentProto(input: AgentInput): Agent {
       skillRefs,
       subAgents,
       env,
-      datastoreUsages,
     })),
   }) as Agent;
 }
