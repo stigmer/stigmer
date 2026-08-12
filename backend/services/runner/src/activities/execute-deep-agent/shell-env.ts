@@ -6,15 +6,14 @@
  * never once at process start.
  */
 
-/** Runner-internal keys that must never reach agent shell commands. */
-export const SHELL_ENV_DENYLIST: readonly string[] = [
-  // Derives HITL approval fingerprints — an agent that reads this could forge receipts.
-  "STIGMER_RUNNER_HITL_SECRET",
-  // Cursor harness credential; shell commands do not need direct Cursor API access.
-  "CURSOR_API_KEY",
-  // Stigmer control-plane auth; shell commands use ExecutionContext overlay instead.
-  "STIGMER_TOKEN",
-];
+import { RUNNER_CREDENTIAL_ENV_KEYS } from "../../shared/runner-credential-keys.js";
+
+/**
+ * Runner-internal keys that must never reach agent shell commands: every
+ * credential the runner holds for its own outbound calls (issue #385). The
+ * names — and the rule for adding one — live in runner-credential-keys.ts.
+ */
+export const SHELL_ENV_DENYLIST: readonly string[] = RUNNER_CREDENTIAL_ENV_KEYS;
 
 /**
  * Build the environment map passed to deepagents' LocalShellBackend.

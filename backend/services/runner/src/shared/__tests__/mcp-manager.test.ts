@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import type { Connection } from "@langchain/mcp-adapters";
 import { connectMcpServers, toMcpClientConfig } from "../mcp-manager.js";
+import { RUNNER_CREDENTIAL_ENV_KEYS } from "../runner-credential-keys.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 
 // The adapter client is mocked ONLY for the connectMcpServers tests below
@@ -112,25 +113,15 @@ describe("toMcpClientConfig", () => {
   });
 });
 
-// Runner-internal credentials that must never reach an MCP stdio subprocess
-// (oss#256). Names mirror what the runner actually reads: config.ts,
-// fingerprint-secret.ts, model-client.ts, registry-endpoint.ts.
-const RUNNER_CREDENTIAL_KEYS = [
-  "STIGMER_RUNNER_HITL_SECRET",
-  "STIGMER_TOKEN",
-  "STIGMER_AUTH_TOKEN",
-  "CURSOR_API_KEY",
-  "ANTHROPIC_API_KEY",
-  "OPENAI_API_KEY",
-] as const;
-
 describe("toMcpClientConfig — stdio env isolation (oss#256)", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
   it("gives a stdio server with no declared env none of the runner's variables", () => {
-    for (const key of RUNNER_CREDENTIAL_KEYS) {
+    // The canaries are the runner's real credential names (oss#385's single
+    // source of truth), so a key added there is automatically covered here.
+    for (const key of RUNNER_CREDENTIAL_ENV_KEYS) {
       vi.stubEnv(key, `leaked-${key}`);
     }
     vi.stubEnv("STIGMER_TEST_LEAK_SENTINEL", "canary");
