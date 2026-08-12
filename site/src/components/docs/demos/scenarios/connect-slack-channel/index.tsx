@@ -2,7 +2,6 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { AgentChannelsPanel, ConnectSlackDialog } from "@stigmer/react";
-import { PreviewProvider } from "@scenar/preview/runtime";
 import { connectFixture } from "@scenar/preview/connect";
 import { create } from "@bufbuild/protobuf";
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
@@ -20,7 +19,7 @@ import {
   BrowserView,
   PulseHighlight,
 } from "@scenar/react";
-import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { StigmerPreviewProvider } from "../../shared/StigmerPreviewProvider";
 import { AppShell } from "../../views/AppShell";
 import { DEMO_BROWSER_ZOOM, DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
@@ -275,7 +274,7 @@ export function ConnectSlackChannel() {
   });
 
   return (
-    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
+    <StigmerPreviewProvider fixtures={previewFixtures}>
       <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={connectSlackSteps}
@@ -337,6 +336,6 @@ export function ConnectSlackChannel() {
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
       </StigmerDemoViewport>
-    </PreviewProvider>
+    </StigmerPreviewProvider>
   );
 }

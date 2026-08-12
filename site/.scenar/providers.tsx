@@ -25,7 +25,15 @@ export function PreviewProviders({ children }: PreviewProvidersProps) {
       baseUrl: "/",
       useBinaryFormat: false,
     });
-    return new Stigmer({ baseUrl: "/", customTransport: transport });
+    // The fake apiKey matters: without a credential, the provider's
+    // registry hooks poll for a token every 500ms for 10 seconds on
+    // every demo mount before their first fetch. With it, the fetches
+    // fire immediately into the MSW fixtures.
+    return new Stigmer({
+      baseUrl: "/",
+      apiKey: "scenar-preview",
+      customTransport: transport,
+    });
   }, []);
 
   return <StigmerProvider client={client}>{children}</StigmerProvider>;

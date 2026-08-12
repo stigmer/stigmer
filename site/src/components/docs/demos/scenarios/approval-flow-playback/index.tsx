@@ -1,9 +1,8 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { PreviewProvider } from "@scenar/preview/runtime";
 import { ScenarioPlayer, useNarrationManifest, useStepInteractions, Cursor } from "@scenar/react";
-import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { StigmerPreviewProvider } from "../../shared/StigmerPreviewProvider";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
@@ -50,7 +49,7 @@ export function ApprovalFlowPlayback() {
   });
 
   return (
-    <PreviewProvider providers={PreviewProviders}>
+    <StigmerPreviewProvider>
       <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={approvalFlowSteps}
@@ -61,7 +60,7 @@ export function ApprovalFlowPlayback() {
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
       </StigmerDemoViewport>
-    </PreviewProvider>
+    </StigmerPreviewProvider>
   );
 }
 

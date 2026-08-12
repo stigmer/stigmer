@@ -265,6 +265,16 @@ interface StepContract {
   scrollContainer?: string;
   cursorMustAlign?: string;
   mustBeCentered?: string;
+  /**
+   * Auto-derived cursor requirement (from `cursorTargetFor` in
+   * index.tsx). Presence-tolerant, unlike the strict manual fields
+   * above: cursor targets mount through async fixture round-trips
+   * and can legitimately miss a short step at accelerated playback —
+   * the Cursor component itself retries briefly and then gives up.
+   * The spec skips the requirement when the target never mounts
+   * during the step, but asserts containment + alignment when it does.
+   */
+  cursorTarget?: string;
 }
 
 interface VisibilityContract {
@@ -407,6 +417,97 @@ function parseInteractions(source: string): Map<number, DerivedTarget[]> {
 }
 
 /**
+ * Split the top-level `{...}` elements of the steps array in steps.ts.
+ *
+ * A brace-depth scan (skipping string literals, whose contents may
+ * contain braces — narration text) is used instead of a regex because
+ * step objects nest arbitrarily (data, interactions, narration).
+ */
+function splitStepObjects(stepsSource: string): string[] {
+  const arrayStart = stepsSource.match(/:\s*ScenarioStep<[^>]+>\[\]\s*=\s*\[/);
+  if (!arrayStart) return [];
+
+  const startIdx =
+    stepsSource.indexOf(arrayStart[0]) + arrayStart[0].length;
+
+  const elements: string[] = [];
+  let depth = 0;
+  let elementStart = -1;
+  let stringDelim: string | null = null;
+
+  for (let i = startIdx; i < stepsSource.length; i++) {
+    const ch = stepsSource[i];
+
+    if (stringDelim) {
+      if (ch === "\\") i++;
+      else if (ch === stringDelim) stringDelim = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      stringDelim = ch;
+      continue;
+    }
+
+    if (ch === "{") {
+      if (depth === 0) elementStart = i;
+      depth++;
+    } else if (ch === "}") {
+      depth--;
+      if (depth === 0 && elementStart !== -1) {
+        elements.push(stepsSource.slice(elementStart, i + 1));
+        elementStart = -1;
+      }
+    } else if (ch === "]" && depth === 0) {
+      break; // end of the steps array
+    }
+  }
+
+  return elements;
+}
+
+/**
+ * Extract `scroll_to` interaction targets from steps.ts.
+ *
+ * This is the current authoring format (the legacy format is the
+ * INTERACTIONS literal in index.tsx, handled by parseInteractions):
+ *
+ *   interactions: [
+ *     { atPercent: 0.4, type: "scroll_to", target: "capabilities-bottom" },
+ *   ],
+ *
+ * Returns a map of step index to derived targets. Like
+ * parseInteractions, only scroll targets are extracted — they are
+ * what the step promises to show the viewer.
+ */
+function parseStepsScrollInteractions(
+  stepsSource: string,
+): Map<number, DerivedTarget[]> {
+  const result = new Map<number, DerivedTarget[]>();
+
+  const steps = splitStepObjects(stepsSource);
+  const interactionRe = /\{[^{}]*type:\s*"scroll_to"[^{}]*\}/g;
+  const targetRe = /target:\s*"([^"]+)"/;
+
+  steps.forEach((stepSource, stepIndex) => {
+    const targets: DerivedTarget[] = [];
+
+    let interactionMatch: RegExpExecArray | null;
+    while ((interactionMatch = interactionRe.exec(stepSource)) !== null) {
+      const targetMatch = interactionMatch[0].match(targetRe);
+      if (targetMatch) {
+        targets.push({ id: targetMatch[1], type: "scroll-target" });
+      }
+    }
+
+    if (targets.length > 0) {
+      result.set(stepIndex, targets);
+    }
+  });
+
+  return result;
+}
+
+/**
  * Extract view-name → cursor-target mappings from cursorTargetFor.
  * Returns a map from view name to target ID.
  */
@@ -467,7 +568,16 @@ async function deriveVisibilityContract(
   const stepsSource = await readFileIfExists(stepsPath);
   if (!indexSource || !stepsSource) return null;
 
+  // Scroll interactions exist in two authoring formats: the legacy
+  // INTERACTIONS literal in index.tsx and the current per-step
+  // `interactions` arrays in steps.ts. Derive from both.
   const interactions = parseInteractions(indexSource);
+  for (const [stepIndex, targets] of parseStepsScrollInteractions(
+    stepsSource,
+  )) {
+    const existing = interactions.get(stepIndex) ?? [];
+    interactions.set(stepIndex, [...existing, ...targets]);
+  }
   const cursorTargets = parseCursorTargetFor(indexSource);
   const stepViews = parseStepViews(stepsSource);
 
@@ -480,10 +590,16 @@ async function deriveVisibilityContract(
       contract[stepIndex] = { targets: [] };
     }
     for (const t of targets) {
-      contract[stepIndex].targets.push(t.id);
+      if (!contract[stepIndex].targets.includes(t.id)) {
+        contract[stepIndex].targets.push(t.id);
+      }
     }
   }
 
+  // Cursor requirements go into the presence-tolerant `cursorTarget`
+  // field, NOT into `targets` / `cursorMustAlign` (which are strict
+  // and reserved for scroll derivations and manual contracts) — see
+  // the StepContract field docs for why.
   for (const [viewName, targetId] of cursorTargets) {
     const stepIndex = stepViews.indexOf(viewName);
     if (stepIndex === -1) continue;
@@ -491,10 +607,7 @@ async function deriveVisibilityContract(
     if (!contract[stepIndex]) {
       contract[stepIndex] = { targets: [] };
     }
-    if (!contract[stepIndex].targets.includes(targetId)) {
-      contract[stepIndex].targets.push(targetId);
-    }
-    contract[stepIndex].cursorMustAlign = targetId;
+    contract[stepIndex].cursorTarget = targetId;
   }
 
   return Object.keys(contract).length > 0 ? contract : null;
@@ -527,6 +640,13 @@ function mergeContracts(
         ...manualEntry,
         targets: [...combined],
       };
+      // A manual strict contract for the same element supersedes the
+      // auto-derived presence-tolerant one.
+      if (merged[step].cursorTarget &&
+          (manualEntry.cursorMustAlign === merged[step].cursorTarget ||
+           manualEntry.targets.includes(merged[step].cursorTarget!))) {
+        delete merged[step].cursorTarget;
+      }
     }
   }
 

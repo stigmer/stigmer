@@ -2,7 +2,6 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { McpServerDetailView } from "@stigmer/react";
-import { PreviewProvider } from "@scenar/preview/runtime";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { create } from "@bufbuild/protobuf";
@@ -17,7 +16,7 @@ import {
   BrowserView,
   PulseHighlight,
 } from "@scenar/react";
-import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { StigmerPreviewProvider } from "../../shared/StigmerPreviewProvider";
 import { connectFixture } from "@scenar/preview/connect";
 import { AppShell } from "../../views/AppShell";
 import { DEMO_BROWSER_ZOOM, DEMO_CONTENT_ZOOM } from "../../shared/tokens";
@@ -235,7 +234,7 @@ export function OAuthConnectFlow() {
   });
 
   return (
-    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
+    <StigmerPreviewProvider fixtures={previewFixtures}>
       <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={oauthConnectSteps}
@@ -287,6 +286,6 @@ export function OAuthConnectFlow() {
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
       </StigmerDemoViewport>
-    </PreviewProvider>
+    </StigmerPreviewProvider>
   );
 }

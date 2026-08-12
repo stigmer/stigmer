@@ -2,7 +2,6 @@
 
 import { Fragment, useCallback, useMemo, useRef, useState } from "react";
 import { McpServerDetailView } from "@stigmer/react";
-import { PreviewProvider } from "@scenar/preview/runtime";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { create } from "@bufbuild/protobuf";
@@ -13,7 +12,7 @@ import type {
   GetOrgOAuthAppOutput,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ScenarioPlayer, useNarrationManifest, Cursor, useStepInteractions, PulseHighlight } from "@scenar/react";
-import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { StigmerPreviewProvider } from "../../shared/StigmerPreviewProvider";
 import { connectFixture } from "@scenar/preview/connect";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { AppShell } from "../../views/AppShell";
@@ -215,7 +214,7 @@ export function ByoaSetup() {
   });
 
   return (
-    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
+    <StigmerPreviewProvider fixtures={previewFixtures}>
       <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={byoaSetupSteps}
@@ -287,6 +286,6 @@ export function ByoaSetup() {
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
       </StigmerDemoViewport>
-    </PreviewProvider>
+    </StigmerPreviewProvider>
   );
 }
