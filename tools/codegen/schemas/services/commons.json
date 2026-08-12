@@ -414,11 +414,6 @@
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
         },
         {
-          "name": "datastore",
-          "number": 49,
-          "description": "Declared collections of typed business records with role-aware access\n grants; agents read and write records through grant-checked tools."
-        },
-        {
           "name": "workflow",
           "number": 50,
           "description": "Multi-step orchestration defining how agents collaborate on a task."

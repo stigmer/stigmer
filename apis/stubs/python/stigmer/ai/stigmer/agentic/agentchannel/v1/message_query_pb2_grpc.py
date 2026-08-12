@@ -12,8 +12,7 @@ class ChannelMessageQueryControllerStub(object):
     @internal
     proactive-messaging DD-003 D6: the query sibling of
     ChannelMessageCommandController — runtime messaging traffic (the send
-    and its supporting reads) stays off the resource CRUD surface, the
-    datastore-domain split applied consistently.
+    and its supporting reads) stays off the resource CRUD surface.
     """
 
     def __init__(self, channel):
@@ -41,8 +40,7 @@ class ChannelMessageQueryControllerServicer(object):
     @internal
     proactive-messaging DD-003 D6: the query sibling of
     ChannelMessageCommandController — runtime messaging traffic (the send
-    and its supporting reads) stays off the resource CRUD surface, the
-    datastore-domain split applied consistently.
+    and its supporting reads) stays off the resource CRUD surface.
     """
 
     def listTemplates(self, request, context):
@@ -118,8 +116,7 @@ class ChannelMessageQueryController(object):
     @internal
     proactive-messaging DD-003 D6: the query sibling of
     ChannelMessageCommandController — runtime messaging traffic (the send
-    and its supporting reads) stays off the resource CRUD surface, the
-    datastore-domain split applied consistently.
+    and its supporting reads) stays off the resource CRUD surface.
     """
 
     @staticmethod

@@ -13,8 +13,7 @@ import { MethodKind } from "@bufbuild/protobuf";
  * @internal
  * proactive-messaging DD-003 D6: the query sibling of
  * ChannelMessageCommandController — runtime messaging traffic (the send
- * and its supporting reads) stays off the resource CRUD surface, the
- * datastore-domain split applied consistently.
+ * and its supporting reads) stays off the resource CRUD surface.
  *
  * @generated from service ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController
  */

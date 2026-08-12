@@ -95,13 +95,11 @@ class AgentInstanceInput:
     agent_id: str = ""
     description: str = ""
     environment_refs: list[ResourceRef] = field(default_factory=list)
-    datastore_partition: str = ""
 
     def _to_proto(self) -> api_pb2.AgentInstance:
         spec = spec_pb2.AgentInstanceSpec(
             agent_id=self.agent_id,
             description=self.description,
-            datastore_partition=self.datastore_partition,
         )
         for ref in self.environment_refs:
             _ref = ref._to_proto()

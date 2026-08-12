@@ -48,12 +48,9 @@ type AgentSpec struct {
 	SubAgents []*SubAgent `protobuf:"bytes,6,rep,name=sub_agents,json=subAgents,proto3" json:"sub_agents,omitempty"`
 	// Environment variable declarations for this agent.
 	// Keys are variable names; values describe their metadata and optionality.
-	Env map[string]*v1.EnvVarDeclaration `protobuf:"bytes,7,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Datastores this agent can use.
-	// Each entry must reference a Datastore resource by slug.
-	DatastoreUsages []*DatastoreUsage `protobuf:"bytes,9,rep,name=datastore_usages,json=datastoreUsages,proto3" json:"datastore_usages,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	Env           map[string]*v1.EnvVarDeclaration `protobuf:"bytes,7,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AgentSpec) Reset() {
@@ -131,13 +128,6 @@ func (x *AgentSpec) GetSubAgents() []*SubAgent {
 func (x *AgentSpec) GetEnv() map[string]*v1.EnvVarDeclaration {
 	if x != nil {
 		return x.Env
-	}
-	return nil
-}
-
-func (x *AgentSpec) GetDatastoreUsages() []*DatastoreUsage {
-	if x != nil {
-		return x.DatastoreUsages
 	}
 	return nil
 }
@@ -338,68 +328,6 @@ func (x *McpServerUsage) GetToolApprovalOverrides() []*ToolApprovalOverride {
 	return nil
 }
 
-// DatastoreUsage declares that this agent uses a Datastore resource.
-//
-// Attaching a datastore gives the agent the built-in record tools
-// (find_records, insert_record, update_record, delete_record,
-// describe_datastore) for it. What each caller may actually do is
-// governed by the datastore's own authorization block, resolved per
-// request from the verified sender or principal behind the session.
-//
-// @internal
-// Usage-wrapper idiom (McpServerUsage precedent) so per-usage fields
-// (approval tightening, verb caps, collection subsets — recorded growth
-// slots) land additively. The usage edge is authorization-bearing for
-// session-bound runner credentials (DD-006 SD-1): the record RPCs
-// resolve reach through it live, per call, fail-closed. The runner
-// synthesizes one bridge MCP attachment with an injected execution
-// credential and empty approval maps — record tools are approval-free
-// by construction.
-type DatastoreUsage struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Reference to the Datastore resource.
-	DatastoreRef  *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=datastore_ref,json=datastoreRef,proto3" json:"datastore_ref,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DatastoreUsage) Reset() {
-	*x = DatastoreUsage{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DatastoreUsage) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DatastoreUsage) ProtoMessage() {}
-
-func (x *DatastoreUsage) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DatastoreUsage.ProtoReflect.Descriptor instead.
-func (*DatastoreUsage) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *DatastoreUsage) GetDatastoreRef() *apiresource.ApiResourceReference {
-	if x != nil {
-		return x.DatastoreRef
-	}
-	return nil
-}
-
 // McpAccess grants a sub-agent access to one of the parent's MCP servers.
 //
 // @internal
@@ -421,7 +349,7 @@ type McpAccess struct {
 
 func (x *McpAccess) Reset() {
 	*x = McpAccess{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -433,7 +361,7 @@ func (x *McpAccess) String() string {
 func (*McpAccess) ProtoMessage() {}
 
 func (x *McpAccess) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -446,7 +374,7 @@ func (x *McpAccess) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use McpAccess.ProtoReflect.Descriptor instead.
 func (*McpAccess) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *McpAccess) GetMcpServer() string {
@@ -500,7 +428,7 @@ type ToolApprovalOverride struct {
 
 func (x *ToolApprovalOverride) Reset() {
 	*x = ToolApprovalOverride{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -512,7 +440,7 @@ func (x *ToolApprovalOverride) String() string {
 func (*ToolApprovalOverride) ProtoMessage() {}
 
 func (x *ToolApprovalOverride) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -525,7 +453,7 @@ func (x *ToolApprovalOverride) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolApprovalOverride.ProtoReflect.Descriptor instead.
 func (*ToolApprovalOverride) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ToolApprovalOverride) GetToolName() string {
@@ -553,7 +481,7 @@ var File_ai_stigmer_agentic_agent_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xf7\a\n" +
+	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xb3\x06\n" +
 	"\tAgentSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12+\n" +
@@ -566,12 +494,11 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\x12D\n" +
 	"\n" +
 	"sub_agents\x18\x06 \x03(\v2%.ai.stigmer.agentic.agent.v1.SubAgentR\tsubAgents\x12A\n" +
-	"\x03env\x18\a \x03(\v2/.ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntryR\x03env\x12\xd9\x01\n" +
-	"\x10datastore_usages\x18\t \x03(\v2+.ai.stigmer.agentic.agent.v1.DatastoreUsageB\x80\x01\xbaH}\x92\x01z\"x\xba\x01u\n" +
-	"\x15datastore_usages.kind\x12=datastore_usages must reference resources with kind=datastore\x1a\x1dthis.datastore_ref.kind == 49R\x0fdatastoreUsages\x1al\n" +
+	"\x03env\x18\a \x03(\v2/.ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntryR\x03env\x1al\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12J\n" +
-	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01J\x04\b\b\x10\tR\asharing\"\xa1\x03\n" +
+	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01J\x04\b\b\x10\tJ\x04\b\t\x10\n" +
+	"R\asharingR\x10datastore_usages\"\xa1\x03\n" +
 	"\bSubAgent\x12\x1a\n" +
 	"\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12+\n" +
@@ -587,10 +514,7 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\x0emcp_server_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\n" +
 	"\xbaH\x03\xc8\x01\x01\xe0\x85,,R\fmcpServerRef\x12#\n" +
 	"\renabled_tools\x18\x02 \x03(\tR\fenabledTools\x12i\n" +
-	"\x17tool_approval_overrides\x18\x03 \x03(\v21.ai.stigmer.agentic.agent.v1.ToolApprovalOverrideR\x15toolApprovalOverrides\"w\n" +
-	"\x0eDatastoreUsage\x12e\n" +
-	"\rdatastore_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\n" +
-	"\xbaH\x03\xc8\x01\x01\xe0\x85,1R\fdatastoreRef\"W\n" +
+	"\x17tool_approval_overrides\x18\x03 \x03(\v21.ai.stigmer.agentic.agent.v1.ToolApprovalOverrideR\x15toolApprovalOverrides\"W\n" +
 	"\tMcpAccess\x12%\n" +
 	"\n" +
 	"mcp_server\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tmcpServer\x12#\n" +
@@ -613,35 +537,32 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_agentic_agent_v1_spec_proto_goTypes = []any{
 	(*AgentSpec)(nil),                        // 0: ai.stigmer.agentic.agent.v1.AgentSpec
 	(*SubAgent)(nil),                         // 1: ai.stigmer.agentic.agent.v1.SubAgent
 	(*McpServerUsage)(nil),                   // 2: ai.stigmer.agentic.agent.v1.McpServerUsage
-	(*DatastoreUsage)(nil),                   // 3: ai.stigmer.agentic.agent.v1.DatastoreUsage
-	(*McpAccess)(nil),                        // 4: ai.stigmer.agentic.agent.v1.McpAccess
-	(*ToolApprovalOverride)(nil),             // 5: ai.stigmer.agentic.agent.v1.ToolApprovalOverride
-	nil,                                      // 6: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
-	(*apiresource.ApiResourceReference)(nil), // 7: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*v1.EnvVarDeclaration)(nil),             // 8: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	(*McpAccess)(nil),                        // 3: ai.stigmer.agentic.agent.v1.McpAccess
+	(*ToolApprovalOverride)(nil),             // 4: ai.stigmer.agentic.agent.v1.ToolApprovalOverride
+	nil,                                      // 5: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
+	(*apiresource.ApiResourceReference)(nil), // 6: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*v1.EnvVarDeclaration)(nil),             // 7: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_agent_v1_spec_proto_depIdxs = []int32{
-	2,  // 0: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.agent.v1.McpServerUsage
-	7,  // 1: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	1,  // 2: ai.stigmer.agentic.agent.v1.AgentSpec.sub_agents:type_name -> ai.stigmer.agentic.agent.v1.SubAgent
-	6,  // 3: ai.stigmer.agentic.agent.v1.AgentSpec.env:type_name -> ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
-	3,  // 4: ai.stigmer.agentic.agent.v1.AgentSpec.datastore_usages:type_name -> ai.stigmer.agentic.agent.v1.DatastoreUsage
-	4,  // 5: ai.stigmer.agentic.agent.v1.SubAgent.mcp_access:type_name -> ai.stigmer.agentic.agent.v1.McpAccess
-	7,  // 6: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	7,  // 7: ai.stigmer.agentic.agent.v1.McpServerUsage.mcp_server_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	5,  // 8: ai.stigmer.agentic.agent.v1.McpServerUsage.tool_approval_overrides:type_name -> ai.stigmer.agentic.agent.v1.ToolApprovalOverride
-	7,  // 9: ai.stigmer.agentic.agent.v1.DatastoreUsage.datastore_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	8,  // 10: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	2, // 0: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.agent.v1.McpServerUsage
+	6, // 1: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	1, // 2: ai.stigmer.agentic.agent.v1.AgentSpec.sub_agents:type_name -> ai.stigmer.agentic.agent.v1.SubAgent
+	5, // 3: ai.stigmer.agentic.agent.v1.AgentSpec.env:type_name -> ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
+	3, // 4: ai.stigmer.agentic.agent.v1.SubAgent.mcp_access:type_name -> ai.stigmer.agentic.agent.v1.McpAccess
+	6, // 5: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	6, // 6: ai.stigmer.agentic.agent.v1.McpServerUsage.mcp_server_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	4, // 7: ai.stigmer.agentic.agent.v1.McpServerUsage.tool_approval_overrides:type_name -> ai.stigmer.agentic.agent.v1.ToolApprovalOverride
+	7, // 8: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agent_v1_spec_proto_init() }
@@ -655,7 +576,7 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

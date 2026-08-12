@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/iam/v1/enum.proto.
  */
 export const file_ai_stigmer_iam_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("ChxhaS9zdGlnbWVyL2lhbS92MS9lbnVtLnByb3RvEhFhaS5zdGlnbWVyLmlhbS52MSrwBgoNSWFtUGVybWlzc2lvbhIPCgt1bnNwZWNpZmllZBAAEgwKCGNhbl92aWV3EAESDAoIY2FuX2VkaXQQAhIOCgpjYW5fZGVsZXRlEAMSFAoQY2FuX2dyYW50X2FjY2VzcxAEEhMKD2Nhbl92aWV3X2FjY2VzcxAFEhQKEGNhbl9jcmVhdGVfYWdlbnQQBhIXChNjYW5fY3JlYXRlX3dvcmtmbG93EAcSFgoSY2FuX2NyZWF0ZV9zZXNzaW9uEAgSFAoQY2FuX2NyZWF0ZV9za2lsbBAJEhYKEmNhbl9jcmVhdGVfcHJvamVjdBAKEhIKDmNhbl9jcmVhdGVfaWRwEAsSGgoWY2FuX2NyZWF0ZV9lbnZpcm9ubWVudBAMEh8KG2Nhbl9jcmVhdGVfaWRlbnRpdHlfYWNjb3VudBAVEhgKFGNhbl9jcmVhdGVfb2F1dGhfYXBwEBcSHgoaY2FuX2NyZWF0ZV9wbGF0Zm9ybV9jbGllbnQQGBIbChdjYW5fY3JlYXRlX2V4ZWN1dGlvbl9pbhANEhcKE2Nhbl9jcmVhdGVfaW5zdGFuY2UQDhIPCgtjYW5fZXhlY3V0ZRAPEhQKEGNhbl9yZWFkX3NlY3JldHMQEBIVChFjYW5fYm9vdHN0cmFwX2lhbRAREiAKHGNhbl9tYW5hZ2VfaWRlbnRpdHlfYWNjb3VudHMQEhIYChRsb2dpbl90b19iYWNrX29mZmljZRAUEg8KC2Nhbl9jb25uZWN0EBYSFQoRY2FuX2NyZWF0ZV9ydW5uZXIQGRIaChJjYW5fZGVsZXRlX3Nlc3Npb24QGhoCCAESFAoQY2FuX3ZpZXdfYmlsbGluZxAbEhYKEmNhbl9tYW5hZ2VfYmlsbGluZxAcEhsKF2Nhbl9leGVjdXRlX2JpbGxpbmdfb3BzEB0SGgoWY2FuX2NyZWF0ZV9hZ2VudF9zaGFyZRAeEhoKFmNhbl9jcmVhdGVfY2hhbm5lbF9hcHAQHxIcChhjYW5fbWFuYWdlX21vZGVsX3ByaWNpbmcQIBITCg9jYW5fdXNlX3JlY29yZHMQIRIYChRjYW5fY3JlYXRlX2RhdGFzdG9yZRAiEh4KGmNhbl9tYW5hZ2VfY3Vyc29yX2FjY291bnRzECMSEwoPY2FuX3BhcnRpY2lwYXRlECQqYgoHSWFtUm9sZRIYChRpYW1fcm9sZV91bnNwZWNpZmllZBAAEgkKBW93bmVyEAESCQoFYWRtaW4QAhIKCgZtZW1iZXIQAxIKCgZ2aWV3ZXIQBBIPCgtwYXJ0aWNpcGFudBAFYgZwcm90bzM");
+  fileDesc("ChxhaS9zdGlnbWVyL2lhbS92MS9lbnVtLnByb3RvEhFhaS5zdGlnbWVyLmlhbS52MSr0BgoNSWFtUGVybWlzc2lvbhIPCgt1bnNwZWNpZmllZBAAEgwKCGNhbl92aWV3EAESDAoIY2FuX2VkaXQQAhIOCgpjYW5fZGVsZXRlEAMSFAoQY2FuX2dyYW50X2FjY2VzcxAEEhMKD2Nhbl92aWV3X2FjY2VzcxAFEhQKEGNhbl9jcmVhdGVfYWdlbnQQBhIXChNjYW5fY3JlYXRlX3dvcmtmbG93EAcSFgoSY2FuX2NyZWF0ZV9zZXNzaW9uEAgSFAoQY2FuX2NyZWF0ZV9za2lsbBAJEhYKEmNhbl9jcmVhdGVfcHJvamVjdBAKEhIKDmNhbl9jcmVhdGVfaWRwEAsSGgoWY2FuX2NyZWF0ZV9lbnZpcm9ubWVudBAMEh8KG2Nhbl9jcmVhdGVfaWRlbnRpdHlfYWNjb3VudBAVEhgKFGNhbl9jcmVhdGVfb2F1dGhfYXBwEBcSHgoaY2FuX2NyZWF0ZV9wbGF0Zm9ybV9jbGllbnQQGBIbChdjYW5fY3JlYXRlX2V4ZWN1dGlvbl9pbhANEhcKE2Nhbl9jcmVhdGVfaW5zdGFuY2UQDhIPCgtjYW5fZXhlY3V0ZRAPEhQKEGNhbl9yZWFkX3NlY3JldHMQEBIVChFjYW5fYm9vdHN0cmFwX2lhbRAREiAKHGNhbl9tYW5hZ2VfaWRlbnRpdHlfYWNjb3VudHMQEhIYChRsb2dpbl90b19iYWNrX29mZmljZRAUEg8KC2Nhbl9jb25uZWN0EBYSFQoRY2FuX2NyZWF0ZV9ydW5uZXIQGRIaChJjYW5fZGVsZXRlX3Nlc3Npb24QGhoCCAESFAoQY2FuX3ZpZXdfYmlsbGluZxAbEhYKEmNhbl9tYW5hZ2VfYmlsbGluZxAcEhsKF2Nhbl9leGVjdXRlX2JpbGxpbmdfb3BzEB0SGgoWY2FuX2NyZWF0ZV9hZ2VudF9zaGFyZRAeEhoKFmNhbl9jcmVhdGVfY2hhbm5lbF9hcHAQHxIcChhjYW5fbWFuYWdlX21vZGVsX3ByaWNpbmcQIBIeChpjYW5fbWFuYWdlX2N1cnNvcl9hY2NvdW50cxAjEhMKD2Nhbl9wYXJ0aWNpcGF0ZRAkIgQIIRAhIgQIIhAiKg9jYW5fdXNlX3JlY29yZHMqFGNhbl9jcmVhdGVfZGF0YXN0b3JlKmIKB0lhbVJvbGUSGAoUaWFtX3JvbGVfdW5zcGVjaWZpZWQQABIJCgVvd25lchABEgkKBWFkbWluEAISCgoGbWVtYmVyEAMSCgoGdmlld2VyEAQSDwoLcGFydGljaXBhbnQQBWIGcHJvdG8z");
 
 /**
  * IamPermission defines the permissions checked by the authorization
@@ -234,32 +234,6 @@ export enum IamPermission {
    * @generated from enum value: can_manage_model_pricing = 32;
    */
   can_manage_model_pricing = 32,
-
-  /**
-   * Resource-level permission to reach a datastore's record RPCs.
-   *
-   * @internal
-   * Layer 1 of the datastore's two-layer authorization model: gates
-   * "may this principal touch this datastore's records at all" for
-   * direct platform principals (console, CLI, SDK, workflow executions).
-   * Checked in-handler via RequestAuthorizationService — the record RPCs
-   * are slug-addressed and carry is_skip_authorization, so the
-   * declarative interceptor never runs for them. Session-bound runner
-   * credentials do NOT pass through this permission — they take the
-   * usage-edge reach chain (agent's datastore_usages + org match) in
-   * domain logic. Layer 2 (role/verb/scope grants) always runs in
-   * datastore domain logic in both editions.
-   *
-   * @generated from enum value: can_use_records = 33;
-   */
-  can_use_records = 33,
-
-  /**
-   * Organization-level permission to create datastores.
-   *
-   * @generated from enum value: can_create_datastore = 34;
-   */
-  can_create_datastore = 34,
 
   /**
    * Platform-level permission to manage Cursor accounts: the managed

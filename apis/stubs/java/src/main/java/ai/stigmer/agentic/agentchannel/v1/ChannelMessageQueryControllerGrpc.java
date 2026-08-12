@@ -9,8 +9,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * &#64;internal
  * proactive-messaging DD-003 D6: the query sibling of
  * ChannelMessageCommandController — runtime messaging traffic (the send
- * and its supporting reads) stays off the resource CRUD surface, the
- * datastore-domain split applied consistently.
+ * and its supporting reads) stays off the resource CRUD surface.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -149,8 +148,7 @@ public final class ChannelMessageQueryControllerGrpc {
    * &#64;internal
    * proactive-messaging DD-003 D6: the query sibling of
    * ChannelMessageCommandController — runtime messaging traffic (the send
-   * and its supporting reads) stays off the resource CRUD surface, the
-   * datastore-domain split applied consistently.
+   * and its supporting reads) stays off the resource CRUD surface.
    * </pre>
    */
   public interface AsyncService {
@@ -211,8 +209,7 @@ public final class ChannelMessageQueryControllerGrpc {
    * &#64;internal
    * proactive-messaging DD-003 D6: the query sibling of
    * ChannelMessageCommandController — runtime messaging traffic (the send
-   * and its supporting reads) stays off the resource CRUD surface, the
-   * datastore-domain split applied consistently.
+   * and its supporting reads) stays off the resource CRUD surface.
    * </pre>
    */
   public static abstract class ChannelMessageQueryControllerImplBase
@@ -231,8 +228,7 @@ public final class ChannelMessageQueryControllerGrpc {
    * &#64;internal
    * proactive-messaging DD-003 D6: the query sibling of
    * ChannelMessageCommandController — runtime messaging traffic (the send
-   * and its supporting reads) stays off the resource CRUD surface, the
-   * datastore-domain split applied consistently.
+   * and its supporting reads) stays off the resource CRUD surface.
    * </pre>
    */
   public static final class ChannelMessageQueryControllerStub
@@ -306,8 +302,7 @@ public final class ChannelMessageQueryControllerGrpc {
    * &#64;internal
    * proactive-messaging DD-003 D6: the query sibling of
    * ChannelMessageCommandController — runtime messaging traffic (the send
-   * and its supporting reads) stays off the resource CRUD surface, the
-   * datastore-domain split applied consistently.
+   * and its supporting reads) stays off the resource CRUD surface.
    * </pre>
    */
   public static final class ChannelMessageQueryControllerBlockingV2Stub
@@ -379,8 +374,7 @@ public final class ChannelMessageQueryControllerGrpc {
    * &#64;internal
    * proactive-messaging DD-003 D6: the query sibling of
    * ChannelMessageCommandController — runtime messaging traffic (the send
-   * and its supporting reads) stays off the resource CRUD surface, the
-   * datastore-domain split applied consistently.
+   * and its supporting reads) stays off the resource CRUD surface.
    * </pre>
    */
   public static final class ChannelMessageQueryControllerBlockingStub
@@ -452,8 +446,7 @@ public final class ChannelMessageQueryControllerGrpc {
    * &#64;internal
    * proactive-messaging DD-003 D6: the query sibling of
    * ChannelMessageCommandController — runtime messaging traffic (the send
-   * and its supporting reads) stays off the resource CRUD surface, the
-   * datastore-domain split applied consistently.
+   * and its supporting reads) stays off the resource CRUD surface.
    * </pre>
    */
   public static final class ChannelMessageQueryControllerFutureStub

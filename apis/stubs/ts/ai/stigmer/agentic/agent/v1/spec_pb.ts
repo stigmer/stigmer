@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIooHCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEs4BChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BTZXJ2ZXJVc2FnZUKFAbpIgQGSAX4ifLoBeQoWbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI5CgpzdWJfYWdlbnRzGAYgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlN1YkFnZW50EjwKA2VudhgHIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNwZWMuRW52RW50cnkSyAEKEGRhdGFzdG9yZV91c2FnZXMYCSADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuRGF0YXN0b3JlVXNhZ2VCgAG6SH2SAXoieLoBdQoVZGF0YXN0b3JlX3VzYWdlcy5raW5kEj1kYXRhc3RvcmVfdXNhZ2VzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9ZGF0YXN0b3JlGh10aGlzLmRhdGFzdG9yZV9yZWYua2luZCA9PSA0ORpgCghFbnZFbnRyeRILCgNrZXkYASABKAkSQwoFdmFsdWUYAiABKAsyNC5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52VmFyRGVjbGFyYXRpb246AjgBSgQICBAJUgdzaGFyaW5nItsCCghTdWJBZ2VudBIUCgRuYW1lGAEgASgJQga6SAPIAQESEwoLZGVzY3JpcHRpb24YAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEjoKCm1jcF9hY2Nlc3MYBCADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuTWNwQWNjZXNzErABCgpza2lsbF9yZWZzGAUgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQma6SF+SAVwiWroBVwoPc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsSFgoObW9kZWxfb3ZlcnJpZGUYBiABKAki1QEKDk1jcFNlcnZlclVzYWdlElgKDm1jcF9zZXJ2ZXJfcmVmGAEgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgq6SAPIAQHghSwsEhUKDWVuYWJsZWRfdG9vbHMYAiADKAkSUgoXdG9vbF9hcHByb3ZhbF9vdmVycmlkZXMYAyADKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuVG9vbEFwcHJvdmFsT3ZlcnJpZGUiaQoORGF0YXN0b3JlVXNhZ2USVwoNZGF0YXN0b3JlX3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIKukgDyAEB4IUsMSI+CglNY3BBY2Nlc3MSGgoKbWNwX3NlcnZlchgBIAEoCUIGukgDyAEBEhUKDWVuYWJsZWRfdG9vbHMYAiADKAkiXgoUVG9vbEFwcHJvdmFsT3ZlcnJpZGUSGgoJdG9vbF9uYW1lGAEgASgJQge6SARyAhABEhkKEXJlcXVpcmVzX2FwcHJvdmFsGAIgASgIEg8KB21lc3NhZ2UYAyABKAliBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxItcFCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEs4BChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BTZXJ2ZXJVc2FnZUKFAbpIgQGSAX4ifLoBeQoWbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI5CgpzdWJfYWdlbnRzGAYgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlN1YkFnZW50EjwKA2VudhgHIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNwZWMuRW52RW50cnkaYAoIRW52RW50cnkSCwoDa2V5GAEgASgJEkMKBXZhbHVlGAIgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudlZhckRlY2xhcmF0aW9uOgI4AUoECAgQCUoECAkQClIHc2hhcmluZ1IQZGF0YXN0b3JlX3VzYWdlcyLbAgoIU3ViQWdlbnQSFAoEbmFtZRgBIAEoCUIGukgDyAEBEhMKC2Rlc2NyaXB0aW9uGAIgASgJEh0KDGluc3RydWN0aW9ucxgDIAEoCUIHukgEcgIQChI6CgptY3BfYWNjZXNzGAQgAygLMiYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLk1jcEFjY2VzcxKwAQoKc2tpbGxfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJmukhfkgFcIlq6AVcKD3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrEhYKDm1vZGVsX292ZXJyaWRlGAYgASgJItUBCg5NY3BTZXJ2ZXJVc2FnZRJYCg5tY3Bfc2VydmVyX3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIKukgDyAEB4IUsLBIVCg1lbmFibGVkX3Rvb2xzGAIgAygJElIKF3Rvb2xfYXBwcm92YWxfb3ZlcnJpZGVzGAMgAygLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlRvb2xBcHByb3ZhbE92ZXJyaWRlIj4KCU1jcEFjY2VzcxIaCgptY3Bfc2VydmVyGAEgASgJQga6SAPIAQESFQoNZW5hYmxlZF90b29scxgCIAMoCSJeChRUb29sQXBwcm92YWxPdmVycmlkZRIaCgl0b29sX25hbWUYASABKAlCB7pIBHICEAESGQoRcmVxdWlyZXNfYXBwcm92YWwYAiABKAgSDwoHbWVzc2FnZRgDIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentSpec defines the configurable properties of an agent.
@@ -80,14 +80,6 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * @generated from field: map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 7;
    */
   env: { [key: string]: EnvVarDeclaration };
-
-  /**
-   * Datastores this agent can use.
-   * Each entry must reference a Datastore resource by slug.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9;
-   */
-  datastoreUsages: DatastoreUsage[];
 };
 
 /**
@@ -230,43 +222,6 @@ export const McpServerUsageSchema: GenMessage<McpServerUsage> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 2);
 
 /**
- * DatastoreUsage declares that this agent uses a Datastore resource.
- *
- * Attaching a datastore gives the agent the built-in record tools
- * (find_records, insert_record, update_record, delete_record,
- * describe_datastore) for it. What each caller may actually do is
- * governed by the datastore's own authorization block, resolved per
- * request from the verified sender or principal behind the session.
- *
- * @internal
- * Usage-wrapper idiom (McpServerUsage precedent) so per-usage fields
- * (approval tightening, verb caps, collection subsets — recorded growth
- * slots) land additively. The usage edge is authorization-bearing for
- * session-bound runner credentials (DD-006 SD-1): the record RPCs
- * resolve reach through it live, per call, fail-closed. The runner
- * synthesizes one bridge MCP attachment with an injected execution
- * credential and empty approval maps — record tools are approval-free
- * by construction.
- *
- * @generated from message ai.stigmer.agentic.agent.v1.DatastoreUsage
- */
-export type DatastoreUsage = Message<"ai.stigmer.agentic.agent.v1.DatastoreUsage"> & {
-  /**
-   * Reference to the Datastore resource.
-   *
-   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference datastore_ref = 1;
-   */
-  datastoreRef?: ApiResourceReference;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.agent.v1.DatastoreUsage.
- * Use `create(DatastoreUsageSchema)` to create a new message.
- */
-export const DatastoreUsageSchema: GenMessage<DatastoreUsage> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 3);
-
-/**
  * McpAccess grants a sub-agent access to one of the parent's MCP servers.
  *
  * @internal
@@ -300,7 +255,7 @@ export type McpAccess = Message<"ai.stigmer.agentic.agent.v1.McpAccess"> & {
  * Use `create(McpAccessSchema)` to create a new message.
  */
 export const McpAccessSchema: GenMessage<McpAccess> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 4);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 3);
 
 /**
  * ToolApprovalOverride allows per-agent customization of approval requirements.
@@ -357,5 +312,5 @@ export type ToolApprovalOverride = Message<"ai.stigmer.agentic.agent.v1.ToolAppr
  * Use `create(ToolApprovalOverrideSchema)` to create a new message.
  */
 export const ToolApprovalOverrideSchema: GenMessage<ToolApprovalOverride> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 5);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 4);
 

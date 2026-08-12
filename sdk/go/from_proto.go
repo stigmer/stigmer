@@ -11,7 +11,6 @@ import (
 	agentsharev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentshare/v1"
 	artifactv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/artifact/v1"
 	channelappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1"
-	datastorev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/datastore/v1"
 	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
@@ -70,11 +69,6 @@ func ArtifactInputFromProto(p *artifactv1.Artifact) *ArtifactInput {
 // ChannelAppInputFromProto creates a ChannelAppInput from a proto ChannelApp resource.
 func ChannelAppInputFromProto(p *channelappv1.ChannelApp) *ChannelAppInput {
 	return gen.ChannelAppInputFromProto(p)
-}
-
-// DatastoreInputFromProto creates a DatastoreInput from a proto Datastore resource.
-func DatastoreInputFromProto(p *datastorev1.Datastore) *DatastoreInput {
-	return gen.DatastoreInputFromProto(p)
 }
 
 // EnvironmentInputFromProto creates a EnvironmentInput from a proto Environment resource.

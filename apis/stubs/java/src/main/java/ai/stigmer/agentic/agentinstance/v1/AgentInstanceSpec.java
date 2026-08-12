@@ -39,7 +39,6 @@ private static final long serialVersionUID = 0L;
     agentId_ = "";
     description_ = "";
     environmentRefs_ = java.util.Collections.emptyList();
-    datastorePartition_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -240,83 +239,6 @@ private static final long serialVersionUID = 0L;
     return environmentRefs_.get(index);
   }
 
-  public static final int DATASTORE_PARTITION_FIELD_NUMBER = 4;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object datastorePartition_ = "";
-  /**
-   * <pre>
-   * Data partition this instance's record operations are scoped to, for
-   * every datastore the agent uses. Unset means the shared "default"
-   * partition.
-   *
-   * Instances declaring the same label share records (e.g. the prod
-   * instances of two agents on one datastore); a different label is a
-   * fully isolated dataset (e.g. a dev instance whose test records
-   * never touch prod).
-   *
-   * &#64;internal
-   * DD-010: the record RPCs derive the partition from the session's
-   * resolved instance — server-side, per call, never from tool
-   * arguments — so the label (not the instance id, which changes when
-   * default instances are recreated) is the durable partition key.
-   * One label per instance in v1; a per-datastore map is a recorded
-   * additive growth slot.
-   * </pre>
-   *
-   * <code>string datastore_partition = 4 [json_name = "datastorePartition", (.buf.validate.field) = { ... }</code>
-   * @return The datastorePartition.
-   */
-  @java.lang.Override
-  public java.lang.String getDatastorePartition() {
-    java.lang.Object ref = datastorePartition_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      datastorePartition_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * Data partition this instance's record operations are scoped to, for
-   * every datastore the agent uses. Unset means the shared "default"
-   * partition.
-   *
-   * Instances declaring the same label share records (e.g. the prod
-   * instances of two agents on one datastore); a different label is a
-   * fully isolated dataset (e.g. a dev instance whose test records
-   * never touch prod).
-   *
-   * &#64;internal
-   * DD-010: the record RPCs derive the partition from the session's
-   * resolved instance — server-side, per call, never from tool
-   * arguments — so the label (not the instance id, which changes when
-   * default instances are recreated) is the durable partition key.
-   * One label per instance in v1; a per-datastore map is a recorded
-   * additive growth slot.
-   * </pre>
-   *
-   * <code>string datastore_partition = 4 [json_name = "datastorePartition", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for datastorePartition.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getDatastorePartitionBytes() {
-    java.lang.Object ref = datastorePartition_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      datastorePartition_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -339,9 +261,6 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < environmentRefs_.size(); i++) {
       output.writeMessage(3, environmentRefs_.get(i));
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(datastorePartition_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 4, datastorePartition_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -367,9 +286,6 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(datastorePartition_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, datastorePartition_);
-    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -391,8 +307,6 @@ private static final long serialVersionUID = 0L;
         .equals(other.getDescription())) return false;
     if (!getEnvironmentRefsList()
         .equals(other.getEnvironmentRefsList())) return false;
-    if (!getDatastorePartition()
-        .equals(other.getDatastorePartition())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -412,8 +326,6 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + ENVIRONMENT_REFS_FIELD_NUMBER;
       hash = (53 * hash) + getEnvironmentRefsList().hashCode();
     }
-    hash = (37 * hash) + DATASTORE_PARTITION_FIELD_NUMBER;
-    hash = (53 * hash) + getDatastorePartition().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -562,7 +474,6 @@ private static final long serialVersionUID = 0L;
         environmentRefsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000004);
-      datastorePartition_ = "";
       return this;
     }
 
@@ -615,9 +526,6 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.description_ = description_;
       }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.datastorePartition_ = datastorePartition_;
-      }
     }
 
     @java.lang.Override
@@ -668,11 +576,6 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
-      if (!other.getDatastorePartition().isEmpty()) {
-        datastorePartition_ = other.datastorePartition_;
-        bitField0_ |= 0x00000008;
-        onChanged();
-      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -722,11 +625,6 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 26
-            case 34: {
-              datastorePartition_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1328,173 +1226,6 @@ private static final long serialVersionUID = 0L;
         environmentRefs_ = null;
       }
       return environmentRefsBuilder_;
-    }
-
-    private java.lang.Object datastorePartition_ = "";
-    /**
-     * <pre>
-     * Data partition this instance's record operations are scoped to, for
-     * every datastore the agent uses. Unset means the shared "default"
-     * partition.
-     *
-     * Instances declaring the same label share records (e.g. the prod
-     * instances of two agents on one datastore); a different label is a
-     * fully isolated dataset (e.g. a dev instance whose test records
-     * never touch prod).
-     *
-     * &#64;internal
-     * DD-010: the record RPCs derive the partition from the session's
-     * resolved instance — server-side, per call, never from tool
-     * arguments — so the label (not the instance id, which changes when
-     * default instances are recreated) is the durable partition key.
-     * One label per instance in v1; a per-datastore map is a recorded
-     * additive growth slot.
-     * </pre>
-     *
-     * <code>string datastore_partition = 4 [json_name = "datastorePartition", (.buf.validate.field) = { ... }</code>
-     * @return The datastorePartition.
-     */
-    public java.lang.String getDatastorePartition() {
-      java.lang.Object ref = datastorePartition_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        datastorePartition_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Data partition this instance's record operations are scoped to, for
-     * every datastore the agent uses. Unset means the shared "default"
-     * partition.
-     *
-     * Instances declaring the same label share records (e.g. the prod
-     * instances of two agents on one datastore); a different label is a
-     * fully isolated dataset (e.g. a dev instance whose test records
-     * never touch prod).
-     *
-     * &#64;internal
-     * DD-010: the record RPCs derive the partition from the session's
-     * resolved instance — server-side, per call, never from tool
-     * arguments — so the label (not the instance id, which changes when
-     * default instances are recreated) is the durable partition key.
-     * One label per instance in v1; a per-datastore map is a recorded
-     * additive growth slot.
-     * </pre>
-     *
-     * <code>string datastore_partition = 4 [json_name = "datastorePartition", (.buf.validate.field) = { ... }</code>
-     * @return The bytes for datastorePartition.
-     */
-    public com.google.protobuf.ByteString
-        getDatastorePartitionBytes() {
-      java.lang.Object ref = datastorePartition_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        datastorePartition_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Data partition this instance's record operations are scoped to, for
-     * every datastore the agent uses. Unset means the shared "default"
-     * partition.
-     *
-     * Instances declaring the same label share records (e.g. the prod
-     * instances of two agents on one datastore); a different label is a
-     * fully isolated dataset (e.g. a dev instance whose test records
-     * never touch prod).
-     *
-     * &#64;internal
-     * DD-010: the record RPCs derive the partition from the session's
-     * resolved instance — server-side, per call, never from tool
-     * arguments — so the label (not the instance id, which changes when
-     * default instances are recreated) is the durable partition key.
-     * One label per instance in v1; a per-datastore map is a recorded
-     * additive growth slot.
-     * </pre>
-     *
-     * <code>string datastore_partition = 4 [json_name = "datastorePartition", (.buf.validate.field) = { ... }</code>
-     * @param value The datastorePartition to set.
-     * @return This builder for chaining.
-     */
-    public Builder setDatastorePartition(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      datastorePartition_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Data partition this instance's record operations are scoped to, for
-     * every datastore the agent uses. Unset means the shared "default"
-     * partition.
-     *
-     * Instances declaring the same label share records (e.g. the prod
-     * instances of two agents on one datastore); a different label is a
-     * fully isolated dataset (e.g. a dev instance whose test records
-     * never touch prod).
-     *
-     * &#64;internal
-     * DD-010: the record RPCs derive the partition from the session's
-     * resolved instance — server-side, per call, never from tool
-     * arguments — so the label (not the instance id, which changes when
-     * default instances are recreated) is the durable partition key.
-     * One label per instance in v1; a per-datastore map is a recorded
-     * additive growth slot.
-     * </pre>
-     *
-     * <code>string datastore_partition = 4 [json_name = "datastorePartition", (.buf.validate.field) = { ... }</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearDatastorePartition() {
-      datastorePartition_ = getDefaultInstance().getDatastorePartition();
-      bitField0_ = (bitField0_ & ~0x00000008);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Data partition this instance's record operations are scoped to, for
-     * every datastore the agent uses. Unset means the shared "default"
-     * partition.
-     *
-     * Instances declaring the same label share records (e.g. the prod
-     * instances of two agents on one datastore); a different label is a
-     * fully isolated dataset (e.g. a dev instance whose test records
-     * never touch prod).
-     *
-     * &#64;internal
-     * DD-010: the record RPCs derive the partition from the session's
-     * resolved instance — server-side, per call, never from tool
-     * arguments — so the label (not the instance id, which changes when
-     * default instances are recreated) is the durable partition key.
-     * One label per instance in v1; a per-datastore map is a recorded
-     * additive growth slot.
-     * </pre>
-     *
-     * <code>string datastore_partition = 4 [json_name = "datastorePartition", (.buf.validate.field) = { ... }</code>
-     * @param value The bytes for datastorePartition to set.
-     * @return This builder for chaining.
-     */
-    public Builder setDatastorePartitionBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      datastorePartition_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec)

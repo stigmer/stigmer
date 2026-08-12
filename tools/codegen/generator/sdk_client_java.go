@@ -80,9 +80,9 @@ func javaCapCamel(protoField string) string {
 //     FieldDeclaration.default);
 //   - java.lang.Object method names, because builder methods share every
 //     object's inherited method namespace — `Builder equals(Object)` fails to
-//     compile as an invalid override of Object.equals (datastore
-//     UniqueWhere.equals). Escaped by name rather than by clashing signature
-//     so a field's type can never change its public builder method name.
+//     compile as an invalid override of Object.equals. Escaped by name rather
+//     than by clashing signature so a field's type can never change its
+//     public builder method name.
 var javaReservedNames = map[string]bool{
 	"abstract": true, "assert": true, "boolean": true, "break": true,
 	"byte": true, "case": true, "catch": true, "char": true, "class": true,

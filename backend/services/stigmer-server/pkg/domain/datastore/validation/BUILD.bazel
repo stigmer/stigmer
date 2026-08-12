@@ -6,12 +6,12 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/validation",
     visibility = ["//visibility:public"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/datastore/v1:datastore",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/services/stigmer-server/pkg/domain/datastore/authz",
         "//backend/services/stigmer-server/pkg/domain/datastore/celeval",
         "//backend/services/stigmer-server/pkg/domain/datastore/identity",
         "//backend/services/stigmer-server/pkg/domain/datastore/schema",
+        "@com_github_stigmer_stigmer_apis_stubs_go//ai/stigmer/agentic/datastore/v1:datastore",
     ],
 )
 
@@ -20,8 +20,8 @@ go_test(
     srcs = ["validation_test.go"],
     embed = [":validation"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/datastore/v1:datastore",
         "//apis/stubs/go/ai/stigmer/iam/iampolicy/v1:iampolicy",
+        "@com_github_stigmer_stigmer_apis_stubs_go//ai/stigmer/agentic/datastore/v1:datastore",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_protobuf//types/known/structpb",

@@ -90,7 +90,6 @@ export interface AgentInstanceInput {
   agentId?: string;
   description?: string;
   environmentRefs?: ResourceRef[];
-  datastorePartition?: string;
 }
 
 export function buildAgentInstanceProto(input: AgentInstanceInput): AgentInstance {
@@ -109,7 +108,6 @@ export function buildAgentInstanceProto(input: AgentInstanceInput): AgentInstanc
       agentId: input.agentId,
       description: input.description,
       environmentRefs,
-      datastorePartition: input.datastorePartition,
     })),
   }) as AgentInstance;
 }

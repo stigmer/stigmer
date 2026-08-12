@@ -6,8 +6,8 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/authz",
     visibility = ["//visibility:public"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/datastore/v1:datastore",
         "//backend/services/stigmer-server/pkg/domain/datastore/identity",
+        "@com_github_stigmer_stigmer_apis_stubs_go//ai/stigmer/agentic/datastore/v1:datastore",
     ],
 )
 
@@ -16,9 +16,9 @@ go_test(
     srcs = ["authz_test.go"],
     embed = [":authz"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/datastore/v1:datastore",
         "//apis/stubs/go/ai/stigmer/iam/iampolicy/v1:iampolicy",
         "//backend/services/stigmer-server/pkg/domain/datastore/identity",
+        "@com_github_stigmer_stigmer_apis_stubs_go//ai/stigmer/agentic/datastore/v1:datastore",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
     ],

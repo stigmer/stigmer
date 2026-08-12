@@ -30,12 +30,11 @@ import (
 // surface (agents.ApplyTool + mcpservers.ApplyTool) plus workflow, which the
 // Go server had temporarily disabled for a recursive-type limitation that
 // protobuf-es + zod's z.lazy resolves — so the TS server re-enables it.
-// Environment and datastore complete the authoring loop (agents and records
-// reference both). Each entry is a "<domain>/<resource>" schema directory
-// under tools/codegen/schemas.
+// Environment completes the authoring loop (agents reference it). Each
+// entry is a "<domain>/<resource>" schema directory under
+// tools/codegen/schemas.
 var mcpTSApplyResources = []string{
 	"agentic/agent",
-	"agentic/datastore",
 	"agentic/environment",
 	"agentic/mcpserver",
 	"agentic/workflow",

@@ -6,11 +6,11 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/celeval",
     visibility = ["//visibility:public"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/datastore/v1:datastore",
         "//backend/services/stigmer-server/pkg/domain/datastore/schema",
         "@com_github_google_cel_go//cel:go_default_library",
         "@com_github_google_cel_go//common/types:go_default_library",
         "@com_github_google_cel_go//common/types/ref:go_default_library",
+        "@com_github_stigmer_stigmer_apis_stubs_go//ai/stigmer/agentic/datastore/v1:datastore",
     ],
 )
 
@@ -19,8 +19,8 @@ go_test(
     srcs = ["conformance_test.go"],
     embed = [":celeval"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/datastore/v1:datastore",
         "//backend/services/stigmer-server/pkg/domain/datastore/schema",
+        "@com_github_stigmer_stigmer_apis_stubs_go//ai/stigmer/agentic/datastore/v1:datastore",
         "@in_gopkg_yaml_v3//:yaml_v3",
     ],
 )

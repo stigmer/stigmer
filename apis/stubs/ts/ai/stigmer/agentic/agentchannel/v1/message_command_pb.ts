@@ -21,10 +21,9 @@ export const file_ai_stigmer_agentic_agentchannel_v1_message_command: GenFile = 
  *
  * @internal
  * proactive-messaging DD-002 D2: the runtime messaging surface beside
- * the AgentChannel resource controllers — the
- * DatastoreRecordCommandController-beside-DatastoreCommandController
- * split, so resource CRUD and runtime traffic never mix. Dual-audience
- * by token-class dispatch (the RecordReach shape): the agent's
+ * the AgentChannel resource controllers — a dedicated runtime service
+ * next to the resource CRUD service, so resource CRUD and runtime
+ * traffic never mix. Dual-audience by token-class dispatch: the agent's
  * send_channel_message tool calls with a session-scoped sandbox token;
  * direct principals (console, CLI, SDK) call with their own identity.
  *

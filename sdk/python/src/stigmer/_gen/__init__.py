@@ -2,7 +2,7 @@
 
 from ._bidi import BidiStream
 from ._client import GeneratedClient
-from ._agent import AgentClient, AgentInput, McpServerUsageInput, ToolApprovalOverrideInput, SubAgentInput, McpAccessInput, EnvVarDeclarationInput, DatastoreUsageInput
+from ._agent import AgentClient, AgentInput, McpServerUsageInput, ToolApprovalOverrideInput, SubAgentInput, McpAccessInput, EnvVarDeclarationInput
 from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput, WhatsAppChannelConfigInput, RunConfigInput
 from ._agentexecution import AgentExecutionClient, AgentExecutionInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, ExecutionConfigInput, ContextManagementConfigInput, AttachmentInput, ConversationCatchupInput
 from ._agentinstance import AgentInstanceClient, AgentInstanceInput
@@ -10,10 +10,9 @@ from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesIn
 from ._apikey import ApiKeyClient, ApiKeyInput
 from ._artifact import ArtifactClient, ArtifactInput, ArtifactSourceInput, RetentionPolicyInput
 from ._channelapp import ChannelAppClient, ChannelAppInput, SlackChannelAppConfigInput, WhatsAppChannelAppConfigInput
-from ._datastore import DatastoreClient, DatastoreInput, DatastoreAuthorizationInput, DatastoreRoleInput, DatastoreRoleBindingInput, DatastoreSubjectInput, ChannelSenderSubjectInput, ApiResourceRefInput, CollectionDeclarationInput, FieldDeclarationInput, UniqueConstraintInput, UniqueWhereInput, CheckConstraintInput, ExistsConstraintInput, DatastoreGrantInput
 from ._environment import EnvironmentClient, EnvironmentInput
 from ._executioncontext import ExecutionContextClient, ExecutionContextInput
-from ._iampolicy import IamPolicyClient, IamPolicyInput
+from ._iampolicy import IamPolicyClient, IamPolicyInput, ApiResourceRefInput
 from ._identityaccount import IdentityAccountClient, IdentityAccountInput
 from ._identityprovider import IdentityProviderClient, IdentityProviderInput
 from ._invitation import InvitationClient, InvitationInput
@@ -56,7 +55,6 @@ __all__ = [
     "SubAgentInput",
     "McpAccessInput",
     "EnvVarDeclarationInput",
-    "DatastoreUsageInput",
     "AgentChannelClient",
     "AgentChannelInput",
     "SlackChannelConfigInput",
@@ -88,27 +86,13 @@ __all__ = [
     "ChannelAppInput",
     "SlackChannelAppConfigInput",
     "WhatsAppChannelAppConfigInput",
-    "DatastoreClient",
-    "DatastoreInput",
-    "DatastoreAuthorizationInput",
-    "DatastoreRoleInput",
-    "DatastoreRoleBindingInput",
-    "DatastoreSubjectInput",
-    "ChannelSenderSubjectInput",
-    "ApiResourceRefInput",
-    "CollectionDeclarationInput",
-    "FieldDeclarationInput",
-    "UniqueConstraintInput",
-    "UniqueWhereInput",
-    "CheckConstraintInput",
-    "ExistsConstraintInput",
-    "DatastoreGrantInput",
     "EnvironmentClient",
     "EnvironmentInput",
     "ExecutionContextClient",
     "ExecutionContextInput",
     "IamPolicyClient",
     "IamPolicyInput",
+    "ApiResourceRefInput",
     "IdentityAccountClient",
     "IdentityAccountInput",
     "IdentityProviderClient",

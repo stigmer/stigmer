@@ -37,7 +37,6 @@ import (
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1"
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/artifact/v1"
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/channelapp/v1"
-	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"

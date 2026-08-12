@@ -6,11 +6,11 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/schemasync",
     visibility = ["//visibility:public"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/datastore/v1:datastore",
         "//backend/services/stigmer-server/pkg/domain/datastore/celeval",
         "//backend/services/stigmer-server/pkg/domain/datastore/records",
         "//backend/services/stigmer-server/pkg/domain/datastore/recordstore",
         "//backend/services/stigmer-server/pkg/domain/datastore/schema",
+        "@com_github_stigmer_stigmer_apis_stubs_go//ai/stigmer/agentic/datastore/v1:datastore",
         "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//types/known/timestamppb",
     ],

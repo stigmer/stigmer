@@ -27,7 +27,7 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n.ai/stigmer/agentic/agentinstance/v1/spec.proto\x12#ai.stigmer.agentic.agentinstance.v1\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1b\x62uf/validate/validate.proto\"\x8d\x03\n\x11\x41gentInstanceSpec\x12\"\n\x08\x61gent_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07\x61gentId\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\x12\xd9\x01\n\x10\x65nvironment_refs\x18\x03 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n\x15\x65nvironment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0f\x65nvironmentRefs\x12V\n\x13\x64\x61tastore_partition\x18\x04 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\x12\x64\x61tastorePartitionB\xe5\x01\n\'com.ai.stigmer.agentic.agentinstance.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02#Ai.Stigmer.Agentic.Agentinstance.V1\xca\x02#Ai\\Stigmer\\Agentic\\Agentinstance\\V1\xe2\x02/Ai\\Stigmer\\Agentic\\Agentinstance\\V1\\GPBMetadata\xea\x02\'Ai::Stigmer::Agentic::Agentinstance::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n.ai/stigmer/agentic/agentinstance/v1/spec.proto\x12#ai.stigmer.agentic.agentinstance.v1\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1b\x62uf/validate/validate.proto\"\xd0\x02\n\x11\x41gentInstanceSpec\x12\"\n\x08\x61gent_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07\x61gentId\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\x12\xd9\x01\n\x10\x65nvironment_refs\x18\x03 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n\x15\x65nvironment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0f\x65nvironmentRefsJ\x04\x08\x04\x10\x05R\x13\x64\x61tastore_partitionB\xe5\x01\n\'com.ai.stigmer.agentic.agentinstance.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02#Ai.Stigmer.Agentic.Agentinstance.V1\xca\x02#Ai\\Stigmer\\Agentic\\Agentinstance\\V1\xe2\x02/Ai\\Stigmer\\Agentic\\Agentinstance\\V1\\GPBMetadata\xea\x02\'Ai::Stigmer::Agentic::Agentinstance::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -39,8 +39,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_AGENTINSTANCESPEC'].fields_by_name['agent_id']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_AGENTINSTANCESPEC'].fields_by_name['environment_refs']._loaded_options = None
   _globals['_AGENTINSTANCESPEC'].fields_by_name['environment_refs']._serialized_options = b'\272Hq\222\001n\"l\272\001i\n\025environment_refs.kind\022?environment_refs must reference resources with kind=environment\032\017this.kind == 53\340\205,5'
-  _globals['_AGENTINSTANCESPEC'].fields_by_name['datastore_partition']._loaded_options = None
-  _globals['_AGENTINSTANCESPEC'].fields_by_name['datastore_partition']._serialized_options = b'\272H\"r \030?2\034^$|^[a-z][a-z0-9-]*[a-z0-9]$'
   _globals['_AGENTINSTANCESPEC']._serialized_start=210
-  _globals['_AGENTINSTANCESPEC']._serialized_end=607
+  _globals['_AGENTINSTANCESPEC']._serialized_end=546
 # @@protoc_insertion_point(module_scope)

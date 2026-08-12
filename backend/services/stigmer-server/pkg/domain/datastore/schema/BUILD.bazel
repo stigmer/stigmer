@@ -5,7 +5,7 @@ go_library(
     srcs = ["schema.go"],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/schema",
     visibility = ["//visibility:public"],
-    deps = ["//apis/stubs/go/ai/stigmer/agentic/datastore/v1:datastore"],
+    deps = ["@com_github_stigmer_stigmer_apis_stubs_go//ai/stigmer/agentic/datastore/v1:datastore"],
 )
 
 go_test(
@@ -13,7 +13,7 @@ go_test(
     srcs = ["schema_test.go"],
     embed = [":schema"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/datastore/v1:datastore",
+        "@com_github_stigmer_stigmer_apis_stubs_go//ai/stigmer/agentic/datastore/v1:datastore",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
     ],

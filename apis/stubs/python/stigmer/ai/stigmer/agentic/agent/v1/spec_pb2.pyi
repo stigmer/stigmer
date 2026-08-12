@@ -11,7 +11,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentSpec(_message.Message):
-    __slots__ = ("description", "icon_url", "instructions", "mcp_server_usages", "skill_refs", "sub_agents", "env", "datastore_usages")
+    __slots__ = ("description", "icon_url", "instructions", "mcp_server_usages", "skill_refs", "sub_agents", "env")
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -26,7 +26,6 @@ class AgentSpec(_message.Message):
     SKILL_REFS_FIELD_NUMBER: _ClassVar[int]
     SUB_AGENTS_FIELD_NUMBER: _ClassVar[int]
     ENV_FIELD_NUMBER: _ClassVar[int]
-    DATASTORE_USAGES_FIELD_NUMBER: _ClassVar[int]
     description: str
     icon_url: str
     instructions: str
@@ -34,8 +33,7 @@ class AgentSpec(_message.Message):
     skill_refs: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
     sub_agents: _containers.RepeatedCompositeFieldContainer[SubAgent]
     env: _containers.MessageMap[str, _spec_pb2.EnvVarDeclaration]
-    datastore_usages: _containers.RepeatedCompositeFieldContainer[DatastoreUsage]
-    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_server_usages: _Optional[_Iterable[_Union[McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., sub_agents: _Optional[_Iterable[_Union[SubAgent, _Mapping]]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ..., datastore_usages: _Optional[_Iterable[_Union[DatastoreUsage, _Mapping]]] = ...) -> None: ...
+    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_server_usages: _Optional[_Iterable[_Union[McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., sub_agents: _Optional[_Iterable[_Union[SubAgent, _Mapping]]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ...) -> None: ...
 
 class SubAgent(_message.Message):
     __slots__ = ("name", "description", "instructions", "mcp_access", "skill_refs", "model_override")
@@ -62,12 +60,6 @@ class McpServerUsage(_message.Message):
     enabled_tools: _containers.RepeatedScalarFieldContainer[str]
     tool_approval_overrides: _containers.RepeatedCompositeFieldContainer[ToolApprovalOverride]
     def __init__(self, mcp_server_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., enabled_tools: _Optional[_Iterable[str]] = ..., tool_approval_overrides: _Optional[_Iterable[_Union[ToolApprovalOverride, _Mapping]]] = ...) -> None: ...
-
-class DatastoreUsage(_message.Message):
-    __slots__ = ("datastore_ref",)
-    DATASTORE_REF_FIELD_NUMBER: _ClassVar[int]
-    datastore_ref: _io_pb2.ApiResourceReference
-    def __init__(self, datastore_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ...) -> None: ...
 
 class McpAccess(_message.Message):
     __slots__ = ("mcp_server", "enabled_tools")
