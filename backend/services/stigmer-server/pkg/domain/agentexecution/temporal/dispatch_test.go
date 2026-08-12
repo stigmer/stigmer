@@ -295,9 +295,9 @@ func TestResolveExecutionTarget(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := resolveExecutionTarget(tt.target, tt.cfg)
+			got := tt.cfg.ResolveExecutionTarget(tt.target)
 			if got != tt.want {
-				t.Errorf("resolveExecutionTarget(%v) = %v, want %v", tt.target, got, tt.want)
+				t.Errorf("Config.ResolveExecutionTarget(%v) = %v, want %v", tt.target, got, tt.want)
 			}
 		})
 	}

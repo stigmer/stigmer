@@ -43,7 +43,7 @@ func (c *SessionController) buildUpdatePipeline() *pipeline.Pipeline[*sessionv1.
 		AddStep(steps.NewResolveSlugStep[*sessionv1.Session]()).                                       // 2. Resolve slug
 		AddStep(steps.NewLoadExistingStep[*sessionv1.Session](c.store)).                               // 3. Load existing session
 		AddStep(NewValidateHarnessImmutabilityStep()).                                                 // 4. Reject harness change after first execution
-		AddStep(NewValidateExecutionTargetImmutabilityStep()).                                         // 5. Reject execution_target change after first execution
+		AddStep(NewValidateExecutionTargetImmutabilityStep(c.temporalConfig)).                         // 5. Reject execution_target change after first execution
 		AddStep(steps.NewBuildUpdateStateStep[*sessionv1.Session]()).                                  // 6. Build updated state
 		AddStep(NewRecordHarnessStateHistoryStep()).                                                   // 7. Server-owned harness_state_id_history append
 		AddStep(steps.NewPersistStep[*sessionv1.Session](c.store)).                                    // 8. Persist session
