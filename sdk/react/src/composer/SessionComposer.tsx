@@ -335,6 +335,20 @@ export interface SessionComposerProps {
   readonly onAgentResolutionChange?: (resolution: AgentResolution | null) => void;
 
   /**
+   * Called whenever the agent setup's error changes: an {@link Error} when
+   * resolution (or env submission) fails, `null` when the error clears.
+   *
+   * This is the ONLY way an embedder can observe a failed mount-time
+   * resolution of {@link SessionComposerProps.initialAgentRef}: the failure
+   * is captured internally and rendered inside the Configure popover's
+   * agent panel — a surface a locked, end-user-facing embed never opens.
+   * A parent that gates behavior on `onAgentResolutionChange` alone waits
+   * forever on a resolution that already failed; wire this to surface the
+   * reason instead.
+   */
+  readonly onAgentSetupErrorChange?: (error: Error | null) => void;
+
+  /**
    * Agent to auto-select when the composer mounts.
    *
    * When provided, the composer runs the full agent resolution flow
@@ -599,6 +613,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   agentRef,
   onAgentRefChange,
   onAgentResolutionChange,
+  onAgentSetupErrorChange,
   initialAgentRef,
   initialInstanceId,
   isDefaultAgent = false,
@@ -718,6 +733,16 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     if (agentSetup.state.status !== "ready") return;
     onAgentResolutionChange?.(agentSetup.state.resolution);
   }, [agentSetup.state, onAgentResolutionChange]);
+
+  // The error's own bridge, beside the resolution's: the setup error is
+  // orthogonal to phase and is otherwise visible ONLY inside the Configure
+  // popover -- which a locked end-user embed never opens. Without this, a
+  // failed mount-time resolution of initialAgentRef is invisible to the
+  // parent (the resolution callback never fires on failure) and any parent
+  // gate waiting on it holds forever.
+  useEffect(() => {
+    onAgentSetupErrorChange?.(agentSetup.state.error ?? null);
+  }, [agentSetup.state.error, onAgentSetupErrorChange]);
 
   // ---------------------------------------------------------------------------
   // Attachments — file upload state machine
