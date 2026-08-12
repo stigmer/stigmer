@@ -33,9 +33,10 @@ func TestSDKAcceptance_TypeScript(t *testing.T) {
 	require.NotNil(t, testHarness, "test harness must be initialized")
 	require.NotNil(t, testHarness.Service, "Java service must be running")
 
-	if _, err := exec.LookPath("tsx"); err != nil {
-		t.Skip("tsx not on PATH — skipping TypeScript SDK acceptance test")
-	}
+	// No skip path: this test silently skipped everywhere for months behind a
+	// PATH lookup (oss#481), so missing prerequisites now fail loudly with the
+	// command that fixes them (the check-runner-node philosophy).
+	tsxBin := requireTsSmokePrereqs(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
@@ -44,7 +45,6 @@ func TestSDKAcceptance_TypeScript(t *testing.T) {
 	harness.RequireServiceHealthy(t, ctx, clients)
 
 	scriptDir := filepath.Join(testdataDir(), "sdk-smoke-ts")
-	requireNpmInstall(t, ctx, scriptDir)
 
 	addr := testHarness.Service.GRPCAddress()
 	workflowRunnerAvailable := "false"
@@ -52,7 +52,7 @@ func TestSDKAcceptance_TypeScript(t *testing.T) {
 		workflowRunnerAvailable = "true"
 	}
 
-	result, err := runSmokeScript(t, ctx, scriptDir, "tsx", []string{"smoke.ts"},
+	result, err := runSmokeScript(t, ctx, scriptDir, tsxBin, []string{"smoke.ts"},
 		"STIGMER_GRPC_ADDRESS", addr,
 		"STIGMER_WORKFLOW_RUNNER_AVAILABLE", workflowRunnerAvailable,
 	)
@@ -133,29 +133,40 @@ func testdataDir() string {
 	return filepath.Join("testdata")
 }
 
-// requireNpmInstall runs npm install in the given directory if node_modules
-// doesn't exist or package.json is newer.
-func requireNpmInstall(t *testing.T, ctx context.Context, dir string) {
+// requireTsSmokePrereqs verifies the TypeScript smoke script can actually run
+// and returns the workspace tsx binary to run it with. The smoke's deps are
+// provided by the root npm workspace (sdk-smoke-ts is a workspace member), so
+// there is deliberately no install-on-demand here: `npm install` inside a
+// workspace member directory prunes the root-hoisted packages (the
+// test-e2e-approval footgun documented in the root Makefile), and a standalone
+// install would fetch the *published* @stigmer/sdk instead of the working tree.
+func requireTsSmokePrereqs(t *testing.T) string {
 	t.Helper()
-	nodeModules := filepath.Join(dir, "node_modules")
-	pkgJSON := filepath.Join(dir, "package.json")
 
-	needsInstall := true
-	if nmInfo, err := os.Stat(nodeModules); err == nil {
-		if pkgInfo, err := os.Stat(pkgJSON); err == nil {
-			needsInstall = pkgInfo.ModTime().After(nmInfo.ModTime())
-		}
+	tsxBin, err := harness.ResolveWorkspaceTsx()
+	require.NoError(t, err, "TypeScript SDK smoke prerequisites missing")
+
+	repoRoot := harness.MonorepoRoot()
+
+	// The sdk-smoke-ts workspace link only exists when the root install ran
+	// against a manifest that lists it as a member — this catches a stale
+	// root node_modules from before the smoke joined the workspace, which a
+	// tsx-only check would miss.
+	smokeLink := filepath.Join(repoRoot, "node_modules", "sdk-smoke-ts")
+	if _, err := os.Stat(smokeLink); err != nil {
+		require.FailNow(t, "TypeScript SDK smoke deps not installed",
+			"workspace link not found at %s — run `npm install` at the repo root", smokeLink)
 	}
 
-	if !needsInstall {
-		return
+	// @stigmer/protos exports only dist/ (no dev/src split, unlike
+	// @stigmer/sdk), so the smoke needs the stubs built.
+	protosDist := filepath.Join(repoRoot, "apis", "stubs", "ts", "dist")
+	if _, err := os.Stat(protosDist); err != nil {
+		require.FailNow(t, "TypeScript proto stubs not built",
+			"dist not found at %s — run `make build-ts-stubs` at the repo root", protosDist)
 	}
 
-	t.Log("running npm install for TypeScript SDK smoke test...")
-	cmd := exec.CommandContext(ctx, "npm", "install", "--no-audit", "--no-fund")
-	cmd.Dir = dir
-	cmd.Stderr = os.Stderr
-	require.NoError(t, cmd.Run(), "npm install must succeed in %s", dir)
+	return tsxBin
 }
 
 // requirePythonVenv creates a virtualenv and installs the stigmer SDK

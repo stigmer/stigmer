@@ -117,6 +117,15 @@ enum IamPermission {
   // this channel's customers" and "may configure this channel" are
   // different powers, and the ISC pilot's trainers hold only the first.
   can_participate = 36;
+
+  // Platform-level permission to introduce or change labels in the
+  // reserved stigmer.ai/* key namespace through client-facing write
+  // boundaries. Gated to platform operators (the seeding machine
+  // account): reserved labels carry platform semantics — most
+  // critically stigmer.ai/default-agent, which selects the platform
+  // default agent served to every organization — so ordinary requests
+  // may echo or remove them but never write them (cloud#320).
+  can_write_reserved_labels = 37;
 }
 
 // IamRole defines the roles that can be assigned to principals on resources

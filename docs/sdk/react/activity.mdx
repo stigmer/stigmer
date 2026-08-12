@@ -21,8 +21,9 @@ The server handles:
 - Fallback to `specAudit.createdAt` for documents without status updates
 - Pagination / trimming to the requested page size
 
-The OSS server does not implement this RPC yet (stigmer#461): against a
-pure OSS backend the fetch rejects and `error` is surfaced to the caller.
+Both editions implement the RPC with identical merge/projection semantics
+(the OSS server since stigmer#461; it is single-tenant, so the caller sees
+every stored resource and the org filter is a no-op there).
 
 **Signature**
 

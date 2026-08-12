@@ -5,11 +5,13 @@ import (
 
 	"github.com/rs/zerolog/log"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // UpdateStatus updates execution status during workflow execution
@@ -248,6 +250,25 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*work
 			func(fr *workflowexecutionv1.WorkflowPendingFileReview) string { return fr.GetChildAgentExecutionId() },
 			scopeChildID,
 		)
+	}
+
+	// Only bump statusAudit.updatedAt on phase transitions — not on every
+	// task-progress heartbeat from the runner. This prevents long-running
+	// executions from perpetually sorting above freshly created ones in the
+	// recents sidebar (ActivityQueryController orders by this field).
+	// Creation initializes both audit slots via SetAuditFieldsForCreate.
+	// Mirrors the cloud's WorkflowExecutionUpdateStatusHandler exactly.
+	isPhaseTransition := requestStatus.Phase != workflowexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED &&
+		requestStatus.Phase != existing.GetStatus().GetPhase()
+	if isPhaseTransition {
+		if updated.Status.Audit == nil {
+			updated.Status.Audit = &apiresource.ApiResourceAudit{}
+		}
+		if updated.Status.Audit.StatusAudit == nil {
+			updated.Status.Audit.StatusAudit = &apiresource.ApiResourceAuditInfo{}
+		}
+		updated.Status.Audit.StatusAudit.UpdatedAt = timestamppb.Now()
+		updated.Status.Audit.StatusAudit.Event = "updated"
 	}
 
 	log.Debug().

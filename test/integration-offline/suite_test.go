@@ -120,11 +120,16 @@ func TestMain(m *testing.M) {
 		suiteLogger.Warn("failed to provision test billing account — some tests may fail", "error", err)
 	}
 
+	// A failed seed is fatal, not degraded: a half-seeded default agent fails
+	// every session-dependent test with a misleading PERMISSION_DENIED
+	// instead of the one real error here (oss#541).
 	if err := harness.SeedDefaultAgent(ctx, grpcConn); err != nil {
-		suiteLogger.Warn("failed to seed default agent", "error", err)
-	} else {
-		suiteLogger.Info("default agent seeded")
+		suiteLogger.Error("failed to seed default agent — aborting suite", "error", err)
+		grpcConn.Close()
+		testHarness.Stop(ctx)
+		os.Exit(1)
 	}
+	suiteLogger.Info("default agent seeded")
 
 	mcpBinary, mcpErr := harness.BuildTestMcpServer(cfg.OutputDir)
 	if mcpErr != nil {

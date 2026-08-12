@@ -6,6 +6,7 @@
 // any client convenience layer that could drift from it.
 import { createClient, type Client, type Interceptor, type Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
+import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/query_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
@@ -36,6 +37,7 @@ import { ProjectCommandController } from "@stigmer/protos/ai/stigmer/tenancy/pro
 import { ProjectQueryController } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/query_pb";
 
 export interface ConformanceClients {
+  activityQuery: Client<typeof ActivityQueryController>;
   projectCommand: Client<typeof ProjectCommandController>;
   projectQuery: Client<typeof ProjectQueryController>;
   organizationCommand: Client<typeof OrganizationCommandController>;
@@ -90,6 +92,7 @@ export function createTransport(baseUrl: string, options: TransportOptions = {})
 
 export function makeClients(transport: Transport): ConformanceClients {
   return {
+    activityQuery: createClient(ActivityQueryController, transport),
     projectCommand: createClient(ProjectCommandController, transport),
     projectQuery: createClient(ProjectQueryController, transport),
     organizationCommand: createClient(OrganizationCommandController, transport),

@@ -77,6 +77,21 @@ export interface CapabilityFlags {
   // execution is created) — which is what lets this be the first
   // execution-class behavior asserted cross-edition.
   scheduleFiring: boolean;
+  // The conformance caller may write labels in the reserved stigmer.ai/*
+  // namespace (the getDefault determinism pin creates its labeled
+  // candidates through the public API).
+  //
+  // True for the local OSS targets: single-tenant, deliberately unguarded —
+  // the operator owns the store (stigmer-cloud#320 scoped OSS out).
+  //
+  // False for cloud: GuardReservedLabelsStep rejects non-operator
+  // introductions/changes of reserved labels at the agent write boundaries
+  // (stigmer-cloud#320), and the ordinary conformance user holds no
+  // platform-operator grant. Cloud determinism coverage lives at the
+  // adapter layer meanwhile (AgentRepoCustomQueryContractTest). Flip or
+  // retire this flag when the harness gains a platform-privileged caller
+  // (stigmer#547) — until then the pin runs OSS-side only.
+  clientReservedLabelWrites: boolean;
 }
 
 // Tenancy scope a test operates within. Locally this is just a unique org slug

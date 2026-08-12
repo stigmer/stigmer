@@ -261,6 +261,20 @@ public enum IamPermission
    * <code>can_participate = 36;</code>
    */
   can_participate(36),
+  /**
+   * <pre>
+   * Platform-level permission to introduce or change labels in the
+   * reserved stigmer.ai/&#42; key namespace through client-facing write
+   * boundaries. Gated to platform operators (the seeding machine
+   * account): reserved labels carry platform semantics — most
+   * critically stigmer.ai/default-agent, which selects the platform
+   * default agent served to every organization — so ordinary requests
+   * may echo or remove them but never write them (cloud#320).
+   * </pre>
+   *
+   * <code>can_write_reserved_labels = 37;</code>
+   */
+  can_write_reserved_labels(37),
   UNRECOGNIZED(-1),
   ;
 
@@ -509,6 +523,20 @@ public enum IamPermission
    * <code>can_participate = 36;</code>
    */
   public static final int can_participate_VALUE = 36;
+  /**
+   * <pre>
+   * Platform-level permission to introduce or change labels in the
+   * reserved stigmer.ai/&#42; key namespace through client-facing write
+   * boundaries. Gated to platform operators (the seeding machine
+   * account): reserved labels carry platform semantics — most
+   * critically stigmer.ai/default-agent, which selects the platform
+   * default agent served to every organization — so ordinary requests
+   * may echo or remove them but never write them (cloud#320).
+   * </pre>
+   *
+   * <code>can_write_reserved_labels = 37;</code>
+   */
+  public static final int can_write_reserved_labels_VALUE = 37;
 
 
   public final int getNumber() {
@@ -569,6 +597,7 @@ public enum IamPermission
       case 32: return can_manage_model_pricing;
       case 35: return can_manage_cursor_accounts;
       case 36: return can_participate;
+      case 37: return can_write_reserved_labels;
       default: return null;
     }
   }

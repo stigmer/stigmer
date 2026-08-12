@@ -40,6 +40,7 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_manage_model_pricing: _ClassVar[IamPermission]
     can_manage_cursor_accounts: _ClassVar[IamPermission]
     can_participate: _ClassVar[IamPermission]
+    can_write_reserved_labels: _ClassVar[IamPermission]
 
 class IamRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -83,6 +84,7 @@ can_create_channel_app: IamPermission
 can_manage_model_pricing: IamPermission
 can_manage_cursor_accounts: IamPermission
 can_participate: IamPermission
+can_write_reserved_labels: IamPermission
 iam_role_unspecified: IamRole
 owner: IamRole
 admin: IamRole

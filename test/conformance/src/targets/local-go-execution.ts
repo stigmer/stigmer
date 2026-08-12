@@ -46,6 +46,9 @@ export class LocalGoExecutionTarget implements TargetProfile {
     // the firing suite now runs identically on both editions, which is
     // the executable form of edition parity for schedules.
     scheduleFiring: true,
+    // Single-tenant OSS: the reserved-label write guard is cloud-only
+    // (stigmer-cloud#320), so the caller may create labeled candidates.
+    clientReservedLabelWrites: true,
   };
 
   private temporal: RunningTemporal | undefined;

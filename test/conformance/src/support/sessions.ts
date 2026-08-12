@@ -68,15 +68,19 @@ export function makeSessionSpec(opts: SessionSpecOptions): MessageInitShape<type
 export interface SessionOptions extends SessionSpecOptions {
   org: string;
   name: string;
+  // Metadata labels. The activity suite uses these to stamp runtime-origin
+  // labels (stigmer.ai/channel-id etc.) the way the channel/schedule runtimes
+  // do, exercising the recents personal-sessions-only exclusion.
+  labels?: Record<string, string>;
 }
 
 // A complete, valid Session resource ready to hand to create/apply/update.
 export function makeSession(opts: SessionOptions): MessageInitShape<typeof SessionSchema> {
-  const { org, name, ...specOpts } = opts;
+  const { org, name, labels, ...specOpts } = opts;
   return {
     apiVersion: SESSION_API_VERSION,
     kind: SESSION_KIND,
-    metadata: { name, org },
+    metadata: { name, org, ...(labels !== undefined ? { labels } : {}) },
     spec: makeSessionSpec(specOpts),
   };
 }

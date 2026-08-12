@@ -12,6 +12,7 @@ import (
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	activityv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/activity/v1"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentchannelv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentchannel/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
@@ -89,6 +90,8 @@ import (
 	sessionclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
 	workflowclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
 	workflowinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
+	activitycontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/activity/controller"
+	activityhandler "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/activity/handler"
 	searchcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/controller"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 	searchhandler "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/handler"
@@ -464,6 +467,17 @@ func Run() error {
 	extractor.GetRegistry().ValidateExpectedKinds()
 
 	log.Info().Msg("Registered SearchService controller")
+
+	// Create and register ActivityQueryController (CQRS Query Service)
+	// Serves the console's unified Recents sidebar: sessions and workflow
+	// executions merged into one time-sorted list (stigmer#461). Like the
+	// search service, this is a cross-resource read with no api_resource_kind
+	// service option — the apiresource interceptor injects nothing and the
+	// handler names its kinds explicitly.
+	activityController := activitycontroller.NewActivityController(activityhandler.NewHandler(store))
+	activityv1.RegisterActivityQueryControllerServer(grpcServer, activityController)
+
+	log.Info().Msg("Registered ActivityQueryController")
 
 	// Create and register GitHub OAuth controller
 	ghController := githubcontroller.NewGitHubController(cfg.GitHubOAuthClientID, cfg.GitHubOAuthClientSecret)
