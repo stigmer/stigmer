@@ -8,13 +8,12 @@
 // incremental variable management (updateVariables/removeVariables), single-key
 // secret reveal (getSecretValue), and spec-first negative paths.
 //
-// Secret handling is the domain's defining concern and is edition-divergent:
-//   - get / list / getByReference return the secret VALUE in plaintext on OSS
-//     (single-user/local) but redact it on cloud. This is gated by the
-//     secretRedaction capability — the is_secret flag itself is edition-agnostic.
+// Secret handling is the domain's defining concern and is edition-CONVERGED
+// since stigmer#405 (OSS encrypts at rest and redacts on read, matching cloud):
+//   - Every Environment-returning RPC redacts secret values to the
+//     ***REDACTED*** marker in both editions; the is_secret flag is preserved.
 //   - getSecretValue is the explicit "reveal" endpoint: it returns the unredacted
-//     value in BOTH editions by design (cloud gates it behind can_read_secrets),
-//     so its value assertion is NOT gated.
+//     value in BOTH editions by design (cloud gates it behind can_read_secrets).
 //
 // The shared create steps return typed gRPC codes on every target:
 // duplicate-create -> AlreadyExists (CheckDuplicateStep) and missing-name ->
@@ -196,7 +195,11 @@ describe("Environment conformance — CRUD & identity", () => {
 });
 
 describe("Environment conformance — secrets", () => {
-  it("read RPCs return the secret value per the secretRedaction capability; is_secret is always preserved", async () => {
+  it("read RPCs redact the secret value in both editions; is_secret is always preserved", async () => {
+    // Edition-converged since stigmer#405: OSS encrypts at rest and redacts
+    // on read exactly like cloud, so the former secretRedaction capability
+    // branch is gone — the plaintext secret never leaks on a plain read
+    // anywhere.
     const { org } = await target.provisionTenancy();
     const secretValue = "s3cr3t-token-value";
     const created = await createEnvironment(org, uniqueName("env"), {
@@ -209,20 +212,9 @@ describe("Environment conformance — secrets", () => {
     const fetched = await clients.environmentQuery.get({ value: created.metadata!.id });
     const secretEntry = fetched.spec?.data?.API_TOKEN;
 
-    // The is_secret flag is part of the cross-edition contract regardless of value handling.
     expect(secretEntry?.isSecret, "is_secret is preserved on read in both editions").toBe(true);
     expect(fetched.spec?.data?.PLAIN_HOST?.value, "plaintext values are never redacted").toBe("example.com");
-
-    if (target.capabilities.secretRedaction) {
-      // Cloud redacts the secret value on get/list/getByReference. The exact
-      // redaction representation is the cloud target's to assert; here we pin the
-      // edition-agnostic guarantee: the plaintext secret never leaks on a plain read.
-      expect(secretEntry?.value, "redacting targets must not return the plaintext secret").not.toBe(secretValue);
-      return;
-    }
-
-    // Local OSS is single-user and returns the secret value in plaintext.
-    expect(secretEntry?.value, "OSS returns the secret value in plaintext").toBe(secretValue);
+    expect(secretEntry?.value, "read RPCs must never return the plaintext secret").toBe(REDACTED_MARKER);
   });
 
   it("getSecretValue reveals the unredacted secret value (both editions)", async () => {

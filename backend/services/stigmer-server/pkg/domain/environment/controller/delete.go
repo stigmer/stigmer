@@ -8,6 +8,7 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	envsteps "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller/steps"
 )
 
 // Delete deletes an environment by ID using the pipeline pattern.
@@ -43,7 +44,9 @@ func (c *EnvironmentController) Delete(ctx context.Context, input *apiresource.A
 		return nil, grpclib.InternalError(nil, "deleted environment not found in context")
 	}
 
-	return deletedEnvironment.(*environmentv1.Environment), nil
+	deleted := deletedEnvironment.(*environmentv1.Environment)
+	envsteps.RedactEnvironmentSecrets(deleted)
+	return deleted, nil
 }
 
 // buildDeletePipeline constructs the pipeline for delete operations

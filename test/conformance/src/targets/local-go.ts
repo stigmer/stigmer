@@ -18,7 +18,7 @@ export class LocalGoTarget implements TargetProfile {
     externalOrgLookup: false,
     organizationEnumeration: true,
     versionTagging: true,
-    secretRedaction: false,
+    executionContextSecretRedaction: false,
     workflowChildApprovalForwarding: false,
     // No Temporal behind this target at all — schedules cannot fire.
     scheduleFiring: false,

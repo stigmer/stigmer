@@ -28,9 +28,14 @@
 // the workflow path, a held mock-LLM turn for the agent path. Neither the read
 // nor the assertions depend on the run reaching any particular phase.
 //
-// Secret values follow the same contract as ExecutionContext/Environment: the
-// is_secret flag is edition-agnostic; the value is plaintext on OSS and redacted
-// on cloud, gated by the secretRedaction capability.
+// Secret values follow the ExecutionContext read contract (NOT Environment's,
+// which is edition-converged since stigmer#405): the merged value is observed
+// through EC getByExecutionId, so it is plaintext on OSS and redacted on
+// cloud, gated by the executionContextSecretRedaction capability. The
+// is_secret flag is edition-agnostic. Note the merge itself DECRYPTS
+// environment secrets on OSS (RuntimeResolutionService) — this suite is the
+// end-to-end proof that encrypted-at-rest environment values reach executions
+// as plaintext.
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -229,7 +234,7 @@ describe("envmerge conformance — Workflow precedence", () => {
     );
   });
 
-  it("a secret value survives the merge with is_secret preserved (value gated by secretRedaction)", async () => {
+  it("a secret value survives the merge with is_secret preserved (value gated by executionContextSecretRedaction)", async () => {
     const { org } = await target.provisionTenancy();
     const secretValue = "env-secret-value";
     const { data } = await runWorkflowMerge(org, {
@@ -243,10 +248,13 @@ describe("envmerge conformance — Workflow precedence", () => {
     expect(secretEntry?.isSecret, "is_secret is preserved through the merge in both editions").toBe(true);
     expect(data.PLAIN_KEY?.value, "plaintext values are never redacted").toBe("plain-value");
 
-    if (target.capabilities.secretRedaction) {
+    if (target.capabilities.executionContextSecretRedaction) {
       expect(secretEntry?.value, "redacting targets must not return the plaintext secret").not.toBe(secretValue);
       return;
     }
+    // OSS EC reads are plaintext — and the value being the ORIGINAL secret
+    // (not enc:v1: ciphertext) proves the merge decrypted the encrypted-at-
+    // rest environment value via RuntimeResolutionService (stigmer#405).
     expect(secretEntry?.value, "OSS returns the merged secret value in plaintext").toBe(secretValue);
   });
 

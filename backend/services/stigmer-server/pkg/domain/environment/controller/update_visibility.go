@@ -46,6 +46,7 @@ func (c *EnvironmentController) UpdateVisibility(
 	}
 
 	env := reqCtx.Get(updateVisibilityEnvironmentKey).(*environmentv1.Environment)
+	envsteps.RedactEnvironmentSecrets(env)
 	return env, nil
 }
 

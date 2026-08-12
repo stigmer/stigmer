@@ -28,13 +28,20 @@ export interface CapabilityFlags {
   // Unimplemented) — version tags are instead set at apply time via
   // metadata.version.tag and resolved through getByReference.
   versionTagging: boolean;
-  // Secret values (EnvironmentValue/ExecutionValue with is_secret=true) are
-  // redacted on read. False for local OSS, which is single-user/local and
-  // returns secret values in plaintext on get/list/getByReference/getSecretValue
-  // (encryption is implemented but never invoked by the write pipelines). True
-  // for cloud, which encrypts at rest and redacts on read. The is_secret flag
-  // itself is edition-agnostic; only the value handling differs.
-  secretRedaction: boolean;
+  // ExecutionContext secret values (ExecutionValue with is_secret=true) are
+  // redacted on EC read RPCs. True for cloud, which encrypts EC values at rest,
+  // redacts user-class reads, and decrypts only for scope-bound runner
+  // credentials (ResolveExecutionContextValuesForCaller). False for local OSS,
+  // whose runner reads the EC through the plain get/getByExecutionId RPCs — EC
+  // redaction there would break execution until the runner-scoped resolve lane
+  // is ported (tracked as the stigmer#405 spawned EC-at-rest issue; flipping
+  // this flag is that port's finish line).
+  //
+  // NOTE the scope: this gates the ExecutionContext surface ONLY. Environment
+  // secret handling is edition-CONVERGED since stigmer#405 (both editions
+  // encrypt at rest and redact every Environment-returning RPC), so it needs
+  // no capability — the environment suite asserts redaction unconditionally.
+  executionContextSecretRedaction: boolean;
   // A child agent's tool-approval gate surfaces at the parent WorkflowExecution
   // (status.pending_approvals carries the child_agent_execution_id) so that
   // WorkflowExecution.submitApproval can forward the decision to the child.

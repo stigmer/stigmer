@@ -50,6 +50,7 @@ import (
 	datastorecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/controller"
 	datastorerecordstore "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/recordstore"
 	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller"
+	environmentresolution "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/resolution"
 	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/controller"
 	mcpservercontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/controller"
 	mcpserveroauth "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
@@ -606,7 +607,14 @@ func Run() error {
 	workflowController.SetWorkflowInstanceClient(workflowInstanceClient)
 	workflowInstanceController.SetWorkflowClient(workflowClient)
 	workflowExecutionController.SetWorkflowInstanceClient(workflowInstanceClient)
-	workflowExecutionController.SetEnvironmentAndExecutionContextClients(environmentClient, executionContextClient)
+
+	// Environment runtime resolution: the internal decrypt-for-execution
+	// path the execution-context builders use for environment_refs. The
+	// environment RPC surface redacts secret values (oss#405), so EC builds
+	// must not read through it.
+	environmentResolution := environmentresolution.NewRuntimeResolutionService(store, secretService)
+	agentExecutionController.SetEnvironmentResolution(environmentResolution)
+	workflowExecutionController.SetExecutionContextDependencies(environmentResolution, executionContextClient)
 
 	// Inject workflow creators (nil-safe, controllers handle gracefully)
 	workflowExecutionController.SetWorkflowCreator(workflowExecutionWorkflowCreator)

@@ -13,7 +13,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/envmerge"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/environment"
+	envresolution "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/resolution"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/executioncontext"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 )
@@ -34,20 +34,20 @@ import (
 type recreateExecutionContextStep struct {
 	store                  store.Store
 	workflowInstanceClient *workflowinstance.Client
-	environmentClient      *environment.Client
+	environmentResolution  *envresolution.RuntimeResolutionService
 	executionCtxClient     *executioncontext.Client
 }
 
 func newRecreateExecutionContextStep(
 	s store.Store,
 	wiClient *workflowinstance.Client,
-	envClient *environment.Client,
+	envResolution *envresolution.RuntimeResolutionService,
 	ecClient *executioncontext.Client,
 ) *recreateExecutionContextStep {
 	return &recreateExecutionContextStep{
 		store:                  s,
 		workflowInstanceClient: wiClient,
-		environmentClient:      envClient,
+		environmentResolution:  envResolution,
 		executionCtxClient:     ecClient,
 	}
 }
@@ -61,8 +61,8 @@ func (s *recreateExecutionContextStep) Execute(ctx *pipeline.RequestContext[*wor
 		return nil
 	}
 
-	if s.workflowInstanceClient == nil || s.environmentClient == nil || s.executionCtxClient == nil {
-		log.Warn().Msg("ExecutionContext clients not available, skipping EC recreation during recovery")
+	if s.workflowInstanceClient == nil || s.environmentResolution == nil || s.executionCtxClient == nil {
+		log.Warn().Msg("ExecutionContext dependencies not available, skipping EC recreation during recovery")
 		return nil
 	}
 
@@ -199,7 +199,10 @@ func (s *recreateExecutionContextStep) resolveEnvironments(
 
 	environments := make([]*environmentv1.Environment, 0, len(refs))
 	for _, ref := range refs {
-		env, err := s.environmentClient.GetByReference(ctx.Context(), ref)
+		// Runtime resolution, not the GetByReference RPC: the RPC surface
+		// redacts secret values (oss#405); this internal path returns them
+		// decrypted for the execution-context merge.
+		env, err := s.environmentResolution.ResolveByReference(ctx.Context(), ref)
 		if err != nil {
 			return nil, fmt.Errorf("resolve environment ref (org=%s, slug=%s): %w",
 				ref.GetOrg(), ref.GetSlug(), err)

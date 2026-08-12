@@ -11,6 +11,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	envsteps "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller/steps"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -25,7 +26,9 @@ const listResultKey = "listResult"
 // Note: Unlike Stigmer Cloud, OSS excludes:
 // - Authorization filtering (no multi-user auth — returns all matching environments)
 // - Pagination (returns all matching results)
-// - Secret redaction (OSS is single-user local; Get/GetByReference also return plaintext)
+//
+// Secret values are redacted in every item (oss#405 — both editions redact
+// on read; getSecretValue is the reveal path).
 func (c *EnvironmentController) List(ctx context.Context, req *environmentv1.ListEnvironmentsRequest) (*environmentv1.EnvironmentList, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, req)
 
@@ -101,6 +104,7 @@ func (s *listByOrgAndLabelsStep) Execute(ctx *pipeline.RequestContext[*environme
 			continue
 		}
 
+		envsteps.RedactEnvironmentSecrets(env)
 		environments = append(environments, env)
 	}
 

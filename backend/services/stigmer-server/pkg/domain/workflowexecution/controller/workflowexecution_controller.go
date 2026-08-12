@@ -3,10 +3,10 @@ package workflowexecution
 import (
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	envresolution "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/resolution"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/dedupe"
 	wftemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/environment"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/executioncontext"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 	"go.temporal.io/sdk/client"
@@ -41,7 +41,7 @@ type WorkflowExecutionController struct {
 	workflowexecutionv1.UnimplementedWorkflowExecutionQueryControllerServer
 	store                            store.Store
 	workflowInstanceClient           *workflowinstance.Client
-	environmentClient                *environment.Client
+	environmentResolution            *envresolution.RuntimeResolutionService
 	executionContextClient           *executioncontext.Client
 	workflowCreator                  *workflows.InvokeWorkflowExecutionWorkflowCreator
 	streamBroker                     *StreamBroker
@@ -75,13 +75,16 @@ func (c *WorkflowExecutionController) SetWorkflowInstanceClient(client *workflow
 	c.workflowInstanceClient = client
 }
 
-// SetEnvironmentAndExecutionContextClients sets the clients needed for ExecutionContext creation
-// during the create pipeline. These are injected after the in-process gRPC server starts.
-func (c *WorkflowExecutionController) SetEnvironmentAndExecutionContextClients(
-	envClient *environment.Client,
+// SetExecutionContextDependencies sets the dependencies needed for
+// ExecutionContext creation during the create and recover pipelines: the
+// environment runtime-resolution service (the decrypt-for-execution path —
+// the environment RPC surface redacts secret values, oss#405) and the
+// in-process ExecutionContext client (injected after the gRPC server starts).
+func (c *WorkflowExecutionController) SetExecutionContextDependencies(
+	envResolution *envresolution.RuntimeResolutionService,
 	ecClient *executioncontext.Client,
 ) {
-	c.environmentClient = envClient
+	c.environmentResolution = envResolution
 	c.executionContextClient = ecClient
 }
 
