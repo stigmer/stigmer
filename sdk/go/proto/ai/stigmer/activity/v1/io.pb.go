@@ -131,6 +131,10 @@ type ListRecentActivityRequest struct {
 	//
 	// When empty, results span every organization the caller has resource
 	// access in.
+	//
+	// On the OSS edition the filter is a no-op: the server is single-tenant,
+	// so org scoping has nothing to narrow — matching the per-kind OSS list
+	// RPCs this feed summarizes.
 	Org           string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

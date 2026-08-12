@@ -3,13 +3,16 @@ package workflowexecution
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 )
 
@@ -270,6 +273,88 @@ func TestMergePendingByChild(t *testing.T) {
 }
 
 // executeMerge runs the BuildNewStateWithStatusStep in isolation.
+// TestBuildNewStateWithStatus_StatusAuditBump pins the recents-ordering
+// contract shared with the cloud's WorkflowExecutionUpdateStatusHandler:
+// statusAudit.updatedAt is bumped ONLY on phase transitions, never on
+// task-progress heartbeats. If heartbeats bumped it, a long-running
+// execution would perpetually sort above freshly created ones in the
+// recents sidebar (ActivityQueryController orders by this field).
+func TestBuildNewStateWithStatus_StatusAuditBump(t *testing.T) {
+	initialStamp := timestamppb.New(time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC))
+	makeExisting := func() *workflowexecutionv1.WorkflowExecution {
+		return &workflowexecutionv1.WorkflowExecution{
+			Status: &workflowexecutionv1.WorkflowExecutionStatus{
+				Phase: workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+				Audit: &apiresource.ApiResourceAudit{
+					StatusAudit: &apiresource.ApiResourceAuditInfo{
+						UpdatedAt: initialStamp,
+						Event:     "created",
+					},
+				},
+			},
+		}
+	}
+
+	t.Run("heartbeat_same_phase_does_not_bump", func(t *testing.T) {
+		input := &workflowexecutionv1.WorkflowExecutionUpdateStatusInput{
+			ExecutionId: "wfx_test",
+			Status: &workflowexecutionv1.WorkflowExecutionStatus{
+				Phase: workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+				Tasks: []*workflowexecutionv1.WorkflowTask{{TaskName: "step-1"}},
+			},
+		}
+		result := executeMerge(t, makeExisting(), input)
+		assert.True(t, proto.Equal(initialStamp, result.Status.Audit.StatusAudit.UpdatedAt),
+			"a task-progress heartbeat with an unchanged phase must not bump statusAudit.updatedAt")
+		assert.Equal(t, "created", result.Status.Audit.StatusAudit.Event)
+	})
+
+	t.Run("unspecified_phase_does_not_bump", func(t *testing.T) {
+		input := &workflowexecutionv1.WorkflowExecutionUpdateStatusInput{
+			ExecutionId: "wfx_test",
+			Status: &workflowexecutionv1.WorkflowExecutionStatus{
+				Tasks: []*workflowexecutionv1.WorkflowTask{{TaskName: "step-1"}},
+			},
+		}
+		result := executeMerge(t, makeExisting(), input)
+		assert.True(t, proto.Equal(initialStamp, result.Status.Audit.StatusAudit.UpdatedAt),
+			"an update that does not set a phase must not bump statusAudit.updatedAt")
+	})
+
+	t.Run("phase_transition_bumps", func(t *testing.T) {
+		before := time.Now().Add(-time.Second)
+		input := &workflowexecutionv1.WorkflowExecutionUpdateStatusInput{
+			ExecutionId: "wfx_test",
+			Status: &workflowexecutionv1.WorkflowExecutionStatus{
+				Phase: workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			},
+		}
+		result := executeMerge(t, makeExisting(), input)
+		bumped := result.Status.Audit.StatusAudit.UpdatedAt
+		require.NotNil(t, bumped)
+		assert.True(t, bumped.AsTime().After(before),
+			"a phase transition must stamp statusAudit.updatedAt with the current time; got %v", bumped.AsTime())
+		assert.Equal(t, "updated", result.Status.Audit.StatusAudit.Event)
+	})
+
+	t.Run("phase_transition_initializes_missing_audit", func(t *testing.T) {
+		existing := &workflowexecutionv1.WorkflowExecution{
+			Status: &workflowexecutionv1.WorkflowExecutionStatus{
+				Phase: workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+			},
+		}
+		input := &workflowexecutionv1.WorkflowExecutionUpdateStatusInput{
+			ExecutionId: "wfx_test",
+			Status: &workflowexecutionv1.WorkflowExecutionStatus{
+				Phase: workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED,
+			},
+		}
+		result := executeMerge(t, existing, input)
+		require.NotNil(t, result.Status.Audit.GetStatusAudit().GetUpdatedAt(),
+			"the bump must initialize the audit chain when the stored row has none")
+	})
+}
+
 func executeMerge(
 	t *testing.T,
 	existing *workflowexecutionv1.WorkflowExecution,

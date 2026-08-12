@@ -36,6 +36,10 @@ public interface ListRecentActivityRequestOrBuilder extends
    *
    * When empty, results span every organization the caller has resource
    * access in.
+   *
+   * On the OSS edition the filter is a no-op: the server is single-tenant,
+   * so org scoping has nothing to narrow — matching the per-kind OSS list
+   * RPCs this feed summarizes.
    * </pre>
    *
    * <code>string org = 2 [json_name = "org"];</code>
@@ -58,6 +62,10 @@ public interface ListRecentActivityRequestOrBuilder extends
    *
    * When empty, results span every organization the caller has resource
    * access in.
+   *
+   * On the OSS edition the filter is a no-op: the server is single-tenant,
+   * so org scoping has nothing to narrow — matching the per-kind OSS list
+   * RPCs this feed summarizes.
    * </pre>
    *
    * <code>string org = 2 [json_name = "org"];</code>

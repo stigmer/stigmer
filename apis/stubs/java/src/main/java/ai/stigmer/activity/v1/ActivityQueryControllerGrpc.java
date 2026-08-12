@@ -137,8 +137,10 @@ public final class ActivityQueryControllerGrpc {
      * sessions and workflow executions. On the hosted edition, per-resource
      * authorization filtering is applied server-side (FGA `can_view`
      * enumeration for both kinds — the same permission the per-kind `get`
-     * RPCs enforce, so every listed entry is openable by construction). The
-     * OSS server does not currently implement this RPC (stigmer#461).
+     * RPCs enforce, so every listed entry is openable by construction). On
+     * the OSS edition the server is single-tenant: the caller owns every
+     * stored resource, so there is no authorization set to enumerate and the
+     * request's org is a no-op (stigmer#461).
      * &#64;internal
      * Authorization is handled in-handler: the FGA id enumeration is the only
      * gate (hence is_skip_authorization); the request's org merely narrows
@@ -209,8 +211,10 @@ public final class ActivityQueryControllerGrpc {
      * sessions and workflow executions. On the hosted edition, per-resource
      * authorization filtering is applied server-side (FGA `can_view`
      * enumeration for both kinds — the same permission the per-kind `get`
-     * RPCs enforce, so every listed entry is openable by construction). The
-     * OSS server does not currently implement this RPC (stigmer#461).
+     * RPCs enforce, so every listed entry is openable by construction). On
+     * the OSS edition the server is single-tenant: the caller owns every
+     * stored resource, so there is no authorization set to enumerate and the
+     * request's org is a no-op (stigmer#461).
      * &#64;internal
      * Authorization is handled in-handler: the FGA id enumeration is the only
      * gate (hence is_skip_authorization); the request's org merely narrows
@@ -259,8 +263,10 @@ public final class ActivityQueryControllerGrpc {
      * sessions and workflow executions. On the hosted edition, per-resource
      * authorization filtering is applied server-side (FGA `can_view`
      * enumeration for both kinds — the same permission the per-kind `get`
-     * RPCs enforce, so every listed entry is openable by construction). The
-     * OSS server does not currently implement this RPC (stigmer#461).
+     * RPCs enforce, so every listed entry is openable by construction). On
+     * the OSS edition the server is single-tenant: the caller owns every
+     * stored resource, so there is no authorization set to enumerate and the
+     * request's org is a no-op (stigmer#461).
      * &#64;internal
      * Authorization is handled in-handler: the FGA id enumeration is the only
      * gate (hence is_skip_authorization); the request's org merely narrows
@@ -308,8 +314,10 @@ public final class ActivityQueryControllerGrpc {
      * sessions and workflow executions. On the hosted edition, per-resource
      * authorization filtering is applied server-side (FGA `can_view`
      * enumeration for both kinds — the same permission the per-kind `get`
-     * RPCs enforce, so every listed entry is openable by construction). The
-     * OSS server does not currently implement this RPC (stigmer#461).
+     * RPCs enforce, so every listed entry is openable by construction). On
+     * the OSS edition the server is single-tenant: the caller owns every
+     * stored resource, so there is no authorization set to enumerate and the
+     * request's org is a no-op (stigmer#461).
      * &#64;internal
      * Authorization is handled in-handler: the FGA id enumeration is the only
      * gate (hence is_skip_authorization); the request's org merely narrows
@@ -357,8 +365,10 @@ public final class ActivityQueryControllerGrpc {
      * sessions and workflow executions. On the hosted edition, per-resource
      * authorization filtering is applied server-side (FGA `can_view`
      * enumeration for both kinds — the same permission the per-kind `get`
-     * RPCs enforce, so every listed entry is openable by construction). The
-     * OSS server does not currently implement this RPC (stigmer#461).
+     * RPCs enforce, so every listed entry is openable by construction). On
+     * the OSS edition the server is single-tenant: the caller owns every
+     * stored resource, so there is no authorization set to enumerate and the
+     * request's org is a no-op (stigmer#461).
      * &#64;internal
      * Authorization is handled in-handler: the FGA id enumeration is the only
      * gate (hence is_skip_authorization); the request's org merely narrows
