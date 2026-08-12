@@ -18,6 +18,7 @@ import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/a
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
 import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
@@ -84,6 +85,9 @@ describe("Workflow conformance — CRUD & identity", () => {
     expect(created.status?.audit?.specAudit?.event).toBe("created");
     expect(created.status?.versionHash, "create computes a content version hash").toMatch(/^[a-f0-9]{64}$/);
     expect(created.status?.defaultInstanceId, "create provisions a default instance").toMatch(/^win_[0-9a-z]+$/);
+    // Workflow is a blueprint kind (defaults_to_org_visibility), so an
+    // unspecified visibility defaults to org; private is an explicit opt-in.
+    expect(created.metadata?.visibility, "visibility defaults to org (blueprint default)").toBe(ApiResourceVisibility.visibility_org);
   });
 
   it("get round-trips the created resource (ignoring server-set fields)", async () => {
