@@ -1,7 +1,8 @@
 // The type registry: the single source of truth that maps user-facing resource
 // identifiers (aliases, YAML kinds) to proto kinds and their supported verbs.
 // Built once from the declarative kind-metadata table with aliases derived
-// algorithmically — a structural mirror of Go's types.Registry.
+// algorithmically. (Structure inherited from the Go CLI's types.Registry,
+// removed in the TypeScript migration — stigmer/stigmer#203.)
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { generateAliases, normalizeAlias } from "./aliases.js";
@@ -60,7 +61,10 @@ function buildTypeInfo(kind: ApiResourceKind): TypeInfo | undefined {
     idPrefix: meta.idPrefix,
     singular,
     plural: singular.endsWith("s") ? singular : `${singular}s`,
-    aliases: generateAliases(meta.name, meta.displayName, meta.idPrefix),
+    // ApiResourceKind[kind] reverse-maps to the proto enum value name (e.g.
+    // "oauth_app") — the canonical spelling, taken from the enum itself so it
+    // can never drift from the proto.
+    aliases: generateAliases(meta.name, meta.displayName, meta.idPrefix, ApiResourceKind[kind]),
     supportedVerbs: verbsForKind(kind),
   };
 }

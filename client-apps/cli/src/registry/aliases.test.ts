@@ -7,7 +7,7 @@ function normalized(aliases: string[]): Set<string> {
 
 describe("generateAliases", () => {
   it("derives the full McpServer alias set", () => {
-    const found = normalized(generateAliases("McpServer", "MCP Server", "mcp"));
+    const found = normalized(generateAliases("McpServer", "MCP Server", "mcp", "mcp_server"));
     for (const exp of [
       "mcpserver",
       "mcp-server",
@@ -23,22 +23,45 @@ describe("generateAliases", () => {
   });
 
   it("derives the Agent alias set", () => {
-    const found = normalized(generateAliases("Agent", "Agent", "agt"));
+    const found = normalized(generateAliases("Agent", "Agent", "agt", "agent"));
     for (const exp of ["agent", "agt", "agents", "agts"]) {
       expect(found).toContain(exp);
     }
   });
 
   it("derives the Workflow alias set", () => {
-    const found = normalized(generateAliases("Workflow", "Workflow", "wfl"));
+    const found = normalized(generateAliases("Workflow", "Workflow", "wfl", "workflow"));
     for (const exp of ["workflow", "wfl", "workflows", "wfls"]) {
+      expect(found).toContain(exp);
+    }
+  });
+
+  it("derives the OAuthApp alias set including the canonical proto name", () => {
+    // "OAuthApp" is the only kind whose PascalCase name has consecutive
+    // capitals, so its split-derived forms (o-auth-app) diverge from the proto
+    // enum name (oauth_app). Both families must be accepted: the canonical
+    // spellings via protoName (stigmer/stigmer#470), and the historical
+    // split-derived spellings for backward compatibility.
+    const found = normalized(generateAliases("OAuthApp", "OAuth App", "oapp", "oauth_app"));
+    for (const exp of [
+      "oauth_app",
+      "oauth-app",
+      "oauth_apps",
+      "oauth-apps",
+      "oauthapp",
+      "oauthapps",
+      "o_auth_app",
+      "o-auth-app",
+      "oapp",
+      "oapps",
+    ]) {
       expect(found).toContain(exp);
     }
   });
 
   it("does not let a multi-word display name steal the parent's name", () => {
     // "Agent Instance" must NOT register "agent" (that belongs to Agent).
-    const found = normalized(generateAliases("AgentInstance", "Agent Instance", "ain"));
+    const found = normalized(generateAliases("AgentInstance", "Agent Instance", "ain", "agent_instance"));
     expect(found).not.toContain("agent");
     expect(found).toContain("agentinstance");
     expect(found).toContain("agent-instance");
@@ -46,7 +69,8 @@ describe("generateAliases", () => {
   });
 
   it("produces no duplicate normalized aliases", () => {
-    const aliases = generateAliases("Agent", "Agent", "agent");
+    // "agent" as protoName re-derives already-added forms — dedupe must hold.
+    const aliases = generateAliases("Agent", "Agent", "agent", "agent");
     const lower = aliases.map(normalizeAlias);
     expect(new Set(lower).size).toBe(lower.length);
   });
