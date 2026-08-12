@@ -67,6 +67,18 @@ describe("formatConversationCatchupText", () => {
     expect(framed).toContain("weigh that when deciding what still needs saying");
   });
 
+  it("defines the send-outcome lines and the no-verbatim-resend contract (cloud#352, DD-009 Q-4)", () => {
+    // The agent's own failed sends reach it as `You (not delivered):`
+    // lines and `System:` delivery-failure notices. The owner-ruled
+    // behavior: unfinished business, re-said naturally — never a
+    // word-for-word resend (a multi-chunk send can partially land, and an
+    // exact repeat reads as a duplicate).
+    expect(framed).toContain("You (not delivered)");
+    expect(framed).toContain("was not delivered");
+    expect(framed).toContain("unfinished business");
+    expect(framed).toContain("never resend the failed text word-for-word");
+  });
+
   it("asserts no takeover — a digest can exist with no human handoff at all (the A15/A20 honesty bar)", () => {
     // The preamble may DESCRIBE what the digest can contain ("may include"),
     // but must never state that a handoff happened on THIS conversation: a
