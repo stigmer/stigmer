@@ -1,32 +1,34 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { emitEventAction, type EmitEventConfig } from "../../../activities/emit-event.js";
+import { emitEventAction, type EmitEventConfig, type SignalDeliveryTarget } from "../../../activities/emit-event.js";
 
-// ─── Temporal signal-delivery mocks ──────────────────────────────────────────
-// deliverSignal dynamically imports @temporalio/client and resolves the cluster
-// coordinates through loadConfig(). We mock both so the signal path is testable
-// without a live Temporal server, and so we can assert which address it dials.
-const mockConnect = vi.fn(async (_opts: { address: string }) => ({}));
-const mockSignal = vi.fn(async () => undefined);
-const mockGetHandle = vi.fn((_id: string) => ({ signal: mockSignal }));
-const mockClientCtor = vi.fn((_opts: { connection: unknown; namespace: string }) => ({
-  workflow: { getHandle: mockGetHandle },
+// ─── Server-mediated signal-delivery mocks ───────────────────────────────────
+// deliverSignal routes through StigmerClient.sendWorkflowSignal (the server's
+// SendSignal lane — oss#517). We mock the client so the signal path is testable
+// without a live server, and so we can assert the addressing, the bounded call
+// timeout, and the best-effort delivery_errors contract.
+const mockSendWorkflowSignal = vi.fn(async (
+  _executionId: string,
+  _signalName: string,
+  _payload: unknown,
+  _options?: { timeoutMs?: number },
+) => ({}));
+const mockClientCtor = vi.fn((_opts: { endpoint: string; token?: string | null }) => ({
+  sendWorkflowSignal: mockSendWorkflowSignal,
 }));
 
-vi.mock("@temporalio/client", () => ({
-  Connection: { connect: (opts: { address: string }) => mockConnect(opts) },
-  Client: vi.fn().mockImplementation((opts: { connection: unknown; namespace: string }) =>
-    mockClientCtor(opts),
+vi.mock("../../../client/stigmer-client.js", () => ({
+  StigmerClient: vi.fn().mockImplementation(
+    (opts: { endpoint: string; token?: string | null }) => mockClientCtor(opts),
   ),
 }));
 
-// Mutable so each test can vary what config.ts resolves. Mirrors the real
-// resolution where temporalAddress comes from TEMPORAL_SERVICE_ADDRESS.
-let mockTemporalAddress = "localhost:7233";
-let mockTemporalNamespace = "default";
+// Mutable so each test can vary what config.ts resolves. deliverSignal builds
+// its client from the canonical stigmerBackendEndpoint resolution.
+let mockBackendEndpoint = "http://localhost:7234";
 vi.mock("../../../config.js", () => ({
   loadConfig: () => ({
-    temporalAddress: mockTemporalAddress,
-    temporalNamespace: mockTemporalNamespace,
+    stigmerBackendEndpoint: mockBackendEndpoint,
+    stigmerToken: null,
   }),
 }));
 
@@ -260,63 +262,139 @@ describe("emitEventAction", () => {
     });
   });
 
-  describe("signal delivery (Temporal coordinates from config)", () => {
+  describe("signal delivery (server-mediated SendSignal lane)", () => {
     beforeEach(() => {
-      mockConnect.mockClear();
-      mockSignal.mockClear();
-      mockGetHandle.mockClear();
+      mockSendWorkflowSignal.mockClear();
       mockClientCtor.mockClear();
-      mockSignal.mockResolvedValue(undefined);
-      mockTemporalAddress = "localhost:7233";
-      mockTemporalNamespace = "default";
+      mockSendWorkflowSignal.mockResolvedValue({});
+      mockBackendEndpoint = "http://localhost:7234";
     });
 
-    it("dials the Temporal address resolved by config, not a hardcoded localhost", async () => {
-      // Regression for F1: deliverSignal previously read process.env.TEMPORAL_ADDRESS
-      // and fell back to localhost — diverging from the canonical
-      // TEMPORAL_SERVICE_ADDRESS the worker uses. It now goes through loadConfig().
-      mockTemporalAddress = "stigmer-temporal-frontend:7233";
-      mockTemporalNamespace = "stigmer-prod";
+    it("routes through the server resolved by config, addressed by execution_id", async () => {
+      mockBackendEndpoint = "https://api.stigmer.example.com";
 
       const config: EmitEventConfig = {
         event: { type: "approval.granted" },
         delivery: [
-          { signal: { workflow_id: "wf-abc", signal_name: "approvalResolved" } },
+          { signal: { execution_id: "wfx_01ABC", signal_name: "approval_resolved" } },
         ],
       };
 
       const result = await emitEventAction(config, "exec-1");
 
-      expect(mockConnect).toHaveBeenCalledWith({ address: "stigmer-temporal-frontend:7233" });
       expect(mockClientCtor).toHaveBeenCalledWith(
-        expect.objectContaining({ namespace: "stigmer-prod" }),
+        expect.objectContaining({ endpoint: "https://api.stigmer.example.com" }),
       );
-      expect(mockGetHandle).toHaveBeenCalledWith("wf-abc");
-      expect(mockSignal).toHaveBeenCalledTimes(1);
-      const [signalName, envelope] = mockSignal.mock.calls[0] as unknown as [
-        string,
-        Record<string, unknown>,
-      ];
-      expect(signalName).toBe("approvalResolved");
+      expect(mockSendWorkflowSignal).toHaveBeenCalledTimes(1);
+      const [executionId, signalName, envelope, options] =
+        mockSendWorkflowSignal.mock.calls[0] as unknown as [
+          string,
+          string,
+          Record<string, unknown>,
+          { timeoutMs?: number },
+        ];
+      expect(executionId).toBe("wfx_01ABC");
+      expect(signalName).toBe("approval_resolved");
       expect(envelope.type).toBe("approval.granted");
+      expect(envelope.specversion).toBe("1.0");
       expect(result.delivery_errors).toBeUndefined();
+      // Best-effort delivery must never consume the activity's 5m budget.
+      expect(options).toEqual({ timeoutMs: 30_000 });
     });
 
-    it("keeps signal delivery best-effort: failures are collected, not thrown", async () => {
-      mockSignal.mockRejectedValueOnce(new Error("temporal unavailable"));
+    it("keeps signal delivery best-effort: server refusals are collected, not thrown", async () => {
+      mockSendWorkflowSignal.mockRejectedValueOnce(
+        new Error("[failed_precondition] cannot send signal to execution in phase EXECUTION_COMPLETED"),
+      );
 
       const config: EmitEventConfig = {
         event: { type: "test" },
         delivery: [
-          { signal: { workflow_id: "wf-down", signal_name: "ping" } },
+          { signal: { execution_id: "wfx_done", signal_name: "ping" } },
         ],
       };
 
       const result = await emitEventAction(config, "exec-1");
 
       expect(result.delivery_errors).toHaveLength(1);
-      expect((result.delivery_errors as any)[0].target).toBe("signal:wf-down/ping");
-      expect((result.delivery_errors as any)[0].error).toContain("temporal unavailable");
+      expect((result.delivery_errors as any)[0].target).toBe("signal:wfx_done/ping");
+      expect((result.delivery_errors as any)[0].error).toContain("failed_precondition");
+    });
+
+    it("refuses the pre-oss#517 workflow_id field by name, without calling the server", async () => {
+      const config: EmitEventConfig = {
+        event: { type: "test" },
+        delivery: [
+          {
+            signal: {
+              workflow_id: "workflow-exec-wfx_01ABC",
+              signal_name: "ping",
+            } as unknown as SignalDeliveryTarget,
+          },
+        ],
+      };
+
+      const result = await emitEventAction(config, "exec-1");
+
+      expect(mockSendWorkflowSignal).not.toHaveBeenCalled();
+      expect(result.delivery_errors).toHaveLength(1);
+      expect((result.delivery_errors as any)[0].error).toContain("'execution_id'");
+      expect((result.delivery_errors as any)[0].error).toContain("'workflow_id' is not supported");
+    });
+
+    it("refuses a signal target missing signal_name", async () => {
+      const config: EmitEventConfig = {
+        event: { type: "test" },
+        delivery: [
+          {
+            signal: {
+              execution_id: "wfx_01ABC",
+            } as unknown as SignalDeliveryTarget,
+          },
+        ],
+      };
+
+      const result = await emitEventAction(config, "exec-1");
+
+      expect(mockSendWorkflowSignal).not.toHaveBeenCalled();
+      expect(result.delivery_errors).toHaveLength(1);
+      expect((result.delivery_errors as any)[0].error).toContain("'signal_name'");
+    });
+
+    it("reuses one client across multiple signal targets", async () => {
+      const config: EmitEventConfig = {
+        event: { type: "fanout" },
+        delivery: [
+          { signal: { execution_id: "wfx_a", signal_name: "sig_a" } },
+          { signal: { execution_id: "wfx_b", signal_name: "sig_b" } },
+        ],
+      };
+
+      const result = await emitEventAction(config, "exec-1");
+
+      expect(mockClientCtor).toHaveBeenCalledTimes(1);
+      expect(mockSendWorkflowSignal).toHaveBeenCalledTimes(2);
+      expect(result.delivery_errors).toBeUndefined();
+    });
+
+    it("constructs no client for webhook-only delivery", async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn(() =>
+        Promise.resolve(new Response(null, { status: 200 })),
+      ) as any;
+
+      try {
+        const config: EmitEventConfig = {
+          event: { type: "test" },
+          delivery: [{ webhook: { url: "https://events.example.com" } }],
+        };
+
+        await emitEventAction(config, "exec-1");
+
+        expect(mockClientCtor).not.toHaveBeenCalled();
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
     });
   });
 });

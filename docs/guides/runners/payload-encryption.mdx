@@ -78,10 +78,13 @@ without a key:
   reach you through the event log instead.
 - **Failure messages and stack traces** — Temporal stores these outside
   payloads, so errors stay debuggable in the UI.
-- **Event signals sent by `emit` tasks** — the emit task's delivery client is
-  deliberately not encrypted: it is the one direct runner-to-runner channel, and
-  its targets cannot be assumed to hold the sender's key. Treat event payloads
-  as boundary-crossing messages, not secret carriers.
+- **Event signals sent by `emit` tasks** — emit delivery is routed through the
+  server's `SendSignal` lane (the runner holds no Temporal client of its own),
+  so the signal payload is server-produced and follows the server-side
+  plaintext-by-design rule above, exactly like approval signals. Sender-side
+  encryption was rejected deliberately: emit→listen crosses runner boundaries,
+  and a receiver cannot be assumed to hold the sender's key. Treat event
+  payloads as boundary-crossing messages, not secret carriers.
 
 Encrypted payloads appear as opaque `binary/encrypted` blobs in the Temporal UI.
 Decoding them in the UI would require a Temporal codec server, which Stigmer

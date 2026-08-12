@@ -237,8 +237,9 @@ export async function createStigmerRunner(
   // Resolve Temporal coordinates after the http2 patch is in place (discovery
   // dials the control plane through connect-node). Explicit address wins;
   // otherwise a token triggers control-plane discovery; otherwise localhost.
-  // Activities that dial Temporal at runtime (e.g. emit-event) read
-  // config.temporalAddress, so this must precede their creation.
+  // Only the worker connection consumes these coordinates — no activity dials
+  // Temporal directly (emit-event, the last one, now routes signals through
+  // the server's SendSignal lane; see oss#517).
   //
   // The static runner brings its own already-proxy-valid token (harness/CLI),
   // so it does not consume the minted runner token from the bootstrap response;
