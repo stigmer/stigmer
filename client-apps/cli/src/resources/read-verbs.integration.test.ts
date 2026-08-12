@@ -67,6 +67,23 @@ const knownApiKey = create(ApiKeySchema, {
   spec: { fingerprint: "abcd", neverExpires: true },
 });
 
+// Second org/API-key entries so the list tests can pin the
+// dispatcher-applied --limit slice — both RPCs are unpaginated (Empty
+// request), the exact shape that shipped ignoring the flag when handlers
+// owned rendering (stigmer/stigmer#312).
+const secondOrg = create(OrganizationSchema, {
+  apiVersion: "tenancy.stigmer.ai/v1",
+  kind: "Organization",
+  metadata: { name: "Beta Clinic", slug: "beta-clinic", org: "beta-clinic", id: "beta-clinic" },
+});
+
+const secondApiKey = create(ApiKeySchema, {
+  apiVersion: "iam.stigmer.ai/v1",
+  kind: "ApiKey",
+  metadata: { name: "local-dev", org: "acme", id: "key_2" },
+  spec: { fingerprint: "ef01", neverExpires: true },
+});
+
 const knownSearchResult = create(SearchResultSchema, {
   kind: ApiResourceKind.agent,
   id: "agt_1",
@@ -223,10 +240,10 @@ beforeAll(async () => {
       },
     });
     router.service(OrganizationQueryController, {
-      findMyOrganizations: () => ({ entries: [knownOrg] }),
+      findMyOrganizations: () => ({ entries: [knownOrg, secondOrg] }),
     });
     router.service(ApiKeyQueryController, {
-      findAll: () => ({ entries: [knownApiKey] }),
+      findAll: () => ({ entries: [knownApiKey, secondApiKey] }),
     });
     router.service(EnvironmentQueryController, {
       get: (req) => {
@@ -441,11 +458,27 @@ describe("list integration", () => {
 
   it("lists organizations via findMyOrganizations as JSON", async () => {
     const out = await listResources(client, ApiResourceKind.organization, "acme", 50, "json");
+    expect(JSON.parse(out)).toEqual([
+      toJson(OrganizationSchema, knownOrg, { useProtoFieldName: true }),
+      toJson(OrganizationSchema, secondOrg, { useProtoFieldName: true }),
+    ]);
+  });
+
+  it("applies --limit to organizations (findMyOrganizations has no pagination)", async () => {
+    const out = await listResources(client, ApiResourceKind.organization, "acme", 1, "json");
     expect(JSON.parse(out)).toEqual([toJson(OrganizationSchema, knownOrg, { useProtoFieldName: true })]);
   });
 
   it("lists API keys via findAll as JSON", async () => {
     const out = await listResources(client, ApiResourceKind.api_key, "acme", 50, "json");
+    expect(JSON.parse(out)).toEqual([
+      toJson(ApiKeySchema, knownApiKey, { useProtoFieldName: true }),
+      toJson(ApiKeySchema, secondApiKey, { useProtoFieldName: true }),
+    ]);
+  });
+
+  it("applies --limit to API keys (findAll has no pagination)", async () => {
+    const out = await listResources(client, ApiResourceKind.api_key, "acme", 1, "json");
     expect(JSON.parse(out)).toEqual([toJson(ApiKeySchema, knownApiKey, { useProtoFieldName: true })]);
   });
 
