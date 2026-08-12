@@ -5,7 +5,13 @@
 //
 // Key concepts:
 //   - Idempotency keys are scoped per-organization to prevent cross-org collisions
-//   - Records expire after a configurable TTL (default 24 hours)
+//   - The dedupe window is earned at delivery (oss#442, shared contract with the
+//     cloud edition): a claim holds the key only for the short InFlightClaimTTL;
+//     MarkDelivered extends the winner to the full DeliveredSignalDedupeTTL. A
+//     delivery that fails or crashes therefore frees the key when the short hold
+//     lapses — the existing expired-row cleanup is the recovery path — instead of
+//     poisoning it against the caller's retry for 24 hours. A clean send failure
+//     additionally Releases the claim so the retry never waits at all.
 //   - Claims use atomic insert operations for concurrency safety
 //
 // @since Gap B2 (Event Dedupe)
@@ -110,7 +116,9 @@ const (
 // SignalDedupeStore provides signal deduplication operations.
 type SignalDedupeStore interface {
 	// Claim attempts to claim an idempotency key for a signal.
-	// If the key is already claimed or delivered, returns the existing record.
+	// If the key is already claimed or delivered, returns the existing record —
+	// the caller branches on that record's status (a live CLAIMED holder means
+	// an in-flight conflict; DELIVERED means a true duplicate).
 	//
 	// Parameters:
 	//   - ctx: context for cancellation
@@ -118,15 +126,19 @@ type SignalDedupeStore interface {
 	//   - idempotencyKey: caller-provided key
 	//   - executionID: workflow execution ID
 	//   - signalName: name of the signal
-	//   - ttl: how long the record should be valid
+	//   - ttl: how long the claim should hold while the delivery is in flight
+	//     (callers pass InFlightClaimTTL; MarkDelivered extends the winner)
 	//
 	// Returns:
 	//   - ClaimResult with status and optional existing record
 	//   - error if database operation fails
 	Claim(ctx context.Context, org, idempotencyKey, executionID, signalName string, ttl time.Duration) (*ClaimResult, error)
 
-	// MarkDelivered updates a claimed record to delivered status.
+	// MarkDelivered updates a claimed record to delivered status and extends its
+	// hold to DeliveredSignalDedupeTTL from now — delivery is what earns the
+	// dedupe window (the claim itself held only InFlightClaimTTL).
 	// Should be called after the signal has been successfully sent to Temporal.
+	// Tolerant: a missing or already-delivered record is a no-op.
 	//
 	// Parameters:
 	//   - ctx: context for cancellation
@@ -134,8 +146,27 @@ type SignalDedupeStore interface {
 	//   - idempotencyKey: caller-provided key
 	//
 	// Returns:
-	//   - error if record doesn't exist or update fails
+	//   - error if the update fails
 	MarkDelivered(ctx context.Context, org, idempotencyKey string) error
+
+	// Release frees a claimed idempotency key whose delivery failed, so the
+	// caller's retry can claim it immediately instead of waiting out the
+	// in-flight hold.
+	//
+	// Status-guarded: only a CLAIMED record is removed — a DELIVERED record (or a
+	// missing one) is a tolerant no-op, so a misplaced release can never unblock a
+	// key that was actually delivered. Best-effort by contract: callers log a
+	// release failure and surface the original delivery error; a stranded claim
+	// self-heals when its hold lapses.
+	//
+	// Parameters:
+	//   - ctx: context for cancellation
+	//   - org: organization ID (key scope)
+	//   - idempotencyKey: caller-provided key
+	//
+	// Returns:
+	//   - error if the delete fails
+	Release(ctx context.Context, org, idempotencyKey string) error
 
 	// Close releases any resources held by the store.
 	Close() error
@@ -268,15 +299,21 @@ func (s *SQLiteSignalDedupeStore) Claim(
 }
 
 // MarkDelivered implements SignalDedupeStore.MarkDelivered.
+//
+// Extending expires_at here is the load-bearing half of the two-phase hold
+// (claims hold InFlightClaimTTL; delivery earns DeliveredSignalDedupeTTL). The
+// status guard makes re-marking a no-op and keeps a takeover's fresh claim
+// intact in either commit order of a (pathological, >InFlightClaimTTL-late)
+// mark racing a takeover.
 func (s *SQLiteSignalDedupeStore) MarkDelivered(ctx context.Context, org, idempotencyKey string) error {
 	id := buildDedupeKey(org, idempotencyKey)
 	now := time.Now().UTC()
 
 	result, err := s.db.ExecContext(ctx, `
 		UPDATE signal_dedupe
-		SET status = 'DELIVERED', delivered_at = ?
+		SET status = 'DELIVERED', delivered_at = ?, expires_at = ?
 		WHERE id = ? AND status = 'CLAIMED'
-	`, now.Format(time.RFC3339Nano), id)
+	`, now.Format(time.RFC3339Nano), now.Add(DeliveredSignalDedupeTTL).Format(time.RFC3339Nano), id)
 	if err != nil {
 		return fmt.Errorf("mark delivered: %w", err)
 	}
@@ -294,6 +331,35 @@ func (s *SQLiteSignalDedupeStore) MarkDelivered(ctx context.Context, org, idempo
 		log.Debug().
 			Str("id", id).
 			Msg("Marked idempotency key as delivered")
+	}
+
+	return nil
+}
+
+// Release implements SignalDedupeStore.Release.
+//
+// Status-guarded DELETE: only an in-flight claim can be freed. A DELIVERED row
+// is untouchable by construction, so a release that races MarkDelivered can
+// never unblock a key whose signal actually landed.
+func (s *SQLiteSignalDedupeStore) Release(ctx context.Context, org, idempotencyKey string) error {
+	id := buildDedupeKey(org, idempotencyKey)
+
+	result, err := s.db.ExecContext(ctx, `
+		DELETE FROM signal_dedupe
+		WHERE id = ? AND status = 'CLAIMED'
+	`, id)
+	if err != nil {
+		return fmt.Errorf("release claim: %w", err)
+	}
+
+	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 1 {
+		log.Info().
+			Str("id", id).
+			Msg("Released idempotency key after failed delivery")
+	} else {
+		log.Debug().
+			Str("id", id).
+			Msg("Release was a no-op (record absent or already delivered)")
 	}
 
 	return nil
@@ -380,9 +446,24 @@ func isUniqueConstraintError(err error) bool {
 }
 
 // =============================================================================
-// Default TTL
+// TTLs (the two-phase hold, oss#442)
 // =============================================================================
 
-// DefaultSignalDedupeTTL is the default TTL for signal dedupe records (24 hours).
-// This matches industry standards like Stripe's idempotency key retention.
-const DefaultSignalDedupeTTL = 24 * time.Hour
+// InFlightClaimTTL is how long a claim holds the key while its delivery is in
+// flight (5 minutes).
+//
+// Derived, not guessed: both Temporal SDKs retry client RPCs internally for up
+// to 1 minute by default (Go retry.DefaultExpirationInterval; Java
+// DefaultStubServiceOperationRpcRetryOptions.EXPIRATION_INTERVAL), and neither
+// edition overrides it — so a send that ultimately fails can still be in flight
+// ~60s after the claim landed. Five minutes gives 5x margin over that window.
+// Shortening this below the SDKs' retry expiration would let a retry claim a
+// key whose original send is still in flight — the double delivery this store
+// exists to prevent.
+const InFlightClaimTTL = 5 * time.Minute
+
+// DeliveredSignalDedupeTTL is how long a DELIVERED key blocks duplicates,
+// anchored at delivery time (24 hours). MarkDelivered extends the record's
+// expiry to this window. Matches industry standards like Stripe's idempotency
+// key retention.
+const DeliveredSignalDedupeTTL = 24 * time.Hour

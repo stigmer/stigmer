@@ -2,10 +2,12 @@ package workflowexecution
 
 // Step-level tests for the Gap B2 dedupe pipeline steps, backed by a real
 // SQLite store. The store itself is unit-tested in the dedupe package; these
-// pin the STEP semantics that were dead code until the server wired the store
-// in (#309): a duplicate idempotency key is rejected with ALREADY_EXISTS, the
-// empty-key and nil-store paths skip dedupe without failing the request, and
-// distinct keys never collide. The conformance suite proves the same contract
+// pin the STEP semantics: a DELIVERED holder rejects ALREADY_EXISTS (stop
+// retrying) while a live CLAIMED holder rejects ABORTED (in-flight conflict,
+// retry shortly — the oss#442 status branch), a failed delivery's released key
+// is claimable by the retry (the controller's compensation), the empty-key and
+// nil-store paths skip dedupe without failing the request, and distinct keys
+// never collide. The conformance suite proves the delivered-duplicate contract
 // end-to-end through the wired server.
 
 import (
@@ -86,6 +88,74 @@ func TestDedupeClaimStep_DuplicateKeyRejectedWithAlreadyExists(t *testing.T) {
 	if st, ok := status.FromError(err); !ok || st.Code() != codes.AlreadyExists {
 		t.Fatalf("duplicate rejection should be AlreadyExists, got: %v", err)
 	}
+}
+
+func TestDedupeClaimStep_InFlightKeyRejectedWithAborted(t *testing.T) {
+	dedupeStore := newSQLiteDedupeStore(t)
+	claim := NewDedupeClaimStep[*workflowexecutionv1.SendSignalInput](dedupeStore)
+
+	input := &workflowexecutionv1.SendSignalInput{
+		ExecutionId:    "wfx-dedupe-inflight",
+		SignalName:     "test-signal",
+		IdempotencyKey: "webhook-evt-inflight",
+	}
+
+	// First request claims and is still in flight (not yet delivered).
+	if err := claim.Execute(newSignalPipelineContext(input)); err != nil {
+		t.Fatalf("first claim should succeed: %v", err)
+	}
+
+	// A concurrent same-key request conflicts with the live claim: ABORTED tells
+	// it to retry shortly, unlike ALREADY_EXISTS which would tell it to stop
+	// (the oss#442 status branch; cloud's DedupeClaimStep returns the same code).
+	err := claim.Execute(newSignalPipelineContext(input))
+	if err == nil {
+		t.Fatal("in-flight idempotency key should be rejected")
+	}
+	if st, ok := status.FromError(err); !ok || st.Code() != codes.Aborted {
+		t.Fatalf("in-flight rejection should be Aborted, got: %v", err)
+	}
+}
+
+func TestReleaseDedupeClaimAfterFailure_RetryClaimsFreshly(t *testing.T) {
+	// The failed-delivery recovery path (oss#442): the send step failed after
+	// the claim landed, the controller released the key, and the caller's retry
+	// — the exact scenario idempotency keys exist for — claims freshly.
+	dedupeStore := newSQLiteDedupeStore(t)
+	controller := &WorkflowExecutionController{signalDedupeStore: dedupeStore}
+	claim := NewDedupeClaimStep[*workflowexecutionv1.SendSignalInput](dedupeStore)
+
+	input := &workflowexecutionv1.SendSignalInput{
+		ExecutionId:    "wfx-dedupe-release",
+		SignalName:     "test-signal",
+		IdempotencyKey: "webhook-evt-failed",
+	}
+
+	// The failed attempt: claim lands, then the pipeline fails at the send.
+	failed := newSignalPipelineContext(input)
+	if err := claim.Execute(failed); err != nil {
+		t.Fatalf("claim should succeed: %v", err)
+	}
+	controller.releaseDedupeClaimAfterFailure(context.Background(), failed, input)
+
+	// The retry is not a duplicate.
+	if err := claim.Execute(newSignalPipelineContext(input)); err != nil {
+		t.Fatalf("retry after a released claim should claim freshly, got: %v", err)
+	}
+}
+
+func TestReleaseDedupeClaimAfterFailure_NoClaimIsNoOp(t *testing.T) {
+	// A pipeline failure before (or without) a claim must not touch the store —
+	// including the nil-store degradation, where reaching Release would panic.
+	controller := &WorkflowExecutionController{signalDedupeStore: nil}
+
+	input := &workflowexecutionv1.SendSignalInput{
+		ExecutionId: "wfx-dedupe-noclaim",
+		SignalName:  "test-signal",
+	}
+
+	// No claim step ran: DedupeClaimedKey is unset.
+	controller.releaseDedupeClaimAfterFailure(context.Background(), newSignalPipelineContext(input), input)
 }
 
 func TestDedupeClaimStep_EmptyKeySkipsDedupe(t *testing.T) {

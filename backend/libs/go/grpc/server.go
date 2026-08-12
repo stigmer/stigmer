@@ -485,6 +485,17 @@ func AlreadyExistsError(resource string, id string) error {
 	return status.Errorf(codes.AlreadyExists, "%s already exists: %s", resource, id)
 }
 
+// AbortedError returns a gRPC ABORTED error with format string support.
+// Use this for retryable conflicts — the caller should retry the operation
+// (e.g. a concurrent request holds an in-flight claim on the same idempotency
+// key) — as opposed to ALREADY_EXISTS, which tells the caller to stop.
+func AbortedError(format string, args ...interface{}) error {
+	if len(args) == 0 {
+		return status.Error(codes.Aborted, format)
+	}
+	return status.Errorf(codes.Aborted, format, args...)
+}
+
 // FailedPreconditionError returns a gRPC FAILED_PRECONDITION error with format string support.
 // Use this when the system is not in a state required for the operation to execute.
 func FailedPreconditionError(format string, args ...interface{}) error {
