@@ -1,6 +1,6 @@
 {
   "name": "ExistsConstraint",
-  "description": "ExistsConstraint validates a record against another collection in the\n same datastore, requiring a matching record to exist (`exists`) or to\n not exist (`not_exists`).\n\n @internal\n Bounded by design: target collection in the same datastore only;\n `where` is CEL over exactly `this` (the candidate) and `that` (a\n record of the target collection), plus `tz`; one level, read-only.\n Evaluated inside the write transaction — BEGIN IMMEDIATE in OSS\n SQLite, FOR SHARE row locks or SERIALIZABLE in cloud Postgres — so no\n write commits against a stale check. Violations surface as\n FAILED_PRECONDITION carrying the declared message.",
+  "description": "ExistsConstraint validates a record against another collection in the\n same datastore, requiring a matching record to exist (`exists`) or to\n not exist (`not_exists`).",
   "protoType": "ai.stigmer.agentic.datastore.v1.ExistsConstraint",
   "protoFile": "apis/ai/stigmer/agentic/datastore/v1/spec.proto",
   "fields": [

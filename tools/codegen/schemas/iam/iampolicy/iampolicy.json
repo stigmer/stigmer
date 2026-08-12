@@ -40,7 +40,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "The permission being granted (e.g., \"admin\", \"viewer\", \"owner\").\n Maps to a role_code from ai.stigmer.iam.v1.IamRole.\n Examples: \"admin\", \"editor\", \"viewer\", \"owner\", \"member\"\n\n @internal\n This is the FGA relation in the authorization tuple:\n principal.kind:principal.id#principal.relation@resource.kind:resource.id#relation",
+      "description": "The permission being granted (e.g., \"admin\", \"viewer\", \"owner\").\n Maps to a role_code from ai.stigmer.iam.v1.IamRole.\n Examples: \"admin\", \"editor\", \"viewer\", \"owner\", \"member\"",
       "required": true,
       "validation": {
         "required": true,

@@ -1,7 +1,7 @@
 {
   "name": "IdentityAccountSpec",
   "kind": "IDENTITY_ACCOUNT_SPEC",
-  "description": "IdentityAccountSpec defines the configuration for an identity account.\n\n An identity account represents a user or machine principal in Stigmer.\n Accounts can be direct (signed up via Stigmer), federated (provisioned\n through an external identity provider), machine (service-to-service\n credentials), or platform_client (provisioned via a PlatformClient's\n mintUserToken endpoint).\n\n @internal\n All FGA tuples use identity_account as the principal type.\n Provisioning details:\n - direct: Auth0 subject ID (e.g., \"auth0|abc123\")\n - federated: raw OIDC sub claim (e.g., \"google-oauth2|109876543210\"),\n   scoped by identity_provider_ref\n - machine: Auth0 client ID with \"@clients\" suffix\n - platform_client: composite \"stgm_pc|{org}|{external_user_id}\" where org\n   is the Stigmer org that owns the PlatformClient(s) and external_user_id\n   is the platform builder's stable identifier for the user. Scoping by org\n   (not by PlatformClient) means a customer's end user resolves to a single\n   IdentityAccount across all of that customer's PlatformClients. Globally\n   unique by construction.",
+  "description": "IdentityAccountSpec defines the configuration for an identity account.\n\n An identity account represents a user or machine principal in Stigmer.\n Accounts can be direct (signed up via Stigmer), federated (provisioned\n through an external identity provider), machine (service-to-service\n credentials), or platform_client (provisioned via a PlatformClient's\n mintUserToken endpoint).",
   "protoType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec",
   "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/spec.proto",
   "fields": [

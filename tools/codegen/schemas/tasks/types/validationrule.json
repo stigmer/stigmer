@@ -1,6 +1,6 @@
 {
   "name": "ValidationRule",
-  "description": "ValidationRule defines a business rule evaluated as a boolean expression.\n\n @internal\n Rules complement JSON Schema validation by expressing constraints that\n schema alone cannot: cross-field dependencies, conditional requirements,\n and domain-specific invariants.\n\n The expression must evaluate to a boolean. When it evaluates to false,\n the rule is considered violated and the message (if provided) is included\n in the validation error output.\n\n Expressions use the same expression engine as switch_case.when for\n consistency across the workflow domain.\n\n @since T03 (P0 New Task Types)",
+  "description": "ValidationRule defines a business rule evaluated as a boolean expression.",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.ValidationRule",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/validate.proto",
   "fields": [

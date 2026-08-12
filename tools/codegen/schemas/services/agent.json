@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.agent.v1.Agent",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Create or update an agent.\n\n @internal\n The authorization and state-operation are determined depending on whether the agent\n is going to be created or updated which is determined as part of the request execution."
+          "description": "Create or update an agent."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.agent.v1.Agent",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Create an agent.\n\n @internal\n Authorization:\n - Organization-scoped agents: Caller must have can_create_agent permission in the organization\n - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)"
+          "description": "Create an agent."
         },
         {
           "name": "Update",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Update the visibility of an existing agent.\n\n This is a targeted metadata update — it only modifies metadata.visibility,\n leaving spec, status, and other metadata fields untouched. Use this to\n make an agent publicly accessible or to revoke public access without\n sending the entire agent resource (avoiding read-modify-write races).\n\n @internal\n Authorization: Requires can_edit permission on the agent resource."
+          "description": "Update the visibility of an existing agent.\n\n This is a targeted metadata update — it only modifies metadata.visibility,\n leaving spec, status, and other metadata fields untouched. Use this to\n make an agent publicly accessible or to revoke public access without\n sending the entire agent resource (avoiding read-modify-write races)."
         },
         {
           "name": "Delete",
@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.agentic.agent.v1.AgentId",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Delete an agent.\n\n Deletion also removes the agent's system-managed default instance and\n every AgentShare in the agent's own organization referencing it, so a\n later agent created at the same org/slug starts clean. Personal\n instances, sessions, and other organizations' shares of this agent are\n not deleted — external shares stop resolving instead.\n\n @internal\n Cascade order is children-before-parent so a mid-failure retry\n converges. Shares are matched by spec.agent_ref (org + agent slug) and\n scoped to the agent's own org — leaving same-org shares behind would\n silently rebind a stale share (audience, link token, bound\n credentials) to whatever agent is later created at that slug, while\n cascading ANOTHER org's share would make delete a cross-principal\n destructive action (decision 013). Cross-org shares instead fail\n closed via the dangling-ref check and the status.agent_id pin; their\n owning orgs clean up their own rows. Cloud additionally cleans each\n cascaded child's FGA tuples."
+          "description": "Delete an agent.\n\n Deletion also removes the agent's system-managed default instance and\n every AgentShare in the agent's own organization referencing it, so a\n later agent created at the same org/slug starts clean. Personal\n instances, sessions, and other organizations' shares of this agent are\n not deleted — external shares stop resolving instead."
         }
       ]
     },
@@ -69,7 +69,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Get an agent by its organization-scoped reference (org/slug).\n Resolves a human-readable reference like \"acme/web-search\" to the full Agent resource.\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions."
+          "description": "Get an agent by its organization-scoped reference (org/slug).\n Resolves a human-readable reference like \"acme/web-search\" to the full Agent resource."
         },
         {
           "name": "GetDefault",
@@ -77,7 +77,7 @@
           "inputFullType": "ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Get the platform default agent.\n\n Returns the default agent for the platform, including\n status.default_instance_id for creating a session. Use this\n to start a conversation without selecting an agent first.\n\n Returns NOT_FOUND if no default agent is configured.\n\n @internal\n Resolves the agent labeled stigmer.ai/default-agent: \"true\" with\n visibility_public. Custom authorization in handler.\n\n Resolution is deterministic (stigmer/stigmer#356): only public labeled\n agents are candidates, and with multiple candidates — a reachable state,\n since safe label rotation applies the new default before retiring the\n old — the one with the lowest metadata.id (the incumbent) wins. The\n default changes only when the incumbent's label is explicitly removed,\n never as a side effect of another agent gaining the label."
+          "description": "Get the platform default agent.\n\n Returns the default agent for the platform, including\n status.default_instance_id for creating a session. Use this\n to start a conversation without selecting an agent first.\n\n Returns NOT_FOUND if no default agent is configured."
         }
       ]
     }
@@ -216,7 +216,7 @@
     },
     {
       "name": "GetDefaultAgentRequest",
-      "description": "GetDefaultAgentRequest is the input for retrieving the platform default agent.\n\n @internal\n The handler resolves the default agent globally (by label stigmer.ai/default-agent: \"true\"\n with visibility_public), but the org is needed for authorization scoping.\n Resolution is deliberately NOT scoped to this org: the default agent is a\n platform-level singleton seeded in the system org and served to callers of\n every org (see the getDefault rpc docs for the determinism contract).",
+      "description": "GetDefaultAgentRequest is the input for retrieving the platform default agent.",
       "protoType": "ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest",
       "protoFile": "apis/ai/stigmer/agentic/agent/v1/io.proto",
       "fields": [
@@ -245,7 +245,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -412,7 +412,7 @@
       ]
     }
   ],
-  "resourceDescription": "Agent defines an AI assistant's identity, tools, skills, and delegation model.\n\n @internal\n Uses Graphton configuration for state management.",
+  "resourceDescription": "Agent defines an AI assistant's identity, tools, skills, and delegation model.",
   "statusType": {
     "name": "AgentStatus",
     "description": "AgentStatus contains system-managed state for an agent.",
@@ -486,7 +486,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Unique identifier of the actor.\n\n @internal\n Historically, some writers populate this with the actor's email address\n rather than the identity-account ID. New writers should use the\n identity-account ID and carry the email in the dedicated field below;\n renderers must treat this value as an opaque last-resort label.",
+          "description": "Unique identifier of the actor.",
           "required": false
         },
         {

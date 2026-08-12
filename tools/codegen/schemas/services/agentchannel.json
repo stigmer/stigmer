@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
           "outputType": "AgentChannel",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
-          "description": "Create or update an agent channel.\n\n @internal\n The authorization and state-operation are determined depending on\n whether the channel is going to be created or updated, resolved as\n part of request execution. status is preserved verbatim (the install\n flow is its sole writer)."
+          "description": "Create or update an agent channel."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
           "outputType": "AgentChannel",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
-          "description": "Create an agent channel.\n\n Connecting an agent to a channel is a billing-affecting decision:\n conversations arriving over the channel consume the connection-owning\n organization's credits.\n\n @internal\n Authorization: requires can_edit on the REFERENCED AGENT\n (spec.agent_ref), checked in-handler — same bar as AgentShare create,\n since connecting a channel broadens who can chat with the agent\n runtime. Standard org-scoped create tuples (owner = creator) for the\n channel itself; no visibility tuples (channel admission is app-level).\n Invariant enforced here: metadata.org must equal spec.agent_ref.org.\n status.install_state is initialized to pending_install."
+          "description": "Create an agent channel.\n\n Connecting an agent to a channel is a billing-affecting decision:\n conversations arriving over the channel consume the connection-owning\n organization's credits."
         },
         {
           "name": "Update",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
           "outputType": "AgentChannel",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
-          "description": "Update an existing agent channel.\n\n Replaces the spec wholesale. The slug, referenced agent, and provider\n arm are immutable; status (install facts, credential reference) is\n never touched by updates.\n\n @internal\n Authorization: requires can_edit permission on the agent channel.\n Provider-arm immutability (a slack channel cannot become whatsapp) is\n enforced in-handler: the install state, credentials, and delivery\n records are all provider-shaped."
+          "description": "Update an existing agent channel.\n\n Replaces the spec wholesale. The slug, referenced agent, and provider\n arm are immutable; status (install facts, credential reference) is\n never touched by updates."
         },
         {
           "name": "InitiateInstall",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallInput",
           "outputType": "InitiateChannelInstallOutput",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput",
-          "description": "Start the provider install flow for an agent channel.\n\n For redirect-installed providers (Slack) the output carries the\n provider authorization URL to redirect the installing user to, plus\n the single-use state that completeInstall verifies. For\n direct-installed providers (WhatsApp) the install runs to completion\n inside this RPC and the output carries completed=true instead.\n\n Refusals a client should branch on carry a google.rpc.ErrorInfo\n detail (domain \"stigmer.ai\") on the standard grpc-status-details-bin\n trailer, alongside the human-readable FAILED_PRECONDITION message:\n\n   - WHATSAPP_NUMBER_ALREADY_CONNECTED — the WhatsApp Business number\n     already serves an agent through this channel app (one agent per\n     number per app). Metadata: display_phone_number (the occupied\n     number), channel_app_id (the serving app).\n\n @internal\n Authorization: requires can_edit on the agent channel — installing\n grants a workspace access to the agent runtime, the same bar as\n enabling. Redirect style generates and persists the single-use state\n (pending-state pattern from MCP OAuth); direct style validates\n against the provider, persists the status, and maps the\n duplicate-number refusal (the completeInstall duplicate-workspace\n mechanism). Cloud-first runtime: the OSS edition stores channel\n resources but returns FAILED_PRECONDITION here (documented posture,\n decision 001 D-g / T02 §0-b)."
+          "description": "Start the provider install flow for an agent channel.\n\n For redirect-installed providers (Slack) the output carries the\n provider authorization URL to redirect the installing user to, plus\n the single-use state that completeInstall verifies. For\n direct-installed providers (WhatsApp) the install runs to completion\n inside this RPC and the output carries completed=true instead.\n\n Refusals a client should branch on carry a google.rpc.ErrorInfo\n detail (domain \"stigmer.ai\") on the standard grpc-status-details-bin\n trailer, alongside the human-readable FAILED_PRECONDITION message:\n\n   - WHATSAPP_NUMBER_ALREADY_CONNECTED — the WhatsApp Business number\n     already serves an agent through this channel app (one agent per\n     number per app). Metadata: display_phone_number (the occupied\n     number), channel_app_id (the serving app)."
         },
         {
           "name": "CompleteInstall",
@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.CompleteChannelInstallInput",
           "outputType": "AgentChannel",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
-          "description": "Complete the provider install flow for an agent channel.\n\n Called by the console after the provider's consent redirect, with the\n state from initiateInstall and the provider's authorization code. On\n success the channel's status carries the install facts and the\n channel begins serving (subject to spec.enabled).\n\n Refusals a client should branch on carry a google.rpc.ErrorInfo\n detail (domain \"stigmer.ai\") on the standard grpc-status-details-bin\n trailer, alongside the human-readable FAILED_PRECONDITION message:\n\n   - SLACK_WORKSPACE_ALREADY_CONNECTED — the workspace already hosts\n     an agent through this serving app (one agent per workspace per\n     app). Metadata: team_name (the occupied workspace),\n     channel_app_id (the serving app; empty = platform app).\n   - CHANNEL_INSTALL_STATE_INVALID — the state parameter is missing,\n     expired, or replayed; restart the install.\n   - SLACK_ENTERPRISE_INSTALL_UNSUPPORTED — an Enterprise Grid\n     org-wide install was attempted; install into a single workspace.\n\n Other refusals (unconfigured deployment, provider-refused code\n exchange) carry no reason — their message is the interface.\n\n @internal\n Authorization: requires can_edit on the agent channel — the same bar\n as initiateInstall (the two halves of one flow). The handler consumes\n the state atomically, exchanges the code, stores credentials in the\n system-managed Environment, records the grant, and writes the status\n facts (sole writer). The OSS edition returns FAILED_PRECONDITION\n (documented posture, decision 001 D-g / T02 §0-b)."
+          "description": "Complete the provider install flow for an agent channel.\n\n Called by the console after the provider's consent redirect, with the\n state from initiateInstall and the provider's authorization code. On\n success the channel's status carries the install facts and the\n channel begins serving (subject to spec.enabled).\n\n Refusals a client should branch on carry a google.rpc.ErrorInfo\n detail (domain \"stigmer.ai\") on the standard grpc-status-details-bin\n trailer, alongside the human-readable FAILED_PRECONDITION message:\n\n   - SLACK_WORKSPACE_ALREADY_CONNECTED — the workspace already hosts\n     an agent through this serving app (one agent per workspace per\n     app). Metadata: team_name (the occupied workspace),\n     channel_app_id (the serving app; empty = platform app).\n   - CHANNEL_INSTALL_STATE_INVALID — the state parameter is missing,\n     expired, or replayed; restart the install.\n   - SLACK_ENTERPRISE_INSTALL_UNSUPPORTED — an Enterprise Grid\n     org-wide install was attempted; install into a single workspace.\n\n Other refusals (unconfigured deployment, provider-refused code\n exchange) carry no reason — their message is the interface."
         },
         {
           "name": "Delete",
@@ -54,7 +54,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelId",
           "outputType": "AgentChannel",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
-          "description": "Delete an agent channel.\n\n Full teardown of the connection: inbound events for the workspace stop\n resolving, pending deliveries are abandoned, and the credentials\n environment is deleted with the grant. To pause serving while keeping\n the install, update the channel with enabled=false instead.\n\n @internal\n Authorization: requires can_delete permission on the agent channel.\n The referenced agent is untouched. Teardown cascade (managed env +\n grant deletion) mirrors McpServer disconnectOAuth."
+          "description": "Delete an agent channel.\n\n Full teardown of the connection: inbound events for the workspace stop\n resolving, pending deliveries are abandoned, and the credentials\n environment is deleted with the grant. To pause serving while keeping\n the install, update the channel with enabled=false instead."
         }
       ]
     },
@@ -69,7 +69,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput",
           "outputType": "SendChannelMessageOutput",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.SendChannelMessageOutput",
-          "description": "Reply to a conversation as the business, through the same number the\n agent serves.\n\n The message is durably recorded and attempted inline; the outcome\n reports the truth of the attempt. A staff reply on an agent-held\n conversation is an implicit takeover: the agent goes quiet until\n handBack. Replying requires an existing conversation — the customer\n must have written first; an unknown conversation answers NOT_FOUND.\n\n @internal\n channel-conversations DD-009: rides the outbound lane with the\n participant origin (amended by T03 Sitting 1's A1 — operator cannot\n distinguish a staff reply from a console cold-send, so the cap\n predicate would have nothing to key on), recipient derived from the\n conversation key (never an argument — the origin trap D-a dissolves),\n exempt from the proactive caps and the proactive consent lever\n (D-b/D-c: reply traffic inside the open service window; the authority\n bar is the control). The existing-conversation precondition is T03\n Sitting 2's A8, making D-c's \"a customer who already wrote to us\"\n literal: without it, this lane would be an uncapped, lever-free\n cold-send reachable below the sendMessage authority bar. The\n implicit-takeover flip orders before-or-with the send (T03)."
+          "description": "Reply to a conversation as the business, through the same number the\n agent serves.\n\n The message is durably recorded and attempted inline; the outcome\n reports the truth of the attempt. A staff reply on an agent-held\n conversation is an implicit takeover: the agent goes quiet until\n handBack. Replying requires an existing conversation — the customer\n must have written first; an unknown conversation answers NOT_FOUND."
         },
         {
           "name": "TakeOver",
@@ -77,7 +77,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ConversationControlInput",
           "outputType": "ChannelConversation",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversation",
-          "description": "Take over a conversation: the agent goes quiet until handBack.\n\n Taking over also clears the needs-attention flag — the human arriving\n is the answer to an escalation.\n\n @internal\n channel-conversations DD-005 (the suppression this arms), DD-007 D-f\n (CAS WHERE control='agent'; two concurrent attempts resolve to one\n winner, the loser receives the fresh state), DD-008 D-f (attention\n cleared on takeover)."
+          "description": "Take over a conversation: the agent goes quiet until handBack.\n\n Taking over also clears the needs-attention flag — the human arriving\n is the answer to an escalation."
         },
         {
           "name": "HandBack",
@@ -85,7 +85,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ConversationControlInput",
           "outputType": "ChannelConversation",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversation",
-          "description": "Hand a conversation back to the agent, restoring automatic replies.\n\n The agent re-enters with the conversation context it missed while the\n human held control.\n\n @internal\n channel-conversations DD-007: CAS WHERE control='human'; any holder\n of can_participate may hand back, not only the takeover holder (v1\n single attention pool). Handback never touches the attention flag\n (DD-002 D-a #4). The missed-context digest is composed lazily at the\n next turn from the agent_witnessed_through watermark, not here."
+          "description": "Hand a conversation back to the agent, restoring automatic replies.\n\n The agent re-enters with the conversation context it missed while the\n human held control."
         },
         {
           "name": "ClearAttention",
@@ -93,7 +93,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ConversationControlInput",
           "outputType": "ChannelConversation",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversation",
-          "description": "Clear a conversation's needs-attention flag without taking it over.\n\n The false-alarm dismissal: an escalation that needs no reply is\n cleared in place, never via a take-over-and-hand-back dance.\n\n @internal\n channel-conversations DD-008 D-f. Control is untouched; the clear is\n recorded on the conversation's event history through the\n participation writer."
+          "description": "Clear a conversation's needs-attention flag without taking it over.\n\n The false-alarm dismissal: an escalation that needs no reply is\n cleared in place, never via a take-over-and-hand-back dance."
         },
         {
           "name": "Escalate",
@@ -101,7 +101,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.EscalateConversationInput",
           "outputType": "ChannelConversation",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversation",
-          "description": "Flag this conversation for human attention.\n\n Non-blocking: the agent keeps serving while the flag summons humans.\n Repeated escalation is harmless; the latest reason wins.\n\n @internal\n channel-conversations DD-008: agent-audience only — session-bound\n sandbox tokens; the conversation identity derives server-side from\n the session's channel labels (never caller-supplied, the DD-003\n identity doctrine), so the input carries only the reason. Appends an\n internal-lane escalation event and updates the row projection through\n the participation writer, idempotently. Approval-free by construction\n (unattended surfaces skip gated tools — a gated escalation would\n never fire). Cloud-first runtime; OSS refuses FAILED_PRECONDITION."
+          "description": "Flag this conversation for human attention.\n\n Non-blocking: the agent keeps serving while the flag summons humans.\n Repeated escalation is harmless; the latest reason wins."
         }
       ]
     },
@@ -116,7 +116,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput",
           "outputType": "ChannelConversationList",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversationList",
-          "description": "List an organization's channel conversations, newest activity first.\n\n Returns conversations across all of the org's channels the caller can\n view, optionally filtered to one channel. Entries carry participation\n state and the customer's display name.\n\n @internal\n Org-wide read: no single object to authorize, so authorization is\n in-handler — an FGA ListObjects over agent_channel#can_view scopes\n the scan (the listByChannel two-stage precedent; DD-010 D-b). A\n caller who can view no channel receives an empty list, never an\n error. OSS answers empty (cloud-only runtime)."
+          "description": "List an organization's channel conversations, newest activity first.\n\n Returns conversations across all of the org's channels the caller can\n view, optionally filtered to one channel. Entries carry participation\n state and the customer's display name."
         },
         {
           "name": "GetConversation",
@@ -124,7 +124,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput",
           "outputType": "ChannelConversation",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversation",
-          "description": "Get one conversation's identity and participation state.\n\n The single-row read behind a conversation detail view: who holds\n control, whether the conversation needs attention and why, the\n customer's display name, and the activity clocks. Answers NOT_FOUND\n until the customer's first message creates the conversation.\n\n @internal\n channel-conversations T04: the get sibling of listConversations, so\n a deep-linked console view or an embedded conversation surface never\n reconstructs one row by scanning list pages — and the open\n conversation can poll its own participation state instead of riding\n the list's slower refresh. Authorization is declarative on the\n channel, exactly getTimeline's shape (DD-003 D-a: conversations\n carry no per-conversation FGA tuples — the channel is the trust\n boundary). NOT_FOUND deliberately covers the timeline-without-row\n case (a proactive cold-send the customer never answered): getTimeline\n may serve items while this read refuses, the same \"the customer\n wrote first\" asymmetry reply's existing-conversation precondition\n enforces (T03 Sitting 2's A8) — consoles render that as \"controls\n unlock when the customer writes\", not as an error. OSS answers\n NOT_FOUND unconditionally: this edition never materializes\n conversations (cloud-only runtime), and a single-row get cannot\n answer \"empty\" the way the sibling discovery reads do."
+          "description": "Get one conversation's identity and participation state.\n\n The single-row read behind a conversation detail view: who holds\n control, whether the conversation needs attention and why, the\n customer's display name, and the activity clocks. Answers NOT_FOUND\n until the customer's first message creates the conversation."
         },
         {
           "name": "GetTimeline",
@@ -132,7 +132,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput",
           "outputType": "ConversationTimeline",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ConversationTimeline",
-          "description": "Get one conversation's timeline, newest first, cursor-paged.\n\n The timeline contains customer-visible items only: inbound customer\n messages (including non-text kinds the platform cannot render),\n delivered agent replies, and operator or platform sends. Execution\n internals never appear.\n\n @internal\n channel-conversations DD-004: stitched on read from the webhook\n event store, the delivery store (via the same last-AI-message\n extraction the delivery posted — never execution transcripts), and\n the outbound ledger; internal-lane events join as the fourth source\n in T03. Authorization is declarative on the channel: conversations\n carry no per-conversation FGA tuples (DD-003 D-a) — the channel is\n the trust boundary."
+          "description": "Get one conversation's timeline, newest first, cursor-paged.\n\n The timeline contains customer-visible items only: inbound customer\n messages (including non-text kinds the platform cannot render),\n delivered agent replies, and operator or platform sends. Execution\n internals never appear."
         },
         {
           "name": "GetMediaDownloadUrl",
@@ -140,7 +140,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput",
           "outputType": "ConversationMediaDownloadUrl",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl",
-          "description": "Mint a short-lived download URL for one inbound timeline item's\n media file (an image or document the customer sent).\n\n Answers NOT_FOUND when the item does not exist in this conversation\n or carries no ingested media (a text item, or media the platform\n declined to ingest).\n\n @internal\n whatsapp-media DD-001 D4: addressed by (channel, conversation,\n item_id) so the server resolves the storage key from its own row —\n the wire never carries blob capabilities, and authorization is\n declarative on the channel exactly like getTimeline (the channel is\n the trust boundary, DD-003 D-a). Deliberately stricter than the\n attachments-blob posture (authentication-only, ULID-as-capability)\n that the runner's download path rides: this is the human-facing\n read surface and law-firm client documents travel this pipeline.\n OSS answers NOT_FOUND unconditionally (cloud-only runtime, the\n getConversation posture)."
+          "description": "Mint a short-lived download URL for one inbound timeline item's\n media file (an image or document the customer sent).\n\n Answers NOT_FOUND when the item does not exist in this conversation\n or carries no ingested media (a text item, or media the platform\n declined to ingest)."
         }
       ]
     },
@@ -155,7 +155,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput",
           "outputType": "SendChannelMessageOutput",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.SendChannelMessageOutput",
-          "description": "Send a business-initiated message to a recipient on an agent channel.\n\n The message is durably recorded and attempted once inline; transient\n failures are retried in the background. The outcome reports the\n truth of the inline attempt.\n\n @internal\n Authorization in-handler (DD-002 D2/D6/D9): token-class dispatch,\n fail closed; agent-anchored chain (never session-sender-anchored —\n the recipient is an argument). Error contract (DD-002 D4): unknown\n or foreign token class, no serving channel, proactive messaging not\n enabled, or channel/org mismatch → PERMISSION_DENIED with no policy\n detail leaked; malformed input or ambiguous channel/language →\n INVALID_ARGUMENT with the candidates listed; channel not installed →\n FAILED_PRECONDITION; rate caps, recipient policy, and provider\n refusals → outcome=refused; transient provider failures →\n outcome=queued. Cloud-first runtime: the OSS edition returns\n FAILED_PRECONDITION (decision 001 D-g posture, the initiateInstall\n precedent)."
+          "description": "Send a business-initiated message to a recipient on an agent channel.\n\n The message is durably recorded and attempted once inline; transient\n failures are retried in the background. The outcome reports the\n truth of the inline attempt."
         }
       ]
     },
@@ -170,7 +170,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput",
           "outputType": "ChannelTemplates",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ChannelTemplates",
-          "description": "List the message templates available on an agent channel.\n\n Read live from the channel provider's registry (WhatsApp: the\n WABA's templates), lightly cached. The provider is the source of\n truth; entries carry its vocabulary verbatim.\n\n @internal\n DD-003 D6. Same in-handler token-class reach as sendMessage (DD-002\n D2/D4): sandbox tokens resolve through the serving channel, direct\n principals through channel visibility; fail closed. The WABA id is\n derived from the channel's phone_number_id on demand and cached —\n never stored (DD-003 D3). A token missing the management scope\n degrades this read only, never sends (DD-003 D7, Meta error 200 →\n FAILED_PRECONDITION pointing at token regeneration). Cloud-first\n runtime: the OSS edition returns FAILED_PRECONDITION (decision 001\n D-g posture)."
+          "description": "List the message templates available on an agent channel.\n\n Read live from the channel provider's registry (WhatsApp: the\n WABA's templates), lightly cached. The provider is the source of\n truth; entries carry its vocabulary verbatim."
         },
         {
           "name": "ListMessagingChannels",
@@ -178,7 +178,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput",
           "outputType": "MessagingChannels",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.MessagingChannels",
-          "description": "List the agent channels the caller can send business-initiated\n messages on.\n\n Everything the read needs derives from the caller's credential; an\n agent with no proactive-messaging channel receives an empty list.\n\n @internal\n proactive-messaging DD-006 D2: the runner's tool-attachment\n decision, replacing DD-002 D5's getByAgent plan (FGA-scoped — a\n sandbox token structurally receives an empty list there). Cloud\n answers from the SAME candidate computation ChannelMessagingReach\n uses (chain → serving proactive channels → sender-registry filter),\n so the attachment decision and the send authorization can never\n disagree. Session-bound callers only in this slice: direct\n principals get INVALID_ARGUMENT pointing at the channel resource\n surface. OSS returns an empty list (DD-006 D3) — a discovery read\n answering \"none\", unlike its action siblings' FAILED_PRECONDITION."
+          "description": "List the agent channels the caller can send business-initiated\n messages on.\n\n Everything the read needs derives from the caller's credential; an\n agent with no proactive-messaging channel receives an empty list."
         }
       ]
     },
@@ -201,7 +201,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "AgentChannel",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
-          "description": "Get an agent channel by its organization-scoped reference (org/slug).\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions (AgentShare pattern)."
+          "description": "Get an agent channel by its organization-scoped reference (org/slug)."
         },
         {
           "name": "GetByAgent",
@@ -209,7 +209,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest",
           "outputType": "AgentChannelList",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelList",
-          "description": "Get all channels of a specific agent.\n Returns only channels the caller has access to.\n\n This is how the agent's integrations surface and CLI resolve an\n agent's existing channels regardless of slug.\n\n @internal\n Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS."
+          "description": "Get all channels of a specific agent.\n Returns only channels the caller has access to.\n\n This is how the agent's integrations surface and CLI resolve an\n agent's existing channels regardless of slug."
         },
         {
           "name": "List",
@@ -217,7 +217,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest",
           "outputType": "AgentChannelList",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelList",
-          "description": "List agent channels with optional label filtering.\n\n @internal\n Authorization in-handler via FGA-filtered queries (cloud) or\n unrestricted store queries (OSS)."
+          "description": "List agent channels with optional label filtering."
         }
       ]
     }
@@ -267,7 +267,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Single-use opaque state parameter bound to this install attempt.\n Empty when the install completed directly.\n\n @internal\n Persisted server-side (PendingOAuthStateDocument pattern) and consumed\n atomically by completeInstall; expired or replayed states are rejected.",
+          "description": "Single-use opaque state parameter bound to this install attempt.\n Empty when the install completed directly.",
           "required": false
         },
         {
@@ -277,7 +277,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "True when the install completed synchronously inside this RPC\n (direct-installed providers). Clients branch on this field — never on\n provider knowledge of their own — so the server stays the single\n source of install-style truth.\n\n @internal\n DD-WA-1b. The seam behind it is the sealed ChannelInstaller split:\n AuthorizationRedirectInstaller populates authorization_url + state;\n DirectInstaller populates completed.",
+          "description": "True when the install completed synchronously inside this RPC\n (direct-installed providers). Clients branch on this field — never on\n provider knowledge of their own — so the server stays the single\n source of install-style truth.",
           "required": false
         }
       ]
@@ -331,7 +331,7 @@
     },
     {
       "name": "ReplyToConversationInput",
-      "description": "Input for replying to a conversation as the business.\n\n @internal\n channel-conversations DD-009 D-a: conversation-scoped by design — the\n operator addresses a conversation they are looking at, never types a\n recipient, and the handler derives the recipient from the conversation\n key. This seam (not the cold-send lane) is where staff-reply semantics\n live: implicit takeover orders the control flip before-or-with the send\n (T03), and staff replies are exempt from the proactive caps (DD-009 D-c).",
+      "description": "Input for replying to a conversation as the business.",
       "protoType": "ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput",
       "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
       "fields": [
@@ -471,7 +471,7 @@
     },
     {
       "name": "ChannelConversation",
-      "description": "ChannelConversation is the durable identity and participation state of\n one channel conversation: one external customer on one agent channel,\n spanning sessions.\n\n @internal\n channel-conversations DD-001/DD-003: the Conversation aggregate.\n Infrastructure aggregate — no kind, no apiVersion (the ChannelDelivery\n posture) — but WITH a public query/command surface, because the console\n reads conversations and operates the control token (the\n ChannelMessageQueryController precedent for channel-scoped public RPCs\n without a kind). Identity is (agent_channel_id, conversation_key), the\n same key channel_conversation_binding anchors (DD-013 of\n agent-channel-integrations); the binding stays a separate aggregate (the\n session pointer) and never carries participation state. Field ownership\n is single-writer per DD-003 D-c; last_activity_at is the documented\n commutative-max exception.",
+      "description": "ChannelConversation is the durable identity and participation state of\n one channel conversation: one external customer on one agent channel,\n spanning sessions.",
       "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversation",
       "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
       "fields": [
@@ -502,7 +502,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization that owns the channel.\n\n @internal\n Denormalized from the channel (its metadata.org) so the org-wide\n list never joins — the schedule_fire.org precedent.",
+          "description": "Organization that owns the channel.",
           "required": false
         },
         {
@@ -547,7 +547,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "True when the conversation is flagged for human attention.\n\n @internal\n DD-008 D-e: a projection of the latest escalation event, updated by\n the participation writer in the same motion that appends the event.\n Orthogonal to control (DD-002 D-a #4): takeover clears it, handback\n never touches it.",
+          "description": "True when the conversation is flagged for human attention.",
           "required": false
         },
         {
@@ -607,7 +607,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "True when the customer's last message has not yet received a real\n answer — from the agent or from a teammate.\n\n @internal\n channel-conversations DD-011 D-b/D-c: derived on read from\n last_customer_message_at vs the server-side last_answered_at fact\n column — never stored, so no boolean exists to drift. Only real\n answers stamp the fact (an agent turn delivered with Outcome.OK; a\n participant-origin staff reply at its Delivered settle); apology,\n cancellation, and limit copy, the platform acknowledgment, operator\n sends, and escalations never count. Ties go to answered. The raw\n instant stays server-side deliberately: carrying the derived boolean\n keeps the NULL-and-compare rule in one place instead of re-implemented\n per client, and \"waiting since\" already rides field 11. proto3\n default (false) degrades to the pre-T05 surface in both skew\n directions.",
+          "description": "True when the customer's last message has not yet received a real\n answer — from the agent or from a teammate.",
           "required": false
         }
       ]
@@ -820,7 +820,7 @@
     },
     {
       "name": "ConversationTimeline",
-      "description": "ConversationTimeline contains one page of a conversation's timeline,\n newest first.\n\n @internal\n Cursor pagination, not PageInfo, deliberately (DD-004 D-b): the\n timeline is stitched across three stores at read time, so an offset is\n neither cheap nor stable while new items land; the cursor encodes\n (instant, item_id). No total_count for the same reason — a\n cross-store count would be a second full stitch pretending to be a\n number.",
+      "description": "ConversationTimeline contains one page of a conversation's timeline,\n newest first.",
       "protoType": "ai.stigmer.agentic.agentchannel.v1.ConversationTimeline",
       "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
       "fields": [
@@ -930,7 +930,7 @@
     },
     {
       "name": "SendChannelMessageInput",
-      "description": "Input for sending a business-initiated message on an agent channel.\n\n @internal\n proactive-messaging DD-002 D4, amended: channel + org are separate\n fields (the FindRecordsRequest slug/org precedent), never a\n slug-or-id union. Dispatch mirrors the datastore record surface:\n session-bound runner credentials leave both empty and the server\n derives them from the session's serving channel; direct principals\n (console, CLI, SDK) set them. Ambiguity — the caller's agent has more\n than one proactive-enabled channel and no channel is named — is an\n INVALID_ARGUMENT whose detail lists the candidates (D7).",
+      "description": "Input for sending a business-initiated message on an agent channel.",
       "protoType": "ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput",
       "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/message_io.proto",
       "fields": [
@@ -1029,7 +1029,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "When true, only templates the provider will accept for sending are\n returned (WhatsApp: status APPROVED, filtered server-side).\n\n @internal\n The two callers split on this flag: the runner's discovery fetch\n sets it (an agent must never compose against a paused or pending\n template, DD-003 D5); the console leaves it unset to render every\n status with its badge (DD-003 D10).",
+          "description": "When true, only templates the provider will accept for sending are\n returned (WhatsApp: status APPROVED, filtered server-side).",
           "required": false
         }
       ]
@@ -1058,7 +1058,7 @@
     },
     {
       "name": "ListMessagingChannelsInput",
-      "description": "Input for listing the agent channels the caller can send\n business-initiated messages on.\n\n @internal\n proactive-messaging DD-006 D2. Deliberately empty (the\n GetServerInfoInput house style): org, agent, and session all derive\n from the caller's token (DD-013 — never from arguments). Session-bound\n callers only in this slice; a direct principal is told to use the\n channel resource surface instead. Room is reserved for a\n direct-caller `org` arm if one is ever justified.",
+      "description": "Input for listing the agent channels the caller can send\n business-initiated messages on.",
       "protoType": "ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput",
       "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/message_io.proto",
       "fields": []
@@ -1214,7 +1214,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization slug to scope the results to.\n\n When set, only channels whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.\n\n @internal\n Mirrors the org scoping on the sibling getByAgent/getByWorkflow\n requests (agent shares, agent instances, workflow instances). Handlers\n implementing this RPC must apply the filter in their query/list step.",
+          "description": "Organization slug to scope the results to.\n\n When set, only channels whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.",
           "required": false
         }
       ]
@@ -1303,7 +1303,7 @@
   "enumTypes": [
     {
       "name": "ChannelSendOutcome",
-      "description": "ChannelSendOutcome reports what happened to a business-initiated\n message on the inline delivery attempt.\n\n @internal\n proactive-messaging DD-002 D1/D4: policy refusals the agent adapts to\n are typed outcomes; contract violations and authority failures are\n gRPC errors. Provider verdicts map into the same vocabulary (DD-003\n D7).",
+      "description": "ChannelSendOutcome reports what happened to a business-initiated\n message on the inline delivery attempt.",
       "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelSendOutcome",
       "values": [
         {
@@ -1325,7 +1325,7 @@
     },
     {
       "name": "ConversationControl",
-      "description": "ConversationControl names who may speak to the customer on a\n conversation's public lane.\n\n @internal\n channel-conversations DD-002 (lane x control): exactly one holder at a\n time; transitions are CAS-guarded through the participation writer\n (DD-007 D-f). Values carry the control_ prefix — proto3 enum values are\n package-scoped and bare names invite collisions (the receipt_ precedent).",
+      "description": "ConversationControl names who may speak to the customer on a\n conversation's public lane.",
       "protoType": "ai.stigmer.agentic.agentchannel.v1.ConversationControl",
       "values": [
         {
@@ -1342,7 +1342,7 @@
     },
     {
       "name": "ChannelConversationListFilter",
-      "description": "ChannelConversationListFilter names the server-evaluated predicates the\n conversation list can be narrowed to.\n\n @internal\n channel-conversations DD-011 D-f/D-g: filter_wants_human expresses\n EXACTLY the nav badge's union, and the badge count is the filtered\n list's total_count — one predicate in one handler, so the count and the\n list it opens can never disagree. Server-side deliberately (T04 D1's\n standing objection): a client-side tab over one fetched page would\n silently lie across pages. Values carry the filter_ prefix — proto3\n enum values are package-scoped (the control_ precedent).",
+      "description": "ChannelConversationListFilter names the server-evaluated predicates the\n conversation list can be narrowed to.",
       "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter",
       "values": [
         {
@@ -1529,7 +1529,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -1550,13 +1550,13 @@
     },
     {
       "name": "ServiceTier",
-      "description": "ServiceTier selects the provider-side speed/service tier for an execution's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what an execution pays (stigmer/stigmer#357).\n\n @internal\n Resolution of UNSPECIFIED → STANDARD happens exactly once, in the runner's\n translation layer; every upstream layer preserves the caller's raw value so\n \"user explicitly chose standard\" stays distinguishable from \"platform\n default\". v1 supports the Cursor harness only: FAST on a model without a\n registry fast variant is refused at create time (INVALID_ARGUMENT), which\n also covers native-harness models since only cursor-harness registry entries\n carry fast variants today. Native (Anthropic/OpenAI) service-tier mapping is\n a tracked follow-up.",
+      "description": "ServiceTier selects the provider-side speed/service tier for an execution's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what an execution pays (stigmer/stigmer#357).",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.ServiceTier",
       "values": [
         {
           "name": "SERVICE_TIER_STANDARD",
           "number": 1,
-          "description": "Standard tier: the model's base-priced configuration, requested\n explicitly.\n\n @internal\n For the Cursor harness the runner pins every price-bearing variant\n parameter to its base value (fast=false, and thinking=false where the\n parameter exists); price-neutral parameters (e.g. effort) follow the\n catalog default variant. Confirmed against the billing ledger 2026-08-06:\n explicit base params bill base wire ids on create AND resume (see\n stigmer-cloud _projects/2026-08/20260806.04.model-service-tier)."
+          "description": "Standard tier: the model's base-priced configuration, requested\n explicitly."
         },
         {
           "name": "SERVICE_TIER_FAST",
@@ -1567,7 +1567,7 @@
     },
     {
       "name": "ConversationLane",
-      "description": "ConversationLane distinguishes customer-visible items from internal ones.\n\n @internal\n channel-conversations DD-002: every timeline item has a lane. lane_internal\n carries the internal event store's items — escalations and attention clears\n since T03 Sitting 4, notes when their writer lands (the v1-stretch decision).",
+      "description": "ConversationLane distinguishes customer-visible items from internal ones.",
       "protoType": "ai.stigmer.agentic.agentchannel.v1.ConversationLane",
       "values": [
         {
@@ -1605,13 +1605,13 @@
         {
           "name": "author_platform",
           "number": 4,
-          "description": "Platform-authored conversation copy (e.g. the takeover\n acknowledgment), neither the agent's words nor a teammate's.\n\n @internal\n channel-conversations DD-005 D-d: acknowledgment rows carry the\n platform outbound origin (lands in T03); rendering them as the agent\n would be a lie. The value exists from day one so the item vocabulary\n never needs a patch when the first platform row appears."
+          "description": "Platform-authored conversation copy (e.g. the takeover\n acknowledgment), neither the agent's words nor a teammate's."
         }
       ]
     },
     {
       "name": "ChannelDeliveryStatus",
-      "description": "ChannelDeliveryStatus is the delivery record lifecycle.\n\n @internal\n pending -\u003e delivering is the atomic claim (single winner across\n replicas). delivering -\u003e delivered | pending (retry, with backoff via\n next_attempt_at) | failed (dead-lettered after max attempts) |\n suppressed (withheld under human control — channel-conversations\n DD-005 D-e; terminal, intended behavior, never an alert condition).",
+      "description": "ChannelDeliveryStatus is the delivery record lifecycle.",
       "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus",
       "values": [
         {
@@ -1637,13 +1637,13 @@
         {
           "name": "suppressed",
           "number": 5,
-          "description": "Withheld because a human held the conversation when the reply came\n due; the customer never received it.\n\n @internal\n channel-conversations DD-005 D-e: terminal like delivered/failed,\n but intended behavior — a suppressed settle records its own metric\n and never feeds the bad-turn alert. The reply text is deliberately\n NOT extracted or persisted (the customer never saw any words, and\n the timeline's reply lane excludes this status by contract)."
+          "description": "Withheld because a human held the conversation when the reply came\n due; the customer never received it."
         }
       ]
     },
     {
       "name": "ChannelReceiptState",
-      "description": "ChannelReceiptState is the provider-reported delivery progress of an\n accepted outbound message, as learned from delivery receipts.\n\n @internal\n DD-016 D6. Provider-neutral four-state vocabulary; WhatsApp's fifth\n value `played` (voice playback) maps to receipt_read (DD-016 D8), and\n the raw webhook payload retains the verbatim value. Values carry the\n receipt_ prefix because proto3 enum values are package-scoped —\n `delivered` and `failed` are taken by ChannelDeliveryStatus — which is\n also a feature: the send-attempt axis and the receipt axis can never\n be confused on the wire. Enum numbers are IDENTITY only; the stamp's\n monotonic ordering lives in an explicit rank map in the handler, so a\n future value cannot silently mis-rank.",
+      "description": "ChannelReceiptState is the provider-reported delivery progress of an\n accepted outbound message, as learned from delivery receipts.",
       "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState",
       "values": [
         {
@@ -1670,7 +1670,7 @@
     },
     {
       "name": "ChannelOutboundOrigin",
-      "description": "ChannelOutboundOrigin records which trust context authorized a\n business-initiated send.\n\n @internal\n DD-002 D9: the calling contexts carry different trust levels, so\n recipient policy is surface-aware — channel-conversation sends are\n bounded to known senders, operator-authored sends to caps. Stamped\n server-side for audit, never caller-supplied. Writers, one per value:\n the reach resolver stamps channel_conversation and operator; the\n takeover acknowledger stamps platform (channel-conversations DD-005\n D-d); the conversation reply handler stamps participant\n (channel-conversations DD-009, amended at T03 Sitting 1). The\n proactive caps count only channel_conversation and operator rows —\n platform and participant are reply traffic inside the open service\n window, outside the proactive levers by design.",
+      "description": "ChannelOutboundOrigin records which trust context authorized a\n business-initiated send.",
       "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin",
       "values": [
         {
@@ -1686,20 +1686,20 @@
         {
           "name": "platform",
           "number": 3,
-          "description": "Platform-authored conversation-context copy (e.g. the takeover\n acknowledgment), neither the agent's words nor a human's.\n\n @internal\n channel-conversations DD-005 D-d: reply traffic inside the open\n service window — exempt from the proactive caps and the proactive\n consent lever. Renders as author_platform on the timeline."
+          "description": "Platform-authored conversation-context copy (e.g. the takeover\n acknowledgment), neither the agent's words nor a human's."
         },
         {
           "name": "participant",
           "number": 4,
-          "description": "A staff member's reply inside a live conversation, sent through the\n conversation-scoped reply command.\n\n @internal\n channel-conversations DD-009 (T03 Sitting 1 amendment): distinct\n from operator because a console cold-send and a staff reply both\n carry an empty session — origin is the only durable discriminator\n the cap predicate and the timeline author mapping can key on.\n Renders as author_teammate on the timeline. First written by the\n reply handler (T03 Sitting 2)."
+          "description": "A staff member's reply inside a live conversation, sent through the\n conversation-scoped reply command."
         }
       ]
     }
   ],
-  "resourceDescription": "AgentChannel connects an agent to an external messaging platform so people can chat with it where they already work.\n\n A channel is a distribution channel like AgentShare, but for push-based\n messaging platforms: the provider (Slack today) delivers user messages\n to a Stigmer webhook, and Stigmer calls the provider's API to deliver\n the agent's replies. The connection records which agent serves the\n channel, whether serving is enabled, and provider selection; the\n workspace identity and credential references produced by the install\n flow live in status. Deleting the channel tears the connection down;\n disabling pauses serving while preserving the install.\n\n @internal\n Sibling of AgentShare (decision 001): one kind per target, provider\n variance in spec.provider_config. metadata.org is the billing org\n (decision 001 D-b). N channels per agent; the defaults resolver does\n NOT default the slug to the agent slug (org+slug is unique and channels\n are N-per-agent — P7), standard derive-from-name applies. The overview.md\n file provides the SDK-facing description and example YAML.",
+  "resourceDescription": "AgentChannel connects an agent to an external messaging platform so people can chat with it where they already work.\n\n A channel is a distribution channel like AgentShare, but for push-based\n messaging platforms: the provider (Slack today) delivers user messages\n to a Stigmer webhook, and Stigmer calls the provider's API to deliver\n the agent's replies. The connection records which agent serves the\n channel, whether serving is enabled, and provider selection; the\n workspace identity and credential references produced by the install\n flow live in status. Deleting the channel tears the connection down;\n disabling pauses serving while preserving the install.",
   "statusType": {
     "name": "AgentChannelStatus",
-    "description": "AgentChannelStatus contains system-managed state for an agent channel.\n\n @internal\n Server-owned per decision 001 D-e / decision 004: install facts and the\n credentials reference survive every apply/update verbatim (the\n share_link_token precedent), so a routine manifest apply can never\n clobber an install or leak a secret. Secrets themselves NEVER appear\n here — the bot token lives encrypted in the referenced managed\n Environment; status is readable by anyone with can_view.",
+    "description": "AgentChannelStatus contains system-managed state for an agent channel.",
     "protoType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus",
     "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/status.proto",
     "fields": [
@@ -1750,7 +1750,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "ID of the system-managed Environment holding this connection's\n provider credentials (e.g. the Slack bot token).\n\n @internal\n Decision 004: created via ManagedEnvironmentService in the\n connection's org (stigmer.ai/managed=true), non-secret grant metadata\n in the resource-agnostic OAuthGrant document. The webhook receiver and\n delivery worker resolve the token through this reference — never from\n the channel resource itself.",
+        "description": "ID of the system-managed Environment holding this connection's\n provider credentials (e.g. the Slack bot token).",
         "required": false
       },
       {
@@ -1810,7 +1810,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Unique identifier of the actor.\n\n @internal\n Historically, some writers populate this with the actor's email address\n rather than the identity-account ID. New writers should use the\n identity-account ID and carry the email in the dedicated field below;\n renderers must treat this value as an opaque last-resort label.",
+          "description": "Unique identifier of the actor.",
           "required": false
         },
         {
@@ -1918,7 +1918,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Slack workspace (team) ID, e.g. \"T0123ABCD\".\n\n @internal\n The inbound routing key: the webhook receiver resolves the\n AgentChannel from the event payload's team_id. One INSTALLED channel\n per workspace, enforced by a partial-unique index on installed rows\n (decision 007).",
+          "description": "Slack workspace (team) ID, e.g. \"T0123ABCD\".",
           "required": false
         },
         {
@@ -1981,14 +1981,14 @@
           "type": {
             "kind": "string"
           },
-          "description": "ID of the ChannelApp the install went through; empty for installs\n of the platform's shared Stigmer app.\n\n @internal\n Written by the install completion path from the resolved\n spec.app_ref (sole writer, like every install fact). Discriminates\n routing and workspace uniqueness once multiple apps can serve one\n workspace: lookups key on (team_id, channel_app_id) and the\n partial-unique installed index is compound over both (decision 007\n as amended by T04 item 2). Existing platform installs predate the\n field; a missing value means the platform app — no backfill.",
+          "description": "ID of the ChannelApp the install went through; empty for installs\n of the platform's shared Stigmer app.",
           "required": false
         }
       ]
     },
     {
       "name": "WhatsAppInstallStatus",
-      "description": "WhatsAppInstallStatus holds the facts observed when a WhatsApp Business\n number was connected through the Meta Cloud API.\n\n @internal\n Written by the direct-install path (sole writer, DD-WA-1): the installer\n validates spec.whatsapp.phone_number_id against the Graph API and echoes\n it here alongside the observed display facts. The echo is deliberate —\n routing and uniqueness read STATUS (the install fact), mirroring\n status.slack.team_id, so a later spec edit can never silently re-route\n live traffic; the number binding changes only through a re-install.",
+      "description": "WhatsAppInstallStatus holds the facts observed when a WhatsApp Business\n number was connected through the Meta Cloud API.",
       "protoType": "ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus",
       "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/status.proto",
       "fields": [
@@ -1999,7 +1999,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Phone number ID the install validated and bound, e.g. \"106540352242922\".\n\n @internal\n The inbound routing key: the webhook receiver resolves the\n AgentChannel from the event payload's metadata.phone_number_id. One\n INSTALLED channel per (phone_number_id, channel_app_id), enforced by\n a compound partial-unique index on installed rows — the\n status.slack.team_id mechanism (decision 007) applied to WhatsApp.",
+          "description": "Phone number ID the install validated and bound, e.g. \"106540352242922\".",
           "required": false
         },
         {
@@ -2029,7 +2029,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "ID of the ChannelApp the install went through. Always set for\n WhatsApp — every WhatsApp channel installs through your own Meta app.\n\n @internal\n Same discriminator role as SlackInstallStatus.channel_app_id; never\n empty because WhatsApp has no platform app (DD-WA-2).",
+          "description": "ID of the ChannelApp the install went through. Always set for\n WhatsApp — every WhatsApp channel installs through your own Meta app.",
           "required": false
         },
         {

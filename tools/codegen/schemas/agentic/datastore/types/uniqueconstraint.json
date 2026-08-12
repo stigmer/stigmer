@@ -1,6 +1,6 @@
 {
   "name": "UniqueConstraint",
-  "description": "UniqueConstraint enforces uniqueness over one or more fields,\n optionally limited to records matching a condition.\n\n @internal\n Always substrate-enforced as an index (partial index when `where` is\n set), never read-then-write in domain logic. Violations surface as\n ALREADY_EXISTS carrying the declared message.",
+  "description": "UniqueConstraint enforces uniqueness over one or more fields,\n optionally limited to records matching a condition.",
   "protoType": "ai.stigmer.agentic.datastore.v1.UniqueConstraint",
   "protoFile": "apis/ai/stigmer/agentic/datastore/v1/spec.proto",
   "fields": [
@@ -43,7 +43,7 @@
         "kind": "message",
         "messageType": "UniqueWhere"
       },
-      "description": "Limits the constraint to records matching this condition\n (e.g. only `status == \"confirmed\"` bookings must be unique per slot).\n\n @internal\n Structured, never an expression — it must compile to the\n substrate's partial-index dialect in both editions.",
+      "description": "Limits the constraint to records matching this condition\n (e.g. only `status == \"confirmed\"` bookings must be unique per slot).",
       "required": false
     },
     {

@@ -1,7 +1,7 @@
 {
   "name": "HttpCallTaskConfig",
   "kind": "HTTP_CALL",
-  "description": "HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests.\n\n @internal\n YAML Example:\n   - taskName:\n       call: http\n       with:\n         method: POST\n         endpoint:\n           uri: https://api.example.com/data\n         headers:\n           Authorization: \"Bearer ${TOKEN}\"\n         body:\n           field1: value\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 2",
+  "description": "HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests.",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/http_call.proto",
   "discriminatorValue": "http_call",

@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
           "outputType": "WorkflowInstance",
           "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
-          "description": "Create or update a workflow instance.\n\n @internal\n The authorization and state-operation are determined depending on whether the workflow instance\n is going to be created or updated which is determined as part of the request execution."
+          "description": "Create or update a workflow instance."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
           "outputType": "WorkflowInstance",
           "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
-          "description": "Create a workflow instance.\n\n @internal\n Input validation:\n - metadata.org must be specified\n - spec.workflow_id must be a valid Workflow resource ID\n - spec.environment_refs must reference valid Environment resources\n\n Authorization:\n Uses custom authorization logic to verify:\n 1. User has permission to access the referenced Workflow template\n 2. User has permission to access all referenced Environment resources\n 3. Owner scope is valid for the user's organization/identity"
+          "description": "Create a workflow instance."
         },
         {
           "name": "Update",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
           "outputType": "WorkflowInstance",
           "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
-          "description": "Update an existing workflow instance.\n\n @internal\n Mutable fields:\n - spec.description, spec.environment_refs\n - metadata.labels, metadata.tags, metadata.annotations\n\n Immutable fields (must delete and recreate to change):\n - spec.workflow_id, metadata.id, metadata.org\n\n Authorization:\n Requires \"update\" permission on the specific WorkflowInstance resource.\n Field path \"metadata.id\" identifies which resource to authorize.\n\n Each update increments status.audit.version and updates status.audit.updated_at.\n\n Error: PERMISSION_DENIED if user lacks update permission"
+          "description": "Update an existing workflow instance."
         },
         {
           "name": "UpdateVisibility",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
           "outputType": "WorkflowInstance",
           "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
-          "description": "Update the visibility of an existing workflow instance.\n\n Changes who can view this instance and its executions. Supports the full\n visibility spectrum: PRIVATE (owner only), ORG (all org members), or\n PUBLIC (all authenticated users).\n\n For workflow instances, visibility has cascading effects on execution\n observability: workflow executions inherit visibility from their parent\n instance via FGA. An ORG-visible instance means all org members can see\n all executions — zero per-execution tuples needed.\n\n @internal\n Authorization: Requires can_edit permission on the workflow instance.\n Visibility transitions trigger FGA tuple management in Cloud mode:\n - PRIVATE → ORG: creates workflow_instance#viewer@organization:\u003corg\u003e#member\n - PRIVATE → PUBLIC: creates workflow_instance#viewer@identity_account:*\n - ORG → PRIVATE: deletes the org member viewer tuple\n - PUBLIC → PRIVATE: deletes the wildcard viewer tuple"
+          "description": "Update the visibility of an existing workflow instance.\n\n Changes who can view this instance and its executions. Supports the full\n visibility spectrum: PRIVATE (owner only), ORG (all org members), or\n PUBLIC (all authenticated users).\n\n For workflow instances, visibility has cascading effects on execution\n observability: workflow executions inherit visibility from their parent\n instance via FGA. An ORG-visible instance means all org members can see\n all executions — zero per-execution tuples needed."
         },
         {
           "name": "UpdateExecutionVisibility",
@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput",
           "outputType": "WorkflowInstance",
           "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
-          "description": "Update who can observe the run history (executions) of this instance.\n\n This is a SEPARATE axis from updateVisibility: it controls run\n observability (who sees execution inputs/outputs), not who can see/run\n the instance itself. Making an instance org-runnable does NOT expose\n other users' run history — that requires this opt-in.\n\n Supported levels: PRIVATE (only the user who ran each execution) and\n ORGANIZATION (all org members). Public/platform are unsupported.\n\n @internal\n Authorization: requires can_grant_access on the workflow instance —\n sharing run history is an access-granting action, consistent with the\n per-execution share flow. In Cloud mode the transition reconciles the\n instance's `execution_viewer` FGA relation:\n - PRIVATE -\u003e ORGANIZATION: creates\n   workflow_instance#execution_viewer@organization:\u003corg\u003e#member\n - ORGANIZATION -\u003e PRIVATE: deletes that tuple"
+          "description": "Update who can observe the run history (executions) of this instance.\n\n This is a SEPARATE axis from updateVisibility: it controls run\n observability (who sees execution inputs/outputs), not who can see/run\n the instance itself. Making an instance org-runnable does NOT expose\n other users' run history — that requires this opt-in.\n\n Supported levels: PRIVATE (only the user who ran each execution) and\n ORGANIZATION (all org members). Public/platform are unsupported."
         },
         {
           "name": "Delete",
@@ -54,7 +54,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId",
           "outputType": "WorkflowInstance",
           "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
-          "description": "Delete a workflow instance.\n\n @internal\n Permanently removes a WorkflowInstance resource.\n - Does NOT delete the referenced Workflow template (templates are reusable)\n - Does NOT delete the referenced Environment resources (environments are reusable)\n - DOES cascade delete any dependent WorkflowExecution resources (executions belong to instance)\n\n Authorization:\n Requires \"delete\" permission on the specific WorkflowInstance resource.\n Field path \"value\" extracts the resource ID from WorkflowInstanceId wrapper.\n\n Returns the deleted WorkflowInstance (final state before deletion).\n\n Error: PERMISSION_DENIED if user lacks delete permission\n Error: NOT_FOUND if instance ID doesn't exist"
+          "description": "Delete a workflow instance."
         }
       ]
     },
@@ -69,7 +69,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId",
           "outputType": "WorkflowInstance",
           "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
-          "description": "Get a single workflow instance by ID.\n\n @internal\n Retrieves a specific WorkflowInstance using its unique resource identifier.\n\n Authorization:\n Requires \"get\" permission on the specific WorkflowInstance.\n Field path \"value\" extracts the resource ID from WorkflowInstanceId wrapper.\n Verifies user has access based on:\n - Instance owner scope (organization or identity_account)\n - User's IAM policies\n\n Error: PERMISSION_DENIED if user lacks get permission\n Error: NOT_FOUND if instance ID doesn't exist"
+          "description": "Get a single workflow instance by ID."
         },
         {
           "name": "GetByWorkflow",
@@ -77,7 +77,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest",
           "outputType": "WorkflowInstanceList",
           "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList",
-          "description": "Get all workflow instances that use a specific workflow template.\n\n Returns a paginated list of instances that reference the given workflow ID.\n\n @internal\n Authorization is handled in handler via FGA query for authorized workflow_instance_ids,\n then filtered by workflow_id. This ensures users only see instances they have access to,\n even if the parent workflow is shared across organizations.\n\n Filtering:\n Results are filtered by:\n - User's organization/identity visibility\n - IAM policies\n - Owner scope rules\n\n Error: PERMISSION_DENIED if user lacks access to the workflow\n Error: NOT_FOUND if workflow_id doesn't exist"
+          "description": "Get all workflow instances that use a specific workflow template.\n\n Returns a paginated list of instances that reference the given workflow ID."
         },
         {
           "name": "GetByReference",
@@ -85,7 +85,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "WorkflowInstance",
           "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
-          "description": "Get a workflow instance by reference (ID or slug).\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions.\n\n Supports lookup by:\n - ID: {id: \"wfi_abc123\"}\n - Slug: {slug: \"prod-deploy\"}\n - Name: {name: \"Production Deploy\"}\n\n Error: PERMISSION_DENIED if user lacks access\n Error: NOT_FOUND if reference doesn't resolve to an instance"
+          "description": "Get a workflow instance by reference (ID or slug)."
         }
       ]
     }
@@ -167,7 +167,7 @@
     },
     {
       "name": "GetWorkflowInstancesByWorkflowRequest",
-      "description": "GetWorkflowInstancesByWorkflowRequest retrieves all instances of a specific workflow template.\n\n @internal\n This allows you to find all configured deployments of a given Workflow.\n For example, a \"deploy-to-cloud\" Workflow might have instances:\n - \"prod-deploy\" (with production environments)\n - \"staging-deploy\" (with staging environments)\n - \"dev-deploy\" (with development environments)\n Supports pagination for efficient retrieval of large result sets.",
+      "description": "GetWorkflowInstancesByWorkflowRequest retrieves all instances of a specific workflow template.",
       "protoType": "ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest",
       "protoFile": "apis/ai/stigmer/agentic/workflowinstance/v1/io.proto",
       "fields": [
@@ -202,7 +202,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization slug to scope the results to.\n\n When set, only instances whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.\n\n @internal\n Optional by design: pre-existing callers rely on the permission-bounded\n behavior. Filtering happens in the query/list step of each edition's\n handler, never client-side.",
+          "description": "Organization slug to scope the results to.\n\n When set, only instances whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.",
           "required": false
         }
       ]
@@ -341,7 +341,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -525,5 +525,5 @@
       ]
     }
   ],
-  "resourceDescription": "WorkflowInstance represents a configured deployment of a Workflow template.\n\n @internal\n This is the \"Instance\" layer in the Template→Instance→Execution pattern.\n It binds a reusable Workflow template to specific environments containing credentials,\n configuration, and secrets needed for execution.\n\n A WorkflowInstance:\n - References a Workflow template (the orchestration blueprint)\n - Binds one or more Environment resources (configuration + secrets)\n - Can be executed multiple times via WorkflowExecution resources\n - Can be platform-scoped (global defaults), org-scoped (team instances), or user-scoped (personal)\n\n Example use case:\n Workflow \"deploy-to-cloud\" (template) → WorkflowInstance \"prod-deploy\" (with aws-prod-env)\n → WorkflowExecution \"prod-deploy-20250111-001\" (specific run)\n\n This separation allows:\n - Workflow templates to be reusable across teams/environments\n - Instances to maintain stateful configuration with secrets\n - Executions to track individual runs with results"
+  "resourceDescription": "WorkflowInstance represents a configured deployment of a Workflow template."
 }

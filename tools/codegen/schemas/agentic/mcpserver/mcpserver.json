@@ -1,7 +1,7 @@
 {
   "name": "McpServerSpec",
   "kind": "MCP_SERVER_SPEC",
-  "description": "McpServerSpec defines the configurable properties of an MCP server.\n\n @internal\n This is the \"Template\" layer — declares capabilities and requirements.\n The overview.md file provides the SDK-facing description and example YAML.",
+  "description": "McpServerSpec defines the configurable properties of an MCP server.",
   "protoType": "ai.stigmer.agentic.mcpserver.v1.McpServerSpec",
   "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/spec.proto",
   "fields": [
@@ -72,7 +72,7 @@
           "kind": "string"
         }
       },
-      "description": "Default tools to enable from this MCP server.\n Empty list means all tools are enabled by default.\n Applies whenever an agent's McpServerUsage.enabled_tools is empty.\n\n @internal\n Tool names must match exactly what the MCP server reports via tools/list.\n Only names from discovered_capabilities.tools are valid here.\n Do NOT include names from discovered_capabilities.resource_templates —\n resource templates are read-only data endpoints, not callable tools.\n A name the server does not expose (including a resource template name)\n is warned and ignored at execution: the runner enforces the INTERSECTION\n with the server's live toolset, so a stale or mistyped entry narrows the\n toolset but never widens it or fails the run. Enforcement is per harness\n — see McpServerUsage.enabled_tools in agent/v1/spec.proto.",
+      "description": "Default tools to enable from this MCP server.\n Empty list means all tools are enabled by default.\n Applies whenever an agent's McpServerUsage.enabled_tools is empty.",
       "required": false
     },
     {
@@ -89,7 +89,7 @@
           "messageType": "EnvVarDeclaration"
         }
       },
-      "description": "Environment variable declarations for this MCP server.\n Keys are variable names; values describe their metadata and optionality.\n\n @internal\n Reserved platform keys — declared here like any other variable, but\n their values are injected by the runner per resolution context and are\n authoritative over same-named user env entries:\n   STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token\n       (\"whatsapp_phone\", \"slack_user_id\", \"stigmer_user\", \"anonymous\")\n   STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,\n       email); empty for anonymous\n   STIGMER_SESSION_ID            — the session the identity was\n       resolved for; empty outside a session\n Reserved keys MUST be declared `optional: true`: they have no value at\n execution-create time, and a required declaration fails the pipeline's\n env-completeness validation before the runner ever injects them.\n Discovery (the connect workflow) runs with no session and injects the\n anonymous sentinel — a server consuming these keys must answer\n tools/list for anonymous callers and gate tool CALLS instead. The\n injected header is runner-asserted, not signed: pair it with a shared\n secret and treat it as trustworthy only for servers you operate.",
+      "description": "Environment variable declarations for this MCP server.\n Keys are variable names; values describe their metadata and optionality.",
       "required": false
     },
     {
@@ -103,7 +103,7 @@
           "messageType": "ToolApprovalPolicy"
         }
       },
-      "description": "Manual tool approval overrides set by the MCP server owner.\n\n @internal\n These take precedence over system-generated `McpServerStatus.tool_approvals`.\n Never auto-modified — only changed by explicit user action (apply/update).\n\n Use cases:\n - Force approval for a tool the classifier marked as auto-approve\n - Exempt a safe tool the classifier flagged as needing approval\n - Establish organization-wide safety policies for dangerous tools\n\n Policy chain (lowest to highest priority):\n 1. McpServerStatus.tool_approvals - System-generated defaults\n 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)\n 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization\n 4. AgentExecution.auto_approve_all - Runtime bypass",
+      "description": "Manual tool approval overrides set by the MCP server owner.",
       "required": false
     },
     {

@@ -1,7 +1,7 @@
 {
   "name": "SkillSpec",
   "kind": "SKILL_SPEC",
-  "description": "SkillSpec defines the desired state of a skill.\n\n @internal\n All fields are extracted from the skill artifact by the backend.\n This follows the Kubernetes spec pattern — contains user's desired state.\n Source/provenance information is NOT stored here — it's in SkillStatus\n as GitProvenance (observed state). See synth.proto for SDK input structure.",
+  "description": "SkillSpec defines the desired state of a skill.",
   "protoType": "ai.stigmer.agentic.skill.v1.SkillSpec",
   "protoFile": "apis/ai/stigmer/agentic/skill/v1/spec.proto",
   "fields": [

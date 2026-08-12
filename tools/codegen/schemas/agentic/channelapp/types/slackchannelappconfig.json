@@ -1,6 +1,6 @@
 {
   "name": "SlackChannelAppConfig",
-  "description": "SlackChannelAppConfig holds the credentials of a customer-created\n Slack app.\n\n The values come from the app's \"Basic Information\" page on\n api.slack.com. The app must be configured with Stigmer's OAuth\n redirect URL and this ChannelApp's events webhook URL — the console\n shows both, along with a ready-to-paste app manifest.\n\n @internal\n No api_app_id and no redirect/webhook URLs here: webhook attribution\n is by the per-app request path (/webhook/slack/{channelAppId}), chosen\n over envelope api_app_id sniffing because Slack's url_verification\n handshake carries no app identity and the raw body must verify before\n any parse. The redirect URI is platform-derived, mirroring OAuthApp's\n deliberate omission.",
+  "description": "SlackChannelAppConfig holds the credentials of a customer-created\n Slack app.\n\n The values come from the app's \"Basic Information\" page on\n api.slack.com. The app must be configured with Stigmer's OAuth\n redirect URL and this ChannelApp's events webhook URL — the console\n shows both, along with a ready-to-paste app manifest.",
   "protoType": "ai.stigmer.agentic.channelapp.v1.SlackChannelAppConfig",
   "protoFile": "apis/ai/stigmer/agentic/channelapp/v1/spec.proto",
   "fields": [

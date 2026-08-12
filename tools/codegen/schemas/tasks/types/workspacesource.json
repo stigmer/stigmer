@@ -1,6 +1,6 @@
 {
   "name": "WorkspaceSource",
-  "description": "WorkspaceSource defines where the workspace content comes from.\n\n @internal\n Pure source-definition type: describes the origin of workspace content\n without any identity or naming. Use WorkspaceEntry to pair a source with\n a name for session-level usage.",
+  "description": "WorkspaceSource defines where the workspace content comes from.",
   "protoType": "ai.stigmer.agentic.session.v1.WorkspaceSource",
   "protoFile": "apis/ai/stigmer/agentic/session/v1/workspace.proto",
   "fields": [

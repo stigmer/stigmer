@@ -11,7 +11,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "Whether the resolved value should be treated as a secret.\n\n @internal\n When true: encrypted at rest, redacted in logs and Temporal history.\n When false: stored as plaintext, visible in audit logs.",
+      "description": "Whether the resolved value should be treated as a secret.",
       "required": false
     },
     {
@@ -31,7 +31,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "Whether this variable is optional.\n\n @internal\n When false (default): the execution pipeline rejects a run if this\n variable is missing from the user's environment.\n When true: a missing value is acceptable (the MCP server or agent\n degrades gracefully without it).",
+      "description": "Whether this variable is optional.",
       "required": false
     }
   ]

@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
           "outputType": "Datastore",
           "outputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
-          "description": "Create or update a datastore.\n\n @internal\n The authorization and state-operation are determined depending on\n whether the datastore is going to be created or updated, which is\n resolved as part of the request execution. Schema sync runs as a\n synchronous, gating step after persist (additive-plus change\n matrix); removing a non-empty collection requires the\n datastore.stigmer.ai/acknowledge-collection-removal annotation\n naming it, otherwise the request fails with FAILED_PRECONDITION."
+          "description": "Create or update a datastore."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
           "outputType": "Datastore",
           "outputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
-          "description": "Create a datastore.\n\n @internal\n Authorization: caller must have can_create_datastore permission in\n the organization. Max datastores per org is enforced as a domain\n validation constant in this pipeline."
+          "description": "Create a datastore."
         },
         {
           "name": "Update",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
           "outputType": "Datastore",
           "outputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
-          "description": "Update an existing datastore.\n\n @internal\n Authorization: requires can_edit permission on the datastore\n resource. Updates are full spec replaces; the gating schema-sync\n step diffs against the loaded existing spec and applies the\n additive-plus change matrix (DD-004): no transition silently\n destroys or nulls record data."
+          "description": "Update an existing datastore."
         },
         {
           "name": "UpdateVisibility",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
           "outputType": "Datastore",
           "outputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
-          "description": "Update the visibility of an existing datastore.\n\n Only modifies metadata.visibility. Datastores support two levels:\n private (the default) and org. Setting org shares the datastore\n with the owning organization for human administration; it does not\n change record-layer access, which is governed solely by the\n datastore's authorization block and agent datastore_usages.\n\n @internal\n Authorization: requires can_edit permission on the datastore\n resource. public/platform levels are rejected via the kind's\n VisibilityConfig (supports_org only) — business records must never\n be resolvable across the org boundary."
+          "description": "Update the visibility of an existing datastore.\n\n Only modifies metadata.visibility. Datastores support two levels:\n private (the default) and org. Setting org shares the datastore\n with the owning organization for human administration; it does not\n change record-layer access, which is governed solely by the\n datastore's authorization block and agent datastore_usages."
         },
         {
           "name": "Delete",
@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "Datastore",
           "outputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
-          "description": "Delete a datastore and every record it holds.\n\n Deleting a non-empty datastore requires force: without it the\n request fails with FAILED_PRECONDITION reporting how many records\n across how many collections would be destroyed. A datastore\n referenced by any agent's datastore_usages cannot be deleted until\n the references are removed.\n\n @internal\n Authorization: requires can_edit permission on the datastore\n resource. The two guards (record-count acknowledgment via force;\n agent-reference block, never forceable) run in the delete pipeline\n of both editions. Record tools never delete structures — this RPC\n is the only path that destroys collections."
+          "description": "Delete a datastore and every record it holds.\n\n Deleting a non-empty datastore requires force: without it the\n request fails with FAILED_PRECONDITION reporting how many records\n across how many collections would be destroyed. A datastore\n referenced by any agent's datastore_usages cannot be deleted until\n the references are removed."
         }
       ]
     },
@@ -61,7 +61,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
           "outputType": "Datastore",
           "outputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
-          "description": "Get a datastore by ID.\n\n @internal\n Authorization: requires can_view permission on the datastore resource."
+          "description": "Get a datastore by ID."
         },
         {
           "name": "GetByReference",
@@ -69,7 +69,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "Datastore",
           "outputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
-          "description": "Get a datastore by its organization-scoped reference (org/slug).\n Resolves a human-readable reference like \"acme/clinic-records\" to the full Datastore resource.\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions."
+          "description": "Get a datastore by its organization-scoped reference (org/slug).\n Resolves a human-readable reference like \"acme/clinic-records\" to the full Datastore resource."
         },
         {
           "name": "List",
@@ -77,7 +77,7 @@
           "inputFullType": "ai.stigmer.agentic.datastore.v1.ListDatastoresRequest",
           "outputType": "DatastoreList",
           "outputFullType": "ai.stigmer.agentic.datastore.v1.DatastoreList",
-          "description": "List datastores with optional label filtering.\n\n @internal\n Authorization is handled in-handler via FGA-filtered queries (cloud)\n or unrestricted store queries (OSS)."
+          "description": "List datastores with optional label filtering."
         }
       ]
     },
@@ -92,7 +92,7 @@
           "inputFullType": "ai.stigmer.agentic.datastore.v1.InsertRecordRequest",
           "outputType": "RecordEnvelope",
           "outputFullType": "ai.stigmer.agentic.datastore.v1.RecordEnvelope",
-          "description": "Insert a record into a collection.\n\n Requires the insert verb on the collection. System fields are\n server-stamped; supplying them is rejected. Returns the full record\n envelope.\n\n @internal\n The only non-idempotent record operation; declared uniques are the\n duplicate guard (a retried insert violating a unique returns\n ALREADY_EXISTS, never a duplicate). Insert idempotency keys are a\n recorded growth path."
+          "description": "Insert a record into a collection.\n\n Requires the insert verb on the collection. System fields are\n server-stamped; supplying them is rejected. Returns the full record\n envelope."
         },
         {
           "name": "UpdateRecord",
@@ -123,7 +123,7 @@
           "inputFullType": "ai.stigmer.agentic.datastore.v1.FindRecordsRequest",
           "outputType": "RecordList",
           "outputFullType": "ai.stigmer.agentic.datastore.v1.RecordList",
-          "description": "Find records in a collection with a typed filter.\n\n Requires the read verb on the collection. Results are paginated\n (default 25, max 100) and deterministically ordered.\n\n @internal\n An own-scoped read grant composes the scope into the query as an\n inexpressible conjunction — callers can neither relax nor observe\n it."
+          "description": "Find records in a collection with a typed filter.\n\n Requires the read verb on the collection. Results are paginated\n (default 25, max 100) and deterministically ordered."
         },
         {
           "name": "DescribeDatastore",
@@ -131,7 +131,7 @@
           "inputFullType": "ai.stigmer.agentic.datastore.v1.DescribeDatastoreRequest",
           "outputType": "DatastoreDescription",
           "outputFullType": "ai.stigmer.agentic.datastore.v1.DatastoreDescription",
-          "description": "Describe a datastore's collections, fields, constraints, and the\n caller's effective verbs per collection.\n\n Requires reach only (no per-collection verb): a caller with no\n grants sees the schema with empty access lists.\n\n @internal\n The effective-verb resolution runs the same Layer 2 chain as record\n operations, at describe time. Operator state (bindings, seeds, sync\n report) is deliberately excluded from the projection."
+          "description": "Describe a datastore's collections, fields, constraints, and the\n caller's effective verbs per collection.\n\n Requires reach only (no per-collection verb): a caller with no\n grants sees the schema with empty access lists."
         }
       ]
     }
@@ -400,7 +400,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Data partition to insert into. Unset means the \"default\" partition.\n\n @internal\n Same dispatch as FindRecordsRequest.partition: direct principals\n only; server-derived (and rejected if supplied) for session-bound\n callers. A partition's first write registers it in the datastore's\n partition catalog (DD-010 SD-3).",
+          "description": "Data partition to insert into. Unset means the \"default\" partition.",
           "required": false,
           "validation": {
             "maxLength": 63,
@@ -414,7 +414,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization the datastore belongs to. Direct callers set it;\n unset resolves from the caller's context.\n\n @internal\n Same dispatch as FindRecordsRequest.org.",
+          "description": "Organization the datastore belongs to. Direct callers set it;\n unset resolves from the caller's context.",
           "required": false,
           "validation": {
             "maxLength": 63
@@ -424,7 +424,7 @@
     },
     {
       "name": "RecordEnvelope",
-      "description": "RecordEnvelope is a record as returned by every record RPC:\n server-managed system fields plus the declared fields.\n\n @internal\n System fields are server-stamped and never caller-writable on any\n surface. Record ids follow the platform id convention with prefix\n `dsr` (dsr_\u003clowercase-ulid\u003e). created_by carries the DD-002\n attribution subject; own-scoped grants resolve against it, and the\n grant system is the privacy boundary for exposing it: it is present\n only when the caller's read grant is unrestricted or lists\n `created_by` in read_fields (for channel senders the value is the\n phone number — the most direct PII in the envelope). Every response\n — find results and write echoes alike — carries only the fields the\n caller's read grant allows; a caller with no read grant receives id\n and timestamps only.",
+      "description": "RecordEnvelope is a record as returned by every record RPC:\n server-managed system fields plus the declared fields.",
       "protoType": "ai.stigmer.agentic.datastore.v1.RecordEnvelope",
       "protoFile": "apis/ai/stigmer/agentic/datastore/v1/record_io.proto",
       "fields": [
@@ -546,7 +546,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Data partition holding the record. Unset means the \"default\"\n partition. A record in another partition is NOT_FOUND.\n\n @internal\n Same dispatch as FindRecordsRequest.partition.",
+          "description": "Data partition holding the record. Unset means the \"default\"\n partition. A record in another partition is NOT_FOUND.",
           "required": false,
           "validation": {
             "maxLength": 63,
@@ -560,7 +560,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization the datastore belongs to. Direct callers set it;\n unset resolves from the caller's context.\n\n @internal\n Same dispatch as FindRecordsRequest.org.",
+          "description": "Organization the datastore belongs to. Direct callers set it;\n unset resolves from the caller's context.",
           "required": false,
           "validation": {
             "maxLength": 63
@@ -620,7 +620,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Data partition holding the record. Unset means the \"default\"\n partition. A record in another partition is NOT_FOUND.\n\n @internal\n Same dispatch as FindRecordsRequest.partition.",
+          "description": "Data partition holding the record. Unset means the \"default\"\n partition. A record in another partition is NOT_FOUND.",
           "required": false,
           "validation": {
             "maxLength": 63,
@@ -634,7 +634,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization the datastore belongs to. Direct callers set it;\n unset resolves from the caller's context.\n\n @internal\n Same dispatch as FindRecordsRequest.org.",
+          "description": "Organization the datastore belongs to. Direct callers set it;\n unset resolves from the caller's context.",
           "required": false,
           "validation": {
             "maxLength": 63
@@ -726,7 +726,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Data partition to read from. Unset means the \"default\" partition.\n\n @internal\n Honored for direct platform principals only (console, CLI, SDK,\n import). Session-bound runner credentials get their partition\n server-derived from the session's agent instance (DD-010 SD-2) and\n are rejected with INVALID_ARGUMENT if they supply one — no second\n channel, mirroring the sender-identity posture.",
+          "description": "Data partition to read from. Unset means the \"default\" partition.",
           "required": false,
           "validation": {
             "maxLength": 63,
@@ -740,7 +740,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization the datastore belongs to. Direct callers (console,\n CLI, SDK, import) set it; unset resolves from the caller's context.\n\n @internal\n Session-bound runner credentials leave it empty — their org is\n server-derived from the session (DD-006 reach chain, lands with\n T05). In the OSS edition every slug resolves against the local\n system org, and a non-matching explicit org is NOT_FOUND (records\n stay home).",
+          "description": "Organization the datastore belongs to. Direct callers (console,\n CLI, SDK, import) set it; unset resolves from the caller's context.",
           "required": false,
           "validation": {
             "maxLength": 63
@@ -826,7 +826,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization the datastore belongs to. Direct callers set it;\n unset resolves from the caller's context.\n\n @internal\n Same dispatch as FindRecordsRequest.org.",
+          "description": "Organization the datastore belongs to. Direct callers set it;\n unset resolves from the caller's context.",
           "required": false,
           "validation": {
             "maxLength": 63
@@ -836,7 +836,7 @@
     },
     {
       "name": "DatastoreDescription",
-      "description": "DatastoreDescription is a datastore's schema and the calling\n subject's effective access, for agent and client discovery.\n\n @internal\n The projection deliberately excludes operator state (bindings, seed\n records, sync report): a caller learns the shape of the data and what\n it may do, never who else has access.",
+      "description": "DatastoreDescription is a datastore's schema and the calling\n subject's effective access, for agent and client discovery.",
       "protoType": "ai.stigmer.agentic.datastore.v1.DatastoreDescription",
       "protoFile": "apis/ai/stigmer/agentic/datastore/v1/record_io.proto",
       "fields": [
@@ -894,7 +894,7 @@
               "kind": "string"
             }
           },
-          "description": "Data partitions that hold records, from the partition catalog.\n Always includes \"default\".\n\n @internal\n Partitions are labels on data, never resources (DD-010 SD-3): a\n partition appears here after its first write registers it in the\n catalog. The console's partition picker is fed from this list; for\n agent callers it is harmless metadata (their partition is\n server-derived and not selectable).",
+          "description": "Data partitions that hold records, from the partition catalog.\n Always includes \"default\".",
           "required": false
         }
       ]
@@ -909,7 +909,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -1088,7 +1088,7 @@
         {
           "name": "rejected",
           "number": 2,
-          "description": "The sync was rejected; the datastore retains its prior schema.\n\n @internal\n Rejections are whole-sync (gating step): a rejected transition\n (type change, add-required-without-default to a non-empty\n collection, constraint violated by existing records,\n unacknowledged collection removal) fails the apply/update RPC with\n FAILED_PRECONDITION, so a stored `rejected` outcome is only\n observable if the sync failed after persist — a fail-loud signal,\n never a partial schema."
+          "description": "The sync was rejected; the datastore retains its prior schema."
         }
       ]
     },
@@ -1116,7 +1116,7 @@
     },
     {
       "name": "FieldType",
-      "description": "FieldType is the value type of a declared field.\n\n @internal\n Canonical encodings (DD-004): date is `YYYY-MM-DD`, time is\n zero-padded `HH:MM[:SS]` (both lexicographically chronological),\n timestamp is RFC 3339 UTC. json is an escape hatch — not\n constrainable or filterable in v1. The value is `bool`, not\n `boolean`, because protoc-java emits enum constants verbatim and\n `boolean` is a Java reserved word.",
+      "description": "FieldType is the value type of a declared field.",
       "protoType": "ai.stigmer.agentic.datastore.v1.FieldType",
       "values": [
         {
@@ -1190,7 +1190,7 @@
     },
     {
       "name": "DatastoreGrantScope",
-      "description": "DatastoreGrantScope is the row scope of a grant.\n\n @internal\n `own` resolves against the server-stamped created_by attribution\n only — callers can neither set nor observe it.",
+      "description": "DatastoreGrantScope is the row scope of a grant.",
       "protoType": "ai.stigmer.agentic.datastore.v1.DatastoreGrantScope",
       "values": [
         {
@@ -1207,7 +1207,7 @@
     },
     {
       "name": "RecordConditionOp",
-      "description": "RecordConditionOp is the comparison operator of a condition.\n\n @internal\n `is_in` rather than `in` because protoc emits enum constants verbatim\n and `in` is a reserved word in Java and Python.",
+      "description": "RecordConditionOp is the comparison operator of a condition.",
       "protoType": "ai.stigmer.agentic.datastore.v1.RecordConditionOp",
       "values": [
         {
@@ -1307,10 +1307,10 @@
       ]
     }
   ],
-  "resourceDescription": "Datastore declares collections of typed business records that agents\n read and write through built-in, permission-checked tools.\n\n @internal\n Org-scoped. Deleting a datastore destroys business records, so delete\n is guarded: non-empty datastores require the force acknowledgment,\n and datastores referenced by any agent's datastore_usages are\n blocked. Collection removal on apply/update requires the\n datastore.stigmer.ai/acknowledge-collection-removal annotation.",
+  "resourceDescription": "Datastore declares collections of typed business records that agents\n read and write through built-in, permission-checked tools.",
   "statusType": {
     "name": "DatastoreStatus",
-    "description": "DatastoreStatus contains system-managed state for a datastore:\n the schema sync report and per-collection materialization facts.\n\n @internal\n Written by the gating schema-sync step in the create/update pipelines\n of both editions. Server-owned: survives every apply/update verbatim.\n Record contents never appear here — counts only.",
+    "description": "DatastoreStatus contains system-managed state for a datastore:\n the schema sync report and per-collection materialization facts.",
     "protoType": "ai.stigmer.agentic.datastore.v1.DatastoreStatus",
     "protoFile": "apis/ai/stigmer/agentic/datastore/v1/status.proto",
     "fields": [
@@ -1410,7 +1410,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Unique identifier of the actor.\n\n @internal\n Historically, some writers populate this with the actor's email address\n rather than the identity-account ID. New writers should use the\n identity-account ID and carry the email in the dedicated field below;\n renderers must treat this value as an opaque last-resort label.",
+          "description": "Unique identifier of the actor.",
           "required": false
         },
         {
@@ -1544,7 +1544,7 @@
           "type": {
             "kind": "int64"
           },
-          "description": "Number of records currently in the collection.\n\n @internal\n Computed during sync; a health indicator, not a live counter.",
+          "description": "Number of records currently in the collection.",
           "required": false
         },
         {

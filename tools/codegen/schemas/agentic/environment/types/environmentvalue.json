@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "The configuration or secret string.\n\n @internal\n When is_secret is true the value is encrypted at rest and redacted in logs.\n When is_secret is false the value is stored as plaintext.\n Value can be empty when pre-declaring keys whose values are injected at runtime.",
+      "description": "The configuration or secret string.",
       "required": false
     },
     {
@@ -21,7 +21,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "Whether this value should be treated as a secret.\n\n @internal\n When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal.\n When false: stored as plaintext, visible in audit logs.",
+      "description": "Whether this value should be treated as a secret.",
       "required": false
     },
     {

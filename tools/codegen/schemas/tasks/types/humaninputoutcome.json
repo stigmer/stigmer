@@ -1,6 +1,6 @@
 {
   "name": "HumanInputOutcome",
-  "description": "HumanInputOutcome defines a named outcome that a reviewer can select\n when responding to a human_input task.\n\n @internal\n Outcomes enable rich branching beyond binary approve/deny. Each outcome\n can route to a different downstream task via the `then` field, enabling\n patterns like \"approve → continue\", \"deny → re_classify\", \"needs_revision\n → gather_more_context\".\n\n When no outcomes are defined, the task defaults to binary approve/deny\n behavior: approve continues to the next task, deny fails the task.\n\n @since T03 (P0 New Task Types)",
+  "description": "HumanInputOutcome defines a named outcome that a reviewer can select\n when responding to a human_input task.",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.HumanInputOutcome",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/human_input.proto",
   "fields": [

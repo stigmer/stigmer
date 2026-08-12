@@ -3,7 +3,7 @@
   "additionalProperties": false,
   "properties": {
     "activity": {
-      "description": "Activity name to execute. Must match a registered Temporal activity.",
+      "description": "Activity name to execute.",
       "minLength": 1,
       "type": "string"
     },

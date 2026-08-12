@@ -1,7 +1,7 @@
 {
   "name": "ArtifactSpec",
   "kind": "ARTIFACT_SPEC",
-  "description": "ArtifactSpec defines the properties of an artifact provided at creation time.\n\n @internal\n Artifacts are created by the workflow-runner or agent-runner when a task\n produces output that should be persisted outside the execution status\n snapshot (either because it exceeds the size threshold or because the\n workflow author explicitly requested artifact persistence).\n\n The spec is immutable after creation — artifacts are append-only.\n To update an artifact's content, create a new artifact.\n\n @since T07 (Artifact Store)",
+  "description": "ArtifactSpec defines the properties of an artifact provided at creation time.",
   "protoType": "ai.stigmer.agentic.artifact.v1.ArtifactSpec",
   "protoFile": "apis/ai/stigmer/agentic/artifact/v1/spec.proto",
   "fields": [
@@ -12,7 +12,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "MIME content type of the artifact payload.\n\n @internal\n Used by the UI to determine rendering strategy (JSON viewer, text,\n image preview, download link) and by the download endpoint for\n Content-Type headers.\n\n Common values:\n - \"application/json\" — structured task output, agent response\n - \"text/plain\" — log output, agent final text\n - \"text/html\" — generated reports\n - \"application/pdf\" — rendered documents\n - \"application/octet-stream\" — opaque binary (fallback)",
+      "description": "MIME content type of the artifact payload.",
       "required": true,
       "validation": {
         "required": true,
@@ -27,7 +27,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Human-readable display name for the artifact.\n\n @internal\n Shown in the execution viewer's artifact list and download dialogs.\n When auto-promoted, this is derived from the task name and output field\n (e.g., \"analyze_code — output.json\"). When explicitly created by a\n workflow author (Phase 1), this is user-provided.\n\n Does not need to be unique — multiple tasks can produce artifacts\n with the same display name across different executions.",
+      "description": "Human-readable display name for the artifact.",
       "required": true,
       "validation": {
         "required": true,
@@ -43,7 +43,7 @@
         "kind": "message",
         "messageType": "ArtifactSource"
       },
-      "description": "Provenance: which execution and task produced this artifact.\n\n @internal\n Used for:\n - Listing artifacts by execution (listByExecution RPC)\n - Linking artifacts back to their source in the execution viewer\n - Access control inheritance (artifact access follows execution access)",
+      "description": "Provenance: which execution and task produced this artifact.",
       "required": true,
       "validation": {
         "required": true
@@ -57,7 +57,7 @@
         "kind": "message",
         "messageType": "RetentionPolicy"
       },
-      "description": "Retention policy for this artifact.\n\n @internal\n When not set, the organization's default retention policy applies.\n The backend computes ArtifactStatus.expires_at from this policy\n at creation time.",
+      "description": "Retention policy for this artifact.",
       "required": false
     }
   ]

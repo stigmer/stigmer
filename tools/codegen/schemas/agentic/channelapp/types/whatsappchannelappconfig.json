@@ -1,6 +1,6 @@
 {
   "name": "WhatsAppChannelAppConfig",
-  "description": "WhatsAppChannelAppConfig holds the credentials of a customer-created\n Meta app with WhatsApp Business access.\n\n The values come from the app's dashboard on developers.facebook.com.\n The app's webhook must be configured with this ChannelApp's events URL\n and verify token — the console shows both after the app is registered.\n\n @internal\n DD-WA-3: every WhatsApp credential is per-app authored (Meta's Cloud\n API has no per-install OAuth), so they all live here — no managed\n Environment, no OAuthGrant row; AgentChannelStatus.credentials_environment_id\n stays empty for WhatsApp channels. Webhook attribution is by the per-app\n request path (/webhook/whatsapp/{channelAppId}), matching Slack's\n per-app URL posture: Meta's GET verification handshake carries no app\n identity, and the POST signature (X-Hub-Signature-256, HMAC over the\n raw body with app_secret) must verify before any parse.",
+  "description": "WhatsAppChannelAppConfig holds the credentials of a customer-created\n Meta app with WhatsApp Business access.\n\n The values come from the app's dashboard on developers.facebook.com.\n The app's webhook must be configured with this ChannelApp's events URL\n and verify token — the console shows both after the app is registered.",
   "protoType": "ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig",
   "protoFile": "apis/ai/stigmer/agentic/channelapp/v1/spec.proto",
   "fields": [

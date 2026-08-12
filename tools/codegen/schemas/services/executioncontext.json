@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Create or update an ExecutionContext.\n\n @internal\n Router only: delegates to create when the resource does not exist and\n fails with ALREADY_EXISTS when it does (no update RPC). Authorization is\n inherited from the delegated create pipeline."
+          "description": "Create or update an ExecutionContext."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Create a new ExecutionContext for an execution.\n\n @internal\n Called by the execution pipelines (agent execution, workflow execution,\n workflow recovery, MCP connect) as sub-steps, and reachable directly by\n API clients. is_skip_authorization because the caller-class split cannot\n be a declarative option: the create handler trusts internal in-process\n calls (already authorized upstream) and requires external callers to hold\n can_create_execution_in on metadata.org. The pipeline additionally grants\n the caller the owner tuple, which gates all subsequent reads and delete."
+          "description": "Create a new ExecutionContext for an execution."
         },
         {
           "name": "Delete",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Delete an ExecutionContext.\n\n @internal\n Called when execution completes. Handler-level auth (the FGA target is the\n loaded resource, so it cannot be a declarative option): caller must have\n can_edit on execution_context:\u003cid\u003e, which the FGA model resolves to the\n owner written at create time."
+          "description": "Delete an ExecutionContext."
         }
       ]
     },
@@ -45,7 +45,7 @@
           "inputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContextId",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Get an ExecutionContext by ID.\n\n @internal\n Handler-level auth (cloud): direct FGA can_view on the execution_context resource.\n Secret values are redacted on cloud."
+          "description": "Get an ExecutionContext by ID."
         },
         {
           "name": "GetByReference",
@@ -53,7 +53,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Get an ExecutionContext by reference (slug-based lookup).\n\n @internal\n Handler-level auth (cloud): direct FGA can_view on the execution_context resource.\n Secret values are redacted on cloud."
+          "description": "Get an ExecutionContext by reference (slug-based lookup)."
         },
         {
           "name": "GetByExecutionId",
@@ -61,7 +61,7 @@
           "inputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Get the ExecutionContext for a given execution ID.\n\n @internal\n Primary lookup method used by runners to retrieve the merged environment\n variables during workflow/agent execution and MCP discovery.\n Handler-level auth (cloud): direct FGA can_view on the execution_context resource.\n\n Secret handling (cloud): the decrypt path is gated by caller credential\n class AND scope, not by FGA — runners authenticate as the user who owns\n the execution, so permissions cannot tell them apart. Callers presenting\n a platform-minted runner token (token_type of sandbox, workflow_sandbox,\n or connect_sandbox) whose scope claim binds it to this very execution\n receive decrypted secret values. The unscoped embedded_runner bootstrap\n credential is refused; desktop runners exchange it for a scoped token\n via getRunnerScopedToken before reading. Every other caller (user JWT,\n SDK, console) receives the same redaction as get/getByReference."
+          "description": "Get the ExecutionContext for a given execution ID."
         }
       ]
     }
@@ -161,7 +161,7 @@
     },
     {
       "name": "ExecutionContextExecutionIdInput",
-      "description": "Input for looking up an ExecutionContext by its parent execution ID.\n\n @internal\n Primary lookup method used by runners to retrieve merged environment\n variables during execution.",
+      "description": "Input for looking up an ExecutionContext by its parent execution ID.",
       "protoType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput",
       "protoFile": "apis/ai/stigmer/agentic/executioncontext/v1/io.proto",
       "fields": [
@@ -172,7 +172,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "AgentExecution or WorkflowExecution ID to look up.\n\n @internal\n Must match the execution_id field in ExecutionContextSpec.",
+          "description": "AgentExecution or WorkflowExecution ID to look up.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -337,7 +337,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -357,5 +357,5 @@
       ]
     }
   ],
-  "resourceDescription": "Ephemeral runtime configuration and secrets scoped to a single execution.\n\n @internal\n Created by the execution engine at start, deleted when execution completes.\n Used for B2B scenarios where secrets are injected at runtime."
+  "resourceDescription": "Ephemeral runtime configuration and secrets scoped to a single execution."
 }

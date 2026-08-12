@@ -1,7 +1,7 @@
 {
   "name": "ForkTaskConfig",
   "kind": "FORK",
-  "description": "ForkTaskConfig defines the configuration for fork tasks that execute branches in parallel.\n\n @internal\n YAML Example:\n   - taskName:\n       fork:\n         branches:\n           - branch1:\n               do:\n                 - task1:\n                     call: http\n                     with:\n                       method: POST\n                       endpoint:\n                         uri: https://api.example.com/branch1\n           - branch2:\n               do:\n                 - task2:\n                     call: http\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 5",
+  "description": "ForkTaskConfig defines the configuration for fork tasks that execute branches in parallel.",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/fork.proto",
   "discriminatorValue": "fork",

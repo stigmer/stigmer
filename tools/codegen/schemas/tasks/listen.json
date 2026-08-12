@@ -1,7 +1,7 @@
 {
   "name": "ListenTaskConfig",
   "kind": "LISTEN",
-  "description": "ListenTaskConfig defines the configuration for listen tasks that wait for external signals.\n\n @internal\n Implemented via Temporal signals.\n\n YAML Example:\n   - taskName:\n       listen:\n         to:\n           one:\n             with:\n               id: approval_signal\n               type: signal\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 7",
+  "description": "ListenTaskConfig defines the configuration for listen tasks that wait for external signals.",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/listen.proto",
   "discriminatorValue": "listen",

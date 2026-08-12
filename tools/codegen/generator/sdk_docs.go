@@ -184,7 +184,7 @@ func generateCommonsDocPage(schema *CommonsSchemaFile) []byte {
 		mt := &schema.MessageTypes[i]
 		fmt.Fprintf(&buf, "### %s\n\n", mt.Name)
 		if mt.Description != "" {
-			content := docFirstSentence(docStripInternal(mt.Description))
+			content := docFirstSentence(mt.Description)
 			if content != "" {
 				buf.WriteString(docEscapeMDX(content))
 				buf.WriteString("\n\n")
@@ -213,7 +213,7 @@ func generateCommonsDocPage(schema *CommonsSchemaFile) []byte {
 func docWriteCommonsField(buf *bytes.Buffer, f *FieldSchema, documentedTypes map[string]bool) {
 	fieldName := tsProtoFieldName(f.ProtoField)
 	fieldType := docResponseTypeString(&f.Type)
-	desc := docEscapeJSString(docFirstSentence(docStripInternal(f.Description)))
+	desc := docEscapeJSString(docFirstSentence(f.Description))
 
 	// Try enum link first, then message link
 	link := ""
@@ -861,7 +861,7 @@ func docWriteMethodOverview(buf *bytes.Buffer, methods []MethodSchema) {
 	for i := range methods {
 		tsName := tsMethodName(methods[i].Name)
 		anchor := strings.ToLower(tsName)
-		desc := docFirstSentence(docStripInternal(methods[i].Description))
+		desc := docFirstSentence(methods[i].Description)
 		desc = strings.ReplaceAll(desc, "|", "\\|")
 
 		fmt.Fprintf(buf, "| [`%s`](#%s) | %s |", tsName, anchor, desc)
@@ -914,7 +914,7 @@ func docWriteTypesWithCommons(buf *bytes.Buffer, cfg sdkResourceConfig, specSche
 func docWriteTypeFieldWithCommons(buf *bytes.Buffer, f *FieldSchema, documentedTypes map[string]bool, commonsTypes map[string]bool) {
 	fieldName := tsProtoFieldName(f.ProtoField)
 	fieldType := docTypeString(&f.Type)
-	desc := docEscapeJSString(docFirstSentence(docStripInternal(f.Description)))
+	desc := docEscapeJSString(docFirstSentence(f.Description))
 	link := docFieldTypeLinkWithCommons(&f.Type, documentedTypes, commonsTypes)
 
 	var props []string
@@ -955,7 +955,7 @@ func docWriteNestedTypeWithCommons(buf *bytes.Buffer, f *FieldSchema, typeMap ma
 	fmt.Fprintf(buf, "### %s\n\n", inputName)
 
 	if ts.Description != "" {
-		buf.WriteString(docEscapeMDX(docFirstSentence(docStripInternal(ts.Description))))
+		buf.WriteString(docEscapeMDX(docFirstSentence(ts.Description)))
 		buf.WriteString("\n\n")
 	}
 
@@ -1083,7 +1083,7 @@ func docWriteMethodTypesWithCommons(buf *bytes.Buffer, methodTypes []MethodTypeS
 		fmt.Fprintf(buf, "### %s\n\n", heading)
 
 		if mt.Description != "" {
-			content := docFirstSentence(docStripInternal(mt.Description))
+			content := docFirstSentence(mt.Description)
 			if content != "" {
 				buf.WriteString(docEscapeMDX(content))
 				buf.WriteString("\n\n")
@@ -1164,7 +1164,7 @@ func docResponseTypeString(ts *TypeSpec) string {
 func docWriteResponseTypeFieldWithCommons(buf *bytes.Buffer, f *FieldSchema, documentedTypes map[string]bool, commonsTypes map[string]bool) {
 	fieldName := tsProtoFieldName(f.ProtoField)
 	fieldType := docResponseTypeString(&f.Type)
-	desc := docEscapeJSString(docFirstSentence(docStripInternal(f.Description)))
+	desc := docEscapeJSString(docFirstSentence(f.Description))
 	link := docResponseFieldTypeLinkWithCommons(&f.Type, documentedTypes, commonsTypes)
 
 	var props []string
@@ -1187,7 +1187,7 @@ func docWriteResourceAndStatusTypesWithCommons(buf *bytes.Buffer, cfg sdkResourc
 
 	fmt.Fprintf(buf, "### %s\n\n", cfg.protoResType)
 	if schema.ResourceDescription != "" {
-		content := docFirstSentence(docStripInternal(schema.ResourceDescription))
+		content := docFirstSentence(schema.ResourceDescription)
 		if content != "" {
 			buf.WriteString(docEscapeMDX(content))
 			buf.WriteString("\n\n")
@@ -1222,7 +1222,7 @@ func docWriteResourceAndStatusTypesWithCommons(buf *bytes.Buffer, cfg sdkResourc
 	if schema.StatusType != nil {
 		fmt.Fprintf(buf, "### %s\n\n", schema.StatusType.Name)
 		if schema.StatusType.Description != "" {
-			content := docFirstSentence(docStripInternal(schema.StatusType.Description))
+			content := docFirstSentence(schema.StatusType.Description)
 			if content != "" {
 				buf.WriteString(docEscapeMDX(content))
 				buf.WriteString("\n\n")
@@ -1253,7 +1253,7 @@ func docWriteStatusNestedTypesWithCommons(buf *bytes.Buffer, types []MethodTypeS
 
 		fmt.Fprintf(buf, "### %s\n\n", nt.Name)
 		if nt.Description != "" {
-			content := docFirstSentence(docStripInternal(nt.Description))
+			content := docFirstSentence(nt.Description)
 			if content != "" {
 				buf.WriteString(docEscapeMDX(content))
 				buf.WriteString("\n\n")
@@ -1286,7 +1286,7 @@ func docWriteEnumTypes(buf *bytes.Buffer, enumTypes []EnumSchema) {
 		fmt.Fprintf(buf, "### %s\n\n", et.Name)
 
 		if et.Description != "" {
-			content := docFirstSentence(docStripInternal(et.Description))
+			content := docFirstSentence(et.Description)
 			if content != "" {
 				buf.WriteString(docEscapeMDX(content))
 				buf.WriteString("\n\n")
@@ -1313,7 +1313,6 @@ func docEnumValueDescription(desc string) string {
 	if desc == "" {
 		return ""
 	}
-	desc = docStripInternal(desc)
 	desc = docStripSince(desc)
 	desc = strings.TrimSpace(desc)
 	if desc == "" {
@@ -1563,23 +1562,10 @@ func docEscapeJSString(s string) string {
 	return s
 }
 
-// docStripInternal removes everything from the @internal marker onward.
-// Content before @internal is SDK-facing; content after is for internal
-// developers reading the proto source only.
-func docStripInternal(desc string) string {
-	lines := strings.Split(desc, "\n")
-	var result []string
-	for _, line := range lines {
-		if strings.TrimSpace(line) == "@internal" {
-			break
-		}
-		result = append(result, line)
-	}
-	return strings.TrimSpace(strings.Join(result, "\n"))
-}
-
 // docSDKContent extracts the full SDK-facing content from a description,
-// stripping @internal sections, @since annotations, and ## markdown headings.
+// stripping @since annotations and ## markdown headings. @internal sections
+// never reach this generator: proto2schema strips them at extraction, the
+// single owner of that convention (oss#327).
 // Unlike docMethodSummary (which truncated at the first paragraph break),
 // this preserves multi-paragraph SDK content for richer method documentation.
 func docSDKContent(desc string) string {
@@ -1587,7 +1573,6 @@ func docSDKContent(desc string) string {
 		return ""
 	}
 	desc = strings.TrimSpace(desc)
-	desc = docStripInternal(desc)
 	desc = docStripSince(desc)
 
 	if strings.HasPrefix(desc, "## ") {
@@ -1626,15 +1611,15 @@ func docStripSince(desc string) string {
 }
 
 // docOverviewSummary extracts the full SDK-facing overview from a spec
-// description. It strips @internal sections, @since annotations, and
-// proto-internal preambles like "XxxSpec defines...".
+// description. It strips @since annotations and proto-internal preambles
+// like "XxxSpec defines..." (@internal sections are already stripped at
+// extraction by proto2schema).
 // Placeholder descriptions are dropped entirely.
 func docOverviewSummary(desc string) string {
 	if desc == "" {
 		return ""
 	}
 	desc = strings.TrimSpace(desc)
-	desc = docStripInternal(desc)
 	desc = docStripSince(desc)
 	desc = docCleanDesc(desc)
 

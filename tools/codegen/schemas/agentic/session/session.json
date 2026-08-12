@@ -1,7 +1,7 @@
 {
   "name": "SessionSpec",
   "kind": "SESSION_SPEC",
-  "description": "SessionSpec defines the configurable properties of a session.\n\n @internal\n This is the \"Execution\" layer — ephemeral runtime against an AgentInstance.\n The overview.md file provides the SDK-facing description and example YAML.",
+  "description": "SessionSpec defines the configurable properties of a session.",
   "protoType": "ai.stigmer.agentic.session.v1.SessionSpec",
   "protoFile": "apis/ai/stigmer/agentic/session/v1/spec.proto",
   "fields": [
@@ -12,7 +12,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Agent instance this session runs against.\n\n @internal\n When empty, the backend resolves the platform default agent\n (labeled stigmer.ai/default-agent: \"true\" with visibility_public)\n and auto-creates a default instance if needed.",
+      "description": "Agent instance this session runs against.",
       "required": false
     },
     {
@@ -32,7 +32,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Harness-specific state identifier for conversation continuity.\n\n Populated after the first execution completes; empty until then.\n Each harness uses this field differently:\n\n - NATIVE: LangGraph thread ID, derived deterministically as\n   \"thread-{session_id}\" by the EnsureThread activity. Stored here\n   so the immutability sentinel works uniformly across harnesses.\n\n - CURSOR: Cursor SDK agent ID (e.g., \"agent-xxx\" or \"bc-xxx\")\n   returned by Agent.create(). Used for Agent.resume() on\n   subsequent executions.\n\n @internal\n Also serves as the immutability sentinel: when non-empty, the\n session's harness and cursor_mode cannot be changed — each harness\n owns its conversation state independently.",
+      "description": "Harness-specific state identifier for conversation continuity.\n\n Populated after the first execution completes; empty until then.\n Each harness uses this field differently:\n\n - NATIVE: LangGraph thread ID, derived deterministically as\n   \"thread-{session_id}\" by the EnsureThread activity. Stored here\n   so the immutability sentinel works uniformly across harnesses.\n\n - CURSOR: Cursor SDK agent ID (e.g., \"agent-xxx\" or \"bc-xxx\")\n   returned by Agent.create(). Used for Agent.resume() on\n   subsequent executions.",
       "required": false
     },
     {
@@ -45,7 +45,7 @@
           "kind": "string"
         }
       },
-      "description": "Prior harness state identifiers this session has owned, oldest first.\n\n A session can span multiple harness-side conversations: when the\n cursor-runner's resume fails, it creates a fresh Cursor agent and\n replaces harness_state_id, and the replaced id lands here.\n\n @internal\n Server-owned, append-only. The update handler computes the append from\n the observed harness_state_id transition — client-supplied values for\n this field are discarded, so a stale client resending an old spec can\n never clobber the history. Billing reconciliation joins Cursor ledger\n events on the union of current + prior ids; dropping a replaced id\n would orphan the ledger events of every turn that ran under it.",
+      "description": "Prior harness state identifiers this session has owned, oldest first.\n\n A session can span multiple harness-side conversations: when the\n cursor-runner's resume fails, it creates a fresh Cursor agent and\n replaces harness_state_id, and the replaced id lands here.",
       "required": false
     },
     {
@@ -89,7 +89,7 @@
           "messageType": "McpServerUsage"
         }
       },
-      "description": "MCP servers to make available in this session.\n\n Augments the agent's tool set for this specific conversation without\n modifying the agent blueprint. Each usage references an McpServer\n resource.\n\n @internal\n Merge semantics: session-level usages are union'd with agent-level usages.\n If both reference the same MCP server slug, the session-level entry takes\n precedence (enables per-session tool restriction or expansion). The agent\n runner merges these with the agent's mcp_server_usages when constructing\n the execution graph.",
+      "description": "MCP servers to make available in this session.\n\n Augments the agent's tool set for this specific conversation without\n modifying the agent blueprint. Each usage references an McpServer\n resource.",
       "required": false
     },
     {
@@ -103,7 +103,7 @@
           "messageType": "ApiResourceReference"
         }
       },
-      "description": "Skills to inject into this session's context.\n\n Provides domain-specific knowledge for this specific conversation without\n modifying the agent blueprint. Each reference points to a Skill resource\n whose content is added to the agent's context alongside agent-level skills.\n\n @internal\n Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.",
+      "description": "Skills to inject into this session's context.\n\n Provides domain-specific knowledge for this specific conversation without\n modifying the agent blueprint. Each reference points to a Skill resource\n whose content is added to the agent's context alongside agent-level skills.",
       "required": false,
       "referenceKind": 43
     },
@@ -134,7 +134,7 @@
           "CURSOR_MODE_CLOUD"
         ]
       },
-      "description": "Cursor SDK agent mode for this session.\n\n Determines whether the Cursor agent runs locally (Agent.create with\n local.cwd) or in the cloud (Agent.create with cloud.repos). Set once\n at session creation and never changed — switching mid-session would\n lose Cursor-side conversation state.\n\n Only meaningful when harness == HARNESS_CURSOR. Ignored for other\n harness types.\n\n @internal\n Runner-owned, never user-set (see the CursorMode enum docs): the\n cursor-runner stamps it on the first execution when UNSPECIFIED —\n always LOCAL while cloud mode is disabled platform-wide. The\n workflow reads it back on subsequent executions to route to the\n correct Agent.create / Agent.resume path.\n\n When UNSPECIFIED on an existing CURSOR session, the runner defaults\n to LOCAL for backward compatibility.",
+      "description": "Cursor SDK agent mode for this session.\n\n Determines whether the Cursor agent runs locally (Agent.create with\n local.cwd) or in the cloud (Agent.create with cloud.repos). Set once\n at session creation and never changed — switching mid-session would\n lose Cursor-side conversation state.\n\n Only meaningful when harness == HARNESS_CURSOR. Ignored for other\n harness types.",
       "required": false
     },
     {

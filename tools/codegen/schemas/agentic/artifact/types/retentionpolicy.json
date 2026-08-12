@@ -1,6 +1,6 @@
 {
   "name": "RetentionPolicy",
-  "description": "RetentionPolicy controls how long an artifact's blob is retained in storage.\n\n @internal\n The backend computes an absolute expires_at timestamp from this policy\n at artifact creation time. A background garbage collection job\n periodically scans for expired artifacts and deletes their blobs.\n\n @since T07 (Artifact Store)",
+  "description": "RetentionPolicy controls how long an artifact's blob is retained in storage.",
   "protoType": "ai.stigmer.agentic.artifact.v1.RetentionPolicy",
   "protoFile": "apis/ai/stigmer/agentic/artifact/v1/spec.proto",
   "fields": [

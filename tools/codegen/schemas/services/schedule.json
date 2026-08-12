@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
           "outputType": "Schedule",
           "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
-          "description": "Create or update a schedule.\n\n @internal\n The authorization and state-operation are determined depending on\n whether the schedule is going to be created or updated, resolved as\n part of request execution. Status is preserved verbatim across\n apply-as-update (the AgentChannel decision-004 posture): status is\n written only by the scheduling runtime and by the explicit resume\n command, and a routine manifest apply must never reset the failure\n streak or un-pause a platform-paused schedule (DD-008 D7 / DD-009\n pinned behaviors / DD-013 D-D)."
+          "description": "Create or update a schedule."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
           "outputType": "Schedule",
           "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
-          "description": "Create a schedule.\n\n Scheduling an agent is a billing-affecting decision: every fire\n creates an execution that consumes the schedule-owning\n organization's credits, unattended.\n\n @internal\n Authorization: requires can_edit on the REFERENCED AGENT\n (spec.agent.agent_ref), checked in-handler — the AgentChannel /\n same-org AgentShare Phase A bar (DD-009 C-6): whoever may edit the\n agent may schedule it; there is deliberately no org-level\n can_create_schedule permission. Standard org-scoped create tuples\n (owner = creator); no visibility tuples (the kind has no visibility\n block). Invariant enforced here: metadata.org must equal\n spec.agent.agent_ref.org."
+          "description": "Create a schedule.\n\n Scheduling an agent is a billing-affecting decision: every fire\n creates an execution that consumes the schedule-owning\n organization's credits, unattended."
         },
         {
           "name": "Update",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
           "outputType": "Schedule",
           "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
-          "description": "Update an existing schedule.\n\n Replaces the spec wholesale. The slug, the referenced agent, and the\n target arm are immutable; cron, time zone, enablement, and the\n message may all change. Status (firing observations, the platform\n pause) is never touched by updates — use resume to clear a platform\n pause.\n\n @internal\n Authorization: requires can_edit permission on the schedule.\n agent_ref immutability is a consent-bar guarantee, not convenience\n (DD-009 C-7): create's bar is can_edit on the REFERENCED agent, and\n a repointing update would let a schedule owner drive an agent they\n may not edit — the AgentChannel rule for the AgentChannel reason.\n Target-arm immutability (an agent schedule cannot become a workflow\n schedule once that arm exists) is enforced in-handler: the two\n targets enter different execution pipelines. Update deliberately\n does NOT clear a platform auto-pause (DD-013 D-D, superseding the\n DD-008 D7 ensure-on-mutate sketch): apply routes through this same\n handler, so any update-clears-pause behavior would let a routine\n GitOps re-apply silently un-pause a failing schedule. resume is the\n one clearing path."
+          "description": "Update an existing schedule.\n\n Replaces the spec wholesale. The slug, the referenced agent, and the\n target arm are immutable; cron, time zone, enablement, and the\n message may all change. Status (firing observations, the platform\n pause) is never touched by updates — use resume to clear a platform\n pause."
         },
         {
           "name": "Delete",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleId",
           "outputType": "Schedule",
           "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
-          "description": "Delete a schedule.\n\n Firing stops permanently. Executions created by past fires are\n untouched. To stop firing while keeping the schedule and its\n history, disable it (enabled=false) instead.\n\n @internal\n Authorization: requires can_delete permission on the schedule. The\n referenced agent is untouched. The Temporal artifact teardown\n (best-effort, AFTER the row delete — DD-008 D9) arrives with the\n clock; until then delete is the row alone, and an orphaned artifact\n is harmless by construction (fire-time revalidation no-ops it)."
+          "description": "Delete a schedule.\n\n Firing stops permanently. Executions created by past fires are\n untouched. To stop firing while keeping the schedule and its\n history, disable it (enabled=false) instead."
         },
         {
           "name": "Resume",
@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleId",
           "outputType": "Schedule",
           "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
-          "description": "Resume a schedule the platform paused after repeated run failures.\n\n Clears status.paused_reason, resets status.consecutive_failures,\n and re-arms the clock. Resuming a schedule that is not paused\n succeeds and changes nothing. A disabled schedule stays disabled:\n resume clears the platform's pause, not the owner's switch\n (spec.enabled).\n\n @internal\n Authorization: requires can_edit permission on the schedule — the\n update bar; resuming does not change which agent runs, so it does\n not re-open create's consent bar (DD-009 C-6). This command is\n deliberately the ONLY path that clears a platform auto-pause\n (DD-013 D-D): apply and update preserve status byte-for-byte, so a\n routine manifest apply can never silently un-pause a failing\n schedule. The cloud handler loads before authorizing (#224: a\n missing schedule answers NOT_FOUND, not PERMISSION_DENIED) and\n patches status leaves rather than saving the row — the tick is a\n concurrent status writer. OSS excludes the authorization step, per\n its recorded single-user posture."
+          "description": "Resume a schedule the platform paused after repeated run failures.\n\n Clears status.paused_reason, resets status.consecutive_failures,\n and re-arms the clock. Resuming a schedule that is not paused\n succeeds and changes nothing. A disabled schedule stays disabled:\n resume clears the platform's pause, not the owner's switch\n (spec.enabled)."
         },
         {
           "name": "Trigger",
@@ -54,7 +54,7 @@
           "inputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleId",
           "outputType": "ScheduleTriggerResult",
           "outputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult",
-          "description": "Trigger a schedule to fire once, immediately, and answer with the\n run's real outcome.\n\n The manual fire runs synchronously through the standard execution\n create pipeline — every launch gate runs — and the result names what\n happened: the created execution's id, or the refusing gate's own\n copy verbatim. status.last_fire_at and status.last_execution_id\n record a started run. Manual fires do NOT feed the failure streak —\n the streak is the unattended (cron) health signal, and a test fire\n of a broken schedule must not race its owner to the pause threshold.\n\n A disabled schedule refuses (enable it first). A platform-paused\n schedule MAY be triggered — a test fire is exactly how an owner\n verifies a fix before resuming; resume remains the one path that\n clears the pause.\n\n @internal\n Authorization: requires can_edit permission on the schedule — the\n update bar (DD-014 D-A). Project DD-017 D-5/D-6 amends DD-014: the\n artifact round-trip is gone for manual fires (it made the fire\n asynchronous, so the RPC answered before the launch gates ran — a\n false \"run started\" beside a climbing failure counter). Cron fires\n keep the tracked artifact tick unchanged. The disabled refusal\n SURVIVES for a different reason than DD-014 D-B recorded:\n ScheduleBlueprintAccess requires spec.enabled at the create gate AND\n the mid-run sandbox read predicate, so a disabled-schedule run would\n die mid-execution after billing side effects (consoles offer\n \"Enable \u0026 run now\" instead; the fire-legitimacy model that would\n lift this is DD-017's named follow-up). Two-level contract: a gRPC\n error means the trigger itself was refused (disabled →\n FAILED_PRECONDITION with the byte-pinned copy, missing → NOT_FOUND\n before authorize, #224); a gRPC success means the fire happened and\n ScheduleTriggerResult names the run's outcome — a deterministically\n refused run is a successful trigger honestly reported, never an\n exception. The handler stamps last_fire_at/last_execution_id and\n writes the fire-ledger row (origin=manual) because the tick is not\n in the path to do it; status writes ride updateFields, never save()\n (DD-010 D-B). OSS mirrors the semantics; it excludes the\n authorization step per its recorded single-user posture."
+          "description": "Trigger a schedule to fire once, immediately, and answer with the\n run's real outcome.\n\n The manual fire runs synchronously through the standard execution\n create pipeline — every launch gate runs — and the result names what\n happened: the created execution's id, or the refusing gate's own\n copy verbatim. status.last_fire_at and status.last_execution_id\n record a started run. Manual fires do NOT feed the failure streak —\n the streak is the unattended (cron) health signal, and a test fire\n of a broken schedule must not race its owner to the pause threshold.\n\n A disabled schedule refuses (enable it first). A platform-paused\n schedule MAY be triggered — a test fire is exactly how an owner\n verifies a fix before resuming; resume remains the one path that\n clears the pause."
         }
       ]
     },
@@ -77,7 +77,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "Schedule",
           "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
-          "description": "Get a schedule by its organization-scoped reference (org/slug).\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions (the AgentShare /\n AgentChannel pattern)."
+          "description": "Get a schedule by its organization-scoped reference (org/slug)."
         },
         {
           "name": "GetByAgent",
@@ -85,7 +85,7 @@
           "inputFullType": "ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest",
           "outputType": "ScheduleList",
           "outputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleList",
-          "description": "Get all schedules of a specific agent.\n Returns only schedules the caller has access to.\n\n This is how the agent's operational surfaces and CLI resolve an\n agent's existing schedules regardless of slug.\n\n @internal\n Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS\n (the getByAgent family convention — agent channels, agent shares,\n agent instances)."
+          "description": "Get all schedules of a specific agent.\n Returns only schedules the caller has access to.\n\n This is how the agent's operational surfaces and CLI resolve an\n agent's existing schedules regardless of slug."
         },
         {
           "name": "List",
@@ -93,7 +93,7 @@
           "inputFullType": "ai.stigmer.agentic.schedule.v1.ListSchedulesRequest",
           "outputType": "ScheduleList",
           "outputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleList",
-          "description": "List schedules with optional label filtering.\n\n @internal\n Authorization in-handler via FGA-filtered queries (cloud) or\n unrestricted store queries (OSS)."
+          "description": "List schedules with optional label filtering."
         },
         {
           "name": "ListRuns",
@@ -101,7 +101,7 @@
           "inputFullType": "ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest",
           "outputType": "ScheduleRunList",
           "outputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleRunList",
-          "description": "List a schedule's run history, newest first.\n\n Every fire leaves a row — including fires that created no execution\n (a refused launch gate, a missing target agent) — with the refusing\n gate's copy verbatim. This is the surface that explains\n status.consecutive_failures.\n\n @internal\n Backed by the fire ledger (project DD-017 D-7). Authorization:\n can_view on the schedule — run history is the schedule's own\n operational record; the linked executions keep their own bars. Rows\n carrying an execution id but no terminal outcome are enriched with\n the execution's live phase at read time (one join), so manual fires\n need no tracker and outcome columns never lie. OSS implements the\n same contract against its store; the conformance suite holds both\n editions to it."
+          "description": "List a schedule's run history, newest first.\n\n Every fire leaves a row — including fires that created no execution\n (a refused launch gate, a missing target agent) — with the refusing\n gate's copy verbatim. This is the surface that explains\n status.consecutive_failures."
         }
       ]
     }
@@ -295,7 +295,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization slug to scope the results to.\n\n When set, only schedules whose metadata.org matches are returned —\n the org-context view a console tab needs. When empty, results are\n bounded only by the caller's view permissions, which for a member of\n several organizations spans all of them.\n\n @internal\n Mirrors the org scoping on the sibling getByAgent/getByWorkflow\n requests (agent channels, agent shares, agent instances). Handlers\n implementing this RPC must apply the filter in their query/list step.",
+          "description": "Organization slug to scope the results to.\n\n When set, only schedules whose metadata.org matches are returned —\n the org-context view a console tab needs. When empty, results are\n bounded only by the caller's view permissions, which for a member of\n several organizations spans all of them.",
           "required": false
         }
       ]
@@ -448,7 +448,7 @@
   "enumTypes": [
     {
       "name": "ScheduleRunOutcome",
-      "description": "What one schedule fire produced.\n\n @internal\n One vocabulary for two surfaces (project DD-017 D-6/D-7): the trigger\n result reports the START outcomes (STARTED / REFUSED /\n TARGET_MISSING), and the run-history rows additionally reach the\n terminal outcomes (COMPLETED / FAILED / TIMED_OUT) written by the cron\n tick's tracking. SKIPPED records a cron fire that revalidated against\n a row deleted/disabled/paused between recording and starting.",
+      "description": "What one schedule fire produced.",
       "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome",
       "values": [
         {
@@ -643,7 +643,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -681,25 +681,25 @@
     },
     {
       "name": "GitWriteBackMode",
-      "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.\n\n @internal\n The platform enables write-back by default when credentials are\n available. Users can override this per-session by setting an\n explicit mode. The agent never sees or controls this setting.",
+      "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.",
       "protoType": "ai.stigmer.agentic.session.v1.GitWriteBackMode",
       "values": [
         {
           "name": "GIT_WRITE_BACK_BRANCH_AND_PR",
           "number": 1,
-          "description": "Create a branch and pull request from the agent's file changes after execution completes.\n\n @internal\n The platform automatically detects uncommitted changes via git diff,\n creates a branch (stigmer/{execution_id_short}), commits all changes,\n pushes the branch to the remote, and creates a pull request targeting\n the original branch. The write-back outcome is recorded in\n AgentExecutionStatus.workspace_write_backs."
+          "description": "Create a branch and pull request from the agent's file changes after execution completes."
         }
       ]
     },
     {
       "name": "ServiceTier",
-      "description": "ServiceTier selects the provider-side speed/service tier for an execution's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what an execution pays (stigmer/stigmer#357).\n\n @internal\n Resolution of UNSPECIFIED → STANDARD happens exactly once, in the runner's\n translation layer; every upstream layer preserves the caller's raw value so\n \"user explicitly chose standard\" stays distinguishable from \"platform\n default\". v1 supports the Cursor harness only: FAST on a model without a\n registry fast variant is refused at create time (INVALID_ARGUMENT), which\n also covers native-harness models since only cursor-harness registry entries\n carry fast variants today. Native (Anthropic/OpenAI) service-tier mapping is\n a tracked follow-up.",
+      "description": "ServiceTier selects the provider-side speed/service tier for an execution's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what an execution pays (stigmer/stigmer#357).",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.ServiceTier",
       "values": [
         {
           "name": "SERVICE_TIER_STANDARD",
           "number": 1,
-          "description": "Standard tier: the model's base-priced configuration, requested\n explicitly.\n\n @internal\n For the Cursor harness the runner pins every price-bearing variant\n parameter to its base value (fast=false, and thinking=false where the\n parameter exists); price-neutral parameters (e.g. effort) follow the\n catalog default variant. Confirmed against the billing ledger 2026-08-06:\n explicit base params bill base wire ids on create AND resume (see\n stigmer-cloud _projects/2026-08/20260806.04.model-service-tier)."
+          "description": "Standard tier: the model's base-priced configuration, requested\n explicitly."
         },
         {
           "name": "SERVICE_TIER_FAST",
@@ -726,10 +726,10 @@
       ]
     }
   ],
-  "resourceDescription": "Schedule runs an agent on a recurring cron schedule.\n\n A schedule is operational configuration, like AgentChannel: it names a\n target (an agent and the prompt each run starts from), a cron expression\n with an IANA time zone, and an enablement switch. The platform-observed\n firing state (next fire time, failure streak, auto-pause) lives in\n status. Deleting a schedule stops firing permanently; disabling pauses\n firing while preserving the schedule and its history.\n\n @internal\n DD-008 D1 (as amended by DD-009): standalone kind (56), target oneof\n extensible to workflows without a new kind. One agent may have many\n schedules with different prompts; metadata.org is the billing org for\n every fire. Calendar semantics live in the Temporal server (D2) — the\n platform parses no cron in either edition. The defaults resolver does\n NOT default the slug to the agent slug (schedules are N-per-agent, the\n AgentChannel P7 rule); standard derive-from-name applies. The\n overview.md file provides the SDK-facing description and example YAML.",
+  "resourceDescription": "Schedule runs an agent on a recurring cron schedule.\n\n A schedule is operational configuration, like AgentChannel: it names a\n target (an agent and the prompt each run starts from), a cron expression\n with an IANA time zone, and an enablement switch. The platform-observed\n firing state (next fire time, failure streak, auto-pause) lives in\n status. Deleting a schedule stops firing permanently; disabling pauses\n firing while preserving the schedule and its history.",
   "statusType": {
     "name": "ScheduleStatus",
-    "description": "ScheduleStatus contains system-managed state for a schedule.\n\n @internal\n Platform-owned; written only by the scheduling runtime (tick +\n lifecycle sync) and by the explicit resume command (DD-013 D-D).\n Preserved VERBATIM across apply and update (the AgentChannel\n decision-004 posture) — load-bearing for DD-008 D7's auto-pause,\n which records on status precisely so the platform never writes spec.\n A routine manifest apply must never reset the failure streak or\n un-pause a schedule; both editions carry a regression test for this\n (DD-009 pinned behaviors).",
+    "description": "ScheduleStatus contains system-managed state for a schedule.",
     "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleStatus",
     "protoFile": "apis/ai/stigmer/agentic/schedule/v1/status.proto",
     "fields": [
@@ -760,7 +760,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "ID of the agent execution created by the most recent fire.\n\n @internal\n The reverse pointer of the stigmer.ai/schedule-id label stamped on\n every schedule-created execution (DD-008 D4) — the audit link is\n queryable from either end.",
+        "description": "ID of the agent execution created by the most recent fire.",
         "required": false
       },
       {
@@ -770,7 +770,7 @@
         "type": {
           "kind": "int32"
         },
-        "description": "Number of consecutive failed runs. A successful run resets it.\n\n @internal\n Feeds the failure-streak auto-pause (DD-008 D7; platform default 5).",
+        "description": "Number of consecutive failed runs. A successful run resets it.",
         "required": false
       },
       {
@@ -780,7 +780,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "Why the platform paused this schedule; empty when not paused.\n Cleared only by the resume RPC — the owner's explicit act.\n\n @internal\n \"Paused\" is the platform's latch, distinct from the owner's switch\n (spec.enabled = false is \"disabled\" — project DD-013 D-E). Written\n ONLY by the platform auto-pause (DD-008 D7) — never an echo of\n spec.enabled (DD-009 pinned behaviors: one writer per field;\n consoles derive owner-disabled state from spec on read). Updates\n and applies preserve it verbatim; resume is deliberately the ONE\n clearing path (DD-013 D-D).",
+        "description": "Why the platform paused this schedule; empty when not paused.\n Cleared only by the resume RPC — the owner's explicit act.",
         "required": false
       },
       {
@@ -840,7 +840,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Unique identifier of the actor.\n\n @internal\n Historically, some writers populate this with the actor's email address\n rather than the identity-account ID. New writers should use the\n identity-account ID and carry the email in the dedicated field below;\n renderers must treat this value as an opaque last-resort label.",
+          "description": "Unique identifier of the actor.",
           "required": false
         },
         {

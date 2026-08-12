@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.skill.v1.PushSkillRequest",
           "outputType": "Skill",
           "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
-          "description": "Push a skill artifact.\n Creates a skill if it does not exist, or creates a new version of an\n existing skill. The artifact must contain a SKILL.md file.\n\n @internal\n Authorization:\n - Organization-scoped skills: Caller must have can_create_skill permission in the organization\n - Platform-scoped skills: Caller must be a platform operator\n\n The backend will:\n 1. Normalize the name to a slug\n 2. Find or create the skill resource\n 3. Extract SKILL.md from the artifact\n 4. Calculate SHA256 hash (version identifier)\n 5. Store the artifact (deduplicated by hash)\n 6. Update skill spec and status\n 7. Archive the previous version (if updating)"
+          "description": "Push a skill artifact.\n Creates a skill if it does not exist, or creates a new version of an\n existing skill. The artifact must contain a SKILL.md file."
         },
         {
           "name": "PushFromExecutionArtifact",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest",
           "outputType": "Skill",
           "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
-          "description": "Push a skill from an execution artifact already in storage.\n Use this when an agent execution has already produced a skill artifact\n and you want to publish it without downloading and re-uploading the ZIP.\n\n @internal\n Server-side equivalent of push() — reads the ZIP directly from artifact\n storage instead of receiving bytes from the client. This eliminates\n CORS concerns for SDK consumers.\n\n Authorization:\n - Requires can_view on the referenced execution (to read the artifact)\n - Requires can_create_skill in the target organization (to push the skill)"
+          "description": "Push a skill from an execution artifact already in storage.\n Use this when an agent execution has already produced a skill artifact\n and you want to publish it without downloading and re-uploading the ZIP."
         },
         {
           "name": "UpdateVisibility",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
           "outputType": "Skill",
           "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
-          "description": "Update the visibility of an existing skill.\n Only modifies metadata.visibility, leaving spec, status, and other\n metadata fields untouched. Use this to make a skill publicly accessible\n or to revoke public access.\n\n @internal\n Authorization: Requires can_edit permission on the skill resource."
+          "description": "Update the visibility of an existing skill.\n Only modifies metadata.visibility, leaving spec, status, and other\n metadata fields untouched. Use this to make a skill publicly accessible\n or to revoke public access."
         },
         {
           "name": "Delete",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.agentic.skill.v1.SkillId",
           "outputType": "Skill",
           "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
-          "description": "Delete a skill and all its versions.\n\n @internal\n Removes the skill from the main collection but preserves audit history."
+          "description": "Delete a skill and all its versions."
         }
       ]
     },
@@ -61,7 +61,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "Skill",
           "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
-          "description": "Get a skill by API resource reference with version support.\n\n Version resolution (via ApiResourceReference.version field):\n - Empty/\"latest\" → Returns the current version\n - Tag name (e.g., \"stable\", \"v1.0\") → Resolves to the version with this tag\n - SHA256 hash (64 hex chars) → Returns the exact immutable version\n\n @internal\n Authorization is handled in the handler after resolving the reference to a skill ID.\n (Input doesn't contain skill ID, so proto-level auth cannot work)"
+          "description": "Get a skill by API resource reference with version support.\n\n Version resolution (via ApiResourceReference.version field):\n - Empty/\"latest\" → Returns the current version\n - Tag name (e.g., \"stable\", \"v1.0\") → Resolves to the version with this tag\n - SHA256 hash (64 hex chars) → Returns the exact immutable version"
         },
         {
           "name": "GetArtifact",
@@ -69,7 +69,7 @@
           "inputFullType": "ai.stigmer.agentic.skill.v1.GetArtifactRequest",
           "outputType": "GetArtifactResponse",
           "outputFullType": "ai.stigmer.agentic.skill.v1.GetArtifactResponse",
-          "description": "Download skill artifact from storage by its storage key.\n Returns the ZIP file containing SKILL.md and implementation files.\n\n @internal\n Used by the agent-runner to download and extract skill artifacts into the\n sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the\n storage key itself acts as a capability token."
+          "description": "Download skill artifact from storage by its storage key.\n Returns the ZIP file containing SKILL.md and implementation files."
         },
         {
           "name": "ListVersions",
@@ -77,7 +77,7 @@
           "inputFullType": "ai.stigmer.agentic.skill.v1.ListSkillVersionsInput",
           "outputType": "ListSkillVersionsResponse",
           "outputFullType": "ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse",
-          "description": "List version history for a skill.\n\n Returns all historical versions ordered by push time (newest first).\n Each entry includes the version hash, push timestamp, actor, tag,\n git provenance, and artifact storage key for historical artifact access.\n\n @internal\n Authorization is handled in the handler after resolving the skill.\n (Input uses org+slug, not skill ID, so proto-level auth cannot work)"
+          "description": "List version history for a skill.\n\n Returns all historical versions ordered by push time (newest first).\n Each entry includes the version hash, push timestamp, actor, tag,\n git provenance, and artifact storage key for historical artifact access."
         }
       ]
     }
@@ -86,7 +86,7 @@
   "methodTypes": [
     {
       "name": "PushSkillRequest",
-      "description": "PushSkillRequest contains the skill artifact and metadata for upload.\n Creates a skill if it does not exist, or creates a new version of an\n existing skill.\n\n @internal\n The skill name and description are extracted by the backend from the SKILL.md\n YAML frontmatter within the artifact. The CLI validates the format but does not\n send these fields — backend is the single source of truth for parsing.",
+      "description": "PushSkillRequest contains the skill artifact and metadata for upload.\n Creates a skill if it does not exist, or creates a new version of an\n existing skill.",
       "protoType": "ai.stigmer.agentic.skill.v1.PushSkillRequest",
       "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
       "fields": [
@@ -137,7 +137,7 @@
             "kind": "message",
             "messageType": "GitProvenance"
           },
-          "description": "Git provenance for this skill version.\n Absent when pushed from a non-git directory.\n\n @internal\n Populated by CLI during push:\n - For local pushes: auto-detected if directory is within a git repository\n - For git pushes: resolved from user-provided URL/ref\n Stored in SkillStatus.git_provenance for traceability.",
+          "description": "Git provenance for this skill version.\n Absent when pushed from a non-git directory.",
           "required": false
         },
         {
@@ -154,7 +154,7 @@
     },
     {
       "name": "PushSkillFromExecutionArtifactRequest",
-      "description": "PushSkillFromExecutionArtifactRequest publishes a skill from an execution\n artifact already in storage, without downloading and re-uploading the ZIP.\n\n @internal\n Server-side push flow: reads the ZIP directly from artifact storage and\n delegates to the standard push logic.\n\n Authorization:\n - Requires can_view on the agent execution (to read the artifact)\n - Requires can_create_skill in the target organization (to push the skill)\n\n Security:\n The storage_key is validated to start with \"artifacts/{execution_id}/\"\n to prevent access to other executions' artifacts.",
+      "description": "PushSkillFromExecutionArtifactRequest publishes a skill from an execution\n artifact already in storage, without downloading and re-uploading the ZIP.",
       "protoType": "ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest",
       "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
       "fields": [
@@ -178,7 +178,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "ID of the agent execution that produced the artifact (e.g., \"aex_abc123xyz456\").\n\n @internal\n Used for authorization (can_view check) and storage_key validation.\n Format: \"aex_{ulid}\".",
+          "description": "ID of the agent execution that produced the artifact (e.g., \"aex_abc123xyz456\").",
           "required": false,
           "validation": {
             "minLength": 1
@@ -191,7 +191,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Storage key of the directory artifact (ZIP) to push as a skill.\n Obtain this from ExecutionArtifact.storage_key in the execution status.\n\n @internal\n Must start with \"artifacts/{execution_id}/\" for security.\n Format: \"artifacts/{execution_id}/{filename}.zip\".",
+          "description": "Storage key of the directory artifact (ZIP) to push as a skill.\n Obtain this from ExecutionArtifact.storage_key in the execution status.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -355,7 +355,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The artifact storage key from skill.status.artifact_storage_key.\n\n @internal\n Identifies the location of the ZIP file in storage (R2/S3).",
+          "description": "The artifact storage key from skill.status.artifact_storage_key.",
           "required": true,
           "validation": {
             "required": true
@@ -487,7 +487,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -691,7 +691,7 @@
           "kind": "message",
           "messageType": "ApiResourceAudit"
         },
-        "description": "Standard audit information tracking creation and modification.\n\n @internal\n Field 99 follows Stigmer convention for audit placement.",
+        "description": "Standard audit information tracking creation and modification.",
         "required": false
       },
       {
@@ -701,7 +701,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "SHA256 hash of the skill artifact, used as the immutable version identifier.\n\n @internal\n Calculated by the system from the uploaded artifact ZIP.",
+        "description": "SHA256 hash of the skill artifact, used as the immutable version identifier.",
         "required": false,
         "validation": {
           "pattern": "^[a-f0-9]{64}$"
@@ -714,7 +714,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "Storage key for the skill artifact.\n\n @internal\n Format varies based on storage backend:\n - Local: \"\u003chash\u003e.zip\"\n - Cloud: \"skills/\u003cslug\u003e_\u003chash\u003e.zip\"\n Determined by the system based on storage configuration.",
+        "description": "Storage key for the skill artifact.",
         "required": false
       },
       {
@@ -741,7 +741,7 @@
           "kind": "message",
           "messageType": "GitProvenance"
         },
-        "description": "Git provenance tracking where the skill artifacts originated from.\n Absent when pushed from a non-git directory.\n\n @internal\n Populated by CLI during push; provides traceability and enables\n \"view on GitHub\" links and reproducible deployments.",
+        "description": "Git provenance tracking where the skill artifacts originated from.\n Absent when pushed from a non-git directory.",
         "required": false
       }
     ]
@@ -790,7 +790,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Unique identifier of the actor.\n\n @internal\n Historically, some writers populate this with the actor's email address\n rather than the identity-account ID. New writers should use the\n identity-account ID and carry the email in the dedicated field below;\n renderers must treat this value as an opaque last-resort label.",
+          "description": "Unique identifier of the actor.",
           "required": false
         },
         {
@@ -887,7 +887,7 @@
     },
     {
       "name": "GitProvenance",
-      "description": "GitProvenance tracks the git origin of skill artifacts.\n\n @internal\n System-detected metadata, not user-specified configuration.\n Populated by CLI during push based on:\n - Local push: auto-detected from directory's git context\n - Git push: resolved from user-provided URL/ref",
+      "description": "GitProvenance tracks the git origin of skill artifacts.",
       "protoType": "ai.stigmer.agentic.skill.v1.GitProvenance",
       "protoFile": "apis/ai/stigmer/agentic/skill/v1/status.proto",
       "fields": [
@@ -898,7 +898,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Git remote URL (e.g., \"https://github.com/stigmer/stigmer.git\").\n\n @internal\n For local push: detected \"origin\" remote URL.\n For git push: the user-provided repository URL.",
+          "description": "Git remote URL (e.g., \"https://github.com/stigmer/stigmer.git\").",
           "required": false,
           "validation": {
             "minLength": 1
@@ -911,7 +911,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Original git reference such as a branch or tag name (e.g., \"main\", \"v1.0.0\").\n\n @internal\n For local push: detected branch name or empty if detached HEAD.\n For git push: the user-provided ref.\n Preserves user intent for display while commit provides immutability.",
+          "description": "Original git reference such as a branch or tag name (e.g., \"main\", \"v1.0.0\").",
           "required": false
         },
         {
@@ -921,7 +921,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Resolved commit SHA for exact reproducibility.\n\n @internal\n Always populated. Full 40-character SHA.",
+          "description": "Resolved commit SHA for exact reproducibility.",
           "required": false,
           "validation": {
             "minLength": 1

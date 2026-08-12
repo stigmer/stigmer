@@ -1,7 +1,7 @@
 {
   "name": "AgentInstanceSpec",
   "kind": "AGENT_INSTANCE_SPEC",
-  "description": "AgentInstanceSpec defines the configurable properties of an agent instance.\n\n @internal\n This is the \"Instance\" layer — stateful configuration with secrets.\n The overview.md file provides the SDK-facing description and example YAML.",
+  "description": "AgentInstanceSpec defines the configurable properties of an agent instance.",
   "protoType": "ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec",
   "protoFile": "apis/ai/stigmer/agentic/agentinstance/v1/spec.proto",
   "fields": [
@@ -39,7 +39,7 @@
           "messageType": "ApiResourceReference"
         }
       },
-      "description": "References to Environment resources providing secrets and configuration at runtime.\n\n @internal\n Environments are merged in order: later environments override earlier ones.\n Example: [base-env, aws-prod-env, github-team-env]\n This allows layering of configurations (base → specific overrides).",
+      "description": "References to Environment resources providing secrets and configuration at runtime.",
       "required": false,
       "referenceKind": 53
     },
@@ -50,7 +50,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Data partition this instance's record operations are scoped to, for\n every datastore the agent uses. Unset means the shared \"default\"\n partition.\n\n Instances declaring the same label share records (e.g. the prod\n instances of two agents on one datastore); a different label is a\n fully isolated dataset (e.g. a dev instance whose test records\n never touch prod).\n\n @internal\n DD-010: the record RPCs derive the partition from the session's\n resolved instance — server-side, per call, never from tool\n arguments — so the label (not the instance id, which changes when\n default instances are recreated) is the durable partition key.\n One label per instance in v1; a per-datastore map is a recorded\n additive growth slot.",
+      "description": "Data partition this instance's record operations are scoped to, for\n every datastore the agent uses. Unset means the shared \"default\"\n partition.\n\n Instances declaring the same label share records (e.g. the prod\n instances of two agents on one datastore); a different label is a\n fully isolated dataset (e.g. a dev instance whose test records\n never touch prod).",
       "required": false,
       "validation": {
         "maxLength": 63,

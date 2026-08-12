@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
           "outputType": "AgentInstance",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
-          "description": "Create or update an agent instance.\n\n @internal\n The authorization and state-operation are determined depending on whether the agent instance\n is going to be created or updated which is determined as part of the request execution."
+          "description": "Create or update an agent instance."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
           "outputType": "AgentInstance",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
-          "description": "Create an agent instance.\n\n Public agents allow any authenticated user to create instances (cross-org allowed).\n Private agents restrict instance creation to org members and the agent owner.\n\n @internal\n Provide organization_id in metadata.org, and complete spec with configuration and secrets.\n Authorization: FGA can_create_instance on parent agent (handler-level).\n FGA is the single source of truth — no hardcoded org-matching rules.\n Agents are blueprints with zero secrets; instances are personal resources in the caller's org."
+          "description": "Create an agent instance.\n\n Public agents allow any authenticated user to create instances (cross-org allowed).\n Private agents restrict instance creation to org members and the agent owner."
         },
         {
           "name": "Update",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
           "outputType": "AgentInstance",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
-          "description": "Update an existing agent instance.\n\n @internal\n Replaces the entire instance configuration including metadata, spec, and secrets.\n No individual field updates — always provide complete state.\n Authorization: Only owner can update (can_edit permission)."
+          "description": "Update an existing agent instance."
         },
         {
           "name": "UpdateVisibility",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
           "outputType": "AgentInstance",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
-          "description": "Update the visibility of an existing agent instance.\n\n Changes who can view this instance and interact with it. Supports the\n full visibility spectrum: PRIVATE (owner only), ORG (all org members),\n or PUBLIC (all authenticated users).\n\n For agent instances, visibility controls who can create sessions and run\n executions against this instance. Sessions remain personal regardless of\n instance visibility (conversation privacy is preserved).\n\n @internal\n Authorization: Requires can_edit permission on the agent instance.\n Visibility transitions trigger FGA tuple management in Cloud mode:\n - PRIVATE → ORG: creates agent_instance#viewer@organization:\u003corg\u003e#member\n - PRIVATE → PUBLIC: creates agent_instance#viewer@identity_account:*\n - ORG → PRIVATE: deletes the org member viewer tuple\n - PUBLIC → PRIVATE: deletes the wildcard viewer tuple"
+          "description": "Update the visibility of an existing agent instance.\n\n Changes who can view this instance and interact with it. Supports the\n full visibility spectrum: PRIVATE (owner only), ORG (all org members),\n or PUBLIC (all authenticated users).\n\n For agent instances, visibility controls who can create sessions and run\n executions against this instance. Sessions remain personal regardless of\n instance visibility (conversation privacy is preserved)."
         },
         {
           "name": "Delete",
@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstanceId",
           "outputType": "AgentInstance",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
-          "description": "Delete an agent instance.\n\n @internal\n Authorization: Only owner can delete (can_delete permission)."
+          "description": "Delete an agent instance."
         }
       ]
     },
@@ -69,7 +69,7 @@
           "inputFullType": "ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest",
           "outputType": "AgentInstanceList",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstanceList",
-          "description": "Get all instances of a specific agent template.\n Returns only instances the caller has access to.\n\n @internal\n Authorization is handled in handler via FGA query for authorized agent_instance_ids,\n then filtered by agent_id."
+          "description": "Get all instances of a specific agent template.\n Returns only instances the caller has access to."
         },
         {
           "name": "GetByReference",
@@ -77,7 +77,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "AgentInstance",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
-          "description": "Get an agent instance by its organization-scoped reference (org/slug).\n\n @internal\n Custom authorization in handler."
+          "description": "Get an agent instance by its organization-scoped reference (org/slug)."
         },
         {
           "name": "List",
@@ -85,7 +85,7 @@
           "inputFullType": "ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest",
           "outputType": "AgentInstanceList",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstanceList",
-          "description": "List agent instances with optional label filtering.\n\n @internal\n Authorization is handled in-handler via FGA-filtered queries (cloud)\n or unrestricted store queries (OSS)."
+          "description": "List agent instances with optional label filtering."
         }
       ]
     }
@@ -166,7 +166,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization slug to scope the results to.\n\n When set, only instances whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.\n\n @internal\n Optional by design: the OSS server resolves an agent's default instance\n through this RPC with no org (downstream/agentinstance client), and\n pre-existing callers rely on the permission-bounded behavior. Filtering\n happens in the query/list step of each edition's handler.",
+          "description": "Organization slug to scope the results to.\n\n When set, only instances whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.",
           "required": false
         }
       ]
@@ -327,7 +327,7 @@
               "kind": "string"
             }
           },
-          "description": "Filter by metadata labels. AND semantics: all labels must match.\n\n @internal\n Example: {\"stigmer.ai/personal\": \"true\"} returns only personal agent instances.",
+          "description": "Filter by metadata labels. AND semantics: all labels must match.",
           "required": false
         },
         {
@@ -353,7 +353,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -520,5 +520,5 @@
       ]
     }
   ],
-  "resourceDescription": "AgentInstance defines a configured deployment of an Agent template.\n\n @internal\n Uses Graphton configuration for state management."
+  "resourceDescription": "AgentInstance defines a configured deployment of an Agent template."
 }

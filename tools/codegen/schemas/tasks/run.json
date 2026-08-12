@@ -1,7 +1,7 @@
 {
   "name": "RunTaskConfig",
   "kind": "RUN",
-  "description": "RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows.\n\n @internal\n Implemented via Temporal child workflows.\n\n YAML Example:\n   - taskName:\n       run:\n         workflow: \"sub-workflow-name\"\n         input:\n           data: ${ .data }\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 12",
+  "description": "RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows.",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/run.proto",
   "discriminatorValue": "run_workflow",

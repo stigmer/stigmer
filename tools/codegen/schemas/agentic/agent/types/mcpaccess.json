@@ -1,6 +1,6 @@
 {
   "name": "McpAccess",
-  "description": "McpAccess grants a sub-agent access to one of the parent's MCP servers.\n\n @internal\n Permission model enforced at execution time: sub-agent can only access\n servers in the parent's mcp_server_usages, and tools must be a subset\n of the parent's enabled_tools.",
+  "description": "McpAccess grants a sub-agent access to one of the parent's MCP servers.",
   "protoType": "ai.stigmer.agentic.agent.v1.McpAccess",
   "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
   "fields": [

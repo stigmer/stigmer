@@ -1,7 +1,7 @@
 {
   "name": "SetTaskConfig",
   "kind": "SET",
-  "description": "SetTaskConfig defines the configuration for set_vars tasks that assign variables in workflow state.\n\n @internal\n YAML Example:\n   - taskName:\n       set:\n         variable1: value\n         variable2: ${ expression }\n         computed: ${ .a + .b }\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 1",
+  "description": "SetTaskConfig defines the configuration for set_vars tasks that assign variables in workflow state.",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/set.proto",
   "discriminatorValue": "set_vars",

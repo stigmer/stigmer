@@ -10,7 +10,7 @@ import { EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/a
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { z } from "zod";
 
-/** EnvironmentSpec defines the configurable properties of an environment. @internal The overview.md file provides the SDK-facing description and example YAML. */
+/** EnvironmentSpec defines the configurable properties of an environment. */
 export const EnvironmentInputShape = {
   name: z.string().describe("Human-readable name of the resource."),
   slug: z.string().optional().describe("URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted."),
@@ -26,8 +26,8 @@ export const EnvironmentInputSchema = z.object(EnvironmentInputShape);
 export type EnvironmentInput = z.infer<typeof EnvironmentInputSchema>;
 
 const EnvironmentValueInputSchema = z.object({
-  value: z.string().optional().describe("The configuration or secret string. @internal When is_secret is true the value is encrypted at rest and redacted in logs. When is_secret is false the value is stored as plaintext. Value can be empty when pre-declaring keys whose values are injected at runtime."),
-  is_secret: z.boolean().optional().describe("Whether this value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal. When false: stored as plaintext, visible in audit logs."),
+  value: z.string().optional().describe("The configuration or secret string."),
+  is_secret: z.boolean().optional().describe("Whether this value should be treated as a secret."),
   description: z.string().optional().describe("Human-readable description of what this value is used for."),
 });
 type EnvironmentValueInput = z.infer<typeof EnvironmentValueInputSchema>;

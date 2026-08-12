@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.iam.invitation.v1.Invitation",
           "outputType": "Invitation",
           "outputFullType": "ai.stigmer.iam.invitation.v1.Invitation",
-          "description": "Create an invitation link for an organization.\n\n Generates a cryptographically random token and returns the full\n invitation resource including the token. The invite URL is\n constructed as: https://\u003chost\u003e/invite/\u003ctoken\u003e\n\n The specified role must be in the organization's grantable_roles.\n Platform-managed organizations cannot create invitations.\n\n @internal\n Authorization: Requires can_grant_access permission on the organization."
+          "description": "Create an invitation link for an organization.\n\n Generates a cryptographically random token and returns the full\n invitation resource including the token. The invite URL is\n constructed as: https://\u003chost\u003e/invite/\u003ctoken\u003e\n\n The specified role must be in the organization's grantable_roles.\n Platform-managed organizations cannot create invitations."
         },
         {
           "name": "Revoke",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.iam.invitation.v1.InvitationId",
           "outputType": "Invitation",
           "outputFullType": "ai.stigmer.iam.invitation.v1.Invitation",
-          "description": "Revoke an active invitation, preventing further redemptions.\n\n Sets the invitation state to revoked. Idempotent — revoking an\n already-revoked invitation is a no-op.\n\n @internal\n Authorization is handled in the handler: loads the invitation,\n resolves its organization, and checks can_grant_access on the org.\n Proto-level auth is skipped because the input (InvitationId) does\n not directly identify the org."
+          "description": "Revoke an active invitation, preventing further redemptions.\n\n Sets the invitation state to revoked. Idempotent — revoking an\n already-revoked invitation is a no-op."
         },
         {
           "name": "Redeem",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.iam.invitation.v1.RedeemInvitationInput",
           "outputType": "Invitation",
           "outputFullType": "ai.stigmer.iam.invitation.v1.Invitation",
-          "description": "Redeem an invitation to join an organization.\n\n Creates an IAM policy granting the invitation's configured role to\n the authenticated user on the invitation's organization. The\n redemption is atomic: the IAM policy is created and the redemption\n count is incremented in a single operation.\n\n Validation:\n - Invitation must be in active state\n - Invitation must not be expired\n - Invitation must not have reached max_redemptions (if \u003e 0)\n - Redeemer must not already be a member of the organization\n\n @internal\n Authorization: The token itself is the authorization mechanism.\n The redeemer's identity is resolved from the authentication header.\n FGA authorization is skipped — any authenticated user with a valid\n token can redeem."
+          "description": "Redeem an invitation to join an organization.\n\n Creates an IAM policy granting the invitation's configured role to\n the authenticated user on the invitation's organization. The\n redemption is atomic: the IAM policy is created and the redemption\n count is incremented in a single operation.\n\n Validation:\n - Invitation must be in active state\n - Invitation must not be expired\n - Invitation must not have reached max_redemptions (if \u003e 0)\n - Redeemer must not already be a member of the organization"
         }
       ]
     },
@@ -45,7 +45,7 @@
           "inputFullType": "ai.stigmer.iam.invitation.v1.InvitationId",
           "outputType": "Invitation",
           "outputFullType": "ai.stigmer.iam.invitation.v1.Invitation",
-          "description": "Get an invitation by its unique identifier.\n\n @internal\n Authorization: Requires can_view permission on the invitation resource."
+          "description": "Get an invitation by its unique identifier."
         },
         {
           "name": "ListByOrg",
@@ -53,7 +53,7 @@
           "inputFullType": "ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput",
           "outputType": "Invitations",
           "outputFullType": "ai.stigmer.iam.invitation.v1.Invitations",
-          "description": "List all invitations belonging to an organization.\n\n Returns invitations ordered by creation time (newest first).\n\n @internal\n Authorization: Requires can_view_access permission on the organization.\n This is intentionally stricter than can_view — only users who can\n manage org access (admins and owners) should see invitation links."
+          "description": "List all invitations belonging to an organization.\n\n Returns invitations ordered by creation time (newest first)."
         },
         {
           "name": "GetByToken",
@@ -61,7 +61,7 @@
           "inputFullType": "ai.stigmer.iam.invitation.v1.InvitationTokenInput",
           "outputType": "InvitationPreview",
           "outputFullType": "ai.stigmer.iam.invitation.v1.InvitationPreview",
-          "description": "Get a preview of an invitation by its shareable token.\n\n Returns a safe projection (InvitationPreview) containing only the\n information needed to render the invite acceptance page: organization\n name, logo, the role being offered, and whether the invitation is\n still valid.\n\n This endpoint is called by the web app's invite page before the user\n has authenticated, so it requires no authorization. The response\n intentionally omits the token value, redemption history, and internal\n invitation metadata.\n\n @internal\n Authorization: none — unauthenticated, public endpoint for rendering\n the invite acceptance page. Marked is_public so the authentication\n interceptor skips token validation entirely."
+          "description": "Get a preview of an invitation by its shareable token.\n\n Returns a safe projection (InvitationPreview) containing only the\n information needed to render the invite acceptance page: organization\n name, logo, the role being offered, and whether the invitation is\n still valid.\n\n This endpoint is called by the web app's invite page before the user\n has authenticated, so it requires no authorization. The response\n intentionally omits the token value, redemption history, and internal\n invitation metadata."
         }
       ]
     }
@@ -278,7 +278,7 @@
         {
           "name": "participant",
           "number": 5,
-          "description": "Conversation participant on an agent channel: may read the channel's\n conversations and speak to its customers as the business (reply, take\n over, hand back, clear attention). Not a channel configurator.\n\n @internal\n channel-conversations DD-010. Grantable only on agent_channel — the\n second kind-scoped role after organization's admin/member; the\n grantable_roles subsetting is the mechanism, not a new one. Team\n usersets ([team#member]) are the named widening the day a team FGA\n type lands."
+          "description": "Conversation participant on an agent channel: may read the channel's\n conversations and speak to its customers as the business (reply, take\n over, hand back, clear attention). Not a channel configurator."
         }
       ]
     },
@@ -317,7 +317,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -452,7 +452,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Unique identifier of the actor.\n\n @internal\n Historically, some writers populate this with the actor's email address\n rather than the identity-account ID. New writers should use the\n identity-account ID and carry the email in the dedicated field below;\n renderers must treat this value as an opaque last-resort label.",
+          "description": "Unique identifier of the actor.",
           "required": false
         },
         {

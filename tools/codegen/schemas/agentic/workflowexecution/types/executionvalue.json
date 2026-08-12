@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "String content of this entry. Empty strings are valid — optional\n workflow env vars may be provided with no value, and the workflow\n engine resolves them to \"\" in expression interpolation.\n\n @internal\n If is_secret=true: encrypted at rest and redacted in logs.\n If is_secret=false: stored as plaintext.",
+      "description": "String content of this entry. Empty strings are valid — optional\n workflow env vars may be provided with no value, and the workflow\n engine resolves them to \"\" in expression interpolation.",
       "required": false
     },
     {
@@ -21,7 +21,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "Whether this value should be treated as a secret.\n\n @internal\n When true: value is encrypted at rest, redacted in logs, and deleted\n when execution completes.\n When false: value is stored as plaintext and visible in audit logs.",
+      "description": "Whether this value should be treated as a secret.",
       "required": false
     }
   ]

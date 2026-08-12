@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
           "outputType": "IdentityAccount",
           "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
-          "description": "Create a new identity account.\n\n @internal\n System-level RPC used by federated account creation and bootstrap migrations.\n No FGA authorization — called via inProcessChannelAsSystem (machine account).\n The handler's createAuthorizationTuples step writes the self-ownership tuple after creation."
+          "description": "Create a new identity account."
         },
         {
           "name": "Update",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
           "outputType": "IdentityAccount",
           "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
-          "description": "Update an existing identity account.\n\n @internal\n Authorization: Requires can_edit permission on the identity account resource."
+          "description": "Update an existing identity account."
         },
         {
           "name": "Delete",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountId",
           "outputType": "IdentityAccount",
           "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
-          "description": "Delete an identity account.\n\n @internal\n Authorization: Requires can_delete permission on the identity account resource."
+          "description": "Delete an identity account."
         },
         {
           "name": "CreateFederatedAccount",
@@ -85,7 +85,7 @@
           "inputFullType": "google.protobuf.Empty",
           "outputType": "IdentityAccount",
           "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
-          "description": "Get the identity account of the currently authenticated user.\n\n Returns the full identity account for the caller based on the auth header.\n\n @internal\n Scoped to the caller's own account, so authorization is skipped."
+          "description": "Get the identity account of the currently authenticated user.\n\n Returns the full identity account for the caller based on the auth header."
         },
         {
           "name": "GetByEmail",
@@ -117,7 +117,7 @@
           "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountId",
           "outputType": "ApiResourceAuditActor",
           "outputFullType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
-          "description": "Get lightweight actor information for an identity account.\n\n @internal\n This RPC is specifically designed to break circular dependency loops in audit actor resolution.\n When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)\n needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion\n including audit actors, which can create infinite recursion if audit actors reference IdentityAccounts.\n\n This dedicated endpoint:\n - Returns ONLY the lightweight ApiResourceAuditActor (id + avatar)\n - Does NOT include full audit trail in the response\n - Accesses entity data directly without recursive proto conversion\n - Is used by ApiResourceAuditActorCacheProxy to safely populate Redis cache\n - Prevents StackOverflowError when Redis cache is empty or cleared\n\n Restricted to platform operators only as this is an internal cache-population mechanism."
+          "description": "Get lightweight actor information for an identity account."
         }
       ]
     }
@@ -433,7 +433,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Unique identifier of the actor.\n\n @internal\n Historically, some writers populate this with the actor's email address\n rather than the identity-account ID. New writers should use the\n identity-account ID and carry the email in the dedicated field below;\n renderers must treat this value as an opaque last-resort label.",
+          "description": "Unique identifier of the actor.",
           "required": false
         },
         {
@@ -478,7 +478,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -499,7 +499,7 @@
     },
     {
       "name": "IdentityAccountProvisioningMode",
-      "description": "IdentityAccountProvisioningMode defines how an identity account was created.\n\n @internal\n Unspecified is the default for legacy accounts created before this enum was introduced.",
+      "description": "IdentityAccountProvisioningMode defines how an identity account was created.",
       "protoType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode",
       "values": [
         {

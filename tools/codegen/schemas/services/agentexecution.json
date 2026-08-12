@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
           "outputType": "AgentExecution",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
-          "description": "Create and trigger a new agent execution.\n Session is optional — can be provided or auto-created from agent_id.\n\n @internal\n Authorization is handled in handler:\n   - If session_id provided: checks can_create_execution_in on session\n   - If session_id NOT provided: checks can_create_execution_in on organization"
+          "description": "Create and trigger a new agent execution.\n Session is optional — can be provided or auto-created from agent_id."
         },
         {
           "name": "Update",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
           "outputType": "AgentExecution",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
-          "description": "Update an agent execution.\n\n @internal\n Used by users to update execution configuration (spec fields).\n No individual field updates - always provide complete state."
+          "description": "Update an agent execution."
         },
         {
           "name": "UpdateStatus",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput",
           "outputType": "UpdateStatusResponse",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse",
-          "description": "Update an agent execution's status.\n\n @internal\n Used by agent-runner to send progressive status updates (messages,\n tool_calls, phase, etc.). The runner authenticates as the triggering user,\n who owns the execution through the session ownership chain.\n Optimized for frequent status updates and merges status fields with\n existing state."
+          "description": "Update an agent execution's status."
         },
         {
           "name": "Delete",
@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput",
           "outputType": "AgentExecution",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
-          "description": "Submit an approval decision for a pending tool call.\n\n ## Preconditions\n\n - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase\n - tool_call_id must match status.pending_approval.tool_call_id\n - User must have can_edit permission on the execution\n\n ## Behavior by Action\n\n - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS\n - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS\n - REJECT: Tool is denied and the user's objection is fed back to the LLM;\n   the execution CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to\n   stop the whole run, use cancel/terminate)\n\n @internal\n\n ## State Transitions\n\n On success:\n - ToolCall.approval_action = submitted action\n - ToolCall.approval_decided_at = current timestamp\n - ToolCall.approved_by = authenticated user ID\n - AgentExecutionStatus.pending_approval = cleared\n - ExecutionPhase = EXECUTION_IN_PROGRESS (for every action, REJECT included)\n\n ## Error Conditions\n\n - NOT_FOUND: Execution doesn't exist\n - FAILED_PRECONDITION: Execution not in WAITING_FOR_APPROVAL phase\n - INVALID_ARGUMENT: tool_call_id doesn't match pending approval, or action is UNSPECIFIED\n - PERMISSION_DENIED: User lacks can_edit permission\n\n ## Idempotency\n\n If the same approval is submitted twice (same execution, tool_call, action),\n the second call is a no-op and returns the current state."
+          "description": "Submit an approval decision for a pending tool call.\n\n ## Preconditions\n\n - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase\n - tool_call_id must match status.pending_approval.tool_call_id\n - User must have can_edit permission on the execution\n\n ## Behavior by Action\n\n - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS\n - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS\n - REJECT: Tool is denied and the user's objection is fed back to the LLM;\n   the execution CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to\n   stop the whole run, use cancel/terminate)"
         },
         {
           "name": "SubmitFileDecision",
@@ -54,7 +54,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.SubmitFileDecisionInput",
           "outputType": "AgentExecution",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
-          "description": "Submit a keep/discard decision on a file change set (or a single file).\n\n Records a FILE_DECIDED event in the append-only file_review stream;\n FileChangeSet.decisions is the derived projection. The runner reconciles\n the approved bytes (Phase 2) — this RPC records the decision and enforces\n that expected_digest still matches the captured content the user reviewed.\n\n ## Preconditions\n\n - Execution must exist and be non-terminal\n - change_set_id must match a status.file_change_sets[].id; for FILE scope,\n   file_change_id must match a CapturedFileChange.id within it\n - expected_digest must match the target's current digest\n - User must have can_edit permission on the execution\n\n @internal\n\n ## Error Conditions\n\n - NOT_FOUND: Execution doesn't exist\n - FAILED_PRECONDITION: Execution terminal, or change set/file not found\n - INVALID_ARGUMENT: scope/action UNSPECIFIED, missing file_change_id for\n   FILE scope, or expected_digest mismatch\n - PERMISSION_DENIED: User lacks can_edit permission\n\n ## Idempotency\n\n Re-submitting the same decision (same change set, scope, target) is a no-op\n and returns the current state — appends are keyed by FileReviewEvent.event_id."
+          "description": "Submit a keep/discard decision on a file change set (or a single file).\n\n Records a FILE_DECIDED event in the append-only file_review stream;\n FileChangeSet.decisions is the derived projection. The runner reconciles\n the approved bytes (Phase 2) — this RPC records the decision and enforces\n that expected_digest still matches the captured content the user reviewed.\n\n ## Preconditions\n\n - Execution must exist and be non-terminal\n - change_set_id must match a status.file_change_sets[].id; for FILE scope,\n   file_change_id must match a CapturedFileChange.id within it\n - expected_digest must match the target's current digest\n - User must have can_edit permission on the execution"
         },
         {
           "name": "Cancel",
@@ -62,7 +62,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.CancelAgentExecutionInput",
           "outputType": "AgentExecution",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
-          "description": "Cancel a running agent execution gracefully.\n\n Sends a cancellation signal to the agent execution. The agent can handle\n the cancellation signal to save checkpoint and clean up before\n transitioning to the CANCELLED phase.\n\n @internal\n Temporal Equivalent: `temporal workflow cancel --workflow-id \u003cid\u003e`\n\n ## Behavior\n\n 1. Validates execution exists and is in a cancellable phase\n 2. Sends cancellation signal to Temporal workflow\n 3. Python activity receives cancellation and saves LangGraph checkpoint\n 4. Execution transitions to EXECUTION_CANCELLED phase\n 5. Returns updated AgentExecution with new phase\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)\n\n ## State Transitions\n\n - status.phase: PENDING/IN_PROGRESS → CANCELLED\n - status.completed_at: Set to current timestamp\n - LangGraph checkpoint: Preserved for potential future reference\n\n ## Idempotency\n\n Cancelling an already-cancelled execution succeeds as a no-op.\n The call returns the current execution state without side effects.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION: Execution is in a terminal phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n @since Agent Execution Lifecycle"
+          "description": "Cancel a running agent execution gracefully.\n\n Sends a cancellation signal to the agent execution. The agent can handle\n the cancellation signal to save checkpoint and clean up before\n transitioning to the CANCELLED phase."
         },
         {
           "name": "Terminate",
@@ -70,7 +70,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.TerminateAgentExecutionInput",
           "outputType": "AgentExecution",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
-          "description": "Terminate an agent execution immediately.\n\n Force-stops the agent execution without allowing cleanup. Unlike cancel,\n the agent cannot respond to termination - it is stopped immediately.\n Use this for stuck or unresponsive agents.\n\n @internal\n Temporal Equivalent: `temporal workflow terminate --workflow-id \u003cid\u003e`\n\n ## Behavior\n\n 1. Validates execution exists and is in a terminable phase\n 2. Force-kills workflow via Temporal (no signal sent to agent)\n 3. Execution transitions to EXECUTION_TERMINATED phase immediately\n 4. No cleanup callbacks or checkpoint saves occur\n 5. Returns updated AgentExecution with TERMINATED phase\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot terminate already-terminal executions\n\n ## State Transitions\n\n - status.phase: PENDING/IN_PROGRESS → TERMINATED\n - status.completed_at: Set to current timestamp\n - LangGraph checkpoint: May be incomplete (no graceful save)\n\n ## Terminated vs Cancelled\n\n | Aspect | cancel | terminate |\n |--------|--------|-----------|\n | Signal to agent | Yes (can handle) | No |\n | Checkpoint saved | Yes (graceful) | No |\n | Use case | Normal stop | Stuck agents |\n | Can recover? | No | No |\n\n ## Idempotency\n\n Terminating an already-terminated execution succeeds as a no-op.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION: Execution is in a terminal phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n @since Agent Execution Lifecycle"
+          "description": "Terminate an agent execution immediately.\n\n Force-stops the agent execution without allowing cleanup. Unlike cancel,\n the agent cannot respond to termination - it is stopped immediately.\n Use this for stuck or unresponsive agents."
         },
         {
           "name": "Recover",
@@ -78,7 +78,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.RecoverAgentExecutionInput",
           "outputType": "AgentExecution",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
-          "description": "Recover a failed agent execution.\n\n Retries the failed run. Completed work is preserved - successful tool\n calls are NOT re-executed.\n\n @internal\n Terminates the previous Temporal workflow (NOT_FOUND tolerated) and starts\n a fresh one; continuity comes from the session's harness state (LangGraph\n thread checkpoint / harness_state_id), not from Temporal history. A\n Temporal reset cannot work here: the runner activity RETURNS its FAILED\n result, so a reset replays the preserved failure instead of re-dispatching.\n\n ## Behavior\n\n 1. Validates execution is in FAILED phase (recoverable)\n 2. Terminates the previous workflow and recreates the execution environment\n 3. Starts a fresh workflow; the activity is re-invoked with the same thread_id\n 4. LangGraph loads from checkpoint automatically\n 5. Execution transitions from FAILED to IN_PROGRESS phase\n 6. Agent retries from where it failed\n\n ## Preconditions\n\n - Execution must be in EXECUTION_FAILED phase\n - TERMINATED executions cannot be recovered (incomplete checkpoint)\n - CANCELLED executions cannot be recovered (intentional user action)\n\n ## State Transitions\n\n - status.phase: FAILED → IN_PROGRESS\n - status.completed_at: Cleared\n - status.error: Cleared\n - Completed tool calls: Preserved (not re-executed)\n\n ## Idempotency\n\n If recovery already succeeded (execution is now IN_PROGRESS),\n the call succeeds as a no-op.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission\n - FAILED_PRECONDITION: Execution is not in FAILED phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n @since Agent Execution Lifecycle"
+          "description": "Recover a failed agent execution.\n\n Retries the failed run. Completed work is preserved - successful tool\n calls are NOT re-executed."
         },
         {
           "name": "Pause",
@@ -86,7 +86,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.PauseAgentExecutionInput",
           "outputType": "AgentExecution",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
-          "description": "Pause a running agent execution.\n\n Temporarily stops the agent at its current checkpoint. Unlike cancel,\n the execution is NOT terminal and can be resumed later from where it left off.\n\n @internal\n\n ## Behavior\n\n 1. Validates execution exists and is in a pausable phase\n 2. Sends \"pause\" signal to Temporal workflow\n 3. Workflow cancels running activity gracefully\n 4. Python activity saves LangGraph checkpoint on cancellation\n 5. Execution transitions to EXECUTION_PAUSED phase\n 6. Workflow waits for resume signal (no resources consumed)\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot pause already-terminal or already-paused executions\n\n ## State Transitions\n\n - status.phase: PENDING/IN_PROGRESS → PAUSED\n - status.completed_at: NOT set (execution is not finished)\n - LangGraph checkpoint: Saved via thread_id\n\n ## Paused vs Cancelled\n\n | Aspect | pause | cancel |\n |--------|-------|--------|\n | Terminal state? | No | Yes |\n | Can resume? | Yes (via resume RPC) | No |\n | Checkpoint saved? | Yes | Best-effort |\n | Use case | Temporary stop | Permanent stop |\n\n ## Idempotency\n\n Pausing an already-paused execution succeeds as a no-op.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission\n - FAILED_PRECONDITION: Execution is in a terminal phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n @since Agent Execution Lifecycle"
+          "description": "Pause a running agent execution.\n\n Temporarily stops the agent at its current checkpoint. Unlike cancel,\n the execution is NOT terminal and can be resumed later from where it left off."
         },
         {
           "name": "Resume",
@@ -94,7 +94,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.ResumeAgentExecutionInput",
           "outputType": "AgentExecution",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
-          "description": "Resume a paused agent execution.\n\n Continues execution from the checkpoint where it was paused. The agent\n re-invokes with the same thread_id, loading from LangGraph checkpoint\n and continuing from where it left off.\n\n @internal\n\n ## Behavior\n\n 1. Validates execution is in EXECUTION_PAUSED phase\n 2. Sends \"resume\" signal to Temporal workflow\n 3. Workflow unblocks and re-invokes activity\n 4. Activity loads from LangGraph checkpoint using thread_id\n 5. Execution transitions back to EXECUTION_IN_PROGRESS phase\n 6. Agent continues from exact pause point\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PAUSED phase\n - Cannot resume non-paused executions\n\n ## State Transitions\n\n - status.phase: PAUSED → IN_PROGRESS\n - Activities: Re-invoked, load from checkpoint\n - LangGraph state: Loaded from checkpoint via thread_id\n\n ## Idempotency\n\n Resuming an already-running execution succeeds as a no-op.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission\n - FAILED_PRECONDITION: Execution is not in PAUSED phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n @since Agent Execution Lifecycle"
+          "description": "Resume a paused agent execution.\n\n Continues execution from the checkpoint where it was paused. The agent\n re-invokes with the same thread_id, loading from LangGraph checkpoint\n and continuing from where it left off."
         },
         {
           "name": "UploadAttachment",
@@ -102,7 +102,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.UploadAttachmentRequest",
           "outputType": "UploadAttachmentResponse",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.UploadAttachmentResponse",
-          "description": "Upload a file attachment for use in an agent execution.\n\n Pre-uploads files to artifact storage before creating an execution.\n The returned storage_key can be used in Attachment.storage_key when\n creating the execution.\n\n @internal\n\n ## Authorization\n\n This endpoint does not require authorization. The storage_key returned\n acts as a capability token - knowing the key grants access to the content.\n This simplifies the upload flow for CLI and other clients.\n\n ## Storage Path\n\n Files are stored at: attachments/{ulid}/{filename}\n The ULID ensures unique paths and enables future cleanup policies.\n\n ## Use Cases\n\n - CLI uploading files (\u003e4MB) before agent execution\n - Pre-uploading datasets for agent processing\n - Uploading binary files that cannot be embedded inline in Attachment\n\n ## Example Flow\n\n 1. Client calls uploadAttachment with file content\n 2. Server uploads to storage, returns storage_key\n 3. Client creates AgentExecution with Attachment using storage_key\n 4. Agent-runner downloads attachment content when execution starts\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)"
+          "description": "Upload a file attachment for use in an agent execution.\n\n Pre-uploads files to artifact storage before creating an execution.\n The returned storage_key can be used in Attachment.storage_key when\n creating the execution."
         }
       ]
     },
@@ -133,7 +133,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest",
           "outputType": "AgentExecutionList",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionList",
-          "description": "List all executions in a specific session.\n\n @internal\n Authorization is handled in handler via FGA query for authorized agent_execution_ids,\n then filtered by session_id. This ensures consistent authorization pattern across all list operations."
+          "description": "List all executions in a specific session."
         },
         {
           "name": "Subscribe",
@@ -142,7 +142,7 @@
           "outputType": "AgentExecution",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
           "serverStreaming": true,
-          "description": "Subscribe to real-time execution updates (streaming).\n\n @internal\n Authorization is handled by the FJ model via proto configuration."
+          "description": "Subscribe to real-time execution updates (streaming)."
         },
         {
           "name": "GetArtifactDownloadUrl",
@@ -150,7 +150,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest",
           "outputType": "GetArtifactDownloadUrlResponse",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse",
-          "description": "Get a presigned download URL for an execution artifact or attachment.\n\n Returns a time-limited URL for downloading an artifact published by\n an agent during execution, or an attachment submitted with the\n execution. The URL can be used with a simple HTTP GET request without\n authentication.\n\n @internal\n\n ## Authorization\n\n Requires can_view permission on the execution. This ensures users can\n only download files from executions they have access to.\n\n ## Security\n\n The storage_key is validated to ensure it belongs to the specified\n execution. Two key forms are accepted:\n\n - \"artifacts/{execution_id}/...\" — outputs published by the execution;\n   the embedded execution id is the ownership proof\n - a key listed verbatim in the execution's spec.attachments — inputs\n   submitted with the turn (\"attachments/{ulid}/{filename}\", ULID-unique\n   per upload); ownership is the spec reference, since the key carries\n   no execution id\n\n Any other key is rejected to prevent path traversal attacks.\n\n ## URL Expiration\n\n Download URLs expire after 7 days (configurable). After expiration,\n call this endpoint again to get a fresh URL.\n\n ## Use Cases\n\n - CLI downloading agent-created files\n - Web UI providing download links for artifacts\n - Web UI rendering submitted attachments in the message thread\n - Refreshing expired download URLs\n\n ## Example Flow\n\n 1. Get execution via AgentExecutionQueryController.get\n 2. Find artifact in status.artifacts[] (or attachment in spec.attachments[])\n 3. Call getArtifactDownloadUrl with execution_id and storage_key\n 4. Use returned download_url for HTTP GET\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)"
+          "description": "Get a presigned download URL for an execution artifact or attachment.\n\n Returns a time-limited URL for downloading an artifact published by\n an agent during execution, or an attachment submitted with the\n execution. The URL can be used with a simple HTTP GET request without\n authentication."
         },
         {
           "name": "GetArtifactContent",
@@ -158,7 +158,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest",
           "outputType": "GetArtifactContentResponse",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse",
-          "description": "Read the raw content of an execution artifact.\n\n Returns artifact bytes through the Stigmer API, eliminating CORS\n concerns for SDK consumers who need to read content programmatically\n (e.g., YAML parsing for resource detection, in-app preview rendering).\n\n For direct file downloads, use getArtifactDownloadUrl instead — it\n returns a presigned R2 URL that avoids proxying bytes through the server.\n\n @internal\n\n ## Authorization\n\n Requires can_view permission on the execution. This ensures users can\n only read artifacts from executions they have access to.\n\n ## Security\n\n The storage_key is validated to ensure it belongs to the specified\n execution. Keys must start with \"artifacts/{execution_id}/\" to prevent\n path traversal attacks.\n\n ## Size Limit\n\n Content is truncated to max_bytes (default: 512 KB). The response\n includes total_size_bytes and a truncated flag so callers can decide\n whether to offer a full download via getArtifactDownloadUrl.\n\n ## Example Flow\n\n 1. Get execution via AgentExecutionQueryController.get\n 2. Find artifact in status.artifacts[]\n 3. Call getArtifactContent with execution_id and storage_key\n 4. Decode content bytes as UTF-8 for text artifacts\n 5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)"
+          "description": "Read the raw content of an execution artifact.\n\n Returns artifact bytes through the Stigmer API, eliminating CORS\n concerns for SDK consumers who need to read content programmatically\n (e.g., YAML parsing for resource detection, in-app preview rendering).\n\n For direct file downloads, use getArtifactDownloadUrl instead — it\n returns a presigned R2 URL that avoids proxying bytes through the server."
         },
         {
           "name": "GetExecutionUsageReport",
@@ -182,7 +182,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput",
           "outputType": "GetAgentUsageReportOutput",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput",
-          "description": "Get a usage report for an agent.\n\n Returns aggregated tokens, cost, and per-session breakdown with pagination.\n\n @internal\n Not consumed by any UI. Authorization model TBD — when a product need\n arises, this should likely be org-scoped (usage of agent X within org Y)."
+          "description": "Get a usage report for an agent.\n\n Returns aggregated tokens, cost, and per-session breakdown with pagination."
         },
         {
           "name": "GetOrgUsageReport",
@@ -198,7 +198,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest",
           "outputType": "AgentExecutionSummary",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary",
-          "description": "Get aggregated execution statistics for an organization's agent executions.\n\n Returns counts by phase, active count, average duration, and top failing\n agents — scoped to a configurable time window (24h, 7d, 30d, all-time).\n\n @internal\n Authorization:\n Custom authorization — user must have organization-level access.\n Results are scoped to the user's organization.\n\n Use Cases:\n\n 1. Unified Dashboard Overview:\n    - Display combined agent + workflow KPI cards\n    - Agent phase counts are merged client-side with workflow phase counts\n\n 2. Reliability Monitoring:\n    - Surface top failing agents for investigation\n    - Track failure rates across the organization\n\n @since Unified Platform Dashboard"
+          "description": "Get aggregated execution statistics for an organization's agent executions.\n\n Returns counts by phase, active count, average duration, and top failing\n agents — scoped to a configurable time window (24h, 7d, 30d, all-time)."
         }
       ]
     }
@@ -704,7 +704,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization slug to scope the results to.\n\n When set, only executions whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.\n\n @internal\n Optional by design: pre-existing callers rely on the permission-bounded\n behavior, and the OSS single-user edition treats org filtering as a\n no-op. Filtering happens in the query/list step of each edition's\n handler, never client-side.",
+          "description": "Organization slug to scope the results to.\n\n When set, only executions whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.",
           "required": false
         }
       ]
@@ -1846,7 +1846,7 @@
     },
     {
       "name": "ApprovalPolicySource",
-      "description": "ApprovalPolicySource is the policy layer that decided a tool call's approval\n requirement — the provenance recorded on every gated or auto-approved tool\n call so an execution's authorizations are auditable.\n\n Set by the runner at the approval gate (the one component that evaluates the\n merged policy) and persisted on ToolCall.approval_policy_source, exactly as\n ToolCall.tool_kind is set and persisted. Clients render it to answer \"why was\n this tool gated or auto-approved?\".\n\n @internal\n Mirrors the runner's internal PolicySource union (approval-policy.ts) one for\n one. Layered precedence: a pinned or agent override wins over the classifier\n default; a lease or the global bypass clears an otherwise-required approval.",
+      "description": "ApprovalPolicySource is the policy layer that decided a tool call's approval\n requirement — the provenance recorded on every gated or auto-approved tool\n call so an execution's authorizations are auditable.\n\n Set by the runner at the approval gate (the one component that evaluates the\n merged policy) and persisted on ToolCall.approval_policy_source, exactly as\n ToolCall.tool_kind is set and persisted. Clients render it to answer \"why was\n this tool gated or auto-approved?\".",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource",
       "values": [
         {
@@ -2160,13 +2160,13 @@
     },
     {
       "name": "ServiceTier",
-      "description": "ServiceTier selects the provider-side speed/service tier for an execution's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what an execution pays (stigmer/stigmer#357).\n\n @internal\n Resolution of UNSPECIFIED → STANDARD happens exactly once, in the runner's\n translation layer; every upstream layer preserves the caller's raw value so\n \"user explicitly chose standard\" stays distinguishable from \"platform\n default\". v1 supports the Cursor harness only: FAST on a model without a\n registry fast variant is refused at create time (INVALID_ARGUMENT), which\n also covers native-harness models since only cursor-harness registry entries\n carry fast variants today. Native (Anthropic/OpenAI) service-tier mapping is\n a tracked follow-up.",
+      "description": "ServiceTier selects the provider-side speed/service tier for an execution's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what an execution pays (stigmer/stigmer#357).",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.ServiceTier",
       "values": [
         {
           "name": "SERVICE_TIER_STANDARD",
           "number": 1,
-          "description": "Standard tier: the model's base-priced configuration, requested\n explicitly.\n\n @internal\n For the Cursor harness the runner pins every price-bearing variant\n parameter to its base value (fast=false, and thinking=false where the\n parameter exists); price-neutral parameters (e.g. effort) follow the\n catalog default variant. Confirmed against the billing ledger 2026-08-06:\n explicit base params bill base wire ids on create AND resume (see\n stigmer-cloud _projects/2026-08/20260806.04.model-service-tier)."
+          "description": "Standard tier: the model's base-priced configuration, requested\n explicitly."
         },
         {
           "name": "SERVICE_TIER_FAST",
@@ -2345,7 +2345,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -2383,7 +2383,7 @@
     },
     {
       "name": "CursorMode",
-      "description": "CursorMode selects the Cursor SDK agent type for sessions using\n HARNESS_CURSOR.\n\n Determined once at session creation and never changed mid-session.\n Switching would lose Cursor-side conversation state because local\n agents (agent- prefix) and cloud agents (bc- prefix) maintain\n separate, incompatible conversation stores.\n\n Ignored when harness is not HARNESS_CURSOR.\n\n @internal\n Runner-owned, never user-set: determineCursorMode() in the cursor\n runner always returns LOCAL while cloud mode is disabled platform-wide\n (Cursor cloud agents clone via Cursor's own GitHub App and accept no\n per-request git credential, so Stigmer provisions the workspace itself\n and runs a local Cursor agent against it). The former workspace-based\n selection logic was removed 2026-06-03; STIGMER_CURSOR_CLOUD_MODE_ENABLED\n still parses into runner config but no longer drives mode selection.\n\n When UNSPECIFIED on an existing session, the runner treats it as LOCAL\n for backward compatibility with sessions created before this field existed.",
+      "description": "CursorMode selects the Cursor SDK agent type for sessions using\n HARNESS_CURSOR.\n\n Determined once at session creation and never changed mid-session.\n Switching would lose Cursor-side conversation state because local\n agents (agent- prefix) and cloud agents (bc- prefix) maintain\n separate, incompatible conversation stores.\n\n Ignored when harness is not HARNESS_CURSOR.",
       "protoType": "ai.stigmer.agentic.session.v1.CursorMode",
       "values": [
         {
@@ -2400,7 +2400,7 @@
     },
     {
       "name": "ExecutionTarget",
-      "description": "ExecutionTarget specifies where session activities are executed.\n\n Determines whether the runner that processes agent activities lives on the\n client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.\n Set at session creation time and immutable once an execution has run —\n workspace state may not be portable between local and cloud environments.\n\n @internal\n The control plane uses this field in dispatch to decide whether to route\n activities to a client-polled per-session queue (LOCAL) or provision a\n cloud sandbox (CLOUD). Both use task queues named \"session:{session_id}\".\n The difference is who provides the runner: the client (LOCAL) or the\n server (CLOUD).",
+      "description": "ExecutionTarget specifies where session activities are executed.\n\n Determines whether the runner that processes agent activities lives on the\n client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.\n Set at session creation time and immutable once an execution has run —\n workspace state may not be portable between local and cloud environments.",
       "protoType": "ai.stigmer.agentic.session.v1.ExecutionTarget",
       "values": [
         {
@@ -2417,13 +2417,13 @@
     },
     {
       "name": "GitWriteBackMode",
-      "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.\n\n @internal\n The platform enables write-back by default when credentials are\n available. Users can override this per-session by setting an\n explicit mode. The agent never sees or controls this setting.",
+      "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.",
       "protoType": "ai.stigmer.agentic.session.v1.GitWriteBackMode",
       "values": [
         {
           "name": "GIT_WRITE_BACK_BRANCH_AND_PR",
           "number": 1,
-          "description": "Create a branch and pull request from the agent's file changes after execution completes.\n\n @internal\n The platform automatically detects uncommitted changes via git diff,\n creates a branch (stigmer/{execution_id_short}), commits all changes,\n pushes the branch to the remote, and creates a pull request targeting\n the original branch. The write-back outcome is recorded in\n AgentExecutionStatus.workspace_write_backs."
+          "description": "Create a branch and pull request from the agent's file changes after execution completes."
         }
       ]
     },
@@ -2730,7 +2730,7 @@
         "type": {
           "kind": "bytes"
         },
-        "description": "Callback token for notifying a parent workflow when this execution completes.\n\n Present when this execution was triggered by a workflow. Empty when the\n execution runs independently (chat, API call).\n\n @internal\n\n When this AgentExecution is triggered from a Temporal activity, the\n calling activity passes its task token here. The agent-runner completes\n the external activity when the execution finishes.\n\n Token Handshake Pattern:\n 1. External activity extracts token and stores in AgentExecution.status\n 2. Activity returns activity.ErrResultPending (paused, thread freed)\n 3. Agent executes (seconds to minutes)\n 4. On completion: agent-runner completes external activity via token\n\n Why in Status (not Spec):\n - System-generated by Temporal, not user-provided\n - Runtime state, not configuration\n - Ephemeral, only relevant during execution\n\n References:\n - WorkflowExecution.spec.callback_token (field 7) - Same pattern\n - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md",
+        "description": "Callback token for notifying a parent workflow when this execution completes.\n\n Present when this execution was triggered by a workflow. Empty when the\n execution runs independently (chat, API call).",
         "required": false
       },
       {
@@ -2755,7 +2755,7 @@
             "messageType": "PendingApproval"
           }
         },
-        "description": "Active pending approval requests for this execution.\n\n Contains one entry per tool call that requires user approval before\n it can proceed. Sub-agent approvals are included with from_sub_agent\n set to true. Empty when no approvals are pending.\n\n @internal\n\n Computed server-side by the Go/Java UpdateStatus handlers on every write.\n The handler scans messages[].tool_calls and\n sub_agent_executions[].messages[].tool_calls, collecting entries where\n status == WAITING_APPROVAL \u0026\u0026 requires_approval == true, and projects\n them into PendingApproval entries.\n\n Because this field is recomputed (not merged), it is always consistent\n with the authoritative tool call state embedded in messages. No lifecycle\n state machine, no merge logic, no forward-only enforcement needed.\n\n Lifecycle:\n 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message\n 2. UpdateStatus handler recomputes this field, entry appears\n 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL\n 4. User submits decisions via SubmitApproval RPC (one per tool call)\n 5. Agent resumes, ToolCall.status advances, next recompute drops the entry",
+        "description": "Active pending approval requests for this execution.\n\n Contains one entry per tool call that requires user approval before\n it can proceed. Sub-agent approvals are included with from_sub_agent\n set to true. Empty when no approvals are pending.",
         "required": false
       },
       {
@@ -2766,7 +2766,7 @@
           "kind": "message",
           "messageType": "ApprovalEventStream"
         },
-        "description": "Server-authored, append-only record of every approval request and decision.\n\n @internal\n\n This is the persisted form of the append-only stream that is the target\n single source of truth for approvals (see ApprovalEventStream in\n approval.proto). It is NOT yet read by any surface: pending_approvals is\n still projected from the authoritative message scan, and the UI/SDK read\n that. The stream coexists as a parallel, independently-authored record so\n that (1) the message-scan vs event-stream projection parity check becomes a\n real cross-writer regression guard rather than a tautology, and (2) the\n approval audit trail — who decided, when, with what comment — has a home,\n since the flat ToolCall.approval_action / approval_decided_at fields cannot\n capture a decision comment at all.\n\n Field ownership (one writer per event type):\n   - REQUESTED events are authored by the UpdateStatus handlers when a tool\n     call enters WAITING_APPROVAL (seeded once from the message scan for\n     executions that predate this field).\n   - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the\n     SubmitApproval handler, carrying decided_by and the user's comment.\n\n Every append is keyed by the deterministic ApprovalEvent.event_id, so the\n stream is idempotent under retries and the rich decision event (authored in\n the same operation that records the decision on the message scan) can never\n be duplicated or overwritten by a coarse re-derivation.\n\n Because it is server-only, the agent-runner never sends it; it is preserved\n across UpdateStatus writes automatically (the merge starts from the loaded\n execution and only replaces runner-owned fields).",
+        "description": "Server-authored, append-only record of every approval request and decision.",
         "required": false
       },
       {
@@ -2851,7 +2851,7 @@
             "messageType": "FileChangeSet"
           }
         },
-        "description": "Server-computed projection of file change sets awaiting or completing\n review for this execution.\n\n @internal\n\n Recomputed on every status write from file_review_event_stream (never\n merged), so it is always consistent with the authoritative ledger — exactly\n as pending_approvals is recomputed from the message scan / approval stream.\n Empty until the runner's capture activity authors events (Phase 2). A\n terminal execution projects no actionable review. See FileChangeSet.\n\n Field 23: appended after approval_event_stream (22), the prior maximum.",
+        "description": "Server-computed projection of file change sets awaiting or completing\n review for this execution.",
         "required": false
       },
       {
@@ -2862,7 +2862,7 @@
           "kind": "message",
           "messageType": "FileReviewEventStream"
         },
-        "description": "Server-owned, append-only record of every file-review event (baseline /\n candidate capture, file decisions, reconcile, failures).\n\n @internal\n\n The persisted source of truth that file_change_sets is projected from — a\n sibling of approval_event_stream for the file-review lifecycle (the\n ApprovalEvent oneof is closed, so file events cannot ride it). Appends are\n keyed by the deterministic FileReviewEvent.event_id, so the stream is\n idempotent under retries.\n\n Write contract (one writer per event type): the runner CONTRIBUTES its\n capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /\n RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds\n them into the stored stream append-only, by event_id, on the freshly-loaded\n execution under the write lock. The runner can never replace an existing\n event and never authors FILE_DECIDED (the server drops a runner-sent\n decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored\n stream is otherwise preserved in place across writes. See\n FileReviewEventStream.\n\n Field 24: appended after file_change_sets (23), the prior maximum.",
+        "description": "Server-owned, append-only record of every file-review event (baseline /\n candidate capture, file decisions, reconcile, failures).",
         "required": false
       },
       {
@@ -2873,7 +2873,7 @@
           "kind": "message",
           "messageType": "FileChangeProgress"
         },
-        "description": "Transient, non-authoritative snapshot of the workspace delta accumulating\n during the current turn — the live \"N files changed so far\" surface, shown\n before any review is possible.\n\n @internal\n\n NOT part of the file-review ledger. This is a runner-owned, latest-snapshot\n display field in the family of setup_progress (18) / streaming_usage (20):\n the runner overwrites it on each mid-run persist and the server clears it once\n its change set leaves CAPTURING, exactly as setup_progress is cleared when the\n phase leaves PENDING. It carries paths + kinds + line counts only (no bodies,\n no digests) and is never decidable — the turn-boundary CANDIDATE_CAPTURED in\n file_change_sets remains the single authoritative, reviewable diff. See\n FileChangeProgress.\n\n Field 25: appended after file_review_event_stream (24), the prior maximum.",
+        "description": "Transient, non-authoritative snapshot of the workspace delta accumulating\n during the current turn — the live \"N files changed so far\" surface, shown\n before any review is possible.",
         "required": false
       }
     ]
@@ -3002,7 +3002,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Unique identifier of the actor.\n\n @internal\n Historically, some writers populate this with the actor's email address\n rather than the identity-account ID. New writers should use the\n identity-account ID and carry the email in the dedicated field below;\n renderers must treat this value as an opaque last-resort label.",
+          "description": "Unique identifier of the actor.",
           "required": false
         },
         {
@@ -3678,7 +3678,7 @@
     },
     {
       "name": "CasManifestRef",
-      "description": "A content-addressed snapshot manifest for paths git cannot capture\n (gitignored or non-git workspaces).\n\n @internal\n Realized in Phase 3 (CAS). Present in the contract now so the snapshot shape\n is stable before producers exist.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "description": "A content-addressed snapshot manifest for paths git cannot capture\n (gitignored or non-git workspaces).",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.CasManifestRef",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
       "fields": [
@@ -3894,7 +3894,7 @@
     },
     {
       "name": "FileChangeProgress",
-      "description": "A transient, non-authoritative snapshot of the workspace delta accumulating\n during the CURRENT turn — the live \"N files changed so far\" surface.\n\n @internal\n\n This is the file-review analogue of SetupProgress / streaming_usage: a\n runner-owned, latest-snapshot-wins DISPLAY field, NOT an event-sourced\n projection. It is deliberately NOT a FileChangeSet — a FileChangeSet is\n server-authored, ledger-derived, digest-bound, and DECIDABLE; progress is\n runner-sent, never in the ledger, carries NO file bytes or digests, and is\n NEVER decidable or authoritative. The turn-boundary CANDIDATE_CAPTURED remains\n the single reviewable diff (diff(baseline, candidate)); a mid-run snapshot is\n no more authoritative than a streamed tool-call arg.\n\n Lifecycle: the runner overwrites this on each mid-run persist while its change\n set is CAPTURING; the server clears it once that set leaves CAPTURING (mirroring\n the setup_progress defense-in-depth clear), so it never outlives the turn.\n\n Secret safety: it carries paths + kinds + line counts ONLY — no file bodies —\n so nothing new can leak. A secret-like path is surfaced with zeroed counts\n (path visible, content withheld), consistent with the DD-12 rule.\n\n @since File-Change HITL Redesign (mid-run live capture)",
+      "description": "A transient, non-authoritative snapshot of the workspace delta accumulating\n during the CURRENT turn — the live \"N files changed so far\" surface.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChangeProgress",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
       "fields": [
@@ -3966,7 +3966,7 @@
     },
     {
       "name": "FileChangeProgressEntry",
-      "description": "One file within a FileChangeProgress snapshot — a slim, non-authoritative row.\n\n @internal\n\n Carries only what the live strip renders: paths, kind, and line counts. It is\n NOT a CapturedFileChange (which is the digest-bound, reviewable ledger delta);\n it has no content, no digests, no unified diff. Path/kind naming mirrors\n CapturedFileChange so renames read honestly.\n\n @since File-Change HITL Redesign (mid-run live capture)",
+      "description": "One file within a FileChangeProgress snapshot — a slim, non-authoritative row.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChangeProgressEntry",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
       "fields": [
@@ -4032,7 +4032,7 @@
     },
     {
       "name": "FileChangeSet",
-      "description": "The set of file deltas produced by one agent turn, reviewed and reconciled\n as a unit.\n\n A FileChangeSet has no identity or lifecycle independent of the turn that\n produced it: it is born when the turn captures its baseline and dies when its\n decisions are reconciled into the workspace. It is therefore a computed\n projection on AgentExecutionStatus (field file_change_sets), mirroring\n pending_approvals — recomputed on every status write from the file_review\n event ledger, never merged, so it is always consistent with the authoritative\n stream.\n\n @internal\n\n Server-authored: the runner never sends this; it is derived server-side in\n both editions through one projection seam. status and decisions are DERIVED\n folds over the ledger, not stored-mutable state. A terminal execution\n projects no actionable review (the workflow that would reconcile is gone),\n mirroring the phase-aware pending_approvals rule.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "description": "The set of file deltas produced by one agent turn, reviewed and reconciled\n as a unit.\n\n A FileChangeSet has no identity or lifecycle independent of the turn that\n produced it: it is born when the turn captures its baseline and dies when its\n decisions are reconciled into the workspace. It is therefore a computed\n projection on AgentExecutionStatus (field file_change_sets), mirroring\n pending_approvals — recomputed on every status write from the file_review\n event ledger, never merged, so it is always consistent with the authoritative\n stream.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChangeSet",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
       "fields": [
@@ -4349,7 +4349,7 @@
     },
     {
       "name": "FileReviewBaselineCaptured",
-      "description": "The baseline workspace state captured at turn start.\n\n @internal\n Authored by the runner's turn-begin capture activity. The first event of a\n change set's lifecycle; carries the change set's stable identity so the\n projection can materialize the set before any candidate exists.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "description": "The baseline workspace state captured at turn start.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.FileReviewBaselineCaptured",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
       "fields": [
@@ -4398,7 +4398,7 @@
     },
     {
       "name": "FileReviewCandidateCaptured",
-      "description": "The candidate workspace state captured at the turn boundary, carrying the\n computed authoritative diff.\n\n @internal\n Authored by the runner's turn-boundary capture activity. Large before/after\n bodies are offloaded (FileContent.ref) before this event is persisted.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "description": "The candidate workspace state captured at the turn boundary, carrying the\n computed authoritative diff.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
       "fields": [
@@ -4478,7 +4478,7 @@
     },
     {
       "name": "FileReviewEvent",
-      "description": "An immutable event in the file-review lifecycle.\n\n The payload is a closed oneof so each event type is type-safe and\n self-documenting, mirroring ApprovalEvent. event_type is the coarse bucket;\n the payload carries fidelity.\n\n @internal\n\n @since File-Change HITL Redesign (Phase 1)",
+      "description": "An immutable event in the file-review lifecycle.\n\n The payload is a closed oneof so each event type is type-safe and\n self-documenting, mirroring ApprovalEvent. event_type is the coarse bucket;\n the payload carries fidelity.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.FileReviewEvent",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
       "fields": [
@@ -4604,7 +4604,7 @@
     },
     {
       "name": "FileReviewEventStream",
-      "description": "The ordered sequence of file-review events for a single agent execution.\n\n Persisted on AgentExecutionStatus.file_review_event_stream as a\n server-authored, append-only record. FileChangeSet is the projection of this\n stream; the stream is the source of truth.\n\n @internal\n\n Field ownership (one writer per event type):\n   - BASELINE_CAPTURED / CANDIDATE_CAPTURED / RECONCILED / FAILED events are\n     authored by the runner's capture and reconcile activities, which\n     CONTRIBUTE them on the UpdateStatus payload; the server folds them into\n     this server-owned stream append-only, by event_id.\n   - FILE_DECIDED events are authored by the SubmitFileDecision handler,\n     carrying reviewer_id and the user's comment. A runner-sent FILE_DECIDED is\n     dropped — the runner can never forge a human decision.\n\n Every append is keyed by the deterministic FileReviewEvent.event_id, so the\n stream is idempotent under retries and an existing event is never overwritten.\n The stored stream is server-owned: preserved in place across UpdateStatus\n writes and only ever extended by the fold above and by SubmitFileDecision.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "description": "The ordered sequence of file-review events for a single agent execution.\n\n Persisted on AgentExecutionStatus.file_review_event_stream as a\n server-authored, append-only record. FileChangeSet is the projection of this\n stream; the stream is the source of truth.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
       "fields": [
@@ -4636,7 +4636,7 @@
     },
     {
       "name": "FileReviewFailure",
-      "description": "A terminal failure in the file-review lifecycle.\n\n @internal\n Authored by the runner. A DIFF_UNREVIEWABLE failure blocks the change set\n from becoming approvable (the diff cannot be shown completely); the others\n record capture/reconcile/verification failures for audit and resume.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "description": "A terminal failure in the file-review lifecycle.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.FileReviewFailure",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
       "fields": [
@@ -4681,7 +4681,7 @@
     },
     {
       "name": "FileReviewReconciled",
-      "description": "The result of reconciling approved decisions into the workspace.\n\n @internal\n Authored by the runner's reconcile activity after decisions land. Idempotent:\n it reconciles to an exact approved snapshot and verifies hashes, so re-running\n converges.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "description": "The result of reconciling approved decisions into the workspace.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.FileReviewReconciled",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
       "fields": [
@@ -4776,7 +4776,7 @@
     },
     {
       "name": "PendingApproval",
-      "description": "A pending approval request for a tool call that requires user consent before execution.\n\n Each entry represents one tool call waiting for a user decision (approve, skip,\n or reject). Sub-agent approvals are included with from_sub_agent set to true\n and sub_agent_name identifying the origin.\n\n @internal\n\n Computed server-side by the UpdateStatus handlers on every write. The handler\n scans messages[].tool_calls and sub_agent_executions[].messages[].tool_calls,\n collecting entries where status == WAITING_APPROVAL \u0026\u0026 requires_approval == true.\n Because the list is recomputed rather than merged, it is always consistent\n with the authoritative tool call state embedded in messages.\n\n Lifecycle:\n 1. Tool with requires_approval=true is about to execute\n 2. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message\n 3. Server recomputes pending_approvals, entry appears\n 4. User calls SubmitApproval RPC with their decision\n 5. Agent resumes, ToolCall.status advances, next recompute drops the entry",
+      "description": "A pending approval request for a tool call that requires user consent before execution.\n\n Each entry represents one tool call waiting for a user decision (approve, skip,\n or reject). Sub-agent approvals are included with from_sub_agent set to true\n and sub_agent_name identifying the origin.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.PendingApproval",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/approval.proto",
       "fields": [
@@ -5015,7 +5015,7 @@
     },
     {
       "name": "SetupProgress",
-      "description": "Setup progress reported during the EXECUTION_PENDING phase.\n\n @internal\n Designed as a sub-message (rather than a bare string) so future fields\n (completed_phases, total_phases, phase_index) can be added without\n deprecation or breaking changes.",
+      "description": "Setup progress reported during the EXECUTION_PENDING phase.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.SetupProgress",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/api.proto",
       "fields": [
@@ -5160,7 +5160,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Model identifier the runner requested for this execution's turns.\n\n @internal\n This is the validated REQUESTED model (UsageAccumulator constructor\n argument), not a provider-reported resolved id — the Cursor SDK echoes\n the requested selection and never reports the served variant, so the\n authoritative resolved model lives on billing's LlmCallUsageRecord\n (requested_model / resolved_model / service_tier), not here.",
+          "description": "Model identifier the runner requested for this execution's turns.",
           "required": false
         },
         {
@@ -5195,7 +5195,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "JSON-encoded provider variant parameters the runner sent with the model\n selection (Cursor ModelSelection.params, e.g.\n [{\"id\":\"fast\",\"value\":\"false\"}]). Empty when the harness sent none.\n\n @internal\n Recorded verbatim for audit: tier→params translation depends on the\n provider catalog at send time, so the derivation is not reproducible\n later from the tier alone. Mirrors the Cursor SDK's own analytics\n convention (SdkRunCreatedProps.model_params).",
+          "description": "JSON-encoded provider variant parameters the runner sent with the model\n selection (Cursor ModelSelection.params, e.g.\n [{\"id\":\"fast\",\"value\":\"false\"}]). Empty when the harness sent none.",
           "required": false
         }
       ]
@@ -5818,7 +5818,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Identifier of the policy-engine logic that produced approval_policy_source,\n bumped when the merge/classification semantics change so decisions made by\n different engine versions stay distinguishable in audits.\n\n @internal\n Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).\n\n Field 24: appended after approval_policy_source (23), the prior maximum.",
+          "description": "Identifier of the policy-engine logic that produced approval_policy_source,\n bumped when the merge/classification semantics change so decisions made by\n different engine versions stay distinguishable in audits.",
           "required": false
         },
         {
@@ -5828,7 +5828,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Stable digest of the authoritative edit content (the hook-captured tool\n input) for a gated file-mutating tool call, set by the runner's approval\n gate. It is the content discriminator the deny-only Cursor harness needs:\n approving one edit must not let a DIFFERENT edit to the same file ride the\n approval through, so the grant binds to (category, path, content) rather than\n (category, path) alone. A resumed re-attempt that differs from the approved\n content re-gates (the \"what you approve is what gets applied\" contract).\n\n Carried so it survives at resume immune to the size-limit elision that can\n drop `args`/`file_changes` for large edits — a recompute-from-args identity\n would be unrecoverable in that case. Empty for tools whose other identity is\n already content-exact (shell command, delete path), for read-only tools, and\n for executions that predate this field (the runner then degrades to the\n coarse (category, path) identity).\n\n @internal\n Runner-written and carried through update_status exactly like tool_kind /\n approval_policy_source — not owned by SubmitApproval, so no preserve logic is\n needed. See the runner's contentDigest() (shared/file-tools.ts).\n\n Field 25: appended after policy_engine_version (24), the prior maximum.",
+          "description": "Stable digest of the authoritative edit content (the hook-captured tool\n input) for a gated file-mutating tool call, set by the runner's approval\n gate. It is the content discriminator the deny-only Cursor harness needs:\n approving one edit must not let a DIFFERENT edit to the same file ride the\n approval through, so the grant binds to (category, path, content) rather than\n (category, path) alone. A resumed re-attempt that differs from the approved\n content re-gates (the \"what you approve is what gets applied\" contract).\n\n Carried so it survives at resume immune to the size-limit elision that can\n drop `args`/`file_changes` for large edits — a recompute-from-args identity\n would be unrecoverable in that case. Empty for tools whose other identity is\n already content-exact (shell command, delete path), for read-only tools, and\n for executions that predate this field (the runner then degrades to the\n coarse (category, path) identity).",
           "required": false
         },
         {
@@ -5913,7 +5913,7 @@
     },
     {
       "name": "TurnCommandProvenance",
-      "description": "The runner's turn facts backing the approved-command auto-keep policy\n (DD-28): its assertion that EVERY mutation in the candidate was produced by\n executed shell commands the human had already authorized, with the consent\n evidence the backend can verify.\n\n @internal\n\n Presence of this message on a candidate asserts the runner-owned turn facts\n the server cannot derive (tool calls carry no turn marker): the turn executed\n zero file-tool (write/delete) calls, zero MCP tools, and delegated zero\n sub-agents — its only mutation source was consented commands. These facts\n carry the SAME trust level as the captured bytes themselves. What the runner\n can NEVER assert is the consent: the backend verifies every claimed row below\n against the server-authored approval record before authoring the policy\n decision, so a runner cannot mint authorization it was never given. Absent\n on any turn that does not qualify — the set then reviews manually, exactly\n as before this field existed (fail-closed).\n\n @since File-Change HITL Redesign (DD-28 approved-command auto-keep)",
+      "description": "The runner's turn facts backing the approved-command auto-keep policy\n (DD-28): its assertion that EVERY mutation in the candidate was produced by\n executed shell commands the human had already authorized, with the consent\n evidence the backend can verify.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
       "fields": [

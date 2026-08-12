@@ -1,6 +1,6 @@
 {
   "name": "GitRepoSource",
-  "description": "GitRepoSource provisions a workspace by cloning a git repository.\n\n Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.\n\n @internal\n Authentication: The provisioner resolves GITHUB_TOKEN from the merged\n environment (Agent defaults \u003c Environment \u003c ExecutionContext.runtime_env)\n and injects it into the clone URL. The token is consumed by provisioning\n and stripped before forwarding to the agent runtime (see AD-05).\n SSH key authentication is a future enhancement.",
+  "description": "GitRepoSource provisions a workspace by cloning a git repository.\n\n Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.",
   "protoType": "ai.stigmer.agentic.session.v1.GitRepoSource",
   "protoFile": "apis/ai/stigmer/agentic/session/v1/workspace.proto",
   "fields": [
@@ -44,7 +44,7 @@
       "type": {
         "kind": "int32"
       },
-      "description": "Number of commits to include in the clone history.\n\n When not set, defaults to a shallow clone with depth 1. Set to 0 for\n a full clone with complete history.\n\n @internal\n Uses proto3 optional to distinguish \"not set\" from \"set to 0.\"\n Absent: shallow clone depth 1; 0: full clone; N \u003e 0: shallow clone depth N.",
+      "description": "Number of commits to include in the clone history.\n\n When not set, defaults to a shallow clone with depth 1. Set to 0 for\n a full clone with complete history.",
       "required": false,
       "oneofGroup": "_depth"
     },
@@ -59,7 +59,7 @@
           "GIT_WRITE_BACK_BRANCH_AND_PR"
         ]
       },
-      "description": "Controls whether the platform creates a branch and pull request from the agent's file changes.\n\n @internal\n This is a platform-level workflow, not an agent-level decision. The\n agent focuses on making code changes; the platform packages them\n incrementally — the PR appears the moment the first file is written\n and the diff grows in real time as the agent works.\n\n Requires GITHUB_TOKEN in the execution environment. If credentials\n are not available, the write-back is silently skipped regardless of\n this setting.\n\n Default (UNSPECIFIED): platform decides. Currently defaults to\n write-back enabled when git credentials are available.",
+      "description": "Controls whether the platform creates a branch and pull request from the agent's file changes.",
       "required": false
     }
   ]
