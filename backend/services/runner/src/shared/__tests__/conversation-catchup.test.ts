@@ -55,6 +55,18 @@ describe("formatConversationCatchupText", () => {
     expect(framed).toContain("Continue from the customer's newest message.");
   });
 
+  it("defines the send-status annotations — undelivered words are not settled history (cloud#347)", () => {
+    // The cloud composer marks lines the customer never got or may not
+    // have gotten yet; the preamble must define both annotations and
+    // carve them out of the don't-re-answer contract, or the agent would
+    // silently abandon whatever a failed teammate reply meant to convey.
+    expect(framed).toContain("(not delivered)");
+    expect(framed).toContain("never reached the customer");
+    expect(framed).toContain("(sending)");
+    expect(framed).toContain("still on their way");
+    expect(framed).toContain("weigh that when deciding what still needs saying");
+  });
+
   it("asserts no takeover — a digest can exist with no human handoff at all (the A15/A20 honesty bar)", () => {
     // The preamble may DESCRIBE what the digest can contain ("may include"),
     // but must never state that a handoff happened on THIS conversation: a
