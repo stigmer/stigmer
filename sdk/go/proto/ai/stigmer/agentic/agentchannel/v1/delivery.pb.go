@@ -27,7 +27,8 @@ const (
 // @internal
 // pending -> delivering is the atomic claim (single winner across
 // replicas). delivering -> delivered | pending (retry, with backoff via
-// next_attempt_at) | failed (dead-lettered after max attempts) |
+// next_attempt_at) | failed (dead-lettered after max attempts, or
+// immediately on a known-terminal provider refusal — cloud#263) |
 // suppressed (withheld under human control — channel-conversations
 // DD-005 D-e; terminal, intended behavior, never an alert condition).
 type ChannelDeliveryStatus int32
@@ -41,7 +42,9 @@ const (
 	ChannelDeliveryStatus_delivering ChannelDeliveryStatus = 2
 	// Reply delivered to the provider.
 	ChannelDeliveryStatus_delivered ChannelDeliveryStatus = 3
-	// Dead-lettered after exhausting attempts; last_error records why.
+	// Dead-lettered: attempts were exhausted, or the provider's verdict was
+	// known-terminal and retries were skipped (attempts can be 1);
+	// last_error records why.
 	ChannelDeliveryStatus_failed ChannelDeliveryStatus = 4
 	// Withheld because a human held the conversation when the reply came
 	// due; the customer never received it.

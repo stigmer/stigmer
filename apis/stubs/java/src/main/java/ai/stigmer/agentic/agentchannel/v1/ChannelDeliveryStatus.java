@@ -12,7 +12,8 @@ package ai.stigmer.agentic.agentchannel.v1;
  * &#64;internal
  * pending -&gt; delivering is the atomic claim (single winner across
  * replicas). delivering -&gt; delivered | pending (retry, with backoff via
- * next_attempt_at) | failed (dead-lettered after max attempts) |
+ * next_attempt_at) | failed (dead-lettered after max attempts, or
+ * immediately on a known-terminal provider refusal — cloud#263) |
  * suppressed (withheld under human control — channel-conversations
  * DD-005 D-e; terminal, intended behavior, never an alert condition).
  * </pre>
@@ -56,7 +57,9 @@ public enum ChannelDeliveryStatus
   delivered(3),
   /**
    * <pre>
-   * Dead-lettered after exhausting attempts; last_error records why.
+   * Dead-lettered: attempts were exhausted, or the provider's verdict was
+   * known-terminal and retries were skipped (attempts can be 1);
+   * last_error records why.
    * </pre>
    *
    * <code>failed = 4;</code>
@@ -124,7 +127,9 @@ public enum ChannelDeliveryStatus
   public static final int delivered_VALUE = 3;
   /**
    * <pre>
-   * Dead-lettered after exhausting attempts; last_error records why.
+   * Dead-lettered: attempts were exhausted, or the provider's verdict was
+   * known-terminal and retries were skipped (attempts can be 1);
+   * last_error records why.
    * </pre>
    *
    * <code>failed = 4;</code>
