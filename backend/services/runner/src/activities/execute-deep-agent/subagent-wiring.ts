@@ -2,6 +2,12 @@
  * Sub-agent middleware composition for ExecuteDeepAgent.
  *
  * Each sub-agent gets its own middleware stack with:
+ * - Path normalization (issue #429), FIRST and only on permission-rule-
+ *   bearing graphs (plan mode) — workspace-relative paths are rewritten to
+ *   workspace-absolute before deepagents' permission validation refuses
+ *   them, exactly as on the parent. `compileSubagents` derives it from the
+ *   same `permissions` option it bakes into the graph, keeping the rules
+ *   and their normalization shim coupled.
  * - Fresh loop detection (independent cycle tracking)
  * - Fresh tool truncation (same limits as parent)
  * - Periodic execution budget (interval=30, max=4 advisories)
@@ -27,8 +33,13 @@
  * the live HITL bypass this wiring closes.
  */
 
-import type { StigmerMiddleware, ToolTruncationConfig } from "../../middleware/types.js";
+import type {
+  StigmerMiddleware,
+  ToolTruncationConfig,
+  PathNormalizationConfig,
+} from "../../middleware/types.js";
 import type { CostCapMiddleware } from "../../middleware/index.js";
+import { createPathNormalizationMiddleware } from "../../middleware/path-normalization.js";
 import { createLoopDetectionMiddleware } from "../../middleware/loop-detection.js";
 import { createToolTruncationMiddleware } from "../../middleware/tool-truncation.js";
 import { createExecutionBudgetMiddleware } from "../../middleware/execution-budget.js";
@@ -59,14 +70,22 @@ export interface SubAgentMiddlewareOptions {
    * unobserved backend would apply unreviewable bytes.
    */
   readonly captureIgnored?: boolean;
+  /**
+   * Workspace-relative path normalization (issue #429). Present iff this
+   * sub-agent's graph carries filesystem permission rules — the caller
+   * derives it from the same `permissions` value it bakes into the graph.
+   */
+  readonly pathNormalization?: PathNormalizationConfig;
 }
 
 /**
  * Build the middleware stack for a single sub-agent.
  *
  * Returns an ordered array mirroring the parent composition:
- * loop detection → execution budget (periodic) → tool truncation →
- * [approval gate] → cost cap view → error hints. The gate sits before the
+ * [path normalization] → loop detection → execution budget (periodic) →
+ * tool truncation → [approval gate] → cost cap view → error hints.
+ * Normalization is outermost so everything downstream observes canonical
+ * workspace-absolute paths (matching the parent). The gate sits before the
  * cost-cap view so an approval pause happens before budget accounting, and
  * error hints come after the gate — both matching the parent order
  * (…→ truncation → graceful-stop → approval gate → cost cap → error hints …),
@@ -76,6 +95,10 @@ export function buildSubAgentMiddleware(
   options: SubAgentMiddlewareOptions = {},
 ): StigmerMiddleware[] {
   const stack: StigmerMiddleware[] = [];
+
+  if (options.pathNormalization) {
+    stack.push(createPathNormalizationMiddleware(options.pathNormalization));
+  }
 
   stack.push(createLoopDetectionMiddleware({ enabled: true }));
 

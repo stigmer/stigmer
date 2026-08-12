@@ -652,6 +652,12 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     const execConfig = execution.spec!.executionConfig;
     const isPlanMode = execConfig?.interactionMode === InteractionMode.PLAN;
     const shellEnv = isPlanMode ? undefined : buildShellEnv(envResult.mergedEnvVars);
+    // Plan mode's filesystem permission rules, hoisted once: the parent graph,
+    // every sub-agent graph, AND the path-normalization middleware (issue #429)
+    // all derive from this single value, so a rule-bearing graph can never miss
+    // the shim that keeps prompt-compliant relative paths from dying in rule
+    // validation (`path must be absolute`).
+    const planModePermissions = isPlanMode ? PLAN_MODE_PERMISSIONS : undefined;
 
     const toolServerMap = new Map<string, string>();
     if (mcpConnection) {
@@ -757,6 +763,9 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       } : null,
       otelSpans: { toolServerMap },
       approvalGate: approvalGateConfig,
+      pathNormalization: planModePermissions
+        ? { rootDir: workspaceBackend.rootDir }
+        : null,
     });
     timing.mark("build_middleware");
 
@@ -820,7 +829,9 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         // Plan mode's deny-all-writes rule, mirrored onto every sub-agent graph
         // (issue #255) — pre-built CompiledSubAgents never inherit the parent's
         // permissions, so read-only-by-construction must be baked in here.
-        ...(isPlanMode ? { permissions: PLAN_MODE_PERMISSIONS } : {}),
+        // compileSubagents derives each sub-agent's path-normalization shim
+        // from this same value (issue #429).
+        ...(planModePermissions ? { permissions: planModePermissions } : {}),
       });
       timing.mark("compile_subagents");
     }
@@ -854,7 +865,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       middleware: middleware as any,
       subagents: compiledSubagents ?? undefined,
       ...(responseFormat ? { responseFormat } : {}),
-      ...(isPlanMode ? { permissions: PLAN_MODE_PERMISSIONS } : {}),
+      ...(planModePermissions ? { permissions: planModePermissions } : {}),
     } as Parameters<typeof createDeepAgent>[0]);
 
     // Step 11: Prepare invocation input and config. The conversation catchup

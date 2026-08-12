@@ -16,6 +16,13 @@
  * (issue #255). Kept as its own side-effect-free module so tests can pin the
  * production rules without dragging in setup.ts's import graph.
  *
+ * Rules travel with a companion: every graph that carries them also installs
+ * the path-normalization middleware (middleware/path-normalization.ts,
+ * issue #429), because deepagents' rule validation refuses workspace-relative
+ * paths outright — without the shim, prompt-compliant relative READS die in
+ * validation instead of just working. Both are derived from the same
+ * expression at each composition site so they cannot drift apart.
+ *
  * Invariant: never combine these rules with a shell-capable (sandbox)
  * backend — deepagents rejects that pairing at graph construction (see the
  * cas-capture-backend.ts header). Plan mode guarantees it by construction:
