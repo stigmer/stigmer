@@ -132,10 +132,13 @@ public interface MintUserTokenRequestOrBuilder extends
 
   /**
    * <pre>
-   * Optional organization to scope the minted token to.
-   * When set, the JWT's claims include this org context, and the user must
-   * have access to this organization. When empty, the token is scoped to
-   * the PlatformClient's owning organization.
+   * Optional confirmation of the organization the token is scoped to.
+   * The minted token is ALWAYS scoped to the PlatformClient's owning
+   * organization (metadata.org) — identity resolution and the optional
+   * auto-grant are keyed on it, so cross-organization minting is not
+   * supported. When set, this value must equal that owning organization;
+   * any other value is rejected INVALID_ARGUMENT before the user is
+   * resolved or provisioned. When empty, the owning organization applies.
    * </pre>
    *
    * <code>string org_id = 6 [json_name = "orgId"];</code>
@@ -144,10 +147,13 @@ public interface MintUserTokenRequestOrBuilder extends
   java.lang.String getOrgId();
   /**
    * <pre>
-   * Optional organization to scope the minted token to.
-   * When set, the JWT's claims include this org context, and the user must
-   * have access to this organization. When empty, the token is scoped to
-   * the PlatformClient's owning organization.
+   * Optional confirmation of the organization the token is scoped to.
+   * The minted token is ALWAYS scoped to the PlatformClient's owning
+   * organization (metadata.org) — identity resolution and the optional
+   * auto-grant are keyed on it, so cross-organization minting is not
+   * supported. When set, this value must equal that owning organization;
+   * any other value is rejected INVALID_ARGUMENT before the user is
+   * resolved or provisioned. When empty, the owning organization applies.
    * </pre>
    *
    * <code>string org_id = 6 [json_name = "orgId"];</code>

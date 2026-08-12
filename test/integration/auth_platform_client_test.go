@@ -159,6 +159,101 @@ func TestPlatformClient_MintUserToken_JITProvisioning_CreatesAccount(t *testing.
 	assert.NotEmpty(t, token2, "second mint for same user should also succeed")
 }
 
+// TestPlatformClient_MintUserToken_OwnOrgId_Mints pins the org_id contract
+// half of issue #376: a request naming the PlatformClient's own owning org is
+// a valid confirmation and mints exactly like an empty org_id.
+func TestPlatformClient_MintUserToken_OwnOrgId_Mints(t *testing.T) {
+	clients := requirePlatformClientClients(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	creds := harness.CreatePlatformClient(t, ctx, clients, harness.WithAutoProvision(true))
+
+	resp, err := clients.PlatformClientToken.MintUserToken(ctx, &platformclientv1.MintUserTokenRequest{
+		ClientId:     creds.ClientID,
+		ClientSecret: creds.ClientSecret,
+		UserId:       "own-org-user-" + t.Name(),
+		UserEmail:    "own-org@test.stigmer.ai",
+		UserName:     "Own Org",
+		OrgId:        harness.TestOrg,
+	})
+	require.NoError(t, err, "org_id equal to the owning org must mint")
+	assert.Equal(t, 3, len(strings.Split(resp.GetAccessToken(), ".")),
+		"minted token should be a valid JWT with 3 segments")
+}
+
+// TestPlatformClient_MintUserToken_ForeignOrgId_InvalidArgument is the main
+// regression guard for issue #376: org_id used to ride into the signed JWT's
+// org claim verbatim with no access check of any kind. Cross-org minting has
+// never been supported (identity resolution and the auto-grant key on the
+// client's owning org), so a foreign org_id is refused INVALID_ARGUMENT.
+func TestPlatformClient_MintUserToken_ForeignOrgId_InvalidArgument(t *testing.T) {
+	clients := requirePlatformClientClients(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	creds := harness.CreatePlatformClient(t, ctx, clients, harness.WithAutoProvision(true))
+
+	_, err := clients.PlatformClientToken.MintUserToken(ctx, &platformclientv1.MintUserTokenRequest{
+		ClientId:     creds.ClientID,
+		ClientSecret: creds.ClientSecret,
+		UserId:       "foreign-org-user-" + t.Name(),
+		UserEmail:    "foreign-org@test.stigmer.ai",
+		UserName:     "Foreign Org",
+		OrgId:        "org-someone-else-" + uuid.New().String()[:8],
+	})
+	require.Error(t, err)
+
+	st, ok := status.FromError(err)
+	require.True(t, ok, "error should be a gRPC status")
+	assert.Equal(t, codes.InvalidArgument, st.Code(),
+		"foreign org_id should return INVALID_ARGUMENT, got: %s — %s", st.Code(), st.Message())
+	assert.Contains(t, st.Message(), "cross-organization minting is not supported")
+}
+
+// TestPlatformClient_MintUserToken_ForeignOrgId_NeverProvisions pins the
+// ordering half of the #376 fix end-to-end: the org-scope rejection must fire
+// BEFORE JIT provisioning, so a refused mint is side-effect free. The identity
+// key is org+user_id and client-independent, so a JIT-off client in the same
+// org still failing with "unknown user" proves the rejected mint on the JIT-on
+// client never created the account.
+func TestPlatformClient_MintUserToken_ForeignOrgId_NeverProvisions(t *testing.T) {
+	clients := requirePlatformClientClients(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	jitOnCreds := harness.CreatePlatformClient(t, ctx, clients, harness.WithAutoProvision(true))
+	// auto_provision_accounts defaults to false
+	jitOffCreds := harness.CreatePlatformClient(t, ctx, clients)
+
+	userID := "never-provisioned-" + uuid.New().String()[:8]
+
+	_, err := clients.PlatformClientToken.MintUserToken(ctx, &platformclientv1.MintUserTokenRequest{
+		ClientId:     jitOnCreds.ClientID,
+		ClientSecret: jitOnCreds.ClientSecret,
+		UserId:       userID,
+		UserEmail:    userID + "@test.stigmer.ai",
+		UserName:     "Never Provisioned",
+		OrgId:        "org-someone-else-" + uuid.New().String()[:8],
+	})
+	require.Error(t, err, "foreign org_id must be rejected even with JIT enabled")
+
+	_, err = clients.PlatformClientToken.MintUserToken(ctx, &platformclientv1.MintUserTokenRequest{
+		ClientId:     jitOffCreds.ClientID,
+		ClientSecret: jitOffCreds.ClientSecret,
+		UserId:       userID,
+		UserEmail:    userID + "@test.stigmer.ai",
+		UserName:     "Never Provisioned",
+	})
+	require.Error(t, err)
+
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.FailedPrecondition, st.Code(),
+		"user must still be unknown — the rejected mint may not have provisioned it, got: %s — %s",
+		st.Code(), st.Message())
+}
+
 // TestPlatformClient_MintUserToken_RefreshesProfileOnRemint is the regression
 // guard for issue #377: token.proto has always promised that user_email and
 // user_name are "updated on each token mint if the account exists", but the
