@@ -1014,3 +1014,108 @@ describe("injectAttachments — vision selection", () => {
     expect(injected[1].visionDegraded).toBe("budget_exhausted");
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════
+// injectAttachments — download-URL hand-off (issue #532)
+// ═══════════════════════════════════════════════════════════════════════
+// The URL is strictly additive (shared/attachment-download-urls.ts): every
+// case also asserts the file injected exactly as it would without one.
+
+describe("injectAttachments — download-URL hand-off", () => {
+  it("mints a URL for a storage-key attachment", async () => {
+    const content = Buffer.from("cloud data");
+    const storage = makeMockStorage();
+    await storage.upload("attachments/xyz/data.csv", content);
+    const backend = mockWorkspaceBackend();
+
+    const result = await injectAttachments({
+      backend,
+      attachments: [makeAttachment({ filename: "data.csv", storageKey: "attachments/xyz/data.csv" })],
+      storage,
+      isLocalMode: false,
+    });
+
+    expect(result[0]).toMatchObject({
+      path: ".stigmer/inputs/data.csv",
+      downloadUrl: "mem://attachments/xyz/data.csv",
+    });
+  });
+
+  it("mints a URL for an explicit-mountPath attachment (the rule ignores mount location)", async () => {
+    const storage = makeMockStorage();
+    await storage.upload("attachments/xyz/config.yaml", Buffer.from("a: 1"));
+    const backend = mockWorkspaceBackend();
+
+    const result = await injectAttachments({
+      backend,
+      attachments: [makeAttachment({
+        filename: "config.yaml",
+        storageKey: "attachments/xyz/config.yaml",
+        mountPath: "config/app.yaml",
+      })],
+      storage,
+      isLocalMode: false,
+    });
+
+    expect(result[0]).toMatchObject({
+      path: "config/app.yaml",
+      downloadUrl: "mem://attachments/xyz/config.yaml",
+    });
+  });
+
+  it("carries no URL on extracted ZIP entries — the stored object is the ZIP, not any listed file", async () => {
+    const zip = makeZip({ "src/a.txt": "alpha", "src/b.txt": "beta" });
+    const storage = makeMockStorage();
+    await storage.upload("attachments/xyz/code.zip", zip);
+    const backend = mockWorkspaceBackend();
+
+    const result = await injectAttachments({
+      backend,
+      attachments: [makeAttachment({
+        filename: "code.zip",
+        storageKey: "attachments/xyz/code.zip",
+        extract: true,
+      })],
+      storage,
+      isLocalMode: false,
+    });
+
+    expect(result.length).toBeGreaterThan(0);
+    for (const file of result) {
+      expect(file.downloadUrl).toBeUndefined();
+    }
+  });
+
+  it("carries no URL for a key-less local file", async () => {
+    const localFile = join(tmpdir(), `injector-url-${Date.now()}.txt`);
+    await writeFile(localFile, "local only");
+    const backend = mockWorkspaceBackend();
+
+    const result = await injectAttachments({
+      backend,
+      attachments: [makeAttachment({ filename: "local.txt", storageKey: "", localPath: localFile })],
+      storage: makeMockStorage(),
+      isLocalMode: true,
+    });
+
+    expect(result[0].downloadUrl).toBeUndefined();
+  });
+
+  it("degrades to no URL when the mint fails — file still injected, no throw", async () => {
+    const content = Buffer.from("cloud data");
+    const storage = makeMockStorage();
+    await storage.upload("attachments/xyz/data.csv", content);
+    storage.getDownloadUrl.mockRejectedValueOnce(new Error("presign endpoint unreachable"));
+    const backend = mockWorkspaceBackend();
+
+    const result = await injectAttachments({
+      backend,
+      attachments: [makeAttachment({ filename: "data.csv", storageKey: "attachments/xyz/data.csv" })],
+      storage,
+      isLocalMode: false,
+    });
+
+    expect(result[0].downloadUrl).toBeUndefined();
+    expect(backend.writeFileBuffer).toHaveBeenCalledWith(".stigmer/inputs/data.csv", content);
+  });
+});

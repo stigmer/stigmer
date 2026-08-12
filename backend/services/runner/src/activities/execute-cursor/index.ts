@@ -802,6 +802,7 @@ async function executeCursorInner(
     const attachmentEntries = attachmentResults.map((a) => ({
       path: a.relativePath,
       ...(a.renamedFrom !== undefined ? { renamedFrom: a.renamedFrom } : {}),
+      ...(a.downloadUrl !== undefined ? { downloadUrl: a.downloadUrl } : {}),
     }));
     // Vision facts, derived once from the single resolution result: the
     // images the model will see inline (in attachment order) and the ones
@@ -1154,6 +1155,7 @@ async function executeCursorInner(
       workspaceFileRefs: spec.workspaceFileRefs ?? [],
       attachments: attachmentEntries,
       vision: visionPromptInfo,
+      downloadUrlKind: artifactStorage?.downloadUrlKind,
       pendingApprovals: adjudicatedApprovals,
       appliedToolCallIds,
       interactionMode,
@@ -1828,6 +1830,7 @@ async function executeCursorInner(
             workspaceFileRefs: spec.workspaceFileRefs ?? [],
             attachments: attachmentEntries,
             vision: visionPromptInfo,
+            downloadUrlKind: artifactStorage?.downloadUrlKind,
             pendingApprovals: adjudicatedApprovals,
             // Without the applied set, the HITL-recovery prompt would tell
             // the fresh agent to carry out writes the runner already
@@ -2388,6 +2391,12 @@ export interface BuildPromptInput {
    * catchup — it rides both the enhanced prompt and a resumed turn's prefix.
    */
   vision?: import("./prompt-builder.js").VisionPromptInfo;
+  /**
+   * What kind of URL the turn's storage backend mints (issue #532) — keys
+   * the input-files hand-off wording. Sourced from the resolved
+   * artifactStorage's self-description; absent when no storage resolved.
+   */
+  downloadUrlKind?: import("../../shared/attachment-download-urls.js").DownloadUrlKind;
   pendingApprovals: import("@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb").PendingApproval[];
   /**
    * Approved whole-file writes the runner already applied itself (exact-apply).
@@ -2553,6 +2562,7 @@ export function buildPrompt(input: BuildPromptInput): string {
           workspaceFileRefs,
           attachments,
           vision: input.vision,
+          downloadUrlKind: input.downloadUrlKind,
           interactionMode,
           buildFromPlan,
           contextBridge: input.contextBridge,
@@ -2594,7 +2604,7 @@ export function buildPrompt(input: BuildPromptInput): string {
       formatInteractionModePrefix(interactionMode),
       formatImplementPlanSection(buildFromPlan, attachments),
       attachments.length > 0
-        ? formatInputFiles(attachments, input.vision)
+        ? formatInputFiles(attachments, input.vision, input.downloadUrlKind)
         : undefined,
       conversationCatchup !== undefined
         ? formatConversationCatchupSection(conversationCatchup)
@@ -2619,6 +2629,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     workspaceFileRefs,
     attachments,
     vision: input.vision,
+    downloadUrlKind: input.downloadUrlKind,
     interactionMode,
     buildFromPlan,
     contextBridge: input.contextBridge,

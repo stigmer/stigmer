@@ -36,6 +36,10 @@ import {
   visionDisclosureLines,
   type NotViewableEntry,
 } from "../../shared/attachment-vision.js";
+import {
+  downloadUrlDisclosureLine,
+  type DownloadUrlKind,
+} from "../../shared/attachment-download-urls.js";
 import { formatTurnRecoveryText } from "./turn-recovery.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import {
@@ -82,6 +86,12 @@ export interface AttachmentPromptEntry {
   path: string;
   /** Original filename, present only when a duplicate name was renamed. */
   renamedFrom?: string;
+  /**
+   * Download URL for the attachment's stored object, when one was minted
+   * (shared/attachment-download-urls.ts) — rendered beside the path so the
+   * agent can hand the file to tools that cannot read this filesystem.
+   */
+  downloadUrl?: string;
 }
 
 export interface EnhancedPromptOptions {
@@ -109,6 +119,12 @@ export interface EnhancedPromptOptions {
   attachments: AttachmentPromptEntry[];
   /** Inline/degraded image facts for the input-files section (T04 vision). */
   vision?: VisionPromptInfo;
+  /**
+   * What kind of URL the turn's storage backend mints — keys the input-files
+   * section's hand-off wording (attachment-download-urls.ts). One turn-level
+   * fact: all attachments ride the one configured storage.
+   */
+  downloadUrlKind?: DownloadUrlKind;
   interactionMode?: InteractionMode;
   /**
    * The execution is a Build-from-plan turn (spec.execution_config
@@ -212,7 +228,7 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
   }
 
   if (options.attachments.length > 0) {
-    sections.push(formatInputFiles(options.attachments, options.vision));
+    sections.push(formatInputFiles(options.attachments, options.vision, options.downloadUrlKind));
   }
 
   if (options.workspaceFileRefs.length > 0) {
@@ -548,15 +564,28 @@ export function formatWorkspaceContext(dirs: string[]): string {
 export function formatInputFiles(
   attachments: readonly AttachmentPromptEntry[],
   vision?: VisionPromptInfo,
+  downloadUrlKind?: DownloadUrlKind,
 ): string {
   // A duplicate-renamed file (attachment-naming.ts) discloses its original
   // name so the agent can connect "the two report.pdfs" in the user's
-  // message to distinct files on disk.
-  const entries = attachments.map((a) =>
-    a.renamedFrom !== undefined
-      ? `- \`${a.path}\` (renamed from duplicate '${a.renamedFrom}')`
-      : `- \`${a.path}\``,
-  );
+  // message to distinct files on disk. A file with a minted download URL
+  // (attachment-download-urls.ts) lists it beside the path for the remote
+  // hand-off story.
+  const entries = attachments.map((a) => {
+    const rename =
+      a.renamedFrom !== undefined
+        ? ` (renamed from duplicate '${a.renamedFrom}')`
+        : "";
+    const url = a.downloadUrl !== undefined ? ` — download URL: ${a.downloadUrl}` : "";
+    return `- \`${a.path}\`${rename}${url}`;
+  });
+  // The URL hand-off line (shared wording, attachment-download-urls.ts)
+  // renders only when some listed file actually carries a URL — its wording
+  // keys on what kind of URL the storage backend mints.
+  const urlDisclosure =
+    downloadUrlKind !== undefined && attachments.some((a) => a.downloadUrl !== undefined)
+      ? [downloadUrlDisclosureLine(downloadUrlKind)]
+      : [];
   // The vision lines (shared wording, attachment-vision.ts) tell the model
   // which of these files it can already SEE inline versus which degraded to
   // path-only — without them an agent silently ignores a photo the user
@@ -568,6 +597,7 @@ export function formatInputFiles(
     "<input_files>",
     "The following files have been provided as inputs. Read them when relevant to the task:",
     ...entries,
+    ...urlDisclosure,
     ...disclosure,
     "</input_files>",
   ].join("\n");

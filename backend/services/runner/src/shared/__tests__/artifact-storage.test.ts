@@ -49,6 +49,10 @@ describe("LocalArtifactStorage", () => {
     expect(url).toBe("http://localhost:7235/artifacts/file.txt");
   });
 
+  it("self-describes its URLs as local-serve (loopback reach, no expiry — issue #532)", () => {
+    expect(storage.downloadUrlKind).toBe("local-serve");
+  });
+
   it("returns true for existing keys", async () => {
     const key = "artifacts/exec-1/file.bin";
     await storage.upload(key, Buffer.from("data"));
@@ -165,6 +169,11 @@ describe("ProxyArtifactStorage", () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+  });
+
+  it("self-describes its URLs as presigned (time-limited, remotely fetchable — issue #532)", () => {
+    const s = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    expect(s.downloadUrlKind).toBe("presigned");
   });
 
   it("uploads via presigned URL flow", async () => {

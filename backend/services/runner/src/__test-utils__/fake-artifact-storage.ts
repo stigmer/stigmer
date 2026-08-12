@@ -25,12 +25,20 @@ import type { ArtifactStorage } from "../shared/artifact-storage.js";
 
 /** An {@link ArtifactStorage} whose methods are `vi.fn` spies over a shared Map. */
 export type InMemoryArtifactStorage = {
-  [K in keyof ArtifactStorage]: ReturnType<typeof vi.fn>;
+  [K in keyof ArtifactStorage as ArtifactStorage[K] extends (...args: never[]) => unknown
+    ? K
+    : never]: ReturnType<typeof vi.fn>;
 } & ArtifactStorage;
 
 export interface InMemoryArtifactStorageOptions {
   /** Prefix for the URLs `getDownloadUrl` returns. Defaults to `mem://`. */
   readonly urlBase?: string;
+  /**
+   * The URL kind the double self-describes as (attachment-download-urls.ts).
+   * Defaults to "presigned" — the backend whose URLs the hand-off story is
+   * built for; tests exercising the local-serve wording pass "local-serve".
+   */
+  readonly downloadUrlKind?: ArtifactStorage["downloadUrlKind"];
 }
 
 export interface InMemoryArtifactStorageHandle {
@@ -55,6 +63,7 @@ export function makeInMemoryArtifactStorage(
   const blobs = new Map<string, Buffer>();
 
   const storage = {
+    downloadUrlKind: opts.downloadUrlKind ?? "presigned",
     upload: vi.fn(async (key: string, content: Buffer, _contentType?: string) => {
       blobs.set(key, Buffer.from(content));
       return key;

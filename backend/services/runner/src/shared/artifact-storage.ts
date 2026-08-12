@@ -31,6 +31,15 @@ import { fetchWithRetry, type FetchRetryPolicy } from "./http-retry.js";
 // ── Interface ────────────────────────────────────────────────────────
 
 export interface ArtifactStorage {
+  /**
+   * What kind of URL {@link getDownloadUrl} mints — self-described by the
+   * backend so consumers (the attachment hand-off prompt wording,
+   * attachment-download-urls.ts) can never disagree with the storage actually
+   * in use. "presigned": time-limited, single-object, remotely fetchable.
+   * "local-serve": the stigmer-server's unauthenticated loopback serve URL,
+   * reachable only from this machine.
+   */
+  readonly downloadUrlKind: "presigned" | "local-serve";
   upload(key: string, content: Buffer, contentType?: string): Promise<string>;
   getDownloadUrl(key: string): Promise<string>;
   /**
@@ -52,6 +61,7 @@ export type ArtifactStorageType = "local" | "proxy";
 // ── Local Backend ────────────────────────────────────────────────────
 
 export class LocalArtifactStorage implements ArtifactStorage {
+  readonly downloadUrlKind = "local-serve" as const;
   private readonly basePath: string;
   private readonly serveUrlBase: string;
 
@@ -153,6 +163,7 @@ const DEFAULT_RETRY = {
 } as const;
 
 export class ProxyArtifactStorage implements ArtifactStorage {
+  readonly downloadUrlKind = "presigned" as const;
   private readonly baseUrl: string;
   private readonly authTokenSource: ProxyAuthTokenSource;
   /** Governs the proxy presign calls and the exists probe. */
