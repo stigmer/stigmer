@@ -73,7 +73,13 @@ export interface PageClassification {
   /** One sentence: what the reader walks away knowing or having done. */
   teaches: string;
   medium: Medium;
-  /** Rationale for the medium choice. Required when medium is not "none". */
+  /**
+   * Rationale for the decisions that need one: a non-"none" medium (why
+   * that centerpiece), a non-"keep" fate (why the page doesn't survive
+   * as-is), or both in one sentence each when both apply. Destructive
+   * plans with no reason on the record are exactly what the gate exists
+   * to prevent.
+   */
   why?: string;
   /**
    * Per-embed fate map, keyed by ScenarEmbed id (e.g. "quickstart-tour")
@@ -158,8 +164,19 @@ export function parseClassification(raw: string): {
       }
       if (!(MEDIUMS as readonly unknown[]).includes(medium)) {
         errors.push(`${where}: medium must be one of ${MEDIUMS.join(" | ")}`);
-      } else if (medium !== "none" && (typeof why !== "string" || why.trim() === "")) {
-        errors.push(`${where}: a non-"none" medium requires a "why" rationale`);
+      }
+      // `why` is demanded by two independent decisions, each considered
+      // only when its field is itself valid (an invalid fate or medium
+      // already has its own error above — no cascading noise). Keying the
+      // fate trigger on medium (the pre-2026-08 shape) let a destructive
+      // plan rest with no reason on the record (oss#315).
+      const mediumNeedsWhy =
+        (MEDIUMS as readonly unknown[]).includes(medium) && medium !== "none";
+      const fateNeedsWhy = typeof fate === "string" && isValidFate(fate) && fate !== "keep";
+      if ((mediumNeedsWhy || fateNeedsWhy) && (typeof why !== "string" || why.trim() === "")) {
+        errors.push(
+          `${where}: a non-"none" medium and a non-"keep" fate each require a "why" rationale`,
+        );
       }
       if (embeds !== undefined) {
         if (!isRecord(embeds)) {
