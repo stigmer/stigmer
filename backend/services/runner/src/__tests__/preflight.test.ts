@@ -11,6 +11,7 @@
  *   the desktop Run dialog via the IPC handshake.
  */
 
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   isNodeSqliteAvailable,
@@ -41,6 +42,20 @@ describe("preflightNodeRuntime", () => {
     // itself run under a Node without node:sqlite (e.g. 23.0–23.3), in which
     // case BOTH sides must report unsupported.
     expect(preflightNodeRuntime() === null).toBe(isNodeSqliteAvailable());
+  });
+
+  it("package.json engines matches the floors this preflight documents", () => {
+    // The published engines range and the preflight message describe the same
+    // two floors (node:sqlite is unflagged from 22.13 in the 22.x line and
+    // only from 23.4 after that). engines is the only one of the two that a
+    // future edit can silently loosen — `>=22.13` once re-admitted the
+    // 23.0–23.3 gap (oss#257) — so pin it byte-for-byte to the range that
+    // excludes that gap. If the floors genuinely move, update the preflight
+    // message, this pin, and package.json together.
+    const pkg = JSON.parse(
+      readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
+    ) as { engines: { node: string } };
+    expect(pkg.engines.node).toBe("^22.13.0 || >=23.4.0");
   });
 });
 

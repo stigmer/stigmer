@@ -7,6 +7,10 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts", "src/**/__tests__/**/*.test.ts"],
+    // Fail fast (before collection) on a Node that cannot run the runner —
+    // without this, the sqlite-importing files die mid-collection with a raw
+    // ERR_UNKNOWN_BUILTIN_MODULE (oss#257). See the setup file's header.
+    globalSetup: ["./src/__test-utils__/vitest-global-setup.ts"],
     // Several suites drive REAL bash/git subprocesses (the approval hook, the git
     // snapshot/restore capture). Under full file-parallelism these legitimately
     // exceed the 5s default when the CPU is saturated, so give subprocess tests

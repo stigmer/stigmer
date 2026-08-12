@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "engines": {
-    "node": ">=22.13"
+    "node": "^22.13.0 || >=23.4.0"
   },
   "bin": {
     "stigmer-runner": "./dist/main.js"
