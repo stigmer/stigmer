@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//apis/stubs/go/ai/stigmer/search/v1:search",
+        "//backend/libs/go/grpc",
         "//backend/services/stigmer-server/pkg/query/search/handler",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_grpc//codes",

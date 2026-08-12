@@ -1,5 +1,5 @@
 /**
- * Consolidated Playwright tests for all demo scenarios.
+ * Playback smoke tests for all demo scenarios.
  *
  * Reads the auto-generated demo-manifest.json (produced by
  * validate-demos.ts) and runs a single-pass test per demo:
@@ -7,18 +7,24 @@
  * 1. Navigate to the docs page with ?__test_speed=4 for acceleration.
  * 2. Verify the demo player renders and the play button is visible.
  * 3. Start playback, confirm poster disappears.
- * 4. At each step (observed via data-demo-step), wait for interactions
- *    to settle, then assert every data-scroll-target is fully contained
- *    inside its data-scroll-container (not just intersecting).
- * 5. Verify playback completes without uncaught JS errors.
+ * 4. Verify playback reaches the final step without uncaught JS errors.
  *
  * Static detail views (no ScenarioPlayer) are tested with a simpler
  * render-only check.
+ *
+ * This spec makes NO geometry assertions. Whether a step actually
+ * shows its content to the viewer is the job of demo-visibility.spec.ts,
+ * which checks the per-step contracts auto-derived from each scenario's
+ * scroll/cursor interactions. Asserting geometry here (as an earlier
+ * revision did, for every target at every step) is unsound: content
+ * taller than the scroll container can never show its top and bottom
+ * targets simultaneously, and background targets are legitimately
+ * off-screen during dialog steps.
  */
 
 import * as fs from "fs";
 import * as path from "path";
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 // ---------------------------------------------------------------------------
 // Manifest loading
@@ -51,20 +57,14 @@ const manifest = loadManifest();
 const TEST_SPEED = 4;
 
 /**
- * Time to wait after a step transition for mid-step interactions
- * (scroll-to, set-cursor) to fire and smooth scroll to settle.
- * At 4x speed, step durations are ~25% of normal, but smooth scroll
- * animation is constant (~300-500ms). 1s covers the scroll settle
- * while keeping total test time manageable for 12-step tours.
- */
-const INTERACTION_SETTLE_MS = 1_000;
-
-/**
  * Maximum wall-clock time for a full accelerated demo playback.
- * Long tours (12+ steps) need ~30s for settle waits alone at 4x,
- * plus narration time. 90s covers the worst case.
+ * Long tours (12+ steps) with narration need most of this at 4x.
+ * 90s covers the worst case.
  */
 const PLAYBACK_TIMEOUT_MS = 90_000;
+
+/** Interval between playback-progress polls. */
+const POLL_INTERVAL_MS = 300;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -74,49 +74,6 @@ function collectPageErrors(page: Page): string[] {
   const errors: string[] = [];
   page.on("pageerror", (err) => errors.push(err.message));
   return errors;
-}
-
-interface ScrollTargetResult {
-  targetId: string;
-  visible: boolean;
-  reason: string;
-}
-
-/**
- * Sub-pixel tolerance for containment checks. CSS zoom produces
- * fractional pixel values that can push a rect 1-2px outside its
- * parent even when the element is visually contained.
- */
-const CONTAINMENT_TOLERANCE_PX = 2;
-
-async function checkScrollTargets(
-  container: Locator,
-): Promise<ScrollTargetResult[]> {
-  return container.evaluate((el, tolerance) => {
-    const targets = el.querySelectorAll("[data-scroll-target]");
-    if (targets.length === 0) return [];
-
-    const results: ScrollTargetResult[] = [];
-    for (const target of targets) {
-      const targetId = target.getAttribute("data-scroll-target") ?? "unknown";
-      const scrollParent = target.closest("[data-scroll-container]");
-      const ref = scrollParent ?? el;
-      const cr = ref.getBoundingClientRect();
-      const tr = target.getBoundingClientRect();
-      const contained =
-        tr.top >= cr.top - tolerance &&
-        tr.bottom <= cr.bottom + tolerance &&
-        tr.left >= cr.left - tolerance &&
-        tr.right <= cr.right + tolerance;
-
-      results.push({
-        targetId,
-        visible: contained,
-        reason: contained ? "ok" : "not-fully-contained",
-      });
-    }
-    return results;
-  }, CONTAINMENT_TOLERANCE_PX);
 }
 
 // ---------------------------------------------------------------------------
@@ -206,9 +163,9 @@ for (const entry of manifest) {
       await demoContainer.getAttribute("data-demo-total-steps") ?? "1",
     );
 
-    // Play through every step, checking scroll targets at each one
-    let lastCheckedStep = -1;
-    const failures: { step: number; targetId: string; reason: string }[] = [];
+    // Let the demo play through; done when it pauses on the last step.
+    let completed = false;
+    let lastObservedStep = -1;
     const startTime = Date.now();
 
     while (Date.now() - startTime < PLAYBACK_TIMEOUT_MS) {
@@ -216,43 +173,22 @@ for (const entry of manifest) {
         await demoContainer.getAttribute("data-demo-step") ?? "0",
       );
       const state = await demoContainer.getAttribute("data-demo-state");
+      lastObservedStep = currentStep;
 
-      if (currentStep > lastCheckedStep) {
-        await page.waitForTimeout(INTERACTION_SETTLE_MS);
-
-        const settledStep = Number(
-          await demoContainer.getAttribute("data-demo-step") ?? "0",
-        );
-
-        const results = await checkScrollTargets(demoContainer);
-        for (const r of results) {
-          if (!r.visible) {
-            failures.push({
-              step: settledStep,
-              targetId: r.targetId,
-              reason: r.reason,
-            });
-          }
-        }
-
-        lastCheckedStep = settledStep;
+      if (state === "paused" && currentStep >= totalSteps - 1) {
+        completed = true;
+        break;
       }
 
-      if (state === "paused" && currentStep >= totalSteps - 1) break;
-
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(POLL_INTERVAL_MS);
     }
 
-    // Assert scroll-target visibility
-    if (failures.length > 0) {
-      const detail = failures
-        .map((f) => `  Step ${f.step}: "${f.targetId}" is ${f.reason}`)
-        .join("\n");
-      expect(
-        failures.length,
-        `Scroll target(s) not visible after interactions settled:\n${detail}`,
-      ).toBe(0);
-    }
+    expect(
+      completed,
+      `Playback did not reach the final step within ` +
+        `${PLAYBACK_TIMEOUT_MS}ms (stopped at step ${lastObservedStep} ` +
+        `of ${totalSteps})`,
+    ).toBe(true);
 
     // Assert no JS errors during playback
     const criticalErrors = pageErrors.filter(

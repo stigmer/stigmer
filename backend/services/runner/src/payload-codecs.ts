@@ -14,20 +14,26 @@
 
 import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
+import type { BootstrapKeyMaterial } from "./encryption/config.js";
 
 export async function createPayloadCodecs(
   config: Config,
+  bootstrapKeys?: BootstrapKeyMaterial,
 ): Promise<PayloadCodec[] | undefined> {
   const codecs: PayloadCodec[] = [];
 
   const { loadPayloadEncryptionConfig, EncryptionPayloadCodec } = await import(
     "./encryption/index.js"
   );
-  const encryptionConfig = loadPayloadEncryptionConfig();
+  // Env-configured keys win outright; server-managed (bootstrap) keys apply
+  // only when the env is silent — see encryption/config.ts for the rationale.
+  const encryptionConfig = loadPayloadEncryptionConfig(bootstrapKeys);
   if (encryptionConfig) {
     codecs.push(new EncryptionPayloadCodec(encryptionConfig));
+    const source = process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY ? "env" : "bootstrap";
     console.log(
-      `[runner] Payload encryption enabled (key_id=${encryptionConfig.primary.keyId}` +
+      `[runner] Payload encryption enabled (source=${source}, ` +
+        `key_id=${encryptionConfig.primary.keyId}` +
         (encryptionConfig.secondary
           ? `, secondary_key_id=${encryptionConfig.secondary.keyId})`
           : ")"),

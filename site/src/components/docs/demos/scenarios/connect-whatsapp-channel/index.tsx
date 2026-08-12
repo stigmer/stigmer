@@ -2,7 +2,6 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { AgentChannelsPanel, ConnectWhatsAppDialog } from "@stigmer/react";
-import { PreviewProvider } from "@scenar/preview/runtime";
 import { connectFixture } from "@scenar/preview/connect";
 import { create } from "@bufbuild/protobuf";
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
@@ -19,7 +18,7 @@ import {
   useStepInteractions,
   MobileView,
 } from "@scenar/react";
-import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { StigmerPreviewProvider } from "../../shared/StigmerPreviewProvider";
 import { AppShell } from "../../views/AppShell";
 import { DEMO_CONTENT_ZOOM, DEMO_MOBILE_ZOOM } from "../../shared/tokens";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
@@ -277,7 +276,7 @@ export function ConnectWhatsAppChannel() {
   });
 
   return (
-    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
+    <StigmerPreviewProvider fixtures={previewFixtures}>
       <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={connectWhatsAppSteps}
@@ -340,6 +339,6 @@ export function ConnectWhatsAppChannel() {
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
       </StigmerDemoViewport>
-    </PreviewProvider>
+    </StigmerPreviewProvider>
   );
 }

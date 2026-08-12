@@ -1,4 +1,11 @@
 {
   "title": "Runner guides",
-  "pages": ["overview", "embedding", "ipc-protocol", "cursor-harness", "model-backends"]
+  "pages": [
+    "overview",
+    "embedding",
+    "ipc-protocol",
+    "cursor-harness",
+    "model-backends",
+    "payload-encryption"
+  ]
 }

@@ -1,8 +1,7 @@
 "use client";
 
-import { PreviewProvider } from "@scenar/preview/runtime";
 import { ScenarioPlayer, useNarrationManifest } from "@scenar/react";
-import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { StigmerPreviewProvider } from "../../shared/StigmerPreviewProvider";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
@@ -38,7 +37,7 @@ export function ToolCallsPlayback() {
   const narrationManifest = useNarrationManifest("tool-calls-playback");
 
   return (
-    <PreviewProvider providers={PreviewProviders}>
+    <StigmerPreviewProvider>
       <StigmerDemoViewport>
         <ScenarioPlayer
           steps={toolCallsPlaybackSteps}
@@ -47,6 +46,6 @@ export function ToolCallsPlayback() {
           {(step) => renderStep(step)}
         </ScenarioPlayer>
       </StigmerDemoViewport>
-    </PreviewProvider>
+    </StigmerPreviewProvider>
   );
 }

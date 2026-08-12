@@ -15,7 +15,10 @@ import {
 } from "../environment/EnvVarForm.js";
 import { McpToolSelector } from "./McpToolSelector.js";
 import { VendorApprovalBlockedNotice } from "./VendorApprovalBlockedNotice.js";
-import type { OAuthConnectPhase } from "./useMcpServerOAuthConnect.js";
+import {
+  getOAuthConnectErrorMessage,
+  type OAuthConnectPhase,
+} from "./useMcpServerOAuthConnect.js";
 
 // ---------------------------------------------------------------------------
 // Credential sub-props
@@ -94,8 +97,27 @@ export interface McpServerOAuthSignInProps {
   readonly onClearDisconnectError?: () => void;
   /** Error from the most recent failed OAuth attempt, or `null`. */
   readonly error: Error | null;
+  /**
+   * The OAuth flow phase in which {@link error} was thrown, or `null`.
+   *
+   * Threading it lets the panel compose error copy through
+   * `getOAuthConnectErrorMessage`: a `"connecting"`-phase failure means
+   * sign-in SUCCEEDED and only the chained tool discovery failed —
+   * without this, the raw RPC error reads as a failed sign-in
+   * (stigmer/stigmer#418).
+   */
+  readonly failedPhase?: OAuthConnectPhase | null;
   /** Clear the OAuth error state. */
   readonly onClearError: () => void;
+  /**
+   * `true` when the user is signed in but the server has no discovered
+   * tools — the "signed in — tools not discovered yet" state
+   * (stigmer/stigmer#229/#418). The action button reads "Discover tools"
+   * and `onSignIn` is expected to run bare discovery instead of the
+   * OAuth popup. The caller owns that branch; this prop only drives
+   * presentation.
+   */
+  readonly isOAuthStranded?: boolean;
   /**
    * `true` when the platform's OAuth app is pending vendor approval.
    * Disables the sign-in button and shows an informational message.
@@ -342,6 +364,8 @@ export function McpServerConfigPanel({
           disconnectError={oauthSignIn.disconnectError}
           onClearDisconnectError={oauthSignIn.onClearDisconnectError}
           error={oauthSignIn.error}
+          failedPhase={oauthSignIn.failedPhase}
+          isOAuthStranded={oauthSignIn.isOAuthStranded}
           onClearError={oauthSignIn.onClearError}
           isVendorApprovalPending={oauthSignIn.isVendorApprovalPending}
           isVendorApprovalBlocked={oauthSignIn.isVendorApprovalBlocked}
@@ -463,6 +487,8 @@ function InlineOAuthSignIn({
   disconnectError,
   onClearDisconnectError,
   error,
+  failedPhase,
+  isOAuthStranded,
   onClearError,
   isVendorApprovalPending,
   isVendorApprovalBlocked,
@@ -485,6 +511,8 @@ function InlineOAuthSignIn({
   readonly disconnectError?: Error | null;
   readonly onClearDisconnectError?: () => void;
   readonly error: Error | null;
+  readonly failedPhase?: OAuthConnectPhase | null;
+  readonly isOAuthStranded?: boolean;
   readonly onClearError: () => void;
   readonly isVendorApprovalPending?: boolean;
   readonly isVendorApprovalBlocked?: boolean;
@@ -508,17 +536,28 @@ function InlineOAuthSignIn({
     phase === "completing" ||
     phase === "connecting";
 
-  const signInDisabled = isBusy || (!!blocked && !isOrgOAuthApp);
+  // Stranded ("signed in — tools not discovered yet", stigmer/stigmer#418):
+  // the action is bare tool discovery, which needs no OAuth app — so the
+  // vendor-approval block must not gate it.
+  const stranded = !!isOAuthStranded;
+
+  const signInDisabled = isBusy || (!!blocked && !isOrgOAuthApp && !stranded);
   const anyBusy = isBusy || !!isDisconnecting || !!isRemovingOrgApp;
 
   const needsReAuth =
     connectionHealth === OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED;
 
-  const status = inlineHealthProps(
-    connectionHealth,
-    isConnected,
-    !!isVendorApprovalPending && !isOrgOAuthApp,
-  );
+  const status = stranded
+    ? {
+        textClass: "stg:text-amber-600 stg:dark:text-amber-400",
+        dotClass: "stg:bg-amber-500",
+        label: "Signed in \u2014 tools not discovered yet",
+      }
+    : inlineHealthProps(
+        connectionHealth,
+        isConnected,
+        !!isVendorApprovalPending && !isOrgOAuthApp,
+      );
 
   const showDisconnectLink =
     isConnected && onDisconnect && !anyBusy && disconnectPhase === "idle";
@@ -682,7 +721,7 @@ function InlineOAuthSignIn({
           disabled={signInDisabled}
           className={cn(
             "stg:inline-flex stg:items-center stg:gap-1 stg:rounded stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
-            isConnected && !needsReAuth
+            isConnected && !needsReAuth && !stranded
               ? "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover"
               : "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
             "stg:disabled:pointer-events-none stg:disabled:opacity-50",
@@ -690,6 +729,8 @@ function InlineOAuthSignIn({
         >
           {isBusy ? (
             <InlineSpinner />
+          ) : stranded ? (
+            "Discover tools"
           ) : isOrgOAuthApp && !isConnected ? (
             "Sign in with your app"
           ) : isConnected && !needsReAuth ? (
@@ -724,7 +765,12 @@ function InlineOAuthSignIn({
 
       {error && (
         <div className="stg:flex stg:items-start stg:gap-1.5 stg:text-[0.65rem] stg:text-destructive" role="alert">
-          <span className="stg:flex-1">{getUserMessage(error)}</span>
+          {/* Phase-aware copy: a "connecting"-phase failure means sign-in
+              succeeded and only tool discovery failed — the raw RPC message
+              alone reads as a failed sign-in (stigmer/stigmer#418). */}
+          <span className="stg:flex-1">
+            {getOAuthConnectErrorMessage(error, failedPhase ?? null)}
+          </span>
           <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
             {isRetryableError(error) && (
               <button

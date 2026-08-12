@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/v1/server_info.proto.
  */
 export const file_ai_stigmer_platform_v1_server_info: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCJeChNHZXRTZXJ2ZXJJbmZvT3V0cHV0EjYKB2VkaXRpb24YASABKA4yJS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlNlcnZlckVkaXRpb24SDwoHdmVyc2lvbhgCIAEoCSIfCh1HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dCLJAQoeR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0EiEKEHRlbXBvcmFsX2FkZHJlc3MYASABKAlCB7pIBHICEAESIwoSdGVtcG9yYWxfbmFtZXNwYWNlGAIgASgJQge6SARyAhABEhsKE3J1bm5lcl9hY2Nlc3NfdG9rZW4YAyABKAkSEgoKdG9rZW5fdHlwZRgEIAEoCRIuCiZydW5uZXJfYWNjZXNzX3Rva2VuX2V4cGlyZXNfaW5fc2Vjb25kcxgFIAEoBSLcAQoZR2V0UnVubmVyU2NvcGVkVG9rZW5JbnB1dBIcChJhZ2VudF9leGVjdXRpb25faWQYASABKAlIABIfChV3b3JrZmxvd19leGVjdXRpb25faWQYAiABKAlIABI3Cgpwb29sX2NsYWltGAMgASgLMiEuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5Qb29sQ2xhaW1IABI3CgdyZW5ld2FsGAQgASgLMiQuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5Ub2tlblJlbmV3YWxIAEIOCgVzY29wZRIFukgCCAEiKAoJUG9vbENsYWltEhsKCnNlc3Npb25faWQYASABKAlCB7pIBHICEAEiDgoMVG9rZW5SZW5ld2FsImkKGkdldFJ1bm5lclNjb3BlZFRva2VuT3V0cHV0EhsKE3J1bm5lcl9zY29wZWRfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRIaChJleHBpcmVzX2luX3NlY29uZHMYAyABKAUqQwoNU2VydmVyRWRpdGlvbhIeChpzZXJ2ZXJfZWRpdGlvbl91bnNwZWNpZmllZBAAEgcKA29zcxABEgkKBWNsb3VkEAIyoQMKF1BsYXRmb3JtUXVlcnlDb250cm9sbGVyEm4KDWdldFNlcnZlckluZm8SKi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFNlcnZlckluZm9JbnB1dBorLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0U2VydmVySW5mb091dHB1dCIEyLgYARKPAQoYZ2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnEjUuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dBo2LmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0IgTQuBgBEoMBChRnZXRSdW5uZXJTY29wZWRUb2tlbhIxLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyU2NvcGVkVG9rZW5JbnB1dBoyLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyU2NvcGVkVG9rZW5PdXRwdXQiBNC4GAFCEUIPU2VydmVySW5mb1Byb3RvYgZwcm90bzM", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCJeChNHZXRTZXJ2ZXJJbmZvT3V0cHV0EjYKB2VkaXRpb24YASABKA4yJS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlNlcnZlckVkaXRpb24SDwoHdmVyc2lvbhgCIAEoCSIfCh1HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dCLjAgoeR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0EiEKEHRlbXBvcmFsX2FkZHJlc3MYASABKAlCB7pIBHICEAESIwoSdGVtcG9yYWxfbmFtZXNwYWNlGAIgASgJQge6SARyAhABEhsKE3J1bm5lcl9hY2Nlc3NfdG9rZW4YAyABKAkSEgoKdG9rZW5fdHlwZRgEIAEoCRIuCiZydW5uZXJfYWNjZXNzX3Rva2VuX2V4cGlyZXNfaW5fc2Vjb25kcxgFIAEoBRIeChZwYXlsb2FkX2VuY3J5cHRpb25fa2V5GAYgASgJEiEKGXBheWxvYWRfZW5jcnlwdGlvbl9rZXlfaWQYByABKAkSKAogcGF5bG9hZF9lbmNyeXB0aW9uX3NlY29uZGFyeV9rZXkYCCABKAkSKwojcGF5bG9hZF9lbmNyeXB0aW9uX3NlY29uZGFyeV9rZXlfaWQYCSABKAki3AEKGUdldFJ1bm5lclNjb3BlZFRva2VuSW5wdXQSHAoSYWdlbnRfZXhlY3V0aW9uX2lkGAEgASgJSAASHwoVd29ya2Zsb3dfZXhlY3V0aW9uX2lkGAIgASgJSAASNwoKcG9vbF9jbGFpbRgDIAEoCzIhLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuUG9vbENsYWltSAASNwoHcmVuZXdhbBgEIAEoCzIkLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuVG9rZW5SZW5ld2FsSABCDgoFc2NvcGUSBbpIAggBIigKCVBvb2xDbGFpbRIbCgpzZXNzaW9uX2lkGAEgASgJQge6SARyAhABIg4KDFRva2VuUmVuZXdhbCJpChpHZXRSdW5uZXJTY29wZWRUb2tlbk91dHB1dBIbChNydW5uZXJfc2NvcGVkX3Rva2VuGAEgASgJEhIKCnRva2VuX3R5cGUYAiABKAkSGgoSZXhwaXJlc19pbl9zZWNvbmRzGAMgASgFKkMKDVNlcnZlckVkaXRpb24SHgoac2VydmVyX2VkaXRpb25fdW5zcGVjaWZpZWQQABIHCgNvc3MQARIJCgVjbG91ZBACMqEDChdQbGF0Zm9ybVF1ZXJ5Q29udHJvbGxlchJuCg1nZXRTZXJ2ZXJJbmZvEiouYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRTZXJ2ZXJJbmZvSW5wdXQaKy5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFNlcnZlckluZm9PdXRwdXQiBMi4GAESjwEKGGdldFJ1bm5lckJvb3RzdHJhcENvbmZpZxI1LmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnSW5wdXQaNi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ091dHB1dCIE0LgYARKDAQoUZ2V0UnVubmVyU2NvcGVkVG9rZW4SMS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lclNjb3BlZFRva2VuSW5wdXQaMi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lclNjb3BlZFRva2VuT3V0cHV0IgTQuBgBQhFCD1NlcnZlckluZm9Qcm90b2IGcHJvdG8z", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * Empty request — no parameters needed.
@@ -131,6 +131,56 @@ export type GetRunnerBootstrapConfigOutput = Message<"ai.stigmer.platform.v1.Get
    * @generated from field: int32 runner_access_token_expires_in_seconds = 5;
    */
   runnerAccessTokenExpiresInSeconds: number;
+
+  /**
+   * Temporal payload-encryption key for this runner: base64-encoded 32-byte
+   * AES-256 key, minted once per caller identity and persisted by the control
+   * plane, so every boot of the same identity's runners receives the SAME
+   * key. Persistence is what makes encryption safe for a restartable runner —
+   * Temporal replay must decode history payloads written before the restart.
+   *
+   * Empty when the server does not manage runner keys — OSS (a self-hosted
+   * deployment configures one shared key on server and runner via
+   * STIGMER_PAYLOAD_ENCRYPTION_KEY) or a cloud server predating key
+   * management. The runner then falls back to its env-configured key, or runs
+   * without payload encryption. An explicitly env-configured key always wins
+   * over this field.
+   *
+   * @internal
+   * Cloud-only. Per-identity rather than platform-wide because a desktop
+   * runner must never hold the platform key: compromise of one user's machine
+   * exposes only payloads encrypted under that identity's key. The control
+   * plane's decode-only codec resolves these keys by key id, so the service
+   * can read every runner's results while runners cannot read each other's.
+   *
+   * @generated from field: string payload_encryption_key = 6;
+   */
+  payloadEncryptionKey: string;
+
+  /**
+   * Key id stamped on payloads encrypted under payload_encryption_key.
+   * Present exactly when the key is present.
+   *
+   * @generated from field: string payload_encryption_key_id = 7;
+   */
+  payloadEncryptionKeyId: string;
+
+  /**
+   * Previous key for this identity, present during a rotation window so the
+   * runner can replay history written under it. Decrypt-only: new payloads
+   * are always written under payload_encryption_key.
+   *
+   * @generated from field: string payload_encryption_secondary_key = 8;
+   */
+  payloadEncryptionSecondaryKey: string;
+
+  /**
+   * Key id of payload_encryption_secondary_key. Present exactly when the
+   * secondary key is present.
+   *
+   * @generated from field: string payload_encryption_secondary_key_id = 9;
+   */
+  payloadEncryptionSecondaryKeyId: string;
 };
 
 /**

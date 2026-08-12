@@ -354,7 +354,23 @@ export async function createStigmerRunnerManager(
     );
   }
   const { createPayloadCodecs } = await import("./payload-codecs.js");
-  const payloadCodecs = await createPayloadCodecs(config);
+  // Server-managed payload-encryption keys (cloud desktop runners) ride the
+  // bootstrap response; an env-configured key still wins inside the loader.
+  // A cloud server that mints runner tokens but returns no key predates key
+  // management — payloads then rest plaintext in cloud Temporal history, which
+  // deserves a diagnosable warning rather than silence.
+  const payloadCodecs = await createPayloadCodecs(config, bootstrap.payloadEncryption);
+  if (
+    !bootstrap.payloadEncryption &&
+    bootstrap.runnerAccessToken &&
+    !process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY
+  ) {
+    console.warn(
+      "[runner-manager] Server minted a runner token but returned no payload " +
+        "encryption key; Temporal payloads will be plaintext (server predates " +
+        "runner key management?)",
+    );
+  }
 
   const connection = await NativeConnection.connect({
     address: config.temporalAddress,

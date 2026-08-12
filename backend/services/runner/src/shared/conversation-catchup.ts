@@ -5,7 +5,11 @@
  * notes, and the agent's own earlier escalations. Since cloud#347 a line
  * whose send is known-undelivered carries a `(not delivered)` speaker
  * annotation and an in-flight one carries `(sending)` — the digest no longer
- * implies every public-lane line reached the customer.
+ * implies every public-lane line reached the customer. Since cloud#352 the
+ * digest also closes the feedback loop on send OUTCOMES: the agent's own
+ * dead-lettered sends surface as `You (not delivered):` lines, and a send
+ * that failed only after an earlier digest already conveyed it surfaces as a
+ * `System:` delivery-failure notice at the moment the failure became known.
  *
  * The cloud composes the CONTENT (bare `Customer:` / `Teammate:` / `System:` /
  * `You escalated:` / `Note:` lines, oldest first) on the execution spec's
@@ -39,6 +43,15 @@ import type { ConversationCatchup } from "@stigmer/protos/ai/stigmer/agentic/age
  * abandon whatever it was meant to convey. The preamble defines the
  * annotations — the DD-013 split puts model-facing meaning here, while the
  * cloud composer owns which lines earn them.
+ *
+ * The send-outcome lines (cloud#352, cloud triage DD-009) extend the same
+ * exception to the agent's OWN sends: `You (not delivered):` lines and
+ * `System:` delivery-failure notices mean the customer never got those
+ * words. The behavioral contract is owner-ruled (DD-009 Q-4): treat the
+ * failure as unfinished conversation business — weigh what still needs
+ * saying and re-say it naturally in the next turn — but never resend the
+ * failed text verbatim: a multi-chunk send can partially land, and a
+ * word-for-word repeat risks the customer reading the same message twice.
  */
 const CONVERSATION_CATCHUP_PREAMBLE =
   "Below is activity from this conversation that you have not seen — " +
@@ -51,7 +64,14 @@ const CONVERSATION_CATCHUP_PREAMBLE =
   "(not delivered) never reached the customer, and lines marked (sending) " +
   "were still on their way when this summary was built — the customer may " +
   "not have seen those words, so weigh that when deciding what still needs " +
-  "saying. Continue from the customer's newest message.";
+  "saying. That includes your own words: a line marked " +
+  "You (not delivered), or a System line reporting that a message was not " +
+  "delivered, means the customer never received it. Treat such a failure " +
+  "as unfinished business — if what it said still matters, work it " +
+  "naturally into your reply in your own words, but never resend the " +
+  "failed text word-for-word (part of it may have reached the customer, " +
+  "and an exact repeat reads as a duplicate). " +
+  "Continue from the customer's newest message.";
 
 /**
  * Read the catchup digest from an execution spec's `conversation_catchup`.

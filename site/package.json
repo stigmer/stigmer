@@ -24,10 +24,10 @@
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
-    "test:demos": "playwright test --project=desktop",
-    "test:demos:visibility": "playwright test e2e/demos/demo-visibility.spec.ts --project=desktop --project=ipad",
-    "test:demos:all-viewports": "playwright test --project=desktop --project=ipad",
-    "test:demos:update-snapshots": "playwright test e2e/demos/demo-visibility.spec.ts --project=desktop --project=ipad --update-snapshots"
+    "test:demos": "yarn validate-demos && playwright test --project=desktop --workers=2",
+    "test:demos:visibility": "yarn validate-demos && playwright test e2e/demos/demo-visibility.spec.ts --project=desktop --project=ipad --workers=2",
+    "test:demos:all-viewports": "yarn validate-demos && playwright test --project=desktop --project=ipad --workers=2",
+    "test:demos:update-snapshots": "yarn validate-demos && playwright test e2e/demos/demo-visibility.spec.ts --project=desktop --project=ipad --update-snapshots --workers=2"
   },
   "dependencies": {
     "@base-ui/react": "^1.0.0",

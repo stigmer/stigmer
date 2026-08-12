@@ -92,6 +92,7 @@ go_test(
         "create_execution_context_workflow_refs_test.go",
         "create_session_bootstrap_test.go",
         "create_target_resolution_test.go",
+        "get_agent_usage_report_test.go",
         "get_artifact_content_test.go",
         "get_artifact_download_url_test.go",
         "lifecycle_cancel_cascade_test.go",

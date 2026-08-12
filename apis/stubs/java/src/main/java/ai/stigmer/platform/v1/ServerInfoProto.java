@@ -82,7 +82,7 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
       "ut\"p\n\023GetServerInfoOutput\022?\n\007edition\030\001 \001" +
       "(\0162%.ai.stigmer.platform.v1.ServerEditio" +
       "nR\007edition\022\030\n\007version\030\002 \001(\tR\007version\"\037\n\035" +
-      "GetRunnerBootstrapConfigInput\"\256\002\n\036GetRun" +
+      "GetRunnerBootstrapConfigInput\"\266\004\n\036GetRun" +
       "nerBootstrapConfigOutput\0222\n\020temporal_add" +
       "ress\030\001 \001(\tB\007\272H\004r\002\020\001R\017temporalAddress\0226\n\022" +
       "temporal_namespace\030\002 \001(\tB\007\272H\004r\002\020\001R\021tempo" +
@@ -90,36 +90,42 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
       "\tR\021runnerAccessToken\022\035\n\ntoken_type\030\004 \001(\t" +
       "R\ttokenType\022Q\n&runner_access_token_expir" +
       "es_in_seconds\030\005 \001(\005R!runnerAccessTokenEx" +
-      "piresInSeconds\"\227\002\n\031GetRunnerScopedTokenI" +
-      "nput\022.\n\022agent_execution_id\030\001 \001(\tH\000R\020agen" +
-      "tExecutionId\0224\n\025workflow_execution_id\030\002 " +
-      "\001(\tH\000R\023workflowExecutionId\022B\n\npool_claim" +
-      "\030\003 \001(\0132!.ai.stigmer.platform.v1.PoolClai" +
-      "mH\000R\tpoolClaim\022@\n\007renewal\030\004 \001(\0132$.ai.sti" +
-      "gmer.platform.v1.TokenRenewalH\000R\007renewal" +
-      "B\016\n\005scope\022\005\272H\002\010\001\"3\n\tPoolClaim\022&\n\nsession" +
-      "_id\030\001 \001(\tB\007\272H\004r\002\020\001R\tsessionId\"\016\n\014TokenRe" +
-      "newal\"\231\001\n\032GetRunnerScopedTokenOutput\022.\n\023" +
-      "runner_scoped_token\030\001 \001(\tR\021runnerScopedT" +
-      "oken\022\035\n\ntoken_type\030\002 \001(\tR\ttokenType\022,\n\022e" +
-      "xpires_in_seconds\030\003 \001(\005R\020expiresInSecond" +
-      "s*C\n\rServerEdition\022\036\n\032server_edition_uns" +
-      "pecified\020\000\022\007\n\003oss\020\001\022\t\n\005cloud\020\0022\241\003\n\027Platf" +
-      "ormQueryController\022n\n\rgetServerInfo\022*.ai" +
-      ".stigmer.platform.v1.GetServerInfoInput\032" +
-      "+.ai.stigmer.platform.v1.GetServerInfoOu" +
-      "tput\"\004\310\270\030\001\022\217\001\n\030getRunnerBootstrapConfig\022" +
-      "5.ai.stigmer.platform.v1.GetRunnerBootst" +
-      "rapConfigInput\0326.ai.stigmer.platform.v1." +
-      "GetRunnerBootstrapConfigOutput\"\004\320\270\030\001\022\203\001\n" +
-      "\024getRunnerScopedToken\0221.ai.stigmer.platf" +
-      "orm.v1.GetRunnerScopedTokenInput\0322.ai.st" +
-      "igmer.platform.v1.GetRunnerScopedTokenOu" +
-      "tput\"\004\320\270\030\001B\214\001B\017ServerInfoProtoP\001\242\002\003ASP\252\002" +
-      "\026Ai.Stigmer.Platform.V1\312\002\026Ai\\Stigmer\\Pla" +
-      "tform\\V1\342\002\"Ai\\Stigmer\\Platform\\V1\\GPBMet" +
-      "adata\352\002\031Ai::Stigmer::Platform::V1b\006proto" +
-      "3"
+      "piresInSeconds\0224\n\026payload_encryption_key" +
+      "\030\006 \001(\tR\024payloadEncryptionKey\0229\n\031payload_" +
+      "encryption_key_id\030\007 \001(\tR\026payloadEncrypti" +
+      "onKeyId\022G\n payload_encryption_secondary_" +
+      "key\030\010 \001(\tR\035payloadEncryptionSecondaryKey" +
+      "\022L\n#payload_encryption_secondary_key_id\030" +
+      "\t \001(\tR\037payloadEncryptionSecondaryKeyId\"\227" +
+      "\002\n\031GetRunnerScopedTokenInput\022.\n\022agent_ex" +
+      "ecution_id\030\001 \001(\tH\000R\020agentExecutionId\0224\n\025" +
+      "workflow_execution_id\030\002 \001(\tH\000R\023workflowE" +
+      "xecutionId\022B\n\npool_claim\030\003 \001(\0132!.ai.stig" +
+      "mer.platform.v1.PoolClaimH\000R\tpoolClaim\022@" +
+      "\n\007renewal\030\004 \001(\0132$.ai.stigmer.platform.v1" +
+      ".TokenRenewalH\000R\007renewalB\016\n\005scope\022\005\272H\002\010\001" +
+      "\"3\n\tPoolClaim\022&\n\nsession_id\030\001 \001(\tB\007\272H\004r\002" +
+      "\020\001R\tsessionId\"\016\n\014TokenRenewal\"\231\001\n\032GetRun" +
+      "nerScopedTokenOutput\022.\n\023runner_scoped_to" +
+      "ken\030\001 \001(\tR\021runnerScopedToken\022\035\n\ntoken_ty" +
+      "pe\030\002 \001(\tR\ttokenType\022,\n\022expires_in_second" +
+      "s\030\003 \001(\005R\020expiresInSeconds*C\n\rServerEditi" +
+      "on\022\036\n\032server_edition_unspecified\020\000\022\007\n\003os" +
+      "s\020\001\022\t\n\005cloud\020\0022\241\003\n\027PlatformQueryControll" +
+      "er\022n\n\rgetServerInfo\022*.ai.stigmer.platfor" +
+      "m.v1.GetServerInfoInput\032+.ai.stigmer.pla" +
+      "tform.v1.GetServerInfoOutput\"\004\310\270\030\001\022\217\001\n\030g" +
+      "etRunnerBootstrapConfig\0225.ai.stigmer.pla" +
+      "tform.v1.GetRunnerBootstrapConfigInput\0326" +
+      ".ai.stigmer.platform.v1.GetRunnerBootstr" +
+      "apConfigOutput\"\004\320\270\030\001\022\203\001\n\024getRunnerScoped" +
+      "Token\0221.ai.stigmer.platform.v1.GetRunner" +
+      "ScopedTokenInput\0322.ai.stigmer.platform.v" +
+      "1.GetRunnerScopedTokenOutput\"\004\320\270\030\001B\214\001B\017S" +
+      "erverInfoProtoP\001\242\002\003ASP\252\002\026Ai.Stigmer.Plat" +
+      "form.V1\312\002\026Ai\\Stigmer\\Platform\\V1\342\002\"Ai\\St" +
+      "igmer\\Platform\\V1\\GPBMetadata\352\002\031Ai::Stig" +
+      "mer::Platform::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -150,7 +156,7 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_platform_v1_GetRunnerBootstrapConfigOutput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_platform_v1_GetRunnerBootstrapConfigOutput_descriptor,
-        new java.lang.String[] { "TemporalAddress", "TemporalNamespace", "RunnerAccessToken", "TokenType", "RunnerAccessTokenExpiresInSeconds", });
+        new java.lang.String[] { "TemporalAddress", "TemporalNamespace", "RunnerAccessToken", "TokenType", "RunnerAccessTokenExpiresInSeconds", "PayloadEncryptionKey", "PayloadEncryptionKeyId", "PayloadEncryptionSecondaryKey", "PayloadEncryptionSecondaryKeyId", });
     internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenInput_descriptor =
       getDescriptor().getMessageType(4);
     internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenInput_fieldAccessorTable = new

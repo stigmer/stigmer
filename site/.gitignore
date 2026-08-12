@@ -12,6 +12,10 @@
 /coverage
 /e2e/screenshots/
 /e2e/demos/demo-manifest.json
+# Demo screenshot baselines are per-machine (self-baselined on first
+# run, regenerated via test:demos:update-snapshots); no CI consumes
+# them, so committing the PNGs would only churn the repo.
+/e2e/demos/*-snapshots/
 /playwright-report/
 /test-results/
 

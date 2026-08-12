@@ -1,0 +1,15 @@
+{
+  "description": "Cross-language conformance fixture for the Temporal payload-encryption envelope (stigmer-cloud#227). data = iv(12) || AES-256-GCM ciphertext || tag(16); plaintext is the serialized original Payload proto. The TS codec (stigmer OSS runner) and the Java decode-only codec (stigmer-cloud temporal-starter) must both decrypt this to original.dataJson with encoding json/plain. The key is TEST-ONLY. Do not regenerate without moving both implementations in lockstep.",
+  "keyId": "conformance-2026-08-11",
+  "keyBase64": "LwN0jDzOwm0aPH8lyRRqsTMali/7RAgKKB9CY6psNFw=",
+  "encrypted": {
+    "metadataBase64": {
+      "encoding": "YmluYXJ5L2VuY3J5cHRlZA==",
+      "encryption-key-id": "Y29uZm9ybWFuY2UtMjAyNi0wOC0xMQ=="
+    },
+    "dataBase64": "CzL44tAoZwoawET5ApaDKGLYcJO2P8eTPS4hZnoEOUvZ7jkD5mkCnD9krgY9etYWO+06y779i8xRCs7QrnOKo5xo74HtlY0bwxYjr2dOra9TGRbtv3PlrW+DcfmEFAQ3Efem"
+  },
+  "original": {
+    "dataJson": "{\"secret\":\"cross-language-conformance-value\"}"
+  }
+}
