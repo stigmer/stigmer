@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
           "outputType": "PlatformClientCreateResponse",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse",
-          "description": "Create a platform client.\n\n Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).\n The raw client_secret is included in the response and is never returned again.\n Store it securely before discarding the response.\n\n The creator's organization owns the platform client. The creator is granted\n the owner role automatically."
+          "description": "Create a platform client.\n\n Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).\n The raw client_secret is included in the response and is never returned again.\n Store it securely before discarding the response.\n\n The creator's organization owns the platform client. The creator is granted\n the owner role automatically.\n\n The slug `system-share-client` is platform-reserved (it identifies the org's\n system-managed share client) and is rejected with INVALID_ARGUMENT — including\n when derived from the resource name."
         },
         {
           "name": "Update",
