@@ -1574,7 +1574,7 @@ text in tool call rendering.
 
 **Filename-first.** It shows the base name prominently and never clips it;
 the directory is optional (`dirDisplay`) and dimmed, and the *full* path is
-always available on hover via `title` (and to screen readers via
+always available on the hover/focus tooltip (and to screen readers via
 `aria-label`). This fixes the prior behaviour, where a single `truncate` on
 the whole path clipped the file name — the one part that identifies the
 change — and surfaced only the action verb on hover.
@@ -1593,7 +1593,7 @@ Platform builders can override the default behavior via the
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root element." },
-    dirDisplay: { type: "FilePathDirDisplay", description: "How much of the directory prefix to show. Defaults to `\"hide\"` (file name only); the full path is always available on hover via `title`. Use `\"dim\"` where the surrounding directory aids comprehension (diff headers, the multi-file changes list)." },
+    dirDisplay: { type: "FilePathDirDisplay", description: "How much of the directory prefix to show. Defaults to `\"hide\"` (file name only); the full path is always available on the hover/focus tooltip. Use `\"dim\"` where the surrounding directory aids comprehension (diff headers, the multi-file changes list)." },
     path: { type: "string", description: "The workspace-relative file path from the tool call.", required: true },
   }}
 />
@@ -2306,7 +2306,7 @@ keys and open/download behavior stay with the domain-specific hosts.
     name: { type: "string", description: "Display label (file or directory name).", required: true },
     sizeBytes: { type: "number | bigint", description: "Content size in bytes (protobuf `int64` is `bigint`).", required: true },
     subtitlePath: { type: "string | null", description: "Disambiguation subtitle rendered after the name when another row shares the same display name: the parent directory for sandbox-backed artifacts, the producing task for workflow artifacts. `null` when not needed.", required: true },
-    tooltip: { type: "string", description: "Hover title — the fullest location/name known for the artifact.", required: true },
+    tooltip: { type: "string", description: "House-tooltip content — the fullest location/name known for the artifact.", required: true },
   }}
 />
 
