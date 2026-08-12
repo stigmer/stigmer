@@ -5,6 +5,7 @@ import { getUserMessage, isPermissionDenied } from "@stigmer/sdk";
 import type {
   ModelPricingGovernanceEntry,
 } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { OperatorAccessNotice } from "./OperatorAccessNotice.js";
 import { GovernanceBadge, PendingOverrideCard, RateCell } from "./governance-primitives.js";
 import { usePricingGovernance } from "./usePricingGovernance.js";
@@ -140,10 +141,18 @@ function GovernanceRow({ entry }: { readonly entry: ModelPricingGovernanceEntry 
   return (
     <div role="row"
          className="stg:grid stg:grid-cols-[2fr_1fr_1fr_1fr_1fr] stg:items-center stg:gap-2 stg:border-b stg:border-border stg:px-3 stg:py-2 stg:text-xs stg:last:border-b-0">
-      <span role="cell" className="stg:truncate stg:font-medium stg:text-foreground"
-            title={entry.modelId}>
-        {entry.displayName || entry.modelId}
-      </span>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <span role="cell" className="stg:truncate stg:font-medium stg:text-foreground" />
+          }
+        >
+          {entry.displayName || entry.modelId}
+        </TooltipTrigger>
+        <TooltipContent side="top" className="stg:break-all">
+          {entry.modelId}
+        </TooltipContent>
+      </Tooltip>
       <span role="cell" className="stg:text-muted-foreground">{entry.harness}</span>
       <RateCell
         role="cell"

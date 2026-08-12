@@ -2,6 +2,7 @@
 
 import { useCallback, useRef } from "react";
 import { cn } from "@stigmer/theme";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import type { ResourceListScope } from "../search/index.js";
 
 /** Props for {@link ScopeToggle}. */
@@ -116,7 +117,7 @@ export function ScopeToggle({
         const isSelected = value === option.value;
         const Icon = option.icon;
 
-        return (
+        const radio = (
           <button
             key={option.value}
             ref={(el) => {
@@ -126,7 +127,6 @@ export function ScopeToggle({
             role="radio"
             aria-checked={isSelected}
             aria-label={option.ariaLabel}
-            title={compact ? option.ariaLabel : undefined}
             tabIndex={isSelected ? 0 : -1}
             disabled={disabled}
             onClick={() => handleSelect(option.value)}
@@ -142,6 +142,18 @@ export function ScopeToggle({
             <Icon className="stg:size-3" />
             {!compact && option.label}
           </button>
+        );
+
+        // Icon-only radios need their name discoverable by sighted users
+        // too: in compact mode each radio is its own tooltip trigger (hover
+        // and roving-tabindex focus both open it). Full mode shows visible
+        // labels, so a tooltip would only repeat them.
+        if (!compact) return radio;
+        return (
+          <Tooltip key={option.value}>
+            <TooltipTrigger render={radio} />
+            <TooltipContent side="top">{option.ariaLabel}</TooltipContent>
+          </Tooltip>
         );
       })}
     </div>

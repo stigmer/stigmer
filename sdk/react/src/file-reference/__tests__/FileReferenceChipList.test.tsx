@@ -80,7 +80,7 @@ describe("FileReferenceChipList", () => {
     expect(list.getAttribute("aria-label")).toBe("Referenced workspace files");
   });
 
-  it("sets title attribute on chip for full path tooltip", () => {
+  it("keeps the chip free of native titles — the full path rides the house tooltip", () => {
     render(
       <FileReferenceChipList
         refs={["src/deeply/nested/file.ts"]}
@@ -89,6 +89,9 @@ describe("FileReferenceChipList", () => {
     );
 
     const item = screen.getByRole("listitem");
-    expect(item.getAttribute("title")).toBe("src/deeply/nested/file.ts");
+    expect(item.getAttribute("title")).toBeNull();
+    // The basename stays visible; the full path is the tooltip's content
+    // (reveal pinned in the real-browser suites).
+    expect(item.textContent).toContain("file.ts");
   });
 });

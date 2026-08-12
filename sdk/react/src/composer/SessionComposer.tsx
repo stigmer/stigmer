@@ -38,6 +38,7 @@ import {
   resolveSystemEnvVarValues,
 } from "../environment/systemEnvVars.js";
 import { useRenderTracer } from "../internal/dev/index.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import {
   AgentIcon,
   McpServerIcon,
@@ -1522,15 +1523,21 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
               Editing message
             </span>
             {onCancelEdit && (
-              <button
-                type="button"
-                onClick={onCancelEdit}
-                aria-label="Cancel editing"
-                title="Cancel editing (Esc)"
-                className="stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-colors stg:hover:bg-accent stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
-              >
-                <XIcon />
-              </button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      onClick={onCancelEdit}
+                      aria-label="Cancel editing"
+                      className="stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-colors stg:hover:bg-accent stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
+                    />
+                  }
+                >
+                  <XIcon />
+                </TooltipTrigger>
+                <TooltipContent side="top">Cancel editing (Esc)</TooltipContent>
+              </Tooltip>
             )}
           </div>
         )}

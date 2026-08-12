@@ -5,6 +5,7 @@ import Markdown from "react-markdown";
 import type { JsonObject } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/theme";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-components.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { formatDuration, formatTimestamp } from "./format-utils.js";
 import type { TaskOutcome } from "./WorkflowTaskApprovalCard.js";
 import {
@@ -190,27 +191,33 @@ export const WorkflowTaskApprovalSummary = memo(function WorkflowTaskApprovalSum
 /**
  * `by <avatar> Ada Lovelace` — the reviewer's display identity, following
  * the platform's actor pattern (see `WorkflowVersionTimeline`). The email
- * rides as a native tooltip when it is not already the visible label. A
+ * rides on the house tooltip when it is not already the visible label. A
  * label that fell through to the raw identity (legacy records) renders
  * de-emphasized — internal IDs are never presented as if they were names.
  */
 function ReviewerChip({ reviewer }: { readonly reviewer: TaskReviewerView }) {
+  const nameClass = cn(
+    reviewer.isRawId
+      ? "stg:font-mono stg:text-[10px] stg:text-muted-foreground"
+      : "stg:font-medium stg:text-foreground",
+  );
+
   return (
     <span className="stg:flex stg:items-center stg:gap-1">
       by{" "}
       {reviewer.avatar && (
         <img src={reviewer.avatar} alt="" className="stg:size-3.5 stg:rounded-full" />
       )}
-      <span
-        className={cn(
-          reviewer.isRawId
-            ? "stg:font-mono stg:text-[10px] stg:text-muted-foreground"
-            : "stg:font-medium stg:text-foreground",
-        )}
-        title={reviewer.email || undefined}
-      >
-        {reviewer.label}
-      </span>
+      {reviewer.email ? (
+        <Tooltip>
+          <TooltipTrigger render={<span className={nameClass} />}>
+            {reviewer.label}
+          </TooltipTrigger>
+          <TooltipContent side="top">{reviewer.email}</TooltipContent>
+        </Tooltip>
+      ) : (
+        <span className={nameClass}>{reviewer.label}</span>
+      )}
     </span>
   );
 }

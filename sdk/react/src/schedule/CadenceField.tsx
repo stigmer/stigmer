@@ -2,6 +2,7 @@
 
 import { useCallback, useId } from "react";
 import { cn } from "@stigmer/theme";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import {
   cadenceToCron,
   describeCadence,
@@ -164,33 +165,43 @@ export function CadenceField({
               // schedule with zero days is not expressible in cron.
               const isLastSelected = isOn && value.days.length === 1;
               return (
-                <button
-                  key={label}
-                  type="button"
-                  aria-pressed={isOn}
-                  aria-label={label}
-                  title={label}
-                  disabled={disabled || isLastSelected}
-                  onClick={() =>
-                    onChange({
-                      ...value,
-                      days: isOn
-                        ? value.days.filter((d) => d !== day)
-                        : [...value.days, day].sort((a, b) => a - b),
-                    })
-                  }
-                  className={cn(
-                    "stg:inline-flex stg:h-7 stg:w-9 stg:items-center stg:justify-center stg:rounded-md stg:border stg:text-xs stg:font-medium stg:transition-colors",
-                    "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                    "stg:disabled:pointer-events-none",
-                    isOn
-                      ? "stg:border-primary stg:bg-primary stg:text-primary-foreground"
-                      : "stg:border-input stg:bg-background stg:text-muted-foreground stg:hover:text-foreground",
-                    isLastSelected && "stg:opacity-70",
-                  )}
-                >
-                  {label.slice(0, 3)}
-                </button>
+                // The tooltip trigger is a wrapper span so the hint stays
+                // hoverable on the always-disabled last selected day — the
+                // one toggle whose state actually needs explaining.
+                <Tooltip key={label}>
+                  <TooltipTrigger render={<span className="stg:inline-flex" />}>
+                    <button
+                      type="button"
+                      aria-pressed={isOn}
+                      aria-label={label}
+                      disabled={disabled || isLastSelected}
+                      onClick={() =>
+                        onChange({
+                          ...value,
+                          days: isOn
+                            ? value.days.filter((d) => d !== day)
+                            : [...value.days, day].sort((a, b) => a - b),
+                        })
+                      }
+                      className={cn(
+                        "stg:inline-flex stg:h-7 stg:w-9 stg:items-center stg:justify-center stg:rounded-md stg:border stg:text-xs stg:font-medium stg:transition-colors",
+                        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                        "stg:disabled:pointer-events-none",
+                        isOn
+                          ? "stg:border-primary stg:bg-primary stg:text-primary-foreground"
+                          : "stg:border-input stg:bg-background stg:text-muted-foreground stg:hover:text-foreground",
+                        isLastSelected && "stg:opacity-70",
+                      )}
+                    >
+                      {label.slice(0, 3)}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    {isLastSelected
+                      ? "A weekly schedule needs at least one day"
+                      : label}
+                  </TooltipContent>
+                </Tooltip>
               );
             })}
           </div>

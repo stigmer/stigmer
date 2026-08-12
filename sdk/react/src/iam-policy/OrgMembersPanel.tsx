@@ -15,6 +15,7 @@ import {
   iamRoleFromString,
   iamRoleToString,
 } from "@stigmer/sdk";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useResourceAccess } from "./useResourceAccess.js";
 import { usePrincipalsCount } from "./usePrincipalsCount.js";
 import { useWhoAmI } from "./useWhoAmI.js";
@@ -282,26 +283,32 @@ function MemberRow({
 function RoleBadge({ grant }: { grant: RoleGrant }) {
   const roleName = grant.role?.name || grant.role?.code || "Unknown";
   return (
-    <span
-      className={cn(
-        "stg:inline-flex stg:items-center stg:rounded-md stg:border stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
-        grant.isInherited
-          ? "stg:border-border-muted stg:text-muted-foreground stg:bg-muted-subtle stg:italic"
-          : "stg:border-border stg:bg-muted stg:text-foreground",
-      )}
-      title={
-        grant.isInherited
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span
+            className={cn(
+              "stg:inline-flex stg:items-center stg:rounded-md stg:border stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
+              grant.isInherited
+                ? "stg:border-border-muted stg:text-muted-foreground stg:bg-muted-subtle stg:italic"
+                : "stg:border-border stg:bg-muted stg:text-foreground",
+            )}
+          />
+        }
+      >
+        {roleName}
+        {grant.isInherited && (
+          <span className="stg:ml-1 stg:text-[0.55rem] stg:text-muted-foreground">
+            (inherited)
+          </span>
+        )}
+      </TooltipTrigger>
+      <TooltipContent side="top">
+        {grant.isInherited
           ? `Inherited from ${grant.ownerResource?.kind ?? "parent"}`
-          : `Directly assigned`
-      }
-    >
-      {roleName}
-      {grant.isInherited && (
-        <span className="stg:ml-1 stg:text-[0.55rem] stg:text-muted-foreground">
-          (inherited)
-        </span>
-      )}
-    </span>
+          : `Directly assigned`}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 

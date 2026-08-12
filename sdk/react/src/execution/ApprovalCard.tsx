@@ -407,12 +407,10 @@ export function ApprovalCardBody({
       </div>
 
       {/* De-emphasized provenance, trailing the decision it explains. Only the
-          informative reasons reach here (see showGateReason); the full phrase is
-          on hover. */}
+          informative reasons reach here (see showGateReason). */}
       {showGateReason && (
         <p
           className="stg:text-[11px] stg:italic stg:text-muted-foreground"
-          title={gateReason ?? undefined}
           data-cursor-target="approval-gate-reason"
         >
           {gateReason}

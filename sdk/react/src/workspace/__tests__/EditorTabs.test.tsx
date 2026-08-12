@@ -70,8 +70,11 @@ describe("EditorTabs", () => {
   it("closes a tab via its close affordance (presentational, aria-hidden)", () => {
     const { onClose } = renderTabs();
     // The close "X" is a presentational span (not a nested button) to satisfy
-    // WCAG 4.1.2; it is addressable by its title.
-    fireEvent.click(screen.getByTitle("Close a.ts"));
+    // WCAG 4.1.2, and carries no native title (banned, stigmer-cloud#268) —
+    // it is the tab's only aria-hidden child.
+    const tab = screen.getByRole("tab", { name: "a.ts" });
+    const closeX = tab.querySelector('[aria-hidden="true"]');
+    fireEvent.click(closeX!);
     expect(onClose).toHaveBeenCalledWith("e1", "src/a.ts");
   });
 

@@ -2,6 +2,7 @@
 
 import { cn } from "@stigmer/theme";
 import { Popover } from "@base-ui/react/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useStigmerPortalContainer } from "../portal-container.js";
 import { ConfigureIcon } from "./icons.js";
 
@@ -71,31 +72,39 @@ export function ConfigureMenu({
 
   return (
     <Popover.Root open={open} onOpenChange={handleOpenChange}>
-      <Popover.Trigger
-        disabled={disabled}
-        title="Configure"
-        className={cn(
-          "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
-          "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-        )}
-        aria-label="Configure agent, tools, and skills"
-      >
-        <span className="stg:relative">
-          <ConfigureIcon />
-          {totalCount > 0 && (
-            <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-[0.5rem] stg:font-medium stg:leading-none stg:text-primary-foreground">
-              {totalCount}
+      {/* The tooltip trigger is a wrapper span, not the popover trigger
+          itself: `disabled` adds `pointer-events-none` to the button, so
+          only the span keeps hover — the icon's name stays discoverable
+          while the composer is disabled. */}
+      <Tooltip>
+        <TooltipTrigger render={<span className="stg:inline-flex" />}>
+          <Popover.Trigger
+            disabled={disabled}
+            className={cn(
+              "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
+              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+            )}
+            aria-label="Configure agent, tools, and skills"
+          >
+            <span className="stg:relative">
+              <ConfigureIcon />
+              {totalCount > 0 && (
+                <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-[0.5rem] stg:font-medium stg:leading-none stg:text-primary-foreground">
+                  {totalCount}
+                </span>
+              )}
+              {hasWarning && totalCount === 0 && (
+                <span
+                  className="stg:absolute stg:-right-0.5 stg:-top-0.5 stg:inline-block stg:h-2 stg:w-2 stg:rounded-full stg:bg-warning"
+                  aria-label="Configuration needed"
+                />
+              )}
             </span>
-          )}
-          {hasWarning && totalCount === 0 && (
-            <span
-              className="stg:absolute stg:-right-0.5 stg:-top-0.5 stg:inline-block stg:h-2 stg:w-2 stg:rounded-full stg:bg-warning"
-              aria-label="Configuration needed"
-            />
-          )}
-        </span>
-      </Popover.Trigger>
+          </Popover.Trigger>
+        </TooltipTrigger>
+        <TooltipContent side="top">Configure</TooltipContent>
+      </Tooltip>
       <Popover.Portal container={portalContainer}>
         <Popover.Positioner sideOffset={8} align="start">
           <Popover.Popup

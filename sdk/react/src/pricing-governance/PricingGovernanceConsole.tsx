@@ -12,6 +12,7 @@ import { ModelGovernanceDetail } from "./ModelGovernanceDetail.js";
 import { OperatorAccessNotice } from "./OperatorAccessNotice.js";
 import { GovernanceBadge, PendingOverrideCard, RateCell } from "./governance-primitives.js";
 import { INPUT_CLASSES } from "../internal/form-primitives.js";
+import { TruncatedText } from "../internal/truncated-text.js";
 import { ZERO } from "./pricing-format.js";
 import { useDecidePricingOverride } from "./useDecidePricingOverride.js";
 import { useRetireModelPricingBaseline } from "./useRetireModelPricingBaseline.js";
@@ -367,13 +368,16 @@ function ModelRow({
         )}
       >
         <span className="stg:min-w-0">
-          <span className="stg:block stg:truncate stg:font-medium stg:text-foreground" title={baseline.modelId}>
+          {/* The display name needs no tooltip: the model id it used to
+              reveal is printed on the line below, which shows its own
+              tooltip when clipped. */}
+          <span className="stg:block stg:truncate stg:font-medium stg:text-foreground">
             {baseline.displayName || baseline.modelId}
           </span>
-          <span className="stg:block stg:truncate stg:text-[11px] stg:text-muted-foreground">
-            {baseline.modelId}
-            {baseline.featured ? " · featured" : ""}
-          </span>
+          <TruncatedText
+            text={`${baseline.modelId}${baseline.featured ? " · featured" : ""}`}
+            className="stg:block stg:text-[11px] stg:text-muted-foreground"
+          />
         </span>
         <span className="stg:text-muted-foreground">{baseline.harness}</span>
         <RateCell

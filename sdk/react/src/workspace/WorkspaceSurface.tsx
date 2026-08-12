@@ -12,6 +12,12 @@ import { cn } from "@stigmer/theme";
 import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../internal/tooltip.js";
+import {
   editorKey,
   type OpenEditor,
   type OpenFileOptions,
@@ -371,50 +377,57 @@ function ActivityRail({
   );
 
   return (
-    <div
-      role="radiogroup"
-      aria-label="Workspace view"
-      aria-orientation="vertical"
-      className="stg:flex stg:w-11 stg:shrink-0 stg:flex-col stg:items-center stg:gap-1 stg:border-r stg:border-border stg:bg-muted-faint stg:py-2"
-    >
-      {items.map((item, index) => {
-        const isSelected = view === item.id;
-        const showBadge = item.badge != null && item.badge > 0;
-        return (
-          <button
-            key={item.id}
-            ref={(el) => {
-              buttonRefs.current[index] = el;
-            }}
-            type="button"
-            role="radio"
-            aria-checked={isSelected}
-            aria-label={showBadge ? `${item.label} (${item.badge})` : item.label}
-            title={item.label}
-            tabIndex={isSelected ? 0 : -1}
-            onClick={() => onViewChange(item.id)}
-            onKeyDown={(e) => handleKeyDown(e, index)}
-            className={cn(
-              "stg:relative stg:flex stg:h-9 stg:w-9 stg:items-center stg:justify-center stg:rounded-md stg:transition-colors",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              isSelected
-                ? "stg:bg-accent stg:text-foreground"
-                : "stg:text-muted-foreground stg:hover:bg-accent-hover stg:hover:text-foreground",
-            )}
-          >
-            {item.icon}
-            {showBadge && (
-              <span
-                aria-hidden="true"
-                className="stg:absolute stg:-right-0.5 stg:-top-0.5 stg:inline-flex stg:min-w-[0.875rem] stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-1 stg:py-px stg:text-[9px] stg:font-medium stg:leading-none stg:text-primary-foreground"
+    <TooltipProvider>
+      <div
+        role="radiogroup"
+        aria-label="Workspace view"
+        aria-orientation="vertical"
+        className="stg:flex stg:w-11 stg:shrink-0 stg:flex-col stg:items-center stg:gap-1 stg:border-r stg:border-border stg:bg-muted-faint stg:py-2"
+      >
+        {items.map((item, index) => {
+          const isSelected = view === item.id;
+          const showBadge = item.badge != null && item.badge > 0;
+          return (
+            <Tooltip key={item.id}>
+              <TooltipTrigger
+                render={
+                  <button
+                    ref={(el) => {
+                      buttonRefs.current[index] = el;
+                    }}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    aria-label={showBadge ? `${item.label} (${item.badge})` : item.label}
+                    tabIndex={isSelected ? 0 : -1}
+                    onClick={() => onViewChange(item.id)}
+                    onKeyDown={(e) => handleKeyDown(e, index)}
+                    className={cn(
+                      "stg:relative stg:flex stg:h-9 stg:w-9 stg:items-center stg:justify-center stg:rounded-md stg:transition-colors",
+                      "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                      isSelected
+                        ? "stg:bg-accent stg:text-foreground"
+                        : "stg:text-muted-foreground stg:hover:bg-accent-hover stg:hover:text-foreground",
+                    )}
+                  />
+                }
               >
-                {item.badge}
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
+                {item.icon}
+                {showBadge && (
+                  <span
+                    aria-hidden="true"
+                    className="stg:absolute stg:-right-0.5 stg:-top-0.5 stg:inline-flex stg:min-w-[0.875rem] stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-1 stg:py-px stg:text-[9px] stg:font-medium stg:leading-none stg:text-primary-foreground"
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </TooltipTrigger>
+              <TooltipContent side="right">{item.label}</TooltipContent>
+            </Tooltip>
+          );
+        })}
+      </div>
+    </TooltipProvider>
   );
 }
 
@@ -684,15 +697,21 @@ function EditorArea({
           the session viewer floats its top-right controls (host
           `headerActions` and the panel chip) over this region. */}
       <div className="stg:flex stg:shrink-0 stg:items-stretch stg:border-b stg:border-border stg:pr-24">
-        <button
-          type="button"
-          onClick={onCollapse}
-          aria-label="Back to chat"
-          title="Back to chat"
-          className="stg:flex stg:shrink-0 stg:items-center stg:border-r stg:border-border stg:px-2 stg:text-muted-foreground stg:transition-colors stg:hover:bg-accent-hover stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring"
-        >
-          <ChevronLeftIcon />
-        </button>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                onClick={onCollapse}
+                aria-label="Back to chat"
+                className="stg:flex stg:shrink-0 stg:items-center stg:border-r stg:border-border stg:px-2 stg:text-muted-foreground stg:transition-colors stg:hover:bg-accent-hover stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring"
+              />
+            }
+          >
+            <ChevronLeftIcon />
+          </TooltipTrigger>
+          <TooltipContent side="top">Back to chat</TooltipContent>
+        </Tooltip>
         {editors.length > 0 && (
           <EditorTabs
             editors={editors}
@@ -800,15 +819,21 @@ function Breadcrumbs({
         })}
       </nav>
       {onRefresh && (
-        <button
-          type="button"
-          onClick={onRefresh}
-          aria-label="Reload file"
-          title="Reload file"
-          className="stg:shrink-0 stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
-        >
-          <RefreshIcon />
-        </button>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                onClick={onRefresh}
+                aria-label="Reload file"
+                className="stg:shrink-0 stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
+              />
+            }
+          >
+            <RefreshIcon />
+          </TooltipTrigger>
+          <TooltipContent side="top">Reload file</TooltipContent>
+        </Tooltip>
       )}
     </div>
   );

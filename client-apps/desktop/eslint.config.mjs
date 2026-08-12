@@ -13,6 +13,7 @@ export default defineConfig([
     plugins: { stigmer: stigmerPlugin },
     rules: {
       "stigmer/sdk-import-boundaries": "error",
+      "stigmer/no-native-title": "error",
       "stigmer/no-token-opacity-modifiers": "warn",
       "stigmer/no-main-tokens-in-sidebar": "warn",
     },

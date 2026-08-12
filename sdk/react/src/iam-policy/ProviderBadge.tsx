@@ -2,6 +2,7 @@
 
 import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { cn } from "@stigmer/theme";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 /**
  * The human-readable identity-source label for a principal, or `""` when none
@@ -39,15 +40,21 @@ export function ProviderBadge({ principal, className }: ProviderBadgeProps) {
   }
 
   return (
-    <span
-      className={cn(
-        "stg:inline-flex stg:items-center stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium",
-        "stg:bg-muted-subtle stg:text-muted-foreground",
-        className,
-      )}
-      title={`Identity provider: ${label}`}
-    >
-      {label}
-    </span>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span
+            className={cn(
+              "stg:inline-flex stg:items-center stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium",
+              "stg:bg-muted-subtle stg:text-muted-foreground",
+              className,
+            )}
+          />
+        }
+      >
+        {label}
+      </TooltipTrigger>
+      <TooltipContent side="top">{`Identity provider: ${label}`}</TooltipContent>
+    </Tooltip>
   );
 }

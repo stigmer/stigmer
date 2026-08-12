@@ -141,16 +141,16 @@ function formatKindName(kind: WorkflowTaskKind): string {
  * keep the bundle size minimal (DD-004).
  */
 function TaskKindIcon({
-  iconName,
   className,
 }: {
+  // The icon name is accepted (future per-kind icons) but not surfaced: the
+  // glyph is decorative and the kind label is already visible next to it.
   readonly iconName: string;
   readonly className?: string;
 }) {
   return (
     <span
       className={cn("stg:inline-flex stg:items-center stg:justify-center", className)}
-      title={iconName}
       aria-hidden="true"
     >
       <TaskDotIcon />

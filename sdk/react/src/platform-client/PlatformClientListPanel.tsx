@@ -5,6 +5,7 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { usePlatformClientList } from "./usePlatformClientList.js";
 import { useDeletePlatformClient } from "./useDeletePlatformClient.js";
 
@@ -239,12 +240,14 @@ function PlatformClientRow({
 
       <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-3 stg:text-xs stg:text-muted-foreground">
         {fingerprint && (
-          <span
-            className="stg:font-mono"
-            title={`Secret fingerprint: ${fingerprint}`}
-          >
-            ••••{fingerprint.slice(-4)}
-          </span>
+          <Tooltip>
+            <TooltipTrigger render={<span className="stg:font-mono" />}>
+              ••••{fingerprint.slice(-4)}
+            </TooltipTrigger>
+            <TooltipContent side="top" className="stg:break-all">
+              {`Secret fingerprint: ${fingerprint}`}
+            </TooltipContent>
+          </Tooltip>
         )}
         <ExpiryBadge spec={spec} />
         {spec?.autoProvisionAccounts && (
@@ -253,9 +256,16 @@ function PlatformClientRow({
           </span>
         )}
         {createdAt && (
-          <span title={`Created ${timestampDate(createdAt).toISOString()}`}>
-            {formatShortDate(timestampDate(createdAt))}
-          </span>
+          <Tooltip>
+            <TooltipTrigger
+              render={<time dateTime={timestampDate(createdAt).toISOString()} />}
+            >
+              {formatShortDate(timestampDate(createdAt))}
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {`Created ${timestampDate(createdAt).toISOString()}`}
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
 
@@ -305,15 +315,22 @@ function ExpiryBadge({ spec }: { spec: PlatformClient["spec"] }) {
     const date = timestampDate(spec.expiresAt);
     const isExpired = date < new Date();
     return (
-      <span
-        className={cn(
-          "stg:text-[0.65rem]",
-          isExpired ? "stg:text-destructive stg:font-medium" : "stg:text-muted-foreground",
-        )}
-        title={`Expires ${date.toISOString()}`}
-      >
-        {isExpired ? "Expired" : `Exp ${formatShortDate(date)}`}
-      </span>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <time
+              dateTime={date.toISOString()}
+              className={cn(
+                "stg:text-[0.65rem]",
+                isExpired ? "stg:text-destructive stg:font-medium" : "stg:text-muted-foreground",
+              )}
+            />
+          }
+        >
+          {isExpired ? "Expired" : `Exp ${formatShortDate(date)}`}
+        </TooltipTrigger>
+        <TooltipContent side="top">{`Expires ${date.toISOString()}`}</TooltipContent>
+      </Tooltip>
     );
   }
   return null;

@@ -308,7 +308,6 @@ function PickerItem({
       role="option"
       aria-selected={isFocused}
       aria-disabled={item.disabled}
-      title={item.disabled ? item.disabledReason : undefined}
       onClick={item.disabled ? undefined : () => onSelect(item.descriptor.kind)}
       className={cn(
         "stg:flex stg:w-full stg:items-start stg:gap-2 stg:rounded stg:px-2 stg:py-1.5 stg:text-left stg:transition-colors",

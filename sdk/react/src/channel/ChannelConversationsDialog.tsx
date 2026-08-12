@@ -10,6 +10,7 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { TruncatedText } from "../internal/truncated-text.js";
 import { channelSessionExternalUserKey } from "../session/channelOrigin.js";
 import { useChannelSessions } from "./useChannelSessions.js";
 
@@ -200,9 +201,10 @@ function ConversationRow({
   const content = (
     <>
       <div className="stg:min-w-0 stg:flex-1">
-        <p className="stg:truncate stg:text-sm stg:text-foreground" title={subject}>
-          {subject}
-        </p>
+        <TruncatedText
+          text={subject}
+          className="stg:block stg:text-sm stg:text-foreground"
+        />
         {externalUser && (
           <p className="stg:mt-0.5 stg:flex stg:items-center stg:gap-1 stg:text-xs stg:text-muted-foreground">
             <User aria-hidden="true" className="stg:size-3" />

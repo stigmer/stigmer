@@ -46,8 +46,8 @@ describe("FilePathLink filename-first display", () => {
   });
 });
 
-describe("FilePathLink full path on hover", () => {
-  it("puts the absolute local path in the title (not the action verb)", () => {
+describe("FilePathLink full path resolution", () => {
+  it("resolves the absolute local path into the accessible name (hover ride the house tooltip)", () => {
     const entries = [localEntry("my-app", "/Users/dev/my-app")];
     render(
       <FilePathContext.Provider value={{ workspaceEntries: entries }}>
@@ -55,14 +55,18 @@ describe("FilePathLink full path on hover", () => {
       </FilePathContext.Provider>,
     );
     const el = screen.getByRole("button");
-    expect(el.getAttribute("title")).toBe("/Users/dev/my-app/src/main.go");
-    // The action verb moves into the accessible name, with the path.
+    // The resolved path is observable in the accessible name; the visual
+    // hover reveal is the house tooltip (native titles are banned,
+    // stigmer-cloud#268).
     expect(el.getAttribute("aria-label")).toBe("Copy path: /Users/dev/my-app/src/main.go");
+    expect(el.getAttribute("title")).toBeNull();
   });
 
-  it("falls back to the logical path in the title when unresolved", () => {
+  it("falls back to the logical path when unresolved", () => {
     render(<FilePathLink path="src/main.go" />);
-    expect(screen.getByRole("button").getAttribute("title")).toBe("src/main.go");
+    const el = screen.getByRole("button");
+    expect(el.getAttribute("aria-label")).toBe("Copy path: src/main.go");
+    expect(el.getAttribute("title")).toBeNull();
   });
 });
 

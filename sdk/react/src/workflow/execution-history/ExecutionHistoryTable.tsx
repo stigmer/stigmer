@@ -10,6 +10,8 @@ import {
   type ExecutionSortField,
   type SortDirection,
 } from "./derive-execution-row.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../internal/tooltip.js";
+import { TruncatedText } from "../../internal/truncated-text.js";
 
 // ---------------------------------------------------------------------------
 // Column definitions
@@ -33,9 +35,10 @@ const COLUMNS: readonly ColumnDef[] = [
     header: "Name",
     sortField: "name",
     cell: (row) => (
-      <span className="stg:font-medium stg:text-foreground stg:truncate stg:max-w-[12rem] stg:inline-block" title={row.name}>
-        {row.name || "\u2014"}
-      </span>
+      <TruncatedText
+        text={row.name || "\u2014"}
+        className="stg:font-medium stg:text-foreground stg:max-w-[12rem] stg:inline-block"
+      />
     ),
     defaultVisible: true,
     minWidth: "8rem",
@@ -54,9 +57,12 @@ const COLUMNS: readonly ColumnDef[] = [
     sortField: "startedAt",
     cell: (row) =>
       row.startedAt ? (
-        <time dateTime={row.startedAt.toISOString()} title={row.startedAt.toLocaleString()}>
-          {formatRelativeTime(row.startedAt)}
-        </time>
+        <Tooltip>
+          <TooltipTrigger render={<time dateTime={row.startedAt.toISOString()} />}>
+            {formatRelativeTime(row.startedAt)}
+          </TooltipTrigger>
+          <TooltipContent side="top">{row.startedAt.toLocaleString()}</TooltipContent>
+        </Tooltip>
       ) : (
         "\u2014"
       ),
@@ -103,9 +109,14 @@ const COLUMNS: readonly ColumnDef[] = [
     sortField: "tasks",
     cell: (row) =>
       row.taskCount > 0 ? (
-        <span title={`${row.completedTaskCount} of ${row.taskCount} tasks finished`}>
-          {row.completedTaskCount}/{row.taskCount}
-        </span>
+        <Tooltip>
+          <TooltipTrigger render={<span />}>
+            {row.completedTaskCount}/{row.taskCount}
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {`${row.completedTaskCount} of ${row.taskCount} tasks finished`}
+          </TooltipContent>
+        </Tooltip>
       ) : (
         "\u2014"
       ),
@@ -122,15 +133,13 @@ const COLUMNS: readonly ColumnDef[] = [
       if (!label) return "\u2014";
       const isFailed = !!row.failedTaskName;
       return (
-        <span
+        <TruncatedText
+          text={label}
           className={cn(
-            "stg:truncate stg:max-w-[10rem] stg:inline-block stg:text-xs",
+            "stg:max-w-[10rem] stg:inline-block stg:text-xs",
             isFailed ? "stg:text-destructive" : "stg:text-muted-foreground",
           )}
-          title={label}
-        >
-          {label}
-        </span>
+        />
       );
     },
     defaultVisible: true,

@@ -9,6 +9,7 @@ import type { ChannelTemplate } from "@stigmer/protos/ai/stigmer/agentic/agentch
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { TruncatedText } from "../internal/truncated-text.js";
 import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
 import {
   channelPresentationOf,
@@ -332,12 +333,10 @@ function TemplateRow({ template }: { readonly template: ChannelTemplate }) {
     <li className="stg:rounded-lg stg:border stg:border-border stg:p-3">
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
         <div className="stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-x-2 stg:gap-y-1">
-          <span
-            className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground"
-            title={template.name}
-          >
-            {template.name}
-          </span>
+          <TruncatedText
+            text={template.name}
+            className="stg:text-sm stg:font-medium stg:text-foreground"
+          />
           {/* (name, language) is the template's identity — each
               language is approved independently, so it always shows. */}
           <span className="stg:shrink-0 stg:text-xs stg:text-muted-foreground">

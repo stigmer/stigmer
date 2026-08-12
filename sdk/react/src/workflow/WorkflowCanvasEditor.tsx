@@ -16,6 +16,12 @@ import type { CanvasContextMenuTarget } from "./CanvasContextMenu.js";
 import { TaskPickerPopover } from "./TaskPickerPopover.js";
 import { useCanvasKeyboardShortcuts } from "./useCanvasKeyboardShortcuts.js";
 import { ViewYamlDialog } from "./ViewYamlDialog.js";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../internal/tooltip.js";
 
 /** Props for {@link WorkflowCanvasEditor}. */
 export interface WorkflowCanvasEditorProps {
@@ -732,41 +738,49 @@ function PaletteToggle({
   onToggle: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className={cn(
-        "stg:absolute stg:left-2 stg:z-10 stg:rounded stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:p-1 stg:shadow-sm",
-        "stg:hover:bg-[var(--stgm-muted,#f5f5f5)] stg:active:bg-[var(--stgm-accent,#e5e5e5)]",
-        collapsed ? "stg:top-2" : "stg:bottom-2",
-      )}
-      aria-label={collapsed ? "Show task palette" : "Hide task palette"}
-      title={collapsed ? "Show task palette" : "Hide task palette"}
-    >
-      <svg
-        width="14"
-        height="14"
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="stg:text-[var(--stgm-foreground,#1a1a2e)]"
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            onClick={onToggle}
+            className={cn(
+              "stg:absolute stg:left-2 stg:z-10 stg:rounded stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:p-1 stg:shadow-sm",
+              "stg:hover:bg-[var(--stgm-muted,#f5f5f5)] stg:active:bg-[var(--stgm-accent,#e5e5e5)]",
+              collapsed ? "stg:top-2" : "stg:bottom-2",
+            )}
+            aria-label={collapsed ? "Show task palette" : "Hide task palette"}
+          />
+        }
       >
-        {collapsed ? (
-          <>
-            <rect x="1" y="1" width="5" height="14" rx="1" />
-            <path d="M10 8h5M11 6l2 2-2 2" />
-          </>
-        ) : (
-          <>
-            <rect x="1" y="1" width="5" height="14" rx="1" />
-            <path d="M14 8H9M13 6l-2 2 2 2" />
-          </>
-        )}
-      </svg>
-    </button>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="stg:text-[var(--stgm-foreground,#1a1a2e)]"
+        >
+          {collapsed ? (
+            <>
+              <rect x="1" y="1" width="5" height="14" rx="1" />
+              <path d="M10 8h5M11 6l2 2-2 2" />
+            </>
+          ) : (
+            <>
+              <rect x="1" y="1" width="5" height="14" rx="1" />
+              <path d="M14 8H9M13 6l-2 2 2 2" />
+            </>
+          )}
+        </svg>
+      </TooltipTrigger>
+      <TooltipContent side="right">
+        {collapsed ? "Show task palette" : "Hide task palette"}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -802,35 +816,52 @@ function CanvasToolbar({
     "stg:rounded stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)] stg:shadow-sm stg:hover:bg-[var(--stgm-muted,#f5f5f5)] stg:active:bg-[var(--stgm-accent,#e5e5e5)] stg:disabled:cursor-not-allowed stg:disabled:opacity-40";
 
   return (
-    <div className="stg:absolute stg:left-2 stg:top-2 stg:z-10 stg:flex stg:items-center stg:gap-1">
-      <button type="button" onClick={onUndo} disabled={!canUndo} className={btnClass} aria-label="Undo" title={`Undo (${TOOLBAR_SHORTCUTS.undo})`}>
-        Undo
-      </button>
-      <button type="button" onClick={onRedo} disabled={!canRedo} className={btnClass} aria-label="Redo" title={`Redo (${TOOLBAR_SHORTCUTS.redo})`}>
-        Redo
-      </button>
-      <div className="stg:mx-1 stg:h-4 stg:w-px stg:bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
-      <button type="button" onClick={onAutoLayout} className={btnClass} aria-label="Auto-layout" title="Auto-layout">
-        Auto-layout
-      </button>
-      {onSave && (
-        <>
-          <div className="stg:mx-1 stg:h-4 stg:w-px stg:bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={!isDirty || isSaving}
-            className="stg:rounded stg:bg-[var(--stgm-primary,#6366f1)] stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:text-[var(--stgm-primary-foreground,#fff)] stg:shadow-sm stg:hover:opacity-90 stg:disabled:cursor-not-allowed stg:disabled:opacity-40"
-          >
-            {isSaving ? "Saving\u2026" : "Save"}
-          </button>
-        </>
-      )}
-      {isDirty && !onSave && (
-        <span className="stg:ml-1 stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
-          Modified
-        </span>
-      )}
-    </div>
+    // Undo/Redo show their keyboard shortcut on the house tooltip; the
+    // trigger is a wrapper span so the shortcut stays discoverable while the
+    // button is disabled (disabled buttons receive no pointer events).
+    // Auto-layout's label is already visible text — no tooltip to add. The
+    // provider is context-only and groups the buttons' hover delay.
+    <TooltipProvider>
+      <div className="stg:absolute stg:left-2 stg:top-2 stg:z-10 stg:flex stg:items-center stg:gap-1">
+        <Tooltip>
+          <TooltipTrigger render={<span className="stg:inline-flex" />}>
+            <button type="button" onClick={onUndo} disabled={!canUndo} className={btnClass} aria-label="Undo">
+              Undo
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">{TOOLBAR_SHORTCUTS.undo}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger render={<span className="stg:inline-flex" />}>
+            <button type="button" onClick={onRedo} disabled={!canRedo} className={btnClass} aria-label="Redo">
+              Redo
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">{TOOLBAR_SHORTCUTS.redo}</TooltipContent>
+        </Tooltip>
+        <div className="stg:mx-1 stg:h-4 stg:w-px stg:bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
+        <button type="button" onClick={onAutoLayout} className={btnClass} aria-label="Auto-layout">
+          Auto-layout
+        </button>
+        {onSave && (
+          <>
+            <div className="stg:mx-1 stg:h-4 stg:w-px stg:bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={!isDirty || isSaving}
+              className="stg:rounded stg:bg-[var(--stgm-primary,#6366f1)] stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:text-[var(--stgm-primary-foreground,#fff)] stg:shadow-sm stg:hover:opacity-90 stg:disabled:cursor-not-allowed stg:disabled:opacity-40"
+            >
+              {isSaving ? "Saving\u2026" : "Save"}
+            </button>
+          </>
+        )}
+        {isDirty && !onSave && (
+          <span className="stg:ml-1 stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
+            Modified
+          </span>
+        )}
+      </div>
+    </TooltipProvider>
   );
 }

@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
 import type { NodeExecutionStatus } from "../workflow-graph-conversions.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../internal/tooltip.js";
 
 /** Fork branch completion progress (T06). */
 export interface ForkProgressInfo {
@@ -54,17 +55,23 @@ export const ExecutionBadge = memo(function ExecutionBadge({
   if (status === "waiting_approval" && approvalToolName) {
     const approvalLabel = `Awaiting approval: ${approvalToolName}`;
     return (
-      <span
-        className={cn(
-          "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-5 stg:items-center stg:gap-0.5 stg:rounded-full stg:px-1.5 stg:text-[10px] stg:font-semibold stg:leading-none stg:shadow-sm",
-          "stg:bg-[var(--stgm-warning,#f59e0b)] stg:text-[var(--stgm-warning-foreground,#fff)]",
-        )}
-        title={approvalLabel}
-        aria-label={approvalLabel}
-      >
-        ✋
-        <span className="stg:max-w-[60px] stg:truncate">{approvalToolName}</span>
-      </span>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <span
+              className={cn(
+                "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-5 stg:items-center stg:gap-0.5 stg:rounded-full stg:px-1.5 stg:text-[10px] stg:font-semibold stg:leading-none stg:shadow-sm",
+                "stg:bg-[var(--stgm-warning,#f59e0b)] stg:text-[var(--stgm-warning-foreground,#fff)]",
+              )}
+              aria-label={approvalLabel}
+            />
+          }
+        >
+          ✋
+          <span className="stg:max-w-[60px] stg:truncate">{approvalToolName}</span>
+        </TooltipTrigger>
+        <TooltipContent side="top">{approvalLabel}</TooltipContent>
+      </Tooltip>
     );
   }
 
@@ -76,17 +83,23 @@ export const ExecutionBadge = memo(function ExecutionBadge({
       : `Agent: ${agentActivity.messagesCount} messages, ${agentActivity.toolCallsCount} tool calls`;
 
     return (
-      <span
-        className={cn(
-          "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-5 stg:items-center stg:gap-0.5 stg:rounded-full stg:px-1.5 stg:text-[10px] stg:font-semibold stg:leading-none stg:shadow-sm",
-          "stg:bg-[var(--stgm-primary,#6366f1)] stg:text-[var(--stgm-primary-foreground,#fff)]",
-        )}
-        title={agentLabel}
-        aria-label={agentLabel}
-      >
-        {agentActivity.currentToolName ? "🔧" : "💬"}
-        <span className="stg:max-w-[60px] stg:truncate">{displayText}</span>
-      </span>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <span
+              className={cn(
+                "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-5 stg:items-center stg:gap-0.5 stg:rounded-full stg:px-1.5 stg:text-[10px] stg:font-semibold stg:leading-none stg:shadow-sm",
+                "stg:bg-[var(--stgm-primary,#6366f1)] stg:text-[var(--stgm-primary-foreground,#fff)]",
+              )}
+              aria-label={agentLabel}
+            />
+          }
+        >
+          {agentActivity.currentToolName ? "🔧" : "💬"}
+          <span className="stg:max-w-[60px] stg:truncate">{displayText}</span>
+        </TooltipTrigger>
+        <TooltipContent side="top">{agentLabel}</TooltipContent>
+      </Tooltip>
     );
   }
 
@@ -97,36 +110,50 @@ export const ExecutionBadge = memo(function ExecutionBadge({
       : `Fork running, ${forkProgress.completed} of ${forkProgress.total} branches completed`;
 
     return (
-      <span
-        className={cn(
-          "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-5 stg:min-w-5 stg:items-center stg:justify-center stg:rounded-full stg:px-1.5 stg:text-[10px] stg:font-semibold stg:leading-none stg:shadow-sm",
-          "stg:bg-[var(--stgm-primary,#6366f1)] stg:text-[var(--stgm-primary-foreground,#fff)]",
-        )}
-        title={progressLabel}
-        aria-label={progressLabel}
-      >
-        {forkProgress.completed}/{forkProgress.total}
-        {forkProgress.compete && <span className="stg:ml-0.5">⚡</span>}
-      </span>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <span
+              className={cn(
+                "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-5 stg:min-w-5 stg:items-center stg:justify-center stg:rounded-full stg:px-1.5 stg:text-[10px] stg:font-semibold stg:leading-none stg:shadow-sm",
+                "stg:bg-[var(--stgm-primary,#6366f1)] stg:text-[var(--stgm-primary-foreground,#fff)]",
+              )}
+              aria-label={progressLabel}
+            />
+          }
+        >
+          {forkProgress.completed}/{forkProgress.total}
+          {forkProgress.compete && <span className="stg:ml-0.5">⚡</span>}
+        </TooltipTrigger>
+        <TooltipContent side="top">{progressLabel}</TooltipContent>
+      </Tooltip>
     );
   }
 
   const { icon, label, className } = BADGE_CONFIG[status];
 
   return (
-    <span
-      className={cn(
-        "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-5 stg:min-w-5 stg:items-center stg:justify-center stg:rounded-full stg:px-1 stg:text-[10px] stg:font-semibold stg:leading-none stg:shadow-sm",
-        className,
-      )}
-      title={label + (attemptNumber && attemptNumber > 1 ? ` (attempt ${attemptNumber})` : "")}
-      aria-label={label}
-    >
-      {icon}
-      {status === "retrying" && attemptNumber != null && attemptNumber > 1 && (
-        <span className="stg:ml-0.5">{attemptNumber}</span>
-      )}
-    </span>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span
+            className={cn(
+              "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:z-20 stg:flex stg:h-5 stg:min-w-5 stg:items-center stg:justify-center stg:rounded-full stg:px-1 stg:text-[10px] stg:font-semibold stg:leading-none stg:shadow-sm",
+              className,
+            )}
+            aria-label={label}
+          />
+        }
+      >
+        {icon}
+        {status === "retrying" && attemptNumber != null && attemptNumber > 1 && (
+          <span className="stg:ml-0.5">{attemptNumber}</span>
+        )}
+      </TooltipTrigger>
+      <TooltipContent side="top">
+        {label + (attemptNumber && attemptNumber > 1 ? ` (attempt ${attemptNumber})` : "")}
+      </TooltipContent>
+    </Tooltip>
   );
 });
 

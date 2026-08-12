@@ -29,6 +29,7 @@ const eslintConfig = defineConfig([
       ],
       "@typescript-eslint/no-explicit-any": "error",
       "stigmer/no-main-tokens-in-sidebar": "warn",
+      "stigmer/no-native-title": "error",
       "stigmer/no-token-opacity-modifiers": "warn",
       "stigmer/sdk-import-boundaries": "error",
     },

@@ -6,6 +6,7 @@ import type { WorkflowGraphModel, WorkflowGraphBudget, WorkflowGraphEnvVar } fro
 import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model.js";
 import { CATEGORY_DISPLAY_NAMES } from "../canvas-constants.js";
 import type { TopologyNodeCategory } from "../useWorkflowTopology.js";
+import { TruncatedText } from "../../internal/truncated-text.js";
 
 /** Props for {@link WorkflowSummaryPanel}. */
 export interface WorkflowSummaryPanelProps {
@@ -201,9 +202,10 @@ function EnvVarsSection({
               <span className="stg:text-[var(--stgm-muted-foreground,#737373)]">optional</span>
             )}
             {env.description && (
-              <span className="stg:truncate stg:text-[var(--stgm-muted-foreground,#737373)]" title={env.description}>
-                {env.description}
-              </span>
+              <TruncatedText
+                text={env.description}
+                className="stg:text-[var(--stgm-muted-foreground,#737373)]"
+              />
             )}
           </div>
         ))}

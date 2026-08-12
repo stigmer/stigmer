@@ -5,6 +5,7 @@ import { cn } from "@stigmer/theme";
 import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { formatDuration, formatMicroUsd } from "../format-utils.js";
 import type { TaskComparison, ExecutionComparison } from "./types.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../internal/tooltip.js";
 
 /** Props for {@link TaskComparisonTable}. */
 export interface TaskComparisonTableProps {
@@ -152,11 +153,17 @@ const TaskRow = memo(function TaskRow({
       <td className="stg:px-3 stg:py-2">
         <div className="stg:flex stg:items-center stg:gap-1.5">
           {isDivergencePoint && (
-            <span
-              className="stg:inline-block stg:h-1.5 stg:w-1.5 stg:rounded-full stg:bg-[var(--stgm-warning,#f59e0b)]"
-              title="First point of divergence"
-              aria-label="Divergence point"
-            />
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <span
+                    className="stg:inline-block stg:h-1.5 stg:w-1.5 stg:rounded-full stg:bg-[var(--stgm-warning,#f59e0b)]"
+                    aria-label="Divergence point"
+                  />
+                }
+              />
+              <TooltipContent side="top">First point of divergence</TooltipContent>
+            </Tooltip>
           )}
           <span className="stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)]">
             {task.taskName}

@@ -15,6 +15,8 @@ import { ActionMenu } from "../action-menu/index.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { TruncatedText } from "../internal/truncated-text.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { useCopyResource } from "../resource-detail/useCopyResource.js";
@@ -311,35 +313,39 @@ function ShareRow({
     >
       <td className="stg:px-4 stg:py-2.5">
         <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2">
-          <span
-            className="stg:truncate stg:font-medium stg:text-foreground"
-            title={meta?.name || slug || undefined}
-          >
-            {meta?.name || slug || "\u2014"}
-          </span>
+          <TruncatedText
+            text={meta?.name || slug || "\u2014"}
+            className="stg:font-medium stg:text-foreground"
+          />
           {isCrossOrg && (
-            <span
-              className={cn(
-                "stg:inline-flex stg:shrink-0 stg:items-center stg:rounded-md stg:px-1.5 stg:py-0.5",
-                "stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wide",
-                "stg:bg-muted stg:text-muted-foreground stg:border stg:border-border",
-              )}
-              title={`This share lives in ${org}; the agent lives in ${agent.metadata?.org}`}
-            >
-              Cross-org
-            </span>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <span
+                    className={cn(
+                      "stg:inline-flex stg:shrink-0 stg:items-center stg:rounded-md stg:px-1.5 stg:py-0.5",
+                      "stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wide",
+                      "stg:bg-muted stg:text-muted-foreground stg:border stg:border-border",
+                    )}
+                  />
+                }
+              >
+                Cross-org
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {`This share lives in ${org}; the agent lives in ${agent.metadata?.org}`}
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
       </td>
 
       <td className="stg:px-4 stg:py-2.5" onClick={(e) => e.stopPropagation()}>
         <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-1.5">
-          <code
-            className="stg:truncate stg:font-mono stg:text-xs stg:text-muted-foreground"
-            title={displayPath}
-          >
-            {displayPath}
-          </code>
+          <TruncatedText
+            text={displayPath}
+            className="stg:font-mono stg:text-xs stg:text-muted-foreground"
+          />
           <button
             type="button"
             onClick={handleCopyLink}

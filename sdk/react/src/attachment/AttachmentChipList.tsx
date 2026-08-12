@@ -7,6 +7,7 @@ import { formatFileSize } from "./attachment-utils.js";
 import { useObjectUrl } from "./useObjectUrl.js";
 import { AttachmentImageLightbox } from "./AttachmentImageLightbox.js";
 import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 /** Props for {@link AttachmentChipList}. */
 export interface AttachmentChipListProps {
@@ -216,84 +217,92 @@ function ImageAttachmentChip({
   return (
     // The remove badge and retry pill are SIBLINGS of the preview button,
     // absolutely positioned over it — buttons cannot nest inside buttons.
-    <span
-      role="listitem"
-      aria-label={chipAriaLabel(entry)}
-      title={entry.file.name}
-      className="stg:relative stg:inline-flex"
-    >
-      {/* The whole tile is the preview target. Preview stays enabled while
-          `disabled` (that prop gates the mutating remove/retry actions) and
-          in every phase: the object URL wraps in-memory bytes, no fetch.
-          UNSTYLED_BUTTON adds the pointer cursor — the image tile carries
-          no other clickability cue. */}
-      <button
-        type="button"
-        onClick={onPreview}
-        aria-label={`Preview ${entry.file.name}`}
-        className={cn(
-          UNSTYLED_BUTTON,
-          "stg:relative stg:block stg:h-14 stg:w-14 stg:overflow-hidden stg:rounded-md stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          isError && "stg:ring-1 stg:ring-destructive",
-        )}
-      >
-        {url ? (
-          <img
-            src={url}
-            alt=""
-            aria-hidden="true"
-            onError={() => setLoadFailed(true)}
-            className={cn(
-              "stg:h-full stg:w-full stg:object-cover",
-              (isUploading || isError) && "stg:opacity-50",
-            )}
-          />
-        ) : (
-          // One-frame placeholder until the object-URL effect runs; same
-          // footprint as the image, so no layout shift.
+    <Tooltip>
+      <TooltipTrigger
+        render={
           <span
-            className="stg:block stg:h-full stg:w-full stg:animate-pulse stg:bg-muted"
-            aria-hidden="true"
+            role="listitem"
+            aria-label={chipAriaLabel(entry)}
+            className="stg:relative stg:inline-flex"
           />
-        )}
-        {isUploading && (
-          <span className="stg:absolute stg:inset-0 stg:flex stg:items-center stg:justify-center">
-            <ChipSpinner size={16} />
-          </span>
-        )}
-      </button>
-
-      {isError && (
+        }
+      >
+        {/* The whole tile is the preview target. Preview stays enabled while
+            `disabled` (that prop gates the mutating remove/retry actions) and
+            in every phase: the object URL wraps in-memory bytes, no fetch.
+            UNSTYLED_BUTTON adds the pointer cursor — the image tile carries
+            no other clickability cue. */}
         <button
           type="button"
-          onClick={onRetry}
-          disabled={disabled}
-          aria-label={`Retry uploading ${entry.file.name}`}
+          onClick={onPreview}
+          aria-label={`Preview ${entry.file.name}`}
           className={cn(
             UNSTYLED_BUTTON,
-            "stg:absolute stg:left-1/2 stg:top-1/2 stg:-translate-x-1/2 stg:-translate-y-1/2 stg:rounded-full stg:bg-destructive stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:leading-none stg:text-destructive-foreground stg:shadow-sm stg:hover:bg-destructive-hover stg:disabled:pointer-events-none",
+            "stg:relative stg:block stg:h-14 stg:w-14 stg:overflow-hidden stg:rounded-md stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+            isError && "stg:ring-1 stg:ring-destructive",
           )}
         >
-          Retry
+          {url ? (
+            <img
+              src={url}
+              alt=""
+              aria-hidden="true"
+              onError={() => setLoadFailed(true)}
+              className={cn(
+                "stg:h-full stg:w-full stg:object-cover",
+                (isUploading || isError) && "stg:opacity-50",
+              )}
+            />
+          ) : (
+            // One-frame placeholder until the object-URL effect runs; same
+            // footprint as the image, so no layout shift.
+            <span
+              className="stg:block stg:h-full stg:w-full stg:animate-pulse stg:bg-muted"
+              aria-hidden="true"
+            />
+          )}
+          {isUploading && (
+            <span className="stg:absolute stg:inset-0 stg:flex stg:items-center stg:justify-center">
+              <ChipSpinner size={16} />
+            </span>
+          )}
         </button>
-      )}
 
-      <button
-        type="button"
-        onClick={onRemove}
-        disabled={disabled}
-        aria-label={`Remove ${entry.file.name}`}
-        className={cn(
-          UNSTYLED_BUTTON,
-          // The established corner-badge geometry (ContextPopover,
-          // ComposerToolbar). Solid bg + border keep it legible over any
-          // image without opacity-modified tokens (Dont-Do #4).
-          "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-4 stg:w-4 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-border stg:bg-background stg:text-muted-foreground stg:shadow-sm stg:hover:text-destructive stg:disabled:pointer-events-none",
+        {isError && (
+          <button
+            type="button"
+            onClick={onRetry}
+            disabled={disabled}
+            aria-label={`Retry uploading ${entry.file.name}`}
+            className={cn(
+              UNSTYLED_BUTTON,
+              "stg:absolute stg:left-1/2 stg:top-1/2 stg:-translate-x-1/2 stg:-translate-y-1/2 stg:rounded-full stg:bg-destructive stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:leading-none stg:text-destructive-foreground stg:shadow-sm stg:hover:bg-destructive-hover stg:disabled:pointer-events-none",
+            )}
+          >
+            Retry
+          </button>
         )}
-      >
-        <XIcon />
-      </button>
-    </span>
+
+        <button
+          type="button"
+          onClick={onRemove}
+          disabled={disabled}
+          aria-label={`Remove ${entry.file.name}`}
+          className={cn(
+            UNSTYLED_BUTTON,
+            // The established corner-badge geometry (ContextPopover,
+            // ComposerToolbar). Solid bg + border keep it legible over any
+            // image without opacity-modified tokens (Dont-Do #4).
+            "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-4 stg:w-4 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-border stg:bg-background stg:text-muted-foreground stg:shadow-sm stg:hover:text-destructive stg:disabled:pointer-events-none",
+          )}
+        >
+          <XIcon />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="stg:break-all">
+        {entry.file.name}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 

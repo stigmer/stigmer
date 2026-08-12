@@ -2,6 +2,7 @@
 
 import { useCallback, useContext, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { FilePathContext } from "./FilePathContext.js";
 import { resolvePathAction, splitDisplayPath } from "./file-path-resolver.js";
 
@@ -18,9 +19,9 @@ export interface FilePathLinkProps {
   readonly path: string;
   /**
    * How much of the directory prefix to show. Defaults to `"hide"` (file name
-   * only); the full path is always available on hover via `title`. Use `"dim"`
-   * where the surrounding directory aids comprehension (diff headers, the
-   * multi-file changes list).
+   * only); the full path is always available on the hover/focus tooltip. Use
+   * `"dim"` where the surrounding directory aids comprehension (diff headers,
+   * the multi-file changes list).
    */
   readonly dirDisplay?: FilePathDirDisplay;
   /** Additional CSS class names for the root element. */
@@ -35,7 +36,7 @@ const COPIED_FEEDBACK_MS = 2000;
  *
  * **Filename-first.** It shows the base name prominently and never clips it;
  * the directory is optional (`dirDisplay`) and dimmed, and the *full* path is
- * always available on hover via `title` (and to screen readers via
+ * always available on the hover/focus tooltip (and to screen readers via
  * `aria-label`). This fixes the prior behaviour, where a single `truncate` on
  * the whole path clipped the file name — the one part that identifies the
  * change — and surfaced only the action verb on hover.
@@ -75,7 +76,6 @@ export function FilePathLink({
   // path. The action verb moves into the aria-label so hover surfaces the path,
   // not "Copy path".
   const fullPath = resolved.action === "copy" ? resolved.value : path;
-  const title = fullPath;
   const ariaLabel = `${resolved.tooltip}: ${fullPath}`;
 
   const handleCopy = useCallback(() => {
@@ -143,32 +143,48 @@ export function FilePathLink({
   // in-app viewer) and only calls `preventDefault` when the handler took it.
   if (resolved.action === "link") {
     return (
-      <a
-        href={resolved.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={handleClick}
-        aria-label={ariaLabel}
-        title={title}
-        className={cn(sharedClasses, "stg:group/fpl")}
-      >
-        {label}
-        <ExternalLinkIcon />
-      </a>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <a
+              href={resolved.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleClick}
+              aria-label={ariaLabel}
+              className={cn(sharedClasses, "stg:group/fpl")}
+            />
+          }
+        >
+          {label}
+          <ExternalLinkIcon />
+        </TooltipTrigger>
+        <TooltipContent side="top" className="stg:break-all">
+          {fullPath}
+        </TooltipContent>
+      </Tooltip>
     );
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      aria-label={ariaLabel}
-      title={title}
-      className={cn(sharedClasses, "stg:group/fpl stg:cursor-pointer")}
-    >
-      {label}
-      {!copied && <CopyIcon />}
-    </button>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            onClick={handleClick}
+            aria-label={ariaLabel}
+            className={cn(sharedClasses, "stg:group/fpl stg:cursor-pointer")}
+          />
+        }
+      >
+        {label}
+        {!copied && <CopyIcon />}
+      </TooltipTrigger>
+      <TooltipContent side="top" className="stg:break-all">
+        {fullPath}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 

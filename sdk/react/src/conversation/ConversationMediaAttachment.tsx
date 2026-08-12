@@ -10,6 +10,7 @@ import { AttachmentImageLightbox } from "../attachment/AttachmentImageLightbox.j
 import { formatFileSize } from "../attachment/attachment-utils.js";
 import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
 import { toError } from "../internal/toError.js";
+import { TruncatedText } from "../internal/truncated-text.js";
 import { useStigmer } from "../hooks.js";
 import { useConversationMediaUrl } from "./useConversationMediaUrl.js";
 
@@ -191,7 +192,6 @@ function MediaDocumentChip({
   return (
     <div className={className}>
       <span
-        title={name}
         className="stg:inline-flex stg:max-w-[240px] stg:items-center stg:rounded-md stg:bg-muted-subtle stg:px-2 stg:py-1 stg:text-xs stg:text-foreground"
       >
         <button
@@ -206,7 +206,7 @@ function MediaDocumentChip({
           )}
         >
           <FileGlyph />
-          <span className="stg:min-w-0 stg:truncate">{name}</span>
+          <TruncatedText text={name} className="stg:min-w-0" />
           {size !== null && (
             <span className="stg:shrink-0 stg:text-muted-foreground">{size}</span>
           )}

@@ -204,13 +204,16 @@ const changesView = {
 describe("WorkspaceSurface extraViews", () => {
   it("renders injected views in the rail after the built-ins", () => {
     renderSurface({ extraViews: [configView, changesView] });
+    // Rail names live in accessible labels (hover rides the house tooltip;
+    // native titles are banned, stigmer-cloud#268).
     const radios = screen.getAllByRole("radio");
-    expect(radios.map((r) => r.getAttribute("title"))).toEqual([
+    expect(radios.map((r) => r.getAttribute("aria-label"))).toEqual([
       "Explorer",
       "Search",
       "Config",
-      "Changes",
+      "Changes (3)", // the badge count folds into the accessible name
     ]);
+    expect(radios.every((r) => r.getAttribute("title") === null)).toBe(true);
   });
 
   it("shows a count badge on a rail view and folds it into the accessible name", () => {

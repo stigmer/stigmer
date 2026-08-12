@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../internal/tooltip.js";
 import type { StatusPhase } from "../types.js";
 
 /** Props for {@link StatusBadge}. */
@@ -69,9 +70,12 @@ export function StatusBadge({
   if (!tooltip) return badge;
 
   return (
-    <span title={tooltip} className="stg:inline-flex">
-      {badge}
-    </span>
+    <Tooltip>
+      <TooltipTrigger render={<span className="stg:inline-flex" />}>
+        {badge}
+      </TooltipTrigger>
+      <TooltipContent side="top">{tooltip}</TooltipContent>
+    </Tooltip>
   );
 }
 

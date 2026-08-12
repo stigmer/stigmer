@@ -3,6 +3,12 @@
 import { useCallback, type KeyboardEvent, type MouseEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { editorKey, type OpenEditor } from "../internal/store/index.js";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../internal/tooltip.js";
 
 /**
  * Deterministic, space-free DOM id for a tab, built from an instance-scoped
@@ -73,94 +79,105 @@ export function EditorTabs({
   );
 
   return (
-    <div
-      role="tablist"
-      aria-label="Open editors"
-      aria-orientation="horizontal"
-      className={cn(
-        "stg:flex stg:shrink-0 stg:items-stretch stg:overflow-x-auto stg:border-b stg:border-border",
-        className,
-      )}
-    >
-      {editors.map((editor, index) => {
-        const key = editorKey(editor.entryId, editor.path);
-        const isActive = key === activeKey;
-        const lastSlash = editor.path.lastIndexOf("/");
-        const basename =
-          lastSlash >= 0 ? editor.path.slice(lastSlash + 1) : editor.path;
+    <TooltipProvider>
+      <div
+        role="tablist"
+        aria-label="Open editors"
+        aria-orientation="horizontal"
+        className={cn(
+          "stg:flex stg:shrink-0 stg:items-stretch stg:overflow-x-auto stg:border-b stg:border-border",
+          className,
+        )}
+      >
+        {editors.map((editor, index) => {
+          const key = editorKey(editor.entryId, editor.path);
+          const isActive = key === activeKey;
+          const lastSlash = editor.path.lastIndexOf("/");
+          const basename =
+            lastSlash >= 0 ? editor.path.slice(lastSlash + 1) : editor.path;
 
-        const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-          if (e.key === "ArrowRight") {
-            e.preventDefault();
-            move(index, 1);
-          } else if (e.key === "ArrowLeft") {
-            e.preventDefault();
-            move(index, -1);
-          } else if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onActivate(editor.entryId, editor.path);
-          } else if (e.key === "Delete" || e.key === "Backspace") {
-            e.preventDefault();
-            onClose(editor.entryId, editor.path);
-          }
-        };
+          const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+            if (e.key === "ArrowRight") {
+              e.preventDefault();
+              move(index, 1);
+            } else if (e.key === "ArrowLeft") {
+              e.preventDefault();
+              move(index, -1);
+            } else if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onActivate(editor.entryId, editor.path);
+            } else if (e.key === "Delete" || e.key === "Backspace") {
+              e.preventDefault();
+              onClose(editor.entryId, editor.path);
+            }
+          };
 
-        const handleAuxClick = (e: MouseEvent<HTMLDivElement>) => {
-          // Middle click closes, matching browser/editor tab conventions.
-          if (e.button === 1) {
-            e.preventDefault();
-            onClose(editor.entryId, editor.path);
-          }
-        };
+          const handleAuxClick = (e: MouseEvent<HTMLDivElement>) => {
+            // Middle click closes, matching browser/editor tab conventions.
+            if (e.button === 1) {
+              e.preventDefault();
+              onClose(editor.entryId, editor.path);
+            }
+          };
 
-        return (
-          <div
-            key={key}
-            role="tab"
-            id={tabIdPrefix ? editorTabDomId(tabIdPrefix, key) : undefined}
-            aria-selected={isActive}
-            aria-controls={panelId}
-            tabIndex={isActive ? 0 : -1}
-            title={editor.path}
-            onClick={() => onActivate(editor.entryId, editor.path)}
-            onDoubleClick={() => onPin(editor.entryId, editor.path)}
-            onAuxClick={handleAuxClick}
-            onKeyDown={handleKeyDown}
-            className={cn(
-              "stg:group stg:flex stg:max-w-[12rem] stg:shrink-0 stg:cursor-pointer stg:items-center stg:gap-1.5 stg:border-r stg:border-border stg:px-3 stg:py-1.5 stg:text-xs stg:transition-colors",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
-              isActive
-                ? "stg:bg-background stg:text-foreground"
-                : "stg:bg-muted-faint stg:text-muted-foreground stg:hover:bg-muted stg:hover:text-foreground",
-            )}
-          >
-            <span className={cn("stg:truncate", editor.preview && "stg:italic")}>
-              {basename}
-            </span>
-            {/* The visual close "X" is a presentational mouse affordance, NOT a
-                nested interactive control: a `<button>` inside `role="tab"` would
-                violate WCAG 4.1.2 (axe `nested-interactive`). Assistive tech and
-                keyboard users close the focused tab via Delete/Backspace (handled
-                above), so `aria-hidden` here removes the redundant nested control
-                without losing the close action for anyone. */}
-            <span
-              aria-hidden="true"
-              title={`Close ${basename}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose(editor.entryId, editor.path);
-              }}
-              className={cn(
-                "stg:shrink-0 stg:cursor-pointer stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-opacity stg:hover:bg-accent-hover stg:hover:text-foreground",
-                isActive ? "stg:opacity-100" : "stg:opacity-0 stg:group-hover:opacity-100",
-              )}
-            >
-              <CloseIcon />
-            </span>
-          </div>
-        );
-      })}
-    </div>
+          return (
+            <Tooltip key={key}>
+              <TooltipTrigger
+                render={
+                  <div
+                    role="tab"
+                    id={tabIdPrefix ? editorTabDomId(tabIdPrefix, key) : undefined}
+                    aria-selected={isActive}
+                    aria-controls={panelId}
+                    tabIndex={isActive ? 0 : -1}
+                    onClick={() => onActivate(editor.entryId, editor.path)}
+                    onDoubleClick={() => onPin(editor.entryId, editor.path)}
+                    onAuxClick={handleAuxClick}
+                    onKeyDown={handleKeyDown}
+                    className={cn(
+                      "stg:group stg:flex stg:max-w-[12rem] stg:shrink-0 stg:cursor-pointer stg:items-center stg:gap-1.5 stg:border-r stg:border-border stg:px-3 stg:py-1.5 stg:text-xs stg:transition-colors",
+                      "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
+                      isActive
+                        ? "stg:bg-background stg:text-foreground"
+                        : "stg:bg-muted-faint stg:text-muted-foreground stg:hover:bg-muted stg:hover:text-foreground",
+                    )}
+                  />
+                }
+              >
+                <span className={cn("stg:truncate", editor.preview && "stg:italic")}>
+                  {basename}
+                </span>
+                {/* The visual close "X" is a presentational mouse affordance, NOT a
+                    nested interactive control: a `<button>` inside `role="tab"` would
+                    violate WCAG 4.1.2 (axe `nested-interactive`). Assistive tech and
+                    keyboard users close the focused tab via Delete/Backspace (handled
+                    above), so `aria-hidden` here removes the redundant nested control
+                    without losing the close action for anyone. It carries no tooltip
+                    of its own: it sits inside the tab's tooltip trigger, so a nested
+                    trigger would pop two tooltips at once, and its old title only
+                    restated the visible basename. */}
+                <span
+                  aria-hidden="true"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClose(editor.entryId, editor.path);
+                  }}
+                  className={cn(
+                    "stg:shrink-0 stg:cursor-pointer stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-opacity stg:hover:bg-accent-hover stg:hover:text-foreground",
+                    isActive ? "stg:opacity-100" : "stg:opacity-0 stg:group-hover:opacity-100",
+                  )}
+                >
+                  <CloseIcon />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="stg:break-all">
+                {editor.path}
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
+      </div>
+    </TooltipProvider>
   );
 }
 

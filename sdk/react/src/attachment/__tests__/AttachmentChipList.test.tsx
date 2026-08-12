@@ -106,11 +106,12 @@ describe("AttachmentChipList — image miniature", () => {
 
     await waitFor(() => expect(chipImage(container)).toBeTruthy());
 
-    // The tile is the chip — the name lives in the tooltip and accessible
-    // label, never as a text node (file chips, by contrast, keep theirs).
+    // The tile is the chip — the name lives in the house tooltip and
+    // accessible label, never as a text node (file chips, by contrast,
+    // keep theirs) and never a native title (banned, stigmer-cloud#268).
     expect(screen.queryByText("shot.png")).toBeNull();
     const tile = screen.getByRole("listitem", { name: /^shot\.png/ });
-    expect(tile.getAttribute("title")).toBe("shot.png");
+    expect(tile.getAttribute("title")).toBeNull();
     // Remove is an always-visible corner badge, not hover-revealed.
     expect(screen.getByRole("button", { name: "Remove shot.png" })).toBeTruthy();
   });

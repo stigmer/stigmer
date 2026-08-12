@@ -19,6 +19,7 @@ import {
 } from "./MessageAttachments.js";
 import { PlanDocumentMessage } from "./PlanDocumentMessage.js";
 import { useRenderTracer } from "../internal/dev/index.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 /** Props for {@link MessageEntry}. */
 export interface MessageEntryProps {
@@ -192,21 +193,27 @@ function HumanMessage({
       )}
       <p className="stg:text-sm stg:text-foreground stg:whitespace-pre-wrap">{content}</p>
       {onEdit && (
-        <button
-          type="button"
-          onClick={onEdit}
-          aria-label="Edit message"
-          title="Edit"
-          className={cn(
-            "stg:absolute stg:-top-2.5 stg:-right-2.5 stg:inline-flex stg:h-7 stg:w-7 stg:items-center stg:justify-center stg:rounded-full",
-            "stg:border stg:border-border stg:bg-card stg:text-muted-foreground stg:shadow-sm stg:transition",
-            "stg:hover:text-foreground stg:hover:bg-accent-hover",
-            "stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}
-        >
-          <EditIcon />
-        </button>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                onClick={onEdit}
+                aria-label="Edit message"
+                className={cn(
+                  "stg:absolute stg:-top-2.5 stg:-right-2.5 stg:inline-flex stg:h-7 stg:w-7 stg:items-center stg:justify-center stg:rounded-full",
+                  "stg:border stg:border-border stg:bg-card stg:text-muted-foreground stg:shadow-sm stg:transition",
+                  "stg:hover:text-foreground stg:hover:bg-accent-hover",
+                  "stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                )}
+              />
+            }
+          >
+            <EditIcon />
+          </TooltipTrigger>
+          <TooltipContent side="top">Edit</TooltipContent>
+        </Tooltip>
       )}
     </div>
   );

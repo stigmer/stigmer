@@ -10,6 +10,7 @@ import type { EdgeDiffStatus } from "./diff/types.js";
 import { CanvasActionsContext } from "./CanvasActionsContext.js";
 import { TaskPickerPopover } from "./TaskPickerPopover.js";
 import { useWorkflowGraphMode } from "./WorkflowGraphModeContext.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 // ---------------------------------------------------------------------------
 // Execution-state visual mapping (DD-T06-005)
@@ -205,22 +206,28 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
           {/* Insert button and picker — design mode only */}
           {isDesignMode && (
             <>
-              <button
-                ref={insertBtnRef}
-                type="button"
-                onClick={handleOpenPicker}
-                className={cn(
-                  "stg:flex stg:h-5 stg:w-5 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:text-[var(--stgm-muted-foreground,#737373)] stg:shadow-sm stg:transition-all",
-                  "stg:hover:border-[var(--stgm-primary,#6366f1)] stg:hover:bg-[var(--stgm-primary,#6366f1)] stg:hover:text-[var(--stgm-primary-foreground,#fff)]",
-                  hovered || selected || pickerOpen ? "stg:scale-100 stg:opacity-100" : "stg:scale-75 stg:opacity-0",
-                )}
-                aria-label="Insert task here"
-                title="Insert task"
-              >
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-                  <path d="M5 2v6M2 5h6" />
-                </svg>
-              </button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      ref={insertBtnRef}
+                      type="button"
+                      onClick={handleOpenPicker}
+                      className={cn(
+                        "stg:flex stg:h-5 stg:w-5 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-[var(--stgm-border-prominent,#d4d4d8)] stg:bg-[var(--stgm-card,var(--stgm-background,#fff))] stg:text-[var(--stgm-muted-foreground,#737373)] stg:shadow-sm stg:transition-all",
+                        "stg:hover:border-[var(--stgm-primary,#6366f1)] stg:hover:bg-[var(--stgm-primary,#6366f1)] stg:hover:text-[var(--stgm-primary-foreground,#fff)]",
+                        hovered || selected || pickerOpen ? "stg:scale-100 stg:opacity-100" : "stg:scale-75 stg:opacity-0",
+                      )}
+                      aria-label="Insert task here"
+                    />
+                  }
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                    <path d="M5 2v6M2 5h6" />
+                  </svg>
+                </TooltipTrigger>
+                <TooltipContent side="top">Insert task</TooltipContent>
+              </Tooltip>
 
               <TaskPickerPopover
                 open={pickerOpen}

@@ -95,10 +95,11 @@ export function AttachmentImageLightbox({
       {open && (
         <div className="stg:flex stg:flex-col">
           <div className="stg:flex stg:items-center stg:gap-2 stg:px-3 stg:py-2">
-            <span
-              className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-xs stg:font-semibold stg:text-foreground"
-              title={filename}
-            >
+            {/* No tooltip here: the house tooltip portals OUTSIDE this native
+                showModal() dialog, where the top layer covers it and `inert`
+                disables it. The old title only restated the visible filename
+                (also the image's alt), so it is dropped rather than replaced. */}
+            <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-xs stg:font-semibold stg:text-foreground">
               {filename}
             </span>
             <button

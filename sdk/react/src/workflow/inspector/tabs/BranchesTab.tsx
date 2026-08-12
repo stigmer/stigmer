@@ -2,6 +2,11 @@
 
 import { memo, useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "../../../internal/tooltip.js";
 import type { WorkflowGraphNode, WorkflowGraphModel } from "../../workflow-graph-model.js";
 import type { InspectorMutations } from "../types.js";
 
@@ -172,17 +177,23 @@ function SwitchCaseBranches({
                 </div>
 
                 {/* Remove button */}
-                <button
-                  type="button"
-                  onClick={() => handleRemove(caseEntry.name)}
-                  className="stg:shrink-0 stg:opacity-0 stg:group-hover/case:opacity-100 stg:transition-opacity stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:text-[var(--stgm-destructive,#ef4444)]"
-                  aria-label={`Remove case ${caseEntry.name}`}
-                  title="Remove case"
-                >
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-                    <path d="M3 3l6 6M9 3l-6 6" />
-                  </svg>
-                </button>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(caseEntry.name)}
+                        className="stg:shrink-0 stg:opacity-0 stg:group-hover/case:opacity-100 stg:transition-opacity stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:text-[var(--stgm-destructive,#ef4444)]"
+                        aria-label={`Remove case ${caseEntry.name}`}
+                      />
+                    }
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                      <path d="M3 3l6 6M9 3l-6 6" />
+                    </svg>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Remove case</TooltipContent>
+                </Tooltip>
               </div>
             );
           })}
@@ -354,32 +365,51 @@ function ForkBranches({
                     className="stg:w-full stg:rounded stg:border stg:border-[var(--stgm-ring,#3b82f6)] stg:bg-[var(--stgm-background,#fff)] stg:px-1 stg:py-0.5 stg:text-[11px] stg:text-[var(--stgm-foreground,#1a1a2e)] stg:outline-none"
                   />
                 ) : (
-                  <span
-                    className="stg:text-[11px] stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)] stg:truncate stg:block stg:cursor-text"
-                    onDoubleClick={() => startRename(idx, branch.name)}
-                    title="Double-click to rename"
-                  >
-                    {branch.name}
-                  </span>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <span
+                          className="stg:text-[11px] stg:font-medium stg:text-[var(--stgm-foreground,#1a1a2e)] stg:truncate stg:block stg:cursor-text"
+                          onDoubleClick={() => startRename(idx, branch.name)}
+                        />
+                      }
+                    >
+                      {branch.name}
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      Double-click to rename
+                    </TooltipContent>
+                  </Tooltip>
                 )}
                 <span className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
                   {branch.taskCount} {branch.taskCount === 1 ? "task" : "tasks"}
                 </span>
               </div>
 
-              {/* Remove — disabled if only 2 branches */}
-              <button
-                type="button"
-                onClick={() => handleRemove(branch.name)}
-                disabled={branches.length <= 2}
-                className="stg:shrink-0 stg:opacity-0 stg:group-hover/branch:opacity-100 stg:transition-opacity stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:text-[var(--stgm-destructive,#ef4444)] stg:disabled:opacity-30 stg:disabled:cursor-not-allowed"
-                aria-label={`Remove branch ${branch.name}`}
-                title={branches.length <= 2 ? "Fork requires at least 2 branches" : "Remove branch"}
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-                  <path d="M3 3l6 6M9 3l-6 6" />
-                </svg>
-              </button>
+              {/* Remove — disabled if only 2 branches. The tooltip trigger is
+                  a wrapper span so the "why is this disabled" explanation
+                  stays hoverable (disabled buttons never receive pointer
+                  events). */}
+              <Tooltip>
+                <TooltipTrigger render={<span className="stg:inline-flex stg:shrink-0" />}>
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(branch.name)}
+                    disabled={branches.length <= 2}
+                    className="stg:shrink-0 stg:opacity-0 stg:group-hover/branch:opacity-100 stg:transition-opacity stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:text-[var(--stgm-destructive,#ef4444)] stg:disabled:opacity-30 stg:disabled:cursor-not-allowed"
+                    aria-label={`Remove branch ${branch.name}`}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                      <path d="M3 3l6 6M9 3l-6 6" />
+                    </svg>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  {branches.length <= 2
+                    ? "Fork requires at least 2 branches"
+                    : "Remove branch"}
+                </TooltipContent>
+              </Tooltip>
             </div>
           ))}
         </div>

@@ -167,13 +167,17 @@ export function Sidebar() {
  * Pulsing dot shown on a recents row whose execution is still running in the
  * background (its session worker is kept alive by an in-flight activity even
  * though the user navigated away).
+ *
+ * No `title` here: the accessory renders inside the SDK sidebar's recents
+ * rows, whose row-level house tooltip already owns hover — a native title on
+ * the dot would fight it with a second, OS-styled popup. The `aria-label`
+ * carries the name for screen readers.
  */
 function BackgroundRunDot() {
   return (
     <span
       role="status"
       aria-label="Running in background"
-      title="Running in background"
       className="relative mt-1 flex size-2 shrink-0"
     >
       <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />

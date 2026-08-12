@@ -7,6 +7,7 @@ import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js
 import { GitHubRepoPicker } from "../github/GitHubRepoPicker.js";
 import { useScrollShadows } from "../internal/useScrollShadows.js";
 import { ScrollFade } from "../internal/ScrollFade.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 type ActivePanel = "github" | null;
 
@@ -202,15 +203,26 @@ export function WorkspaceEditor({
                     <FolderIcon />
                   </span>
                 )}
-                <span
-                  className={cn(
-                    "stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground",
-                    entry.type === "local" && "stg:[direction:rtl] stg:text-left",
-                  )}
-                  title={entry.name}
-                >
-                  <bdi>{entry.name}</bdi>
-                </span>
+                {/* Not TruncatedText: the <bdi> + rtl-direction pair keeps the
+                    tail of a long local path visible, which a plain text span
+                    cannot reproduce. */}
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <span
+                        className={cn(
+                          "stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground",
+                          entry.type === "local" && "stg:[direction:rtl] stg:text-left",
+                        )}
+                      />
+                    }
+                  >
+                    <bdi>{entry.name}</bdi>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="stg:break-all">
+                    {entry.name}
+                  </TooltipContent>
+                </Tooltip>
                 <button
                   type="button"
                   onClick={() => workspace.remove(entry.id)}

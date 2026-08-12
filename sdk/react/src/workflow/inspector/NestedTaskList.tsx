@@ -2,6 +2,7 @@
 
 import { memo, useCallback } from "react";
 import { cn } from "@stigmer/theme";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../internal/tooltip.js";
 
 /** A nested task entry for display in the inspector. */
 export interface NestedTaskEntry {
@@ -118,17 +119,23 @@ export const NestedTaskList = memo(function NestedTaskList({
 
           {/* Remove button */}
           {editable && onRemove && (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onRemove(idx); }}
-              className="stg:shrink-0 stg:opacity-0 stg:group-hover/task:opacity-100 stg:transition-opacity stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:text-[var(--stgm-destructive,#ef4444)]"
-              aria-label={`Remove task ${task.name}`}
-              title="Remove"
-            >
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-                <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" />
-              </svg>
-            </button>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onRemove(idx); }}
+                    className="stg:shrink-0 stg:opacity-0 stg:group-hover/task:opacity-100 stg:transition-opacity stg:text-[var(--stgm-muted-foreground,#737373)] stg:hover:text-[var(--stgm-destructive,#ef4444)]"
+                    aria-label={`Remove task ${task.name}`}
+                  />
+                }
+              >
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                  <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" />
+                </svg>
+              </TooltipTrigger>
+              <TooltipContent side="top">Remove</TooltipContent>
+            </Tooltip>
           )}
         </div>
       ))}

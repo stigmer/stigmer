@@ -31,6 +31,7 @@ import type { FileReviewRowState } from "./file-review-status.js";
 import { FilePathLink } from "./FilePathLink.js";
 import { isFileCategory, type ToolCategory } from "./tool-categories.js";
 import { useToolPresentation } from "./tool-presenter.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 /** Props for {@link ToolCallItem}. */
 export interface ToolCallItemProps {
@@ -307,13 +308,23 @@ export const ToolCallItem = memo(function ToolCallItem({
           />
         ) : (
           displaySubtitle && (
-            <span
-              ref={measuresSubtitle ? subtitleRef : undefined}
-              title={displaySubtitle}
-              className="stg:min-w-0 stg:truncate stg:text-muted-foreground stg:font-mono"
-            >
-              {displaySubtitle}
-            </span>
+            // Not TruncatedText: the span must carry the external measurement
+            // ref (useIsTextTruncated) that the expanded detail reads.
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <span
+                    ref={measuresSubtitle ? subtitleRef : undefined}
+                    className="stg:min-w-0 stg:truncate stg:text-muted-foreground stg:font-mono"
+                  />
+                }
+              >
+                {displaySubtitle}
+              </TooltipTrigger>
+              <TooltipContent side="top" className="stg:break-all">
+                {displaySubtitle}
+              </TooltipContent>
+            </Tooltip>
           )
         )}
         {!isSubAgent && category !== "shell" && resultSummary && (

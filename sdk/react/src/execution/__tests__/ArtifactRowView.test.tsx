@@ -68,11 +68,14 @@ describe("ArtifactRowView — the shared row primitive", () => {
     expect((download as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it("renders directory affordances (slash suffix, ZIP download title)", () => {
+  it("renders directory affordances with no native title anywhere", () => {
     renderView({
       item: { ...fileItem, name: "bundle", tooltip: "bundle", isDirectory: true },
     });
     expect(screen.getByText("bundle/")).toBeTruthy();
-    expect(screen.getByTitle("Download ZIP")).toBeTruthy();
+    // The "Download ZIP" copy moved to the house tooltip (native titles
+    // are banned — stigmer-cloud#268); its reveal is pinned in the
+    // real-browser suite (artifact-row-tooltips.layout.test.tsx).
+    expect(document.querySelector("[title]")).toBeNull();
   });
 });

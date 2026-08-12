@@ -103,11 +103,12 @@ export const DashboardKPICards = memo(function DashboardKPICards({
     <div className={cn("stg:grid stg:gap-3 stg:sm:grid-cols-2 stg:lg:grid-cols-4", className)}>
       {STAT_CARDS.map((card) => {
         const breakdown = card.getBreakdown(summary);
+        // No tooltip on the card: the breakdown is rendered visibly below
+        // the value, so the old title only repeated on-screen text.
         return (
           <div
             key={card.label}
             className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-4 stg:py-3"
-            title={breakdown ?? undefined}
           >
             <p className="stg:text-xs stg:font-medium stg:text-muted-foreground">
               {card.label}

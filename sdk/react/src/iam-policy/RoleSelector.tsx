@@ -74,7 +74,6 @@ export function RoleSelector({
           return (
             <label
               key={opt.value}
-              title={opt.description}
               className={cn(
                 "stg:inline-flex stg:cursor-pointer stg:flex-col stg:rounded-md stg:border stg:px-3 stg:py-1.5 stg:text-xs stg:transition-colors",
                 isChecked

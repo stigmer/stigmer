@@ -3,6 +3,7 @@
 import { memo, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { ArtifactPreviewModal } from "./ArtifactPreviewModal.js";
 import { formatArtifactSize } from "./artifact-utils.js";
 import { useArtifactCopy } from "./useArtifactCopy.js";
@@ -184,9 +185,11 @@ const FOCUS_RING =
   "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm";
 
 /**
- * An icon-only secondary action. The accessible name doubles as the hover
- * tooltip (native `title` — the codebase's tooltip pattern), and the padded
- * hit area keeps the target comfortable despite the compact glyph.
+ * An icon-only secondary action. The accessible name doubles as the house
+ * tooltip's content; the trigger is a wrapper span so the hint stays
+ * hoverable while the action is disabled (`pointer-events-none` on the
+ * button would otherwise take the tooltip down with it). The padded hit
+ * area keeps the target comfortable despite the compact glyph.
  */
 function IconAction({
   label,
@@ -200,21 +203,25 @@ function IconAction({
   readonly disabled?: boolean;
 }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "stg:inline-flex stg:items-center stg:rounded-md stg:p-1.5 stg:text-muted-foreground",
-        "stg:transition-colors stg:hover:bg-muted stg:hover:text-foreground",
-        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-        FOCUS_RING,
-      )}
-    >
-      {icon}
-    </button>
+    <Tooltip>
+      <TooltipTrigger render={<span className="stg:inline-flex" />}>
+        <button
+          type="button"
+          aria-label={label}
+          onClick={onClick}
+          disabled={disabled}
+          className={cn(
+            "stg:inline-flex stg:items-center stg:rounded-md stg:p-1.5 stg:text-muted-foreground",
+            "stg:transition-colors stg:hover:bg-muted stg:hover:text-foreground",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+            FOCUS_RING,
+          )}
+        >
+          {icon}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top">{label}</TooltipContent>
+    </Tooltip>
   );
 }
 

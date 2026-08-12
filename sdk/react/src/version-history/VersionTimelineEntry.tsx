@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import type { VersionTimelineEntryProps } from "./types.js";
 
 /**
@@ -82,12 +83,18 @@ export function VersionTimelineEntry({
       >
         {/* Top line: hash + tag + current badge */}
         <div className="stg:flex stg:items-center stg:gap-2">
-          <code
-            className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-[11px] stg:font-medium stg:text-foreground"
-            title={entry.id}
-          >
-            {entry.label}
-          </code>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <code className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-[11px] stg:font-medium stg:text-foreground" />
+              }
+            >
+              {entry.label}
+            </TooltipTrigger>
+            <TooltipContent side="top" className="stg:break-all">
+              {entry.id}
+            </TooltipContent>
+          </Tooltip>
 
           {isCompareSource && (
             <span className="stg:shrink-0 stg:rounded-full stg:bg-primary stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-primary-foreground">
@@ -114,12 +121,14 @@ export function VersionTimelineEntry({
 
         {/* Second line: timestamp + actor */}
         <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-muted-foreground">
-          <time
-            dateTime={entry.timestamp.toISOString()}
-            title={entry.timestamp.toLocaleString()}
-          >
-            {formatRelativeTime(entry.timestamp)}
-          </time>
+          <Tooltip>
+            <TooltipTrigger render={<time dateTime={entry.timestamp.toISOString()} />}>
+              {formatRelativeTime(entry.timestamp)}
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {entry.timestamp.toLocaleString()}
+            </TooltipContent>
+          </Tooltip>
 
           {entry.actor && (
             <>

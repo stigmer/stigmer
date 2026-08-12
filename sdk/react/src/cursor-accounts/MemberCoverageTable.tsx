@@ -9,6 +9,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/platform/cursoraccount/v1/io_pb";
 import type { CursorMemberSpend } from "@stigmer/protos/ai/stigmer/platform/cursoraccount/v1/cursor_account_pb";
 import { Button } from "../button/index.js";
+import { TruncatedText } from "../internal/truncated-text.js";
 import { StateBadge } from "./badges.js";
 import { formatPoolPercent, formatSpendMicros } from "./cursor-account-format.js";
 import type { CursorAccountCoverage } from "./cursor-account-coverage.js";
@@ -225,9 +226,9 @@ function CoverageGroup({
  * The member-identity cell shared by key rows and gap rows. The email is
  * the row's identity, so it must be fully readable: it wraps onto more
  * lines when the column is narrow (emails are unbroken strings, so they
- * need explicit word-breaking) with a hover tooltip as backup, unlike
- * the other text cells which truncate. The secondary name line stays
- * truncated — it is display sugar, not identity.
+ * need explicit word-breaking), unlike the other text cells which
+ * truncate. The secondary name line stays truncated — it is display
+ * sugar, not identity.
  */
 function MemberCell({
   email,
@@ -238,7 +239,9 @@ function MemberCell({
 }) {
   return (
     <span role="cell" className="stg:min-w-0">
-      <span className="stg:block stg:break-words stg:font-medium stg:text-foreground" title={email}>
+      {/* No tooltip: break-words shows the full email, so a hover hint
+          would only repeat what is already visible. */}
+      <span className="stg:block stg:break-words stg:font-medium stg:text-foreground">
         {email}
       </span>
       {name && (
@@ -273,16 +276,15 @@ function KeyRow({
     <div role="row" className={cn(ROW_GRID, "stg:border-t stg:border-border-muted stg:text-xs")}>
       <MemberCell email={key.boundEmail} />
       <span role="cell" className="stg:min-w-0">
-        <span
-          className="stg:block stg:truncate stg:text-muted-foreground"
-          title={key.cursorKeyName || undefined}
-        >
-          {key.cursorKeyName || "unnamed key"}
-        </span>
+        <TruncatedText
+          text={key.cursorKeyName || "unnamed key"}
+          className="stg:block stg:text-muted-foreground"
+        />
         {key.label && (
-          <span className="stg:block stg:truncate stg:text-[11px] stg:text-muted-foreground" title={key.label}>
-            {key.label}
-          </span>
+          <TruncatedText
+            text={key.label}
+            className="stg:block stg:text-[11px] stg:text-muted-foreground"
+          />
         )}
       </span>
       <SpendCells spend={keyView.spend} />

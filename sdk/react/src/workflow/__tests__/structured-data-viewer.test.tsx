@@ -69,8 +69,11 @@ describe("StructuredDataViewer", () => {
     it("does not treat IDs/URLs > 120 chars as prose", () => {
       const longId = "aex_" + "a".repeat(200);
       render(<StructuredDataViewer data={{ execution_id: longId }} />);
-      const element = screen.getByTitle(longId);
-      expect(element).toBeTruthy();
+      // A long ID renders as a truncating value (TruncatedText — the full
+      // string stays in the DOM; native titles are banned), never as a <p>.
+      const element = screen.getByText(longId);
+      expect(element.tagName).not.toBe("P");
+      expect(element.closest("[title]")).toBeNull();
     });
   });
 
