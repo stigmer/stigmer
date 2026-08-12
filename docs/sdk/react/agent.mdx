@@ -446,7 +446,7 @@ Operational detail hub for an Agent blueprint.
 Fetches the agent via [`useAgent`](#useagent) internally and renders its
 full configuration inside a [`ResourceDetailShell`](/docs/sdk/react/resource-detail#resourcedetailshell): a
 standardized header with action bar, followed by structured content
-sections (instructions, MCP server usages, skills, datastores,
+sections (instructions, MCP server usages, skills,
 sub-agents, and environment variables). Sections with no data are
 omitted entirely — reducing visual noise per Nielsen heuristic #8.
 
@@ -471,7 +471,6 @@ All visual properties flow through `--stgm-*` design tokens.
     editable: { type: "boolean", description: "When `true`, fields on the detail view become click-to-edit. Each field saves independently via `stigmer.agent.update()`." },
     instancesRefreshKey: { type: "number", description: "Increment this value to trigger a refetch of the instance list. Useful after externally creating or deleting an instance." },
     onCreateInstanceClick: { type: "() => void", description: "Called when the user clicks \"Create Instance\" in the Instances tab. Opens the create instance dialog." },
-    onDatastoreClick: { type: "(ref: { org: string; slug: string }) => void", description: "Called when a datastore reference is clicked. Provides `org` and `slug` of the referenced datastore so the consumer can wire navigation. When the reference has no explicit org, the agent's own org is used as fallback." },
     onInstanceClick: { type: "(instance: AgentInstance) => void", description: "Called when the user clicks an instance row in the Instances tab. Typically opens an instance detail panel." },
     onInstanceDeleteClick: { type: "(instance: AgentInstance) => void", description: "Called when the user clicks \"Delete\" on a specific instance." },
     onInstanceStartSessionClick: { type: "(instance: AgentInstance) => void", description: "Called when the user clicks \"Start session\" on a specific instance. The session is created pre-bound to the chosen instance's environment." },

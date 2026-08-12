@@ -7,10 +7,11 @@
 //   - crash: exits immediately
 //
 // Flags:
-//   --env-report <path>: at startup, write the NAMES of this process's
-//     environment variables to <path>, one per line, sorted. Used by the
-//     stdio env-isolation guard (oss#256) to assert what the spawning
-//     runner passed into the subprocess.
+//
+//	--env-report <path>: at startup, write the NAMES of this process's
+//	  environment variables to <path>, one per line, sorted. Used by the
+//	  stdio env-isolation guard (oss#256) to assert what the spawning
+//	  runner passed into the subprocess.
 package main
 
 import (

@@ -78,7 +78,7 @@ Zero Console dependencies — safe for platform builder embedding.
   type={{
     className: { type: "string", description: "Additional CSS classes for the root container." },
     defaultExpanded: { type: "boolean", description: "Whether sub-agent subtrees start expanded." },
-    onNodeClick: { type: "(node: DependencyNode) => void", description: "Called when a navigable node is clicked. The `node.ref` field contains the `org` and `slug` for routing. Only fired for nodes where `ref` is defined (MCP servers, skills, datastores)." },
+    onNodeClick: { type: "(node: DependencyNode) => void", description: "Called when a navigable node is clicked. The `node.ref` field contains the `org` and `slug` for routing. Only fired for nodes where `ref` is defined (MCP servers and skills)." },
     tree: { type: "DependencyTree", description: "The dependency tree to render.", required: true, typeDescriptionLink: "#dependencytree" },
   }}
 />
@@ -111,9 +111,9 @@ The tree is recursive: sub-agent nodes contain their own children
 (MCP servers and skills they access). Edges are implicit in the
 parent-child relationship — no separate edge type is needed.
 
-Nodes are navigable when `ref` is defined (MCP servers, skills,
-datastores). Sub-agent nodes have no `ref` because they are inline
-definitions within the agent spec, not standalone resources.
+Nodes are navigable when `ref` is defined (MCP servers and skills).
+Sub-agent nodes have no `ref` because they are inline definitions
+within the agent spec, not standalone resources.
 
 <TypeTable
   type={{
@@ -124,7 +124,7 @@ definitions within the agent spec, not standalone resources.
     label: { type: "string", description: "Primary display label (slug for resources, name for sub-agents).", required: true },
     metadata: { type: "Readonly<Record<string, string>>", description: "Key-value metadata displayed as secondary info. Examples: `{ tools: \"3 tools\" }`, `{ model: \"gpt-4\" }`." },
     qualifiedLabel: { type: "string", description: "Qualified label shown when the resource belongs to a different org than the agent (e.g., `\"other-org/shared-server\"`). Undefined when the resource is in the same org as the parent agent." },
-    ref: { type: "{ org: string; slug: string }", description: "Navigation reference for clickable nodes. Defined for MCP servers, skills, and datastores (standalone resources). Undefined for sub-agents (inline definitions) and the root agent." },
+    ref: { type: "{ org: string; slug: string }", description: "Navigation reference for clickable nodes. Defined for MCP servers and skills (standalone resources). Undefined for sub-agents (inline definitions) and the root agent." },
   }}
 />
 
@@ -148,7 +148,6 @@ Resource kind in a dependency tree.
 - `"agent"` — the root agent (always the tree root)
 - `"mcp-server"` — an MCP server referenced via `mcpServerUsages` or `mcpAccess`
 - `"skill"` — a skill referenced via `skillRefs`
-- `"datastore"` — a datastore referenced via `datastoreUsages`
 - `"sub-agent"` — an inline sub-agent definition with its own dependencies
 
 
@@ -160,7 +159,7 @@ Options for [`useDependencyGraph`](#usedependencygraph).
   type={{
     agentName: { type: "string", description: "Display name of the agent (used as the root node label).", required: true },
     agentOrg: { type: "string", description: "Organization slug of the agent (used for cross-org label detection).", required: true },
-    spec: { type: "{ datastoreUsages?: readonly { datastoreRef?: { org: string; slug: string } }[]; mcpServerUsages: readonly { enabledTools: readonly string[]; mcpServerRef?: { org: string; slug: string }; toolApprovalOverrides: readonly unknown[] }[]; skillRefs: readonly { org: string; slug: string }[]; subAgents: readonly { description: string; mcpAccess: readonly { enabledTools: readonly string[]; mcpServer: string }[]; modelOverride: string; name: string; skillRefs: readonly { org: string; slug: string }[] }[] } | undefined", description: "The agent's spec containing dependency references. Pass `undefined` while the agent is loading — the hook returns `null` for `tree` and `true` for `isEmpty`.", required: true },
+    spec: { type: "{ mcpServerUsages: readonly { enabledTools: readonly string[]; mcpServerRef?: { org: string; slug: string }; toolApprovalOverrides: readonly unknown[] }[]; skillRefs: readonly { org: string; slug: string }[]; subAgents: readonly { description: string; mcpAccess: readonly { enabledTools: readonly string[]; mcpServer: string }[]; modelOverride: string; name: string; skillRefs: readonly { org: string; slug: string }[] }[] } | undefined", description: "The agent's spec containing dependency references. Pass `undefined` while the agent is loading — the hook returns `null` for `tree` and `true` for `isEmpty`.", required: true },
   }}
 />
 

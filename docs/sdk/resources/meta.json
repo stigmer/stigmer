@@ -10,7 +10,6 @@
     "artifact",
     "channel-app",
     "commons",
-    "datastore",
     "environment",
     "execution-context",
     "iam-policy",

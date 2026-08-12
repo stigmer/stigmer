@@ -43,7 +43,6 @@ func WithMcpServerUsageAndApproval(slug string, overrides []*agentv1.ToolApprova
 	}
 }
 
-
 // WithSkillRef adds a skill reference to the agent.
 func WithSkillRef(slug string) AgentOption {
 	return func(s *agentv1.AgentSpec) {

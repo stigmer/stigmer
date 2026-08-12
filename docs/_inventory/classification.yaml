@@ -438,20 +438,6 @@ pages:
       scrolling back.
 
   # ── Platform ───────────────────────────────────────────────────────────
-  concepts/datastores:
-    fate: keep
-    diataxis: explanation
-    teaches:
-      A Datastore is declarative typed storage whose constraints and grants the
-      platform enforces, giving Agents record tools.
-    medium: screenshot-journey
-    why:
-      The prose asks the reader to compare the declared constraint on one tab
-      with records on another — a compare-two-screens read, not a timed
-      playback.
-    embeds:
-      datastore-records-tour: replace
-
   concepts/environments:
     fate: keep
     diataxis: explanation

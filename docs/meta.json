@@ -29,7 +29,6 @@
     "guides/workflows/review-payloads",
     "guides/workflows/task-types",
     "---Platform---",
-    "concepts/datastores",
     "concepts/environments",
     "concepts/runners",
     "guides/runners",
