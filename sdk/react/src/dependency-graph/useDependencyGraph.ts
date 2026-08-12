@@ -41,12 +41,10 @@ export function useDependencyGraph({
     if (!spec) return { tree: null, isEmpty: true };
 
     const { mcpServerUsages, skillRefs, subAgents } = spec;
-    const datastoreUsages = spec.datastoreUsages ?? [];
 
     const hasDeps =
       mcpServerUsages.length > 0 ||
       skillRefs.length > 0 ||
-      datastoreUsages.length > 0 ||
       subAgents.length > 0;
 
     if (!hasDeps) return { tree: null, isEmpty: true };
@@ -93,24 +91,6 @@ export function useDependencyGraph({
         ref: { org: ref.org || agentOrg, slug: ref.slug },
       };
     });
-
-    const datastoreNodes: DependencyNode[] = datastoreUsages
-      .filter((u) => u.datastoreRef)
-      .map((usage) => {
-        nodeCount++;
-        const ref = usage.datastoreRef!;
-        return {
-          id: `datastore:${ref.slug}`,
-          kind: "datastore" as const,
-          label: ref.slug,
-          qualifiedLabel:
-            ref.org && ref.org !== agentOrg
-              ? `${ref.org}/${ref.slug}`
-              : undefined,
-          children: [],
-          ref: { org: ref.org || agentOrg, slug: ref.slug },
-        };
-      });
 
     const subAgentNodes: DependencyNode[] = subAgents.map((sa) => {
       nodeCount++;
@@ -164,12 +144,12 @@ export function useDependencyGraph({
     });
 
     // Child ordering mirrors the Overview sections: MCP servers,
-    // skills, datastores, then sub-agents.
+    // skills, then sub-agents.
     const root: DependencyNode = {
       id: `agent:${agentName}`,
       kind: "agent",
       label: agentName,
-      children: [...mcpNodes, ...skillNodes, ...datastoreNodes, ...subAgentNodes],
+      children: [...mcpNodes, ...skillNodes, ...subAgentNodes],
     };
 
     return {

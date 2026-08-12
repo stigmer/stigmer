@@ -15,48 +15,46 @@ function graphFor(spec: Parameters<typeof useDependencyGraph>[0]["spec"]) {
   return result.current;
 }
 
-describe("useDependencyGraph — datastore nodes", () => {
-  it("derives a datastore node with a navigation ref", () => {
+describe("useDependencyGraph", () => {
+  it("derives a skill node with a navigation ref", () => {
     const { tree, isEmpty } = graphFor({
       ...emptySpec,
-      datastoreUsages: [
-        { datastoreRef: { org: "acme", slug: "clinic-records" } },
-      ],
+      skillRefs: [{ org: "acme", slug: "triage-guide" }],
     });
 
-    // A datastore-only agent has dependencies — the tab must appear.
+    // A skill-only agent has dependencies — the tab must appear.
     expect(isEmpty).toBe(false);
     expect(tree).not.toBeNull();
     expect(tree!.nodeCount).toBe(2);
 
     const node = tree!.root.children[0];
     expect(node).toMatchObject({
-      id: "datastore:clinic-records",
-      kind: "datastore",
-      label: "clinic-records",
-      ref: { org: "acme", slug: "clinic-records" },
+      id: "skill:triage-guide",
+      kind: "skill",
+      label: "triage-guide",
+      ref: { org: "acme", slug: "triage-guide" },
     });
     // Same-org ref gets no qualified label.
     expect(node.qualifiedLabel).toBeUndefined();
   });
 
-  it("qualifies cross-org datastore labels and falls back to the agent org for empty refs", () => {
+  it("qualifies cross-org labels and falls back to the agent org for empty refs", () => {
     const { tree } = graphFor({
       ...emptySpec,
-      datastoreUsages: [
-        { datastoreRef: { org: "partner", slug: "shared-records" } },
-        { datastoreRef: { org: "", slug: "local-records" } },
+      skillRefs: [
+        { org: "partner", slug: "shared-guide" },
+        { org: "", slug: "local-guide" },
       ],
     });
 
     const [crossOrg, relative] = tree!.root.children;
-    expect(crossOrg.qualifiedLabel).toBe("partner/shared-records");
-    expect(crossOrg.ref).toEqual({ org: "partner", slug: "shared-records" });
+    expect(crossOrg.qualifiedLabel).toBe("partner/shared-guide");
+    expect(crossOrg.ref).toEqual({ org: "partner", slug: "shared-guide" });
     expect(relative.qualifiedLabel).toBeUndefined();
-    expect(relative.ref).toEqual({ org: "acme", slug: "local-records" });
+    expect(relative.ref).toEqual({ org: "acme", slug: "local-guide" });
   });
 
-  it("orders children to mirror the Overview sections: MCP, skills, datastores, sub-agents", () => {
+  it("orders children to mirror the Overview sections: MCP, skills, sub-agents", () => {
     const { tree } = graphFor({
       mcpServerUsages: [
         {
@@ -75,32 +73,18 @@ describe("useDependencyGraph — datastore nodes", () => {
           modelOverride: "",
         },
       ],
-      datastoreUsages: [
-        { datastoreRef: { org: "acme", slug: "clinic-records" } },
-      ],
     });
 
     expect(tree!.root.children.map((c) => c.kind)).toEqual([
       "mcp-server",
       "skill",
-      "datastore",
       "sub-agent",
     ]);
-    expect(tree!.nodeCount).toBe(5);
-  });
-
-  it("accepts specs without the datastoreUsages field (pre-existing public callers)", () => {
-    const { tree, isEmpty } = graphFor({
-      ...emptySpec,
-      skillRefs: [{ org: "acme", slug: "triage-guide" }],
-    });
-
-    expect(isEmpty).toBe(false);
-    expect(tree!.root.children.map((c) => c.kind)).toEqual(["skill"]);
+    expect(tree!.nodeCount).toBe(4);
   });
 
   it("stays empty when no dependencies exist at all", () => {
-    const { tree, isEmpty } = graphFor({ ...emptySpec, datastoreUsages: [] });
+    const { tree, isEmpty } = graphFor(emptySpec);
 
     expect(isEmpty).toBe(true);
     expect(tree).toBeNull();

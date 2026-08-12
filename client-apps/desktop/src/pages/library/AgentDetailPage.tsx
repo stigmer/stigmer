@@ -267,9 +267,6 @@ export default function AgentDetailPage() {
         onSkillClick={(ref) =>
           navigate(`/library/skills/${ref.org}/${ref.slug}`)
         }
-        onDatastoreClick={(ref) =>
-          navigate(`/library/datastores/${ref.org}/${ref.slug}`)
-        }
         primaryAction={primaryAction}
         actions={actions}
         buildShareUrl={buildShareUrl}

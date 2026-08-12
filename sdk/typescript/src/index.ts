@@ -49,7 +49,6 @@ export {
   getUserMessage,
   type ErrorReason,
   getErrorReason,
-  getRecordConstraint,
   type RpcErrorMetadata,
   annotateRpcError,
   getRpcMetadata,
@@ -166,7 +165,6 @@ export {
   type SubAgentInput,
   type McpAccessInput,
   type EnvVarDeclarationInput,
-  type DatastoreUsageInput,
 } from "./gen/agent.js";
 export {
   AgentChannelClient,

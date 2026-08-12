@@ -30,7 +30,6 @@ export const LIBRARY_RESOURCE_TYPES = [
   "skills",
   "mcp-servers",
   "workflows",
-  "datastores",
   "schedules",
 ] as const;
 

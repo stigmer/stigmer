@@ -155,8 +155,7 @@ export function EditResourceYamlDialog({
           </div>
         )}
 
-        {/* Apply error — the server's refusal (e.g. a datastore
-            collection-removal rejection) rendered verbatim, with an
+        {/* Apply error — the server's refusal rendered verbatim, with an
             acknowledge-and-retry affordance: the operator reads the
             guard, edits or decides, and re-applies without reopening
             the dialog. */}

@@ -45,9 +45,8 @@ interface HasMetadata {
   readonly metadata?: { readonly id?: string; readonly name?: string; readonly slug?: string; readonly org?: string };
 }
 
-// `force` is the RPC-level acknowledgment of destructive side effects (e.g. a
-// datastore's held records) — distinct from, but carried by, the CLI's
-// `-f/--force` flag. Kinds whose delete RPC takes a plain typed ID have no
+// `force` is the RPC-level acknowledgment of destructive side effects —
+// distinct from, but carried by, the CLI's `-f/--force` flag. Kinds whose delete RPC takes a plain typed ID have no
 // force field and simply ignore the argument.
 type DeleteFn = (client: Stigmer, id: string, force: boolean) => Promise<HasMetadata>;
 
@@ -56,8 +55,7 @@ type DeleteFn = (client: Stigmer, id: string, force: boolean) => Promise<HasMeta
 // documented special case) — the conformance test in registry/registry.test.ts
 // enforces it, so the two cannot drift.
 // Kinds whose delete takes a DeleteResourceInput (not an ID) thread the force
-// acknowledgment through; today only the datastore server honors it (the
-// non-empty guard), but force is the contract's generic ack carrier.
+// acknowledgment through — force is the contract's generic ack carrier.
 export const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<ApiResourceKind, DeleteFn>([
   [ApiResourceKind.agent, (c, id) => c.agent.delete(id)],
   [ApiResourceKind.agent_instance, (c, id) => c.agentInstance.delete(id)],
@@ -65,7 +63,6 @@ export const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<A
   [ApiResourceKind.workflow_instance, (c, id) => c.workflowInstance.delete(id)],
   [ApiResourceKind.mcp_server, (c, id, force) => c.mcpServer.delete({ resourceId: id, force })],
   [ApiResourceKind.project, (c, id) => c.project.delete(id)],
-  [ApiResourceKind.datastore, (c, id, force) => c.datastore.delete({ resourceId: id, force })],
   [ApiResourceKind.environment, (c, id, force) => c.environment.delete({ resourceId: id, force })],
   [ApiResourceKind.agent_channel, (c, id) => c.agentChannel.delete(id)],
   [ApiResourceKind.channel_app, (c, id, force) => c.channelapp.delete({ resourceId: id, force })],
@@ -228,13 +225,6 @@ function buildDeleteWarning(info: TypeInfo, message: HasMetadata): CommandResult
     const tag = (message as { spec?: { tag?: string } }).spec?.tag;
     if (tag) section.field("Tag", tag);
     warning.hint("This will delete the skill and all its versions.");
-  }
-
-  if (info.kind === ApiResourceKind.datastore) {
-    // Mirrors the server's non-empty guard (GuardNonEmptyStep): the delete of
-    // a datastore holding records is refused unless force acknowledges it.
-    warning.hint("All records held by this datastore will be destroyed.");
-    warning.hint("A datastore holding records is refused unless --force acknowledges destroying them.");
   }
 
   if (info.kind === ApiResourceKind.agent_channel) {

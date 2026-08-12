@@ -81,7 +81,6 @@ export function parseVersionedResourceURI(uri: string): VersionedResourceRef {
  */
 export const kindToAuthority: Readonly<Record<string, string>> = {
   agent: "agents",
-  datastore: "datastores",
   environment: "environments",
   mcp_server: "mcp-servers",
   skill: "skills",

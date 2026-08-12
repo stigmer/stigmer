@@ -368,21 +368,6 @@ func TestAssignServiceRoles(t *testing.T) {
 			},
 		},
 		{
-			"datastore record controllers get unique roles",
-			[]serviceRoleInput{
-				{"DatastoreCommandController", dir + "command.proto"},
-				{"DatastoreQueryController", dir + "query.proto"},
-				{"DatastoreRecordCommandController", dir + "record_command.proto"},
-				{"DatastoreRecordQueryController", dir + "record_query.proto"},
-			},
-			map[string]string{
-				"DatastoreCommandController":       "command",
-				"DatastoreQueryController":         "query",
-				"DatastoreRecordCommandController": "datastoreRecordCommand",
-				"DatastoreRecordQueryController":   "datastoreRecordQuery",
-			},
-		},
-		{
 			"token role is uncontested",
 			[]serviceRoleInput{
 				{"PlatformClientCommandController", dir + "command.proto"},

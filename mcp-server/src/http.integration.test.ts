@@ -50,8 +50,8 @@ beforeAll(async () => {
   };
   controller = new AbortController();
   // The REAL route dispatch, so these tests hold the production route
-  // table: full roster on "/", records on "/records", channels on
-  // "/channels", 404 anywhere else.
+  // table: full roster on "/", channels on "/channels", conversation on
+  // "/conversation", 404 anywhere else.
   serving = serveHttp(
     routedServerFactory({ serverAddress: cfg.stigmerServerAddress, apiKey: "" }),
     cfg,
@@ -172,7 +172,6 @@ function initialize(path: string): Promise<Response> {
 describe("HTTP route dispatch (the closed route table)", () => {
   it.each([
     ["/", "mcp-server-stigmer"],
-    ["/records", "mcp-server-stigmer-records"],
     ["/channels", "mcp-server-stigmer-channels"],
     ["/conversation", "mcp-server-stigmer-conversation"],
   ])("serves the %s roster as %s", async (path, serverName) => {

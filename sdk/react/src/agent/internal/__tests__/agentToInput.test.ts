@@ -9,7 +9,7 @@ import { agentToInput } from "../agentToInput";
 
 /**
  * Regression guard for stigmer/stigmer#319 — the console agent editor
- * silently deleting `datastore_usages` on save.
+ * silently deleting an unmapped spec field on save.
  *
  * `agentToInput()` reconstructs a full `AgentInput` from a fetched Agent
  * so inline edits can re-submit the whole spec (the backend does full
@@ -91,19 +91,10 @@ function fullyPopulatedAgent(): Agent {
       env: {
         CLINIC_API_KEY: {
           isSecret: true,
-          description: "Records bridge credential",
+          description: "Clinic API credential",
         },
         REGION: { optional: true },
       },
-      datastoreUsages: [
-        {
-          datastoreRef: {
-            org: "acme",
-            slug: "clinic-records",
-            kind: ApiResourceKind.datastore,
-          },
-        },
-      ],
     },
   });
 }

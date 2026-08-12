@@ -265,9 +265,9 @@ func (m *mcpGen) resolveField(f *FieldSchema) *mcpInputField {
 	field.description = sanitizeDescription(f.Description)
 	field.oneofGroup = f.OneofGroup
 	field.enumType = f.Type.EnumType
-	// For repeated enums the enum metadata lives on the element type
-	// (e.g. Datastore's grant verbs); without this the field degrades to a
-	// plain string array and the emitters skip the enum mapping.
+	// For repeated enums the enum metadata lives on the element type;
+	// without this the field degrades to a plain string array and the
+	// emitters skip the enum mapping.
 	if field.enumType == "" && f.Type.Kind == "array" && f.Type.ElementType != nil {
 		field.enumType = f.Type.ElementType.EnumType
 	}

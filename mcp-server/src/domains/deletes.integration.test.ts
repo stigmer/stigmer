@@ -1,8 +1,7 @@
 // In-process integration test for the delete tools. Verifies the two-step
 // resolve→delete flow forwards the resolved id into the correct per-domain
 // delete-input shape: typed {value} for agent/skill/workflow, and
-// ApiResourceDeleteInput {resource_id} for mcp_server, environment, and
-// datastore.
+// ApiResourceDeleteInput {resource_id} for mcp_server and environment.
 
 import { create, toJson } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -19,9 +18,6 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { DatastoreSchema } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
-import { DatastoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/command_pb";
-import { DatastoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/query_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
@@ -50,18 +46,12 @@ const resolvedEnvironment = create(EnvironmentSchema, {
   kind: "environment",
   metadata: { name: "GitHub Creds", slug: "github-creds", org: "acme", id: "env-789" },
 });
-const resolvedDatastore = create(DatastoreSchema, {
-  apiVersion: "v1",
-  kind: "datastore",
-  metadata: { name: "Bookings", slug: "bookings", org: "acme", id: "dst-012" },
-});
 
 let backend: Http2Server;
 let client: Client;
 let deletedAgentId: string | undefined;
 let deletedMcpResourceId: string | undefined;
 let deletedEnvironmentResourceId: string | undefined;
-let deletedDatastoreResourceId: string | undefined;
 const openSessions = new Set<ServerHttp2Session>();
 
 interface ToolResult {
@@ -96,13 +86,6 @@ beforeAll(async () => {
         return resolvedEnvironment;
       },
     });
-    router.service(DatastoreQueryController, { getByReference: () => resolvedDatastore });
-    router.service(DatastoreCommandController, {
-      delete: (req) => {
-        deletedDatastoreResourceId = req.resourceId;
-        return resolvedDatastore;
-      },
-    });
   };
   backend = createHttp2Server(connectNodeAdapter({ routes }));
   backend.on("session", (session) => {
@@ -134,7 +117,6 @@ describe("delete tools integration", () => {
         "delete_workflow",
         "delete_mcp_server",
         "delete_environment",
-        "delete_datastore",
       ]),
     );
   });
@@ -161,11 +143,5 @@ describe("delete tools integration", () => {
     const result = await callTool("delete_environment", { org: "acme", slug: "github-creds" });
     expect(result.isError).toBeFalsy();
     expect(deletedEnvironmentResourceId).toBe("env-789");
-  });
-
-  it("delete_datastore resolves the id then deletes via ApiResourceDeleteInput", async () => {
-    const result = await callTool("delete_datastore", { org: "acme", slug: "bookings" });
-    expect(result.isError).toBeFalsy();
-    expect(deletedDatastoreResourceId).toBe("dst-012");
   });
 });

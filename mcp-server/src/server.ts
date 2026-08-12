@@ -25,14 +25,11 @@ import { registerAgentTools } from "./domains/agents/tools.js";
 import { registerChannelTools } from "./domains/channels/tools.js";
 import type { BackendTarget } from "./domains/client.js";
 import { registerConversationTools } from "./domains/conversation/tools.js";
-import { registerDatastoreResources } from "./domains/datastores/resources.js";
-import { registerDatastoreTools } from "./domains/datastores/tools.js";
 import { registerEnvironmentResources } from "./domains/environments/resources.js";
 import { registerEnvironmentTools } from "./domains/environments/tools.js";
 import { registerExecutionControlTools } from "./domains/executions/tools.js";
 import { registerMcpServerResources } from "./domains/mcpservers/resources.js";
 import { registerMcpServerTools } from "./domains/mcpservers/tools.js";
-import { registerRecordTools } from "./domains/records/tools.js";
 import { registerSearchTools } from "./domains/search/tools.js";
 import { registerSkillResources } from "./domains/skills/resources.js";
 import { registerSkillTools } from "./domains/skills/tools.js";
@@ -66,22 +63,6 @@ export function createServer(target: BackendTarget): McpServer {
   const server = new McpServer({ name: "mcp-server-stigmer", version: SERVER_VERSION });
   registerTools(server, target);
   registerResources(server, target);
-  return server;
-}
-
-/**
- * Build a records-only MCP server: the five record tools with the
- * agent-facing argument surface, and nothing else (T05 R1). This is
- * the roster the runner-synthesized datastore attachment connects to —
- * a structural guarantee that an agent session never sees the
- * management tools (apply/delete/…) its empty approval maps would make
- * approval-free. Served on the /records HTTP route and as the stdio
- * roster when STIGMER_MCP_ROSTER=records.
- */
-export function createRecordsServer(target: BackendTarget): McpServer {
-  const server = new McpServer({ name: "mcp-server-stigmer-records", version: SERVER_VERSION });
-  const tools = registerRecordTools(server, target, "agent");
-  log.info("tools registered (records roster)", { count: tools.length, tools });
   return server;
 }
 
@@ -143,11 +124,6 @@ function registerTools(server: McpServer, target: BackendTarget): void {
     ...registerWorkflowExecutionTools(server, target),
     ...registerExecutionControlTools(server, target),
     ...registerEnvironmentTools(server, target),
-    ...registerDatastoreTools(server, target),
-    // The record tools also serve external MCP clients — as direct
-    // principals with the org argument and honest annotations (the
-    // agent-facing variant lives on the records-only roster).
-    ...registerRecordTools(server, target, "direct"),
   ];
   log.info("tools registered", { count: tools.length, tools });
 }
@@ -164,7 +140,6 @@ function registerResources(server: McpServer, target: BackendTarget): void {
     ...registerSkillResources(server, target),
     ...registerWorkflowResources(server, target),
     ...registerEnvironmentResources(server, target),
-    ...registerDatastoreResources(server, target),
   ];
   log.info("resources registered", { count: resources.length, resources });
 }
@@ -211,9 +186,6 @@ export type RouteServerFactory = (path: string) => McpServer | undefined;
 /** HTTP route serving the full roster: the bare origin every published config uses. */
 export const FULL_ROUTE = "/";
 
-/** HTTP route serving the records-only roster (T05 R1). */
-export const RECORDS_ROUTE = "/records";
-
 /** HTTP route serving the channels-only roster (DD-006 D8). */
 export const CHANNELS_ROUTE = "/channels";
 
@@ -222,9 +194,9 @@ export const CONVERSATION_ROUTE = "/conversation";
 
 /**
  * The standard HTTP route dispatch: the full roster on {@link FULL_ROUTE},
- * the records-only roster on {@link RECORDS_ROUTE}, the channels-only
- * roster on {@link CHANNELS_ROUTE}, the conversation-only roster on
- * {@link CONVERSATION_ROUTE} — and NOTHING anywhere else.
+ * the channels-only roster on {@link CHANNELS_ROUTE}, the
+ * conversation-only roster on {@link CONVERSATION_ROUTE} — and NOTHING
+ * anywhere else.
  *
  * The closed route table is load-bearing, not tidiness. This dispatch
  * once fell through to the full roster for any unrecognized path, and a
@@ -239,7 +211,6 @@ export const CONVERSATION_ROUTE = "/conversation";
 export function routedServerFactory(target: BackendTarget): RouteServerFactory {
   return (path) => {
     if (path === FULL_ROUTE) return createServer(target);
-    if (path === RECORDS_ROUTE) return createRecordsServer(target);
     if (path === CHANNELS_ROUTE) return createChannelsServer(target);
     if (path === CONVERSATION_ROUTE) return createConversationServer(target);
     return undefined;
@@ -431,12 +402,11 @@ async function routeRequest(
 }
 
 /**
- * The stdio server for the configured roster: the records-only or
- * channels-only roster when STIGMER_MCP_ROSTER names one (what the OSS
- * runner-synthesized attachments spawn), the full roster otherwise.
+ * The stdio server for the configured roster: the channels-only roster
+ * when STIGMER_MCP_ROSTER names it (what the OSS runner-synthesized
+ * attachment spawns), the full roster otherwise.
  */
 export function stdioServer(target: BackendTarget, cfg: Config): McpServer {
-  if (cfg.roster === "records") return createRecordsServer(target);
   if (cfg.roster === "channels") return createChannelsServer(target);
   return createServer(target);
 }

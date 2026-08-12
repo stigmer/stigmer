@@ -1,7 +1,6 @@
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type {
   AgentInput,
-  DatastoreUsageInput,
   EnvVarDeclarationInput,
   McpServerUsageInput,
   SubAgentInput,
@@ -73,15 +72,6 @@ export function agentToInput(agent: Agent): AgentInput {
       modelOverride: sa.modelOverride || undefined,
     }));
 
-  const datastoreUsages: DatastoreUsageInput[] | undefined =
-    spec?.datastoreUsages?.map((usage) => ({
-      datastoreRef: {
-        org: usage.datastoreRef?.org ?? "",
-        slug: usage.datastoreRef?.slug ?? "",
-        version: usage.datastoreRef?.version || undefined,
-      },
-    }));
-
   let env: Record<string, EnvVarDeclarationInput> | undefined;
   if (spec?.env && Object.keys(spec.env).length > 0) {
     env = {};
@@ -108,6 +98,5 @@ export function agentToInput(agent: Agent): AgentInput {
     skillRefs: skillRefs?.length ? skillRefs : undefined,
     subAgents: subAgents?.length ? subAgents : undefined,
     env,
-    datastoreUsages: datastoreUsages?.length ? datastoreUsages : undefined,
   };
 }

@@ -3,20 +3,14 @@ import { crc32 } from "node:zlib";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import {
-  DatastoreVerb,
-  FieldType,
-} from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/spec_pb";
-import { InsertRecordRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/record_io_pb";
 
 const DEFAULT_ORG = "default";
 
 /**
- * The OSS seedpack system org. The datastore record layer resolves
- * datastores against this org only (OSS is operationally single-tenant
- * on `"stigmer"` — see `identity.SystemOrg` in stigmer-server); a
- * datastore in any other org is record-unreachable. Datastore e2e
- * therefore seeds here and points the console's active org at it.
+ * The OSS seedpack system org (OSS is operationally single-tenant on
+ * `"stigmer"` — see `identity.SystemOrg` in stigmer-server). E2E specs
+ * that exercise system-org behavior seed here and point the console's
+ * active org at it.
  */
 const SYSTEM_ORG = "stigmer";
 
@@ -48,7 +42,7 @@ export async function ensureDefaultOrg(client: Stigmer): Promise<void> {
 /**
  * Ensures the `stigmer` system Organization exists. The e2e stack boots
  * a raw server with no seedpack bootstrap (which normally creates it),
- * so datastore specs create it explicitly — idempotent, like
+ * so specs that need it create it explicitly — idempotent, like
  * {@link ensureDefaultOrg}.
  */
 export async function ensureSystemOrg(client: Stigmer): Promise<void> {
@@ -66,164 +60,6 @@ export async function ensureSystemOrg(client: Stigmer): Promise<void> {
     // ALREADY_EXISTS, which is the desired end state.
     if (!String(err).includes("already exists")) throw err;
   }
-}
-
-export interface TestDatastoreResult {
-  id: string;
-  slug: string;
-  org: string;
-  cleanup: () => Promise<void>;
-}
-
-export interface CreateTestDatastoreOpts {
-  name?: string;
-  /**
-   * Grant the local principal full record access via `default_role`.
-   * `false` seeds a deny-by-default datastore (no roles, no default) —
-   * the SD-5 denied-state fixture: `describeDatastore` succeeds with
-   * empty access lists.
-   * @default true
-   */
-  grantAccess?: boolean;
-  /**
-   * Seed records via `insertRecord` (the only record write path —
-   * DD-010 removed declarative seeding): three bookings in the
-   * `default` partition and one in `dr-alt`, so the partition picker
-   * has real catalog entries.
-   * @default false
-   */
-  withRecords?: boolean;
-}
-
-/**
- * Applies a clinic-shaped datastore into the system org: a `bookings`
- * collection with typed fields, an enum status, and the
- * `one_confirmed_per_slot` unique constraint whose declared message is
- * the verbatim-rendering fixture for constraint-violation journeys.
- */
-export async function createTestDatastore(
-  client: Stigmer,
-  opts?: CreateTestDatastoreOpts,
-): Promise<TestDatastoreResult> {
-  await ensureSystemOrg(client);
-
-  const name =
-    opts?.name ?? `e2e-clinic-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  const grantAccess = opts?.grantAccess ?? true;
-
-  const applyInput = {
-    name,
-    org: SYSTEM_ORG,
-    description: "E2E clinic records datastore",
-    timezone: "UTC",
-    authorization: grantAccess
-      ? { roles: [{ name: "admin" }], defaultRole: "admin" }
-      : { roles: [] },
-    collections: [
-      {
-        name: "bookings",
-        description: "Confirmed appointments",
-        fields: [
-          { name: "slot_date", type: FieldType.date, required: true },
-          { name: "slot_time", type: FieldType.time, required: true },
-          { name: "patient_phone", type: FieldType.string },
-          {
-            name: "status",
-            type: FieldType.string,
-            enumValues: ["confirmed", "cancelled"],
-            default: "confirmed",
-          },
-          { name: "notes", type: FieldType.string },
-        ],
-        uniques: [
-          {
-            name: "one_confirmed_per_slot",
-            fields: ["slot_date", "slot_time"],
-            where: { field: "status", equals: "confirmed" },
-            message: "that slot is already booked",
-          },
-        ],
-        grants: grantAccess
-          ? [
-              {
-                role: "admin",
-                verbs: [
-                  DatastoreVerb.read,
-                  DatastoreVerb.insert,
-                  DatastoreVerb.update,
-                  DatastoreVerb.delete,
-                ],
-              },
-            ]
-          : [],
-      },
-    ],
-  };
-
-  const datastore = await client.datastore.apply(applyInput);
-  const id = datastore.metadata!.id;
-  const slug = datastore.metadata!.slug;
-
-  if (opts?.withRecords) {
-    const insert = (
-      record: Record<string, string>,
-      partition = "",
-    ) =>
-      client.datastore.insertRecord(
-        create(InsertRecordRequestSchema, {
-          org: SYSTEM_ORG,
-          datastore: slug,
-          collection: "bookings",
-          partition,
-          record,
-        }),
-      );
-
-    await insert({
-      slot_date: "2026-08-03",
-      slot_time: "09:00",
-      patient_phone: "+15550101",
-      notes: "first visit",
-    });
-    await insert({
-      slot_date: "2026-08-03",
-      slot_time: "10:30",
-      patient_phone: "+15550102",
-    });
-    await insert({
-      slot_date: "2026-08-04",
-      slot_time: "09:00",
-      patient_phone: "+15550103",
-      status: "cancelled",
-    });
-    // A named partition's first write registers it in the catalog
-    // (DD-010) — feeds the partition-picker journey.
-    await insert(
-      {
-        slot_date: "2026-08-05",
-        slot_time: "11:00",
-        patient_phone: "+15550201",
-      },
-      "dr-alt",
-    );
-
-    // Status record counts refresh at sync time (not per insert); the
-    // idempotent re-apply recounts from the substrate so the guarded
-    // delete dialog pre-fills real numbers.
-    await client.datastore.apply(applyInput);
-  }
-
-  return {
-    id,
-    slug,
-    org: SYSTEM_ORG,
-    cleanup: async () => {
-      // Force acknowledges record destruction (the seeded fixture is
-      // disposable); a lingering agent reference still blocks — the
-      // referencing test cleans its agent first.
-      await client.datastore.delete({ resourceId: id, force: true }).catch(() => {});
-    },
-  };
 }
 
 export interface TestAgentResult {

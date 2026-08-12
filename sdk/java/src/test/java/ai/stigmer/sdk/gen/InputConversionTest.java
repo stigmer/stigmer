@@ -1,6 +1,5 @@
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.datastore.v1.FieldDeclaration;
 import ai.stigmer.agentic.workflow.v1.Workflow;
 import ai.stigmer.agentic.workflow.v1.WorkflowTask;
 import com.google.protobuf.ListValue;
@@ -165,37 +164,6 @@ class InputConversionTest {
                 .addValues(Value.newBuilder().setNumberValue(2))).build())
             .build();
         assertEquals(want, got);
-    }
-
-    // ------------------------------------------------------------------
-    // Value-kind fields (DatastoreInput field defaults) take the same
-    // contract through objectToValue with the builder field as the path.
-    // ------------------------------------------------------------------
-
-    @Test
-    void datastoreFieldDefault_array_convertsToListValue() {
-        FieldDeclaration decl = DatastoreInput.FieldDeclarationInput.builder()
-            .name("scores")
-            .default_(new int[] {7, 9})
-            .build()
-            .toProto();
-
-        assertEquals(Value.KindCase.LIST_VALUE, decl.getDefault().getKindCase());
-        assertEquals(7.0, decl.getDefault().getListValue().getValues(0).getNumberValue());
-    }
-
-    @Test
-    void datastoreFieldDefault_pojo_throwsNamingBuilderField() {
-        StigmerException e = assertThrows(StigmerException.class,
-            () -> DatastoreInput.FieldDeclarationInput.builder()
-                .name("outcome")
-                .default_(new Outcome())
-                .build()
-                .toProto());
-
-        assertEquals(ErrorCode.INVALID_ARGUMENT, e.getCode());
-        assertTrue(e.getMessage().contains("default_"),
-            "message should name the builder field, got: " + e.getMessage());
     }
 
     // ------------------------------------------------------------------

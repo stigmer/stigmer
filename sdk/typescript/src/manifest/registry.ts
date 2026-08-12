@@ -31,9 +31,6 @@ import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/ag
 import { type ChannelApp, ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
-import { type Datastore, DatastoreSchema } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
-import { DatastoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/command_pb";
-import { DatastoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/query_pb";
 import { type Environment, EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
@@ -101,18 +98,6 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     applyOrder: 1,
     apply: (c, m) => c(McpServerCommandController).apply(m as McpServer),
     getByReference: (c, ref) => c(McpServerQueryController).getByReference(ref),
-  },
-  // A Datastore applies before the Agents that reference it via
-  // datastore_usages (the McpServer-before-Agent pattern).
-  {
-    kind: ApiResourceKind.datastore,
-    yamlKind: "Datastore",
-    displayName: "Datastore",
-    apiVersion: AGENTIC_V1,
-    schema: DatastoreSchema,
-    applyOrder: 2,
-    apply: (c, m) => c(DatastoreCommandController).apply(m as Datastore),
-    getByReference: (c, ref) => c(DatastoreQueryController).getByReference(ref),
   },
   {
     kind: ApiResourceKind.agent,
