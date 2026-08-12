@@ -1,6 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { computeLlmCostMicros, computeTurnCost, getModelPricing, resolveModelId, ensureLoaded } from "../model-pricing.js";
-import type { ModelPricing } from "../model-pricing-data.js";
+import {
+  getPricingTable,
+  _resetPricingCache,
+  DEFAULT_PRICING,
+  type ModelPricing,
+} from "../model-pricing-data.js";
 
 describe("computeLlmCostMicros", () => {
   it("falls back to DEFAULT_PRICING when registry is not loaded", () => {
@@ -81,5 +86,60 @@ describe("getModelPricing", () => {
   it("overrides model field in fallback pricing", () => {
     const pricing = getModelPricing("custom-model");
     expect(pricing.model).toBe("custom-model");
+  });
+});
+
+describe("getPricingTable failure caching (#468)", () => {
+  beforeEach(() => {
+    _resetPricingCache();
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    _resetPricingCache();
+    vi.useRealTimers();
+  });
+
+  const registryResponse = () =>
+    new Response(
+      JSON.stringify({
+        models: [
+          {
+            id: "claude-sonnet-4-6",
+            displayName: "Claude Sonnet",
+            costTier: "standard",
+            pricing: {
+              inputPricePerMillion: 3.0,
+              outputPricePerMillion: 15.0,
+              cacheWritePricePerMillion: 3.75,
+              cacheReadPricePerMillion: 0.3,
+            },
+          },
+        ],
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+
+  it("retries after the short failure TTL instead of pinning DEFAULT_PRICING for an hour", async () => {
+    // The model-registry.ts failure-cache policy, applied here: wrong default
+    // rates for cost tracking must not persist a full success TTL.
+    vi.useFakeTimers();
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValueOnce(new Error("network error"))
+      .mockResolvedValueOnce(registryResponse());
+
+    // First call fails and degrades to the default table.
+    expect((await getPricingTable())[0]).toBe(DEFAULT_PRICING);
+
+    // Within the failure TTL the fallback stays cached (no refetch).
+    vi.advanceTimersByTime(30_000);
+    expect((await getPricingTable())[0]).toBe(DEFAULT_PRICING);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+    // Past the failure TTL the registry is refetched and real rates recover.
+    vi.advanceTimersByTime(31_000);
+    expect((await getPricingTable())[0]?.model).toBe("claude-sonnet-4-6");
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 });

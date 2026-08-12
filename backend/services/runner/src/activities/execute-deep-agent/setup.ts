@@ -635,17 +635,14 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     // Step 9: Construct the LLM model. Resolution to the provider API id
     // happens inside buildChatModel; modelName stays the registry id for
     // pricing, the native-thinking heuristic, and sub-agent inheritance.
-    // Operator input: only a positive integer means "bound the request" —
-    // unset, non-numeric, zero, and negative all normalize to no bound.
-    const parsedTimeoutMs =
-      Number.parseInt(process.env.STIGMER_LLM_REQUEST_TIMEOUT_MS ?? "", 10);
-    const requestTimeoutMs = parsedTimeoutMs > 0 ? parsedTimeoutMs : undefined;
+    // The operator's STIGMER_LLM_REQUEST_TIMEOUT_MS bound is applied inside
+    // buildChatModel (#468) — the sub-agent modelFactory below silently
+    // dropped it when each caller parsed the env itself.
     const { model } = await buildChatModel({
       modelName,
       proxyEndpoint: config.proxyEndpoint ?? undefined,
       stigmerToken: config.stigmerToken ?? undefined,
       headerScope: { executionId },
-      timeoutMs: requestTimeoutMs,
     });
     timing.mark("build_model");
 

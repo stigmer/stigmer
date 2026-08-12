@@ -6,7 +6,11 @@
  * `updateStatus` should back off and retry (transient transport errors) or
  * fail fast (deterministic errors). This module is intentionally just the
  * classification policy + its options type, kept small and separately tested;
- * the persist loop that consumes it lives with the rest of the persist logic.
+ * the persist loop that consumes it lives with the rest of the persist logic
+ * in status.ts — a single consumer whose loop is interwoven with persist
+ * semantics. (The HTTP twin, http-retry.ts, diverged there deliberately: with
+ * three fetch clients needing a byte-identical loop it hosts the shared
+ * fetchWithRetry too — see its module doc.)
  */
 
 import { ConnectError, Code } from "@connectrpc/connect";

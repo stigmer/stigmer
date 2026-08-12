@@ -1,4 +1,9 @@
-import { describe, it, expect, vi, beforeAll } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
+import {
+  getPricingTable,
+  _resetPricingCache,
+  DEFAULT_PRICING,
+} from "../model-pricing-data.js";
 
 /**
  * Verifies the cursor-runner display estimate resolves Cursor speed variants
@@ -108,5 +113,61 @@ describe("getCursorModelPricing — speed variant resolution", () => {
   it("getCursorModelPricingForVariant('fast') falls back to base rates when unpriced", () => {
     const p = getCursorModelPricingForVariant("claude-opus-4-6", "fast");
     expect(p.inputPricePerMillion).toBe(5.0);
+  });
+});
+
+describe("getPricingTable failure caching (#468)", () => {
+  beforeEach(() => {
+    _resetPricingCache();
+  });
+
+  afterEach(() => {
+    _resetPricingCache();
+    vi.useRealTimers();
+  });
+
+  it("retries after the short failure TTL instead of pinning DEFAULT_PRICING for an hour", async () => {
+    // The model-registry.ts failure-cache policy, applied here: wrong default
+    // rates for cost tracking must not persist a full success TTL.
+    vi.useFakeTimers();
+    const registryResponse = () =>
+      new Response(
+        JSON.stringify({
+          models: [
+            {
+              id: "composer-2.5",
+              displayName: "Composer 2.5",
+              provider: "cursor",
+              harness: "cursor",
+              costTier: "economy",
+              pricing: {
+                inputPricePerMillion: 0.5,
+                outputPricePerMillion: 2.5,
+                cacheWritePricePerMillion: 0,
+                cacheReadPricePerMillion: 0.2,
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    const fetchSpy = vi
+      .fn<typeof fetch>()
+      .mockRejectedValueOnce(new Error("network error"))
+      .mockResolvedValueOnce(registryResponse());
+    vi.stubGlobal("fetch", fetchSpy);
+
+    // First call fails and degrades to the default table.
+    expect((await getPricingTable())[0]).toBe(DEFAULT_PRICING);
+
+    // Within the failure TTL the fallback stays cached (no refetch).
+    vi.advanceTimersByTime(30_000);
+    expect((await getPricingTable())[0]).toBe(DEFAULT_PRICING);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+    // Past the failure TTL the registry is refetched and real rates recover.
+    vi.advanceTimersByTime(31_000);
+    expect((await getPricingTable())[0]?.model).toBe("composer-2.5");
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 });

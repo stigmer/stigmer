@@ -294,7 +294,13 @@ describe("ProxyArtifactStorage", () => {
       return new Response("server error", { status: 500 });
     }) as typeof fetch;
 
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    // 500 is retryable, so this persistent failure exhausts the budget —
+    // delayFn injected to skip the real ~7.75 s of backoff (#468). The
+    // degrade contract under test (budget exhaustion still throws the
+    // caller-visible error) is unchanged.
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok", {
+      delayFn: async () => {},
+    });
     await expect(
       storage.upload("key", Buffer.from("x")),
     ).rejects.toThrow("Presigned upload failed (HTTP 500)");
@@ -411,10 +417,147 @@ describe("ProxyArtifactStorage", () => {
 
   it("exists throws on an unexpected object status (a fault, not an existence answer)", async () => {
     mockProxyFetch(() => new Response("boom", { status: 500 }));
-    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    // Persistent 500 exhausts the retry budget; delayFn skips the real
+    // backoff (#468). The fault-not-an-answer contract is unchanged.
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok", {
+      delayFn: async () => {},
+    });
     await expect(storage.exists("key")).rejects.toThrow(
       /Artifact existence check failed \(HTTP 500\) for key 'key'/,
     );
+  });
+
+  // The bounded-backoff adoption (stigmer/stigmer#468). Classification policy
+  // is covered by shared/__tests__/http-retry.test.ts; these cases pin the
+  // loop's behavior at this client's call sites: transient failures recover
+  // (each of these fails on pre-#468 code, which threw on the first error),
+  // deterministic failures never retry, and a hung request is aborted at the
+  // per-request bound instead of stalling forever.
+  describe("retry behavior (#468)", () => {
+    let recordedDelays: number[];
+
+    beforeEach(() => {
+      recordedDelays = [];
+    });
+
+    function makeStorage() {
+      return new ProxyArtifactStorage("https://proxy.example.com", "tok", {
+        delayFn: async (ms) => {
+          recordedDelays.push(ms);
+        },
+      });
+    }
+
+    it("upload recovers from a transient presign failure", async () => {
+      let presignCalls = 0;
+      const fetchSpy = vi.fn(async (input: string | URL | Request) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.includes("presigned-upload-url")) {
+          presignCalls++;
+          if (presignCalls === 1) {
+            return new Response("bad gateway", { status: 502 });
+          }
+          return new Response(JSON.stringify({ url: "https://r2.example.com/put" }), { status: 200 });
+        }
+        return new Response("", { status: 200 });
+      });
+      globalThis.fetch = fetchSpy as unknown as typeof fetch;
+
+      const key = await makeStorage().upload("artifacts/e/f.txt", Buffer.from("x"));
+
+      expect(key).toBe("artifacts/e/f.txt");
+      expect(presignCalls).toBe(2);
+      expect(recordedDelays).toEqual([250]);
+    });
+
+    it("upload recovers from a transient R2 PUT failure, re-sending identical bytes", async () => {
+      const putBodies: string[] = [];
+      let putCalls = 0;
+      globalThis.fetch = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.includes("presigned-upload-url")) {
+          return new Response(JSON.stringify({ url: "https://r2.example.com/put" }), { status: 200 });
+        }
+        putCalls++;
+        putBodies.push(String(init?.body));
+        if (putCalls === 1) {
+          return new Response("unavailable", { status: 503 });
+        }
+        return new Response("", { status: 200 });
+      }) as typeof fetch;
+
+      await makeStorage().upload("k", Buffer.from("same-bytes"));
+
+      expect(putCalls).toBe(2);
+      expect(putBodies[0]).toBe(putBodies[1]);
+      expect(recordedDelays).toEqual([250]);
+    });
+
+    it("download recovers from a transient network failure on the R2 GET", async () => {
+      let getCalls = 0;
+      globalThis.fetch = vi.fn(async (input: string | URL | Request) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.includes("presigned-download-url")) {
+          return new Response(JSON.stringify({ url: "https://r2.example.com/dl" }), { status: 200 });
+        }
+        getCalls++;
+        if (getCalls === 1) {
+          // undici's network-failure shape (retryable).
+          throw new TypeError("fetch failed");
+        }
+        return new Response(Buffer.from("payload"), { status: 200 });
+      }) as typeof fetch;
+
+      const got = await makeStorage().download("k");
+
+      expect(got.toString()).toBe("payload");
+      expect(getCalls).toBe(2);
+      expect(recordedDelays).toEqual([250]);
+    });
+
+    it("never retries a deterministic presign refusal (403)", async () => {
+      const fetchSpy = vi.fn(async () => new Response("forbidden", { status: 403 }));
+      globalThis.fetch = fetchSpy as unknown as typeof fetch;
+
+      await expect(makeStorage().upload("k", Buffer.from("x"))).rejects.toThrow(
+        "Failed to get presigned upload URL (HTTP 403)",
+      );
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(recordedDelays).toEqual([]);
+    });
+
+    it("aborts a hung request at the per-request bound and retries it", async () => {
+      let calls = 0;
+      globalThis.fetch = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+        calls++;
+        if (calls === 1) {
+          // Hang until the AbortSignal.timeout fires, then reject the way
+          // undici does — proving the bound converts a stall into a
+          // retryable attempt instead of waiting forever.
+          return new Promise<Response>((_, reject) => {
+            init?.signal?.addEventListener("abort", () =>
+              reject(init.signal!.reason as Error),
+            );
+          });
+        }
+        return Promise.resolve(
+          new Response(JSON.stringify({ url: "https://r2.example.com/dl" }), { status: 200 }),
+        );
+      }) as typeof fetch;
+
+      const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok", {
+        requestTimeoutMs: 20,
+        delayFn: async (ms) => {
+          recordedDelays.push(ms);
+        },
+      });
+
+      const url = await storage.getDownloadUrl("k");
+
+      expect(url).toBe("https://r2.example.com/dl");
+      expect(calls).toBe(2);
+      expect(recordedDelays).toEqual([250]);
+    });
   });
 });
 
