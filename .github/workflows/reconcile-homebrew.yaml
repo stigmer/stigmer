@@ -141,3 +141,21 @@ jobs:
           git add Formula/stigmer.rb
           git commit -m "Update stigmer to ${TARGET}"
           git push
+
+  # Scheduled runs are unattended; manual dispatches are watched (#477).
+  # Shared file-or-comment mechanics live in notify-failure.yaml.
+  notify-failure:
+    name: File Homebrew Reconcile Failure Issue
+    needs: reconcile
+    if: failure() && github.event_name == 'schedule'
+    permissions:
+      issues: write
+    uses: ./.github/workflows/notify-failure.yaml
+    with:
+      label: reconcile-homebrew-failure
+      title: "reconcile-homebrew: daily Homebrew tap reconciliation is failing"
+      body-context: >-
+        This job bumps stigmer/homebrew-tap to the aged npm latest of
+        @stigmer/cli; while it is red, brew users may be stuck on an old
+        version. Usual suspects: npm registry metadata changes, an expired
+        HOMEBREW_TAP_TOKEN, or drift in the formula template.

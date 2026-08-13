@@ -181,3 +181,23 @@ jobs:
           # hidden paths by default — without this the artifact is silently
           # empty (the #323 class, swept in oss#541).
           include-hidden-files: true
+
+  # PR and push failures are attended; the nightly cron is not — and the cron
+  # is this lane's load-bearing trigger (path filters cannot see stigmer-cloud
+  # merges), so a silent red here means cross-edition drift ships unnoticed
+  # (#477). Shared file-or-comment mechanics live in notify-failure.yaml.
+  notify-failure:
+    name: File Conformance Failure Issue
+    needs: [build-service-jar, conformance-cloud]
+    if: failure() && github.event_name == 'schedule'
+    permissions:
+      issues: write
+    uses: ./.github/workflows/notify-failure.yaml
+    with:
+      label: ci-conformance-cloud-failure
+      title: "ci.conformance-cloud: nightly cross-edition conformance is failing"
+      body-context: >-
+        The nightly run is the only trigger that sees stigmer-cloud merges
+        (path filters in this repo cannot), so a failure here usually means
+        cloud-side behavioral drift against the shared conformance contract —
+        or a stigmer-cloud main that no longer builds.
