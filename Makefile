@@ -494,10 +494,10 @@ test-seedpack-static: ## Run seedpack static validation tests (fast, no network)
 	cd seedpack && go test -v -count=1 ./...
 
 test-seedpack-transport: ## Run seedpack transport reachability tests (network required, nightly)
-	cd test/integration && go test -v -tags integration -run TestSeedpack -timeout 300s -count=1 ./...
+	$(MAKE) -C test/integration test-seedpack-transport
 
 test-seedpack-canary: ## Run seedpack canary tests with real credentials (nightly)
-	cd test/integration && STIGMER_MCP_CANARY=true go test -v -tags integration -run TestCanary -timeout 600s -count=1 ./...
+	$(MAKE) -C test/integration test-seedpack-canary
 
 # ─── Tidy ────────────────────────────────────
 

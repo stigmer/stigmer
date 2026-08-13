@@ -237,6 +237,53 @@ test-canary: check-runner-node ensure-service-jar ## Run canary tests (live prov
 		--packages ./... \
 		-- -tags integration -timeout 600s -count=1 -run 'TestCanary_'
 
+# ─── Seedpack lanes ──────────────────────────
+# Both run inside this package's full harness (TestMain boots the service JAR,
+# Temporal, and the unified runner), so the go-test timeout must absorb the
+# boot — the suite's standard 900s, not a probe-sized budget. The prerequisites
+# close the vacuous-green mode: without ensure-service-jar a missing JAR makes
+# TestMain exit 0 having run nothing (oss#565).
+#
+# No LLM keys here by design: the TestSeedpackWorkflow_* tests the transport
+# regex also matches skip themselves without ANTHROPIC/OPENAI keys, and the
+# provider canaries the canary regex also matches skip without them too —
+# lane disjointness is enforced by the tests' own env guards.
+
+.PHONY: test-seedpack-transport
+test-seedpack-transport: check-runner-node ensure-service-jar ## Run seedpack transport reachability tests (network required, nightly)
+	@command -v gotestsum >/dev/null 2>&1 || { \
+		echo "error: gotestsum not found"; \
+		echo "  install: go install gotest.tools/gotestsum@latest"; \
+		exit 1; \
+	}
+	@mkdir -p .test-output-seedpack-transport
+	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
+	INTEGRATION_TEST_OUTPUT_DIR=$(abspath .test-output-seedpack-transport) gotestsum \
+		--junitfile .test-output-seedpack-transport/junit.xml \
+		--junitfile-testsuite-name short \
+		--jsonfile .test-output-seedpack-transport/test-output.json \
+		--format testname \
+		--packages ./... \
+		-- -tags integration -timeout 900s -count=1 -run 'TestSeedpack'
+
+.PHONY: test-seedpack-canary
+test-seedpack-canary: check-runner-node ensure-service-jar ## Run seedpack canary tests with real credentials (nightly)
+	@command -v gotestsum >/dev/null 2>&1 || { \
+		echo "error: gotestsum not found"; \
+		echo "  install: go install gotest.tools/gotestsum@latest"; \
+		exit 1; \
+	}
+	@mkdir -p .test-output-seedpack-canary
+	STIGMER_MCP_CANARY=true \
+	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
+	INTEGRATION_TEST_OUTPUT_DIR=$(abspath .test-output-seedpack-canary) gotestsum \
+		--junitfile .test-output-seedpack-canary/junit.xml \
+		--junitfile-testsuite-name short \
+		--jsonfile .test-output-seedpack-canary/test-output.json \
+		--format testname \
+		--packages ./... \
+		-- -tags integration -timeout 900s -count=1 -run 'TestCanary_'
+
 .PHONY: test-workflow-architect
 test-workflow-architect: check-runner-node ensure-service-jar ## Run Workflow Architect agent E2E tests (auto-fetches API keys)
 	@command -v gotestsum >/dev/null 2>&1 || { \
