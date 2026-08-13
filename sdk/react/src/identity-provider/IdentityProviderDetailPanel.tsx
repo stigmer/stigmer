@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, type FormEvent } from "react";
+import { useCallback, useRef, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
@@ -8,6 +8,8 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import { useUpdateIdentityProvider } from "./useUpdateIdentityProvider.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { selectElementText } from "../internal/select-element-text.js";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
 /** Props for {@link IdentityProviderDetailPanel}. */
 export interface IdentityProviderDetailPanelProps {
@@ -489,8 +491,6 @@ function Field({
 // View mode — copyable field
 // ---------------------------------------------------------------------------
 
-const COPIED_FEEDBACK_MS = 2000;
-
 function CopyableField({
   label,
   value,
@@ -500,25 +500,15 @@ function CopyableField({
   value: string;
   hint?: string;
 }) {
-  const [copied, setCopied] = useState(false);
+  const { copy, copied } = useCopyFeedback();
+  const revealRef = useRef<HTMLElement>(null);
   const valueId = "stgm-idp-sso-login-url";
 
   const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
-    } catch {
-      const el = document.getElementById(valueId);
-      if (el) {
-        const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(el);
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-      }
-    }
-  }, [value]);
+    if (await copy(value)) return;
+    // Rejected write: select the revealed value so the user can copy manually.
+    if (revealRef.current) selectElementText(revealRef.current);
+  }, [copy, value]);
 
   return (
     <div>
@@ -528,6 +518,7 @@ function CopyableField({
       <dd className="stg:mt-0.5">
         <div className="stg:flex stg:items-center stg:gap-2">
           <span
+            ref={revealRef}
             id={valueId}
             className="stg:text-foreground stg:break-all stg:font-mono stg:text-xs stg:select-all"
           >
@@ -535,7 +526,7 @@ function CopyableField({
           </span>
           <button
             type="button"
-            onClick={handleCopy}
+            onClick={() => void handleCopy()}
             className={cn(
               "stg:shrink-0 stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[0.6rem]",
               "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",

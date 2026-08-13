@@ -8,11 +8,14 @@ const COPIED_FEEDBACK_MS = 2000;
 /** Return value of {@link useCopyFeedback}. */
 export interface UseCopyFeedbackReturn {
   /**
-   * Write `text` to the clipboard. Resolves once the copy has been attempted;
-   * a rejected clipboard write (insecure context, denied permission) leaves
-   * `copied` false so the affordance never claims a copy that didn't happen.
+   * Write `text` to the clipboard. Resolves `true` when the write landed and
+   * `false` when it was rejected (insecure context, denied permission); a
+   * rejected write leaves `copied` false so the affordance never claims a
+   * copy that didn't happen. Callers with a manual fallback (e.g. selecting
+   * the on-screen text for a hand copy) branch on the result; plain
+   * affordances can ignore it.
    */
-  readonly copy: (text: string) => Promise<void>;
+  readonly copy: (text: string) => Promise<boolean>;
 
   /**
    * `true` for a brief window after a successful copy (drives "Copied"
@@ -46,11 +49,12 @@ export function useCopyFeedback(): UseCopyFeedbackReturn {
     try {
       await navigator.clipboard.writeText(text);
     } catch {
-      return;
+      return false;
     }
     setCopied(true);
     if (copiedTimer.current !== null) clearTimeout(copiedTimer.current);
     copiedTimer.current = setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
+    return true;
   }, []);
 
   return useMemo(() => ({ copy, copied }), [copy, copied]);

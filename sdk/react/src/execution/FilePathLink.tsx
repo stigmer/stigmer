@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useContext, useMemo, useState } from "react";
+import { useCallback, useContext, useMemo } from "react";
 import { cn } from "@stigmer/theme";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { FilePathContext } from "./FilePathContext.js";
 import { resolvePathAction, splitDisplayPath } from "./file-path-resolver.js";
 
@@ -27,8 +28,6 @@ export interface FilePathLinkProps {
   /** Additional CSS class names for the root element. */
   readonly className?: string;
 }
-
-const COPIED_FEEDBACK_MS = 2000;
 
 /**
  * Interactive file path display that replaces inert `<span>` path
@@ -62,7 +61,7 @@ export function FilePathLink({
   className,
 }: FilePathLinkProps) {
   const { workspaceEntries, onFilePathClick } = useContext(FilePathContext);
-  const [copied, setCopied] = useState(false);
+  const { copy, copied } = useCopyFeedback();
 
   const resolved = useMemo(
     () => resolvePathAction(path, workspaceEntries),
@@ -80,11 +79,8 @@ export function FilePathLink({
 
   const handleCopy = useCallback(() => {
     const value = resolved.action === "copy" ? resolved.value : path;
-    navigator.clipboard.writeText(value).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
-    });
-  }, [resolved, path]);
+    void copy(value);
+  }, [resolved, path, copy]);
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {

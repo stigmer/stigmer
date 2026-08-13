@@ -8,6 +8,7 @@ import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/ap
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { serializeManifest } from "@stigmer/sdk";
 import { toast } from "../feedback/toast.js";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { serializeWorkflowYaml } from "../workflow/serialize-workflow-yaml.js";
 
 // ---------------------------------------------------------------------------
@@ -98,17 +99,25 @@ export function useExportResource({
     return resource.metadata?.slug || resource.metadata?.name || "resource";
   }, [resource]);
 
+  const { copy: copyText } = useCopyFeedback();
+
   const copyYaml = useCallback(async () => {
     if (!yaml) return;
-    await copyToClipboard(yaml);
-    toast.success("YAML copied to clipboard");
-  }, [yaml]);
+    if (await copyText(yaml)) {
+      toast.success("YAML copied to clipboard");
+    } else {
+      toast.error("Couldn't copy YAML");
+    }
+  }, [copyText, yaml]);
 
   const copyJson = useCallback(async () => {
     if (!json) return;
-    await copyToClipboard(json);
-    toast.success("JSON copied to clipboard");
-  }, [json]);
+    if (await copyText(json)) {
+      toast.success("JSON copied to clipboard");
+    } else {
+      toast.error("Couldn't copy JSON");
+    }
+  }, [copyText, json]);
 
   const downloadYaml = useCallback(() => {
     if (!yaml) return;
@@ -124,29 +133,6 @@ export function useExportResource({
     () => ({ copyYaml, copyJson, downloadYaml, downloadJson, yaml, json }),
     [copyYaml, copyJson, downloadYaml, downloadJson, yaml, json],
   );
-}
-
-// ---------------------------------------------------------------------------
-// Clipboard
-// ---------------------------------------------------------------------------
-
-async function copyToClipboard(text: string): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    fallbackCopy(text);
-  }
-}
-
-function fallbackCopy(text: string): void {
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.style.position = "fixed";
-  textarea.style.opacity = "0";
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand("copy");
-  document.body.removeChild(textarea);
 }
 
 // ---------------------------------------------------------------------------

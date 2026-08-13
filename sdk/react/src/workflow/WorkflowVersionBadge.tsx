@@ -1,8 +1,9 @@
 "use client";
 
-import { memo, useCallback, useState } from "react";
+import { memo } from "react";
 import { cn } from "@stigmer/theme";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
 /** Props for {@link WorkflowVersionBadge}. */
 export interface WorkflowVersionBadgeProps {
@@ -41,18 +42,8 @@ export const WorkflowVersionBadge = memo(function WorkflowVersionBadge({
   isCurrent,
   className,
 }: WorkflowVersionBadgeProps) {
-  const [copied, setCopied] = useState(false);
+  const { copy, copied } = useCopyFeedback();
   const truncated = versionHash.slice(0, 8);
-
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(versionHash);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard API may be unavailable in some contexts
-    }
-  }, [versionHash]);
 
   return (
     <span className={cn("stg:inline-flex stg:items-center stg:gap-1.5", className)}>
@@ -75,7 +66,7 @@ export const WorkflowVersionBadge = memo(function WorkflowVersionBadge({
           render={
             <button
               type="button"
-              onClick={handleCopy}
+              onClick={() => void copy(versionHash)}
               className={cn(
                 "stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-[11px] stg:font-medium stg:text-foreground stg:transition-colors",
                 "stg:hover:bg-accent-hover",

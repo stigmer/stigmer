@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef } from "react";
 import { cn } from "@stigmer/theme";
+import { selectElementText } from "../internal/select-element-text.js";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -47,25 +49,14 @@ export function ApiKeyCreatedAlert({
   onDismiss,
   className,
 }: ApiKeyCreatedAlertProps) {
-  const [copied, setCopied] = useState(false);
+  const { copy, copied } = useCopyFeedback();
+  const revealRef = useRef<HTMLElement>(null);
 
   const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(rawKey);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Fallback: select the text so the user can manually copy
-      const el = document.getElementById("stgm-api-key-reveal");
-      if (el) {
-        const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(el);
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-      }
-    }
-  }, [rawKey]);
+    if (await copy(rawKey)) return;
+    // Rejected write: select the revealed key so the user can copy manually.
+    if (revealRef.current) selectElementText(revealRef.current);
+  }, [copy, rawKey]);
 
   return (
     <div
@@ -100,6 +91,7 @@ export function ApiKeyCreatedAlert({
 
       <div className="stg:flex stg:items-center stg:gap-2">
         <code
+          ref={revealRef}
           id="stgm-api-key-reveal"
           className={cn(
             "stg:min-w-0 stg:flex-1 stg:select-all stg:truncate stg:rounded-md",

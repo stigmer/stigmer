@@ -5,6 +5,7 @@ import { cn } from "@stigmer/theme";
 import { useExplainWorkflowFlow, type ExplainPhase } from "./useExplainWorkflowFlow.js";
 import { MessageThread } from "../execution/MessageThread.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
 /** Props for {@link WorkflowExplainDialog}. */
 export interface WorkflowExplainDialogProps {
@@ -75,13 +76,12 @@ export function WorkflowExplainDialog({
     [onOpenChange],
   );
 
+  const { copy, copied } = useCopyFeedback();
   const handleCopy = useCallback(() => {
     if (flow.explanation) {
-      navigator.clipboard.writeText(flow.explanation).catch(() => {
-        /* Clipboard unavailable in some contexts */
-      });
+      void copy(flow.explanation);
     }
-  }, [flow.explanation]);
+  }, [copy, flow.explanation]);
 
   return (
     <dialog
@@ -200,7 +200,7 @@ export function WorkflowExplainDialog({
                   "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 )}
               >
-                Copy to clipboard
+                {copied ? "Copied" : "Copy to clipboard"}
               </button>
             )}
           </div>

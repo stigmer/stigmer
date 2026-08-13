@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { cn } from "@stigmer/theme";
 import { TruncatedText } from "../internal/truncated-text.js";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
 /**
  * Internal building blocks shared by the channel-app forms and panels.
@@ -148,14 +149,11 @@ function CopyButton({
 }
 
 function useCopy(value: string) {
-  const [copied, setCopied] = useState(false);
+  const { copy: copyText, copied } = useCopyFeedback();
 
   const copy = useCallback(() => {
-    void navigator.clipboard.writeText(value).then(() => {
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-    });
-  }, [value]);
+    void copyText(value);
+  }, [copyText, value]);
 
   return { copied, copy };
 }
