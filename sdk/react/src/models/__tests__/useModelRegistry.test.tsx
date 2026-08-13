@@ -342,13 +342,12 @@ describe("useModelRegistry", () => {
       expect(cursorModels).toHaveLength(0);
     });
 
-    it("resolves defaultModel to the first featured native model", () => {
+    it("resolves defaultModel to the featured standard-cost native model (what an unpinned execution runs, #663)", () => {
       const { result } = renderHook(() =>
         useModelRegistry({ harness: "native" }),
       { wrapper: createWrapper() });
-      const featured = result.current.featured;
-      expect(featured.length).toBeGreaterThan(0);
-      expect(result.current.defaultModel!.modelId).toBe(featured[0].modelId);
+      expect(result.current.defaultModel!.modelId).toBe("claude-sonnet-4.6");
+      expect(result.current.defaultModel!.costTier).toBe("standard");
     });
   });
 
