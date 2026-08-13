@@ -81,18 +81,18 @@ public final class AgentCallProto extends com.google.protobuf.GeneratedFile {
       "ind=environment\032\017this.kind == 53\340\205,5R\017en" +
       "vironmentRefs\0326\n\010EnvEntry\022\020\n\003key\030\001 \001(\tR\003" +
       "key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001:\016\352\213,\nagent" +
-      "_call\"\377\001\n\027AgentCallOutputContract\0227\n\006sch" +
+      "_call\"\202\002\n\027AgentCallOutputContract\0227\n\006sch" +
       "ema\030\001 \001(\0132\027.google.protobuf.StructB\006\272H\003\310" +
       "\001\001R\006schema\022Z\n\non_invalid\030\002 \001(\0162;.ai.stig" +
       "mer.agentic.workflow.v1.tasks.OnInvalidO" +
-      "utputPolicyR\tonInvalid\022*\n\013max_retries\030\003 " +
-      "\001(\005B\t\272H\006\032\004\030\005(\001R\nmaxRetries\022#\n\rfallback_t" +
-      "ask\030\004 \001(\tR\014fallbackTaskB\310\001B\016AgentCallPro" +
-      "toP\001\242\002\006ASAWVT\252\002$Ai.Stigmer.Agentic.Workf" +
-      "low.V1.Tasks\312\002$Ai\\Stigmer\\Agentic\\Workfl" +
-      "ow\\V1\\Tasks\342\0020Ai\\Stigmer\\Agentic\\Workflo" +
-      "w\\V1\\Tasks\\GPBMetadata\352\002)Ai::Stigmer::Ag" +
-      "entic::Workflow::V1::Tasksb\006proto3"
+      "utputPolicyR\tonInvalid\022-\n\013max_retries\030\003 " +
+      "\001(\005B\014\272H\t\032\004\030\005(\001\330\001\001R\nmaxRetries\022#\n\rfallbac" +
+      "k_task\030\004 \001(\tR\014fallbackTaskB\310\001B\016AgentCall" +
+      "ProtoP\001\242\002\006ASAWVT\252\002$Ai.Stigmer.Agentic.Wo" +
+      "rkflow.V1.Tasks\312\002$Ai\\Stigmer\\Agentic\\Wor" +
+      "kflow\\V1\\Tasks\342\0020Ai\\Stigmer\\Agentic\\Work" +
+      "flow\\V1\\Tasks\\GPBMetadata\352\002)Ai::Stigmer:" +
+      ":Agentic::Workflow::V1::Tasksb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

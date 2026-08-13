@@ -201,7 +201,10 @@ private static final long serialVersionUID = 0L;
    * the expected schema, giving the agent an opportunity to self-correct.
    *
    * Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.
-   * Default: 1. Valid range: 1-5.
+   * Default: 2 (the runner's retry loop). Valid range when set: 1-5.
+   *
+   * Unset (0) is valid: proto3 implicit presence makes an omitted field
+   * indistinguishable from 0, so the range rule must not fire on it (#673).
    * </pre>
    *
    * <code>int32 max_retries = 3 [json_name = "maxRetries", (.buf.validate.field) = { ... }</code>
@@ -1028,7 +1031,10 @@ private static final long serialVersionUID = 0L;
      * the expected schema, giving the agent an opportunity to self-correct.
      *
      * Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.
-     * Default: 1. Valid range: 1-5.
+     * Default: 2 (the runner's retry loop). Valid range when set: 1-5.
+     *
+     * Unset (0) is valid: proto3 implicit presence makes an omitted field
+     * indistinguishable from 0, so the range rule must not fire on it (#673).
      * </pre>
      *
      * <code>int32 max_retries = 3 [json_name = "maxRetries", (.buf.validate.field) = { ... }</code>
@@ -1046,7 +1052,10 @@ private static final long serialVersionUID = 0L;
      * the expected schema, giving the agent an opportunity to self-correct.
      *
      * Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.
-     * Default: 1. Valid range: 1-5.
+     * Default: 2 (the runner's retry loop). Valid range when set: 1-5.
+     *
+     * Unset (0) is valid: proto3 implicit presence makes an omitted field
+     * indistinguishable from 0, so the range rule must not fire on it (#673).
      * </pre>
      *
      * <code>int32 max_retries = 3 [json_name = "maxRetries", (.buf.validate.field) = { ... }</code>
@@ -1068,7 +1077,10 @@ private static final long serialVersionUID = 0L;
      * the expected schema, giving the agent an opportunity to self-correct.
      *
      * Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.
-     * Default: 1. Valid range: 1-5.
+     * Default: 2 (the runner's retry loop). Valid range when set: 1-5.
+     *
+     * Unset (0) is valid: proto3 implicit presence makes an omitted field
+     * indistinguishable from 0, so the range rule must not fire on it (#673).
      * </pre>
      *
      * <code>int32 max_retries = 3 [json_name = "maxRetries", (.buf.validate.field) = { ... }</code>

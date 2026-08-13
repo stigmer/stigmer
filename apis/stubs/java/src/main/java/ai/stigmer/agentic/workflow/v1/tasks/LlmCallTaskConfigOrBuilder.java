@@ -156,6 +156,9 @@ public interface LlmCallTaskConfigOrBuilder extends
    * <pre>
    * Maximum tokens in the LLM response.
    * Optional — uses the provider's default when not set.
+   *
+   * Unset (0) is valid: proto3 implicit presence makes an omitted field
+   * indistinguishable from 0, so the range rule must not fire on it (#673).
    * </pre>
    *
    * <code>int32 max_tokens = 6 [json_name = "maxTokens", (.buf.validate.field) = { ... }</code>
@@ -165,9 +168,13 @@ public interface LlmCallTaskConfigOrBuilder extends
 
   /**
    * <pre>
-   * Timeout for the LLM call in seconds.
-   * Default: 60. Max: 600 (10 minutes).
-   * Optional.
+   * Timeout for the LLM call in seconds. Max: 600 (10 minutes).
+   * Optional — unset (0) leaves the call bounded by the runner's activity
+   * timeout. NOTE: an explicit value is accepted but not yet applied by the
+   * runner; the activity timeout governs either way.
+   *
+   * Unset (0) is valid: proto3 implicit presence makes an omitted field
+   * indistinguishable from 0, so the range rule must not fire on it (#673).
    * </pre>
    *
    * <code>int32 timeout = 7 [json_name = "timeout", (.buf.validate.field) = { ... }</code>
@@ -206,7 +213,10 @@ public interface LlmCallTaskConfigOrBuilder extends
    * schema, giving it an opportunity to self-correct.
    *
    * Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.
-   * Default: 1. Valid range: 1-5.
+   * Valid range when set: 1-5.
+   *
+   * Unset (0) is valid: proto3 implicit presence makes an omitted field
+   * indistinguishable from 0, so the range rule must not fire on it (#673).
    * </pre>
    *
    * <code>int32 max_retries = 9 [json_name = "maxRetries", (.buf.validate.field) = { ... }</code>

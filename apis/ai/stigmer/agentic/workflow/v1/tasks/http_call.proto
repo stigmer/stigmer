@@ -50,11 +50,20 @@ message HttpCallTaskConfig {
   // Can be any JSON structure. Supports expressions in string values.
   google.protobuf.Struct body = 4;
 
-  // Request timeout in seconds (optional, default: 30).
-  int32 timeout_seconds = 5 [(buf.validate.field).int32 = {
-    gte: 1
-    lte: 300
-  }];
+  // Request timeout in seconds. Max: 300 (5 minutes).
+  // Optional — unset (0) leaves the request bounded by the runner's activity
+  // timeout. NOTE: an explicit value is accepted but not yet applied by the
+  // runner; the activity timeout governs either way.
+  //
+  // Unset (0) is valid: proto3 implicit presence makes an omitted field
+  // indistinguishable from 0, so the range rule must not fire on it (#673).
+  int32 timeout_seconds = 5 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).int32 = {
+      gte: 1
+      lte: 300
+    }
+  ];
 }
 
 // HttpEndpoint defines the HTTP endpoint to call.
