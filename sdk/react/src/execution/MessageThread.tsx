@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, memo, Suspense, useCallback, useMemo, useState, type ComponentType } from "react";
+import { lazy, memo, Suspense, useCallback, useMemo, type ComponentType } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -28,6 +28,7 @@ import { SubAgentSection } from "./SubAgentSection.js";
 import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge.js";
 import { SetupProgress, type SetupProgressProps } from "./SetupProgress.js";
 import { ApprovalCard, type ApprovalCardProps } from "./ApprovalCard.js";
+import { ExecutionErrorNotice, type ExecutionErrorNoticeProps } from "./ExecutionErrorNotice.js";
 import { FileReviewCard } from "./FileReviewCard.js";
 import { SummarizationCard } from "./SummarizationCard.js";
 import { PlanCompletionCard, type PlanCompletionCardProps } from "./PlanCompletionCard.js";
@@ -106,6 +107,13 @@ export interface MessageThreadSlots {
   readonly PlanStreamingCard?: ComponentType<PlanStreamingCardProps>;
   /** Pre-first-token setup / "Thinking…" indicator. */
   readonly SetupProgress?: ComponentType<SetupProgressProps>;
+  /**
+   * The terminal execution-failure notice. Receives the raw server-reported
+   * reason and the retry wiring, so a host can turn the failure into its own
+   * recovery moment (classify the reason, offer an alternate engine, link
+   * support) instead of the built-in Show more / Retry treatment.
+   */
+  readonly ExecutionErrorNotice?: ComponentType<ExecutionErrorNoticeProps>;
 }
 
 /** Props for {@link MessageThread}. */
@@ -1489,14 +1497,16 @@ export function ThreadItemRenderer({
           <ExecutionPhaseBadge phase={item.phase} />
         </div>
       );
-    case "execution-error":
+    case "execution-error": {
+      const ErrorNotice = slots?.ExecutionErrorNotice ?? ExecutionErrorNotice;
       return (
-        <ExecutionErrorNotice
+        <ErrorNotice
           error={item.error}
           retryMessage={item.retryMessage}
           onRetry={onRetryExecution}
         />
       );
+    }
     case "approval-request":
       return (
         <ApprovalCardRow
@@ -1617,86 +1627,6 @@ function FailedUserMessage({
             className="stg:shrink-0 stg:rounded stg:font-medium stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
           >
             Retry
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// ExecutionErrorNotice — server failure reason for a terminal-failed execution
-// ---------------------------------------------------------------------------
-
-/**
- * Recognizes a recoverable *interruption* (worker reaped / heartbeat timeout /
- * stall) as opposed to a genuine application failure. The runner stamps these
- * with a stable signature ("[StallTimeoutError]", "Execution interrupted",
- * "Retry or resume."), and the workflow auto-resumes them while recovery cycles
- * remain; by the time one reaches the UI as terminal it is resumable from the
- * session's persisted harness_state_id rather than a dead end.
- */
-function isInterruptedError(error: string): boolean {
-  return /\[StallTimeoutError\]|execution interrupted|retry or resume/i.test(error);
-}
-
-/**
- * Renders the server-reported failure reason (`AgentExecutionStatus.error`)
- * for an execution that died — typically before producing any messages. The
- * reason can be a long Temporal error, so it is clamped by default with a
- * Show more / Show less toggle.
- *
- * A genuine failure renders as a destructive alert with a Retry. A *recoverable
- * interruption* renders as a neutral notice with a Resume — both resend the
- * originating message, which the server continues from the session's persisted
- * harness_state_id (the same data path; the framing differs so an interruption
- * never looks like a dead-end crash).
- */
-function ExecutionErrorNotice({
-  error,
-  retryMessage,
-  onRetry,
-}: {
-  error: string;
-  retryMessage?: string;
-  onRetry?: (message: string) => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const canRetry = !!onRetry && !!retryMessage;
-  const interrupted = isInterruptedError(error);
-
-  return (
-    <div
-      role={interrupted ? "status" : "alert"}
-      className={cn(
-        "stg:mx-4 stg:flex stg:flex-col stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-2",
-        interrupted ? "stg:bg-muted" : "stg:bg-destructive-subtle",
-      )}
-    >
-      <p
-        className={cn(
-          "stg:text-xs stg:whitespace-pre-wrap stg:break-words",
-          interrupted ? "stg:text-foreground" : "stg:text-destructive",
-          !expanded && "stg:line-clamp-3",
-        )}
-      >
-        {error}
-      </p>
-      <div className="stg:flex stg:items-center stg:gap-3 stg:text-xs">
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="stg:font-medium stg:text-muted-foreground stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-        >
-          {expanded ? "Show less" : "Show more"}
-        </button>
-        {canRetry && (
-          <button
-            type="button"
-            onClick={() => onRetry!(retryMessage!)}
-            className="stg:font-medium stg:text-foreground stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-          >
-            {interrupted ? "Resume" : "Retry"}
           </button>
         )}
       </div>

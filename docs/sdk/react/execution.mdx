@@ -1478,6 +1478,35 @@ border + muted surface, tokens only — DD-005).
 />
 
 
+### ExecutionErrorNotice
+
+Renders the server-reported failure reason (`AgentExecutionStatus.error`)
+for an execution that died — typically before producing any messages. The
+reason can be a long Temporal error, so it is clamped by default with a
+Show more / Show less toggle.
+
+A genuine failure renders as a destructive alert with a Retry. A *recoverable
+interruption* renders as a neutral notice with a Resume — both resend the
+originating message, which the server continues from the session's persisted
+harness_state_id (the same data path; the framing differs so an interruption
+never looks like a dead-end crash).
+
+Slot-overridable via `MessageThreadSlots.ExecutionErrorNotice`. An override
+receives the raw reason and the retry wiring and owns its own presentation —
+including whether to reproduce the interruption-vs-failure framing, which is
+an internal heuristic of this built-in, not part of the slot contract.
+
+**Props** — `ExecutionErrorNoticeProps`
+
+<TypeTable
+  type={{
+    error: { type: "string", description: "The server-reported failure reason (`AgentExecutionStatus.error`), raw.", required: true },
+    onRetry: { type: "(message: string) => void", description: "Resends retryMessage; the server continues from the session's persisted harness_state_id. Retry renders only when both this handler and retryMessage are present." },
+    retryMessage: { type: "string", description: "The originating user message, resent verbatim on retry. Absent when the failed execution has no resendable prompt — the retry affordance is hidden in that case." },
+  }}
+/>
+
+
 ### ExecutionProgress
 
 Displays execution lifecycle phase and, when present, the agent's
@@ -1802,7 +1831,7 @@ All visual properties flow through `--stgm-*` tokens.
     planBuildPending: { type: "boolean", description: "True while the approved plan is being uploaded ahead of the build turn." },
     sandboxWorkspaceRoot: { type: "string", description: "Absolute sandbox workspace root (e.g. `/home/daytona/workspace`). When provided, shell commands and tool output normalize absolute sandbox paths to workspace-relative display paths.  Pass an empty string or omit for local sessions where paths are the user's own filesystem (no normalization needed)." },
     showFileReviewRecords: { type: "boolean", description: "Render each *settled* captured change set as a read-only record card at its anchor in the thread (after the set's last stamped edit row) — the durable history of what changed and how it was decided. This is the only in-thread trace for a set with no stamped rows (e.g. changes made by shell commands), so the surface that owns the session history should enable it.  The thread never renders *decision* controls: a pending (AWAITING_REVIEW) set on a live execution is deliberately NOT emitted here — its decision surface is the composer-docked FileReviewDock, which cannot scroll out of view. The stamped rows' badges carry the pending state in-thread.  Opt-in with a backward-compatible default (DD-011); `SessionViewer` enables it." },
-    slots: { type: "MessageThreadSlots", description: "Component overrides for the thread's chrome — see MessageThreadSlots. Omitted slots render the built-ins; omitting the prop entirely changes nothing (DD-011)." },
+    slots: { type: "MessageThreadSlots", description: "Component overrides for the thread's chrome — see MessageThreadSlots. Omitted slots render the built-ins; omitting the prop entirely changes nothing (DD-011).", typeDescriptionLink: "#messagethreadslots" },
     submittingApprovalIds: { type: "ReadonlySet<string>", description: "Set of tool call IDs currently being submitted for approval. Drives per-card loading state. Only meaningful when `onApprovalSubmit` is provided." },
     summarizationEvents: { type: "readonly SummarizationEventView[]", description: "Summarization events from context window tracking. When provided, \"Context compacted\" cards are interleaved into the thread at the correct chronological position based on event timestamps.  Obtain from useContextWindow.summarizationEvents." },
     virtualized: { type: "boolean", description: "Enable virtualized rendering for long conversations. Requires `react-virtuoso` to be installed as a peer dependency. When enabled, only visible items are rendered in the DOM, improving performance for threads with 100+ items." },
@@ -3278,6 +3307,38 @@ Props for [`MessageEntry`](#messageentry).
     isPlanDocument: { type: "boolean", description: "Renders a `MESSAGE_AI` entry as a first-class plan document (PlanDocumentMessage) instead of a chat bubble. Set by the thread builder only on the NO-ARTIFACT fallback path: a completed Plan turn that never published `plan.md` (older executions, failed upload) keeps its plan inline — the message is the only copy of the plan. A turn that published the artifact collapses the message into the compact plan card instead (the document lives in the panel's plan tab). Ignored for non-AI messages." },
     message: { type: "AgentMessage", description: "The agent message to render.", required: true },
     onEdit: { type: "() => void", description: "When provided on a `MESSAGE_HUMAN` entry, a hover-revealed \"Edit\" button appears on the bubble. Clicking it invokes this callback — the session chat uses it to stop the in-flight turn and pre-fill the composer with this message for editing. Ignored for non-human messages." },
+  }}
+/>
+
+
+### MessageThreadSlots
+
+Component overrides for the chrome [`MessageThread`](#messagethread) renders — the
+adaptation surface for hosts whose design system needs different
+*structure*, not just different `--stgm-*` token values (stigmer#187).
+
+Each slot is keyed by the built-in component it replaces and receives
+exactly that component's exported props interface, so an override can
+always delegate to the built-in for the cases it does not customize
+(e.g. a `MessageEntry` slot that restyles `MESSAGE_HUMAN` bubbles and
+renders the default `MessageEntry` for everything else).
+
+Define slot components at module level (or memoize them). The thread's
+rows rely on `React.memo` + structural sharing to skip re-renders during
+streaming (DD-009/DD-010); a slot component recreated on every host
+render defeats that for its rows.
+
+<TypeTable
+  type={{
+    ApprovalCard: { type: "ComponentType<ApprovalCardProps>", description: "The HITL tool-approval gate card." },
+    ExecutionErrorNotice: { type: "ComponentType<ExecutionErrorNoticeProps>", description: "The terminal execution-failure notice. Receives the raw server-reported reason and the retry wiring, so a host can turn the failure into its own recovery moment (classify the reason, offer an alternate engine, link support) instead of the built-in Show more / Retry treatment." },
+    MessageEntry: { type: "ComponentType<MessageEntryProps>", description: "All message bubbles — human, assistant, thinking, and system entries. Also wraps the failed-send bubble (the inline Retry chrome around it stays built-in)." },
+    PlanArtifactCard: { type: "ComponentType<PlanArtifactCardProps>", description: "Completed Plan turn that published a plan artifact." },
+    PlanCompletionCard: { type: "ComponentType<PlanCompletionCardProps>", description: "Completed Plan turn without an artifact — the bare Implement CTA." },
+    PlanStreamingCard: { type: "ComponentType<PlanStreamingCardProps>", description: "Live stand-in card while a Plan turn is writing its document." },
+    SetupProgress: { type: "ComponentType<SetupProgressProps>", description: "Pre-first-token setup / \"Thinking…\" indicator." },
+    TodoCard: { type: "ComponentType<TodoCardProps>", description: "The collapsible in-thread to-dos card." },
+    TodoRow: { type: "ComponentType<TodoRowProps>", description: "One to-do row inside the built-in TodoCard's list. Ignored when `TodoCard` is also overridden (the replacement receives it via TodoCardProps.TodoRow and may forward or ignore it)." },
   }}
 />
 

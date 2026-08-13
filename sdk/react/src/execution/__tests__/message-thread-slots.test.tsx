@@ -28,6 +28,7 @@ import {
 import { MessageThread, type MessageThreadSlots } from "../MessageThread";
 import type { MessageEntryProps } from "../MessageEntry";
 import type { ApprovalCardProps } from "../ApprovalCard";
+import type { ExecutionErrorNoticeProps } from "../ExecutionErrorNotice";
 import type { TodoCardProps } from "../TodoCard";
 import type { TodoRowProps } from "../TodoList";
 import type { SetupProgressProps } from "../SetupProgress";
@@ -110,6 +111,7 @@ function makeExecution(opts: {
   todos?: Record<string, { content: string; status: TodoStatus }>;
   pendingApprovalToolCallId?: string;
   planArtifactName?: string;
+  error?: string;
 }): AgentExecution {
   const exec = create(AgentExecutionSchema);
 
@@ -128,6 +130,9 @@ function makeExecution(opts: {
 
   const status = create(AgentExecutionStatusSchema);
   status.phase = opts.phase ?? ExecutionPhase.EXECUTION_COMPLETED;
+  if (opts.error) {
+    status.error = opts.error;
+  }
 
   const aiMsg = create(AgentMessageSchema);
   aiMsg.type = MessageType.MESSAGE_AI;
@@ -388,6 +393,70 @@ describe("MessageThread slots", () => {
     expect(screen.getByTestId("custom-streaming").textContent).toBe(
       "writing: Rollout Plan",
     );
+  });
+
+  it("renders the ExecutionErrorNotice slot with the retry wiring intact", () => {
+    const onRetryExecution = vi.fn();
+    const CustomNotice = ({ error, retryMessage, onRetry }: ExecutionErrorNoticeProps) => (
+      <div data-testid="custom-error-notice">
+        <span>{error}</span>
+        {onRetry && retryMessage && (
+          <button type="button" onClick={() => onRetry(retryMessage)}>
+            switch engine and retry
+          </button>
+        )}
+      </div>
+    );
+
+    render(
+      <MessageThread
+        executions={[
+          makeExecution({
+            id: "e-failed",
+            specMessage: "prompt text",
+            phase: ExecutionPhase.EXECUTION_FAILED,
+            error: "model capacity exhausted",
+          }),
+        ]}
+        onRetryExecution={onRetryExecution}
+        slots={{ ExecutionErrorNotice: CustomNotice }}
+      />,
+    );
+
+    const notice = screen.getByTestId("custom-error-notice");
+    expect(notice.textContent).toContain("model capacity exhausted");
+    // The built-in's clamp toggle must not render alongside the override.
+    expect(screen.queryByRole("button", { name: "Show more" })).toBeNull();
+
+    // The slot's retry contract is identical to the built-in's: it resends
+    // the originating message.
+    fireEvent.click(screen.getByRole("button", { name: "switch engine and retry" }));
+    expect(onRetryExecution).toHaveBeenCalledWith("prompt text");
+  });
+
+  it("falls back to the built-in ExecutionErrorNotice when the slot is omitted", () => {
+    const onRetryExecution = vi.fn();
+
+    render(
+      <MessageThread
+        executions={[
+          makeExecution({
+            id: "e-failed",
+            specMessage: "prompt text",
+            phase: ExecutionPhase.EXECUTION_FAILED,
+            error: "model capacity exhausted",
+          }),
+        ]}
+        onRetryExecution={onRetryExecution}
+      />,
+    );
+
+    // The built-in renders as a destructive alert with clamp + Retry.
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("model capacity exhausted");
+    expect(screen.getByRole("button", { name: "Show more" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onRetryExecution).toHaveBeenCalledWith("prompt text");
   });
 
   // -------------------------------------------------------------------------
