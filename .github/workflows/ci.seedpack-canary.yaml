@@ -139,13 +139,20 @@ jobs:
           echo "$install_dir" >> "$GITHUB_PATH"
           "$install_dir/planton" version
 
+      # The CLI's documented non-interactive (CI/CD) auth path. It registers
+      # the hosted planton.ai instance — `secret get` refuses to run with no
+      # backend configured — and validates the key, so a dead PLANTON_API_KEY
+      # fails here with a clear error, not mid-fetch.
+      - name: Authenticate Planton CLI
+        env:
+          PLANTON_API_KEY: ${{ secrets.PLANTON_API_KEY }}
+        run: planton login --api-key "$PLANTON_API_KEY"
+
       # Empty-value guard matters here: the canary tests t.Skip on missing
       # env vars, so a silently-empty export would turn the lane green with
       # every vendor skipped. GITHUB_ENV values are not auto-masked, hence
       # the explicit add-mask before each write.
       - name: Fetch canary credentials
-        env:
-          PLANTON_API_KEY: ${{ secrets.PLANTON_API_KEY }}
         run: |
           fetch() {
             local env_name="$1" slug="$2"
