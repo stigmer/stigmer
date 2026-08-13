@@ -129,10 +129,16 @@ export function useSkillUpload(): UseSkillUploadReturn {
       if (abortRef.current !== callId) return;
 
       const entries = Object.entries(unzipped);
-      const skillMdEntry = findSkillMd(entries);
+      const skillMdEntry = findRootSkillMd(entries);
 
       if (!skillMdEntry) {
-        setValidationError("ZIP must contain a SKILL.md file at the root level");
+        const nestedPath = findNestedSkillMd(entries);
+        setValidationError(
+          nestedPath
+            ? `Found ${nestedPath} — SKILL.md must be at the archive root. ` +
+              "Zip the skill folder's contents, not the folder itself."
+            : "ZIP must contain a SKILL.md file at the root level",
+        );
         return;
       }
 
@@ -207,12 +213,25 @@ function isZip(bytes: Uint8Array): boolean {
   );
 }
 
-function findSkillMd(
+/**
+ * The layout contract is root-only on both editions (DD-018, #452): the
+ * server rejects an archive whose only SKILL.md is nested, so the preview
+ * must too — accepting it here converts a clear pre-upload error into a
+ * confusing post-upload rejection (issue #684).
+ */
+function findRootSkillMd(
   entries: [string, Uint8Array][],
 ): [string, Uint8Array] | undefined {
-  return entries.find(
-    ([path]) => path === "SKILL.md" || path.match(/^[^/]+\/SKILL\.md$/),
-  );
+  return entries.find(([path]) => path === "SKILL.md");
+}
+
+/**
+ * Detect the "zipped the folder instead of its contents" mistake so the
+ * error can say what to do. Any-depth suffix match, mirroring the server's
+ * nested-occurrence detection (skill/storage/zip_extractor.go).
+ */
+function findNestedSkillMd(entries: [string, Uint8Array][]): string | undefined {
+  return entries.find(([path]) => path.endsWith("/SKILL.md"))?.[0];
 }
 
 function parseFrontmatter(content: string): Record<string, unknown> | null {
