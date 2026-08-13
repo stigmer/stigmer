@@ -33,6 +33,11 @@ func (s *SkillClient) Push(ctx context.Context, input *skillv1.PushSkillRequest)
 	return resp, wrapErr(err)
 }
 
+func (s *SkillClient) CreateArtifactUploadUrl(ctx context.Context, input *skillv1.CreateSkillArtifactUploadUrlRequest) (*skillv1.SkillArtifactUploadUrl, error) {
+	resp, err := s.command.CreateArtifactUploadUrl(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (s *SkillClient) PushFromExecutionArtifact(ctx context.Context, input *skillv1.PushSkillFromExecutionArtifactRequest) (*skillv1.Skill, error) {
 	resp, err := s.command.PushFromExecutionArtifact(ctx, input)
 	return resp, wrapErr(err)
@@ -61,6 +66,11 @@ func (s *SkillClient) GetByReference(ctx context.Context, ref ResourceRef) (*ski
 
 func (s *SkillClient) GetArtifact(ctx context.Context, input *skillv1.GetArtifactRequest) (*skillv1.GetArtifactResponse, error) {
 	resp, err := s.query.GetArtifact(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (s *SkillClient) GetArtifactDownloadUrl(ctx context.Context, input *skillv1.GetArtifactRequest) (*skillv1.SkillArtifactDownloadUrl, error) {
+	resp, err := s.query.GetArtifactDownloadUrl(ctx, input)
 	return resp, wrapErr(err)
 }
 

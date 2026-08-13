@@ -35,7 +35,7 @@ import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinst
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { GetArtifactResponse } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+import type { GetArtifactResponse, SkillArtifactDownloadUrl } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { create } from "@bufbuild/protobuf";
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
@@ -581,6 +581,17 @@ export class StigmerClient {
 
   async getSkillArtifact(artifactStorageKey: string): Promise<GetArtifactResponse> {
     return this.skillQuery.getArtifact({ artifactStorageKey });
+  }
+
+  /**
+   * Mint an HTTP download URL for a skill artifact (#675). Preferred over
+   * getSkillArtifact for the actual bytes: the unary response is capped by
+   * the server's 10MB gRPC message limit, while skills may be 100MB.
+   * Throws ConnectError with Code.Unimplemented against servers that
+   * predate the transfer lane — callers fall back to getSkillArtifact.
+   */
+  async getSkillArtifactDownloadUrl(artifactStorageKey: string): Promise<SkillArtifactDownloadUrl> {
+    return this.skillQuery.getArtifactDownloadUrl({ artifactStorageKey });
   }
 
   async createArtifact(input: CreateArtifactInput): Promise<Artifact> {

@@ -101,7 +101,7 @@
           "type": "string"
         },
         "max_retries": {
-          "description": "Maximum retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the agent with the specific validation errors and the expected schema, giving the agent an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5.",
+          "description": "Maximum retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the agent with the specific validation errors and the expected schema, giving the agent an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 2 (the runner's retry loop). Valid range when set: 1-5. Unset (0) is valid: proto3 implicit presence makes an omitted field indistinguishable from 0, so the range rule must not fire on it (#673).",
           "maximum": 5,
           "minimum": 1,
           "type": "integer"

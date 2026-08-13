@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { SkillSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_skill_v1_api } from "./api_pb.js";
-import type { GetArtifactRequestSchema, GetArtifactResponseSchema, ListSkillVersionsInputSchema, ListSkillVersionsResponseSchema, SkillIdSchema } from "./io_pb.js";
+import type { GetArtifactRequestSchema, GetArtifactResponseSchema, ListSkillVersionsInputSchema, ListSkillVersionsResponseSchema, SkillArtifactDownloadUrlSchema, SkillIdSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_skill_v1_io } from "./io_pb.js";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/skill/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_skill_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MTKHBAoUU2tpbGxRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsSWQaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiKsK4GCYIARArIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBza2lsbBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbCIE0LgYARJ2CgtnZXRBcnRpZmFjdBIvLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5HZXRBcnRpZmFjdFJlcXVlc3QaMC5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuR2V0QXJ0aWZhY3RSZXNwb25zZSIE0LgYARKBAQoMbGlzdFZlcnNpb25zEjMuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLkxpc3RTa2lsbFZlcnNpb25zSW5wdXQaNi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuTGlzdFNraWxsVmVyc2lvbnNSZXNwb25zZSIE0LgYARoEoP8rK2IGcHJvdG8z", [file_ai_stigmer_agentic_skill_v1_api, file_ai_stigmer_agentic_skill_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MTKQBQoUU2tpbGxRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsSWQaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiKsK4GCYIARArIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBza2lsbBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbCIE0LgYARJ2CgtnZXRBcnRpZmFjdBIvLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5HZXRBcnRpZmFjdFJlcXVlc3QaMC5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuR2V0QXJ0aWZhY3RSZXNwb25zZSIE0LgYARKGAQoWZ2V0QXJ0aWZhY3REb3dubG9hZFVybBIvLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5HZXRBcnRpZmFjdFJlcXVlc3QaNS5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGxBcnRpZmFjdERvd25sb2FkVXJsIgTQuBgBEoEBCgxsaXN0VmVyc2lvbnMSMy5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuTGlzdFNraWxsVmVyc2lvbnNJbnB1dBo2LmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5MaXN0U2tpbGxWZXJzaW9uc1Jlc3BvbnNlIgTQuBgBGgSg/ysrYgZwcm90bzM", [file_ai_stigmer_agentic_skill_v1_api, file_ai_stigmer_agentic_skill_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * SkillQueryController handles read operations for skills.
@@ -69,6 +69,26 @@ export const SkillQueryController: GenService<{
     methodKind: "unary";
     input: typeof GetArtifactRequestSchema;
     output: typeof GetArtifactResponseSchema;
+  },
+  /**
+   * Mint a URL for downloading a skill artifact over HTTP.
+   *
+   * Preferred over getArtifact for anything that might exceed the gRPC
+   * message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
+   * limit is deliverable. Callers should try this first and fall back to
+   * getArtifact against servers that predate it (UNIMPLEMENTED).
+   *
+   * @internal
+   * Authorization is skipped for the same reason as getArtifact: the
+   * content-hash storage key acts as the capability token. Cloud returns a
+   * pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
+   *
+   * @generated from rpc ai.stigmer.agentic.skill.v1.SkillQueryController.getArtifactDownloadUrl
+   */
+  getArtifactDownloadUrl: {
+    methodKind: "unary";
+    input: typeof GetArtifactRequestSchema;
+    output: typeof SkillArtifactDownloadUrlSchema;
   },
   /**
    * List version history for a skill.

@@ -46,27 +46,27 @@ public final class LlmCallProto extends com.google.protobuf.GeneratedFile {
       "/v1/tasks/common.proto\0322ai/stigmer/commo" +
       "ns/apiresource/field_options.proto\032\033buf/" +
       "validate/validate.proto\032\034google/protobuf" +
-      "/struct.proto\"\332\004\n\021LlmCallTaskConfig\022\"\n\005m" +
+      "/struct.proto\"\343\004\n\021LlmCallTaskConfig\022\"\n\005m" +
       "odel\030\001 \001(\tB\014\272H\tr\004\020\001\030\177\310\001\001R\005model\022)\n\rsyste" +
       "m_prompt\030\002 \001(\tB\004\330\205,\001R\014systemPrompt\022&\n\006pr" +
       "ompt\030\003 \001(\tB\016\272H\007r\002\020\001\310\001\001\330\205,\001R\006prompt\022@\n\017re" +
       "sponse_schema\030\004 \001(\0132\027.google.protobuf.St" +
       "ructR\016responseSchema\0221\n\013temperature\030\005 \001(" +
-      "\002B\017\272H\014\n\n\035\000\000\000@-\000\000\000\000R\013temperature\022&\n\nmax_t" +
-      "okens\030\006 \001(\005B\007\272H\004\032\002(\001R\tmaxTokens\022$\n\007timeo" +
-      "ut\030\007 \001(\005B\n\272H\007\032\005\030\330\004(\001R\007timeout\022Z\n\non_inva" +
-      "lid\030\010 \001(\0162;.ai.stigmer.agentic.workflow." +
-      "v1.tasks.OnInvalidOutputPolicyR\tonInvali" +
-      "d\022*\n\013max_retries\030\t \001(\005B\t\272H\006\032\004\030\005(\001R\nmaxRe" +
-      "tries\022#\n\rfallback_task\030\n \001(\tR\014fallbackTa" +
-      "sk\022&\n\017max_cost_micros\030\013 \001(\003R\rmaxCostMicr" +
-      "os\022(\n\020max_total_tokens\030\014 \001(\003R\016maxTotalTo" +
-      "kens:\014\352\213,\010llm_callB\306\001B\014LlmCallProtoP\001\242\002\006" +
-      "ASAWVT\252\002$Ai.Stigmer.Agentic.Workflow.V1." +
-      "Tasks\312\002$Ai\\Stigmer\\Agentic\\Workflow\\V1\\T" +
-      "asks\342\0020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Ta" +
-      "sks\\GPBMetadata\352\002)Ai::Stigmer::Agentic::" +
-      "Workflow::V1::Tasksb\006proto3"
+      "\002B\017\272H\014\n\n\035\000\000\000@-\000\000\000\000R\013temperature\022)\n\nmax_t" +
+      "okens\030\006 \001(\005B\n\272H\007\032\002(\001\330\001\001R\tmaxTokens\022\'\n\007ti" +
+      "meout\030\007 \001(\005B\r\272H\n\032\005\030\330\004(\001\330\001\001R\007timeout\022Z\n\no" +
+      "n_invalid\030\010 \001(\0162;.ai.stigmer.agentic.wor" +
+      "kflow.v1.tasks.OnInvalidOutputPolicyR\ton" +
+      "Invalid\022-\n\013max_retries\030\t \001(\005B\014\272H\t\032\004\030\005(\001\330" +
+      "\001\001R\nmaxRetries\022#\n\rfallback_task\030\n \001(\tR\014f" +
+      "allbackTask\022&\n\017max_cost_micros\030\013 \001(\003R\rma" +
+      "xCostMicros\022(\n\020max_total_tokens\030\014 \001(\003R\016m" +
+      "axTotalTokens:\014\352\213,\010llm_callB\306\001B\014LlmCallP" +
+      "rotoP\001\242\002\006ASAWVT\252\002$Ai.Stigmer.Agentic.Wor" +
+      "kflow.V1.Tasks\312\002$Ai\\Stigmer\\Agentic\\Work" +
+      "flow\\V1\\Tasks\342\0020Ai\\Stigmer\\Agentic\\Workf" +
+      "low\\V1\\Tasks\\GPBMetadata\352\002)Ai::Stigmer::" +
+      "Agentic::Workflow::V1::Tasksb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

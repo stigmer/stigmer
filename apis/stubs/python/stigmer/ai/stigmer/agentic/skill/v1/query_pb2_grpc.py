@@ -32,6 +32,11 @@ class SkillQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactResponse.FromString,
                 _registered_method=True)
+        self.getArtifactDownloadUrl = channel.unary_unary(
+                '/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifactDownloadUrl',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillArtifactDownloadUrl.FromString,
+                _registered_method=True)
         self.listVersions = channel.unary_unary(
                 '/ai.stigmer.agentic.skill.v1.SkillQueryController/listVersions',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.ListSkillVersionsInput.SerializeToString,
@@ -79,6 +84,23 @@ class SkillQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getArtifactDownloadUrl(self, request, context):
+        """Mint a URL for downloading a skill artifact over HTTP.
+
+        Preferred over getArtifact for anything that might exceed the gRPC
+        message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
+        limit is deliverable. Callers should try this first and fall back to
+        getArtifact against servers that predate it (UNIMPLEMENTED).
+
+        @internal
+        Authorization is skipped for the same reason as getArtifact: the
+        content-hash storage key acts as the capability token. Cloud returns a
+        pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def listVersions(self, request, context):
         """List version history for a skill.
 
@@ -111,6 +133,11 @@ def add_SkillQueryControllerServicer_to_server(servicer, server):
                     servicer.getArtifact,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactResponse.SerializeToString,
+            ),
+            'getArtifactDownloadUrl': grpc.unary_unary_rpc_method_handler(
+                    servicer.getArtifactDownloadUrl,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillArtifactDownloadUrl.SerializeToString,
             ),
             'listVersions': grpc.unary_unary_rpc_method_handler(
                     servicer.listVersions,
@@ -200,6 +227,33 @@ class SkillQueryController(object):
             '/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifact',
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getArtifactDownloadUrl(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifactDownloadUrl',
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillArtifactDownloadUrl.FromString,
             options,
             channel_credentials,
             insecure,

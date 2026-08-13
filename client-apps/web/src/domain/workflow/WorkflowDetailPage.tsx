@@ -24,6 +24,7 @@ import {
   type AdditionalTab,
 } from "@stigmer/react";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
+import { useRouteDetailYieldsToOverlay } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
 
@@ -335,10 +336,12 @@ export function WorkflowDetailPageInner({
 }
 
 export function WorkflowDetailPage() {
+  // The zone overlay owns detail rendering while it is active (oss#621).
+  const yieldsToOverlay = useRouteDetailYieldsToOverlay();
   const org = useStaticRouteParam("org", 2);
   const slug = useStaticRouteParam("slug");
 
-  if (!org || !slug) return null;
+  if (yieldsToOverlay || !org || !slug) return null;
 
   return <WorkflowDetailPageInner org={org} slug={slug} />;
 }

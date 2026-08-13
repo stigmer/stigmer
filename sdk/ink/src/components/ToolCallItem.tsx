@@ -2,7 +2,12 @@ import React from "react";
 import { Box, Text } from "ink";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ToolKind, resolveToolKind, normalizeToolResult } from "@stigmer/sdk";
+import {
+  ToolKind,
+  resolveToolKind,
+  normalizeToolResult,
+  extractShellIntent,
+} from "@stigmer/sdk";
 import type { ToolResultView } from "@stigmer/sdk";
 import {
   extractPrimaryArg,
@@ -28,8 +33,9 @@ const STATUS_INDICATOR: Record<number, { symbol: string; color?: string }> = {
 };
 
 // Harness-agnostic labels per kind. Classification is shared with the runner,
-// React, and the Go CLI via @stigmer/sdk's resolveToolKind, so Cursor's
-// PascalCase tools render with the same labels as native tools here.
+// React, and the CLI's headless renderers via @stigmer/sdk's resolveToolKind,
+// so Cursor's PascalCase tools render with the same labels as native tools
+// here.
 const KIND_LABEL: Partial<Record<ToolKind, string>> = {
   [ToolKind.FILE_READ]: "Read",
   [ToolKind.FILE_WRITE]: "Write",
@@ -65,6 +71,12 @@ export function ToolCallItem({ toolCall, expanded = false }: ToolCallItemProps) 
 
   const kind = resolveToolKind(toolCall);
   const label = toolLabel(toolCall, kind);
+  // Model-authored intent titles the row when present (stigmer#276), with
+  // the command demoted to dim secondary text — same convention as the web
+  // console, extraction shared via @stigmer/sdk.
+  const intent = extractShellIntent(toolCall);
+  const title = intent ?? label;
+  const commandSubtitle = intent ? extractPrimaryArg(toolCall) : undefined;
   const view = normalizeToolResult(toolCall);
   const resultText = expanded ? describeResultView(view) : null;
 
@@ -82,7 +94,12 @@ export function ToolCallItem({ toolCall, expanded = false }: ToolCallItemProps) 
     <Box flexDirection="column">
       <Box gap={1}>
         <Text color={indicator.color}>{indicator.symbol}</Text>
-        <Text>{label}</Text>
+        <Text>{title}</Text>
+        {commandSubtitle && (
+          <Text dimColor wrap="truncate-end">
+            {commandSubtitle}
+          </Text>
+        )}
         {toolCall.status === ToolCallStatus.TOOL_CALL_RUNNING && (
           <Text dimColor>running</Text>
         )}

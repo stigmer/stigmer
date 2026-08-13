@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
@@ -61,6 +62,7 @@ import (
 	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller"
 	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller"
 	skillstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
+	skilltransfer "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/transfer"
 	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/controller"
 	workflowvalidation "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/validation"
 	workflowexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/controller"
@@ -309,9 +311,25 @@ func Run() error {
 	skillv1.RegisterSkillCommandControllerServer(grpcServer, skillController)
 	skillv1.RegisterSkillQueryControllerServer(grpcServer, skillController)
 
+	// Skill artifact transfer lane (#675): HTTP carries artifact bytes that
+	// exceed the 10MB gRPC cap. Slots back createArtifactUploadUrl /
+	// push-by-reference; the handler is routed on the unified HTTP handler
+	// below. Staging lives beside (never inside) the content-addressed store.
+	skillUploadSlots, err := skilltransfer.NewUploadSlots(
+		filepath.Join(cfg.StoragePath, "skills-staging"),
+		skilltransfer.DefaultSlotTTL,
+		skillstorage.MaxZipSize,
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize skill artifact staging")
+	}
+	skillController.SetTransferLane(skillUploadSlots, cfg.SkillTransferBaseURL)
+	skillTransferHandler := skilltransfer.NewHandler(skillUploadSlots, artifactStorage)
+
 	log.Info().
 		Str("storage_path", cfg.StoragePath).
-		Msg("Registered Skill controllers with artifact storage")
+		Str("transfer_base_url", cfg.SkillTransferBaseURL).
+		Msg("Registered Skill controllers with artifact storage and transfer lane")
 
 	// Create artifact storage for agent execution attachments and outputs
 	ctx := context.Background()
@@ -775,6 +793,12 @@ func Run() error {
 		}
 		if r.URL.Path == "/v1/proxy/model-registry" {
 			corsModelRegistryHandler.ServeHTTP(w, r)
+			return
+		}
+		// Skill artifact transfer lane (#675): capability-URL upload/download
+		// of artifact bytes too large for the gRPC message cap.
+		if strings.HasPrefix(r.URL.Path, skilltransfer.PathPrefix) {
+			skillTransferHandler.ServeHTTP(w, r)
 			return
 		}
 		if grpcWebWrapper.IsGrpcWebRequest(r) || grpcWebWrapper.IsAcceptableGrpcCorsRequest(r) || grpcWebWrapper.IsGrpcWebSocketRequest(r) {

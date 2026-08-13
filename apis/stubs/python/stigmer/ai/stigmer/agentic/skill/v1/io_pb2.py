@@ -28,7 +28,7 @@ from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/skill/v1/io.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a(ai/stigmer/agentic/skill/v1/status.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\'\n\x07SkillId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xf2\x01\n\x10PushSkillRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\"\n\x08\x61rtifact\x18\x02 \x01(\x0c\x42\x06\xbaH\x03\xc8\x01\x01R\x08\x61rtifact\x12-\n\x03tag\x18\x03 \x01(\tB\x1b\xbaH\x18r\x16\x32\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12Q\n\x0egit_provenance\x18\x04 \x01(\x0b\x32*.ai.stigmer.agentic.skill.v1.GitProvenanceR\rgitProvenance\x12\x18\n\x07message\x18\x06 \x01(\tR\x07messageJ\x04\x08\x05\x10\x06\"\xc6\x01\n%PushSkillFromExecutionArtifactRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12*\n\x0c\x65xecution_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\x12(\n\x0bstorage_key\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\nstorageKey\x12-\n\x03tag\x18\x04 \x01(\tB\x1b\xbaH\x18r\x16\x32\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\"N\n\x12GetArtifactRequest\x12\x38\n\x14\x61rtifact_storage_key\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x12\x61rtifactStorageKey\"1\n\x13GetArtifactResponse\x12\x1a\n\x08\x61rtifact\x18\x01 \x01(\x0cR\x08\x61rtifact\"\x8a\x01\n\x16ListSkillVersionsInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\x12\x1b\n\tpage_size\x18\x04 \x01(\x05R\x08pageSize\"\x93\x03\n\x11SkillVersionEntry\x12!\n\x0cversion_hash\x18\x01 \x01(\tR\x0bversionHash\x12\x37\n\tpushed_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x08pushedAt\x12R\n\tpushed_by\x18\x03 \x01(\x0b\x32\x35.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\x08pushedBy\x12\x10\n\x03tag\x18\x04 \x01(\tR\x03tag\x12\x1d\n\nis_current\x18\x05 \x01(\x08R\tisCurrent\x12Q\n\x0egit_provenance\x18\x06 \x01(\x0b\x32*.ai.stigmer.agentic.skill.v1.GitProvenanceR\rgitProvenance\x12\x18\n\x07message\x18\x07 \x01(\tR\x07message\x12\x30\n\x14\x61rtifact_storage_key\x18\x08 \x01(\tR\x12\x61rtifactStorageKey\"\xb0\x01\n\x19ListSkillVersionsResponse\x12J\n\x08versions\x18\x01 \x03(\x0b\x32..ai.stigmer.agentic.skill.v1.SkillVersionEntryR\x08versions\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n\x0btotal_count\x18\x03 \x01(\x05R\ntotalCountB\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/skill/v1/io.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a(ai/stigmer/agentic/skill/v1/status.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\'\n\x07SkillId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xd3\x03\n\x10PushSkillRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n\x08\x61rtifact\x18\x02 \x01(\x0cR\x08\x61rtifact\x12-\n\x03tag\x18\x03 \x01(\tB\x1b\xbaH\x18r\x16\x32\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12Q\n\x0egit_provenance\x18\x04 \x01(\x0b\x32*.ai.stigmer.agentic.skill.v1.GitProvenanceR\rgitProvenance\x12\x18\n\x07message\x18\x06 \x01(\tR\x07message\x12.\n\x13\x61rtifact_upload_ref\x18\x07 \x01(\tR\x11\x61rtifactUploadRef:\xb6\x01\xbaH\xb2\x01\x1a\xaf\x01\n\"push_skill_request.artifact_source\x12Iexactly one of artifact (inline bytes) or artifact_upload_ref must be set\x1a>(this.artifact.size() > 0) != (this.artifact_upload_ref != \'\')J\x04\x08\x05\x10\x06\"g\n#CreateSkillArtifactUploadUrlRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12&\n\nsize_bytes\x18\x02 \x01(\x03\x42\x07\xbaH\x04\"\x02 \x00R\tsizeBytes\"{\n\x16SkillArtifactUploadUrl\x12\x10\n\x03url\x18\x01 \x01(\tR\x03url\x12.\n\x13\x61rtifact_upload_ref\x18\x02 \x01(\tR\x11\x61rtifactUploadRef\x12\x1f\n\x0bttl_seconds\x18\x03 \x01(\x05R\nttlSeconds\"l\n\x18SkillArtifactDownloadUrl\x12\x10\n\x03url\x18\x01 \x01(\tR\x03url\x12\x1f\n\x0bttl_seconds\x18\x02 \x01(\x05R\nttlSeconds\x12\x1d\n\nsize_bytes\x18\x03 \x01(\x03R\tsizeBytes\"\xc6\x01\n%PushSkillFromExecutionArtifactRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12*\n\x0c\x65xecution_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\x12(\n\x0bstorage_key\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\nstorageKey\x12-\n\x03tag\x18\x04 \x01(\tB\x1b\xbaH\x18r\x16\x32\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\"N\n\x12GetArtifactRequest\x12\x38\n\x14\x61rtifact_storage_key\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x12\x61rtifactStorageKey\"1\n\x13GetArtifactResponse\x12\x1a\n\x08\x61rtifact\x18\x01 \x01(\x0cR\x08\x61rtifact\"\x8a\x01\n\x16ListSkillVersionsInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\x12\x1b\n\tpage_size\x18\x04 \x01(\x05R\x08pageSize\"\x93\x03\n\x11SkillVersionEntry\x12!\n\x0cversion_hash\x18\x01 \x01(\tR\x0bversionHash\x12\x37\n\tpushed_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x08pushedAt\x12R\n\tpushed_by\x18\x03 \x01(\x0b\x32\x35.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\x08pushedBy\x12\x10\n\x03tag\x18\x04 \x01(\tR\x03tag\x12\x1d\n\nis_current\x18\x05 \x01(\x08R\tisCurrent\x12Q\n\x0egit_provenance\x18\x06 \x01(\x0b\x32*.ai.stigmer.agentic.skill.v1.GitProvenanceR\rgitProvenance\x12\x18\n\x07message\x18\x07 \x01(\tR\x07message\x12\x30\n\x14\x61rtifact_storage_key\x18\x08 \x01(\tR\x12\x61rtifactStorageKey\"\xb0\x01\n\x19ListSkillVersionsResponse\x12J\n\x08versions\x18\x01 \x03(\x0b\x32..ai.stigmer.agentic.skill.v1.SkillVersionEntryR\x08versions\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n\x0btotal_count\x18\x03 \x01(\x05R\ntotalCountB\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,10 +40,14 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SKILLID'].fields_by_name['value']._serialized_options = b'\272H\003\310\001\001'
   _globals['_PUSHSKILLREQUEST'].fields_by_name['org']._loaded_options = None
   _globals['_PUSHSKILLREQUEST'].fields_by_name['org']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_PUSHSKILLREQUEST'].fields_by_name['artifact']._loaded_options = None
-  _globals['_PUSHSKILLREQUEST'].fields_by_name['artifact']._serialized_options = b'\272H\003\310\001\001'
   _globals['_PUSHSKILLREQUEST'].fields_by_name['tag']._loaded_options = None
   _globals['_PUSHSKILLREQUEST'].fields_by_name['tag']._serialized_options = b'\272H\030r\0262\024^$|^[a-zA-Z0-9._-]+$'
+  _globals['_PUSHSKILLREQUEST']._loaded_options = None
+  _globals['_PUSHSKILLREQUEST']._serialized_options = b'\272H\262\001\032\257\001\n\"push_skill_request.artifact_source\022Iexactly one of artifact (inline bytes) or artifact_upload_ref must be set\032>(this.artifact.size() > 0) != (this.artifact_upload_ref != \'\')'
+  _globals['_CREATESKILLARTIFACTUPLOADURLREQUEST'].fields_by_name['org']._loaded_options = None
+  _globals['_CREATESKILLARTIFACTUPLOADURLREQUEST'].fields_by_name['org']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_CREATESKILLARTIFACTUPLOADURLREQUEST'].fields_by_name['size_bytes']._loaded_options = None
+  _globals['_CREATESKILLARTIFACTUPLOADURLREQUEST'].fields_by_name['size_bytes']._serialized_options = b'\272H\004\"\002 \000'
   _globals['_PUSHSKILLFROMEXECUTIONARTIFACTREQUEST'].fields_by_name['org']._loaded_options = None
   _globals['_PUSHSKILLFROMEXECUTIONARTIFACTREQUEST'].fields_by_name['org']._serialized_options = b'\272H\003\310\001\001'
   _globals['_PUSHSKILLFROMEXECUTIONARTIFACTREQUEST'].fields_by_name['execution_id']._loaded_options = None
@@ -61,17 +65,23 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SKILLID']._serialized_start=218
   _globals['_SKILLID']._serialized_end=257
   _globals['_PUSHSKILLREQUEST']._serialized_start=260
-  _globals['_PUSHSKILLREQUEST']._serialized_end=502
-  _globals['_PUSHSKILLFROMEXECUTIONARTIFACTREQUEST']._serialized_start=505
-  _globals['_PUSHSKILLFROMEXECUTIONARTIFACTREQUEST']._serialized_end=703
-  _globals['_GETARTIFACTREQUEST']._serialized_start=705
-  _globals['_GETARTIFACTREQUEST']._serialized_end=783
-  _globals['_GETARTIFACTRESPONSE']._serialized_start=785
-  _globals['_GETARTIFACTRESPONSE']._serialized_end=834
-  _globals['_LISTSKILLVERSIONSINPUT']._serialized_start=837
-  _globals['_LISTSKILLVERSIONSINPUT']._serialized_end=975
-  _globals['_SKILLVERSIONENTRY']._serialized_start=978
-  _globals['_SKILLVERSIONENTRY']._serialized_end=1381
-  _globals['_LISTSKILLVERSIONSRESPONSE']._serialized_start=1384
-  _globals['_LISTSKILLVERSIONSRESPONSE']._serialized_end=1560
+  _globals['_PUSHSKILLREQUEST']._serialized_end=727
+  _globals['_CREATESKILLARTIFACTUPLOADURLREQUEST']._serialized_start=729
+  _globals['_CREATESKILLARTIFACTUPLOADURLREQUEST']._serialized_end=832
+  _globals['_SKILLARTIFACTUPLOADURL']._serialized_start=834
+  _globals['_SKILLARTIFACTUPLOADURL']._serialized_end=957
+  _globals['_SKILLARTIFACTDOWNLOADURL']._serialized_start=959
+  _globals['_SKILLARTIFACTDOWNLOADURL']._serialized_end=1067
+  _globals['_PUSHSKILLFROMEXECUTIONARTIFACTREQUEST']._serialized_start=1070
+  _globals['_PUSHSKILLFROMEXECUTIONARTIFACTREQUEST']._serialized_end=1268
+  _globals['_GETARTIFACTREQUEST']._serialized_start=1270
+  _globals['_GETARTIFACTREQUEST']._serialized_end=1348
+  _globals['_GETARTIFACTRESPONSE']._serialized_start=1350
+  _globals['_GETARTIFACTRESPONSE']._serialized_end=1399
+  _globals['_LISTSKILLVERSIONSINPUT']._serialized_start=1402
+  _globals['_LISTSKILLVERSIONSINPUT']._serialized_end=1540
+  _globals['_SKILLVERSIONENTRY']._serialized_start=1543
+  _globals['_SKILLVERSIONENTRY']._serialized_end=1946
+  _globals['_LISTSKILLVERSIONSRESPONSE']._serialized_start=1949
+  _globals['_LISTSKILLVERSIONSRESPONSE']._serialized_end=2125
 # @@protoc_insertion_point(module_scope)

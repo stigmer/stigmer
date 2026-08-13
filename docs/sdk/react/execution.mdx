@@ -2696,6 +2696,28 @@ function extractPrimaryArg(toolCall: ToolCall): string | null
 ```
 
 
+### extractShellIntent
+
+Extracts the model-authored intent phrase from a SHELL tool call, or null
+when absent (legacy executions, models that skipped the optional arg, and
+every non-shell kind). See [`SHELL_INTENT_ARG_FIELD`](#shell_intent_arg_field).
+
+```tsx
+function extractShellIntent(toolCall: Pick<ToolCall, "name" | "mcpServerSlug" | "toolKind" | "args">): string | null
+```
+
+
+### extractShellIntentFromPreview
+
+Preview-string twin of [`extractShellIntent`](#extractshellintent) for surfaces that carry a
+`PendingApproval` (JSON `argsPreview`) instead of a full `ToolCall` —
+mirrors `extractPrimaryArgFromPreview`'s kind resolution.
+
+```tsx
+function extractShellIntentFromPreview(toolName: string, argsPreview: string, mcpServerSlug?: string, toolKind?: ToolKind): string | null
+```
+
+
 ### FILE_CHANGE_DOCUMENT_ENTRY_ID
 
 Virtual entry id of the file-change diff document FAMILY. Like artifacts
@@ -3775,6 +3797,21 @@ Fields shared by both variants of [`CreateAgentExecutionInput`](#createagentexec
 />
 
 
+### SHELL_INTENT_ARG_FIELD
+
+The tool-call argument that carries a model-authored intent phrase for
+SHELL tools (stigmer#276) — a short human description of what the command
+does and why, rendered as the row title with the command as secondary text.
+
+Two writers populate it, converged on one wire key by design: the native
+harness's tool-intent middleware (`backend/services/runner/src/middleware/
+tool-intent.ts`, `INTENT_ARG`) extends the shell tool's bind-time schema
+with it, and the Cursor harness's built-in Shell tool carries it natively.
+The shared, machine-checked contract is
+`test/fixtures/tool-view/intent-title.json` — keep the writers and this
+reader in lockstep.
+
+
 ### SubAgentSection
 
 Renders a sub-agent execution as a nested mini-thread inside the
@@ -4087,7 +4124,9 @@ border. See `ToolChrome`.
 
 Shows category-aware labels (e.g., "Shell", "Read", "Edit") with
 the primary argument as a subtitle, a category-specific icon, and
-an inline approval decision badge when applicable.
+an inline approval decision badge when applicable. A shell row whose
+call carries a model-authored intent phrase is titled with that phrase
+instead — the command becomes the subtitle (stigmer#276).
 
 Wrapped in `React.memo` — structural sharing (DD-009/010) preserves
 the `ToolCall` reference when unchanged, so a settled row skips
@@ -4165,12 +4204,14 @@ The fully-resolved presentation for a tool call, returned by [`useToolPresentati
     category: { type: "ToolCategory", description: "Presentation category (1:1 with kind).", required: true },
     chrome: { type: "ToolChrome", description: "Default chrome tier for this tool — `\"quiet\"` renders an unboxed line, `\"card\"` a bordered card (see ToolChrome). A pending gate or a failure escalates to `\"card\"` in the component layer; this is the *settled* default.", required: true },
     disclosure: { type: "ToolDisclosure", description: "Default inline disclosure for this tool — `\"preview\"` keeps a bounded, persistent preview of the result, `\"summary\"` keeps a compact row. The active/awaiting state can still force a row open; this is the *settled* default.", required: true, typeDescriptionLink: "#tooldisclosure" },
+    intent: { type: "string | null", description: "The model-authored intent phrase for a SHELL call (stigmer#276), or null when absent (legacy executions, skipped optional arg, non-shell kinds). Raw extraction — precedence against overrides is resolved in ToolPresentation.title.", required: true },
     kind: { type: "ToolKind", description: "Harness-agnostic kind (wire field, with name fallback).", required: true },
     label: { type: "string", description: "Display label, e.g. \"Edit\", \"Shell\".", required: true },
     primaryArg: { type: "string | null", description: "Primary argument (path, command, pattern...), or null.", required: true },
     result: { type: "ToolResultView", description: "Normalized result view for rendering with ResultView.", required: true },
     resultSummary: { type: "string | null", description: "One-line result summary suffix for the collapsed row (e.g. \"+40 -0\").", required: true },
     runGroupable: { type: "boolean", description: "Whether consecutive same-kind calls fold into one collapsible chip — the run-grouping axis, orthogonal to disclosure. See isRunGroupableCategory.", required: true },
+    title: { type: "string", description: "The row title: a registered presenter's `label` override wins (a host's explicit wording is never displaced by model output), then the model-authored intent, then the category label. Renderers that title a row use this; label stays the short kind label for chips and badges.", required: true },
   }}
 />
 

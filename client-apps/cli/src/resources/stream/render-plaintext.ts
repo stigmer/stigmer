@@ -1,13 +1,14 @@
 // Plaintext headless renderer for non-TTY output (piped stdout).
 //
-// Mirrors Go's streamAgentPlainText (run_stream_plaintext.go): clean AI text to
+// Inherited from the retired Go CLI's streamAgentPlainText: clean AI text to
 // the data sink (stdout), terse tool/status lines to the status sink (stderr).
 // No ANSI, no frames. Approvals are auto-skipped — there is no keyboard here;
 // use --json for a machine-readable non-TTY stream. Phase/done/stream-error are
 // not rendered: the driver returns the outcome and the command surfaces it.
 
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { ApprovalNeededEvent, StreamEvent } from "./events.js";
+import { resolveToolKindByName, shellIntentFromArgs } from "@stigmer/sdk";
+import type { ApprovalNeededEvent, StreamEvent, ToolCallInfo } from "./events.js";
 import type { HeadlessRenderer } from "./headless.js";
 import type { LineWriter } from "./render-ndjson.js";
 
@@ -40,17 +41,17 @@ export class PlaintextRenderer implements HeadlessRenderer {
         status.write(`\n> ${event.content}\n\n`);
         return;
       case "toolRunning":
-        status.write(`  ⠋ ${event.toolCall.name}\n`);
+        status.write(`  ⠋ ${toolLine(event.toolCall)}\n`);
         return;
       case "toolCompleted":
         status.write(
           event.toolCall.error !== ""
-            ? `  ✗ ${event.toolCall.name}: ${truncate(event.toolCall.error, MAX_ERROR_LEN)}\n`
-            : `  ✓ ${event.toolCall.name}\n`,
+            ? `  ✗ ${toolLine(event.toolCall)}: ${truncate(event.toolCall.error, MAX_ERROR_LEN)}\n`
+            : `  ✓ ${toolLine(event.toolCall)}\n`,
         );
         return;
       case "toolInterrupted":
-        status.write(`  ⊘ ${event.toolCall.name} (interrupted)\n`);
+        status.write(`  ⊘ ${toolLine(event.toolCall)} (interrupted)\n`);
         return;
       case "approvalNeeded":
         status.write(`  ⚠ Approval needed: ${event.toolName} (auto-skipped in non-TTY mode)\n`);
@@ -80,6 +81,23 @@ export class PlaintextRenderer implements HeadlessRenderer {
   resolveApproval(_event: ApprovalNeededEvent): ApprovalAction {
     return ApprovalAction.SKIP;
   }
+}
+
+/**
+ * The status-line label for a tool call: the model-authored intent phrase
+ * when the shell call carries one (stigmer#276) — the same convention that
+ * titles rows in the web console and the Ink TTY path — otherwise the raw
+ * tool name. Kind is resolved by name only: the snapshot projection carries
+ * neither `tool_kind` nor `mcp_server_slug`, and MCP tools never carry an
+ * intent (the fixture pins them to null), so name-lookup is sufficient here.
+ * NDJSON is deliberately untouched — it is the machine contract.
+ */
+function toolLine(toolCall: ToolCallInfo): string {
+  const intent = shellIntentFromArgs(
+    resolveToolKindByName(toolCall.name),
+    toolCall.args,
+  );
+  return intent ?? toolCall.name;
 }
 
 // Trim and ellipsize. Mirrors Go's truncate.

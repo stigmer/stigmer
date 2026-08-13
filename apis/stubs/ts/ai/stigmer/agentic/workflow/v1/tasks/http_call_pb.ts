@@ -13,7 +13,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/tasks/http_call.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_tasks_http_call: GenFile = /*@__PURE__*/
-  fileDesc("CjRhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvaHR0cF9jYWxsLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3Mi/gIKEkh0dHBDYWxsVGFza0NvbmZpZxI3CgZtZXRob2QYASABKAlCJ7pIJMgBAXIfUgNHRVRSBFBPU1RSA1BVVFIGREVMRVRFUgVQQVRDSBJMCghlbmRwb2ludBgCIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5IdHRwRW5kcG9pbnRCBrpIA8gBARJWCgdoZWFkZXJzGAMgAygLMkUuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLkh0dHBDYWxsVGFza0NvbmZpZy5IZWFkZXJzRW50cnkSJQoEYm9keRgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSIwoPdGltZW91dF9zZWNvbmRzGAUgASgFQgq6SAcaBRisAigBGi4KDEhlYWRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBOg3qiywJaHR0cF9jYWxsIisKDEh0dHBFbmRwb2ludBIbCgN1cmkYASABKAlCDrpIB8gBAXICEAHYhSwBYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjRhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvaHR0cF9jYWxsLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MigQMKEkh0dHBDYWxsVGFza0NvbmZpZxI3CgZtZXRob2QYASABKAlCJ7pIJMgBAXIfUgNHRVRSBFBPU1RSA1BVVFIGREVMRVRFUgVQQVRDSBJMCghlbmRwb2ludBgCIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5IdHRwRW5kcG9pbnRCBrpIA8gBARJWCgdoZWFkZXJzGAMgAygLMkUuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLkh0dHBDYWxsVGFza0NvbmZpZy5IZWFkZXJzRW50cnkSJQoEYm9keRgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSJgoPdGltZW91dF9zZWNvbmRzGAUgASgFQg26SArYAQEaBRisAigBGi4KDEhlYWRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBOg3qiywJaHR0cF9jYWxsIisKDEh0dHBFbmRwb2ludBIbCgN1cmkYASABKAlCDrpIB8gBAXICEAHYhSwBYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests.
@@ -67,7 +67,13 @@ export type HttpCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.H
   body?: JsonObject;
 
   /**
-   * Request timeout in seconds (optional, default: 30).
+   * Request timeout in seconds. Max: 300 (5 minutes).
+   * Optional — unset (0) leaves the request bounded by the runner's activity
+   * timeout. NOTE: an explicit value is accepted but not yet applied by the
+   * runner; the activity timeout governs either way.
+   *
+   * Unset (0) is valid: proto3 implicit presence makes an omitted field
+   * indistinguishable from 0, so the range rule must not fire on it (#673).
    *
    * @generated from field: int32 timeout_seconds = 5;
    */

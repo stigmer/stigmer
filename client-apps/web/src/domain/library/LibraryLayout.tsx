@@ -38,6 +38,22 @@ function LibraryLayoutContent({ children }: { children: React.ReactNode }) {
   const { activeDetail } = useLibraryNavigation();
   const { isFullViewport } = useFullViewportLayout();
 
+  const overlayActive = activeDetail != null;
+
+  // While a detail overlay is active, the route-rendered children stay
+  // mounted but hidden: preserving LIST scroll, filters, and loaded data
+  // under the overlay is the reason this zone bypasses Next routing at
+  // all (see LibraryNavigationProvider). Children that are themselves a
+  // detail page — a cold deep-load of a detail URL — would be the SAME
+  // page the overlay renders, so the route-level detail wrappers yield
+  // to the overlay and render null inside this wrapper
+  // (useRouteDetailYieldsToOverlay, oss#621); only list content is ever
+  // actually kept alive here.
+  //
+  // The desktop app's LibraryLayout renders a plain <Outlet /> with no
+  // overlay: react-router navigates detail routes for real, so neither
+  // case exists there. That divergence is inherent to the static-export
+  // constraint, not drift.
   return (
     <div
       className={cn(
@@ -48,11 +64,12 @@ function LibraryLayoutContent({ children }: { children: React.ReactNode }) {
     >
       {!isFullViewport && <LibraryBreadcrumb />}
       <div
+        data-slot="library-route-children"
         className={cn(
-          activeDetail != null && "hidden",
+          overlayActive && "hidden",
           isFullViewport && "flex min-h-0 flex-1 flex-col",
         )}
-        aria-hidden={activeDetail != null}
+        aria-hidden={overlayActive}
       >
         {children}
       </div>

@@ -166,6 +166,49 @@ describe("ToolCallItem", () => {
     expect(output).not.toContain("✓");
   });
 
+  it("titles a shell row with the model-authored intent, command as dim secondary (stigmer#276)", () => {
+    const tc = create(ToolCallSchema);
+    tc.id = "tc-intent";
+    tc.name = "execute";
+    tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
+    tc.args = {
+      command: "npx vitest run src/parser",
+      description: "Run unit tests for the parser",
+    };
+
+    const { lastFrame } = render(<ToolCallItem toolCall={tc} />);
+    const output = lastFrame() ?? "";
+    expect(output).toContain("Run unit tests for the parser");
+    expect(output).toContain("npx vitest run src/parser");
+    // The intent replaces the category label as the title.
+    expect(output).not.toContain("Shell");
+  });
+
+  it("falls back to the category label when no intent is present", () => {
+    const tc = create(ToolCallSchema);
+    tc.id = "tc-no-intent";
+    tc.name = "execute";
+    tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
+    tc.args = { command: "ls" };
+
+    const { lastFrame } = render(<ToolCallItem toolCall={tc} />);
+    const output = lastFrame() ?? "";
+    expect(output).toContain("Shell");
+  });
+
+  it("never titles a non-shell row from its description arg", () => {
+    const tc = create(ToolCallSchema);
+    tc.id = "tc-task";
+    tc.name = "task";
+    tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
+    tc.args = { description: "general-purpose research", prompt: "Find the docs" };
+
+    const { lastFrame } = render(<ToolCallItem toolCall={tc} />);
+    const output = lastFrame() ?? "";
+    // A task tool's description is the sub-agent subject, never a row title.
+    expect(output).toContain("Sub-agent");
+  });
+
   it("shows MCP server slug prefix", () => {
     const tc = create(ToolCallSchema);
     tc.id = "tc-4";
@@ -194,6 +237,38 @@ describe("ApprovalPrompt", () => {
     expect(output).toContain("[a] Approve all file edits");
     expect(output).toContain("[n] Reject");
     expect(output).toContain("[s] Skip");
+  });
+
+  it("renders the shell intent as supplementary context, args foregrounded (stigmer#276)", () => {
+    const pending = create(PendingApprovalSchema);
+    pending.toolCallId = "tc-1";
+    pending.toolName = "execute";
+    pending.argsPreview = JSON.stringify({
+      command: "make deploy",
+      description: "Deploy the staging build",
+    });
+
+    const { lastFrame } = render(
+      <ApprovalPrompt pendingApproval={pending} onSubmit={() => {}} />,
+    );
+    const output = lastFrame() ?? "";
+    expect(output).toContain("Intent:");
+    expect(output).toContain("Deploy the staging build");
+    // The command being approved stays visible in the Args line.
+    expect(output).toContain("make deploy");
+  });
+
+  it("renders no intent line when the shell call carries none", () => {
+    const pending = create(PendingApprovalSchema);
+    pending.toolCallId = "tc-1";
+    pending.toolName = "execute";
+    pending.argsPreview = JSON.stringify({ command: "ls" });
+
+    const { lastFrame } = render(
+      <ApprovalPrompt pendingApproval={pending} onSubmit={() => {}} />,
+    );
+    const output = lastFrame() ?? "";
+    expect(output).not.toContain("Intent:");
   });
 
   it("renders the why-gated line from the projected approval_policy_source", () => {

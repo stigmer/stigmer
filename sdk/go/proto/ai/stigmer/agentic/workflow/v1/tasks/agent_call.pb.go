@@ -380,7 +380,10 @@ type AgentCallOutputContract struct {
 	// the expected schema, giving the agent an opportunity to self-correct.
 	//
 	// Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.
-	// Default: 1. Valid range: 1-5.
+	// Default: 2 (the runner's retry loop). Valid range when set: 1-5.
+	//
+	// Unset (0) is valid: proto3 implicit presence makes an omitted field
+	// indistinguishable from 0, so the range rule must not fire on it (#673).
 	MaxRetries int32 `protobuf:"varint,3,opt,name=max_retries,json=maxRetries,proto3" json:"max_retries,omitempty"`
 	// Target task to branch to when schema validation cannot be resolved.
 	//
@@ -472,12 +475,12 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc = "" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:\x0e\xea\x8b,\n" +
-	"agent_call\"\xff\x01\n" +
+	"agent_call\"\x82\x02\n" +
 	"\x17AgentCallOutputContract\x127\n" +
 	"\x06schema\x18\x01 \x01(\v2\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\x06schema\x12Z\n" +
 	"\n" +
-	"on_invalid\x18\x02 \x01(\x0e2;.ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicyR\tonInvalid\x12*\n" +
-	"\vmax_retries\x18\x03 \x01(\x05B\t\xbaH\x06\x1a\x04\x18\x05(\x01R\n" +
+	"on_invalid\x18\x02 \x01(\x0e2;.ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicyR\tonInvalid\x12-\n" +
+	"\vmax_retries\x18\x03 \x01(\x05B\f\xbaH\t\xd8\x01\x01\x1a\x04\x18\x05(\x01R\n" +
 	"maxRetries\x12#\n" +
 	"\rfallback_task\x18\x04 \x01(\tR\ffallbackTaskB\xc3\x02\n" +
 	"(com.ai.stigmer.agentic.workflow.v1.tasksB\x0eAgentCallProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"

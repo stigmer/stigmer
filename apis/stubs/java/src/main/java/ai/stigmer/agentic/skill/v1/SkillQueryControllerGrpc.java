@@ -108,6 +108,37 @@ public final class SkillQueryControllerGrpc {
     return getGetArtifactMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.GetArtifactRequest,
+      ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl> getGetArtifactDownloadUrlMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getArtifactDownloadUrl",
+      requestType = ai.stigmer.agentic.skill.v1.GetArtifactRequest.class,
+      responseType = ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.GetArtifactRequest,
+      ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl> getGetArtifactDownloadUrlMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.GetArtifactRequest, ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl> getGetArtifactDownloadUrlMethod;
+    if ((getGetArtifactDownloadUrlMethod = SkillQueryControllerGrpc.getGetArtifactDownloadUrlMethod) == null) {
+      synchronized (SkillQueryControllerGrpc.class) {
+        if ((getGetArtifactDownloadUrlMethod = SkillQueryControllerGrpc.getGetArtifactDownloadUrlMethod) == null) {
+          SkillQueryControllerGrpc.getGetArtifactDownloadUrlMethod = getGetArtifactDownloadUrlMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.skill.v1.GetArtifactRequest, ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getArtifactDownloadUrl"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.skill.v1.GetArtifactRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl.getDefaultInstance()))
+              .setSchemaDescriptor(new SkillQueryControllerMethodDescriptorSupplier("getArtifactDownloadUrl"))
+              .build();
+        }
+      }
+    }
+    return getGetArtifactDownloadUrlMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.ListSkillVersionsInput,
       ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse> getListVersionsMethod;
 
@@ -249,6 +280,24 @@ public final class SkillQueryControllerGrpc {
 
     /**
      * <pre>
+     * Mint a URL for downloading a skill artifact over HTTP.
+     * Preferred over getArtifact for anything that might exceed the gRPC
+     * message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
+     * limit is deliverable. Callers should try this first and fall back to
+     * getArtifact against servers that predate it (UNIMPLEMENTED).
+     * &#64;internal
+     * Authorization is skipped for the same reason as getArtifact: the
+     * content-hash storage key acts as the capability token. Cloud returns a
+     * pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
+     * </pre>
+     */
+    default void getArtifactDownloadUrl(ai.stigmer.agentic.skill.v1.GetArtifactRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetArtifactDownloadUrlMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * List version history for a skill.
      * Returns all historical versions ordered by push time (newest first).
      * Each entry includes the version hash, push timestamp, actor, tag,
@@ -344,6 +393,25 @@ public final class SkillQueryControllerGrpc {
 
     /**
      * <pre>
+     * Mint a URL for downloading a skill artifact over HTTP.
+     * Preferred over getArtifact for anything that might exceed the gRPC
+     * message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
+     * limit is deliverable. Callers should try this first and fall back to
+     * getArtifact against servers that predate it (UNIMPLEMENTED).
+     * &#64;internal
+     * Authorization is skipped for the same reason as getArtifact: the
+     * content-hash storage key acts as the capability token. Cloud returns a
+     * pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
+     * </pre>
+     */
+    public void getArtifactDownloadUrl(ai.stigmer.agentic.skill.v1.GetArtifactRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetArtifactDownloadUrlMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * List version history for a skill.
      * Returns all historical versions ordered by push time (newest first).
      * Each entry includes the version hash, push timestamp, actor, tag,
@@ -423,6 +491,24 @@ public final class SkillQueryControllerGrpc {
 
     /**
      * <pre>
+     * Mint a URL for downloading a skill artifact over HTTP.
+     * Preferred over getArtifact for anything that might exceed the gRPC
+     * message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
+     * limit is deliverable. Callers should try this first and fall back to
+     * getArtifact against servers that predate it (UNIMPLEMENTED).
+     * &#64;internal
+     * Authorization is skipped for the same reason as getArtifact: the
+     * content-hash storage key acts as the capability token. Cloud returns a
+     * pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
+     * </pre>
+     */
+    public ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl getArtifactDownloadUrl(ai.stigmer.agentic.skill.v1.GetArtifactRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetArtifactDownloadUrlMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * List version history for a skill.
      * Returns all historical versions ordered by push time (newest first).
      * Each entry includes the version hash, push timestamp, actor, tag,
@@ -497,6 +583,24 @@ public final class SkillQueryControllerGrpc {
     public ai.stigmer.agentic.skill.v1.GetArtifactResponse getArtifact(ai.stigmer.agentic.skill.v1.GetArtifactRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetArtifactMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Mint a URL for downloading a skill artifact over HTTP.
+     * Preferred over getArtifact for anything that might exceed the gRPC
+     * message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
+     * limit is deliverable. Callers should try this first and fall back to
+     * getArtifact against servers that predate it (UNIMPLEMENTED).
+     * &#64;internal
+     * Authorization is skipped for the same reason as getArtifact: the
+     * content-hash storage key acts as the capability token. Cloud returns a
+     * pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
+     * </pre>
+     */
+    public ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl getArtifactDownloadUrl(ai.stigmer.agentic.skill.v1.GetArtifactRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetArtifactDownloadUrlMethod(), getCallOptions(), request);
     }
 
     /**
@@ -582,6 +686,25 @@ public final class SkillQueryControllerGrpc {
 
     /**
      * <pre>
+     * Mint a URL for downloading a skill artifact over HTTP.
+     * Preferred over getArtifact for anything that might exceed the gRPC
+     * message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
+     * limit is deliverable. Callers should try this first and fall back to
+     * getArtifact against servers that predate it (UNIMPLEMENTED).
+     * &#64;internal
+     * Authorization is skipped for the same reason as getArtifact: the
+     * content-hash storage key acts as the capability token. Cloud returns a
+     * pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl> getArtifactDownloadUrl(
+        ai.stigmer.agentic.skill.v1.GetArtifactRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetArtifactDownloadUrlMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * List version history for a skill.
      * Returns all historical versions ordered by push time (newest first).
      * Each entry includes the version hash, push timestamp, actor, tag,
@@ -601,7 +724,8 @@ public final class SkillQueryControllerGrpc {
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
   private static final int METHODID_GET_ARTIFACT = 2;
-  private static final int METHODID_LIST_VERSIONS = 3;
+  private static final int METHODID_GET_ARTIFACT_DOWNLOAD_URL = 3;
+  private static final int METHODID_LIST_VERSIONS = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -631,6 +755,10 @@ public final class SkillQueryControllerGrpc {
         case METHODID_GET_ARTIFACT:
           serviceImpl.getArtifact((ai.stigmer.agentic.skill.v1.GetArtifactRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.GetArtifactResponse>) responseObserver);
+          break;
+        case METHODID_GET_ARTIFACT_DOWNLOAD_URL:
+          serviceImpl.getArtifactDownloadUrl((ai.stigmer.agentic.skill.v1.GetArtifactRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl>) responseObserver);
           break;
         case METHODID_LIST_VERSIONS:
           serviceImpl.listVersions((ai.stigmer.agentic.skill.v1.ListSkillVersionsInput) request,
@@ -675,6 +803,13 @@ public final class SkillQueryControllerGrpc {
               ai.stigmer.agentic.skill.v1.GetArtifactRequest,
               ai.stigmer.agentic.skill.v1.GetArtifactResponse>(
                 service, METHODID_GET_ARTIFACT)))
+        .addMethod(
+          getGetArtifactDownloadUrlMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.skill.v1.GetArtifactRequest,
+              ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl>(
+                service, METHODID_GET_ARTIFACT_DOWNLOAD_URL)))
         .addMethod(
           getListVersionsMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -733,6 +868,7 @@ public final class SkillQueryControllerGrpc {
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
               .addMethod(getGetArtifactMethod())
+              .addMethod(getGetArtifactDownloadUrlMethod())
               .addMethod(getListVersionsMethod())
               .build();
         }

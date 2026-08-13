@@ -3,9 +3,11 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "controller",
     srcs = [
+        "create_artifact_upload_url.go",
         "delete.go",
         "get.go",
         "get_artifact.go",
+        "get_artifact_download_url.go",
         "get_by_reference.go",
         "list_versions.go",
         "load_skill_by_reference.go",
@@ -27,6 +29,7 @@ go_library(
         "//backend/libs/go/store",
         "//backend/services/stigmer-server/pkg/domain/artifact/storage",
         "//backend/services/stigmer-server/pkg/domain/skill/storage",
+        "//backend/services/stigmer-server/pkg/domain/skill/transfer",
         "//backend/services/stigmer-server/pkg/query/search/extractor",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_grpc//codes",
@@ -42,6 +45,7 @@ go_test(
         "integration_test.go",
         "push_test.go",
         "skill_controller_test.go",
+        "transfer_lane_test.go",
     ],
     embed = [":controller"],
     deps = [
@@ -52,6 +56,7 @@ go_test(
         "//backend/libs/go/store",
         "//backend/libs/go/store/sqlite",
         "//backend/services/stigmer-server/pkg/domain/skill/storage",
+        "//backend/services/stigmer-server/pkg/domain/skill/transfer",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_grpc//codes",
