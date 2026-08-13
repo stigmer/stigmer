@@ -538,7 +538,9 @@ export async function pushSkillFromArchive(
     tag: tag === "" ? "latest" : tag,
     message,
   });
-  const response = await client.skill.push(request);
+  // Size-routed like every other push path (#675): pre-packaged archives are
+  // the release-pipeline lane, exactly where content-heavy skills come from.
+  const response = await pushRouted(client, request);
   const applied = await applyDeclaredVisibility(client, response, archive.meta.visibility);
   return toResult(applied, archive.meta.name, message, archive.totalSize, archive.meta.visibility);
 }

@@ -123,7 +123,7 @@ export async function resolveSkills(
           // its scripts/references was exactly how oversized artifacts hid.
           console.error(
             `[resolveSkills] artifact download FAILED for ${ref.org || "(default)"}/${ref.slug} ` +
-            `(key=${skill.status.artifactStorageKey}) — mounting SKILL.md WITHOUT the skill's ` +
+            `(key=${skill.status!.artifactStorageKey}) — mounting SKILL.md WITHOUT the skill's ` +
             `supporting files (scripts/references will be missing): ${err instanceof Error ? err.message : err}`,
           );
         }
