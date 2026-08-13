@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import {
+  Activity,
   AppWindow,
   BarChart3,
   Box,
@@ -122,6 +123,12 @@ export const PLATFORM_SETTINGS_NAV_GROUP: SettingsNavGroup = {
       label: "Cursor Accounts",
       icon: MousePointerClick,
       requiredPermission: "can_manage_cursor_accounts",
+    },
+    {
+      href: "/settings/provider-standing",
+      label: "Provider Standing",
+      icon: Activity,
+      requiredPermission: "can_view_provider_standing",
     },
   ],
 };

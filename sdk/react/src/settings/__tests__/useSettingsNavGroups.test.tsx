@@ -48,6 +48,7 @@ describe("useSettingsNavGroups", () => {
     verdicts = {
       can_manage_model_pricing: true,
       can_manage_cursor_accounts: true,
+      can_view_provider_standing: true,
     };
     render(<GroupsProbe />);
 
@@ -56,7 +57,7 @@ describe("useSettingsNavGroups", () => {
       `${BASE_LABELS},${PLATFORM_SETTINGS_NAV_GROUP.label}`,
     );
     expect(el.getAttribute("data-platform-items")).toBe(
-      "Pricing Governance,Cursor Accounts",
+      "Pricing Governance,Cursor Accounts,Provider Standing",
     );
   });
 
@@ -75,6 +76,15 @@ describe("useSettingsNavGroups", () => {
 
     expect(screen.getByTestId("groups").getAttribute("data-platform-items")).toBe(
       "Cursor Accounts",
+    );
+  });
+
+  it("filters per item: standing-only operator sees only Provider Standing", () => {
+    verdicts = { can_view_provider_standing: true };
+    render(<GroupsProbe />);
+
+    expect(screen.getByTestId("groups").getAttribute("data-platform-items")).toBe(
+      "Provider Standing",
     );
   });
 

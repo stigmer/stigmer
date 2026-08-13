@@ -275,6 +275,19 @@ public enum IamPermission
    * <code>can_write_reserved_labels = 37;</code>
    */
   can_write_reserved_labels(37),
+  /**
+   * <pre>
+   * Platform-level permission to view platform provider standing: the
+   * canary-probe verdicts (health, billing/auth rejections, latency) for
+   * the platform's own LLM provider accounts. Read-only and gated to
+   * platform operators — provider account health is platform-internal,
+   * never org-visible. Deliberately distinct from the manage-class
+   * platform permissions: the standing console only observes (cloud#447).
+   * </pre>
+   *
+   * <code>can_view_provider_standing = 38;</code>
+   */
+  can_view_provider_standing(38),
   UNRECOGNIZED(-1),
   ;
 
@@ -537,6 +550,19 @@ public enum IamPermission
    * <code>can_write_reserved_labels = 37;</code>
    */
   public static final int can_write_reserved_labels_VALUE = 37;
+  /**
+   * <pre>
+   * Platform-level permission to view platform provider standing: the
+   * canary-probe verdicts (health, billing/auth rejections, latency) for
+   * the platform's own LLM provider accounts. Read-only and gated to
+   * platform operators — provider account health is platform-internal,
+   * never org-visible. Deliberately distinct from the manage-class
+   * platform permissions: the standing console only observes (cloud#447).
+   * </pre>
+   *
+   * <code>can_view_provider_standing = 38;</code>
+   */
+  public static final int can_view_provider_standing_VALUE = 38;
 
 
   public final int getNumber() {
@@ -598,6 +624,7 @@ public enum IamPermission
       case 35: return can_manage_cursor_accounts;
       case 36: return can_participate;
       case 37: return can_write_reserved_labels;
+      case 38: return can_view_provider_standing;
       default: return null;
     }
   }
