@@ -691,15 +691,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
   private java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> pinnedToolApprovals_;
   /**
    * <pre>
-   * Manual tool approval overrides set by the MCP server owner.
+   * Tools pinned by the MCP server owner to always require approval.
    *
    * &#64;internal
    * These take precedence over system-generated `McpServerStatus.tool_approvals`.
    * Never auto-modified — only changed by explicit user action (apply/update).
    *
+   * Presence in this list IS the gate: every entry force-requires approval
+   * for its tool, overriding the classifier. The field cannot express the
+   * opposite direction — a pin can never exempt a tool. To un-gate a tool
+   * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+   * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+   *
    * Use cases:
    * - Force approval for a tool the classifier marked as auto-approve
-   * - Exempt a safe tool the classifier flagged as needing approval
    * - Establish organization-wide safety policies for dangerous tools
    *
    * Policy chain (lowest to highest priority):
@@ -717,15 +722,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
   }
   /**
    * <pre>
-   * Manual tool approval overrides set by the MCP server owner.
+   * Tools pinned by the MCP server owner to always require approval.
    *
    * &#64;internal
    * These take precedence over system-generated `McpServerStatus.tool_approvals`.
    * Never auto-modified — only changed by explicit user action (apply/update).
    *
+   * Presence in this list IS the gate: every entry force-requires approval
+   * for its tool, overriding the classifier. The field cannot express the
+   * opposite direction — a pin can never exempt a tool. To un-gate a tool
+   * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+   * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+   *
    * Use cases:
    * - Force approval for a tool the classifier marked as auto-approve
-   * - Exempt a safe tool the classifier flagged as needing approval
    * - Establish organization-wide safety policies for dangerous tools
    *
    * Policy chain (lowest to highest priority):
@@ -744,15 +754,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
   }
   /**
    * <pre>
-   * Manual tool approval overrides set by the MCP server owner.
+   * Tools pinned by the MCP server owner to always require approval.
    *
    * &#64;internal
    * These take precedence over system-generated `McpServerStatus.tool_approvals`.
    * Never auto-modified — only changed by explicit user action (apply/update).
    *
+   * Presence in this list IS the gate: every entry force-requires approval
+   * for its tool, overriding the classifier. The field cannot express the
+   * opposite direction — a pin can never exempt a tool. To un-gate a tool
+   * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+   * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+   *
    * Use cases:
    * - Force approval for a tool the classifier marked as auto-approve
-   * - Exempt a safe tool the classifier flagged as needing approval
    * - Establish organization-wide safety policies for dangerous tools
    *
    * Policy chain (lowest to highest priority):
@@ -770,15 +785,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
   }
   /**
    * <pre>
-   * Manual tool approval overrides set by the MCP server owner.
+   * Tools pinned by the MCP server owner to always require approval.
    *
    * &#64;internal
    * These take precedence over system-generated `McpServerStatus.tool_approvals`.
    * Never auto-modified — only changed by explicit user action (apply/update).
    *
+   * Presence in this list IS the gate: every entry force-requires approval
+   * for its tool, overriding the classifier. The field cannot express the
+   * opposite direction — a pin can never exempt a tool. To un-gate a tool
+   * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+   * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+   *
    * Use cases:
    * - Force approval for a tool the classifier marked as auto-approve
-   * - Exempt a safe tool the classifier flagged as needing approval
    * - Establish organization-wide safety policies for dangerous tools
    *
    * Policy chain (lowest to highest priority):
@@ -796,15 +816,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
   }
   /**
    * <pre>
-   * Manual tool approval overrides set by the MCP server owner.
+   * Tools pinned by the MCP server owner to always require approval.
    *
    * &#64;internal
    * These take precedence over system-generated `McpServerStatus.tool_approvals`.
    * Never auto-modified — only changed by explicit user action (apply/update).
    *
+   * Presence in this list IS the gate: every entry force-requires approval
+   * for its tool, overriding the classifier. The field cannot express the
+   * opposite direction — a pin can never exempt a tool. To un-gate a tool
+   * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+   * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+   *
    * Use cases:
    * - Force approval for a tool the classifier marked as auto-approve
-   * - Exempt a safe tool the classifier flagged as needing approval
    * - Establish organization-wide safety policies for dangerous tools
    *
    * Policy chain (lowest to highest priority):
@@ -3126,15 +3151,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
 
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):
@@ -3155,15 +3185,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):
@@ -3184,15 +3219,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):
@@ -3213,15 +3253,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):
@@ -3249,15 +3294,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):
@@ -3282,15 +3332,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):
@@ -3317,15 +3372,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):
@@ -3353,15 +3413,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):
@@ -3386,15 +3451,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):
@@ -3419,15 +3489,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):
@@ -3453,15 +3528,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):
@@ -3485,15 +3565,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):
@@ -3517,15 +3602,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):
@@ -3543,15 +3633,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):
@@ -3572,15 +3667,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):
@@ -3602,15 +3702,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):
@@ -3628,15 +3733,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):
@@ -3655,15 +3765,20 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     }
     /**
      * <pre>
-     * Manual tool approval overrides set by the MCP server owner.
+     * Tools pinned by the MCP server owner to always require approval.
      *
      * &#64;internal
      * These take precedence over system-generated `McpServerStatus.tool_approvals`.
      * Never auto-modified — only changed by explicit user action (apply/update).
      *
+     * Presence in this list IS the gate: every entry force-requires approval
+     * for its tool, overriding the classifier. The field cannot express the
+     * opposite direction — a pin can never exempt a tool. To un-gate a tool
+     * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+     * (layer 3 below), whose entries carry a real `requires_approval` boolean.
+     *
      * Use cases:
      * - Force approval for a tool the classifier marked as auto-approve
-     * - Exempt a safe tool the classifier flagged as needing approval
      * - Establish organization-wide safety policies for dangerous tools
      *
      * Policy chain (lowest to highest priority):

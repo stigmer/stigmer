@@ -98,15 +98,20 @@ type McpServerSpec struct {
 	// injected header is runner-asserted, not signed: pair it with a shared
 	// secret and treat it as trustworthy only for servers you operate.
 	Env map[string]*v1.EnvVarDeclaration `protobuf:"bytes,8,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Manual tool approval overrides set by the MCP server owner.
+	// Tools pinned by the MCP server owner to always require approval.
 	//
 	// @internal
 	// These take precedence over system-generated `McpServerStatus.tool_approvals`.
 	// Never auto-modified — only changed by explicit user action (apply/update).
 	//
+	// Presence in this list IS the gate: every entry force-requires approval
+	// for its tool, overriding the classifier. The field cannot express the
+	// opposite direction — a pin can never exempt a tool. To un-gate a tool
+	// the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
+	// (layer 3 below), whose entries carry a real `requires_approval` boolean.
+	//
 	// Use cases:
 	// - Force approval for a tool the classifier marked as auto-approve
-	// - Exempt a safe tool the classifier flagged as needing approval
 	// - Establish organization-wide safety policies for dangerous tools
 	//
 	// Policy chain (lowest to highest priority):
