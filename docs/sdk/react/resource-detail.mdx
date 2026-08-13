@@ -127,9 +127,8 @@ const handleDelete = async () => {
 
 Accessible confirmation dialog for destructive actions.
 
-Uses the native `<dialog>` element with `showModal()` for built-in
-focus trapping, Escape key handling, and backdrop. Styled via
-`--stgm-*` design tokens.
+Renders on `DialogShell` (native `<dialog>` + `showModal()` — focus
+trapping, Escape, token backdrop). Styled via `--stgm-*` design tokens.
 
 Pairs with [`useConfirmAction`](#useconfirmaction) which manages the imperative
 `confirm()` → Promise pattern.
