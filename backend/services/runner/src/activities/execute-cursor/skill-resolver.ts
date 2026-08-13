@@ -232,7 +232,7 @@ async function writeSkillMount(
     for (const entry of entries) {
       const filePath = join(skillDir, entry.path);
       await mkdir(dirname(filePath), { recursive: true });
-      await writeFile(filePath, entry.content, "utf-8");
+      await writeFile(filePath, entry.content);
     }
   }
 

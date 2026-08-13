@@ -162,7 +162,7 @@ async function extractZipToWorkspace(
 ): Promise<void> {
   const entries = await extractZipFileEntries(zipBytes);
   for (const entry of entries) {
-    await backend.writeFile(`${targetDir}/${entry.path}`, entry.content);
+    await backend.writeFileBuffer(`${targetDir}/${entry.path}`, Buffer.from(entry.content));
   }
 }
 
@@ -174,7 +174,7 @@ async function extractZipToWorkspaceExcluding(
 ): Promise<void> {
   const entries = await extractZipFileEntries(zipBytes, { exclude: [excludeName] });
   for (const entry of entries) {
-    await backend.writeFile(`${targetDir}/${entry.path}`, entry.content);
+    await backend.writeFileBuffer(`${targetDir}/${entry.path}`, Buffer.from(entry.content));
   }
 }
 

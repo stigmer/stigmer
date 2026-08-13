@@ -1,6 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { extractZipFileEntries } from "../zip-extract.js";
+import { extractZipFileEntries, type ZipFileEntry } from "../zip-extract.js";
 import { buildZip } from "../../__test-utils__/zip-fixtures.js";
+
+/**
+ * Decode entries for text-content assertions. The production contract is
+ * bytes (issue #683); decoding belongs to the tests that want to assert on
+ * human-readable fixtures, not to the module under test.
+ */
+function decoded(entries: ZipFileEntry[]): { path: string; content: string }[] {
+  return entries.map((e) => ({ path: e.path, content: new TextDecoder().decode(e.content) }));
+}
 
 // ─── extractZipFileEntries ───────────────────────────────────────────────
 
@@ -12,9 +21,10 @@ describe("extractZipFileEntries", () => {
     ]);
 
     const entries = await extractZipFileEntries(zip);
-    expect(entries).toHaveLength(2);
-    expect(entries[0]).toEqual({ path: "SKILL.md", content: "# My Skill" });
-    expect(entries[1]).toEqual({ path: "references/schema.md", content: "# Schema\n\nTable definitions." });
+    expect(decoded(entries)).toEqual([
+      { path: "SKILL.md", content: "# My Skill" },
+      { path: "references/schema.md", content: "# Schema\n\nTable definitions." },
+    ]);
   });
 
   it("extracts deflated files", async () => {
@@ -22,8 +32,7 @@ describe("extractZipFileEntries", () => {
     const zip = buildZip([{ name: "notes.txt", content, method: "deflated" }]);
 
     const entries = await extractZipFileEntries(zip);
-    expect(entries).toHaveLength(1);
-    expect(entries[0]).toEqual({ path: "notes.txt", content });
+    expect(decoded(entries)).toEqual([{ path: "notes.txt", content }]);
   });
 
   it("skips directory entries", async () => {
@@ -123,6 +132,32 @@ describe("extractZipFileEntries", () => {
     expect(entries).toHaveLength(1);
   });
 
+  // ── Binary safety (issue #683) ──────────────────────────────────────────
+
+  it("round-trips a stored binary entry byte-identically", async () => {
+    // PNG magic followed by bytes that are not valid UTF-8 (0x89 alone, a
+    // lone continuation byte, an unpaired lead byte). A decode/encode
+    // round-trip replaces these with U+FFFD — the corruption this pins.
+    const binary = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff, 0xfe, 0x00, 0x80, 0xc3,
+    ]);
+    const zip = buildZip([{ name: "references/diagram.png", content: binary }]);
+
+    const entries = await extractZipFileEntries(zip);
+    expect(entries).toHaveLength(1);
+    expect(new Uint8Array(entries[0].content)).toEqual(binary);
+  });
+
+  it("round-trips a deflated binary entry byte-identically", async () => {
+    const binary = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) binary[i] = i; // every byte value once
+    const zip = buildZip([{ name: "assets/font.woff2", content: binary, method: "deflated" }]);
+
+    const entries = await extractZipFileEntries(zip);
+    expect(entries).toHaveLength(1);
+    expect(new Uint8Array(entries[0].content)).toEqual(binary);
+  });
+
   // ── Streaming entries (issue #450) ─────────────────────────────────────
 
   it("extracts Go-default streaming archives (deflated, data descriptors)", async () => {
@@ -132,7 +167,7 @@ describe("extractZipFileEntries", () => {
     ]);
 
     const entries = await extractZipFileEntries(zip);
-    expect(entries).toEqual([
+    expect(decoded(entries)).toEqual([
       { path: "SKILL.md", content: "# Streamed Skill" },
       { path: "references/notes.md", content: "streamed notes" },
     ]);
@@ -151,7 +186,7 @@ describe("extractZipFileEntries", () => {
     ]);
 
     const entries = await extractZipFileEntries(zip);
-    expect(entries).toEqual([
+    expect(decoded(entries)).toEqual([
       { path: "poison.md", content: poisoned },
       { path: "after.md", content: "the entry after the poisoned one" },
     ]);
@@ -162,7 +197,7 @@ describe("extractZipFileEntries", () => {
     const zip = buildZip([{ name: "cd-sizes.txt", content, streaming: true }]);
 
     const entries = await extractZipFileEntries(zip);
-    expect(entries).toEqual([{ path: "cd-sizes.txt", content }]);
+    expect(decoded(entries)).toEqual([{ path: "cd-sizes.txt", content }]);
   });
 
   // ── Central directory edge cases ───────────────────────────────────────
@@ -173,7 +208,7 @@ describe("extractZipFileEntries", () => {
     });
 
     const entries = await extractZipFileEntries(zip);
-    expect(entries).toEqual([{ path: "a.txt", content: "aaa" }]);
+    expect(decoded(entries)).toEqual([{ path: "a.txt", content: "aaa" }]);
   });
 
   it("is not fooled by EOCD signature bytes inside the archive comment", async () => {
@@ -185,7 +220,7 @@ describe("extractZipFileEntries", () => {
     });
 
     const entries = await extractZipFileEntries(zip);
-    expect(entries).toEqual([{ path: "a.txt", content: "aaa" }]);
+    expect(decoded(entries)).toEqual([{ path: "a.txt", content: "aaa" }]);
   });
 
   it("returns empty array when the central directory is missing", async () => {
