@@ -1,0 +1,49 @@
+# =============================================================================
+# Documentation CI — no-op twin
+# =============================================================================
+# `Lint & Build` (ci.docs) is a REQUIRED status check on main, but ci.docs
+# only runs on PRs that touch docs-adjacent paths. A required check that never
+# reports blocks the PR forever, so this twin reports a passing `Lint & Build`
+# on exactly the PRs ci.docs skips.
+#
+# The two workflows must stay complements: `paths-ignore` here mirrors the
+# `paths` list in ci.docs.yaml entry for entry. When you change one list,
+# change the other in the same commit — a gap strands PRs on a check that
+# never arrives; an overlap runs both (harmless, the twin is free).
+#
+# Why this exists (the class behind stigmer/stigmer#610): the docs inventory
+# gate flagged an unclassified page on PR #518 and the PR merged over the red
+# check anyway. Making the check required is what gives the gate teeth.
+# =============================================================================
+
+name: ci.docs-noop
+
+on:
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "site/**"
+      - "apis/**"
+      - "tools/codegen/**"
+      - "client-apps/cli/**"
+      - "sdk/ink/**"
+      - "sdk/react/**"
+      - "sdk/embed/**"
+      - ".vale.ini"
+      - ".prettierrc"
+      - ".lychee.toml"
+      - "vale/**"
+
+concurrency:
+  group: docs-noop-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-build:
+    # Must match ci.docs.yaml's job name exactly — the required status check
+    # matches on this name, and each PR must get it from exactly one workflow.
+    name: Lint & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: No docs-adjacent changes
+        run: echo "No docs-adjacent paths changed — docs gate not applicable."
