@@ -310,7 +310,13 @@ java.lang.String defaultValue) {
   private int timeoutSeconds_ = 0;
   /**
    * <pre>
-   * Request timeout in seconds (optional, default: 30).
+   * Request timeout in seconds. Max: 300 (5 minutes).
+   * Optional — unset (0) leaves the request bounded by the runner's activity
+   * timeout. NOTE: an explicit value is accepted but not yet applied by the
+   * runner; the activity timeout governs either way.
+   *
+   * Unset (0) is valid: proto3 implicit presence makes an omitted field
+   * indistinguishable from 0, so the range rule must not fire on it (#673).
    * </pre>
    *
    * <code>int32 timeout_seconds = 5 [json_name = "timeoutSeconds", (.buf.validate.field) = { ... }</code>
@@ -1381,7 +1387,13 @@ java.lang.String defaultValue) {
     private int timeoutSeconds_ ;
     /**
      * <pre>
-     * Request timeout in seconds (optional, default: 30).
+     * Request timeout in seconds. Max: 300 (5 minutes).
+     * Optional — unset (0) leaves the request bounded by the runner's activity
+     * timeout. NOTE: an explicit value is accepted but not yet applied by the
+     * runner; the activity timeout governs either way.
+     *
+     * Unset (0) is valid: proto3 implicit presence makes an omitted field
+     * indistinguishable from 0, so the range rule must not fire on it (#673).
      * </pre>
      *
      * <code>int32 timeout_seconds = 5 [json_name = "timeoutSeconds", (.buf.validate.field) = { ... }</code>
@@ -1393,7 +1405,13 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Request timeout in seconds (optional, default: 30).
+     * Request timeout in seconds. Max: 300 (5 minutes).
+     * Optional — unset (0) leaves the request bounded by the runner's activity
+     * timeout. NOTE: an explicit value is accepted but not yet applied by the
+     * runner; the activity timeout governs either way.
+     *
+     * Unset (0) is valid: proto3 implicit presence makes an omitted field
+     * indistinguishable from 0, so the range rule must not fire on it (#673).
      * </pre>
      *
      * <code>int32 timeout_seconds = 5 [json_name = "timeoutSeconds", (.buf.validate.field) = { ... }</code>
@@ -1409,7 +1427,13 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Request timeout in seconds (optional, default: 30).
+     * Request timeout in seconds. Max: 300 (5 minutes).
+     * Optional — unset (0) leaves the request bounded by the runner's activity
+     * timeout. NOTE: an explicit value is accepted but not yet applied by the
+     * runner; the activity timeout governs either way.
+     *
+     * Unset (0) is valid: proto3 implicit presence makes an omitted field
+     * indistinguishable from 0, so the range rule must not fire on it (#673).
      * </pre>
      *
      * <code>int32 timeout_seconds = 5 [json_name = "timeoutSeconds", (.buf.validate.field) = { ... }</code>

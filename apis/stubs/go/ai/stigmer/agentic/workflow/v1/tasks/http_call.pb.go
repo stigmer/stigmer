@@ -52,7 +52,13 @@ type HttpCallTaskConfig struct {
 	// Request body (optional).
 	// Can be any JSON structure. Supports expressions in string values.
 	Body *structpb.Struct `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
-	// Request timeout in seconds (optional, default: 30).
+	// Request timeout in seconds. Max: 300 (5 minutes).
+	// Optional — unset (0) leaves the request bounded by the runner's activity
+	// timeout. NOTE: an explicit value is accepted but not yet applied by the
+	// runner; the activity timeout governs either way.
+	//
+	// Unset (0) is valid: proto3 implicit presence makes an omitted field
+	// indistinguishable from 0, so the range rule must not fire on it (#673).
 	TimeoutSeconds int32 `protobuf:"varint,5,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -174,14 +180,14 @@ var File_ai_stigmer_agentic_workflow_v1_tasks_http_call_proto protoreflect.FileD
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_http_call_proto_rawDesc = "" +
 	"\n" +
-	"4ai/stigmer/agentic/workflow/v1/tasks/http_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xbb\x03\n" +
+	"4ai/stigmer/agentic/workflow/v1/tasks/http_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xbe\x03\n" +
 	"\x12HttpCallTaskConfig\x12?\n" +
 	"\x06method\x18\x01 \x01(\tB'\xbaH$\xc8\x01\x01r\x1fR\x03GETR\x04POSTR\x03PUTR\x06DELETER\x05PATCHR\x06method\x12V\n" +
 	"\bendpoint\x18\x02 \x01(\v22.ai.stigmer.agentic.workflow.v1.tasks.HttpEndpointB\x06\xbaH\x03\xc8\x01\x01R\bendpoint\x12_\n" +
 	"\aheaders\x18\x03 \x03(\v2E.ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig.HeadersEntryR\aheaders\x12+\n" +
-	"\x04body\x18\x04 \x01(\v2\x17.google.protobuf.StructR\x04body\x123\n" +
-	"\x0ftimeout_seconds\x18\x05 \x01(\x05B\n" +
-	"\xbaH\a\x1a\x05\x18\xac\x02(\x01R\x0etimeoutSeconds\x1a:\n" +
+	"\x04body\x18\x04 \x01(\v2\x17.google.protobuf.StructR\x04body\x126\n" +
+	"\x0ftimeout_seconds\x18\x05 \x01(\x05B\r\xbaH\n" +
+	"\xd8\x01\x01\x1a\x05\x18\xac\x02(\x01R\x0etimeoutSeconds\x1a:\n" +
 	"\fHeadersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:\r\xea\x8b,\thttp_call\"0\n" +

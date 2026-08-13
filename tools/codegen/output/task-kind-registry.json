@@ -112,7 +112,7 @@
         {
           "name": "timeout_seconds",
           "displayName": "Timeout Seconds",
-          "description": "Request timeout in seconds (optional, default: 30).",
+          "description": "Request timeout in seconds. Max: 300 (5 minutes). Optional — unset (0) leaves the request bounded by the runner's activity timeout. NOTE: an explicit value is accepted but not yet applied by the runner; the activity timeout governs either way. Unset (0) is valid: proto3 implicit presence makes an omitted field indistinguishable from 0, so the range rule must not fire on it (#673).",
           "type": "int32",
           "required": false,
           "fieldNumber": 5,
@@ -167,7 +167,7 @@
             "type": "string"
           },
           "timeout_seconds": {
-            "description": "Request timeout in seconds (optional, default: 30).",
+            "description": "Request timeout in seconds. Max: 300 (5 minutes). Optional — unset (0) leaves the request bounded by the runner's activity timeout. NOTE: an explicit value is accepted but not yet applied by the runner; the activity timeout governs either way. Unset (0) is valid: proto3 implicit presence makes an omitted field indistinguishable from 0, so the range rule must not fire on it (#673).",
             "maximum": 300,
             "minimum": 1,
             "type": "integer"
@@ -1574,7 +1574,7 @@
                 "type": "string"
               },
               "max_retries": {
-                "description": "Maximum retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the agent with the specific validation errors and the expected schema, giving the agent an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5.",
+                "description": "Maximum retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the agent with the specific validation errors and the expected schema, giving the agent an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 2 (the runner's retry loop). Valid range when set: 1-5. Unset (0) is valid: proto3 implicit presence makes an omitted field indistinguishable from 0, so the range rule must not fire on it (#673).",
                 "maximum": 5,
                 "minimum": 1,
                 "type": "integer"
@@ -1816,7 +1816,7 @@
         {
           "name": "max_tokens",
           "displayName": "Max Tokens",
-          "description": "Maximum tokens in the LLM response. Optional — uses the provider's default when not set.",
+          "description": "Maximum tokens in the LLM response. Optional — uses the provider's default when not set. Unset (0) is valid: proto3 implicit presence makes an omitted field indistinguishable from 0, so the range rule must not fire on it (#673).",
           "type": "int32",
           "required": false,
           "groupId": "tuning",
@@ -1828,7 +1828,7 @@
         {
           "name": "timeout",
           "displayName": "Timeout",
-          "description": "Timeout for the LLM call in seconds. Default: 60. Max: 600 (10 minutes). Optional.",
+          "description": "Timeout for the LLM call in seconds. Max: 600 (10 minutes). Optional — unset (0) leaves the call bounded by the runner's activity timeout. NOTE: an explicit value is accepted but not yet applied by the runner; the activity timeout governs either way. Unset (0) is valid: proto3 implicit presence makes an omitted field indistinguishable from 0, so the range rule must not fire on it (#673).",
           "type": "int32",
           "required": false,
           "groupId": "tuning",
@@ -1855,7 +1855,7 @@
         {
           "name": "max_retries",
           "displayName": "Max Retries",
-          "description": "Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the LLM with the validation errors and expected schema, giving it an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5.",
+          "description": "Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the LLM with the validation errors and expected schema, giving it an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Valid range when set: 1-5. Unset (0) is valid: proto3 implicit presence makes an omitted field indistinguishable from 0, so the range rule must not fire on it (#673).",
           "type": "int32",
           "required": false,
           "groupId": "output",
@@ -1924,13 +1924,13 @@
             "type": "integer"
           },
           "max_retries": {
-            "description": "Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the LLM with the validation errors and expected schema, giving it an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5.",
+            "description": "Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the LLM with the validation errors and expected schema, giving it an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Valid range when set: 1-5. Unset (0) is valid: proto3 implicit presence makes an omitted field indistinguishable from 0, so the range rule must not fire on it (#673).",
             "maximum": 5,
             "minimum": 1,
             "type": "integer"
           },
           "max_tokens": {
-            "description": "Maximum tokens in the LLM response. Optional — uses the provider's default when not set.",
+            "description": "Maximum tokens in the LLM response. Optional — uses the provider's default when not set. Unset (0) is valid: proto3 implicit presence makes an omitted field indistinguishable from 0, so the range rule must not fire on it (#673).",
             "minimum": 1,
             "type": "integer"
           },
@@ -1972,7 +1972,7 @@
             "type": "number"
           },
           "timeout": {
-            "description": "Timeout for the LLM call in seconds. Default: 60. Max: 600 (10 minutes). Optional.",
+            "description": "Timeout for the LLM call in seconds. Max: 600 (10 minutes). Optional — unset (0) leaves the call bounded by the runner's activity timeout. NOTE: an explicit value is accepted but not yet applied by the runner; the activity timeout governs either way. Unset (0) is valid: proto3 implicit presence makes an omitted field indistinguishable from 0, so the range rule must not fire on it (#673).",
             "maximum": 600,
             "minimum": 1,
             "type": "integer"
