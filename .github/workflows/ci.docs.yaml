@@ -4,30 +4,26 @@
 # Quality gates for documentation changes: prose linting, formatting, site
 # build verification, SDK docs freshness, and link checking. Runs on every PR
 # and push to main that touches docs, the site, protos, or codegen tooling.
+#
+# `Lint & Build` is a required status check on main. The workflow therefore
+# triggers on EVERY pull request and gates internally: the cheap `changes`
+# job reads the PR's actual file list and the real jobs skip when nothing
+# docs-adjacent changed — branch protection treats a skipped check as
+# satisfied, so non-docs PRs pass for free with no extra CI cost.
+#
+# This replaced the ci.docs-noop.yaml twin (issue #709): workflow-level
+# `paths` / `paths-ignore` lists are NOT a partition for PRs that touch both
+# sides — a mixed PR triggered both workflows and the twin's unconditional
+# green satisfied the required check even when the real lane failed. That is
+# exactly how PR #662 merged over a red `Lint & Build` and broke main's docs
+# gate (#688). One workflow deciding from the file list has no seam to slip
+# through — and it is what lets `SDK Docs Freshness` become required too.
 # =============================================================================
 
 name: ci.docs
 
-# `Lint & Build` is a required status check on main. ci.docs-noop.yaml reports
-# a passing twin on the PRs these path filters skip — its `paths-ignore` list
-# must mirror this `paths` list entry for entry; change both in one commit.
 on:
   pull_request:
-    paths:
-      - "docs/**"
-      - "site/**"
-      - "apis/**"
-      - "tools/codegen/**"
-      - "client-apps/cli/**"
-      - "sdk/ink/**"
-      - "sdk/react/**"
-      # The docs site embeds the Ask AI panel through @stigmer/embed's
-      # workspace source, so embed changes can break the site build/tests.
-      - "sdk/embed/**"
-      - ".vale.ini"
-      - ".prettierrc"
-      - ".lychee.toml"
-      - "vale/**"
   push:
     branches: [main]
     paths:
@@ -61,9 +57,69 @@ env:
   npm_config_fetch_retry_maxtimeout: "120000"
 
 jobs:
+  # Decides whether the docs gates apply, from the PR's actual changed-file
+  # list. Push and dispatch events always run the gates: pushes are already
+  # narrowed by the trigger's `paths` above, and a manual dispatch is an
+  # explicit "run it" (the freshness job's heal-now button).
+  changes:
+    name: Detect docs-adjacent changes
+    runs-on: ubuntu-latest
+    # paths-filter reads the PR's file list via the API.
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      docs: ${{ steps.verdict.outputs.docs }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Keep this list in lockstep with the push trigger's `paths` above —
+      # same list, one file, checked in one review (the twin's two-file
+      # mirror contract is the thing #709 retired). The workflow file itself
+      # is included so edits to this gate re-run it (the ci.ts-sdk
+      # precedent).
+      # Pinned by commit SHA (v3 / v3.0.2): the required check's verdict
+      # depends on this third-party action's output, so a mutable tag is not
+      # an acceptable trust anchor here.
+      - name: Filter changed paths
+        id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.2
+        with:
+          filters: |
+            docs:
+              - "docs/**"
+              - "site/**"
+              - "apis/**"
+              - "tools/codegen/**"
+              - "client-apps/cli/**"
+              - "sdk/ink/**"
+              - "sdk/react/**"
+              - "sdk/embed/**"
+              - ".vale.ini"
+              - ".prettierrc"
+              - ".lychee.toml"
+              - "vale/**"
+              - ".github/workflows/ci.docs.yaml"
+
+      - name: Verdict
+        id: verdict
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "docs=${{ steps.filter.outputs.docs }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "docs=true" >> "$GITHUB_OUTPUT"
+          fi
+
   lint-and-build:
     name: Lint & Build
     runs-on: ubuntu-latest
+    needs: changes
+    # Skipped (not absent) on non-docs PRs: the check run still reports,
+    # with conclusion "skipped", which branch protection accepts — the
+    # noop-twin's job, done without a second workflow.
+    if: needs.changes.outputs.docs == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -117,6 +173,8 @@ jobs:
   sdk-docs-freshness:
     name: SDK Docs Freshness
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
     # The self-heal step pushes regenerated docs back to main; every other
     # step only reads the repo.
     permissions:
@@ -220,6 +278,8 @@ jobs:
   links:
     name: Links (Lychee)
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
     # Non-blocking: external links are inherently flaky in CI due to rate
     # limiting, transient failures, and geo-blocks. Exclusions for known
     # vendor dashboard URLs live in .lychee.toml.
