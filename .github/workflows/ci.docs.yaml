@@ -79,10 +79,13 @@ jobs:
       # mirror contract is the thing #709 retired). The workflow file itself
       # is included so edits to this gate re-run it (the ci.ts-sdk
       # precedent).
+      # Pinned by commit SHA (v3 / v3.0.2): the required check's verdict
+      # depends on this third-party action's output, so a mutable tag is not
+      # an acceptable trust anchor here.
       - name: Filter changed paths
         id: filter
         if: github.event_name == 'pull_request'
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.2
         with:
           filters: |
             docs:
