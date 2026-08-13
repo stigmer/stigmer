@@ -42,8 +42,8 @@ kind: McpServer   # camelCase
 
 1. **Unique slugs**: each `mcp_server_ref.slug` must appear only once in `mcp_server_usages`
 2. **Kind constraint**: `mcp_server_ref.kind` must be `mcp_server`
-3. **Tool names**: `enabled_tools` must match MCP server's tools/list exactly (case-sensitive)
-4. **Silent failures**: typos in `tool_name` (enabled_tools or approval overrides) are silently ignored — no error, no effect
+3. **Tool names**: `enabled_tools` must match MCP server's tools/list exactly (case-sensitive) — once the server has discovered capabilities, apply rejects unknown names with an error listing the valid tools; before the first connect, unknown names are warned and ignored at execution
+4. **Silent failures**: typos in approval-override `tool_name` are silently ignored — no error, no effect
 
 ## Sub-Agent Permission Rules
 

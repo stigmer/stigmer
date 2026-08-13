@@ -35,8 +35,8 @@ Run through this list before applying an McpServer YAML with `stigmer apply -f`.
 
 ### Tool Names
 
-- [ ] All tool names in `spec.default_enabled_tools` have been verified against the server's `tools/list` (run `stigmer discover mcp-server <slug>`)
-- [ ] `default_enabled_tools` contains **only** names from `discovered_capabilities.tools` — never from `discovered_capabilities.resource_templates` (resource templates are data endpoints, not callable tools)
+- [ ] All tool names in `spec.default_enabled_tools` have been verified against the server's `tools/list` (run `stigmer discover mcp-server <slug>`) — **server-enforced at apply time**: once the server has discovered capabilities, update/apply rejects unknown names with `INVALID_ARGUMENT` listing the valid tools
+- [ ] `default_enabled_tools` contains **only** names from `discovered_capabilities.tools` — never from `discovered_capabilities.resource_templates` (resource templates are data endpoints, not callable tools; also server-enforced at apply time, with a targeted error)
 - [ ] All `tool_name` values in `spec.default_tool_approvals` match exactly (case-sensitive) what the server reports — typos are silently ignored
 
 ### YAML Syntax
@@ -149,7 +149,7 @@ slug: my-internal-db-v2
 
 ### `default_enabled_tools` with unverified tool names
 
-Tool names must match exactly what the MCP server reports via `tools/list`. A name that doesn't exist is silently ignored — it won't cause a validation error, but agents won't see that tool as available.
+Tool names must match exactly what the MCP server reports via `tools/list`. Once the server has discovered capabilities, an update/apply carrying an unknown name is rejected with `INVALID_ARGUMENT` listing the valid tools. Before the first discovery (a brand-new server), the name passes apply unchecked and the runner warns and ignores it at execution — agents won't see that tool as available.
 
 ```yaml
 # Potentially wrong — tool names guessed, not verified

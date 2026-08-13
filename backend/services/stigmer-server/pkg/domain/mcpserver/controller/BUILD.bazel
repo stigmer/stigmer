@@ -18,6 +18,7 @@ go_library(
         "oauth_app_resolution.go",
         "update.go",
         "update_visibility.go",
+        "validate_default_enabled_tools.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/controller",
     visibility = ["//visibility:public"],
@@ -33,6 +34,7 @@ go_library(
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal",
+        "//backend/services/stigmer-server/pkg/domain/mcpserver/enabledtools",
         "//backend/services/stigmer-server/pkg/domain/mcpserver/oauth",
         "//backend/services/stigmer-server/pkg/downstream/environment",
         "//backend/services/stigmer-server/pkg/downstream/executioncontext",
@@ -62,6 +64,7 @@ go_test(
         "oauth_connect_secrets_test.go",
         "oauth_preflight_test.go",
         "org_oauth_app_unimplemented_test.go",
+        "validate_default_enabled_tools_test.go",
     ],
     embed = [":controller"],
     deps = [

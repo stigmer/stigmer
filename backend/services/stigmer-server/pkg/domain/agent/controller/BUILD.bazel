@@ -14,6 +14,7 @@ go_library(
         "merge_mcp_env_specs.go",
         "update.go",
         "update_visibility.go",
+        "validate_enabled_tools.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller",
     visibility = ["//visibility:public"],
@@ -32,6 +33,7 @@ go_library(
         "//backend/libs/go/store",
         "//backend/services/stigmer-server/pkg/domain/agent/defaultagent",
         "//backend/services/stigmer-server/pkg/domain/agentinstance/defaultinstance",
+        "//backend/services/stigmer-server/pkg/domain/mcpserver/enabledtools",
         "//backend/services/stigmer-server/pkg/downstream/agentinstance",
         "//backend/services/stigmer-server/pkg/query/search/extractor",
         "@com_github_rs_zerolog//log",
@@ -45,6 +47,7 @@ go_test(
     srcs = [
         "agent_controller_test.go",
         "get_default_test.go",
+        "validate_enabled_tools_test.go",
     ],
     embed = [":controller"],
     deps = [

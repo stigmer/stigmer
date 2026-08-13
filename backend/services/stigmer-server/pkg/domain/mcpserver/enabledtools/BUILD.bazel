@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "enabledtools",
+    srcs = ["enabledtools.go"],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/enabledtools",
+    visibility = ["//visibility:public"],
+    deps = ["//apis/stubs/go/ai/stigmer/agentic/mcpserver/v1:mcpserver"],
+)
+
+go_test(
+    name = "enabledtools_test",
+    srcs = ["enabledtools_test.go"],
+    embed = [":enabledtools"],
+    deps = ["//apis/stubs/go/ai/stigmer/agentic/mcpserver/v1:mcpserver"],
+)

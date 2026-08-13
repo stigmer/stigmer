@@ -60,11 +60,19 @@ type McpServerSpec struct {
 	// Only names from discovered_capabilities.tools are valid here.
 	// Do NOT include names from discovered_capabilities.resource_templates —
 	// resource templates are read-only data endpoints, not callable tools.
-	// A name the server does not expose (including a resource template name)
-	// is warned and ignored at execution: the runner enforces the INTERSECTION
-	// with the server's live toolset, so a stale or mistyped entry narrows the
-	// toolset but never widens it or fails the run. Enforcement is per harness
-	// — see McpServerUsage.enabled_tools in agent/v1/spec.proto.
+	//
+	// Enforcement is two-layered:
+	//   - Apply time: mcpserver update/apply rejects (INVALID_ARGUMENT) any
+	//     name this server's own discovered_capabilities.tools does not
+	//     contain, with the valid names in the error. Skipped when the server
+	//     has never been connected (no capabilities yet) — which is always the
+	//     case on create, so the check only bites from the first re-apply
+	//     after discovery.
+	//   - Execution time: the runner enforces the INTERSECTION with the
+	//     server's live toolset — an unknown name is warned in the runner log
+	//     and ignored, so a stale entry narrows the toolset but never widens
+	//     it or fails the run. Enforcement is per harness — see
+	//     McpServerUsage.enabled_tools in agent/v1/spec.proto.
 	DefaultEnabledTools []string `protobuf:"bytes,7,rep,name=default_enabled_tools,json=defaultEnabledTools,proto3" json:"default_enabled_tools,omitempty"`
 	// Environment variable declarations for this MCP server.
 	// Keys are variable names; values describe their metadata and optionality.

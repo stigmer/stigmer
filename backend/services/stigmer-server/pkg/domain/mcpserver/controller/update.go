@@ -20,6 +20,9 @@ import (
 //  2. ResolveSlug - Generate slug from metadata.name
 //  3. LoadExisting - Load existing MCP server from repository by ID
 //  4. BuildUpdateState - Merge spec, preserve IDs, update timestamps, clear computed fields
+//     4b. ValidateDefaultEnabledTools - default_enabled_tools must name discovered tools
+//     (validates against the OWN status BuildUpdateState just carried over;
+//     skips servers never connected — create has no status, so only update wires this)
 //  5. Persist - Save updated MCP server to repository
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
@@ -48,6 +51,7 @@ func (c *McpServerController) buildUpdatePipeline() *pipeline.Pipeline[*mcpserve
 		AddStep(steps.NewResolveSlugStep[*mcpserverv1.McpServer]()).                                         // 2. Resolve slug
 		AddStep(steps.NewLoadExistingStep[*mcpserverv1.McpServer](c.store)).                                 // 3. Load existing MCP server
 		AddStep(steps.NewBuildUpdateStateStep[*mcpserverv1.McpServer]()).                                    // 4. Build updated state
+		AddStep(newValidateDefaultEnabledToolsStep()).                                                       // 4b. Validate default_enabled_tools against own capabilities
 		AddStep(steps.NewNormalizeReferencesStep[*mcpserverv1.McpServer]()).                                 // 5. Normalize cross-references
 		AddStep(steps.NewPersistStep[*mcpserverv1.McpServer](c.store)).                                      // 6. Persist MCP server
 		AddStep(steps.NewIndexSearchStep[*mcpserverv1.McpServer](c.store, &extractor.McpServerExtractor{})). // 6. Update search index

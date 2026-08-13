@@ -276,9 +276,9 @@ const DEFAULT_IGNORE_OPTIONS = { respectGitignore: true, extraIgnore: [] as stri
 
 /**
  * Reconcile a project's membership: push skills first (agents may reference
- * them), apply each resource through the shared apply core, collect references
- * to the member-eligible ones, run post-apply MCP discovery, then apply the
- * project with that exact member set so the server can reconcile by
+ * them), apply MCP servers and run capability discovery on them, apply the
+ * remaining resources, collect references to the member-eligible ones, then
+ * apply the project with that exact member set so the server can reconcile by
  * set-difference (orphan pruning is server-side; see S1 in commands/apply.ts).
  */
 export async function reconcileProjectMembers(
@@ -295,13 +295,14 @@ export async function reconcileProjectMembers(
     members.push(reference(deps.org, ApiResourceKind.skill, pushed.slug));
   }
 
-  // Then each resource, collecting member references from the APPLIED result so
-  // membership carries the server's authoritative slug. (This is the unified
-  // policy: the declarative track used to read the pre-apply YAML slug, the Go
-  // synthesis track read the applied result — converging on the applied result
-  // is correct for both and matches what the backend actually stored.)
+  // Each resource is applied through the shared apply core, collecting member
+  // references from the APPLIED result so membership carries the server's
+  // authoritative slug. (This is the unified policy: the declarative track
+  // used to read the pre-apply YAML slug, the Go synthesis track read the
+  // applied result — converging on the applied result is correct for both and
+  // matches what the backend actually stored.)
   const appliedMcpServers: McpServer[] = [];
-  for (const res of resources) {
+  const applyOne = async (res: ReconcileResource): Promise<void> => {
     const outcome = await applyMessage(deps.controller, res.handler, res.message, deps.org, false);
     if (outcome.warning !== undefined) deps.warn(outcome.warning);
     if (outcome.appliedMcpServer !== undefined) appliedMcpServers.push(outcome.appliedMcpServer);
@@ -309,9 +310,25 @@ export async function reconcileProjectMembers(
       const slug = memberSlugOf(outcome.applied);
       if (slug) members.push(reference(deps.org, res.handler.kind, slug));
     }
-  }
+  };
 
+  // MCP servers first, then capability discovery, then everything else — the
+  // dependency principle applied to capabilities, not just existence. The
+  // server validates agent enabled_tools against discovered capabilities at
+  // apply time (stigmer/stigmer#402), and the backend's own post-apply
+  // connect is asynchronous; discovering here means agents in this apply
+  // validate against the toolset this apply just shipped, not the previous
+  // generation's (which would falsely reject e.g. a seedpack upgrade that
+  // adds a tool and enables it in the same pass). Discovery stays
+  // best-effort: a failed connect warns, capabilities stay stale, and the
+  // dependent apply surfaces an actionable error listing last-known tools.
+  for (const res of resources) {
+    if (res.handler.kind === ApiResourceKind.mcp_server) await applyOne(res);
+  }
   await discoverAppliedMcpServers(deps.stigmer, appliedMcpServers, deps.org, deps.info);
+  for (const res of resources) {
+    if (res.handler.kind !== ApiResourceKind.mcp_server) await applyOne(res);
+  }
 
   injectOrg(project, deps.org);
   if (project.spec === undefined) project.spec = create(ProjectSpecSchema, {});

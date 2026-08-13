@@ -116,16 +116,24 @@ private static final long serialVersionUID = 0L;
    * Only names from discovered_capabilities.tools are valid here.
    * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
-   * A name the server does not expose (including a resource template name)
-   * is warned and ignored at execution: the runner enforces the INTERSECTION
-   * with the server's live toolset, so a stale or mistyped entry narrows the
-   * toolset but never widens it or fails the run.
    *
-   * Enforcement: the native (deep-agent) harness filters the discovered
-   * toolset before it reaches the model; the Cursor harness cannot hide a
-   * server's tools (its SDK config has no allow-list field), so its HITL
-   * hook permanently denies calls to non-enabled tools instead — the model
-   * may still see the tool listed, but every call is refused.
+   * Enforcement is two-layered:
+   * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
+   * name the referenced server's discovered_capabilities.tools does not
+   * contain, with the valid names in the error. The check is skipped when
+   * the server has no discovered capabilities yet (never connected) —
+   * there is nothing authoritative to validate against in that window.
+   * - Execution time: the runner enforces the INTERSECTION with the
+   * server's live toolset — an unknown name (possible when the manifest
+   * was applied before the server's first connect, or when the toolset
+   * changed since) is warned in the runner log and ignored, so a stale
+   * entry narrows the toolset but never widens it or fails the run.
+   *
+   * Per-harness runtime enforcement: the native (deep-agent) harness filters
+   * the discovered toolset before it reaches the model; the Cursor harness
+   * cannot hide a server's tools (its SDK config has no allow-list field),
+   * so its HITL hook permanently denies calls to non-enabled tools instead —
+   * the model may still see the tool listed, but every call is refused.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -146,16 +154,24 @@ private static final long serialVersionUID = 0L;
    * Only names from discovered_capabilities.tools are valid here.
    * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
-   * A name the server does not expose (including a resource template name)
-   * is warned and ignored at execution: the runner enforces the INTERSECTION
-   * with the server's live toolset, so a stale or mistyped entry narrows the
-   * toolset but never widens it or fails the run.
    *
-   * Enforcement: the native (deep-agent) harness filters the discovered
-   * toolset before it reaches the model; the Cursor harness cannot hide a
-   * server's tools (its SDK config has no allow-list field), so its HITL
-   * hook permanently denies calls to non-enabled tools instead — the model
-   * may still see the tool listed, but every call is refused.
+   * Enforcement is two-layered:
+   * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
+   * name the referenced server's discovered_capabilities.tools does not
+   * contain, with the valid names in the error. The check is skipped when
+   * the server has no discovered capabilities yet (never connected) —
+   * there is nothing authoritative to validate against in that window.
+   * - Execution time: the runner enforces the INTERSECTION with the
+   * server's live toolset — an unknown name (possible when the manifest
+   * was applied before the server's first connect, or when the toolset
+   * changed since) is warned in the runner log and ignored, so a stale
+   * entry narrows the toolset but never widens it or fails the run.
+   *
+   * Per-harness runtime enforcement: the native (deep-agent) harness filters
+   * the discovered toolset before it reaches the model; the Cursor harness
+   * cannot hide a server's tools (its SDK config has no allow-list field),
+   * so its HITL hook permanently denies calls to non-enabled tools instead —
+   * the model may still see the tool listed, but every call is refused.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -175,16 +191,24 @@ private static final long serialVersionUID = 0L;
    * Only names from discovered_capabilities.tools are valid here.
    * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
-   * A name the server does not expose (including a resource template name)
-   * is warned and ignored at execution: the runner enforces the INTERSECTION
-   * with the server's live toolset, so a stale or mistyped entry narrows the
-   * toolset but never widens it or fails the run.
    *
-   * Enforcement: the native (deep-agent) harness filters the discovered
-   * toolset before it reaches the model; the Cursor harness cannot hide a
-   * server's tools (its SDK config has no allow-list field), so its HITL
-   * hook permanently denies calls to non-enabled tools instead — the model
-   * may still see the tool listed, but every call is refused.
+   * Enforcement is two-layered:
+   * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
+   * name the referenced server's discovered_capabilities.tools does not
+   * contain, with the valid names in the error. The check is skipped when
+   * the server has no discovered capabilities yet (never connected) —
+   * there is nothing authoritative to validate against in that window.
+   * - Execution time: the runner enforces the INTERSECTION with the
+   * server's live toolset — an unknown name (possible when the manifest
+   * was applied before the server's first connect, or when the toolset
+   * changed since) is warned in the runner log and ignored, so a stale
+   * entry narrows the toolset but never widens it or fails the run.
+   *
+   * Per-harness runtime enforcement: the native (deep-agent) harness filters
+   * the discovered toolset before it reaches the model; the Cursor harness
+   * cannot hide a server's tools (its SDK config has no allow-list field),
+   * so its HITL hook permanently denies calls to non-enabled tools instead —
+   * the model may still see the tool listed, but every call is refused.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -205,16 +229,24 @@ private static final long serialVersionUID = 0L;
    * Only names from discovered_capabilities.tools are valid here.
    * Do NOT include names from discovered_capabilities.resource_templates —
    * resource templates are read-only data endpoints, not callable tools.
-   * A name the server does not expose (including a resource template name)
-   * is warned and ignored at execution: the runner enforces the INTERSECTION
-   * with the server's live toolset, so a stale or mistyped entry narrows the
-   * toolset but never widens it or fails the run.
    *
-   * Enforcement: the native (deep-agent) harness filters the discovered
-   * toolset before it reaches the model; the Cursor harness cannot hide a
-   * server's tools (its SDK config has no allow-list field), so its HITL
-   * hook permanently denies calls to non-enabled tools instead — the model
-   * may still see the tool listed, but every call is refused.
+   * Enforcement is two-layered:
+   * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
+   * name the referenced server's discovered_capabilities.tools does not
+   * contain, with the valid names in the error. The check is skipped when
+   * the server has no discovered capabilities yet (never connected) —
+   * there is nothing authoritative to validate against in that window.
+   * - Execution time: the runner enforces the INTERSECTION with the
+   * server's live toolset — an unknown name (possible when the manifest
+   * was applied before the server's first connect, or when the toolset
+   * changed since) is warned in the runner log and ignored, so a stale
+   * entry narrows the toolset but never widens it or fails the run.
+   *
+   * Per-harness runtime enforcement: the native (deep-agent) harness filters
+   * the discovered toolset before it reaches the model; the Cursor harness
+   * cannot hide a server's tools (its SDK config has no allow-list field),
+   * so its HITL hook permanently denies calls to non-enabled tools instead —
+   * the model may still see the tool listed, but every call is refused.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -930,16 +962,24 @@ private static final long serialVersionUID = 0L;
      * Only names from discovered_capabilities.tools are valid here.
      * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
-     * A name the server does not expose (including a resource template name)
-     * is warned and ignored at execution: the runner enforces the INTERSECTION
-     * with the server's live toolset, so a stale or mistyped entry narrows the
-     * toolset but never widens it or fails the run.
      *
-     * Enforcement: the native (deep-agent) harness filters the discovered
-     * toolset before it reaches the model; the Cursor harness cannot hide a
-     * server's tools (its SDK config has no allow-list field), so its HITL
-     * hook permanently denies calls to non-enabled tools instead — the model
-     * may still see the tool listed, but every call is refused.
+     * Enforcement is two-layered:
+     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
+     * name the referenced server's discovered_capabilities.tools does not
+     * contain, with the valid names in the error. The check is skipped when
+     * the server has no discovered capabilities yet (never connected) —
+     * there is nothing authoritative to validate against in that window.
+     * - Execution time: the runner enforces the INTERSECTION with the
+     * server's live toolset — an unknown name (possible when the manifest
+     * was applied before the server's first connect, or when the toolset
+     * changed since) is warned in the runner log and ignored, so a stale
+     * entry narrows the toolset but never widens it or fails the run.
+     *
+     * Per-harness runtime enforcement: the native (deep-agent) harness filters
+     * the discovered toolset before it reaches the model; the Cursor harness
+     * cannot hide a server's tools (its SDK config has no allow-list field),
+     * so its HITL hook permanently denies calls to non-enabled tools instead —
+     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -961,16 +1001,24 @@ private static final long serialVersionUID = 0L;
      * Only names from discovered_capabilities.tools are valid here.
      * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
-     * A name the server does not expose (including a resource template name)
-     * is warned and ignored at execution: the runner enforces the INTERSECTION
-     * with the server's live toolset, so a stale or mistyped entry narrows the
-     * toolset but never widens it or fails the run.
      *
-     * Enforcement: the native (deep-agent) harness filters the discovered
-     * toolset before it reaches the model; the Cursor harness cannot hide a
-     * server's tools (its SDK config has no allow-list field), so its HITL
-     * hook permanently denies calls to non-enabled tools instead — the model
-     * may still see the tool listed, but every call is refused.
+     * Enforcement is two-layered:
+     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
+     * name the referenced server's discovered_capabilities.tools does not
+     * contain, with the valid names in the error. The check is skipped when
+     * the server has no discovered capabilities yet (never connected) —
+     * there is nothing authoritative to validate against in that window.
+     * - Execution time: the runner enforces the INTERSECTION with the
+     * server's live toolset — an unknown name (possible when the manifest
+     * was applied before the server's first connect, or when the toolset
+     * changed since) is warned in the runner log and ignored, so a stale
+     * entry narrows the toolset but never widens it or fails the run.
+     *
+     * Per-harness runtime enforcement: the native (deep-agent) harness filters
+     * the discovered toolset before it reaches the model; the Cursor harness
+     * cannot hide a server's tools (its SDK config has no allow-list field),
+     * so its HITL hook permanently denies calls to non-enabled tools instead —
+     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -990,16 +1038,24 @@ private static final long serialVersionUID = 0L;
      * Only names from discovered_capabilities.tools are valid here.
      * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
-     * A name the server does not expose (including a resource template name)
-     * is warned and ignored at execution: the runner enforces the INTERSECTION
-     * with the server's live toolset, so a stale or mistyped entry narrows the
-     * toolset but never widens it or fails the run.
      *
-     * Enforcement: the native (deep-agent) harness filters the discovered
-     * toolset before it reaches the model; the Cursor harness cannot hide a
-     * server's tools (its SDK config has no allow-list field), so its HITL
-     * hook permanently denies calls to non-enabled tools instead — the model
-     * may still see the tool listed, but every call is refused.
+     * Enforcement is two-layered:
+     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
+     * name the referenced server's discovered_capabilities.tools does not
+     * contain, with the valid names in the error. The check is skipped when
+     * the server has no discovered capabilities yet (never connected) —
+     * there is nothing authoritative to validate against in that window.
+     * - Execution time: the runner enforces the INTERSECTION with the
+     * server's live toolset — an unknown name (possible when the manifest
+     * was applied before the server's first connect, or when the toolset
+     * changed since) is warned in the runner log and ignored, so a stale
+     * entry narrows the toolset but never widens it or fails the run.
+     *
+     * Per-harness runtime enforcement: the native (deep-agent) harness filters
+     * the discovered toolset before it reaches the model; the Cursor harness
+     * cannot hide a server's tools (its SDK config has no allow-list field),
+     * so its HITL hook permanently denies calls to non-enabled tools instead —
+     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -1020,16 +1076,24 @@ private static final long serialVersionUID = 0L;
      * Only names from discovered_capabilities.tools are valid here.
      * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
-     * A name the server does not expose (including a resource template name)
-     * is warned and ignored at execution: the runner enforces the INTERSECTION
-     * with the server's live toolset, so a stale or mistyped entry narrows the
-     * toolset but never widens it or fails the run.
      *
-     * Enforcement: the native (deep-agent) harness filters the discovered
-     * toolset before it reaches the model; the Cursor harness cannot hide a
-     * server's tools (its SDK config has no allow-list field), so its HITL
-     * hook permanently denies calls to non-enabled tools instead — the model
-     * may still see the tool listed, but every call is refused.
+     * Enforcement is two-layered:
+     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
+     * name the referenced server's discovered_capabilities.tools does not
+     * contain, with the valid names in the error. The check is skipped when
+     * the server has no discovered capabilities yet (never connected) —
+     * there is nothing authoritative to validate against in that window.
+     * - Execution time: the runner enforces the INTERSECTION with the
+     * server's live toolset — an unknown name (possible when the manifest
+     * was applied before the server's first connect, or when the toolset
+     * changed since) is warned in the runner log and ignored, so a stale
+     * entry narrows the toolset but never widens it or fails the run.
+     *
+     * Per-harness runtime enforcement: the native (deep-agent) harness filters
+     * the discovered toolset before it reaches the model; the Cursor harness
+     * cannot hide a server's tools (its SDK config has no allow-list field),
+     * so its HITL hook permanently denies calls to non-enabled tools instead —
+     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -1051,16 +1115,24 @@ private static final long serialVersionUID = 0L;
      * Only names from discovered_capabilities.tools are valid here.
      * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
-     * A name the server does not expose (including a resource template name)
-     * is warned and ignored at execution: the runner enforces the INTERSECTION
-     * with the server's live toolset, so a stale or mistyped entry narrows the
-     * toolset but never widens it or fails the run.
      *
-     * Enforcement: the native (deep-agent) harness filters the discovered
-     * toolset before it reaches the model; the Cursor harness cannot hide a
-     * server's tools (its SDK config has no allow-list field), so its HITL
-     * hook permanently denies calls to non-enabled tools instead — the model
-     * may still see the tool listed, but every call is refused.
+     * Enforcement is two-layered:
+     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
+     * name the referenced server's discovered_capabilities.tools does not
+     * contain, with the valid names in the error. The check is skipped when
+     * the server has no discovered capabilities yet (never connected) —
+     * there is nothing authoritative to validate against in that window.
+     * - Execution time: the runner enforces the INTERSECTION with the
+     * server's live toolset — an unknown name (possible when the manifest
+     * was applied before the server's first connect, or when the toolset
+     * changed since) is warned in the runner log and ignored, so a stale
+     * entry narrows the toolset but never widens it or fails the run.
+     *
+     * Per-harness runtime enforcement: the native (deep-agent) harness filters
+     * the discovered toolset before it reaches the model; the Cursor harness
+     * cannot hide a server's tools (its SDK config has no allow-list field),
+     * so its HITL hook permanently denies calls to non-enabled tools instead —
+     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -1088,16 +1160,24 @@ private static final long serialVersionUID = 0L;
      * Only names from discovered_capabilities.tools are valid here.
      * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
-     * A name the server does not expose (including a resource template name)
-     * is warned and ignored at execution: the runner enforces the INTERSECTION
-     * with the server's live toolset, so a stale or mistyped entry narrows the
-     * toolset but never widens it or fails the run.
      *
-     * Enforcement: the native (deep-agent) harness filters the discovered
-     * toolset before it reaches the model; the Cursor harness cannot hide a
-     * server's tools (its SDK config has no allow-list field), so its HITL
-     * hook permanently denies calls to non-enabled tools instead — the model
-     * may still see the tool listed, but every call is refused.
+     * Enforcement is two-layered:
+     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
+     * name the referenced server's discovered_capabilities.tools does not
+     * contain, with the valid names in the error. The check is skipped when
+     * the server has no discovered capabilities yet (never connected) —
+     * there is nothing authoritative to validate against in that window.
+     * - Execution time: the runner enforces the INTERSECTION with the
+     * server's live toolset — an unknown name (possible when the manifest
+     * was applied before the server's first connect, or when the toolset
+     * changed since) is warned in the runner log and ignored, so a stale
+     * entry narrows the toolset but never widens it or fails the run.
+     *
+     * Per-harness runtime enforcement: the native (deep-agent) harness filters
+     * the discovered toolset before it reaches the model; the Cursor harness
+     * cannot hide a server's tools (its SDK config has no allow-list field),
+     * so its HITL hook permanently denies calls to non-enabled tools instead —
+     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -1124,16 +1204,24 @@ private static final long serialVersionUID = 0L;
      * Only names from discovered_capabilities.tools are valid here.
      * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
-     * A name the server does not expose (including a resource template name)
-     * is warned and ignored at execution: the runner enforces the INTERSECTION
-     * with the server's live toolset, so a stale or mistyped entry narrows the
-     * toolset but never widens it or fails the run.
      *
-     * Enforcement: the native (deep-agent) harness filters the discovered
-     * toolset before it reaches the model; the Cursor harness cannot hide a
-     * server's tools (its SDK config has no allow-list field), so its HITL
-     * hook permanently denies calls to non-enabled tools instead — the model
-     * may still see the tool listed, but every call is refused.
+     * Enforcement is two-layered:
+     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
+     * name the referenced server's discovered_capabilities.tools does not
+     * contain, with the valid names in the error. The check is skipped when
+     * the server has no discovered capabilities yet (never connected) —
+     * there is nothing authoritative to validate against in that window.
+     * - Execution time: the runner enforces the INTERSECTION with the
+     * server's live toolset — an unknown name (possible when the manifest
+     * was applied before the server's first connect, or when the toolset
+     * changed since) is warned in the runner log and ignored, so a stale
+     * entry narrows the toolset but never widens it or fails the run.
+     *
+     * Per-harness runtime enforcement: the native (deep-agent) harness filters
+     * the discovered toolset before it reaches the model; the Cursor harness
+     * cannot hide a server's tools (its SDK config has no allow-list field),
+     * so its HITL hook permanently denies calls to non-enabled tools instead —
+     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -1160,16 +1248,24 @@ private static final long serialVersionUID = 0L;
      * Only names from discovered_capabilities.tools are valid here.
      * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
-     * A name the server does not expose (including a resource template name)
-     * is warned and ignored at execution: the runner enforces the INTERSECTION
-     * with the server's live toolset, so a stale or mistyped entry narrows the
-     * toolset but never widens it or fails the run.
      *
-     * Enforcement: the native (deep-agent) harness filters the discovered
-     * toolset before it reaches the model; the Cursor harness cannot hide a
-     * server's tools (its SDK config has no allow-list field), so its HITL
-     * hook permanently denies calls to non-enabled tools instead — the model
-     * may still see the tool listed, but every call is refused.
+     * Enforcement is two-layered:
+     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
+     * name the referenced server's discovered_capabilities.tools does not
+     * contain, with the valid names in the error. The check is skipped when
+     * the server has no discovered capabilities yet (never connected) —
+     * there is nothing authoritative to validate against in that window.
+     * - Execution time: the runner enforces the INTERSECTION with the
+     * server's live toolset — an unknown name (possible when the manifest
+     * was applied before the server's first connect, or when the toolset
+     * changed since) is warned in the runner log and ignored, so a stale
+     * entry narrows the toolset but never widens it or fails the run.
+     *
+     * Per-harness runtime enforcement: the native (deep-agent) harness filters
+     * the discovered toolset before it reaches the model; the Cursor harness
+     * cannot hide a server's tools (its SDK config has no allow-list field),
+     * so its HITL hook permanently denies calls to non-enabled tools instead —
+     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -1193,16 +1289,24 @@ private static final long serialVersionUID = 0L;
      * Only names from discovered_capabilities.tools are valid here.
      * Do NOT include names from discovered_capabilities.resource_templates —
      * resource templates are read-only data endpoints, not callable tools.
-     * A name the server does not expose (including a resource template name)
-     * is warned and ignored at execution: the runner enforces the INTERSECTION
-     * with the server's live toolset, so a stale or mistyped entry narrows the
-     * toolset but never widens it or fails the run.
      *
-     * Enforcement: the native (deep-agent) harness filters the discovered
-     * toolset before it reaches the model; the Cursor harness cannot hide a
-     * server's tools (its SDK config has no allow-list field), so its HITL
-     * hook permanently denies calls to non-enabled tools instead — the model
-     * may still see the tool listed, but every call is refused.
+     * Enforcement is two-layered:
+     * - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
+     * name the referenced server's discovered_capabilities.tools does not
+     * contain, with the valid names in the error. The check is skipped when
+     * the server has no discovered capabilities yet (never connected) —
+     * there is nothing authoritative to validate against in that window.
+     * - Execution time: the runner enforces the INTERSECTION with the
+     * server's live toolset — an unknown name (possible when the manifest
+     * was applied before the server's first connect, or when the toolset
+     * changed since) is warned in the runner log and ignored, so a stale
+     * entry narrows the toolset but never widens it or fails the run.
+     *
+     * Per-harness runtime enforcement: the native (deep-agent) harness filters
+     * the discovered toolset before it reaches the model; the Cursor harness
+     * cannot hide a server's tools (its SDK config has no allow-list field),
+     * so its HITL hook permanently denies calls to non-enabled tools instead —
+     * the model may still see the tool listed, but every call is refused.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>

@@ -21,8 +21,12 @@
  * identity space as the sub-agent McpAccess filter and the approval-policy
  * maps. An enabled name the server does not expose is warned and dropped
  * (enforce the intersection): the restriction still holds and the run
- * proceeds with the valid subset; apply-time validation against
- * discovered_capabilities is the server-side follow-up that catches typos.
+ * proceeds with the valid subset. The server-side half (issue #402) rejects
+ * such names at apply time once the referenced server has discovered
+ * capabilities (stigmer-server validateEnabledToolsStep /
+ * validateDefaultEnabledToolsStep); this runtime leniency remains the
+ * safety net for manifests applied before a server's first connect and for
+ * toolsets that changed since the last discovery.
  */
 
 /**
