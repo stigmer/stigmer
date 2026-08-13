@@ -1,6 +1,19 @@
-//go:build integration
+//go:build transport
 
-package integration
+package seedpack
+
+// Transport reachability probes for the marketplace MCP catalog: live HTTP
+// against every vendor endpoint declared in mcp-servers/*.yaml. This is the
+// tier between static validation and the credentialed canaries — it answers
+// "is the endpoint still there and speaking MCP?" without any credentials.
+//
+// The `transport` build tag keeps the probes out of the static tier by
+// construction: `go test ./...` (make test-seedpack-static) must stay
+// deterministic and network-free, and a tag enforces that at compile time
+// rather than by convention. Run via `make test-seedpack-transport` (root),
+// which is also what the nightly ci.seedpack-canary lane invokes. The probes
+// need no harness — they moved here from test/integration, where they paid a
+// full service-JAR + testcontainers boot they never used (oss#569).
 
 import (
 	"bytes"
@@ -13,70 +26,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v3"
 )
-
-// The seedpack catalog is HTTP-only (stdio MCP servers are local-runner-only
-// and are not shipped in the marketplace), so the schema models the http
-// transport exclusively.
-type mcpServerYAML struct {
-	Spec struct {
-		HTTP *struct {
-			URL string `yaml:"url"`
-		} `yaml:"http"`
-		Auth *struct {
-			OAuthAppRef  *struct{} `yaml:"oauth_app_ref"`
-			TargetEnvVar string    `yaml:"target_env_var"`
-		} `yaml:"auth"`
-	} `yaml:"spec"`
-}
-
-func loadSeedpackMcpServers(t *testing.T) map[string]mcpServerYAML {
-	t.Helper()
-
-	_, thisFile, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("unable to determine test file path via runtime.Caller")
-	}
-	seedpackDir := filepath.Join(filepath.Dir(thisFile), "..", "..", "seedpack", "mcp-servers")
-
-	entries, err := os.ReadDir(seedpackDir)
-	if err != nil {
-		t.Fatalf("failed to read seedpack directory %s: %v", seedpackDir, err)
-	}
-
-	servers := make(map[string]mcpServerYAML)
-	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
-			continue
-		}
-		name := strings.TrimSuffix(entry.Name(), ".yaml")
-
-		data, err := os.ReadFile(filepath.Join(seedpackDir, entry.Name()))
-		if err != nil {
-			t.Fatalf("failed to read %s: %v", entry.Name(), err)
-		}
-
-		var srv mcpServerYAML
-		if err := yaml.Unmarshal(data, &srv); err != nil {
-			t.Fatalf("failed to parse %s: %v", entry.Name(), err)
-		}
-		servers[name] = srv
-	}
-
-	if len(servers) == 0 {
-		t.Fatal("no MCP server YAML files found in seedpack directory")
-	}
-	t.Logf("loaded %d MCP server definitions from %s", len(servers), seedpackDir)
-	return servers
-}
 
 func isDNSError(err error) bool {
 	if err == nil {
@@ -93,11 +46,9 @@ func isDNSError(err error) bool {
 
 // isTransientNetworkError reports whether err is an environmental network
 // condition outside the test's control (DNS failure, request timeout, or a
-// transient connection-level error). These tests are live canaries against
-// third-party MCP endpoints and run in parallel inside the full offline suite,
-// where contention can push a healthy endpoint past the client deadline. Such
-// conditions say nothing about the seedpack definition under test, so callers
-// skip rather than fail when they occur.
+// transient connection-level error). These probes are live canaries against
+// third-party endpoints; such conditions say nothing about the seedpack
+// definition under test, so callers skip rather than fail when they occur.
 func isTransientNetworkError(err error) bool {
 	if err == nil {
 		return false
@@ -124,7 +75,7 @@ func isTransientNetworkError(err error) bool {
 }
 
 func TestSeedpackHttp_EndpointReachable(t *testing.T) {
-	servers := loadSeedpackMcpServers(t)
+	servers := loadAllMcpServers(t)
 
 	client := &http.Client{
 		Timeout: 10 * time.Second,
@@ -155,14 +106,15 @@ func TestSeedpackHttp_EndpointReachable(t *testing.T) {
 			defer resp.Body.Close()
 
 			t.Logf("HEAD %s -> %d %s", srv.Spec.HTTP.URL, resp.StatusCode, resp.Status)
-			assert.Less(t, resp.StatusCode, 500,
-				"expected non-5xx status code; server may be down")
+			if resp.StatusCode >= 500 {
+				t.Errorf("expected non-5xx status code, got %d; server may be down", resp.StatusCode)
+			}
 		})
 	}
 }
 
 func TestSeedpackHttp_OAuthDiscoveryAvailable(t *testing.T) {
-	servers := loadSeedpackMcpServers(t)
+	servers := loadAllMcpServers(t)
 
 	client := &http.Client{Timeout: 10 * time.Second}
 
@@ -200,27 +152,28 @@ func TestSeedpackHttp_OAuthDiscoveryAvailable(t *testing.T) {
 				t.Skipf("skipping %s: OAuth discovery endpoint returned 404 (RFC 8414 not implemented by vendor)", name)
 			}
 
-			if !assert.Equal(t, http.StatusOK, resp.StatusCode,
-				"OAuth discovery endpoint should return 200") {
+			if resp.StatusCode != http.StatusOK {
+				t.Errorf("OAuth discovery endpoint should return 200, got %d", resp.StatusCode)
 				t.Logf("response body (truncated): %.500s", string(body))
 				return
 			}
 
 			var doc map[string]interface{}
-			if !assert.NoError(t, json.Unmarshal(body, &doc),
-				"OAuth discovery response should be valid JSON") {
+			if err := json.Unmarshal(body, &doc); err != nil {
+				t.Errorf("OAuth discovery response should be valid JSON: %v", err)
 				t.Logf("response body (truncated): %.500s", string(body))
 				return
 			}
 
-			assert.Contains(t, doc, "authorization_endpoint",
-				"OAuth discovery document must contain authorization_endpoint")
+			if _, ok := doc["authorization_endpoint"]; !ok {
+				t.Error("OAuth discovery document must contain authorization_endpoint")
+			}
 		})
 	}
 }
 
 func TestSeedpackHttp_McpProtocolResponse(t *testing.T) {
-	servers := loadSeedpackMcpServers(t)
+	servers := loadAllMcpServers(t)
 
 	initPayload := []byte(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"stigmer-canary-test","version":"1.0.0"}}}`)
 
@@ -270,8 +223,10 @@ func TestSeedpackHttp_McpProtocolResponse(t *testing.T) {
 				return
 			}
 
-			assert.True(t, json.Valid(body),
-				"response should be valid JSON (not HTML error page); got: %.300s", string(body))
+			if !json.Valid(body) {
+				t.Errorf("response should be valid JSON (not HTML error page); got: %.300s", string(body))
+				return
+			}
 
 			var rpcResp map[string]interface{}
 			if json.Unmarshal(body, &rpcResp) == nil {
