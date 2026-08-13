@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
  * <p>On top of the generated resource clients, {@code StigmerClient} adds:
  * <ul>
  *   <li>Configuration and gRPC channel setup</li>
+ *   <li>{@link #billing()} credit management and Stripe integration client</li>
  *   <li>Cross-resource {@link #search()} client</li>
  *   <li>{@link #github()} OAuth integration client</li>
  * </ul>
@@ -38,6 +39,7 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
     private static final long SHUTDOWN_TIMEOUT_SECONDS = 5;
 
     private final ManagedChannel channel;
+    private final BillingClient billing;
     private final SearchClient search;
     private final GitHubClient github;
     private final RunnerAdapter runnerAdapter;
@@ -45,6 +47,7 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
     private StigmerClient(ManagedChannel channel, RunnerAdapter runnerAdapter) {
         super(channel);
         this.channel = channel;
+        this.billing = new BillingClient(channel);
         this.search = new SearchClient(channel);
         this.github = new GitHubClient(channel);
         this.runnerAdapter = runnerAdapter;
@@ -56,6 +59,9 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
     }
 
     // -- Extra clients (not code-generated) ------------------------------------
+
+    /** Returns the billing client for credit management and Stripe integration. */
+    public BillingClient billing() { return billing; }
 
     /** Returns the cross-resource search client. */
     public SearchClient search() { return search; }
