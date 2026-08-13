@@ -1,11 +1,17 @@
 // `stigmer setup` — configure the LLM provider used for agent execution.
 //
 // Two paths share one decision core (local/setup/wizard.ts): a non-interactive
-// flag path (`--provider`, `--api-key`, `--model`) for scripts and CI, and an
+// flag path (`--provider`, `--api-key`) for scripts and CI, and an
 // interactive API-key prompt when no provider flag is given. Both write to
 // backend.local.llm, preserving every other config field. The valid provider
 // set is owned by wizard.ts's PROVIDER_CHOICES (Anthropic-only + skip — the
 // only story the native runner serves).
+//
+// Setup deliberately has NO model concept: the platform model registry owns
+// the execution default, and per-run overrides belong to `stigmer run
+// --model`. A setup-level pin used to exist but never reached execution
+// (oss#314) — config that looks authoritative but is dead invites exactly the
+// bug class Session 29 fixed, so it is structurally gone rather than wired up.
 
 import type { Command } from "commander";
 import { homedir } from "node:os";
@@ -14,7 +20,6 @@ import { addResultFlags, resultFormat } from "./shared.js";
 
 interface SetupFlags extends OutputFlags {
   provider?: string;
-  model?: string;
   apiKey?: string;
 }
 
@@ -23,7 +28,6 @@ export function registerSetup(program: Command): void {
     .command("setup")
     .description("configure the LLM provider for agent execution")
     .option("--provider <name>", "provider: anthropic, or skip to clear (non-interactive)")
-    .option("--model <name>", "pin a specific model (defaults to the platform-selected model)")
     .option("--api-key <key>", "Anthropic API key")
     .action((options: SetupFlags) => runSetup(options));
   addResultFlags(setup);
@@ -47,7 +51,6 @@ async function runSetup(options: SetupFlags): Promise<void> {
       ]);
     }
     updated = applyChoice(config, provider as (typeof PROVIDER_CHOICES)[number], {
-      model: options.model,
       apiKey: options.apiKey,
     });
   } else {

@@ -95,7 +95,7 @@ export async function up(options: UpOptions = {}, home: string = homedir()): Pro
 
   await applySeedpackBestEffort(home);
 
-  saveStartupConfig(data, buildStartupConfig(data, logs, temporal.address, config, daemonPid, options));
+  saveStartupConfig(data, buildStartupConfig(data, logs, temporal.address, daemonPid, options));
 }
 
 /**
@@ -246,18 +246,13 @@ function buildStartupConfig(
   data: string,
   logs: string,
   temporalAddr: string,
-  config: Config,
   daemonPid: number,
   options: UpOptions,
 ): StartupConfig {
-  const local = config.backend.local as { llm?: { provider?: string; model?: string; base_url?: string } } | undefined;
   return {
     data_dir: data,
     log_dir: logs,
     temporal_addr: temporalAddr,
-    llm_provider: local?.llm?.provider ?? "",
-    llm_model: local?.llm?.model ?? "",
-    llm_base_url: local?.llm?.base_url ?? "",
     execution_mode: "local",
     sandbox_image: "",
     sandbox_auto_pull: false,

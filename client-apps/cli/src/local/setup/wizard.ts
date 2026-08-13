@@ -7,9 +7,9 @@
 // Local agent execution is Anthropic-only (the native runner only constructs
 // Anthropic clients and the registry's native entries are Anthropic models),
 // so the interactive flow is a single API-key prompt rather than a provider
-// menu. The model is deliberately NOT asked for: the platform model registry
-// owns the execution default, and an explicit override is a power-user flag
-// (`stigmer setup --model …`), not a setup question.
+// menu. There is no model concept here at all: the platform model registry
+// owns the execution default, and per-run overrides belong to `stigmer run
+// --model` (oss#314 removed the dead setup-level pin).
 
 import type { Config } from "../../config/config.js";
 import { type LlmSettings, setLlm } from "../llm-config.js";
@@ -27,19 +27,17 @@ export type ProviderChoice = (typeof PROVIDER_CHOICES)[number];
 
 export interface SelectionInputs {
   apiKey?: string;
-  model?: string;
 }
 
 /**
- * Resolve a provider choice (plus optional overrides) to the LLM settings to
- * persist. "skip" yields `undefined`, which clears the section. An omitted
- * model is stored as absent — meaning "platform default", resolved from the
- * model registry at execution time.
+ * Resolve a provider choice (plus an optional API key) to the LLM settings to
+ * persist. "skip" yields `undefined`, which clears the section — including any
+ * stale `model` key from a pre-oss#314 config, since setLlm replaces the
+ * section wholesale.
  */
 export function buildLlmForChoice(choice: ProviderChoice, inputs: SelectionInputs = {}): LlmSettings | undefined {
   if (choice === "skip") return undefined;
   const settings: LlmSettings = { provider: choice };
-  if (inputs.model) settings.model = inputs.model;
   if (inputs.apiKey) settings.api_key = inputs.apiKey;
   return settings;
 }

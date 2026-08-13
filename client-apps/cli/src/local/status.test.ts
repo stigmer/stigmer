@@ -62,12 +62,12 @@ describe("buildStatusResult", () => {
     expect(field(result, "Web UI", "Temporal")).toBe("http://localhost:8233");
   });
 
-  it("shows an explicit model override verbatim", async () => {
+  it("ignores a stale model key from a pre-oss#314 config — the pin never reached execution, so status must not display it", async () => {
     writeHealth({ daemon_pid: process.pid, started_at: new Date().toISOString(), components: {} });
     writeFileSync(configPath(home), "backend:\n  type: local\n  local:\n    llm:\n      provider: anthropic\n      model: claude-x\n      api_key: sk-x\n");
 
     const result = await buildStatusResult(home, open);
-    expect(field(result, "LLM Configuration", "Model")).toBe("claude-x");
+    expect(field(result, "LLM Configuration", "Model")).toBe("Auto (platform default)");
   });
 
   it("reports a non-anthropic provider as unknown — local execution is Anthropic-only", async () => {

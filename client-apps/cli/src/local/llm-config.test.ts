@@ -4,7 +4,6 @@ import {
   detectProviderFromEnv,
   readLlm,
   resolveApiKey,
-  resolveModel,
   resolveProvider,
   setLlm,
 } from "./llm-config.js";
@@ -32,17 +31,6 @@ describe("resolveProvider", () => {
   });
 });
 
-describe("resolveModel", () => {
-  it("returns the explicit override, else empty — the registry owns the default", () => {
-    // No hardcoded model version anywhere in the CLI: unset means "platform
-    // default", resolved by the runner from the model registry.
-    expect(resolveModel(config({ llm: { provider: "anthropic" } }), {})).toBe("");
-    expect(resolveModel(config(), {})).toBe("");
-    expect(resolveModel(config({ llm: { provider: "anthropic", model: "claude-x" } }), {})).toBe("claude-x");
-    expect(resolveModel(config({ llm: { provider: "anthropic" } }), { STIGMER_LLM_MODEL: "envm" })).toBe("envm");
-  });
-});
-
 describe("resolveApiKey", () => {
   it("uses ANTHROPIC_API_KEY, then config", () => {
     const cfg = config({ llm: { provider: "anthropic", api_key: "cfgkey" } });
@@ -58,12 +46,21 @@ describe("resolveApiKey", () => {
 describe("setLlm", () => {
   it("preserves sibling local keys and can clear the section", () => {
     const cfg = config({ temporal: { managed: true }, llm: { provider: "anthropic" } });
-    const updated = setLlm(cfg, { provider: "anthropic", model: "m" });
-    expect(readLlm(updated)).toEqual({ provider: "anthropic", model: "m" });
+    const updated = setLlm(cfg, { provider: "anthropic", api_key: "k" });
+    expect(readLlm(updated)).toEqual({ provider: "anthropic", api_key: "k" });
     expect((updated.backend.local as { temporal: unknown }).temporal).toEqual({ managed: true });
 
     const cleared = setLlm(cfg, undefined);
     expect(readLlm(cleared)).toBeUndefined();
     expect((cleared.backend.local as { temporal: unknown }).temporal).toEqual({ managed: true });
+  });
+
+  it("replaces the section wholesale — a stale model key from a pre-oss#314 config does not survive a rewrite", () => {
+    // The graceful-migration contract: old configs may carry llm.model (the
+    // removed dead pin). Reads ignore it (LlmSettings no longer models it);
+    // the next setup write clears it because setLlm never merges.
+    const cfg = config({ llm: { provider: "anthropic", model: "stale-pin", api_key: "k" } });
+    const rewritten = setLlm(cfg, { provider: "anthropic", api_key: "k" });
+    expect(readLlm(rewritten)).toEqual({ provider: "anthropic", api_key: "k" });
   });
 });
