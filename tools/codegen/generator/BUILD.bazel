@@ -72,7 +72,6 @@ go_test(
     srcs = [
         "conversion_test.go",
         "docs_yaml_gate_test.go",
-        "internal_leak_gate_test.go",
         "main_test.go",
         "mdx_fence_scanner_test.go",
         "schema_loading_test.go",
@@ -85,4 +84,18 @@ go_test(
         "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//types/descriptorpb",
     ],
+)
+
+# The @internal leak gate scans four committed workspace trees (see the test
+# for the list) that the Bazel sandbox does not stage. Run via `go test`
+# (`make check-go` covers the tools module), not Bazel. Tagged "manual" so
+# wildcard `bazel test //...` skips it, matching the go-test-only convention
+# used by seedpack and test/integration. The gazelle:exclude keeps gazelle
+# from folding the file back into generator_test; this rule is hand-owned.
+# gazelle:exclude internal_leak_gate_test.go
+go_test(
+    name = "internal_leak_gate_test",
+    srcs = ["internal_leak_gate_test.go"],
+    embed = [":generator_lib"],
+    tags = ["manual"],
 )
