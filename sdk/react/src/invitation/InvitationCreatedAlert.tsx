@@ -92,7 +92,6 @@ export function InvitationCreatedAlert({
       <div className="stg:flex stg:items-center stg:gap-2">
         <code
           ref={revealRef}
-          id="stgm-invite-url-reveal"
           className={cn(
             "stg:min-w-0 stg:flex-1 stg:select-all stg:truncate stg:rounded-md",
             "stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5",

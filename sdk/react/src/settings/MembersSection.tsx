@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { OrgMembersPanel } from "../iam-policy/OrgMembersPanel.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
@@ -8,6 +9,7 @@ import { useIdentityProviderList } from "../identity-provider/useIdentityProvide
 
 /** Settings section for organization membership and role management. */
 export function MembersSection() {
+  const headingId = useId();
   const { activeOrg } = useOrg();
   const membersAvailable = useResourceAvailable(ApiResourceKind.iam_policy);
   const idpAvailable = useResourceAvailable(ApiResourceKind.identity_provider);
@@ -23,9 +25,9 @@ export function MembersSection() {
   );
 
   return (
-    <section aria-labelledby="members-heading">
+    <section aria-labelledby={headingId}>
       <h2
-        id="members-heading"
+        id={headingId}
         className="stg:text-foreground stg:mb-1 stg:text-sm stg:font-semibold"
       >
         Members

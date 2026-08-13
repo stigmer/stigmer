@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { getUserMessage } from "@stigmer/sdk";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
 import { EnvironmentVariableEditor } from "../environment/EnvironmentVariableEditor.js";
@@ -47,12 +47,13 @@ function PersonalEnvironmentCard({ org }: { org: string }) {
   }, [org, isLoading, environment, getOrCreate]);
 
   const environmentId = environment?.metadata?.id;
+  const headingId = useId();
 
   return (
-    <section aria-labelledby="personal-env-heading">
+    <section aria-labelledby={headingId}>
       <div className="stg:mb-3 stg:flex stg:items-baseline stg:gap-2">
         <h2
-          id="personal-env-heading"
+          id={headingId}
           className="stg:text-foreground stg:text-sm stg:font-semibold"
         >
           Personal Environment
@@ -97,11 +98,13 @@ function EnvironmentsCard({ org }: { org: string }) {
     listRefetchRef.current?.();
   }, []);
 
+  const headingId = useId();
+
   return (
-    <section aria-labelledby="org-env-heading">
+    <section aria-labelledby={headingId}>
       <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
         <h2
-          id="org-env-heading"
+          id={headingId}
           className="stg:text-foreground stg:text-sm stg:font-semibold"
         >
           Environments

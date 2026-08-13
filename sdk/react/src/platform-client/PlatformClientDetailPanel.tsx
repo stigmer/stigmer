@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useState,
-  type FormEvent,
-  type KeyboardEvent,
-} from "react";
+import { type FormEvent, type KeyboardEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -75,6 +70,7 @@ export function PlatformClientDetailPanel({
   onBack,
   className,
 }: PlatformClientDetailPanelProps) {
+  const baseId = useId();
   const spec = platformClient.spec;
   const meta = platformClient.metadata;
 
@@ -319,13 +315,13 @@ export function PlatformClientDetailPanel({
             {!neverExpires && (
               <div className="stg:space-y-1">
                 <label
-                  htmlFor="stgm-pc-edit-expires-at"
+                  htmlFor={`${baseId}-expires-at`}
                   className="stg:text-xs stg:font-medium stg:text-foreground"
                 >
                   Expires at
                 </label>
                 <input
-                  id="stgm-pc-edit-expires-at"
+                  id={`${baseId}-expires-at`}
                   type="datetime-local"
                   value={expiresAt}
                   onChange={(e) => setExpiresAt(e.target.value)}
@@ -366,13 +362,13 @@ export function PlatformClientDetailPanel({
             {autoGrant && (
               <div className="stg:space-y-1">
                 <label
-                  htmlFor="stgm-pc-edit-grant-role"
+                  htmlFor={`${baseId}-grant-role`}
                   className="stg:text-xs stg:font-medium stg:text-foreground"
                 >
                   Auto-grant role
                 </label>
                 <select
-                  id="stgm-pc-edit-grant-role"
+                  id={`${baseId}-grant-role`}
                   value={String(autoGrantRole)}
                   onChange={(e) =>
                     setAutoGrantRole(

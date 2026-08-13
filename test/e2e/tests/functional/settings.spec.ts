@@ -13,64 +13,59 @@ import { test, expect } from "@playwright/test";
  *   show CloudFeatureNotice in OSS mode)
  */
 
+// Sections are located through the accessibility tree: each settings
+// section is a <section aria-labelledby={headingId}> whose heading gives it
+// an accessible name, i.e. role=region. The heading ids themselves are
+// minted per mount with useId() (oss#619) and carry no stable value to
+// anchor on — the accessible name is the contract.
 const SETTINGS_SECTIONS = [
   {
     path: "/settings/api-keys",
-    headingId: "api-keys-heading",
     headingText: "API Keys",
     cloudGated: true,
   },
   {
     path: "/settings/environments",
-    headingId: "personal-env-heading",
     headingText: "Personal Environment",
     cloudGated: false,
   },
   {
     path: "/settings/members",
-    headingId: "members-heading",
     headingText: "Members",
     cloudGated: true,
   },
   {
     path: "/settings/invitations",
-    headingId: "invitations-heading",
     headingText: "Invitations",
     cloudGated: true,
   },
   {
     path: "/settings/identity-providers",
-    headingId: "identity-providers-heading",
     headingText: "Identity Providers",
     cloudGated: true,
   },
   {
     path: "/settings/platform-clients",
-    headingId: "platform-clients-heading",
     headingText: "Platform Clients",
     cloudGated: true,
   },
   {
     path: "/settings/oauth-apps",
-    headingId: "oauth-apps-heading",
     headingText: "OAuth Apps",
     cloudGated: true,
   },
   {
     path: "/settings/org-profile",
-    headingId: "org-profile-heading",
     headingText: "Organization Profile",
     cloudGated: false,
   },
   {
     path: "/settings/billing",
-    headingId: "billing-heading",
     headingText: "Billing",
     cloudGated: true,
   },
   {
     path: "/settings/usage",
-    headingId: "usage-heading",
     headingText: "Usage",
     cloudGated: false,
   },
@@ -130,9 +125,14 @@ test.describe("Settings sections", () => {
     }) => {
       await page.goto(section.path);
 
-      const sectionHeading = page.locator(`#${section.headingId}`);
-      await expect(sectionHeading).toBeVisible({ timeout: 15_000 });
-      await expect(sectionHeading).toHaveText(section.headingText);
+      // The region only has this accessible name if the heading↔section
+      // aria-labelledby association is intact — the same wiring the old
+      // literal-id selectors asserted, now checked through semantics.
+      const region = page.getByRole("region", { name: section.headingText });
+      await expect(region).toBeVisible({ timeout: 15_000 });
+      await expect(
+        region.getByRole("heading", { name: section.headingText }),
+      ).toBeVisible();
 
       await expect(page.getByText("Something went wrong")).toHaveCount(0);
     });
@@ -144,21 +144,17 @@ test.describe("Settings sections", () => {
     }) => {
       await page.goto(section.path);
 
-      const sectionHeading = page.locator(`#${section.headingId}`);
-      await expect(sectionHeading).toBeVisible({ timeout: 15_000 });
+      const region = page.getByRole("region", { name: section.headingText });
+      await expect(region).toBeVisible({ timeout: 15_000 });
 
-      const cloudNotice = page
-        .locator(`section[aria-labelledby="${section.headingId}"]`)
-        .locator('[role="status"]');
-      const sectionContent = page.locator(
-        `section[aria-labelledby="${section.headingId}"]`,
-      );
-
-      await expect(sectionContent).toBeVisible();
+      const cloudNotice = region.locator('[role="status"]');
       const hasCloudNotice = await cloudNotice.isVisible();
 
       if (hasCloudNotice) {
-        await expect(cloudNotice).toContainText(/not available in local mode/);
+        // The notices' wording varies per section ("not available in local
+        // mode", "available on Stigmer Cloud", …) — the durable invariant is
+        // that every gating notice points at Stigmer Cloud.
+        await expect(cloudNotice).toContainText(/Stigmer Cloud|local mode/);
       }
     });
   }

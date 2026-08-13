@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, type FormEvent } from "react";
+import { useCallback, useId, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
 import {
   getUserMessage,
@@ -232,6 +232,7 @@ function CreateInvitationForm({
   onCancel: () => void;
 }) {
   const { create, isCreating, error, clearError } = useCreateInvitation();
+  const baseId = useId();
 
   const [label, setLabel] = useState("");
   const [role, setRole] = useState<IamRole>(IamRole.viewer);
@@ -268,14 +269,14 @@ function CreateInvitationForm({
       {/* Label */}
       <div className="stg:space-y-1">
         <label
-          htmlFor="stgm-new-invite-label"
+          htmlFor={`${baseId}-label`}
           className="stg:text-xs stg:font-medium stg:text-foreground"
         >
           Label{" "}
           <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
         </label>
         <input
-          id="stgm-new-invite-label"
+          id={`${baseId}-label`}
           type="text"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
@@ -306,9 +307,12 @@ function CreateInvitationForm({
           Expires in
         </legend>
         <div className="stg:flex stg:flex-wrap stg:gap-2">
+          {/* Radio-group names are minted per mount: a hardcoded name would
+              merge two mounted forms into one keyboard group. */}
           {EXPIRY_OPTIONS.map(({ value, label: optLabel }) => (
             <ExpiryRadio
               key={value}
+              name={`${baseId}-expiry`}
               value={value}
               label={optLabel}
               checked={expiry === value}
@@ -326,6 +330,7 @@ function CreateInvitationForm({
         </legend>
         <div className="stg:flex stg:flex-wrap stg:gap-2">
           <RedemptionRadio
+            name={`${baseId}-redemption`}
             value="unlimited"
             label="Unlimited"
             description="Anyone with the link can join"
@@ -334,6 +339,7 @@ function CreateInvitationForm({
             onChange={setRedemptionMode}
           />
           <RedemptionRadio
+            name={`${baseId}-redemption`}
             value="single"
             label="Single use"
             description="One person only"
@@ -634,12 +640,14 @@ const STATE_BADGE_CONFIG: Record<InvitationState, { label: string; className: st
 // ---------------------------------------------------------------------------
 
 function ExpiryRadio({
+  name,
   value,
   label,
   checked,
   disabled,
   onChange,
 }: {
+  name: string;
   value: ExpiryOption;
   label: string;
   checked: boolean;
@@ -658,7 +666,7 @@ function ExpiryRadio({
     >
       <input
         type="radio"
-        name="stgm-invite-expiry"
+        name={name}
         value={value}
         checked={checked}
         disabled={disabled}
@@ -671,6 +679,7 @@ function ExpiryRadio({
 }
 
 function RedemptionRadio({
+  name,
   value,
   label,
   description,
@@ -678,6 +687,7 @@ function RedemptionRadio({
   disabled,
   onChange,
 }: {
+  name: string;
   value: RedemptionMode;
   label: string;
   description: string;
@@ -697,7 +707,7 @@ function RedemptionRadio({
     >
       <input
         type="radio"
-        name="stgm-invite-redemption"
+        name={name}
         value={value}
         checked={checked}
         disabled={disabled}

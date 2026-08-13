@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import type { PlatformClientCreateResponse } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
 import { PlatformClientListPanel } from "../platform-client/PlatformClientListPanel.js";
@@ -24,6 +24,7 @@ type FlowState =
 
 /** Settings section for creating and maintaining platform clients. */
 export function PlatformClientsSection() {
+  const headingId = useId();
   const org = useActiveOrgSlug();
   const pcAvailable = useResourceAvailable(ApiResourceKind.platform_client);
 
@@ -71,10 +72,10 @@ export function PlatformClientsSection() {
   }, []);
 
   return (
-    <section aria-labelledby="platform-clients-heading">
+    <section aria-labelledby={headingId}>
       <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
         <h2
-          id="platform-clients-heading"
+          id={headingId}
           className="stg:text-foreground stg:text-sm stg:font-semibold"
         >
           Platform Clients

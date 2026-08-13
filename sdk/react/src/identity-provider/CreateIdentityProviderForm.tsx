@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, type FormEvent } from "react";
+import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
@@ -51,6 +51,7 @@ export function CreateIdentityProviderForm({
   onCancel,
   className,
 }: CreateIdentityProviderFormProps) {
+  const baseId = useId();
   const { create, isCreating, error, clearError } =
     useCreateIdentityProvider();
 
@@ -156,7 +157,7 @@ export function CreateIdentityProviderForm({
     <form onSubmit={handleSubmit} className={cn("stg:space-y-3", className)}>
       <div className="stg:space-y-3">
         <FormField
-          id="stgm-idp-name"
+          id={`${baseId}-name`}
           label="Name"
           value={name}
           onChange={setName}
@@ -166,7 +167,7 @@ export function CreateIdentityProviderForm({
         />
 
         <FormField
-          id="stgm-idp-jwks"
+          id={`${baseId}-jwks`}
           label="JWKS URI"
           value={jwksUri}
           onChange={setJwksUri}
@@ -176,7 +177,7 @@ export function CreateIdentityProviderForm({
         />
 
         <FormField
-          id="stgm-idp-issuers"
+          id={`${baseId}-issuers`}
           label="Allowed issuers"
           value={issuers}
           onChange={setIssuers}
@@ -187,7 +188,7 @@ export function CreateIdentityProviderForm({
         />
 
         <FormField
-          id="stgm-idp-audience"
+          id={`${baseId}-audience`}
           label="Expected audience"
           value={audience}
           onChange={setAudience}
@@ -224,7 +225,7 @@ export function CreateIdentityProviderForm({
 
         {isSso && (
           <FormField
-            id="stgm-idp-client-id"
+            id={`${baseId}-client-id`}
             label="OIDC client ID"
             value={oidcClientId}
             onChange={setOidcClientId}
@@ -373,6 +374,7 @@ function JitSection({
   onTenantOrgClaimChange: (v: string) => void;
   disabled: boolean;
 }) {
+  const baseId = useId();
   if (isSso) {
     return (
       <div className="stg:rounded-md stg:border stg:border-border-muted stg:bg-muted-faint stg:px-3 stg:py-2">
@@ -416,13 +418,13 @@ function JitSection({
         <>
           <div className="stg:space-y-1">
             <label
-              htmlFor="stgm-idp-grant-role"
+              htmlFor={`${baseId}-grant-role`}
               className="stg:text-xs stg:font-medium stg:text-foreground"
             >
               Auto-grant role
             </label>
             <select
-              id="stgm-idp-grant-role"
+              id={`${baseId}-grant-role`}
               value={String(autoGrantRole)}
               onChange={(e) => onAutoGrantRoleChange(Number(e.target.value) as IamRole)}
               disabled={disabled}
@@ -444,7 +446,7 @@ function JitSection({
           </div>
 
           <FormField
-            id="stgm-idp-tenant-claim"
+            id={`${baseId}-tenant-claim`}
             label="Tenant org claim"
             value={tenantOrgClaim}
             onChange={onTenantOrgClaimChange}

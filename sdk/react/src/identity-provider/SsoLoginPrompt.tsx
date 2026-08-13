@@ -184,7 +184,7 @@ function resolvePhase(
 // Sub-components
 // ---------------------------------------------------------------------------
 
-import { forwardRef } from "react";
+import { forwardRef, useId } from "react";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 interface OrgInputFormProps {
@@ -195,17 +195,18 @@ interface OrgInputFormProps {
 
 const OrgInputForm = forwardRef<HTMLInputElement, OrgInputFormProps>(
   function OrgInputForm({ value, onChange, onSubmit }, ref) {
+    const inputId = useId();
     return (
       <form onSubmit={onSubmit} className="stg:space-y-3">
         <label
-          htmlFor="sso-org-input"
+          htmlFor={inputId}
           className="stg:block stg:text-sm stg:font-medium stg:text-foreground"
         >
           Organization
         </label>
         <input
           ref={ref}
-          id="sso-org-input"
+          id={inputId}
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}

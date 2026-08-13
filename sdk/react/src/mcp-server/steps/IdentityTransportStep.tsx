@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useId } from "react";
 import { cn } from "@stigmer/theme";
 import { generateSlug } from "../../internal/slug.js";
 import type { McpServerWizardData, KeyValueEntry } from "./types.js";
@@ -35,6 +35,7 @@ export function IdentityTransportStep({
   updateData,
   validationError,
 }: IdentityTransportStepProps) {
+  const baseId = useId();
   const handleNameChange = useCallback(
     (value: string) => {
       if (!data.slugTouched) {
@@ -79,13 +80,13 @@ export function IdentityTransportStep({
       <div className="stg:grid stg:gap-4 stg:sm:grid-cols-2">
         <div className="stg:space-y-1.5">
           <label
-            htmlFor="stgm-wizard-mcp-name"
+            htmlFor={`${baseId}-name`}
             className="stg:text-sm stg:font-medium stg:text-foreground"
           >
             Name <span className="stg:text-destructive">*</span>
           </label>
           <input
-            id="stgm-wizard-mcp-name"
+            id={`${baseId}-name`}
             type="text"
             value={data.name}
             onChange={(e) => handleNameChange(e.target.value)}
@@ -101,13 +102,13 @@ export function IdentityTransportStep({
 
         <div className="stg:space-y-1.5">
           <label
-            htmlFor="stgm-wizard-mcp-slug"
+            htmlFor={`${baseId}-slug`}
             className="stg:text-sm stg:font-medium stg:text-foreground"
           >
             Slug
           </label>
           <input
-            id="stgm-wizard-mcp-slug"
+            id={`${baseId}-slug`}
             type="text"
             value={data.slug}
             onChange={(e) => handleSlugChange(e.target.value)}
@@ -135,13 +136,13 @@ export function IdentityTransportStep({
       {/* Description */}
       <div className="stg:space-y-1.5">
         <label
-          htmlFor="stgm-wizard-mcp-description"
+          htmlFor={`${baseId}-description`}
           className="stg:text-sm stg:font-medium stg:text-foreground"
         >
           Description
         </label>
         <input
-          id="stgm-wizard-mcp-description"
+          id={`${baseId}-description`}
           type="text"
           value={data.description}
           onChange={(e) => updateData({ description: e.target.value })}
@@ -159,13 +160,13 @@ export function IdentityTransportStep({
       <div className="stg:grid stg:gap-4 stg:sm:grid-cols-2">
         <div className="stg:space-y-1.5">
           <label
-            htmlFor="stgm-wizard-mcp-icon"
+            htmlFor={`${baseId}-icon`}
             className="stg:text-sm stg:font-medium stg:text-foreground"
           >
             Icon URL
           </label>
           <input
-            id="stgm-wizard-mcp-icon"
+            id={`${baseId}-icon`}
             type="url"
             value={data.iconUrl}
             onChange={(e) => updateData({ iconUrl: e.target.value })}
@@ -184,14 +185,14 @@ export function IdentityTransportStep({
           </legend>
           <div className="stg:flex stg:gap-2">
             <RadioOption
-              name="stgm-wizard-mcp-visibility"
+              name={`${baseId}-visibility`}
               value="private"
               label="Private"
               checked={data.visibility === "private"}
               onChange={() => updateData({ visibility: "private" })}
             />
             <RadioOption
-              name="stgm-wizard-mcp-visibility"
+              name={`${baseId}-visibility`}
               value="public"
               label="Public"
               checked={data.visibility === "public"}
@@ -209,14 +210,14 @@ export function IdentityTransportStep({
         </legend>
         <div className="stg:flex stg:gap-2">
           <RadioOption
-            name="stgm-wizard-mcp-transport"
+            name={`${baseId}-transport`}
             value="http"
             label="HTTP (Streamable HTTP / SSE)"
             checked={data.transportType === "http"}
             onChange={() => updateData({ transportType: "http" })}
           />
           <RadioOption
-            name="stgm-wizard-mcp-transport"
+            name={`${baseId}-transport`}
             value="stdio"
             label="Stdio (local process)"
             checked={data.transportType === "stdio"}
@@ -236,13 +237,13 @@ export function IdentityTransportStep({
           <div className="stg:flex stg:flex-col stg:gap-4 stg:rounded-lg stg:border stg:border-border stg:p-4">
             <div className="stg:space-y-1.5">
               <label
-                htmlFor="stgm-wizard-mcp-http-url"
+                htmlFor={`${baseId}-http-url`}
                 className="stg:text-sm stg:font-medium stg:text-foreground"
               >
                 URL <span className="stg:text-destructive">*</span>
               </label>
               <input
-                id="stgm-wizard-mcp-http-url"
+                id={`${baseId}-http-url`}
                 type="url"
                 value={data.httpUrl}
                 onChange={(e) => updateData({ httpUrl: e.target.value })}
@@ -274,13 +275,13 @@ export function IdentityTransportStep({
 
             <div className="stg:space-y-1.5">
               <label
-                htmlFor="stgm-wizard-mcp-http-timeout"
+                htmlFor={`${baseId}-http-timeout`}
                 className="stg:text-sm stg:font-medium stg:text-foreground"
               >
                 Timeout (seconds)
               </label>
               <input
-                id="stgm-wizard-mcp-http-timeout"
+                id={`${baseId}-http-timeout`}
                 type="number"
                 min={0}
                 step={1}
@@ -308,13 +309,13 @@ export function IdentityTransportStep({
           <div className="stg:flex stg:flex-col stg:gap-4 stg:rounded-lg stg:border stg:border-border stg:p-4">
             <div className="stg:space-y-1.5">
               <label
-                htmlFor="stgm-wizard-mcp-stdio-command"
+                htmlFor={`${baseId}-stdio-command`}
                 className="stg:text-sm stg:font-medium stg:text-foreground"
               >
                 Command <span className="stg:text-destructive">*</span>
               </label>
               <input
-                id="stgm-wizard-mcp-stdio-command"
+                id={`${baseId}-stdio-command`}
                 type="text"
                 value={data.stdioCommand}
                 onChange={(e) => updateData({ stdioCommand: e.target.value })}
@@ -329,13 +330,13 @@ export function IdentityTransportStep({
 
             <div className="stg:space-y-1.5">
               <label
-                htmlFor="stgm-wizard-mcp-stdio-args"
+                htmlFor={`${baseId}-stdio-args`}
                 className="stg:text-sm stg:font-medium stg:text-foreground"
               >
                 Arguments
               </label>
               <input
-                id="stgm-wizard-mcp-stdio-args"
+                id={`${baseId}-stdio-args`}
                 type="text"
                 value={data.stdioArgs}
                 onChange={(e) => updateData({ stdioArgs: e.target.value })}
@@ -353,13 +354,13 @@ export function IdentityTransportStep({
 
             <div className="stg:space-y-1.5">
               <label
-                htmlFor="stgm-wizard-mcp-stdio-workdir"
+                htmlFor={`${baseId}-stdio-workdir`}
                 className="stg:text-sm stg:font-medium stg:text-foreground"
               >
                 Working Directory
               </label>
               <input
-                id="stgm-wizard-mcp-stdio-workdir"
+                id={`${baseId}-stdio-workdir`}
                 type="text"
                 value={data.stdioWorkingDir}
                 onChange={(e) =>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { InvitationManager } from "../invitation/InvitationManager.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
@@ -7,14 +8,15 @@ import { useActiveOrgSlug } from "../organization/OrgProvider.js";
 
 /** Settings section for creating and managing organization invitations. */
 export function InvitationsSection() {
+  const headingId = useId();
   const org = useActiveOrgSlug();
   const invitationsAvailable = useResourceAvailable(ApiResourceKind.invitation);
 
   return (
-    <section aria-labelledby="invitations-heading">
+    <section aria-labelledby={headingId}>
       <div className="stg:mb-3">
         <h2
-          id="invitations-heading"
+          id={headingId}
           className="stg:text-foreground stg:text-sm stg:font-semibold"
         >
           Invitations

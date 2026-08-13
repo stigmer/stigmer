@@ -86,12 +86,10 @@ export function PlatformClientSecretAlert({
 
       <div className="stg:space-y-2">
         <CopyableField
-          id="stgm-pc-client-id-reveal"
           label="Client ID"
           value={clientId}
         />
         <CopyableField
-          id="stgm-pc-secret-reveal"
           label="Client secret"
           value={clientSecret}
         />
@@ -105,11 +103,9 @@ export function PlatformClientSecretAlert({
 // ---------------------------------------------------------------------------
 
 function CopyableField({
-  id,
   label,
   value,
 }: {
-  id: string;
   label: string;
   value: string;
 }) {
@@ -133,7 +129,6 @@ function CopyableField({
       <div className="stg:mt-0.5 stg:flex stg:items-center stg:gap-2">
         <code
           ref={revealRef}
-          id={id}
           className={cn(
             "stg:min-w-0 stg:flex-1 stg:select-all stg:truncate stg:rounded-md",
             "stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5",

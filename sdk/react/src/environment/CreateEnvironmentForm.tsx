@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, type FormEvent } from "react";
+import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
@@ -48,6 +48,7 @@ export function CreateEnvironmentForm({
   onCancel,
   className,
 }: CreateEnvironmentFormProps) {
+  const baseId = useId();
   const { create, isCreating, error, clearError } = useCreateEnvironment();
 
   const [name, setName] = useState("");
@@ -81,13 +82,13 @@ export function CreateEnvironmentForm({
       <div className="stg:space-y-2">
         <div className="stg:space-y-1">
           <label
-            htmlFor="stgm-new-env-name"
+            htmlFor={`${baseId}-name`}
             className="stg:text-xs stg:font-medium stg:text-foreground"
           >
             Name
           </label>
           <input
-            id="stgm-new-env-name"
+            id={`${baseId}-name`}
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -106,14 +107,14 @@ export function CreateEnvironmentForm({
 
         <div className="stg:space-y-1">
           <label
-            htmlFor="stgm-new-env-desc"
+            htmlFor={`${baseId}-desc`}
             className="stg:text-xs stg:font-medium stg:text-muted-foreground"
           >
             Description{" "}
             <span className="stg:text-muted-foreground-subtle">(optional)</span>
           </label>
           <input
-            id="stgm-new-env-desc"
+            id={`${baseId}-desc`}
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}

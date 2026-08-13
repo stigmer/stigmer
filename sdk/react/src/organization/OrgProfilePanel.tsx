@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type FormEvent,
-} from "react";
+import { type FormEvent, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -62,6 +56,7 @@ export function OrgProfilePanel({
   onUpdated,
   className,
 }: OrgProfilePanelProps) {
+  const baseId = useId();
   const {
     organization,
     isLoading: isFetching,
@@ -225,13 +220,13 @@ export function OrgProfilePanel({
         {/* Name */}
         <div className="stg:space-y-1">
           <label
-            htmlFor="stgm-org-profile-name"
+            htmlFor={`${baseId}-name`}
             className="stg:text-xs stg:font-medium stg:text-foreground"
           >
             Name
           </label>
           <input
-            id="stgm-org-profile-name"
+            id={`${baseId}-name`}
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -252,13 +247,13 @@ export function OrgProfilePanel({
         {/* Description */}
         <div className="stg:space-y-1">
           <label
-            htmlFor="stgm-org-profile-desc"
+            htmlFor={`${baseId}-desc`}
             className="stg:text-xs stg:font-medium stg:text-foreground"
           >
             Description
           </label>
           <textarea
-            id="stgm-org-profile-desc"
+            id={`${baseId}-desc`}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             maxLength={DESCRIPTION_MAX_LEN}
@@ -280,13 +275,13 @@ export function OrgProfilePanel({
         {/* Logo URL */}
         <div className="stg:space-y-1">
           <label
-            htmlFor="stgm-org-profile-logo"
+            htmlFor={`${baseId}-logo`}
             className="stg:text-xs stg:font-medium stg:text-foreground"
           >
             Logo URL
           </label>
           <input
-            id="stgm-org-profile-logo"
+            id={`${baseId}-logo`}
             type="url"
             value={logoUrl}
             onChange={(e) => setLogoUrl(e.target.value)}

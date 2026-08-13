@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, type FormEvent } from "react";
+import { type FormEvent, useCallback, useId, useRef, useState } from "react";
 import { create as createMessage } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
@@ -48,6 +48,7 @@ export function CreateOrganizationForm({
   onCancel,
   className,
 }: CreateOrganizationFormProps) {
+  const baseId = useId();
   const { create, isCreating, error, clearError } = useCreateOrganization();
 
   const [name, setName] = useState("");
@@ -121,13 +122,13 @@ export function CreateOrganizationForm({
         {/* ---- Name ---- */}
         <div className="stg:space-y-1">
           <label
-            htmlFor="stgm-new-org-name"
+            htmlFor={`${baseId}-name`}
             className="stg:text-xs stg:font-medium stg:text-foreground"
           >
             Name
           </label>
           <input
-            id="stgm-new-org-name"
+            id={`${baseId}-name`}
             type="text"
             value={name}
             onChange={(e) => handleNameChange(e.target.value)}
@@ -158,13 +159,13 @@ export function CreateOrganizationForm({
         {/* ---- Slug ---- */}
         <div className="stg:space-y-1">
           <label
-            htmlFor="stgm-new-org-slug"
+            htmlFor={`${baseId}-slug`}
             className="stg:text-xs stg:font-medium stg:text-foreground"
           >
             Slug
           </label>
           <input
-            id="stgm-new-org-slug"
+            id={`${baseId}-slug`}
             type="text"
             value={slug}
             onChange={(e) => handleSlugChange(e.target.value)}
@@ -196,14 +197,14 @@ export function CreateOrganizationForm({
         {/* ---- Description ---- */}
         <div className="stg:space-y-1">
           <label
-            htmlFor="stgm-new-org-desc"
+            htmlFor={`${baseId}-desc`}
             className="stg:text-xs stg:font-medium stg:text-muted-foreground"
           >
             Description{" "}
             <span className="stg:text-muted-foreground-subtle">(optional)</span>
           </label>
           <input
-            id="stgm-new-org-desc"
+            id={`${baseId}-desc`}
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}

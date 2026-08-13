@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, type FormEvent } from "react";
+import { type FormEvent, useCallback, useId, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
@@ -58,6 +58,7 @@ export function IdentityProviderDetailPanel({
   ssoLoginUrl,
   className,
 }: IdentityProviderDetailPanelProps) {
+  const baseId = useId();
   const spec = identityProvider.spec;
   const meta = identityProvider.metadata;
 
@@ -233,7 +234,7 @@ export function IdentityProviderDetailPanel({
       ) : (
         <form onSubmit={handleSave} className="stg:space-y-3">
           <FieldInput
-            id="stgm-idp-edit-name"
+            id={`${baseId}-name`}
             label="Display name"
             value={displayName}
             onChange={setDisplayName}
@@ -242,7 +243,7 @@ export function IdentityProviderDetailPanel({
             required
           />
           <FieldInput
-            id="stgm-idp-edit-jwks"
+            id={`${baseId}-jwks`}
             label="JWKS URI"
             value={jwksUri}
             onChange={setJwksUri}
@@ -251,7 +252,7 @@ export function IdentityProviderDetailPanel({
             required
           />
           <FieldInput
-            id="stgm-idp-edit-issuers"
+            id={`${baseId}-issuers`}
             label="Allowed issuers"
             value={issuers}
             onChange={setIssuers}
@@ -261,7 +262,7 @@ export function IdentityProviderDetailPanel({
             required
           />
           <FieldInput
-            id="stgm-idp-edit-audience"
+            id={`${baseId}-audience`}
             label="Expected audience"
             value={audience}
             onChange={setAudience}
@@ -270,7 +271,7 @@ export function IdentityProviderDetailPanel({
             required
           />
           <FieldInput
-            id="stgm-idp-edit-userinfo"
+            id={`${baseId}-userinfo`}
             label="Userinfo endpoint"
             value={userinfoEndpoint}
             onChange={setUserinfoEndpoint}
@@ -307,7 +308,7 @@ export function IdentityProviderDetailPanel({
 
           {isSso && (
             <FieldInput
-              id="stgm-idp-edit-client-id"
+              id={`${baseId}-client-id`}
               label="OIDC client ID"
               value={oidcClientId}
               onChange={setOidcClientId}
@@ -502,7 +503,6 @@ function CopyableField({
 }) {
   const { copy, copied } = useCopyFeedback();
   const revealRef = useRef<HTMLElement>(null);
-  const valueId = "stgm-idp-sso-login-url";
 
   const handleCopy = useCallback(async () => {
     if (await copy(value)) return;
@@ -519,7 +519,6 @@ function CopyableField({
         <div className="stg:flex stg:items-center stg:gap-2">
           <span
             ref={revealRef}
-            id={valueId}
             className="stg:text-foreground stg:break-all stg:font-mono stg:text-xs stg:select-all"
           >
             {value}
@@ -661,6 +660,7 @@ function JitEditSection({
   onTenantOrgClaimChange: (v: string) => void;
   disabled?: boolean;
 }) {
+  const baseId = useId();
   if (isSso) {
     return (
       <div className="stg:rounded-md stg:border stg:border-border-muted stg:bg-muted-faint stg:px-3 stg:py-2">
@@ -704,13 +704,13 @@ function JitEditSection({
         <>
           <div className="stg:space-y-1">
             <label
-              htmlFor="stgm-idp-edit-grant-role"
+              htmlFor={`${baseId}-grant-role`}
               className="stg:text-xs stg:font-medium stg:text-foreground"
             >
               Auto-grant role
             </label>
             <select
-              id="stgm-idp-edit-grant-role"
+              id={`${baseId}-grant-role`}
               value={String(autoGrantRole)}
               onChange={(e) => onAutoGrantRoleChange(Number(e.target.value) as IamRole)}
               disabled={disabled}
@@ -732,7 +732,7 @@ function JitEditSection({
           </div>
 
           <FieldInput
-            id="stgm-idp-edit-tenant-claim"
+            id={`${baseId}-tenant-claim`}
             label="Tenant org claim"
             value={tenantOrgClaim}
             onChange={onTenantOrgClaimChange}

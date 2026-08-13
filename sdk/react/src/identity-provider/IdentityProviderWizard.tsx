@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useState,
-  type FormEvent,
-} from "react";
+import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
@@ -366,6 +362,7 @@ function ConfigureStep({
   onContinue: () => void;
   onCancel?: () => void;
 }) {
+  const baseId = useId();
   const allVarsFilled = preset.variables.every(
     (v) => (vars[v.key] ?? "").trim() !== "",
   );
@@ -403,7 +400,7 @@ function ConfigureStep({
 
       {/* Common fields */}
       <FieldInput
-        id="stgm-idp-wiz-name"
+        id={`${baseId}-name`}
         label="Display name"
         value={name}
         onChange={onNameChange}
@@ -413,7 +410,7 @@ function ConfigureStep({
       />
 
       <FieldInput
-        id="stgm-idp-wiz-audience"
+        id={`${baseId}-audience`}
         label="Expected audience"
         value={audience}
         onChange={onAudienceChange}
@@ -508,6 +505,7 @@ function ReviewStep({
   onSubmit: (e: FormEvent) => void;
   onCancel?: () => void;
 }) {
+  const baseId = useId();
   const canSubmit =
     jwksUri.trim() !== "" &&
     issuers.trim() !== "" &&
@@ -531,7 +529,7 @@ function ReviewStep({
       </p>
 
       <FieldInput
-        id="stgm-idp-wiz-jwks"
+        id={`${baseId}-jwks`}
         label="JWKS URI"
         value={jwksUri}
         onChange={onJwksUriChange}
@@ -541,7 +539,7 @@ function ReviewStep({
       />
 
       <FieldInput
-        id="stgm-idp-wiz-issuers"
+        id={`${baseId}-issuers`}
         label="Allowed issuers"
         value={issuers}
         onChange={onIssuersChange}
@@ -552,7 +550,7 @@ function ReviewStep({
       />
 
       <FieldInput
-        id="stgm-idp-wiz-userinfo"
+        id={`${baseId}-userinfo`}
         label="Userinfo endpoint"
         value={userinfoEndpoint}
         onChange={onUserinfoEndpointChange}
@@ -571,7 +569,7 @@ function ReviewStep({
 
       {isSso && (
         <FieldInput
-          id="stgm-idp-wiz-client-id"
+          id={`${baseId}-client-id`}
           label="OIDC client ID"
           value={oidcClientId}
           onChange={onOidcClientIdChange}
@@ -826,6 +824,7 @@ function JitProvisioningSection({
   onTenantOrgClaimChange: (v: string) => void;
   disabled?: boolean;
 }) {
+  const baseId = useId();
   if (isSso) {
     return (
       <div className="stg:rounded-md stg:border stg:border-border-muted stg:bg-muted-faint stg:px-3 stg:py-2">
@@ -868,7 +867,7 @@ function JitProvisioningSection({
       {autoGrant && (
         <>
           <FieldInput
-            id="stgm-idp-wiz-grant-role"
+            id={`${baseId}-grant-role`}
             label="Auto-grant role"
             value={String(autoGrantRole)}
             onChange={(v) => onAutoGrantRoleChange(Number(v) as IamRole)}
@@ -880,7 +879,7 @@ function JitProvisioningSection({
           />
 
           <FieldInput
-            id="stgm-idp-wiz-tenant-claim"
+            id={`${baseId}-tenant-claim`}
             label="Tenant org claim"
             value={tenantOrgClaim}
             onChange={onTenantOrgClaimChange}

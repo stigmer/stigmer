@@ -1,17 +1,19 @@
 "use client";
 
+import { useId } from "react";
 import { OrgUsagePanel } from "../usage/OrgUsagePanel.js";
 import { useOrg } from "../organization/OrgProvider.js";
 
 /** Settings section for organization usage and cost reporting. */
 export function UsageSection() {
+  const headingId = useId();
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.metadata?.id ?? "";
 
   return (
-    <section aria-labelledby="usage-heading">
+    <section aria-labelledby={headingId}>
       <h2
-        id="usage-heading"
+        id={headingId}
         className="stg:text-foreground stg:mb-1 stg:text-sm stg:font-semibold"
       >
         Usage

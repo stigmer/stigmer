@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -46,9 +46,8 @@ export interface SidebarChromeProps {
 /**
  * Outer sidebar frame: `<nav>` container, top row, content, footer band.
  *
- * The `id="sidebar"` / `aria-controls` pairing matches the console's DOM
- * contract (the app shell's floating "Open sidebar" button targets it);
- * only one sidebar renders at a time, so the id cannot collide.
+ * The nav id exists solely for the collapse toggle's `aria-controls`
+ * association; it is minted per mount like every SDK DOM id.
  */
 export function SidebarChrome({
   ariaLabel,
@@ -58,9 +57,10 @@ export function SidebarChrome({
   footer,
   children,
 }: SidebarChromeProps) {
+  const navId = useId();
   return (
     <nav
-      id="sidebar"
+      id={navId}
       aria-label={ariaLabel}
       className="stg:bg-sidebar stg:text-sidebar-foreground stg:flex stg:h-full stg:flex-col"
     >
@@ -70,7 +70,7 @@ export function SidebarChrome({
           type="button"
           onClick={onCollapse}
           aria-expanded={isOpen}
-          aria-controls="sidebar"
+          aria-controls={navId}
           aria-label="Collapse sidebar"
           className={cn(
             "stg:inline-flex stg:size-7 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-md",

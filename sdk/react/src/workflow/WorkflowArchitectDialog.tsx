@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import {
   useWorkflowArchitectFlow,
@@ -177,6 +177,7 @@ function InputPhase({
   readonly flow: ReturnType<typeof useWorkflowArchitectFlow>;
   readonly onClose: () => void;
 }) {
+  const promptId = useId();
   return (
     <>
       <div className="stg:border-b stg:border-border stg:px-6 stg:py-4">
@@ -201,7 +202,7 @@ function InputPhase({
 
         <div className="stg:flex stg:flex-col stg:gap-1">
           <label
-            htmlFor="architect-prompt"
+            htmlFor={promptId}
             className="stg:text-xs stg:font-medium stg:text-foreground"
           >
             Description
@@ -210,7 +211,7 @@ function InputPhase({
             </span>
           </label>
           <textarea
-            id="architect-prompt"
+            id={promptId}
             value={flow.prompt}
             onChange={(e) => flow.setPrompt(e.target.value)}
             placeholder="e.g., A workflow that enriches customer data using my data-agent, validates the output, and sends a Slack notification on failure"
