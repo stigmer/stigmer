@@ -61,6 +61,11 @@ Once the list has at least one entry:
 The shared link keeps working for everyone either way — the list only controls
 embedding.
 
+The list is enforced with browser-grade evidence: for direct SDK embeds the
+platform checks the request's `Origin` header — which page scripts cannot forge
+— so an unlisted site cannot claim a listed one. Sites you list need no changes;
+honest embeds pass automatically.
+
 <Callout type="info">
   Visitor chats in the widget use your Organization's credits, with the same
   rate limits and protections as the shared link. See [who pays for shared

@@ -162,8 +162,14 @@ type AgentShareSpec struct {
 	// (SharedSessionBlueprintAccess) on every session/execution create — the
 	// same gate that re-checks enabled, so revocation latency is identical
 	// (immediate). Unframed hosted-page visitors report no origin and are
-	// exempt by construction. Exact origins only — loosening to wildcards
-	// later is a non-breaking change, tightening would not be.
+	// exempt by construction. Since stigmer-cloud#341 both gates cross-check
+	// the self-report against the request's browser-enforced Origin header
+	// (SharingRequestOriginPolicy): for direct SDK embeds the header is the
+	// authoritative origin — a lying or omitted embed_origin no longer
+	// bypasses this list — while requests from Stigmer's own hosted page
+	// keep the widget's browser-authentic self-report as the embedder
+	// signal. Exact origins only — loosening to wildcards later is a
+	// non-breaking change, tightening would not be.
 	AllowedOrigins []string `protobuf:"bytes,4,rep,name=allowed_origins,json=allowedOrigins,proto3" json:"allowed_origins,omitempty"`
 	// Owner-customizable copy shown to visitors when a launch-gate limit
 	// refuses their message. Unset fields fall back to platform defaults.
