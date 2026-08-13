@@ -22,7 +22,8 @@ import { deflateRawSync } from "node:zlib";
 
 export interface ZipFixtureFile {
   name: string;
-  content: string;
+  /** Text content is UTF-8 encoded; pass bytes directly for binary payloads. */
+  content: string | Uint8Array;
   /** Compression method for the entry. Defaults to stored. */
   method?: "stored" | "deflated";
   /**
@@ -31,6 +32,14 @@ export interface ZipFixtureFile {
    * descriptor (with the conventional signature) carrying the real values.
    */
   streaming?: boolean;
+  /**
+   * Lie about the entry's uncompressed size everywhere the writer would
+   * declare it (local header, data descriptor, central directory). Models a
+   * crafted archive whose declarations disagree with its actual payload —
+   * the input class the attachment injector's declared-size enforcement
+   * exists to reject (issue #567).
+   */
+  declaredUncompressedSize?: number;
 }
 
 export interface ZipFixtureOptions {
@@ -46,16 +55,12 @@ export interface ZipFixtureOptions {
 
 /** Build a ZIP archive from path + content pairs. */
 export function buildZip(files: ZipFixtureFile[], options?: ZipFixtureOptions): Uint8Array {
-  const bytes: number[] = [];
-  const u16 = (v: number) => bytes.push(v & 0xff, (v >>> 8) & 0xff);
-  const u32 = (v: number) =>
-    bytes.push(v & 0xff, (v >>> 8) & 0xff, (v >>> 16) & 0xff, (v >>> 24) & 0xff);
-  const raw = (b: Uint8Array) => bytes.push(...b);
+  const out = new ByteWriter();
 
   interface WrittenEntry {
     nameBytes: Uint8Array;
     payload: Uint8Array;
-    uncompressedLength: number;
+    declaredUncompressed: number;
     crc: number;
     flags: number;
     method: number;
@@ -64,92 +69,138 @@ export function buildZip(files: ZipFixtureFile[], options?: ZipFixtureOptions): 
   const written: WrittenEntry[] = [];
 
   for (const file of files) {
-    const contentBytes = new TextEncoder().encode(file.content);
+    const contentBytes =
+      typeof file.content === "string" ? new TextEncoder().encode(file.content) : file.content;
     const deflated = file.method === "deflated";
     const payload = deflated ? new Uint8Array(deflateRawSync(contentBytes)) : contentBytes;
     const entry: WrittenEntry = {
       nameBytes: new TextEncoder().encode(file.name),
       payload,
-      uncompressedLength: contentBytes.length,
+      declaredUncompressed: file.declaredUncompressedSize ?? contentBytes.length,
       crc: crc32(contentBytes),
       flags: file.streaming ? 0x0008 : 0,
       method: deflated ? 8 : 0,
-      localHeaderOffset: bytes.length,
+      localHeaderOffset: out.length,
     };
     written.push(entry);
 
-    u32(0x04034b50); // local file header signature
-    u16(20); // version needed to extract
-    u16(entry.flags);
-    u16(entry.method);
-    u16(0); // mod time
-    u16(0); // mod date
-    u32(file.streaming ? 0 : entry.crc);
-    u32(file.streaming ? 0 : payload.length);
-    u32(file.streaming ? 0 : entry.uncompressedLength);
-    u16(entry.nameBytes.length);
-    u16(0); // extra field length
-    raw(entry.nameBytes);
-    raw(payload);
+    out.u32(0x04034b50); // local file header signature
+    out.u16(20); // version needed to extract
+    out.u16(entry.flags);
+    out.u16(entry.method);
+    out.u16(0); // mod time
+    out.u16(0); // mod date
+    out.u32(file.streaming ? 0 : entry.crc);
+    out.u32(file.streaming ? 0 : payload.length);
+    out.u32(file.streaming ? 0 : entry.declaredUncompressed);
+    out.u16(entry.nameBytes.length);
+    out.u16(0); // extra field length
+    out.raw(entry.nameBytes);
+    out.raw(payload);
 
     if (file.streaming) {
-      u32(0x08074b50); // data descriptor signature (Go writes it)
-      u32(entry.crc);
-      u32(payload.length);
-      u32(entry.uncompressedLength);
+      out.u32(0x08074b50); // data descriptor signature (Go writes it)
+      out.u32(entry.crc);
+      out.u32(payload.length);
+      out.u32(entry.declaredUncompressed);
     }
   }
 
   if (options?.omitCentralDirectory) {
-    return new Uint8Array(bytes);
+    return out.toUint8Array();
   }
 
-  const centralDirectoryOffset = bytes.length;
+  const centralDirectoryOffset = out.length;
   for (const entry of written) {
-    u32(0x02014b50); // central directory record signature
-    u16(20); // version made by
-    u16(20); // version needed to extract
-    u16(entry.flags);
-    u16(entry.method);
-    u16(0); // mod time
-    u16(0); // mod date
-    u32(entry.crc);
-    u32(entry.payload.length);
-    u32(entry.uncompressedLength);
-    u16(entry.nameBytes.length);
-    u16(0); // extra field length
-    u16(0); // comment length
-    u16(0); // disk number start
-    u16(0); // internal attributes
-    u32(0); // external attributes
-    u32(entry.localHeaderOffset);
-    raw(entry.nameBytes);
+    out.u32(0x02014b50); // central directory record signature
+    out.u16(20); // version made by
+    out.u16(20); // version needed to extract
+    out.u16(entry.flags);
+    out.u16(entry.method);
+    out.u16(0); // mod time
+    out.u16(0); // mod date
+    out.u32(entry.crc);
+    out.u32(entry.payload.length);
+    out.u32(entry.declaredUncompressed);
+    out.u16(entry.nameBytes.length);
+    out.u16(0); // extra field length
+    out.u16(0); // comment length
+    out.u16(0); // disk number start
+    out.u16(0); // internal attributes
+    out.u32(0); // external attributes
+    out.u32(entry.localHeaderOffset);
+    out.raw(entry.nameBytes);
   }
-  const centralDirectorySize = bytes.length - centralDirectoryOffset;
+  const centralDirectorySize = out.length - centralDirectoryOffset;
 
   const commentBytes = new TextEncoder().encode(options?.comment ?? "");
-  u32(0x06054b50); // EOCD signature
-  u16(0); // disk number
-  u16(0); // disk with central directory
-  u16(written.length); // entries on this disk
-  u16(written.length); // total entries
-  u32(centralDirectorySize);
-  u32(centralDirectoryOffset);
-  u16(commentBytes.length);
-  raw(commentBytes);
+  out.u32(0x06054b50); // EOCD signature
+  out.u16(0); // disk number
+  out.u16(0); // disk with central directory
+  out.u16(written.length); // entries on this disk
+  out.u16(written.length); // total entries
+  out.u32(centralDirectorySize);
+  out.u32(centralDirectoryOffset);
+  out.u16(commentBytes.length);
+  out.raw(commentBytes);
 
-  return new Uint8Array(bytes);
+  return out.toUint8Array();
 }
 
-// Standard CRC-32 (IEEE 802.3, the ZIP checksum) — same inline shape as the
-// conformance suite's helper.
+// Chunked assembly instead of a number[]-per-byte accumulator: fixtures at
+// the injector's 100 MB zip-bomb limit are built from payload-sized chunks,
+// which a per-byte spread-push cannot survive (argument-count overflow).
+class ByteWriter {
+  private readonly chunks: Uint8Array[] = [];
+  private size = 0;
+
+  get length(): number {
+    return this.size;
+  }
+
+  u16(v: number): void {
+    this.raw(new Uint8Array([v & 0xff, (v >>> 8) & 0xff]));
+  }
+
+  u32(v: number): void {
+    this.raw(new Uint8Array([v & 0xff, (v >>> 8) & 0xff, (v >>> 16) & 0xff, (v >>> 24) & 0xff]));
+  }
+
+  raw(b: Uint8Array): void {
+    this.chunks.push(b);
+    this.size += b.length;
+  }
+
+  toUint8Array(): Uint8Array {
+    const result = new Uint8Array(this.size);
+    let offset = 0;
+    for (const chunk of this.chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return result;
+  }
+}
+
+// Standard CRC-32 (IEEE 802.3, the ZIP checksum), table-driven so fixtures
+// at the injector's 100 MB limit stay cheap to build. Semantically identical
+// to the conformance suite's inline bit-loop helper.
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let bit = 0; bit < 8; bit++) {
+      c = (c >>> 1) ^ (0xedb88320 & -(c & 1));
+    }
+    table[n] = c;
+  }
+  return table;
+})();
+
 function crc32(data: Uint8Array): number {
   let crc = 0xffffffff;
   for (let i = 0; i < data.length; i++) {
-    crc ^= data[i]!;
-    for (let bit = 0; bit < 8; bit++) {
-      crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
-    }
+    crc = (crc >>> 8) ^ CRC_TABLE[(crc ^ data[i]!) & 0xff]!;
   }
   return (crc ^ 0xffffffff) >>> 0;
 }

@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { deflateRawSync } from "node:zlib";
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -15,130 +14,42 @@ import {
 } from "../attachment-injector.js";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
+import { buildZip, type ZipFixtureFile } from "../../../__test-utils__/zip-fixtures.js";
 import {
   DEEP_AGENT_VISION_PROFILE,
   VisionBudget,
 } from "../../../shared/attachment-vision.js";
 
 // ── ZIP Construction Helpers ─────────────────────────────────────────
+//
+// All archives come from the shared real-shape builder (zip-fixtures.ts):
+// local headers, payloads, central directory, EOCD — the only shape real
+// ZIP writers produce and the shape central-directory parsing requires.
+// The record-form helpers below keep ordinary call sites terse; tests that
+// need streaming or declared-size shapes call buildZip directly.
 
 function makeZip(entries: Record<string, string | Buffer>): Buffer {
-  const parts: Buffer[] = [];
-  const centralDir: Buffer[] = [];
-  let offset = 0;
-
-  for (const [name, content] of Object.entries(entries)) {
-    const nameBytes = Buffer.from(name, "utf-8");
-    const contentBytes = typeof content === "string" ? Buffer.from(content, "utf-8") : content;
-    const compressed = deflateRawSync(contentBytes);
-
-    // Local file header
-    const header = Buffer.alloc(30);
-    header.writeUInt32LE(0x04034b50, 0); // signature
-    header.writeUInt16LE(20, 4);          // version needed
-    header.writeUInt16LE(0, 6);           // flags
-    header.writeUInt16LE(8, 8);           // compression: deflate
-    header.writeUInt16LE(0, 10);          // mod time
-    header.writeUInt16LE(0, 12);          // mod date
-    header.writeUInt32LE(0, 14);          // crc32 (skip for tests)
-    header.writeUInt32LE(compressed.length, 18);  // compressed size
-    header.writeUInt32LE(contentBytes.length, 22); // uncompressed size
-    header.writeUInt16LE(nameBytes.length, 26);    // filename length
-    header.writeUInt16LE(0, 28);                   // extra field length
-
-    parts.push(header, nameBytes, compressed);
-
-    // Central directory entry
-    const cdEntry = Buffer.alloc(46);
-    cdEntry.writeUInt32LE(0x02014b50, 0);
-    cdEntry.writeUInt16LE(20, 4);
-    cdEntry.writeUInt16LE(20, 6);
-    cdEntry.writeUInt16LE(0, 8);
-    cdEntry.writeUInt16LE(8, 10);
-    cdEntry.writeUInt16LE(0, 12);
-    cdEntry.writeUInt16LE(0, 14);
-    cdEntry.writeUInt32LE(0, 16);
-    cdEntry.writeUInt32LE(compressed.length, 20);
-    cdEntry.writeUInt32LE(contentBytes.length, 24);
-    cdEntry.writeUInt16LE(nameBytes.length, 28);
-    cdEntry.writeUInt16LE(0, 30);
-    cdEntry.writeUInt16LE(0, 32);
-    cdEntry.writeUInt16LE(0, 34);
-    cdEntry.writeUInt16LE(0, 36);
-    cdEntry.writeUInt32LE(0, 38);
-    cdEntry.writeUInt32LE(offset, 42);
-    centralDir.push(cdEntry, nameBytes);
-
-    offset += header.length + nameBytes.length + compressed.length;
-  }
-
-  // End of central directory
-  const eocd = Buffer.alloc(22);
-  const cdSize = centralDir.reduce((s, b) => s + b.length, 0);
-  eocd.writeUInt32LE(0x06054b50, 0);
-  eocd.writeUInt16LE(0, 4);
-  eocd.writeUInt16LE(0, 6);
-  eocd.writeUInt16LE(Object.keys(entries).length, 8);
-  eocd.writeUInt16LE(Object.keys(entries).length, 10);
-  eocd.writeUInt32LE(cdSize, 12);
-  eocd.writeUInt32LE(offset, 16);
-  eocd.writeUInt16LE(0, 20);
-
-  return Buffer.concat([...parts, ...centralDir, eocd]);
+  return makeZipWith(entries, { method: "deflated" });
 }
 
 function makeStoredZip(entries: Record<string, Buffer>): Buffer {
-  const parts: Buffer[] = [];
-  let offset = 0;
+  return makeZipWith(entries, { method: "stored" });
+}
 
-  for (const [name, content] of Object.entries(entries)) {
-    const nameBytes = Buffer.from(name, "utf-8");
-
-    const header = Buffer.alloc(30);
-    header.writeUInt32LE(0x04034b50, 0);
-    header.writeUInt16LE(20, 4);
-    header.writeUInt16LE(0, 6);
-    header.writeUInt16LE(0, 8);  // stored (no compression)
-    header.writeUInt32LE(content.length, 18);
-    header.writeUInt32LE(content.length, 22);
-    header.writeUInt16LE(nameBytes.length, 26);
-    header.writeUInt16LE(0, 28);
-
-    parts.push(header, nameBytes, content);
-    offset += header.length + nameBytes.length + content.length;
-  }
-
-  // Minimal EOCD
-  const eocd = Buffer.alloc(22);
-  eocd.writeUInt32LE(0x06054b50, 0);
-  eocd.writeUInt16LE(Object.keys(entries).length, 8);
-  eocd.writeUInt16LE(Object.keys(entries).length, 10);
-  eocd.writeUInt32LE(0, 12);
-  eocd.writeUInt32LE(offset, 16);
-
-  return Buffer.concat([...parts, eocd]);
+function makeZipWith(
+  entries: Record<string, string | Buffer>,
+  shape: Pick<ZipFixtureFile, "method" | "streaming">,
+): Buffer {
+  const files: ZipFixtureFile[] = Object.entries(entries).map(([name, content]) => ({
+    name,
+    content: typeof content === "string" ? content : new Uint8Array(content),
+    ...shape,
+  }));
+  return Buffer.from(buildZip(files));
 }
 
 function makeDirectoryOnlyZip(): Buffer {
-  const name = "empty_dir/";
-  const nameBytes = Buffer.from(name, "utf-8");
-
-  const header = Buffer.alloc(30);
-  header.writeUInt32LE(0x04034b50, 0);
-  header.writeUInt16LE(20, 4);
-  header.writeUInt16LE(0, 6);
-  header.writeUInt16LE(0, 8);
-  header.writeUInt32LE(0, 18);
-  header.writeUInt32LE(0, 22);
-  header.writeUInt16LE(nameBytes.length, 26);
-  header.writeUInt16LE(0, 28);
-
-  const eocd = Buffer.alloc(22);
-  eocd.writeUInt32LE(0x06054b50, 0);
-  eocd.writeUInt16LE(1, 8);
-  eocd.writeUInt16LE(1, 10);
-
-  return Buffer.concat([header, nameBytes, eocd]);
+  return Buffer.from(buildZip([{ name: "empty_dir/", content: "" }]));
 }
 
 function makeAttachment(overrides: Partial<{
@@ -251,22 +162,7 @@ describe("validateZipForExtraction", () => {
   });
 
   it("rejects null bytes in filenames", () => {
-    const nameWithNull = "file\x00.txt";
-    const nameBytes = Buffer.from(nameWithNull, "utf-8");
-    const content = Buffer.from("test");
-    const compressed = deflateRawSync(content);
-
-    const header = Buffer.alloc(30);
-    header.writeUInt32LE(0x04034b50, 0);
-    header.writeUInt16LE(20, 4);
-    header.writeUInt16LE(0, 6);
-    header.writeUInt16LE(8, 8);
-    header.writeUInt32LE(compressed.length, 18);
-    header.writeUInt32LE(content.length, 22);
-    header.writeUInt16LE(nameBytes.length, 26);
-    header.writeUInt16LE(0, 28);
-
-    const zip = Buffer.concat([header, nameBytes, compressed]);
+    const zip = makeZip({ "file\u0000.txt": "test" });
     expect(() => validateZipForExtraction(zip, "null.zip"))
       .toThrow(/null bytes/);
   });
@@ -302,6 +198,149 @@ describe("validateZipForExtraction", () => {
     const zip = makeStoredZip(entries);
     const result = validateZipForExtraction(zip, "ok.zip");
     expect(result).toHaveLength(MAX_ZIP_FILES);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// Central-directory parsing (issue #567)
+// ═══════════════════════════════════════════════════════════════════════
+// The archive shapes the old local-header walk corrupted or rejected:
+// stored streaming entries (silent manifest truncation) and Go-default
+// deflated streaming entries (rejected outright). Sizes come from the
+// central directory — the format's authoritative index — and structural
+// failures are fail-hard, unlike the skill-artifact reader's non-fatal
+// empty return: nothing upstream vouches for an attachment.
+
+describe("validateZipForExtraction — central-directory parsing (issue #567)", () => {
+  it("validates every entry of a stored streaming archive (no silent truncation)", () => {
+    // Method 0 + flag bit 3 + zeroed local sizes: the old walk admitted the
+    // first entry with size 0, landed mid-payload, and quietly dropped the
+    // rest of the manifest.
+    const zip = Buffer.from(buildZip([
+      { name: "first.txt", content: "first file content", streaming: true },
+      { name: "second.txt", content: "second file content", streaming: true },
+    ]));
+
+    const result = validateZipForExtraction(zip, "streamed.zip");
+    expect(result.map((e) => e.relativePath)).toEqual(["first.txt", "second.txt"]);
+    expect(result.map((e) => e.uncompressedSize)).toEqual([
+      "first file content".length,
+      "second file content".length,
+    ]);
+  });
+
+  it("accepts a Go-default archive (deflated streaming entries)", () => {
+    const zip = Buffer.from(buildZip([
+      { name: "main.go", content: "package main", method: "deflated", streaming: true },
+      { name: "go.mod", content: "module example", method: "deflated", streaming: true },
+    ]));
+
+    const result = validateZipForExtraction(zip, "go-built.zip");
+    expect(result.map((e) => e.relativePath)).toEqual(["go.mod", "main.go"]);
+  });
+
+  it("rejects an archive with no central directory (fail-hard, unlike skill extraction)", () => {
+    const zip = Buffer.from(buildZip(
+      [{ name: "a.txt", content: "aaa" }],
+      { omitCentralDirectory: true },
+    ));
+
+    expect(() => validateZipForExtraction(zip, "truncated.zip"))
+      .toThrow(AttachmentValidationError);
+    expect(() => validateZipForExtraction(zip, "truncated.zip"))
+      .toThrow(/not a valid ZIP archive/);
+  });
+
+  it("rejects duplicate entry paths (a contradictory manifest)", () => {
+    const zip = Buffer.from(buildZip([
+      { name: "dup.txt", content: "one" },
+      { name: "dup.txt", content: "two" },
+    ]));
+
+    expect(() => validateZipForExtraction(zip, "dup.zip"))
+      .toThrow(/duplicate entry/);
+  });
+
+  it("locates the central directory behind a trailing archive comment", () => {
+    const zip = Buffer.from(buildZip(
+      [{ name: "a.txt", content: "aaa" }],
+      { comment: "release archive — built by tooling" },
+    ));
+
+    const result = validateZipForExtraction(zip, "commented.zip");
+    expect(result.map((e) => e.relativePath)).toEqual(["a.txt"]);
+  });
+});
+
+describe("injectAttachments — central-directory extraction (issue #567)", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "attachment-cd-"));
+  });
+
+  async function extractArchive(zip: Uint8Array) {
+    const localFile = join(tempDir, "archive.zip");
+    await writeFile(localFile, zip);
+    const backend = mockWorkspaceBackend();
+    const result = await injectAttachments({
+      backend,
+      attachments: [makeAttachment({
+        filename: "archive.zip",
+        mountPath: ".stigmer/inputs/archive",
+        extract: true,
+        localPath: localFile,
+      })],
+      storage: makeMockStorage(),
+      isLocalMode: true,
+    });
+    return { backend, result };
+  }
+
+  it("extracts a stored streaming archive completely, contents intact", async () => {
+    const { backend, result } = await extractArchive(buildZip([
+      { name: "first.txt", content: "first file content", streaming: true },
+      { name: "second.txt", content: "second file content", streaming: true },
+    ]));
+
+    expect(result.map((f) => f.path).sort()).toEqual([
+      ".stigmer/inputs/archive/first.txt",
+      ".stigmer/inputs/archive/second.txt",
+    ]);
+    expect(backend.writeFileBuffer).toHaveBeenCalledWith(
+      ".stigmer/inputs/archive/first.txt", Buffer.from("first file content"),
+    );
+    expect(backend.writeFileBuffer).toHaveBeenCalledWith(
+      ".stigmer/inputs/archive/second.txt", Buffer.from("second file content"),
+    );
+  });
+
+  it("extracts a Go-default deflated streaming archive", async () => {
+    const { backend, result } = await extractArchive(buildZip([
+      { name: "src/main.go", content: "package main\n", method: "deflated", streaming: true },
+    ]));
+
+    expect(result).toHaveLength(1);
+    expect(backend.writeFileBuffer).toHaveBeenCalledWith(
+      ".stigmer/inputs/archive/src/main.go", Buffer.from("package main\n"),
+    );
+  });
+
+  it("aborts when an entry inflates past its declared size (crafted archive)", async () => {
+    await expect(extractArchive(buildZip([
+      {
+        name: "bomb.txt",
+        content: "x".repeat(4096),
+        method: "deflated",
+        declaredUncompressedSize: 16,
+      },
+    ]))).rejects.toThrow(AttachmentValidationError);
+  });
+
+  it("aborts when a stored entry's payload disagrees with its declared size", async () => {
+    await expect(extractArchive(buildZip([
+      { name: "short.txt", content: "eleven byte", declaredUncompressedSize: 4096 },
+    ]))).rejects.toThrow(/declare/);
   });
 });
 
