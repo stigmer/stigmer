@@ -145,7 +145,11 @@ export const SetupProgress = memo(function SetupProgress({
       className={cn("stg:flex stg:items-center stg:gap-2.5 stg:px-4 stg:py-2", className)}
     >
       <PulseIndicator />
-      <span className="stg:text-sm stg:text-muted-foreground stg:animate-in stg:fade-in stg:duration-300">
+      {/* The setup/thinking label carries the ambient-liveness sweep
+          (stigmer#277): this indicator only exists while the execution is
+          live, so it always shimmers. The shimmer class owns `color`,
+          replacing the static muted utility. */}
+      <span className="stg:text-sm stg:animate-in stg:fade-in stg:duration-300 stgm-shimmer-label">
         {currentMessage}
       </span>
     </div>

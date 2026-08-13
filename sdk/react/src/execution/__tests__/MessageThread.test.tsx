@@ -957,3 +957,100 @@ describe("MessageThread", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Ambient liveness status line (stigmer#277)
+// ---------------------------------------------------------------------------
+
+describe("MessageThread liveness status line", () => {
+  const LINE = '[data-cursor-target="liveness-status-line"]';
+
+  it("anchors the thread's tail while the execution is live between visible events", () => {
+    // IN_PROGRESS, has responded (AI content), no running tool, no gate —
+    // the model-generation gap where the screen would otherwise be still.
+    const active = makeExecution({
+      id: "exec-live",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      aiContent: "Let me look around.",
+    });
+    const { container } = render(
+      <MessageThread executions={[]} activeStreamExecution={active} />,
+    );
+    expect(container.querySelector(LINE)).not.toBeNull();
+  });
+
+  it("yields to a running tool call — that row carries the live signal", () => {
+    const active = makeExecution({
+      id: "exec-tool",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      aiContent: "Running a command.",
+    });
+    const runningTool = create(ToolCallSchema, {
+      id: "tc-run",
+      name: "Shell",
+      args: { command: "sleep 5" },
+      status: ToolCallStatus.TOOL_CALL_RUNNING,
+    });
+    active.status!.messages[1].toolCalls = [runningTool];
+
+    const { container } = render(
+      <MessageThread executions={[]} activeStreamExecution={active} />,
+    );
+    expect(container.querySelector(LINE)).toBeNull();
+  });
+
+  it("yields to a pending approval — shimmering 'Working…' at a gate would lie", () => {
+    const active = makeExecutionWithApproval("exec-gated", "tc-1", "write_file");
+    const { container } = render(
+      <MessageThread
+        executions={[]}
+        activeStreamExecution={active}
+        onApprovalSubmit={() => {}}
+      />,
+    );
+    expect(container.querySelector(LINE)).toBeNull();
+  });
+
+  it("disappears the moment the execution settles — phase-driven, never stream-inferred", () => {
+    const done = makeExecution({
+      id: "exec-done",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      aiContent: "All set.",
+    });
+    const { container } = render(
+      <MessageThread executions={[done]} activeStreamExecution={null} />,
+    );
+    expect(container.querySelector(LINE)).toBeNull();
+  });
+
+  it("leaves the pre-first-content window to the setup placeholder", () => {
+    const active = makeExecution({
+      id: "exec-fresh",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    });
+    // No AI content, no tool calls: hasStartedResponding is false.
+    active.status!.messages = [active.status!.messages[0]];
+
+    const { container } = render(
+      <MessageThread executions={[]} activeStreamExecution={active} />,
+    );
+    expect(container.querySelector(LINE)).toBeNull();
+    // The synthetic "Thinking…" setup placeholder owns this window.
+    expect(screen.getByText("Thinking\u2026")).toBeTruthy();
+  });
+
+  it("carries the shared shimmer treatment on its label", () => {
+    const active = makeExecution({
+      id: "exec-live",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      aiContent: "Let me look around.",
+    });
+    const { container } = render(
+      <MessageThread executions={[]} activeStreamExecution={active} />,
+    );
+    const line = container.querySelector(LINE)!;
+    expect(line.querySelector(".stgm-shimmer-label")?.textContent).toBe(
+      "Working\u2026",
+    );
+  });
+});

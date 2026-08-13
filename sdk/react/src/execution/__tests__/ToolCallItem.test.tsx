@@ -671,6 +671,24 @@ describe("ToolCallItem density tier", () => {
     expect(container.querySelector(".stg\\:animate-spin")).not.toBeNull();
   });
 
+  it("sweeps the running label with the ambient-liveness shimmer, settled labels stay static", () => {
+    const running = makeToolCall({
+      name: "Shell",
+      args: { command: "sleep 5" },
+      status: ToolCallStatus.TOOL_CALL_RUNNING,
+    });
+    const { container, rerender } = render(<ToolCallItem toolCall={running} />);
+    expect(container.querySelector(".stgm-shimmer-label")?.textContent).toBe("Shell");
+
+    const settled = makeToolCall({
+      name: "Shell",
+      args: { command: "sleep 5" },
+      result: "done",
+    });
+    rerender(<ToolCallItem toolCall={settled} />);
+    expect(container.querySelector(".stgm-shimmer-label")).toBeNull();
+  });
+
   it("contains a quiet row's disclosed body under a left rail instead of a border", () => {
     // Grep is a summary category with a real result body: expanding the quiet
     // line must bound the body with the rail (the ThinkingMessage precedent),

@@ -331,6 +331,40 @@
     animation: stgm-running-pulse 2s ease-in-out infinite;
   }
 
+  /* Ambient liveness (stigmer#277): a left-to-right light sweep across the
+     text of whatever is currently in flight — a running tool's label, the
+     thinking indicator, the thread's bottom status line. The sweep rides the
+     WORDS describing the current activity (not a spinner beside them), so
+     the screen is never still while the agent is alive.
+
+     Token-driven: the text settles to the muted base with a foreground-
+     colored band sweeping through, which reads correctly in both color
+     modes and every preset. background-clip:text needs the -webkit- prefix
+     in Safari; the transparent fill is what lets the gradient show through
+     the glyphs. */
+  @keyframes stgm-shimmer {
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  .stgm-shimmer-label {
+    background-image: linear-gradient(
+      90deg,
+      var(--stgm-muted-foreground) 0%,
+      var(--stgm-muted-foreground) 35%,
+      var(--stgm-foreground) 50%,
+      var(--stgm-muted-foreground) 65%,
+      var(--stgm-muted-foreground) 100%
+    );
+    background-size: 200% 100%;
+    background-position: 0 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: stgm-shimmer 2s linear infinite;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .stgm {
       --stgm-motion-duration: 0ms;
@@ -343,6 +377,15 @@
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+    }
+
+    /* The shimmer is pure decoration: under reduced motion the label drops
+       the clipped gradient entirely and reads as ordinary text (DD-015) —
+       a frozen gradient band would look like a rendering glitch. */
+    .stgm-shimmer-label {
+      background-image: none;
+      color: inherit;
+      animation: none;
     }
   }
 }
