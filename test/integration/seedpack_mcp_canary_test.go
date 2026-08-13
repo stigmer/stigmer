@@ -16,9 +16,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Deliberately NOT marked is_secret (owner ruling, oss#565): these canaries
+// measure vendor reachability and auth, not the platform's secret lane.
+// is_secret triggers encrypt-at-write (oss#405), and the read-back handler
+// decrypts only for scope-bound runner tokens (minted by the OSS server
+// only) or cloud sandbox ambient credentials — the harness's user-
+// authenticated runner is neither, so secret values arrive redacted and
+// every connect fails before reaching the vendor. The missing end-to-end
+// coverage of the secret discovery path is tracked in oss#579.
 func runtimeEnvFromString(key, value string) map[string]*executionctxv1.ExecutionValue {
 	return map[string]*executionctxv1.ExecutionValue{
-		key: {Value: value, IsSecret: true},
+		key: {Value: value},
 	}
 }
 
@@ -87,7 +95,12 @@ func TestCanary_NoAuth_Fetch_Connects(t *testing.T) {
 			ServerType: &mcpserverv1.McpServerSpec_Stdio{
 				Stdio: &mcpserverv1.StdioServerConfig{
 					Command: "uvx",
-					Args:    []string{"mcp-server-fetch"},
+					// mcp<2: the MCP Python SDK 2.0 renamed McpError to
+					// MCPError and mcp-server-fetch declares mcp>=1.1.3 with
+					// no ceiling, so an unpinned resolve dies at import
+					// (caught by this canary's first real run, oss#565).
+					// Drop the pin once upstream migrates or adds a ceiling.
+					Args: []string{"--with", "mcp<2", "mcp-server-fetch"},
 				},
 			},
 		},
