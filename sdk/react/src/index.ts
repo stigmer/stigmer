@@ -196,6 +196,7 @@ export type {
   UseSessionFileChangesReturn,
   ModelCostEntry,
   UseSessionUsageReturn,
+  ExecutionUsageEntry,
   UseAgentRefFromSessionReturn,
   UseNewSessionFlowOptions,
   UseNewSessionFlowReturn,

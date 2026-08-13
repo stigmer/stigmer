@@ -58,6 +58,7 @@ export type { UseSessionFileChangesReturn } from "./useSessionFileChanges.js";
 
 export { useSessionUsage } from "./useSessionUsage.js";
 export type {
+  ExecutionUsageEntry,
   ModelCostEntry,
   UseSessionUsageReturn,
 } from "./useSessionUsage.js";

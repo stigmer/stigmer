@@ -32,6 +32,11 @@ const (
 	refImmutableMessage   = "spec.agent.agent_ref is immutable (schedule runs %s/%s) — create a new schedule to run a different agent"
 	orgRequiredMessage    = "metadata.org is required for a schedule"
 	localWorkspaceMessage = "must use a git_repo source — a scheduled run has no connected client to serve a local_path"
+	// The core sentence is byte-shared with the cloud policy
+	// (UnattendedModelPinningPolicy); the cloud copy appends its
+	// platform-profile remediation tail, which this edition has no
+	// platform model to honor (stigmer/stigmer#362).
+	modelPinningMessage = "spec.agent.run_config.model_name must name a pinned model when the run would use the Cursor harness — with no pinned model Cursor runs Auto, whose price variant follows the provider account's out-of-band default speed setting (stigmer/stigmer#362)"
 )
 
 // contextWithKind simulates the apiresource interceptor, which injects the
@@ -301,6 +306,43 @@ func TestScheduleCreate(t *testing.T) {
 			t.Fatalf("a git_repo workspace must be accepted: %v", err)
 		}
 	})
+
+	t.Run("rejects an explicit cursor-harness schedule with no pinned model", func(t *testing.T) {
+		// stigmer/stigmer#362: an empty model on the Cursor harness runs
+		// Auto, priced by the provider account's out-of-band default. Only
+		// an EXPLICIT cursor harness trips the rule in this edition — the
+		// OSS default harness is native, where an empty model resolves to
+		// the platform's own registry-priced default.
+		tc := newTestControllers(t)
+		agent := createTestAgent(t, tc, "pinning-guard-agent")
+
+		unpinned := scheduleFor(agent, "unpinned-cursor", true)
+		unpinned.Spec.GetAgent().Harness = sessionv1.Harness_HARNESS_CURSOR
+
+		_, err := tc.schedules.Create(scheduleCtx(), unpinned)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected INVALID_ARGUMENT for an unpinned cursor schedule, got %s (%v)", status.Code(err), err)
+		}
+		if !strings.Contains(err.Error(), modelPinningMessage) {
+			t.Errorf("expected the model-pinning message, got: %v", err)
+		}
+
+		// A pinned model passes the same gate.
+		pinned := scheduleFor(agent, "pinned-cursor", true)
+		pinned.Spec.GetAgent().Harness = sessionv1.Harness_HARNESS_CURSOR
+		pinned.Spec.GetAgent().RunConfig = &agentexecutionv1.RunConfig{ModelName: "composer-2.5"}
+		if _, err := tc.schedules.Create(scheduleCtx(), pinned); err != nil {
+			t.Fatalf("a pinned cursor schedule must be accepted: %v", err)
+		}
+
+		// The native harness is exempt: an unset harness (the OSS default,
+		// native) with no model stays accepted — the harness-scoped half
+		// of the rule.
+		native := scheduleFor(agent, "native-unpinned", true)
+		if _, err := tc.schedules.Create(scheduleCtx(), native); err != nil {
+			t.Fatalf("an unpinned native-default schedule must be accepted: %v", err)
+		}
+	})
 }
 
 func TestScheduleUpdate(t *testing.T) {
@@ -338,6 +380,26 @@ func TestScheduleUpdate(t *testing.T) {
 		_, err := tc.schedules.Update(scheduleCtx(), updated)
 		if status.Code(err) != codes.InvalidArgument {
 			t.Fatalf("expected INVALID_ARGUMENT for a prefixed cron on update, got %s (%v)", status.Code(err), err)
+		}
+	})
+
+	t.Run("re-validates model pinning on update", func(t *testing.T) {
+		// Update replaces the spec wholesale, so flipping a native
+		// schedule to the cursor harness without pinning a model must
+		// hold the same #362 bar as create.
+		tc := newTestControllers(t)
+		agent := createTestAgent(t, tc, "update-pinning-agent")
+		created := createTestSchedule(t, tc, agent, "update-pinning", true)
+
+		updated := proto.Clone(created).(*schedulev1.Schedule)
+		updated.GetSpec().GetAgent().Harness = sessionv1.Harness_HARNESS_CURSOR
+
+		_, err := tc.schedules.Update(scheduleCtx(), updated)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected INVALID_ARGUMENT for an unpinned cursor flip on update, got %s (%v)", status.Code(err), err)
+		}
+		if !strings.Contains(err.Error(), modelPinningMessage) {
+			t.Errorf("expected the model-pinning message, got: %v", err)
 		}
 	})
 

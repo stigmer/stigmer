@@ -299,3 +299,48 @@ func TestStartRun_DeterministicRefusalsBecomeOutcomes(t *testing.T) {
 	_, err = starter.StartRun(context.Background(), schedule, starterFireTime)
 	require.Error(t, err, "infrastructure failures propagate so the activity retries")
 }
+
+func TestStartRun_ModelPinningBackstop(t *testing.T) {
+	// stigmer/stigmer#362: rows written before the write-time rule (an
+	// explicit-cursor schedule with no pinned model) must refuse at fire
+	// time — a deterministic verdict for the failure streak — instead of
+	// running Auto at the provider account default's price.
+	st, creator, starter := newStarterFixture(t)
+	seedAgent(t, st)
+
+	unpinned := seedSchedule2(t, func(s *schedulev1.Schedule) {
+		s.Spec.GetAgent().Harness = sessionv1.Harness_HARNESS_CURSOR
+	})
+	persistSchedule(t, st, unpinned)
+
+	outcome, err := starter.StartRun(context.Background(), unpinned, starterFireTime)
+	require.NoError(t, err)
+	refused, ok := outcome.(RunRefusedOutcome)
+	require.True(t, ok, "expected RunRefusedOutcome, got %T", outcome)
+	require.Equal(t,
+		"spec.agent.run_config.model_name must name a pinned model when the run would use "+
+			"the Cursor harness — with no pinned model Cursor runs Auto, whose price variant "+
+			"follows the provider account's out-of-band default speed setting (stigmer/stigmer#362)",
+		refused.Reason,
+		"the copy matches the write-time rule — the fix is the same either way")
+	require.Nil(t, creator.created, "no execution may exist for a refused fire")
+
+	// A pinned model fires; the native default (unset harness) is exempt.
+	pinned := seedSchedule2(t, func(s *schedulev1.Schedule) {
+		s.Spec.GetAgent().Harness = sessionv1.Harness_HARNESS_CURSOR
+		s.Spec.GetAgent().RunConfig = &agentexecutionv1.RunConfig{ModelName: "composer-2.5"}
+	})
+	persistSchedule(t, st, pinned)
+	outcome, err = starter.StartRun(context.Background(), pinned, starterFireTime)
+	require.NoError(t, err)
+	require.IsType(t, RunStartedOutcome{}, outcome, "a pinned cursor schedule fires")
+
+	native := seedSchedule2(t, func(s *schedulev1.Schedule) {
+		s.Metadata.Id = "sch_01NATIVE"
+	})
+	persistSchedule(t, st, native)
+	outcome, err = starter.StartRun(context.Background(), native, starterFireTime)
+	require.NoError(t, err)
+	require.IsType(t, RunStartedOutcome{}, outcome,
+		"the native default is exempt — an empty model is deterministic there")
+}
