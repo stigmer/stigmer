@@ -8,8 +8,10 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { PushSkillRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+import type { PushSkillRequest } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+import { CreateSkillArtifactUploadUrlRequestSchema, PushSkillRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { GitProvenanceSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/status_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -320,6 +322,68 @@ export function analyzeDryRun(dir: string, options: IgnoreOptions): DryRunAnalys
   return { stats, patternSources, sampleIgnored, sampleIncluded };
 }
 
+/**
+ * Largest artifact pushed inline in the gRPC request (#675). The server's
+ * transport cap is 10MB for the WHOLE message, so the artifact leaves 64KB
+ * of headroom for the request envelope (org, tag, provenance, framing).
+ * Mirrors the Go SDK's maxInlineArtifactBytes.
+ */
+const MAX_INLINE_ARTIFACT_BYTES = 10 * 1024 * 1024 - 64 * 1024;
+
+/**
+ * Push, routing the artifact by size (#675): small artifacts travel inline
+ * in the request (one round trip, unchanged behavior); larger ones are
+ * staged over HTTP via createArtifactUploadUrl — a capability URL, so no
+ * auth header — and pushed by reference. The 100MB skill limit therefore
+ * no longer collides with the 10MB gRPC message cap.
+ */
+export async function pushRouted(client: Stigmer, request: PushSkillRequest): Promise<Skill> {
+  if (request.artifact.length <= MAX_INLINE_ARTIFACT_BYTES) {
+    return client.skill.push(request);
+  }
+
+  let minted;
+  try {
+    minted = await client.skill.createArtifactUploadUrl(
+      create(CreateSkillArtifactUploadUrlRequestSchema, {
+        org: request.org,
+        sizeBytes: BigInt(request.artifact.length),
+      }),
+    );
+  } catch (err) {
+    if (err instanceof ConnectError && err.code === Code.Unimplemented) {
+      // Pre-transfer-lane server: an artifact this size physically cannot
+      // travel inline. Say so instead of surfacing the raw transport error.
+      throw new UsageError(
+        `skill artifact is ${formatBytes(request.artifact.length)}, above the ~10MB gRPC message cap, ` +
+          "and this server does not support the HTTP artifact transfer lane.\n\n" +
+          "Upgrade stigmer-server to push skills of this size.",
+      );
+    }
+    throw err;
+  }
+
+  const resp = await fetch(minted.url, {
+    method: "PUT",
+    // Buffer keeps undici's BodyInit typing happy where a bare Uint8Array
+    // view does not (Node-only code path, so Buffer is always available).
+    body: Buffer.from(request.artifact),
+    headers: { "content-type": "application/zip" },
+  });
+  if (!resp.ok) {
+    const detail = (await resp.text().catch(() => "")).slice(0, 512).trim();
+    throw new Error(`skill artifact upload rejected with HTTP ${resp.status}${detail === "" ? "" : `: ${detail}`}`);
+  }
+
+  // Same request, artifact traveling by reference instead of by value.
+  const byRef = create(PushSkillRequestSchema, {
+    ...request,
+    artifact: new Uint8Array(0),
+    artifactUploadRef: minted.artifactUploadRef,
+  });
+  return client.skill.push(byRef);
+}
+
 /** Push a skill from a local directory. Git provenance is auto-detected. */
 export async function pushSkill(
   client: Stigmer,
@@ -346,7 +410,7 @@ export async function pushSkill(
     message,
     gitProvenance: provenance,
   });
-  const response = await client.skill.push(request);
+  const response = await pushRouted(client, request);
   const applied = await applyDeclaredVisibility(client, response, visibility);
   return toResult(applied, name, message, stats.totalSize, visibility);
 }
@@ -388,7 +452,7 @@ export async function pushSkillFromClone(
     message: params.message,
     gitProvenance: provenance,
   });
-  const response = await client.skill.push(request);
+  const response = await pushRouted(client, request);
   const applied = await applyDeclaredVisibility(client, response, visibility);
   return toResult(applied, name, params.message, stats.totalSize, visibility);
 }

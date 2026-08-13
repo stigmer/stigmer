@@ -4,6 +4,9 @@
 import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
+import { PushSkillRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { unzipSync, zipSync } from "fflate";
@@ -16,6 +19,7 @@ import {
   hasSkillFile,
   parseSkillMetadata,
   parseVisibility,
+  pushRouted,
   pushSkill,
   pushSkillFromArchive,
   readSkillArchive,
@@ -347,5 +351,79 @@ describe("formatBytes / shortHash", () => {
     expect(shortHash("")).toBe("sha256:(none)");
     expect(shortHash("abcdef1234567890")).toBe("sha256:abcdef123456");
     expect(shortHash("abc")).toBe("sha256:abc");
+  });
+});
+
+// ─── pushRouted — transfer-lane size routing (#675) ──────────────────────
+
+describe("pushRouted size routing", () => {
+  const INLINE_MAX = 10 * 1024 * 1024 - 64 * 1024;
+
+  function routingFakeClient(overrides: Record<string, any> = {}) {
+    const calls = { push: [] as any[], mint: [] as any[] };
+    const client = {
+      skill: {
+        async push(req: any) {
+          calls.push.push(req);
+          return { metadata: { id: "skill_x" } };
+        },
+        async createArtifactUploadUrl(req: any) {
+          calls.mint.push(req);
+          return { url: "http://localhost:7234/v1/skill-artifacts/uploads/sau_t", artifactUploadRef: "sau_t", ttlSeconds: 900 };
+        },
+        ...overrides,
+      },
+    } as any;
+    return { client, calls };
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps small artifacts inline (no mint, bytes in the request)", async () => {
+    const { client, calls } = routingFakeClient();
+    const req = create(PushSkillRequestSchema, { org: "acme", artifact: new Uint8Array(1024) });
+
+    await pushRouted(client, req);
+
+    expect(calls.mint).toHaveLength(0);
+    expect(calls.push).toHaveLength(1);
+    expect(calls.push[0].artifact.length).toBe(1024);
+  });
+
+  it("stages large artifacts over HTTP and pushes by reference", async () => {
+    const { client, calls } = routingFakeClient();
+    const artifact = new Uint8Array(INLINE_MAX + 1);
+    const req = create(PushSkillRequestSchema, { org: "acme", artifact, tag: "stable", message: "big" });
+
+    let putBytes = 0;
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init: any) => {
+      putBytes = init.body.length;
+      return { ok: true } as any;
+    }));
+
+    await pushRouted(client, req);
+
+    expect(calls.mint).toHaveLength(1);
+    expect(calls.mint[0].sizeBytes).toBe(BigInt(artifact.length));
+    expect(putBytes).toBe(artifact.length);
+    expect(calls.push).toHaveLength(1);
+    expect(calls.push[0].artifact.length).toBe(0);
+    expect(calls.push[0].artifactUploadRef).toBe("sau_t");
+    // The rewrite must not lose the rest of the request.
+    expect(calls.push[0].tag).toBe("stable");
+    expect(calls.push[0].message).toBe("big");
+  });
+
+  it("fails loud against servers that predate the transfer lane", async () => {
+    const { client } = routingFakeClient({
+      async createArtifactUploadUrl() {
+        throw new ConnectError("unknown method", Code.Unimplemented);
+      },
+    });
+    const req = create(PushSkillRequestSchema, { org: "acme", artifact: new Uint8Array(INLINE_MAX + 1) });
+
+    await expect(pushRouted(client, req)).rejects.toThrow(/Upgrade stigmer-server/);
   });
 });

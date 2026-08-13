@@ -19,6 +19,7 @@
 
 import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { join, dirname } from "node:path";
+import { ConnectError, Code } from "@connectrpc/connect";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -115,14 +116,15 @@ export async function resolveSkills(
       let artifactBytes: Uint8Array | undefined;
       if (wantsArtifact) {
         try {
-          const resp = await client.getSkillArtifact(skill.status!.artifactStorageKey);
-          if (resp.artifact && resp.artifact.length > 0) {
-            artifactBytes = resp.artifact;
-          }
+          artifactBytes = await downloadArtifact(client, skill.status!.artifactStorageKey);
         } catch (err) {
-          console.warn(
-            `[resolveSkills] artifact download failed for ${ref.slug}, ` +
-            `falling back to SKILL.md only: ${err instanceof Error ? err.message : err}`,
+          // Deliberate degradation, but LOUD (#675): the session still gets
+          // SKILL.md (better than a dead run), yet a skill silently missing
+          // its scripts/references was exactly how oversized artifacts hid.
+          console.error(
+            `[resolveSkills] artifact download FAILED for ${ref.org || "(default)"}/${ref.slug} ` +
+            `(key=${skill.status.artifactStorageKey}) — mounting SKILL.md WITHOUT the skill's ` +
+            `supporting files (scripts/references will be missing): ${err instanceof Error ? err.message : err}`,
           );
         }
       }
@@ -159,6 +161,48 @@ async function mountIsFresh(skillDir: string, versionHash: string, wantsArtifact
   } catch {
     return false;
   }
+}
+
+/**
+ * Download a skill artifact's ZIP bytes, transfer lane first (#675).
+ *
+ * The URL lane (getArtifactDownloadUrl → HTTP GET) carries any valid skill
+ * size; the unary getArtifact response is capped by the server's 10MB gRPC
+ * message limit. Servers that predate the lane (and cloud until its sibling
+ * lands) answer the mint with UNIMPLEMENTED — those fall back to the unary
+ * path, which behaves exactly as before for ≤10MB artifacts.
+ *
+ * Runs only on a mount-cache miss (#672's hash-keyed marker above) — a hit
+ * skips the transfer entirely, whichever lane would have carried it.
+ *
+ * Exported for tests.
+ */
+export async function downloadArtifact(
+  client: StigmerClient,
+  artifactStorageKey: string,
+): Promise<Uint8Array | undefined> {
+  let minted;
+  try {
+    minted = await client.getSkillArtifactDownloadUrl(artifactStorageKey);
+  } catch (err) {
+    if (err instanceof ConnectError && err.code === Code.Unimplemented) {
+      const resp = await client.getSkillArtifact(artifactStorageKey);
+      return resp.artifact && resp.artifact.length > 0 ? resp.artifact : undefined;
+    }
+    throw err;
+  }
+
+  const resp = await fetch(minted.url);
+  if (!resp.ok) {
+    throw new Error(`artifact fetch failed: HTTP ${resp.status} from ${minted.url}`);
+  }
+  const bytes = new Uint8Array(await resp.arrayBuffer());
+  if (minted.sizeBytes > 0n && BigInt(bytes.length) !== minted.sizeBytes) {
+    throw new Error(
+      `artifact fetch truncated: got ${bytes.length} bytes, expected ${minted.sizeBytes}`,
+    );
+  }
+  return bytes.length > 0 ? bytes : undefined;
 }
 
 /**
