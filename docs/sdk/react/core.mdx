@@ -261,6 +261,7 @@ for custom styling.
 
 <TypeTable
   type={{
+    approvalDefaults: { type: "ApprovalDefaults", description: "Approval defaults for all interactive sessions in this provider scope.  This is an app-level trust judgment, not a per-session choice (the `executionTarget` precedent): a host embedding sessions over a surface it has already judged trusted — e.g. a desktop app operating on the user's own local folder — can arm `autoApproveAll` so users are not re-asked at every fresh conversation's first mutating tool call. The user keeps the last word: the \"Auto-approving tool calls\" notice shows from the first render with its \"Turn off\" affordance.  Consumed by the interactive-session surface only (`useNewSessionFlow`, `useSessionPageFlow` and the organisms composing them). Specialized flows (workflow architect/explain/diagnose) and headless creation are deliberately unaffected — those callers pass `autoApproveAll` explicitly when they mean it.  Omit on shared or sensitive surfaces — everything stays fail-closed exactly as today. Pass a referentially stable object (module constant or `useMemo`).", typeDescriptionLink: "#approvaldefaults" },
     children: { type: "ReactNode", description: "React children rendered inside the provider scope.", required: true },
     className: { type: "string", description: "Additional CSS class names applied to the scoping container element. The container always includes the `stgm` class for style isolation.  This is a **theming channel, not a layout channel**: the class is mirrored onto the portal container on `document.body` (see #182) so that token overrides scoped to it reach portaled surfaces (popovers, dialogs, menus). Layout styles passed here would therefore also size that off-tree element. To style the in-tree container alone — e.g. the fixed-height embedding recipe (#260) — target the stable `.stgm[data-stgm-root]` selector from host CSS instead." },
     client: { type: "Stigmer", description: "A configured Stigmer client instance.", required: true },
@@ -286,6 +287,26 @@ const client = useMemo(
 
 
 ## Types
+
+### ApprovalDefaults
+
+App-level approval defaults for interactive sessions (#302).
+
+These are the *host's* defaults, not the platform's: an embedding product
+that has judged its whole surface trusted — e.g. a desktop app whose
+sessions operate on the user's own local folder, where the apply-then-
+review file ledger is the safety net — can pre-arm what a user would
+otherwise opt into at the first approval gate. The user always keeps the
+last word: the session UI shows its "Auto-approving tool calls" notice
+from the first render, with the same "Turn off" affordance as a
+gate-armed preference.
+
+<TypeTable
+  type={{
+    autoApproveAll: { type: "boolean", description: "Start interactive sessions with the session-scoped auto-approve preference armed, and create their bootstrap executions with `auto_approve_all` set.  Equivalent to the user clicking \"Approve & don't ask again\" before the first gate, applied as a product decision. Defaults to off — omitting the provider prop keeps today's fail-closed behavior exactly." },
+  }}
+/>
+
 
 ### ColorMode
 

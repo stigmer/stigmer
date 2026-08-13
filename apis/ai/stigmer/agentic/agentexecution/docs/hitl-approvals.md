@@ -231,7 +231,21 @@ stigmer run my-agent "Run automated deployment" --auto-approve
 **Security considerations:**
 - Restrict access to `auto_approve_all` with appropriate IAM policies
 - Audit executions where this flag is used — they bypass all approval safeguards
-- Do not use in user-facing interactive sessions
+- In interactive sessions, the platform's own surfaces never pre-arm it: the
+  gate defaults are fail-closed, and users opt in per session at a gate
+  ("Approve & don't ask again")
+
+**Embedded hosts (interactive sessions):** when Stigmer's session UI is
+embedded in a product whose whole surface the *host* has already judged
+trusted — e.g. a desktop app whose sessions operate on the user's own local
+folder, where the apply-then-review file ledger is the safety net — the
+host may pre-arm the session default via `StigmerProvider`'s
+`approvalDefaults` prop (`@stigmer/react`). This is the same trust judgment
+behind app-level auto-run modes in coding IDEs, made by the embedding
+product rather than the platform. The user always keeps the last word: the
+"Auto-approving tool calls" notice shows from the first render with its
+"Turn off" control, guests never inherit the host default, and hosts on
+shared or sensitive surfaces should simply not set the prop.
 
 ---
 

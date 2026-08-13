@@ -14,6 +14,8 @@ import type { ThemePresetId } from "@stigmer/theme";
 import { StigmerContext } from "./context.js";
 import { DeploymentModeContext } from "./deployment-mode.js";
 import { ExecutionTargetContext } from "./execution-target-context.js";
+import { ApprovalDefaultsContext } from "./approval-defaults-context.js";
+import type { ApprovalDefaults } from "./approval-defaults-context.js";
 import type { ExecutionTargetOption } from "./session/execution-target.js";
 import type { RunnerAdapter } from "./runner-adapter.js";
 import { RunnerAdapterContext } from "./runner-adapter.js";
@@ -84,6 +86,38 @@ export interface StigmerProviderProps {
    * ```
    */
   readonly runnerAdapter?: RunnerAdapter;
+  /**
+   * Approval defaults for all interactive sessions in this provider scope.
+   *
+   * This is an app-level trust judgment, not a per-session choice (the
+   * `executionTarget` precedent): a host embedding sessions over a surface
+   * it has already judged trusted — e.g. a desktop app operating on the
+   * user's own local folder — can arm `autoApproveAll` so users are not
+   * re-asked at every fresh conversation's first mutating tool call. The
+   * user keeps the last word: the "Auto-approving tool calls" notice shows
+   * from the first render with its "Turn off" affordance.
+   *
+   * Consumed by the interactive-session surface only (`useNewSessionFlow`,
+   * `useSessionPageFlow` and the organisms composing them). Specialized
+   * flows (workflow architect/explain/diagnose) and headless creation are
+   * deliberately unaffected — those callers pass `autoApproveAll`
+   * explicitly when they mean it.
+   *
+   * Omit on shared or sensitive surfaces — everything stays fail-closed
+   * exactly as today. Pass a referentially stable object (module constant
+   * or `useMemo`).
+   *
+   * @example
+   * ```tsx
+   * // A desktop host whose sessions operate on the user's own machine
+   * const APPROVAL_DEFAULTS = { autoApproveAll: true };
+   *
+   * <StigmerProvider client={client} approvalDefaults={APPROVAL_DEFAULTS}>
+   *   <App />
+   * </StigmerProvider>
+   * ```
+   */
+  readonly approvalDefaults?: ApprovalDefaults;
   /**
    * Built-in theme preset to apply.
    *
@@ -238,6 +272,7 @@ export function StigmerProvider({
   deploymentMode = "cloud",
   executionTarget,
   runnerAdapter,
+  approvalDefaults,
   preset,
   className,
   colorMode = "light",
@@ -258,34 +293,36 @@ export function StigmerProvider({
     <StigmerContext.Provider value={client}>
       <DeploymentModeContext.Provider value={deploymentMode}>
         <ExecutionTargetContext.Provider value={executionTarget}>
-          <RunnerAdapterContext.Provider value={runnerAdapter ?? null}>
-            <ColorModeContext.Provider value={resolvedMode}>
-              <ModelRegistryContext.Provider value={registryState}>
-                <TaskKindRegistryContext.Provider value={taskKindRegistryState}>
-                  <ReviewRendererContext.Provider value={reviewRenderers ?? EMPTY_REVIEW_RENDERERS}>
-                    <PortalContainerContext.Provider value={portalContainer}>
-                      {/*
-                        The in-tree scoping container. `data-stgm-root` is a
-                        stable public selector — the documented seam for hosts
-                        to style THIS element only (e.g. the fixed-height
-                        embedding recipe, #260). It must never be mirrored
-                        onto the portal container, whose own `data-stgm-portal`
-                        marker keeps host in-tree-only CSS away from the
-                        off-tree element.
-                      */}
-                      <div
-                        className={scope.className}
-                        data-stgm-root=""
-                        data-stgm-color-mode={scope.colorMode}
-                      >
-                        {children}
-                      </div>
-                    </PortalContainerContext.Provider>
-                  </ReviewRendererContext.Provider>
-                </TaskKindRegistryContext.Provider>
-              </ModelRegistryContext.Provider>
-            </ColorModeContext.Provider>
-          </RunnerAdapterContext.Provider>
+          <ApprovalDefaultsContext.Provider value={approvalDefaults}>
+            <RunnerAdapterContext.Provider value={runnerAdapter ?? null}>
+              <ColorModeContext.Provider value={resolvedMode}>
+                <ModelRegistryContext.Provider value={registryState}>
+                  <TaskKindRegistryContext.Provider value={taskKindRegistryState}>
+                    <ReviewRendererContext.Provider value={reviewRenderers ?? EMPTY_REVIEW_RENDERERS}>
+                      <PortalContainerContext.Provider value={portalContainer}>
+                        {/*
+                          The in-tree scoping container. `data-stgm-root` is a
+                          stable public selector — the documented seam for hosts
+                          to style THIS element only (e.g. the fixed-height
+                          embedding recipe, #260). It must never be mirrored
+                          onto the portal container, whose own `data-stgm-portal`
+                          marker keeps host in-tree-only CSS away from the
+                          off-tree element.
+                        */}
+                        <div
+                          className={scope.className}
+                          data-stgm-root=""
+                          data-stgm-color-mode={scope.colorMode}
+                        >
+                          {children}
+                        </div>
+                      </PortalContainerContext.Provider>
+                    </ReviewRendererContext.Provider>
+                  </TaskKindRegistryContext.Provider>
+                </ModelRegistryContext.Provider>
+              </ColorModeContext.Provider>
+            </RunnerAdapterContext.Provider>
+          </ApprovalDefaultsContext.Provider>
         </ExecutionTargetContext.Provider>
       </DeploymentModeContext.Provider>
     </StigmerContext.Provider>

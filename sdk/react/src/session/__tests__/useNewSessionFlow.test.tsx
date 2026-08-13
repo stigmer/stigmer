@@ -5,6 +5,8 @@ import { DEFAULT_MODEL_ID, DEFAULT_CURSOR_MODEL_ID, parseRegistryJson } from "..
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import type { ModelRegistryState } from "../../models/ModelRegistryContext";
 import { ExecutionTargetContext } from "../../execution-target-context";
+import { ApprovalDefaultsContext } from "../../approval-defaults-context";
+import type { ApprovalDefaults } from "../../approval-defaults-context";
 import { RunnerAdapterContext } from "../../runner-adapter";
 import type { RunnerAdapter } from "../../runner-adapter";
 const mockGetByReference = vi.fn();
@@ -71,16 +73,19 @@ const TEST_MODELS = parseRegistryJson({
 function createWrapper(
   executionTarget?: "local" | "cloud",
   adapter: RunnerAdapter | null = null,
+  approvalDefaults?: ApprovalDefaults,
 ) {
   const state: ModelRegistryState = { models: TEST_MODELS, isLoading: false, error: null, refetch: () => {} };
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <ExecutionTargetContext.Provider value={executionTarget}>
-        <RunnerAdapterContext.Provider value={adapter}>
-          <ModelRegistryContext.Provider value={state}>
-            {children}
-          </ModelRegistryContext.Provider>
-        </RunnerAdapterContext.Provider>
+        <ApprovalDefaultsContext.Provider value={approvalDefaults}>
+          <RunnerAdapterContext.Provider value={adapter}>
+            <ModelRegistryContext.Provider value={state}>
+              {children}
+            </ModelRegistryContext.Provider>
+          </RunnerAdapterContext.Provider>
+        </ApprovalDefaultsContext.Provider>
       </ExecutionTargetContext.Provider>
     );
   };
@@ -318,6 +323,32 @@ describe("useNewSessionFlow", () => {
 
       const execInput = mockCreateExecution.mock.calls[0][0];
       expect(execInput.sessionSpec.harness).toBe("native");
+    });
+
+    it("omits autoApproveAll by default (fail-closed gates unchanged)", async () => {
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.autoApproveAll).toBeUndefined();
+    });
+
+    it("forwards the host approval default into the bootstrap create (#302)", async () => {
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), {
+        wrapper: createWrapper(undefined, null, { autoApproveAll: true }),
+      });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.autoApproveAll).toBe(true);
     });
 
     it("passes cursor harness in the sessionSpec after switching", async () => {
@@ -842,6 +873,24 @@ describe("useNewSessionFlow", () => {
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       expect(result.current.harness).toBe("cursor");
+    });
+
+    it("never inherits the host approval default — guests get platform policy (#302)", async () => {
+      const opts = { ...defaultOptions(), audience: "guest" as const };
+      const { result } = renderHook(() => useNewSessionFlow(opts), {
+        wrapper: createWrapper(undefined, null, { autoApproveAll: true }),
+      });
+
+      act(() => {
+        result.current.setAgentRef({ org: "acme", slug: "support-bot" });
+        result.current.setResolution({ mode: "saved", instanceId: "shared-inst" });
+      });
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.autoApproveAll).toBeUndefined();
     });
 
     it("ignores the embedder's defaultHarness — guests get platform policy", () => {
