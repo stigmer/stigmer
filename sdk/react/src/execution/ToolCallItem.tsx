@@ -22,6 +22,7 @@ import {
   DotIcon,
   SlashCircleIcon,
 } from "../internal/thread-card/index.js";
+import { TerminalTail } from "./TerminalSession.js";
 import { ToolCallDetail, formatDuration } from "./ToolCallDetail.js";
 import { SubAgentSection } from "./SubAgentSection.js";
 import { ApprovalCardBody } from "./ApprovalCard.js";
@@ -63,18 +64,25 @@ export interface ToolCallItemProps {
 /**
  * Renders a single tool call as a row in the tool call group.
  *
- * Three rendering modes, set by one rule — **does the body carry content the
- * one-line row cannot?**
+ * Four rendering modes, set by one rule — **does the body carry content the
+ * one-line row cannot, and does it stay content once the call settles?**
  *
  * - **Non-expandable** (completed/skipped Read): a static `<div>` row with a
  *   clickable {@link FilePathLink}. The path IS the complete information.
- * - **Preview** (content-bearing: shell / edit / write / fetch / web-search /
+ * - **Preview** (content-bearing: edit / write / fetch / web-search /
  *   unknown / mcp): a plain (non-button) header above an **always-visible**
  *   {@link ToolCallDetail} body — Cursor-style "previews aren't collapsible".
  *   There is no header chevron; each content block self-bounds with its own
-   *   single in-place reveal (`RevealToggle`), so a long diff or output
- *   never floods the thread. The body is suppressed only for an `empty` result
- *   (e.g. a no-output shell), which stays a clean one-line row.
+ *   single in-place reveal (`RevealToggle`), so a long diff or output
+ *   never floods the thread. The body is suppressed only for an `empty` result,
+ *   which stays a clean one-line row.
+ * - **Tail** (shell): live like preview — the full terminal session streams in
+ *   view while the command runs or awaits its gate — but a *successful* settle
+ *   collapses the row to a {@link TerminalTail} teaser (the `$ command` line
+ *   plus a dimmed tail of the last output lines) behind the header chevron.
+ *   A settled failure stays open: error output is content, not context. A
+ *   result that isn't a terminal session (e.g. an offloaded `outputRef`)
+ *   falls back to the preview layout — never hide evidence we cannot condense.
  * - **Summary / sub-agent** (read / list / search / delete / think, and
  *   sub-agent delegations): a chevron-gated `div[role=button]` header that
  *   discloses a body hidden by default — {@link ToolCallDetail}, a
@@ -122,13 +130,29 @@ export const ToolCallItem = memo(function ToolCallItem({
   // or null. Drives the inline approval panel and forces the row open.
   const approval = useApproval(toolCall.id);
 
-  // The card-level disclosure for *summary* rows (preview rows ignore it — their
-  // body is always visible). Force-open only while the row carries live or
-  // actionable content: while it runs, or while it awaits approval; a manual
-  // toggle takes over from there. Called unconditionally to honour the rules of
-  // hooks even though preview rows do not read `expanded`.
+  // Tail rows (shell): a settled failure keeps the row open — the error output
+  // is the content the user needs next, so it must never settle into a dimmed
+  // teaser. Detected on the result, not just the status: a command that
+  // "completed" with a non-zero exit is a failure to the reader.
+  const isTailCategory = !isSubAgent && disclosure === "tail";
+  const tailFailed =
+    isTailCategory &&
+    (toolCall.status === ToolCallStatus.TOOL_CALL_FAILED ||
+      result.type === "error" ||
+      (result.type === "terminal" &&
+        result.exitCode !== undefined &&
+        result.exitCode !== 0));
+
+  // The card-level disclosure for *summary* and *tail* rows (preview rows
+  // ignore it — their body is always visible). Force-open only while the row
+  // carries live or actionable content: while it runs, while it awaits
+  // approval, or (tail rows) while it shows a failure; a manual toggle takes
+  // over from there. Called unconditionally to honour the rules of hooks even
+  // though preview rows do not read `expanded`.
   const autoOpen =
-    toolCall.status === ToolCallStatus.TOOL_CALL_RUNNING || approval != null;
+    toolCall.status === ToolCallStatus.TOOL_CALL_RUNNING ||
+    approval != null ||
+    tailFailed;
   const [expanded, handleToggle] = useAutoDisclosure(autoOpen, {
     initialOpen: defaultExpanded || autoOpen,
   });
@@ -260,13 +284,24 @@ export const ToolCallItem = memo(function ToolCallItem({
   const subtitleIsFilePath =
     !isSubAgent && primaryArg != null && isFileCategory(category);
 
-  // Preview categories (shell, edit, write, fetch, web-search, unknown, mcp)
-  // render their body ALWAYS — Cursor-style "previews aren't collapsible" — so
-  // no header chevron competes with the body's own in-place reveal. Summary
+  // A tail row condenses only a terminal session. While gated it renders like
+  // preview — decision actions are never hidden behind a chevron — and any
+  // other result shape (an offloaded outputRef, bare error text) falls back to
+  // preview too: never hide evidence the tail cannot honestly condense.
+  const tailSession =
+    isTailCategory && approval == null && result.type === "terminal"
+      ? result
+      : null;
+
+  // Preview categories (edit, write, fetch, web-search, unknown, mcp) render
+  // their body ALWAYS — Cursor-style "previews aren't collapsible" — so no
+  // header chevron competes with the body's own in-place reveal. Summary
   // categories and sub-agents keep the chevron: their body is genuinely hidden
   // by default, so the chevron has a real job. The two disclosure axes
   // (card-level chevron vs. content-overflow reveal) never govern one body.
-  const isPreviewCategory = !isSubAgent && disclosure === "preview";
+  const isPreviewLayout =
+    !isSubAgent &&
+    (disclosure === "preview" || (isTailCategory && tailSession == null));
 
   // The disclosed body, shared by both layouts: a pending gate decides inline,
   // a sub-agent shows its delegation, otherwise the category detail.
@@ -340,9 +375,9 @@ export const ToolCallItem = memo(function ToolCallItem({
 
   // Preview layout: a plain (non-button) header above an always-visible body.
   // The body renders only when it has something to show — a pending gate, or a
-  // non-empty result — so a no-output shell (which normalizes to an `empty`
-  // result) stays a clean one-line row, never an empty padded box.
-  if (isPreviewCategory) {
+  // non-empty result — so a tool that produced nothing stays a clean one-line
+  // row, never an empty padded box.
+  if (isPreviewLayout) {
     const showBody = approval != null || result.type !== "empty";
     return (
       <ThreadCardShell
@@ -354,6 +389,40 @@ export const ToolCallItem = memo(function ToolCallItem({
         <ThreadCardHeader>{headerInner}</ThreadCardHeader>
         {showBody && (
           <ThreadCardBody cursorTarget="tool-preview">{body}</ThreadCardBody>
+        )}
+      </ThreadCardShell>
+    );
+  }
+
+  // Tail layout: a chevron-gated header whose body is never fully hidden —
+  // expanded it is the live/full terminal session, collapsed it is the dimmed
+  // TerminalTail teaser. useAutoDisclosure keeps it open while the command
+  // runs and settles a *successful* session closed (tailFailed holds a failed
+  // one open); a manual toggle always wins.
+  if (tailSession) {
+    return (
+      <ThreadCardShell
+        bordered={bordered}
+        accent={gateAccent}
+        cursorTarget="tool-call-row"
+        className={className}
+      >
+        <ThreadCardHeader
+          gesture={{ kind: "expand", expanded, onToggle: handleToggle }}
+        >
+          {headerInner}
+        </ThreadCardHeader>
+        {expanded ? (
+          <ThreadCardBody cursorTarget="tool-preview">{body}</ThreadCardBody>
+        ) : (
+          <ThreadCardBody>
+            <TerminalTail
+              command={tailSession.command}
+              stdout={tailSession.stdout}
+              stderr={tailSession.stderr}
+              exitCode={tailSession.exitCode}
+            />
+          </ThreadCardBody>
         )}
       </ThreadCardShell>
     );

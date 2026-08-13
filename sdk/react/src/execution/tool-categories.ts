@@ -36,16 +36,24 @@ export type ToolCategory =
  *   `Search … 2 matches`). The full detail is one click away.
  * - `"preview"` — the row renders its result body **always** (no card chevron),
  *   because the one-liner cannot convey what happened so the content itself IS
- *   the information (a shell command's output, an MCP result such as a
- *   screenshot, a fetched page, a web-search answer, or an unrecognised tool's
- *   output). The body's own in-place reveal expands it beyond the height budget.
+ *   the information (an MCP result such as a screenshot, a fetched page, a
+ *   web-search answer, or an unrecognised tool's output). The body's own
+ *   in-place reveal expands it beyond the height budget.
+ * - `"tail"` — live like `"preview"`, settled like a teaser: while the tool
+ *   runs (or awaits approval) the full body streams in view; once it settles
+ *   successfully the row collapses to a dimmed tail of its last output lines —
+ *   at-a-glance evidence that it ran and what it printed last — expanding on
+ *   demand via the header chevron. A settled *failure* stays open: error
+ *   output is content, not context. Shell is the canonical tail category — a
+ *   working session's compile/validate loops would otherwise dominate the
+ *   transcript at full contrast (Cursor's chat is the reference UX).
  *
  * This is the *disclosure* axis (how much of a result to show); it is
  * orthogonal to {@link isRunGroupableCategory} (whether consecutive same-kind
  * calls fold into one chip). A category can be result-rich but never folded
  * (`shell`), or foldable but never previewed (`read`).
  */
-export type ToolDisclosure = "summary" | "preview";
+export type ToolDisclosure = "summary" | "preview" | "tail";
 
 /**
  * Categories whose result is foregrounded as a persistent bounded preview by
@@ -60,13 +68,24 @@ export type ToolDisclosure = "summary" | "preview";
  * under control even in turns with many edits.
  */
 const PREVIEW_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
-  "shell",
   "edit",
   "write",
   "mcp",
   "web-search",
   "fetch",
   "unknown",
+]);
+
+/**
+ * Categories that stream in full while live but settle to a dimmed tail of
+ * their last output lines (see the `"tail"` arm of {@link ToolDisclosure}).
+ * Today that is shell alone: its output is evidence worth keeping at a
+ * glance, but rarely worth reading line by line once the command succeeded.
+ * Consumers can restore the always-expanded preview per kind via
+ * {@link registerToolPresenter} (`disclosure: () => "preview"`).
+ */
+const TAIL_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
+  "shell",
 ]);
 
 /**
@@ -84,13 +103,15 @@ const RUN_GROUPABLE_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory
 
 /**
  * Returns the default inline {@link ToolDisclosure} for a presentation
- * category. This is the headless policy behind the thread's "keep a live
- * preview for shell/MCP/unknown, keep generic tools compact" behaviour;
- * consumers can override per {@link ToolKind} via {@link registerToolPresenter}.
+ * category. This is the headless policy behind the thread's "collapse settled
+ * shell to a dimmed tail, keep a live preview for MCP/unknown, keep generic
+ * tools compact" behaviour; consumers can override per {@link ToolKind} via
+ * {@link registerToolPresenter}.
  */
 export function defaultDisclosureForCategory(
   category: ToolCategory,
 ): ToolDisclosure {
+  if (TAIL_CATEGORIES.has(category)) return "tail";
   return PREVIEW_CATEGORIES.has(category) ? "preview" : "summary";
 }
 

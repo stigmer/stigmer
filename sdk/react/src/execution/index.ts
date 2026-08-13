@@ -154,8 +154,8 @@ export type { ToolArgsViewProps } from "./ToolArgsView.js";
 export { ResultView, summarizeResultView } from "./ResultView.js";
 export type { ResultViewProps } from "./ResultView.js";
 
-export { TerminalSession } from "./TerminalSession.js";
-export type { TerminalSessionProps } from "./TerminalSession.js";
+export { TerminalSession, TerminalTail } from "./TerminalSession.js";
+export type { TerminalSessionProps, TerminalTailProps } from "./TerminalSession.js";
 
 export {
   useToolPresentation,

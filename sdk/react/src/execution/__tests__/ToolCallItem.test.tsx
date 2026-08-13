@@ -190,10 +190,10 @@ describe("ToolCallItem disclosure", () => {
     expect(container.querySelector("table")).not.toBeNull();
   });
 
-  it("renders a settled shell as an always-visible terminal session, no chevron", () => {
-    // Shell is a `preview` category: its output IS the information. The body
-    // reads as one terminal session — the `$ command` prompt line leads, with
-    // its output below — visible without any disclosure click.
+  it("settles a successful shell into a collapsed dimmed tail behind a chevron", () => {
+    // Shell is the `tail` category: a settled success collapses to the
+    // TerminalTail teaser — the `$ command` line plus the last output lines at
+    // reduced contrast — with the header chevron as the expand control.
     const { container } = render(
       <ToolCallItem
         toolCall={makeToolCall({
@@ -203,13 +203,17 @@ describe("ToolCallItem disclosure", () => {
         })}
       />,
     );
-    expect(hasHeaderChevron(container)).toBe(false);
-    expect(previewBody(container)).not.toBeNull();
+    expect(hasHeaderChevron(container)).toBe(true);
+    expect(isExpanded(container)).toBe(false);
+    expect(
+      container.querySelector('[data-cursor-target="terminal-tail"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-cursor-target="terminal-session"]'),
+    ).toBeNull();
+    // The teaser still carries the evidence: intent and last output.
     expect(container.textContent).toContain("$ echo hello");
     expect(screen.getByText("hello")).toBeTruthy();
-    expect(
-      container.querySelectorAll('[data-cursor-target="terminal-session"]'),
-    ).toHaveLength(1);
   });
 
   it("renders a settled MCP tool's result inline with no chevron", () => {
@@ -248,7 +252,10 @@ describe("ToolCallItem disclosure", () => {
     expect(container.textContent).toContain("exit 2");
   });
 
-  it("renders a running shell as a single terminal session block, no chevron", () => {
+  it("streams a running shell's full session in view (force-open, collapsible)", () => {
+    // The auto-open-while-running behaviour is untouched by the tail settle:
+    // an active command shows its output streaming. The chevron is present —
+    // a user may collapse a noisy long-running command, and their choice wins.
     const { container } = render(
       <ToolCallItem
         toolCall={makeToolCall({
@@ -259,10 +266,103 @@ describe("ToolCallItem disclosure", () => {
         })}
       />,
     );
-    expect(hasHeaderChevron(container)).toBe(false);
+    expect(hasHeaderChevron(container)).toBe(true);
+    expect(isExpanded(container)).toBe(true);
     expect(
       container.querySelectorAll('[data-cursor-target="terminal-session"]'),
     ).toHaveLength(1);
+  });
+
+  // --- Tail settle lifecycle (issue #275) ------------------------------------
+
+  it("collapses a running shell to the dimmed tail the moment it succeeds", () => {
+    const running = makeToolCall({
+      id: "tc-sh",
+      name: "Shell",
+      args: { command: "make build" },
+      result: "compiling…",
+      status: ToolCallStatus.TOOL_CALL_RUNNING,
+    });
+    const { container, rerender } = render(<ToolCallItem toolCall={running} />);
+    expect(isExpanded(container)).toBe(true);
+
+    rerender(
+      <ToolCallItem
+        toolCall={makeToolCall({
+          id: "tc-sh",
+          name: "Shell",
+          args: { command: "make build" },
+          result: "compiling…\nBUILD OK",
+          status: ToolCallStatus.TOOL_CALL_COMPLETED,
+        })}
+      />,
+    );
+    expect(isExpanded(container)).toBe(false);
+    expect(
+      container.querySelector('[data-cursor-target="terminal-tail"]'),
+    ).not.toBeNull();
+    expect(container.textContent).toContain("BUILD OK");
+  });
+
+  it("keeps a failed shell open — error output is content, not context", () => {
+    // A non-zero exit means the output is what the user needs next; the row
+    // must never settle into the dimmed teaser. The exit marker in the result
+    // string is the failure signal (status stays COMPLETED on the wire).
+    const { container } = render(
+      <ToolCallItem
+        toolCall={makeToolCall({
+          name: "Shell",
+          args: { command: "make build" },
+          result: "error: no rule\n[Command failed with exit code 2]",
+        })}
+      />,
+    );
+    expect(hasHeaderChevron(container)).toBe(true);
+    expect(isExpanded(container)).toBe(true);
+    expect(
+      container.querySelector('[data-cursor-target="terminal-session"]'),
+    ).not.toBeNull();
+    expect(container.textContent).toContain("exit 2");
+  });
+
+  it("keeps only the last lines in the collapsed tail, with an honest hidden-count", () => {
+    const output = ["one", "two", "three", "four", "five"].join("\n");
+    const { container } = render(
+      <ToolCallItem
+        toolCall={makeToolCall({
+          name: "Shell",
+          args: { command: "seq 5" },
+          result: output,
+        })}
+      />,
+    );
+    const tail = container.querySelector('[data-cursor-target="terminal-tail"]')!;
+    expect(tail.textContent).toContain("five");
+    expect(tail.textContent).toContain("three");
+    expect(tail.textContent).not.toContain("one");
+    expect(tail.textContent).toContain("+2 lines");
+  });
+
+  it("expands a collapsed tail to the full session on click, and the choice sticks", () => {
+    const settled = makeToolCall({
+      id: "tc-sh2",
+      name: "Shell",
+      args: { command: "echo hi" },
+      result: "hi",
+    });
+    const { container, rerender } = render(<ToolCallItem toolCall={settled} />);
+    expect(isExpanded(container)).toBe(false);
+
+    fireEvent.click(rowHeaderToggle(container)!);
+    expect(isExpanded(container)).toBe(true);
+    expect(
+      container.querySelector('[data-cursor-target="terminal-session"]'),
+    ).not.toBeNull();
+
+    // A stream frame re-rendering the same settled call never recollapses a
+    // row the user opened (useAutoDisclosure: the manual toggle wins).
+    rerender(<ToolCallItem toolCall={settled} />);
+    expect(isExpanded(container)).toBe(true);
   });
 
   it("suppresses the body for a content-bearing tool that produced nothing", () => {
