@@ -28,13 +28,9 @@
       "type": {
         "kind": "string"
       },
-      "description": "Error message.\n Can contain expressions: \"${ .errorMessage }\"",
-      "required": true,
-      "isExpression": true,
-      "validation": {
-        "required": true,
-        "minLength": 1
-      }
+      "description": "Error message.\n Can contain expressions: \"${ .errorMessage }\"\n Optional — when omitted, the raised error carries only the error\n type/name. (The runtime maps this to the problem-details `detail`\n field only when present; requiring it was contract fiction, #685.)",
+      "required": false,
+      "isExpression": true
     }
   ]
 }

@@ -1238,16 +1238,12 @@
         {
           "name": "message",
           "displayName": "Message",
-          "description": "Error message. Can contain expressions: \"${ .errorMessage }\"",
+          "description": "Error message. Can contain expressions: \"${ .errorMessage }\" Optional — when omitted, the raised error carries only the error type/name. (The runtime maps this to the problem-details `detail` field only when present; requiring it was contract fiction, #685.)",
           "type": "string",
-          "required": true,
+          "required": false,
           "isExpression": true,
           "groupId": "core",
-          "fieldNumber": 2,
-          "validationHints": [
-            "required",
-            "min_length: 1"
-          ]
+          "fieldNumber": 2
         }
       ],
       "fieldGroups": [
@@ -1266,14 +1262,12 @@
             "type": "string"
           },
           "message": {
-            "description": "Error message. Can contain expressions: \"${ .errorMessage }\"",
-            "minLength": 1,
+            "description": "Error message. Can contain expressions: \"${ .errorMessage }\" Optional — when omitted, the raised error carries only the error type/name. (The runtime maps this to the problem-details `detail` field only when present; requiring it was contract fiction, #685.)",
             "type": "string"
           }
         },
         "required": [
-          "error",
-          "message"
+          "error"
         ],
         "title": "RaiseTaskConfig",
         "type": "object"

@@ -8,14 +8,12 @@
       "type": "string"
     },
     "message": {
-      "description": "Error message. Can contain expressions: \"${ .errorMessage }\"",
-      "minLength": 1,
+      "description": "Error message. Can contain expressions: \"${ .errorMessage }\" Optional — when omitted, the raised error carries only the error type/name. (The runtime maps this to the problem-details `detail` field only when present; requiring it was contract fiction, #685.)",
       "type": "string"
     }
   },
   "required": [
-    "error",
-    "message"
+    "error"
   ],
   "title": "RaiseTaskConfig",
   "type": "object"

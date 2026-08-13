@@ -288,7 +288,7 @@ type NotificationTaskConfigInput = z.infer<typeof NotificationTaskConfigInputSch
 
 const RaiseTaskConfigInputSchema = z.object({
   error: z.string().describe("Error type/name."),
-  message: z.string().describe("Error message. Can contain expressions: '${ .errorMessage }'"),
+  message: z.string().optional().describe("Error message. Can contain expressions: '${ .errorMessage }' Optional — when omitted, the raised error carries only the error type/name. (The runtime maps this to the problem-details 'detail' field only when present; requiring it was contract fiction, #685.)"),
 });
 type RaiseTaskConfigInput = z.infer<typeof RaiseTaskConfigInputSchema>;
 

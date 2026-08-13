@@ -55,6 +55,14 @@ type AgentInstanceCommandControllerClient interface {
 	// @internal
 	// Replaces the entire instance configuration including metadata, spec, and secrets.
 	// No individual field updates — always provide complete state.
+	//
+	// Mutable fields:
+	// - spec.description, spec.environment_refs
+	// - metadata.name, metadata.labels, metadata.tags, metadata.annotations
+	//
+	// Immutable fields (must delete and recreate to change):
+	// - spec.agent_id, metadata.id, metadata.org
+	//
 	// Authorization: Only owner can update (can_edit permission).
 	Update(ctx context.Context, in *AgentInstance, opts ...grpc.CallOption) (*AgentInstance, error)
 	// Update the visibility of an existing agent instance.
@@ -168,6 +176,14 @@ type AgentInstanceCommandControllerServer interface {
 	// @internal
 	// Replaces the entire instance configuration including metadata, spec, and secrets.
 	// No individual field updates — always provide complete state.
+	//
+	// Mutable fields:
+	// - spec.description, spec.environment_refs
+	// - metadata.name, metadata.labels, metadata.tags, metadata.annotations
+	//
+	// Immutable fields (must delete and recreate to change):
+	// - spec.agent_id, metadata.id, metadata.org
+	//
 	// Authorization: Only owner can update (can_edit permission).
 	Update(context.Context, *AgentInstance) (*AgentInstance, error)
 	// Update the visibility of an existing agent instance.
