@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "defaultinstance",
@@ -7,6 +7,16 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1:workflowinstance",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//backend/libs/go/apiresource",
+    ],
+)
+
+go_test(
+    name = "defaultinstance_test",
+    srcs = ["defaultinstance_test.go"],
+    embed = [":defaultinstance"],
+    deps = [
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//backend/libs/go/apiresource",
     ],

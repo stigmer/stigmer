@@ -102,17 +102,15 @@ func (s *createDefaultInstanceStep) Name() string {
 func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*workflowv1.Workflow]) error {
 	workflow := ctx.NewState()
 	workflowID := workflow.GetMetadata().GetId()
-	workflowSlug := workflow.GetMetadata().GetName()
-	workflowOrg := workflow.GetMetadata().GetOrg()
 
 	log.Info().
 		Str("workflow_id", workflowID).
-		Str("slug", workflowSlug).
-		Str("org", workflowOrg).
+		Str("slug", workflow.GetMetadata().GetSlug()).
+		Str("org", workflow.GetMetadata().GetOrg()).
 		Msg("Creating default instance for workflow")
 
 	// 1. Build default instance request
-	instanceRequest := defaultinstance.BuildRequest(workflowID, workflowSlug, workflowOrg)
+	instanceRequest := defaultinstance.BuildRequest(workflow.GetMetadata())
 
 	// 2. Create instance via downstream client (in-process, system credentials)
 	// This calls WorkflowInstanceCommandController.Create() in-process

@@ -139,8 +139,7 @@ func (s *resolveDefaultAgentInstanceStep) Execute(ctx *pipeline.RequestContext[*
 	if defaultInstanceID == "" {
 		log.Info().Str("agent_id", agentID).Msg("Default instance missing, creating one")
 
-		instanceRequest := defaultinstance.BuildRequest(
-			agentID, defaultAgent.GetMetadata().GetName(), defaultAgent.GetMetadata().GetOrg())
+		instanceRequest := defaultinstance.BuildRequest(defaultAgent.GetMetadata())
 
 		createdInstance, createErr := s.agentInstanceClient.CreateAsSystem(ctx.Context(), instanceRequest)
 		if createErr != nil {

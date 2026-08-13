@@ -174,7 +174,12 @@ func TestAgentInstanceController_UpdateVisibility_DefaultRejectionPrecedesLevelC
 }
 
 func TestDefaultInstanceBuildRequest_StampsSystemManagedLabels(t *testing.T) {
-	request := defaultinstance.BuildRequest("agt_x", "my-agent", "org-1")
+	request := defaultinstance.BuildRequest(&apiresource.ApiResourceMetadata{
+		Id:   "agt_x",
+		Name: "My Agent",
+		Slug: "my-agent",
+		Org:  "org-1",
+	})
 
 	assert.Equal(t, "my-agent-default", request.GetMetadata().GetName())
 	assert.Equal(t, "my-agent-default", defaultinstance.Slug("my-agent"))

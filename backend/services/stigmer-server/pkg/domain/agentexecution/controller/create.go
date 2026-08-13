@@ -344,8 +344,7 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 		Str("agent_id", agentID).
 		Msg("Agent missing default instance, creating one")
 
-	instanceRequest := defaultinstance.BuildRequest(
-		agentID, agent.GetMetadata().GetName(), agent.GetMetadata().GetOrg())
+	instanceRequest := defaultinstance.BuildRequest(agent.GetMetadata())
 
 	// 4. Create instance via downstream client (in-process, system credentials)
 	createdInstance, err := s.agentInstanceClient.CreateAsSystem(ctx.Context(), instanceRequest)
