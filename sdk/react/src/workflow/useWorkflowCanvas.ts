@@ -68,6 +68,20 @@ import type { LayoutEngine } from "./layout/index.js";
 import { serializeSelection, pasteClipboard } from "./clipboard.js";
 import type { ClipboardEntry } from "./clipboard.js";
 
+/**
+ * Serializes a graph model to canonical YAML, or `null` if serialization
+ * fails. graphToYaml is total on models produced by yamlToGraph (its sort is
+ * cycle-protected and unknown kinds fall back to `unknown_N`), so `null` is
+ * a defensive outcome, not an expected one.
+ */
+function serializeGraphOrNull(model: WorkflowGraphModel): string | null {
+  try {
+    return graphToYaml(model);
+  } catch {
+    return null;
+  }
+}
+
 /** Selection state for the canvas inspector. */
 export interface CanvasSelection {
   readonly type: "node" | "edge";
@@ -180,6 +194,10 @@ export function useWorkflowCanvas(
   const [error, setError] = useState<string | null>(null);
   const [selection, setSelection] = useState<CanvasSelection | null>(null);
   const initialModelRef = useRef<WorkflowGraphModel | null>(null);
+  // Serialized form of the baseline model, kept in lockstep with
+  // initialModelRef. Dirty tracking compares serializations, not references —
+  // see the "Dirty tracking" section below for why.
+  const initialYamlRef = useRef<string | null>(null);
 
   const [nodes, setNodes, onNodesChangeRaw] = useNodesState([] as Node[]);
   const [edges, setEdges, onEdgesChangeRaw] = useEdgesState([] as Edge[]);
@@ -206,6 +224,7 @@ export function useWorkflowCanvas(
       setNodes([]);
       setEdges([]);
       initialModelRef.current = null;
+      initialYamlRef.current = null;
       return;
     }
 
@@ -214,6 +233,10 @@ export function useWorkflowCanvas(
       const laidOut = applyDagreLayout(parsed);
       history.reset(laidOut);
       initialModelRef.current = laidOut;
+      // Baseline is the canonical re-serialization, not the incoming string:
+      // dirty comparisons must be canonical-vs-canonical, immune to cosmetic
+      // formatting differences in host-provided YAML.
+      initialYamlRef.current = serializeGraphOrNull(laidOut);
       setError(null);
 
       const elements = toReactFlowElements(laidOut);
@@ -224,6 +247,7 @@ export function useWorkflowCanvas(
       setNodes([]);
       setEdges([]);
       initialModelRef.current = null;
+      initialYamlRef.current = null;
     }
   }, [yaml]);
 
@@ -449,6 +473,7 @@ export function useWorkflowCanvas(
         };
         history.reset(bootstrapModel);
         initialModelRef.current = bootstrapModel;
+        initialYamlRef.current = serializeGraphOrNull(bootstrapModel);
 
         const autoEdge = {
           id: generateEdgeId(),
@@ -1158,20 +1183,33 @@ export function useWorkflowCanvas(
   }, [history.redo, syncFromModel]);
 
   // ---------------------------------------------------------------------------
-  // Dirty tracking: model reference comparison
+  // Dirty tracking: serialization comparison (oss#609)
+  //
+  // Dirty means "saving would change the document". Node positions are not
+  // part of the serialized YAML (dagre recomputes them on every load), so a
+  // position-only edit session (drags, auto-layout) must NOT read as dirty:
+  // its save would round-trip byte-identical YAML, and because hosts reset
+  // the baseline by feeding saved YAML back through the `yaml` prop (whose
+  // re-parse effect is string-change gated), a reference-based flag could
+  // never clear afterwards — an armed Save button that saving cannot disarm.
+  // graphToYaml is total on parsed models (cycle-protected sort, unknown-kind
+  // fallback) and O(nodes+edges), cheap enough to compare per model change.
   // ---------------------------------------------------------------------------
 
   const graph = history.currentModel.nodes.length > 0 ? history.currentModel : null;
-  const isDirty = initialModelRef.current !== null && graph !== initialModelRef.current;
+  const currentYaml = useMemo(
+    () => (graph ? serializeGraphOrNull(graph) : null),
+    [graph],
+  );
+  // Reference comparison remains as the fallback for the defensive case where
+  // serialization failed (null); failing dirty-side keeps Save reachable.
+  const isDirty =
+    initialModelRef.current !== null &&
+    (currentYaml !== null && initialYamlRef.current !== null
+      ? currentYaml !== initialYamlRef.current
+      : graph !== initialModelRef.current);
 
-  const serializeToYaml = useCallback((): string | null => {
-    if (!graph) return null;
-    try {
-      return graphToYaml(graph);
-    } catch {
-      return null;
-    }
-  }, [graph]);
+  const serializeToYaml = useCallback((): string | null => currentYaml, [currentYaml]);
 
   return useMemo(
     () => ({
