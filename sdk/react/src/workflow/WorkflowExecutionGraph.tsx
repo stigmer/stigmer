@@ -152,6 +152,7 @@ function WorkflowExecutionGraphInner({
   const [didInitialFit, setDidInitialFit] = useState(false);
   const isInitializedRef = useRef(false);
   const didFitGuardRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   // ── Ephemeral drag positions ───────────────────────────────────────
   // Resets when the execution changes (navigating to a different run).
@@ -188,6 +189,14 @@ function WorkflowExecutionGraphInner({
 
   const performInitialFit = useCallback(() => {
     if (didFitGuardRef.current) return;
+    // A CSS-hidden mount (the execution viewer keeps BOTH center views
+    // mounted with the inactive one `display:none`) measures 0×0 —
+    // `fitView` against that computes a degenerate transform that never
+    // self-corrects, so the first toggle to Graph would show an
+    // apparently empty canvas (oss#571). Defer: the ResizeObserver below
+    // re-attempts on the hidden→visible transition.
+    const el = containerRef.current;
+    if (!el || el.offsetWidth === 0 || el.offsetHeight === 0) return;
     didFitGuardRef.current = true;
     fitView({ padding: 0.15, duration: getAnimationDuration(300) });
     setDidInitialFit(true);
@@ -207,6 +216,22 @@ function WorkflowExecutionGraphInner({
     if (isInitializedRef.current && nodes.length > 0) {
       performInitialFit();
     }
+  }, [nodes.length, performInitialFit]);
+
+  // The deferred-fit path for hidden mounts: when the container gains
+  // real dimensions (first reveal, or a late layout pass), run the
+  // pending initial fit. One-shot — `performInitialFit` self-guards, so
+  // user pan/zoom is never overridden by later resizes.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      if (isInitializedRef.current && nodes.length > 0) {
+        performInitialFit();
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [nodes.length, performInitialFit]);
 
   // Derive active task name stably from taskStates (not from nodes array — DD-010)
@@ -276,7 +301,7 @@ function WorkflowExecutionGraphInner({
 
   return (
     <WorkflowGraphModeProvider mode="execution">
-      <div className={cn("stg:relative stg:h-full stg:w-full", className)}>
+      <div ref={containerRef} className={cn("stg:relative stg:h-full stg:w-full", className)}>
         {versionMismatch && (
           <div className="stg:absolute stg:left-3 stg:right-3 stg:top-3 stg:z-50 stg:rounded-md stg:border stg:border-[var(--stgm-warning,#f59e0b)]/30 stg:bg-[var(--stgm-warning,#f59e0b)]/5 stg:px-3 stg:py-2 stg:text-xs stg:text-[var(--stgm-foreground,#1a1a2e)]">
             {versionMismatch}

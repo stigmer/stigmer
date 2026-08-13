@@ -11,18 +11,24 @@ export async function navigateToWorkflowDetail(
   slug: string,
 ): Promise<void> {
   await page.goto(`/library/workflows/${org}/${slug}`);
+  // 30s: a cold Next dev server compiles the route on first hit, and
+  // parallel workers can queue behind that compile.
   await page.getByRole("tablist", { name: "Workflow detail tabs" }).waitFor({
     state: "visible",
-    timeout: 15_000,
+    timeout: 30_000,
   });
 }
 
 /**
  * Click the Run button in the detail action bar and wait for the dialog.
  * Assumes the page is already on a workflow detail view with a loaded workflow.
+ *
+ * `exact` matters: once the workflow has executions, the header also
+ * renders a "View latest run" button, and getByRole's default substring
+ * name matching would strict-mode-collide on "Run".
  */
 export async function openRunDialog(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Run" }).click();
+  await page.getByRole("button", { name: "Run", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5_000 });
 }
 

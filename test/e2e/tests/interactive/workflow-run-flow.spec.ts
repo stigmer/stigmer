@@ -7,8 +7,8 @@ import {
 } from "../../helpers/workflow-detail";
 import {
   waitForPhaseBadge,
-  getExecutionTimeline,
-  verifyTimelineHasEvents,
+  getThreadTaskCards,
+  getThreadTaskCard,
   clickPause,
   clickResume,
   clickCancel,
@@ -55,7 +55,7 @@ test.describe("Workflow execution via Run button", () => {
     });
   });
 
-  test("execution completes with timeline events", async ({
+  test("execution completes with task cards in the thread", async ({
     page,
     testWorkflow,
   }) => {
@@ -66,11 +66,11 @@ test.describe("Workflow execution via Run button", () => {
 
     await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
 
-    const timeline = getExecutionTimeline(page);
-    await expect(timeline).toBeVisible();
-    await verifyTimelineHasEvents(page, 1);
-
-    await expect(page.getByText("step_one")).toBeVisible();
+    // The retired timeline's promise, on its successor surface: every
+    // executed task gets a thread card (scoped — the sr-only announcer
+    // and the hidden graph also carry task names).
+    await expect(getThreadTaskCards(page).first()).toBeVisible();
+    await expect(getThreadTaskCard(page, "step_one")).toBeVisible();
   });
 
   test("pause a running execution then resume to completion", async ({
@@ -97,7 +97,7 @@ test.describe("Workflow execution via Run button", () => {
 
     // After resume, wait timer continues then set_vars runs → Completed
     await waitForPhaseBadge(page, "Completed", { timeout: 20_000 });
-    await verifyTimelineHasEvents(page, 1);
+    await expect(getThreadTaskCards(page).first()).toBeVisible();
   });
 
   test("running the same workflow twice creates two distinct executions", async ({

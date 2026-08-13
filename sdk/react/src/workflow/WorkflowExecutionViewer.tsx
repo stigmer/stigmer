@@ -344,24 +344,38 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   // Thread view. One always-visible announcer serves both center views.
   const announcement = useExecutionAnnouncements(effectiveTaskStates);
 
-  // Terminal-phase snapshot refetch (T04, DD-T04-4). While a run streams,
-  // the cards' collapsed lines and bodies work from the TRUNCATED event
-  // summaries; the full per-task output lands on `status.tasks[]` only when
-  // the runner persists the terminal snapshot. The stream store's stage is
-  // the live end-of-run signal (`"complete"` on the terminal event) — the
-  // snapshot's own `phase` cannot be the trigger, since it only moves on a
-  // refetch (the circularity behind the stale "Pending" header, R1-5).
-  // Scoped to the live→complete TRANSITION: a terminal-replay mount starts
-  // at "complete" without ever streaming and already fetched a settled
-  // snapshot, so it must not refetch again.
+  // Boundary-transition snapshot refetches. The snapshot fetch is one-shot
+  // (`useWorkflowExecution` never polls), so the stream store's stage
+  // transitions are the only live signals that the mount snapshot went
+  // stale — the snapshot's own `phase` cannot be the trigger, since it
+  // only moves on a refetch (the circularity behind the stale "Pending"
+  // header, R1-5). Two transitions matter, one per direction:
+  //
+  // - ENTERING "complete" (T04, DD-T04-4): while a run streams, the cards'
+  //   collapsed lines and bodies work from the TRUNCATED event summaries;
+  //   the full per-task output lands on `status.tasks[]` only when the
+  //   runner persists the terminal snapshot.
+  // - ENTERING "streaming" (oss#571): the store flips connecting→streaming
+  //   on the FIRST delivered event, so this transition is the "run
+  //   started" signal for a page that landed on a still-pending execution
+  //   — without the refetch, the phase badge and the phase-gated
+  //   Pause/Cancel would freeze at "Pending" for the entire run. It also
+  //   covers reconnecting→streaming, where the snapshot slept through the
+  //   outage.
+  //
+  // Both are TRANSITION-scoped (never fire on mount): a terminal-replay
+  // mount starts at "complete" and a mid-run mount starts at "streaming",
+  // and each already fetched a fresh snapshot.
   const prevStreamStageRef = useRef(streamState.stage);
   useEffect(() => {
     const prev = prevStreamStageRef.current;
     prevStreamStageRef.current = streamState.stage;
-    if (
+    const enteredComplete =
       streamState.stage === "complete" &&
-      (prev === "streaming" || prev === "reconnecting")
-    ) {
+      (prev === "streaming" || prev === "reconnecting");
+    const enteredStreaming =
+      streamState.stage === "streaming" && prev !== "streaming";
+    if (enteredComplete || enteredStreaming) {
       refetchExecution();
     }
   }, [streamState.stage, refetchExecution]);

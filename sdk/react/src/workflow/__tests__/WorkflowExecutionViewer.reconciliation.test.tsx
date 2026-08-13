@@ -571,7 +571,9 @@ describe("WorkflowExecutionViewer (terminal-phase refetch, T04)", () => {
 
   // Re-mocks ONLY the stream stage (the execution mock — and its refetch
   // spy — must stay stable across the flip; the assertions count its calls).
-  function mockStreamStage(stage: "streaming" | "reconnecting" | "complete") {
+  function mockStreamStage(
+    stage: "connecting" | "streaming" | "reconnecting" | "complete",
+  ) {
     mockedUseEventStream.mockReturnValue({
       events: [],
       taskStates: new Map([
@@ -629,5 +631,50 @@ describe("WorkflowExecutionViewer (terminal-phase refetch, T04)", () => {
     render(<WorkflowExecutionViewer executionId="wex_1" />);
 
     expect(refetch).not.toHaveBeenCalled();
+  });
+
+  // The other stale direction (oss#571's live-run finding): a page that
+  // lands BEFORE the run starts fetches a PENDING snapshot, and nothing
+  // refetched it when the run began — the phase badge and the phase-gated
+  // Pause/Cancel froze at "Pending" for the entire run. The store flips
+  // connecting → streaming exactly when the FIRST event is delivered, so
+  // that transition IS the "run started" signal.
+  it("the stream's first delivery refetches a pending-landing snapshot — the phase badge and Pause/Cancel catch up to the started run", () => {
+    const { refetch } = arrange(ExecutionPhase.EXECUTION_PENDING);
+    mockStreamStage("connecting");
+    const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);
+    expect(refetch).not.toHaveBeenCalled();
+
+    mockStreamStage("streaming");
+    rerender(
+      <WorkflowExecutionViewer executionId="wex_1" className="pass-2" />,
+    );
+    expect(refetch).toHaveBeenCalledTimes(1);
+
+    // Idempotent: staying in streaming never re-triggers.
+    rerender(
+      <WorkflowExecutionViewer executionId="wex_1" className="pass-3" />,
+    );
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("a reconnect recovery (reconnecting → streaming) refetches — the snapshot may have moved during the outage", () => {
+    const { refetch } = arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    mockStreamStage("streaming");
+    const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);
+    // Mid-run mount: the snapshot was just fetched — no refetch.
+    expect(refetch).not.toHaveBeenCalled();
+
+    mockStreamStage("reconnecting");
+    rerender(
+      <WorkflowExecutionViewer executionId="wex_1" className="pass-2" />,
+    );
+    expect(refetch).not.toHaveBeenCalled();
+
+    mockStreamStage("streaming");
+    rerender(
+      <WorkflowExecutionViewer executionId="wex_1" className="pass-3" />,
+    );
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 });

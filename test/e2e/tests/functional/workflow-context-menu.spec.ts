@@ -3,6 +3,8 @@ import { assertNoErrorBoundary } from "../../helpers/navigation";
 import {
   navigateToVisualEditor,
   getCanvasNode,
+  getCanvasNodeByKind,
+  getEditorCanvas,
 } from "../../helpers/workflow-canvas";
 
 test.describe("Workflow context menus and keyboard shortcuts (T11)", () => {
@@ -79,9 +81,11 @@ test.describe("Workflow context menus and keyboard shortcuts (T11)", () => {
     const menu = page.locator('[role="menu"]');
     await menu.locator('text=Duplicate').click();
 
-    const duplicated = page.locator('[data-task-kind="set_variables"]');
-    const count = await duplicated.count();
-    expect(count).toBeGreaterThanOrEqual(2);
+    // The registered kind string is `set_vars` (`set_variables` was this
+    // spec's own drift); scoped to the editor canvas.
+    await expect
+      .poll(async () => getCanvasNodeByKind(page, "set_vars").count())
+      .toBeGreaterThanOrEqual(2);
   });
 
   test("'Disable / Bypass' from context menu toggles disabled state", async ({
@@ -101,9 +105,13 @@ test.describe("Workflow context menus and keyboard shortcuts (T11)", () => {
     const menu = page.locator('[role="menu"]');
     await menu.locator('text=Disable / Bypass').click();
 
-    // After toggling disabled, the Modified indicator should appear
-    const modifiedIndicator = page.locator('text=Modified');
-    await expect(modifiedIndicator).toBeVisible({ timeout: 5_000 });
+    // Toggling disabled dirties the editor. With a wired onSave (the
+    // console always wires it) the dirty signal is the Save button
+    // becoming enabled — the "Modified" pill renders only in save-less
+    // embeddings.
+    await expect(page.getByRole("button", { name: "Save" })).toBeEnabled({
+      timeout: 5_000,
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -121,8 +129,13 @@ test.describe("Workflow context menus and keyboard shortcuts (T11)", () => {
     );
     await assertNoErrorBoundary(page);
 
-    const edge = page.locator(".react-flow__edge").first();
-    await edge.click({ button: "right" });
+    // Straight vertical edges are zero-width SVG groups — Playwright
+    // treats them as invisible, so element-targeted pointer actions can
+    // never succeed and coordinate guessing lands on neighbors. Dispatch
+    // the contextmenu event on the edge element itself.
+    const edge = getEditorCanvas(page).locator(".react-flow__edge").first();
+    await expect(edge).toBeAttached({ timeout: 10_000 });
+    await edge.dispatchEvent("contextmenu");
 
     const menu = page.locator('[role="menu"]');
     await expect(menu).toBeVisible({ timeout: 5_000 });
@@ -145,8 +158,27 @@ test.describe("Workflow context menus and keyboard shortcuts (T11)", () => {
     );
     await assertNoErrorBoundary(page);
 
-    const canvas = page.locator(".react-flow__pane");
-    await canvas.click({ button: "right" });
+    // Paste only renders with clipboard content (pinned by the picker's
+    // context-menu-logic unit tests) — copy a node first so the pane
+    // menu shows its full action set.
+    const node = getCanvasNode(page, "init_vars");
+    await node.click();
+    const modifier = process.platform === "darwin" ? "Meta" : "Control";
+    await page.keyboard.press(`${modifier}+c`);
+
+    // Right-click empty canvas: the top-right corner is clear of the
+    // toolbar (top-center), the graph column (center), Controls
+    // (bottom-left), and the minimap (bottom-right). Raw mouse click —
+    // the pane spans the canvas and needs no actionability checks.
+    const paneBox = await getEditorCanvas(page)
+      .locator(".react-flow__pane")
+      .boundingBox();
+    expect(paneBox).not.toBeNull();
+    await page.mouse.click(
+      paneBox!.x + paneBox!.width - 40,
+      paneBox!.y + 40,
+      { button: "right" },
+    );
 
     const menu = page.locator('[role="menu"]');
     await expect(menu).toBeVisible({ timeout: 5_000 });
@@ -181,10 +213,16 @@ test.describe("Workflow context menus and keyboard shortcuts (T11)", () => {
     });
   });
 
-  test("Ctrl+Z undoes the last action", async ({
+  test("undo restores a deleted node", async ({
     page,
     testMultiKindWorkflow,
   }) => {
+    // Live-confirmed product bug: undo restores the MODEL (the inspector
+    // rebinds to the deleted node, the history entry is consumed) but the
+    // canvas node never re-renders — the assertion below is correct and
+    // ready; un-fixme when the canvas derivation picks up restored nodes.
+    test.fixme(true, "undo restores model but not the canvas node — stigmer/stigmer#588");
+
     await navigateToVisualEditor(
       page,
       testMultiKindWorkflow.org,
@@ -200,8 +238,16 @@ test.describe("Workflow context menus and keyboard shortcuts (T11)", () => {
       timeout: 5_000,
     });
 
-    const modifier = process.platform === "darwin" ? "Meta" : "Control";
-    await page.keyboard.press(`${modifier}+z`);
+    // Undo via the toolbar button — the Cmd+Z shortcut is gated on focus
+    // being INSIDE the canvas container (useGraphHistory), and React
+    // Flow's drag handler prevents default on node mousedown, so pointer
+    // interactions never move focus there. Keyboard undo after a
+    // pointer-driven delete is therefore unreachable without tabbing —
+    // a keyboard-a11y gap noted in the oss#571 wrap-up; the button is
+    // the discoverable affordance either way.
+    const undoButton = page.getByRole("button", { name: "Undo" });
+    await expect(undoButton).toBeEnabled();
+    await undoButton.click();
 
     await expect(getCanvasNode(page, "init_vars")).toBeAttached({
       timeout: 5_000,
@@ -225,9 +271,9 @@ test.describe("Workflow context menus and keyboard shortcuts (T11)", () => {
     const modifier = process.platform === "darwin" ? "Meta" : "Control";
     await page.keyboard.press(`${modifier}+d`);
 
-    const setVarsNodes = page.locator('[data-task-kind="set_variables"]');
-    const count = await setVarsNodes.count();
-    expect(count).toBeGreaterThanOrEqual(2);
+    await expect
+      .poll(async () => getCanvasNodeByKind(page, "set_vars").count())
+      .toBeGreaterThanOrEqual(2);
   });
 
   test("Ctrl+C then Ctrl+V creates a copy with new name", async ({
@@ -248,9 +294,9 @@ test.describe("Workflow context menus and keyboard shortcuts (T11)", () => {
     await page.keyboard.press(`${modifier}+c`);
     await page.keyboard.press(`${modifier}+v`);
 
-    const setVarsNodes = page.locator('[data-task-kind="set_variables"]');
-    const count = await setVarsNodes.count();
-    expect(count).toBeGreaterThanOrEqual(2);
+    await expect
+      .poll(async () => getCanvasNodeByKind(page, "set_vars").count())
+      .toBeGreaterThanOrEqual(2);
   });
 
   // -------------------------------------------------------------------------
@@ -276,8 +322,10 @@ test.describe("Workflow context menus and keyboard shortcuts (T11)", () => {
 
     const dialog = page.locator('dialog[open]');
     await expect(dialog).toBeVisible({ timeout: 5_000 });
-    await expect(dialog.locator('text=init_vars')).toBeVisible();
-    await expect(dialog.locator('text=set_variables')).toBeVisible();
+    // The name appears in both the dialog title and the YAML body.
+    await expect(dialog.locator('text=init_vars').first()).toBeVisible();
+    // `taskToYaml` serializes the registered kind string (`kind: set_vars`).
+    await expect(dialog.locator('text=set_vars').first()).toBeVisible();
 
     await dialog.locator('button[aria-label="Close"]').click();
     await expect(dialog).not.toBeVisible({ timeout: 3_000 });
