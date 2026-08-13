@@ -16,9 +16,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Deliberately NOT marked is_secret (owner ruling, oss#565): these canaries
+// measure vendor reachability and auth, not the platform's secret lane.
+// is_secret triggers encrypt-at-write (oss#405), and the read-back handler
+// decrypts only for scope-bound runner tokens (minted by the OSS server
+// only) or cloud sandbox ambient credentials — the harness's user-
+// authenticated runner is neither, so secret values arrive redacted and
+// every connect fails before reaching the vendor. The missing end-to-end
+// coverage of the secret discovery path is tracked in oss#579.
 func runtimeEnvFromString(key, value string) map[string]*executionctxv1.ExecutionValue {
 	return map[string]*executionctxv1.ExecutionValue{
-		key: {Value: value, IsSecret: true},
+		key: {Value: value},
 	}
 }
 
@@ -87,7 +95,12 @@ func TestCanary_NoAuth_Fetch_Connects(t *testing.T) {
 			ServerType: &mcpserverv1.McpServerSpec_Stdio{
 				Stdio: &mcpserverv1.StdioServerConfig{
 					Command: "uvx",
-					Args:    []string{"mcp-server-fetch"},
+					// mcp<2: the MCP Python SDK 2.0 renamed McpError to
+					// MCPError and mcp-server-fetch declares mcp>=1.1.3 with
+					// no ceiling, so an unpinned resolve dies at import
+					// (caught by this canary's first real run, oss#565).
+					// Drop the pin once upstream migrates or adds a ceiling.
+					Args: []string{"--with", "mcp<2", "mcp-server-fetch"},
 				},
 			},
 		},
@@ -282,12 +295,17 @@ func TestCanary_ApiKey_GoogleMaps(t *testing.T) {
 			Org:  "test-org",
 		},
 		Spec: &mcpserverv1.McpServerSpec{
-			Description: "Canary test: Google Maps (custom header API key)",
+			Description: "Canary test: Google Maps (API key)",
+			// Mirrors seedpack/mcp-servers/google-maps.yaml — the canary's
+			// value is proving the shipped seedpack shape still connects.
+			// This test had drifted behind the seedpack onto Google's
+			// retired v1alpha endpoint (caught by the lane's first real
+			// run, oss#565); keep the two in lockstep.
 			ServerType: &mcpserverv1.McpServerSpec_Http{
 				Http: &mcpserverv1.HttpServerConfig{
-					Url: "https://mcp.googleapis.com/v1alpha/maps:streamGenerateContent",
+					Url: "https://mapstools.googleapis.com/mcp",
 					Headers: map[string]string{
-						"X-Goog-Api-Key": "${GOOGLE_MAPS_API_KEY}",
+						"Authorization": "Bearer ${GOOGLE_MAPS_API_KEY}",
 					},
 				},
 			},
