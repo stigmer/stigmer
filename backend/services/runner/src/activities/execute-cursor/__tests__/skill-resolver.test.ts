@@ -3,51 +3,12 @@ import { mkdtempSync, readFileSync, existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { resolveSkills } from "../skill-resolver.js";
+import { buildZip } from "../../../__test-utils__/zip-fixtures.js";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
 function makeTempDir(prefix: string): string {
   return mkdtempSync(join(tmpdir(), prefix));
-}
-
-/**
- * Build a minimal stored (method 0) ZIP archive for testing.
- */
-function buildStoredZip(files: { name: string; content: string }[]): Uint8Array {
-  const parts: Uint8Array[] = [];
-
-  for (const file of files) {
-    const nameBytes = new TextEncoder().encode(file.name);
-    const contentBytes = new TextEncoder().encode(file.content);
-    const isDir = file.name.endsWith("/");
-
-    const header = new ArrayBuffer(30);
-    const view = new DataView(header);
-    view.setUint32(0, 0x04034b50, true);
-    view.setUint16(4, 20, true);
-    view.setUint16(6, 0, true);
-    view.setUint16(8, 0, true);
-    view.setUint16(10, 0, true);
-    view.setUint16(12, 0, true);
-    view.setUint32(14, 0, true);
-    view.setUint32(18, isDir ? 0 : contentBytes.length, true);
-    view.setUint32(22, isDir ? 0 : contentBytes.length, true);
-    view.setUint16(26, nameBytes.length, true);
-    view.setUint16(28, 0, true);
-
-    parts.push(new Uint8Array(header));
-    parts.push(nameBytes);
-    if (!isDir) parts.push(contentBytes);
-  }
-
-  const totalLength = parts.reduce((sum, p) => sum + p.length, 0);
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const part of parts) {
-    result.set(part, offset);
-    offset += part.length;
-  }
-  return result;
 }
 
 function makeSkillProto(overrides: {
@@ -141,7 +102,7 @@ describe("resolveSkills — artifact extraction", () => {
     const skillMd = "# Garden Design Makeover\n\nSee [references/database-schema.md](references/database-schema.md)";
     const schemaContent = "# Database Schema\n\nTable definitions here.";
 
-    const artifact = buildStoredZip([
+    const artifact = buildZip([
       { name: "SKILL.md", content: skillMd },
       { name: "references/", content: "" },
       { name: "references/database-schema.md", content: schemaContent },
@@ -232,7 +193,7 @@ describe("resolveSkills — artifact extraction", () => {
     const specContent = "# Authoritative SKILL.md from spec";
     const zipContent = "# Stale SKILL.md from ZIP";
 
-    const artifact = buildStoredZip([
+    const artifact = buildZip([
       { name: "SKILL.md", content: zipContent },
       { name: "references/data.md", content: "data" },
     ]);
