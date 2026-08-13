@@ -94,11 +94,16 @@ func (s *ValidateVisibilityStep[T]) Execute(ctx *pipeline.RequestContext[T]) err
 // NOT_FOUND (not INVALID_ARGUMENT) on both editions, because Cloud's step
 // needs the loaded target and therefore runs after its load.
 //
-// Deliberate divergence from the cloud step: no default-instance guard.
-// Cloud rejects visibility updates on system-managed default instances
-// (their access structurally tracks the parent blueprint); OSS default
-// instances carry no marking to key that guard on, so porting it needs a
-// labeling design first — tracked as its own issue, not silently skipped.
+// Deliberate divergence from the cloud step: the default-instance guard is
+// NOT here. Cloud folds it into this step (label check on the loaded
+// target), but the Go pipelines keep each handler's loaded target under a
+// domain-local context key this shared step cannot reach, and the OSS guard
+// additionally needs a kind-specific parent lookup (see
+// RejectDefaultInstanceVisibilityUpdate). The guard therefore lives as a
+// domain step in the two instance controllers (agentinstance,
+// workflowinstance), placed BEFORE this step to preserve cloud's error
+// precedence: a default instance with a bad level returns FAILED_PRECONDITION
+// (not INVALID_ARGUMENT) on both editions.
 type ValidateVisibilityUpdateStep struct {
 }
 
@@ -117,6 +122,30 @@ func (s *ValidateVisibilityUpdateStep) Name() string {
 func (s *ValidateVisibilityUpdateStep) Execute(ctx *pipeline.RequestContext[*apiresourcepb.UpdateVisibilityInput]) error {
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 	return rejectUnsupportedVisibility(kind, ctx.Input().GetVisibility())
+}
+
+// RejectDefaultInstanceVisibilityUpdate is the canonical rejection for a
+// visibility update aimed at a system-managed default instance:
+// FAILED_PRECONDITION with the exact message the cloud edition's
+// ValidateVisibilityUpdateStep emits, so clients see one contract across
+// editions (the text is pinned by the conformance suite).
+//
+// Default instances carry no visibility of their own — their access always
+// follows the parent blueprint (on cloud via the default_of FGA relation;
+// on OSS by construction, since the runner resolves the default instance
+// through the blueprint). A level stamped here would create state the cloud
+// edition considers structurally invalid, breaking cross-edition data
+// portability.
+//
+// The PREDICATE deciding "is this a default instance" is deliberately not
+// shared: it needs the domain's loaded target and a kind-specific parent
+// lookup, so it lives in the instance controllers' guard steps. Only the
+// contract (code + message) is centralized here, next to its level-check
+// sibling, so the two domains cannot drift apart.
+func RejectDefaultInstanceVisibilityUpdate() error {
+	return grpclib.FailedPreconditionError(
+		"Default instances do not have their own visibility - access always follows " +
+			"the parent blueprint. Change the blueprint's visibility instead.")
 }
 
 // rejectUnsupportedVisibility is the shared rejection: nil when the kind

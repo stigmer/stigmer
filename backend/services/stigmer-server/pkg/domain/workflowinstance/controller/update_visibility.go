@@ -2,12 +2,15 @@ package workflowinstance
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/rs/zerolog/log"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
@@ -40,11 +43,54 @@ func (c *WorkflowInstanceController) buildUpdateVisibilityPipeline() *pipeline.P
 	return pipeline.NewPipeline[*apiresourcepb.UpdateVisibilityInput]("workflow-instance-update-visibility").
 		AddStep(steps.NewValidateProtoStep[*apiresourcepb.UpdateVisibilityInput]()).
 		AddStep(c.newLoadInstanceForVisibilityUpdateStep()).
-		AddStep(steps.NewValidateVisibilityUpdateStep()). // Reject unsupported levels (after load: NOT_FOUND wins, as in Cloud)
+		AddStep(c.newRejectDefaultInstanceVisibilityUpdateStep()). // Default instances first: FAILED_PRECONDITION wins over the level check, as in Cloud
+		AddStep(steps.NewValidateVisibilityUpdateStep()).          // Reject unsupported levels (after load: NOT_FOUND wins, as in Cloud)
 		AddStep(c.newSetInstanceVisibilityStep()).
 		AddStep(c.newPersistInstanceForVisibilityUpdateStep()).
 		AddStep(c.newIndexInstanceAfterVisibilityUpdateStep()).
 		Build()
+}
+
+// rejectDefaultInstanceVisibilityUpdateStep rejects visibility updates on a
+// workflow's system-managed default instance — the workflow twin of the
+// agentinstance guard, and the OSS half of the guard cloud applies in its
+// ValidateVisibilityUpdateStep (stigmer/stigmer#556). See the agentinstance
+// step for the full keying rationale (label OR authoritative parent
+// pointer) and the deliberate non-goals; the two must stay in lockstep.
+type rejectDefaultInstanceVisibilityUpdateStep struct {
+	store store.Store
+}
+
+func (c *WorkflowInstanceController) newRejectDefaultInstanceVisibilityUpdateStep() *rejectDefaultInstanceVisibilityUpdateStep {
+	return &rejectDefaultInstanceVisibilityUpdateStep{store: c.store}
+}
+
+func (s *rejectDefaultInstanceVisibilityUpdateStep) Name() string {
+	return "RejectDefaultInstanceVisibilityUpdate"
+}
+
+func (s *rejectDefaultInstanceVisibilityUpdateStep) Execute(ctx *pipeline.RequestContext[*apiresourcepb.UpdateVisibilityInput]) error {
+	instance := ctx.Get(updateVisibilityInstanceKey).(*workflowinstancev1.WorkflowInstance)
+
+	if apiresource.IsDefaultInstance(instance.GetMetadata()) {
+		return steps.RejectDefaultInstanceVisibilityUpdate()
+	}
+
+	parentID := instance.GetSpec().GetWorkflowId()
+	if parentID == "" {
+		return nil
+	}
+	parent := &workflowv1.Workflow{}
+	if err := s.store.GetResource(ctx.Context(), apiresourcekind.ApiResourceKind_workflow, parentID, parent); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil
+		}
+		return grpclib.InternalError(err, "failed to load parent workflow for default-instance check")
+	}
+	if parent.GetStatus().GetDefaultInstanceId() == instance.GetMetadata().GetId() {
+		return steps.RejectDefaultInstanceVisibilityUpdate()
+	}
+	return nil
 }
 
 // loadInstanceForVisibilityUpdateStep loads the workflow instance by resource_id.

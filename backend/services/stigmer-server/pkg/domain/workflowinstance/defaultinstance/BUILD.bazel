@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "defaultinstance",
+    srcs = ["defaultinstance.go"],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowinstance/defaultinstance",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1:workflowinstance",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//backend/libs/go/apiresource",
+    ],
+)

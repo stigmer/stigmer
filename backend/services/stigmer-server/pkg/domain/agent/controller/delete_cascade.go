@@ -12,6 +12,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/defaultinstance"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -101,8 +102,8 @@ func (s *cascadeDeleteDefaultInstanceStep) resolveDefaultInstanceID(ctx *pipelin
 
 	// Legacy/half-created agents may lack the status pointer; fall back to
 	// the "<agent-slug>-default" naming convention (the shape
-	// createDefaultInstanceStep provisions), guarded by spec.agent_id.
-	defaultSlug := agent.GetMetadata().GetSlug() + "-default"
+	// defaultinstance.BuildRequest provisions), guarded by spec.agent_id.
+	defaultSlug := defaultinstance.Slug(agent.GetMetadata().GetSlug())
 	resources, err := s.store.ListResources(ctx.Context(), apiresourcekind.ApiResourceKind_agent_instance)
 	if err != nil {
 		log.Warn().Err(err).Msg("CascadeDeleteDefaultInstance: failed to list instances for slug fallback")

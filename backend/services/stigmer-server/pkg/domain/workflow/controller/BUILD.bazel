@@ -23,7 +23,6 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless",
-        "//apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1:workflowinstance",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/grpc",
@@ -32,6 +31,7 @@ go_library(
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
         "//backend/services/stigmer-server/pkg/domain/workflow/validation",
+        "//backend/services/stigmer-server/pkg/domain/workflowinstance/defaultinstance",
         "//backend/services/stigmer-server/pkg/downstream/workflowinstance",
         "//backend/services/stigmer-server/pkg/query/search/extractor",
         "@build_buf_go_protovalidate//:protovalidate",

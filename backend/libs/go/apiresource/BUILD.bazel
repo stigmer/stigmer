@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "apiresource",
-    srcs = ["metadata.go"],
+    srcs = [
+        "labels.go",
+        "metadata.go",
+    ],
     importpath = "github.com/stigmer/stigmer/backend/libs/go/apiresource",
     visibility = ["//visibility:public"],
     deps = [

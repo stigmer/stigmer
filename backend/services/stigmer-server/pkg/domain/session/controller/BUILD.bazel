@@ -22,7 +22,6 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
-        "//apis/stubs/go/ai/stigmer/agentic/agentinstance/v1:agentinstance",
         "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
@@ -33,6 +32,7 @@ go_library(
         "//backend/libs/go/store",
         "//backend/services/stigmer-server/pkg/domain/agent/defaultagent",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal",
+        "//backend/services/stigmer-server/pkg/domain/agentinstance/defaultinstance",
         "//backend/services/stigmer-server/pkg/domain/session/controller/steps",
         "//backend/services/stigmer-server/pkg/downstream/agent",
         "//backend/services/stigmer-server/pkg/downstream/agentinstance",

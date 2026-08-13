@@ -40,7 +40,6 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
-        "//apis/stubs/go/ai/stigmer/agentic/agentinstance/v1:agentinstance",
         "//apis/stubs/go/ai/stigmer/agentic/environment/v1:environment",
         "//apis/stubs/go/ai/stigmer/agentic/executioncontext/v1:executioncontext",
         "//apis/stubs/go/ai/stigmer/agentic/mcpserver/v1:mcpserver",
@@ -63,6 +62,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/domain/agentexecution/filereview",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows",
+        "//backend/services/stigmer-server/pkg/domain/agentinstance/defaultinstance",
         "//backend/services/stigmer-server/pkg/domain/artifact/storage",
         "//backend/services/stigmer-server/pkg/domain/environment/resolution",
         "//backend/services/stigmer-server/pkg/domain/mcpserver/oauth",

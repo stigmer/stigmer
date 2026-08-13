@@ -6,12 +6,11 @@ import (
 
 	"github.com/rs/zerolog/log"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowinstance/defaultinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 )
@@ -113,22 +112,7 @@ func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*workfl
 		Msg("Creating default instance for workflow")
 
 	// 1. Build default instance request
-	defaultInstanceName := workflowSlug + "-default"
-
-	metadataBuilder := &apiresource.ApiResourceMetadata{
-		Name: defaultInstanceName,
-		Org:  workflowOrg, // All resources belong to an org
-	}
-
-	instanceRequest := &workflowinstancev1.WorkflowInstance{
-		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "WorkflowInstance",
-		Metadata:   metadataBuilder,
-		Spec: &workflowinstancev1.WorkflowInstanceSpec{
-			WorkflowId:  workflowID,
-			Description: "Default instance (auto-created, no custom configuration)",
-		},
-	}
+	instanceRequest := defaultinstance.BuildRequest(workflowID, workflowSlug, workflowOrg)
 
 	// 2. Create instance via downstream client (in-process, system credentials)
 	// This calls WorkflowInstanceCommandController.Create() in-process
