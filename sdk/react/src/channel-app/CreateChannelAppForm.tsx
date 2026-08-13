@@ -14,7 +14,8 @@ import {
   slackChannelAppRedirectUrl,
 } from "./slackAppSetup.js";
 import { generateWhatsAppVerifyToken } from "./whatsappAppSetup.js";
-import { CopyBlock, FormField, SpinnerIcon } from "./internal.js";
+import { CopyBlock, FormField } from "./internal.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -241,7 +242,7 @@ export function CreateChannelAppForm({
             "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
-          {isCreating && <SpinnerIcon />}
+          {isCreating && <SpinnerIcon size={12} />}
           Register channel app
         </button>
 

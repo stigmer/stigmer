@@ -6,6 +6,7 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecu
 import { useWorkflowExecutionList } from "../useWorkflowExecutionList.js";
 import { WorkflowExecutionPhaseBadge } from "../WorkflowExecutionPhaseBadge.js";
 import { formatDuration } from "../format-utils.js";
+import { formatRelativeTime } from "../../activity/format-relative-time.js";
 
 /** Props for {@link ExecutionComparisonPicker}. */
 export interface ExecutionComparisonPickerProps {
@@ -183,7 +184,7 @@ export const ExecutionComparisonPicker = memo(function ExecutionComparisonPicker
                     {name}
                   </span>
                   <span className="stg:text-[10px] stg:text-[var(--stgm-muted-foreground,#737373)]">
-                    {startedAt ? formatRelative(startedAt) : "—"}
+                    {startedAt ? formatStartedAt(startedAt) : "—"}
                     {durationMs != null && ` · ${formatDuration(durationMs)}`}
                   </span>
                 </div>
@@ -228,13 +229,8 @@ function getDurationMs(startedAt: string | undefined, completedAt: string | unde
   return e - s;
 }
 
-function formatRelative(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const now = Date.now();
-  const diff = now - d.getTime();
-  if (diff < 60_000) return "just now";
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+/** ISO wire value → the shared compact stamp; unparseable renders as absent. */
+function formatStartedAt(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? "—" : formatRelativeTime(date);
 }

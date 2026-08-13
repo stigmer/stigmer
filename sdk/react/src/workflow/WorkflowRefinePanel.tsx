@@ -6,6 +6,7 @@ import { useRefineWorkflowFlow, type RefinePhase } from "./useRefineWorkflowFlow
 import { MessageThread } from "../execution/MessageThread.js";
 import { computeUnifiedDiff, type DiffLine } from "./workflow-yaml-diff.js";
 import { WorkflowDiffGraph } from "./WorkflowDiffGraph.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link WorkflowRefinePanel}. */
 export interface WorkflowRefinePanelProps {
@@ -173,7 +174,7 @@ export function WorkflowRefinePanel({
         {/* Starting indicator (before stream connects) */}
         {flow.phase === "starting" && (
           <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:gap-2 stg:py-8">
-            <SpinnerIcon />
+            <SpinnerIcon size={14} />
             <p className="stg:text-xs stg:text-muted-foreground">
               Starting Workflow Architect…
             </p>
@@ -429,20 +430,3 @@ function CloseIcon() {
   );
 }
 
-function SpinnerIcon({ size = 14 }: { readonly size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

@@ -8,6 +8,8 @@ import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useApiKeyList } from "./useApiKeyList.js";
 import { useDeleteApiKey } from "./useDeleteApiKey.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { formatRelativeTime } from "../activity/format-relative-time.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -200,7 +202,7 @@ function ApiKeyRow({
               "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
-            {isDeleting && <SpinnerIcon />}
+            {isDeleting && <SpinnerIcon size={12} />}
             Delete
           </button>
           <button
@@ -297,27 +299,6 @@ function formatShortDate(date: Date): string {
   });
 }
 
-function formatRelativeTime(date: Date, now?: Date): string {
-  const ref = now?.getTime() ?? Date.now();
-  const diffMs = ref - date.getTime();
-
-  if (diffMs < 0) return "Just now";
-
-  const seconds = Math.floor(diffMs / 1000);
-  if (seconds < 60) return "Just now";
-
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-
-  return formatShortDate(date);
-}
-
 // ---------------------------------------------------------------------------
 // Icons
 // ---------------------------------------------------------------------------
@@ -363,20 +344,3 @@ function TrashIcon() {
   );
 }
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

@@ -9,6 +9,7 @@ import {
 } from "react";
 import { cn } from "@stigmer/theme";
 import { ModelSelector } from "../models/ModelSelector.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link FollowUpInput}. */
 export interface FollowUpInputProps {
@@ -204,19 +205,3 @@ function ArrowUpIcon() {
   );
 }
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

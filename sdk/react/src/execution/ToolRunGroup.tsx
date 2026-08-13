@@ -12,6 +12,7 @@ import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
 import { ApprovalContext } from "./ApprovalContext.js";
 import { ToolCallItem, CATEGORY_ICON } from "./ToolCallItem.js";
 import type { ToolCategory } from "./tool-categories.js";
+import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
 
 /** Props for {@link ToolRunGroup}. */
 export interface ToolRunGroupProps {
@@ -239,14 +240,6 @@ const STATUS_ICON: Record<AggregateStatus, () => React.JSX.Element> = {
 // ---------------------------------------------------------------------------
 // Inline SVG icons — kept inline for SDK independence (codebase pattern)
 // ---------------------------------------------------------------------------
-
-function SpinnerIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="stg:animate-spin">
-      <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 function ClockIcon() {
   return (

@@ -7,6 +7,7 @@ import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/ap
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useInvitationPreview } from "./useInvitationPreview.js";
 import { useRedeemInvitation } from "./useRedeemInvitation.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -261,7 +262,7 @@ export function InvitationRedemption({
                     "stg:transition-colors",
                   )}
                 >
-                  {isRedeeming && <SpinnerIcon />}
+                  {isRedeeming && <SpinnerIcon size={14} />}
                   {isRedeeming ? "Accepting\u2026" : "Accept Invitation"}
                 </button>
                 {redeemError && (
@@ -442,20 +443,3 @@ function SuccessIcon() {
   );
 }
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

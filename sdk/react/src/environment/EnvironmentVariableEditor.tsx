@@ -17,6 +17,7 @@ import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { useUpdateEnvironmentVariables } from "./useUpdateEnvironmentVariables.js";
 import { useRemoveEnvironmentVariables } from "./useRemoveEnvironmentVariables.js";
 import { useRevealSecretValue } from "./useRevealSecretValue.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -367,7 +368,7 @@ function VariableRow({
             label="Save"
             variant="primary"
           >
-            {isSaving ? <SpinnerIcon /> : <CheckIcon />}
+            {isSaving ? <SpinnerIcon size={12} /> : <CheckIcon />}
           </ActionButton>
 
           <ActionButton
@@ -436,7 +437,7 @@ function VariableRow({
               label="Confirm delete"
               variant="danger"
             >
-              {isDeleting ? <SpinnerIcon /> : <CheckIcon />}
+              {isDeleting ? <SpinnerIcon size={12} /> : <CheckIcon />}
             </ActionButton>
             <ActionButton
               onClick={() => setMode("idle")}
@@ -469,7 +470,7 @@ function VariableRow({
                     variant="muted"
                   >
                     {isRevealing ? (
-                      <SpinnerIcon />
+                      <SpinnerIcon size={12} />
                     ) : revealedValue !== null ? (
                       <EyeOffIcon />
                     ) : (
@@ -609,7 +610,7 @@ function AddVariableForm({
             "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
-          {isAdding && <SpinnerIcon />}
+          {isAdding && <SpinnerIcon size={12} />}
           Add
         </button>
         <button
@@ -815,20 +816,3 @@ function PlusIcon() {
   );
 }
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

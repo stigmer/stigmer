@@ -8,6 +8,7 @@ import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identitypr
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useIdentityProviderList } from "./useIdentityProviderList.js";
 import { useDeleteIdentityProvider } from "./useDeleteIdentityProvider.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link IdentityProviderListPanel}. */
 export interface IdentityProviderListPanelProps {
@@ -197,7 +198,7 @@ function IdpRow({
               "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
-            {isDeleting && <SpinnerIcon />}
+            {isDeleting && <SpinnerIcon size={12} />}
             Delete
           </button>
           <button
@@ -366,20 +367,3 @@ function TrashIcon() {
   );
 }
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

@@ -12,6 +12,7 @@ import { getUserMessage, iamRoleToString } from "@stigmer/sdk";
 import { useCreateIamPolicy } from "./useCreateIamPolicy.js";
 import { RoleSelector } from "./RoleSelector.js";
 import { PrincipalPicker, type SelectedPrincipal } from "./PrincipalPicker.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link GrantAccessForm}. */
 export interface GrantAccessFormProps {
@@ -151,7 +152,7 @@ export function GrantAccessForm({
             "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
-          {isCreating && <SpinnerIcon />}
+          {isCreating && <SpinnerIcon size={12} />}
           Grant access
         </button>
 
@@ -174,20 +175,3 @@ export function GrantAccessForm({
   );
 }
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

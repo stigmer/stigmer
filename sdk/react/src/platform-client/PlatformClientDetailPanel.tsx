@@ -15,6 +15,7 @@ import type { PlatformClientCreateResponse } from "@stigmer/protos/ai/stigmer/ia
 import { useUpdatePlatformClient } from "./useUpdatePlatformClient.js";
 import { useRotatePlatformClientSecret } from "./useRotatePlatformClientSecret.js";
 import { useDeletePlatformClient } from "./useDeletePlatformClient.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link PlatformClientDetailPanel}. */
 export interface PlatformClientDetailPanelProps {
@@ -478,7 +479,7 @@ export function PlatformClientDetailPanel({
                 "stg:disabled:pointer-events-none stg:disabled:opacity-40",
               )}
             >
-              {isUpdating && <SpinnerIcon />}
+              {isUpdating && <SpinnerIcon size={12} />}
               Save changes
             </button>
             <button
@@ -520,7 +521,7 @@ export function PlatformClientDetailPanel({
                     "stg:disabled:pointer-events-none stg:disabled:opacity-50",
                   )}
                 >
-                  {isRotating && <SpinnerIcon />}
+                  {isRotating && <SpinnerIcon size={12} />}
                   Rotate
                 </button>
                 <button
@@ -587,7 +588,7 @@ export function PlatformClientDetailPanel({
                     "stg:disabled:pointer-events-none stg:disabled:opacity-50",
                   )}
                 >
-                  {isDeleting && <SpinnerIcon />}
+                  {isDeleting && <SpinnerIcon size={12} />}
                   Delete
                 </button>
                 <button
@@ -879,20 +880,3 @@ function ArrowLeftIcon() {
   );
 }
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

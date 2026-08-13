@@ -11,6 +11,7 @@ import { getUserMessage } from "@stigmer/sdk";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { PlatformClientCreateResponse } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
 import { useCreatePlatformClient } from "./useCreatePlatformClient.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link CreatePlatformClientForm}. */
 export interface CreatePlatformClientFormProps {
@@ -348,7 +349,7 @@ export function CreatePlatformClientForm({
             "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
-          {isCreating && <SpinnerIcon />}
+          {isCreating && <SpinnerIcon size={12} />}
           Create platform client
         </button>
 
@@ -500,20 +501,3 @@ function XIcon() {
   );
 }
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

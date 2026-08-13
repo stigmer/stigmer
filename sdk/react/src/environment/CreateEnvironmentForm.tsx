@@ -5,6 +5,7 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { useCreateEnvironment } from "./useCreateEnvironment.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -144,7 +145,7 @@ export function CreateEnvironmentForm({
             "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
-          {isCreating && <SpinnerIcon />}
+          {isCreating && <SpinnerIcon size={12} />}
           Create environment
         </button>
 
@@ -167,24 +168,3 @@ export function CreateEnvironmentForm({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Icons
-// ---------------------------------------------------------------------------
-
-function SpinnerIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

@@ -4,6 +4,7 @@ import { memo } from "react";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { cn } from "@stigmer/theme";
+import { formatRelativeTime } from "../activity/format-relative-time.js";
 
 export interface PendingApprovalsWidgetProps {
   readonly approvals: readonly PendingApproval[];
@@ -12,14 +13,6 @@ export interface PendingApprovalsWidgetProps {
   /** Called when the user clicks "Review" on an approval. */
   readonly onReviewClick?: (executionId: string) => void;
   readonly className?: string;
-}
-
-function formatTimeAgo(date: Date): string {
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  return `${Math.floor(seconds / 86400)}d ago`;
 }
 
 /**
@@ -98,7 +91,7 @@ export const PendingApprovalsWidget = memo(function PendingApprovalsWidget({
                     <p className="stg:mt-0.5 stg:truncate stg:text-xs stg:text-muted-foreground">
                       Task: {approval.taskName}
                       {requestedAt && (
-                        <> &middot; {formatTimeAgo(requestedAt)}</>
+                        <> &middot; {formatRelativeTime(requestedAt)}</>
                       )}
                     </p>
                   </div>

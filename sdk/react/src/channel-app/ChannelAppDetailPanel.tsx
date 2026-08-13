@@ -17,7 +17,8 @@ import {
   WHATSAPP_CHANNEL_APP_WEBHOOK_FIELDS,
   whatsappChannelAppWebhookUrl,
 } from "./whatsappAppSetup.js";
-import { CopyBlock, CopyRow, FormField, SpinnerIcon } from "./internal.js";
+import { CopyBlock, CopyRow, FormField } from "./internal.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -148,7 +149,7 @@ export function ChannelAppDetailPanel({
                 "stg:disabled:pointer-events-none stg:disabled:opacity-40",
               )}
             >
-              {isDeleting && <SpinnerIcon />}
+              {isDeleting && <SpinnerIcon size={12} />}
               Delete
             </button>
             <button
@@ -321,7 +322,7 @@ function SlackAppDetail({
             "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
-          {isUpdating && <SpinnerIcon />}
+          {isUpdating && <SpinnerIcon size={12} />}
           Save credentials
         </button>
       </form>
@@ -501,7 +502,7 @@ function WhatsAppAppDetail({
             "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
-          {isUpdating && <SpinnerIcon />}
+          {isUpdating && <SpinnerIcon size={12} />}
           Save credentials
         </button>
       </form>

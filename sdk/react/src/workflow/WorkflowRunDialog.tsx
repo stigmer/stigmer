@@ -6,6 +6,7 @@ import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/ap
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { useRunWorkflowFlow } from "./useRunWorkflowFlow.js";
 import { WorkflowRunForm } from "./WorkflowRunForm.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link WorkflowRunDialog}. */
 export interface WorkflowRunDialogProps {
@@ -225,7 +226,7 @@ export function WorkflowRunDialog({
               "stg:disabled:pointer-events-none stg:disabled:opacity-40",
             )}
           >
-            {flow.isSubmitting && <SpinnerIcon />}
+            {flow.isSubmitting && <SpinnerIcon size={14} />}
             {flow.isSubmitting ? "Starting…" : "Run Workflow"}
           </button>
         </div>
@@ -234,24 +235,3 @@ export function WorkflowRunDialog({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Icons
-// ---------------------------------------------------------------------------
-
-function SpinnerIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

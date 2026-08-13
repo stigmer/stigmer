@@ -23,6 +23,7 @@ import {
   findActiveTodo,
   todoCompletionSummary,
 } from "./TodoList.js";
+import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
 
 /** Props for {@link SubAgentSection}. */
 export interface SubAgentSectionProps {
@@ -206,7 +207,7 @@ function CollapsibleCard({
         <span className="stg:min-w-0 stg:flex-1 stg:truncate">{displayLabel}</span>
         {isRunning && (
           <span className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
-            <SpinnerIcon />
+            <SpinnerIcon size={12} />
           </span>
         )}
         <span
@@ -482,7 +483,8 @@ const SUB_AGENT_STATUS_MAP: Record<SubAgentStatus, SubAgentStatusInfo> = {
     label: "Running",
     colorClass: "stg:text-foreground",
     badgeClass: "stg:bg-muted stg:text-foreground",
-    icon: SpinnerIcon,
+    // Sized up to match this map's 12px siblings (the glyph defaults to 10).
+    icon: () => <SpinnerIcon size={12} />,
   },
   [SubAgentStatus.SUB_AGENT_COMPLETED]: {
     label: "Completed",
@@ -507,22 +509,6 @@ const SUB_AGENT_STATUS_MAP: Record<SubAgentStatus, SubAgentStatusInfo> = {
 // ---------------------------------------------------------------------------
 // Inline SVG icons
 // ---------------------------------------------------------------------------
-
-function SpinnerIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      className="stg:animate-spin"
-    >
-      <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 function CheckCircleIcon() {
   return (

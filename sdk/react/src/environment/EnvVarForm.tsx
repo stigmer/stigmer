@@ -5,6 +5,7 @@ import { cn } from "@stigmer/theme";
 import type { EnvVarInput } from "@stigmer/sdk";
 import { useScrollShadows } from "../internal/useScrollShadows.js";
 import { ScrollFade } from "../internal/ScrollFade.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /**
  * Describes a single environment variable the form should collect.
@@ -414,7 +415,7 @@ export function EnvVarForm({
             "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
-          {isSubmitting && <SpinnerIcon />}
+          {isSubmitting && <SpinnerIcon size={12} />}
           {resolvedSubmitLabel}
         </button>
       </div>
@@ -466,20 +467,3 @@ function EyeOffIcon() {
   );
 }
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

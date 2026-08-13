@@ -7,7 +7,7 @@ import { getUserMessage } from "@stigmer/sdk";
 import { ChannelSendOutcome } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import type { SendChannelMessageOutput } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { Button } from "../button/Button.js";
-import { SpinnerIcon } from "../composer/icons.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useComposer } from "../composer/useComposer.js";
 
 /** Props for {@link ConversationComposer}. */
