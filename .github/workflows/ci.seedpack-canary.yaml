@@ -31,7 +31,10 @@ env:
   # Pinned deliberately: this lane's whole history is silent drift, so CLI
   # bumps are a reviewed one-line change, not an auto-latest surprise. The
   # binary is the same asset the plantonhq/tap Homebrew formula wraps.
-  PLANTON_CLI_VERSION: v0.0.34-cli.20260812.1
+  # 20260805.0 is the newest build proven against prod: 20260812.1 calls
+  # v1alpha1 RPCs (whoAmI, organization getBySlug) that api.live.planton.ai
+  # does not implement yet (observed 2026-08-13).
+  PLANTON_CLI_VERSION: v0.0.34-cli.20260805.0
 
 jobs:
   build-service-jar:
