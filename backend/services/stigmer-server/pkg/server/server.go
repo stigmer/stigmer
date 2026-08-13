@@ -748,6 +748,15 @@ func Run() error {
 	// model ids without an authenticated fetch from the hosted API.
 	registryHandler := workflowregistry.NewHandler()
 	modelRegistryHandler := workflowregistry.NewModelRegistryHandler()
+
+	// The registry proxies route AROUND the gRPC-Web wrapper below, so its
+	// allow-all CORS policy never applies to them. They need their own
+	// headers: the OSS web console runs on a different origin than the API
+	// (e.g. :3000 → :7234), and without Access-Control-Allow-Origin the
+	// browser discards these responses — the console's task palette and
+	// model pickers never load (oss#571). Public static JSON, so the
+	// wrapper's allow-all policy is the right match here too; cloud fronts
+	// this path with its own proxy.
 	// Keep the bundled model registry fresh from the public cloud endpoint
 	// (DD-004). Fully optional: offline installs quietly keep the bundle,
 	// and STIGMER_MODEL_REGISTRY_REFRESH=off disables outbound calls.
@@ -755,13 +764,15 @@ func Run() error {
 
 	// Unified HTTP handler that routes between REST proxy endpoints,
 	// gRPC-Web, native gRPC, and 404.
+	corsRegistryHandler := registryCORS(registryHandler)
+	corsModelRegistryHandler := registryCORS(modelRegistryHandler)
 	httpHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/v1/proxy/task-kind-registry" {
-			registryHandler.ServeHTTP(w, r)
+			corsRegistryHandler.ServeHTTP(w, r)
 			return
 		}
 		if r.URL.Path == "/v1/proxy/model-registry" {
-			modelRegistryHandler.ServeHTTP(w, r)
+			corsModelRegistryHandler.ServeHTTP(w, r)
 			return
 		}
 		if grpcWebWrapper.IsGrpcWebRequest(r) || grpcWebWrapper.IsAcceptableGrpcCorsRequest(r) || grpcWebWrapper.IsGrpcWebSocketRequest(r) {

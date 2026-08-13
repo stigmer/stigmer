@@ -1,96 +1,68 @@
-import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { test, expect } from "../../fixtures";
+import {
+  getEditorCanvas,
+  navigateToVisualEditor,
+} from "../../helpers/workflow-canvas";
+import { assertNoErrorBoundary } from "../../helpers/navigation";
 
 /**
- * Workflow layout E2E tests (functional tier — no backend required).
+ * Workflow layout E2E tests.
  *
- * These tests verify the auto-layout button and layout-related UX behaviors
- * on the visual canvas editor. They require at least one workflow to exist
- * in the local dev environment with a visual editor tab.
+ * Verifies the auto-layout button and layout-related UX behaviors on the
+ * visual canvas editor, against a seeded multi-kind workflow (the
+ * pre-oss#571 version discovered "any existing workflow" from the
+ * library, which is vacuous on a fresh stack).
  *
  * @since T03 (ELK Layout Pipeline)
  */
+
+/** The canvas toolbar's auto-layout action (visible-text + aria-label). */
+function getAutoLayoutButton(page: Page) {
+  return page.getByRole("button", { name: "Auto-layout" });
+}
+
+/**
+ * Node locator scoped to the EDITOR canvas — the page mounts a second
+ * (read-only) canvas in the Overview tabpanel, and Code mode renders a
+ * third preview canvas, so bare `.react-flow__node` counts lie.
+ */
+function getEditorNodes(page: Page) {
+  return getEditorCanvas(page).locator(".react-flow__node");
+}
+
 test.describe("Workflow canvas layout", () => {
-  let editorUrl: string | null = null;
-
-  test.beforeAll(async ({ browser }) => {
-    const page = await browser.newPage();
-    await page.goto("/library/workflows");
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
-
-    const firstCard = page.locator('[role="listitem"]').first();
-    const firstRow = page.locator("table tbody tr").first();
-
-    if (await firstCard.isVisible().catch(() => false)) {
-      await firstCard.click();
-    } else if (await firstRow.isVisible().catch(() => false)) {
-      await firstRow.click();
-    } else {
-      await page.close();
-      return;
-    }
-
-    await page.waitForLoadState("networkidle");
-
-    const editorTab = page.locator('[role="tab"]:has-text("Editor")');
-    if (await editorTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await editorTab.click();
-      await page.waitForTimeout(2000);
-      editorUrl = page.url();
-    }
-
-    await page.close();
-  });
-
-  test("auto-layout button exists on the canvas", async ({ page }) => {
-    test.skip(!editorUrl, "No workflow editor available");
-
-    await page.goto(editorUrl!);
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
-
-    const visualTab = page.locator('[role="tab"]:has-text("Visual")');
-    if (await visualTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await visualTab.click();
-      await page.waitForTimeout(2000);
-    }
-
-    const autoLayoutButton = page.locator(
-      'button:has-text("Auto-layout"), button[aria-label*="layout"], button[title*="layout"]',
+  test("auto-layout button exists on the canvas", async ({
+    page,
+    testMultiKindWorkflow,
+  }) => {
+    await navigateToVisualEditor(
+      page,
+      testMultiKindWorkflow.org,
+      testMultiKindWorkflow.slug,
     );
-    await expect(autoLayoutButton.first()).toBeVisible({ timeout: 10_000 });
+    await assertNoErrorBoundary(page);
+
+    await expect(getAutoLayoutButton(page)).toBeVisible({ timeout: 10_000 });
   });
 
-  test("auto-layout produces non-overlapping nodes", async ({ page }) => {
-    test.skip(!editorUrl, "No workflow editor available");
+  test("auto-layout produces non-overlapping nodes", async ({
+    page,
+    testMultiKindWorkflow,
+  }) => {
+    await navigateToVisualEditor(
+      page,
+      testMultiKindWorkflow.org,
+      testMultiKindWorkflow.slug,
+    );
 
-    await page.goto(editorUrl!);
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
-
-    const visualTab = page.locator('[role="tab"]:has-text("Visual")');
-    if (await visualTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await visualTab.click();
-      await page.waitForTimeout(2000);
-    }
-
-    const autoLayoutButton = page.locator(
-      'button:has-text("Auto-layout"), button[aria-label*="layout"], button[title*="layout"]',
-    ).first();
-
-    if (!await autoLayoutButton.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      test.skip(true, "Auto-layout button not found");
-      return;
-    }
-
+    const autoLayoutButton = getAutoLayoutButton(page);
+    await expect(autoLayoutButton).toBeVisible({ timeout: 10_000 });
     await autoLayoutButton.click();
     await page.waitForTimeout(1000);
 
-    const nodes = await page.locator(".react-flow__node").all();
-    if (nodes.length < 2) {
-      test.skip(true, "Fewer than 2 nodes on canvas");
-      return;
-    }
+    const nodes = await getEditorNodes(page).all();
+    expect(nodes.length).toBeGreaterThanOrEqual(2);
 
     const boxes = await Promise.all(
       nodes.map(async (node) => {
@@ -115,33 +87,23 @@ test.describe("Workflow canvas layout", () => {
     }
   });
 
-  test("auto-layout is stable (running twice produces same positions)", async ({ page }) => {
-    test.skip(!editorUrl, "No workflow editor available");
+  test("auto-layout is stable (running twice produces same positions)", async ({
+    page,
+    testMultiKindWorkflow,
+  }) => {
+    await navigateToVisualEditor(
+      page,
+      testMultiKindWorkflow.org,
+      testMultiKindWorkflow.slug,
+    );
 
-    await page.goto(editorUrl!);
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
-
-    const visualTab = page.locator('[role="tab"]:has-text("Visual")');
-    if (await visualTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await visualTab.click();
-      await page.waitForTimeout(2000);
-    }
-
-    const autoLayoutButton = page.locator(
-      'button:has-text("Auto-layout"), button[aria-label*="layout"], button[title*="layout"]',
-    ).first();
-
-    if (!await autoLayoutButton.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      test.skip(true, "Auto-layout button not found");
-      return;
-    }
-
+    const autoLayoutButton = getAutoLayoutButton(page);
+    await expect(autoLayoutButton).toBeVisible({ timeout: 10_000 });
     await autoLayoutButton.click();
     await page.waitForTimeout(1000);
 
     const getPositions = async () => {
-      const nodes = await page.locator(".react-flow__node").all();
+      const nodes = await getEditorNodes(page).all();
       return Promise.all(
         nodes.map(async (node) => {
           const box = await node.boundingBox();
@@ -160,30 +122,21 @@ test.describe("Workflow canvas layout", () => {
     expect(positions1).toEqual(positions2);
   });
 
-  test("Ctrl+Z after auto-layout undoes the layout", async ({ page }) => {
-    test.skip(!editorUrl, "No workflow editor available");
+  test("Ctrl+Z after auto-layout undoes the layout", async ({
+    page,
+    testMultiKindWorkflow,
+  }) => {
+    await navigateToVisualEditor(
+      page,
+      testMultiKindWorkflow.org,
+      testMultiKindWorkflow.slug,
+    );
 
-    await page.goto(editorUrl!);
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
-
-    const visualTab = page.locator('[role="tab"]:has-text("Visual")');
-    if (await visualTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await visualTab.click();
-      await page.waitForTimeout(2000);
-    }
-
-    const autoLayoutButton = page.locator(
-      'button:has-text("Auto-layout"), button[aria-label*="layout"], button[title*="layout"]',
-    ).first();
-
-    if (!await autoLayoutButton.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      test.skip(true, "Auto-layout button not found");
-      return;
-    }
+    const autoLayoutButton = getAutoLayoutButton(page);
+    await expect(autoLayoutButton).toBeVisible({ timeout: 10_000 });
 
     const getFirstNodePos = async () => {
-      const firstNode = page.locator(".react-flow__node").first();
+      const firstNode = getEditorNodes(page).first();
       const box = await firstNode.boundingBox();
       return box ? { x: Math.round(box.x), y: Math.round(box.y) } : null;
     };

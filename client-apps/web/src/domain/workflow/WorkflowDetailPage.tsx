@@ -58,7 +58,14 @@ export function WorkflowDetailPageInner({
   // Scoped to the active org so the run dialog's instance picker offers
   // the same rows as the Instances tab (falls back to the workflow's org
   // when no org context is active).
-  const { instances } = useWorkflowInstances(workflow?.metadata?.id, viewerOrg || org);
+  // `refetch` matters: this list feeds the Run dialog's instance picker,
+  // and without refetching after a create, a user's new instance cannot be
+  // targeted by Run until a full page reload (oss#571). The Instances tab
+  // has its own list keyed by `instancesRefreshKey` — both must refresh.
+  const { instances, refetch: refetchInstances } = useWorkflowInstances(
+    workflow?.metadata?.id,
+    viewerOrg || org,
+  );
   const [showRunDialog, setShowRunDialog] = useState(false);
   const [showCreateInstanceDialog, setShowCreateInstanceDialog] = useState(false);
   const [instancesRefreshKey, setInstancesRefreshKey] = useState(0);
@@ -270,6 +277,7 @@ export function WorkflowDetailPageInner({
           onCreated={() => {
             toast.success("Instance created");
             setInstancesRefreshKey((k) => k + 1);
+            refetchInstances();
           }}
         />
       )}

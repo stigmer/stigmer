@@ -109,10 +109,16 @@ test.describe("Workflow node visual classes (T01)", () => {
       testMultiKindWorkflow.slug,
     );
 
-    const startNode = getEditorCanvas(page).locator(
-      '[data-task-kind="workflow_task_kind_unspecified"][data-visual-class="terminal-pill"]',
-    );
-    await expect(startNode.first()).toBeVisible({ timeout: 10_000 });
+    // Anchor on the semantic node ids — `data-task-kind` on sentinels is
+    // an enum-fallback artifact ("unknown_0"), tracked as its own issue,
+    // and tests must not calcify around it.
+    const canvas = getEditorCanvas(page);
+    for (const sentinelId of ["__start__", "__end__"]) {
+      const sentinel = canvas.locator(
+        `[data-id="${sentinelId}"] [data-visual-class="terminal-pill"]`,
+      );
+      await expect(sentinel).toBeVisible({ timeout: 10_000 });
+    }
   });
 
   test("node ARIA labels include display name and task name", async ({
@@ -185,7 +191,9 @@ test.describe("Workflow node shape rendering (T02)", () => {
     const switchNode = getCanvasNode(page, "route_by_type");
     await expect(switchNode).toBeVisible({ timeout: 10_000 });
 
-    const svg = switchNode.locator("svg");
+    // The shape background svg specifically — kind icons are svgs too,
+    // so a bare `svg` locator is a strict-mode violation.
+    const svg = switchNode.locator('[data-cursor-target="node-shape"]');
     await expect(svg).toBeVisible();
 
     const path = svg.locator("path");
@@ -209,7 +217,7 @@ test.describe("Workflow node shape rendering (T02)", () => {
     const humanNode = getCanvasNode(page, "approval_gate");
     await expect(humanNode).toBeVisible({ timeout: 10_000 });
 
-    const svg = humanNode.locator("svg");
+    const svg = humanNode.locator('[data-cursor-target="node-shape"]');
     await expect(svg).toBeVisible();
 
     const path = svg.locator("path");
@@ -231,7 +239,7 @@ test.describe("Workflow node shape rendering (T02)", () => {
     const waitNode = getCanvasNode(page, "cooldown");
     await expect(waitNode).toBeVisible({ timeout: 10_000 });
 
-    const svg = waitNode.locator("svg");
+    const svg = waitNode.locator('[data-cursor-target="node-shape"]');
     await expect(svg).toBeVisible();
 
     const path = svg.locator("path");
@@ -253,7 +261,9 @@ test.describe("Workflow node shape rendering (T02)", () => {
     const cardNode = getCanvasNode(page, "classify_input");
     await expect(cardNode).toBeVisible({ timeout: 10_000 });
 
-    const svg = cardNode.locator("svg[aria-hidden='true']");
+    // Task cards render a CSS shell — no shape background svg. (Bare
+    // svg counting is meaningless: kind icons are svgs on every shell.)
+    const svg = cardNode.locator('[data-cursor-target="node-shape"]');
     await expect(svg).toHaveCount(0);
   });
 
@@ -290,10 +300,10 @@ test.describe("Workflow node shape rendering (T02)", () => {
     await expect(switchNode).toBeVisible({ timeout: 10_000 });
 
     await switchNode.click();
-    await page.waitForTimeout(300);
 
+    // The selection ring token is prefix-scoped (`stg:ring-2`) —
+    // auto-retrying regex match instead of a raced getAttribute.
     const shellDiv = switchNode.locator(".stgm").first();
-    const classAttr = await shellDiv.getAttribute("class");
-    expect(classAttr).toContain("ring-2");
+    await expect(shellDiv).toHaveClass(/ring-2/);
   });
 });

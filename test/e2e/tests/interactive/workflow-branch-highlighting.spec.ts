@@ -2,6 +2,8 @@ import { test, expect } from "../../fixtures";
 import {
   navigateToExecution,
   waitForPhaseBadge,
+  switchCenterView,
+  getExecutionGraph,
 } from "../../helpers/workflow-execution";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
@@ -168,17 +170,24 @@ test.describe("T06: Branch and parallel execution highlighting", () => {
         await navigateToExecution(page, execId);
         await assertNoErrorBoundary(page);
         await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
+        // Edge execution states render on the graph, which is CSS-hidden
+        // behind the Thread default — switch views first.
+        await switchCenterView(page, "graph");
 
         // The switch selects yes_path. Edge to yes_path should be "taken",
-        // edge to no_path should be "not_taken".
-        const takenEdges = page.locator('[data-edge-execution-state="taken"]');
-        const notTakenEdges = page.locator('[data-edge-execution-state="not_taken"]');
+        // edge to no_path should be "not_taken". Presence, not visibility:
+        // a straight vertical edge path has a zero-width client rect, which
+        // Playwright reports as hidden — the graph container's visibility
+        // is already asserted by switchCenterView.
+        const graph = getExecutionGraph(page);
+        const takenEdges = graph.locator('[data-edge-execution-state="taken"]');
+        const notTakenEdges = graph.locator('[data-edge-execution-state="not_taken"]');
 
-        await expect(takenEdges.first()).toBeVisible({ timeout: 10_000 });
+        await expect(takenEdges.first()).toBeAttached({ timeout: 10_000 });
         const takenCount = await takenEdges.count();
         expect(takenCount).toBeGreaterThanOrEqual(1);
 
-        await expect(notTakenEdges.first()).toBeVisible({ timeout: 5_000 });
+        await expect(notTakenEdges.first()).toBeAttached({ timeout: 5_000 });
         const notTakenCount = await notTakenEdges.count();
         expect(notTakenCount).toBeGreaterThanOrEqual(1);
       } finally {
@@ -219,9 +228,13 @@ test.describe("T06: Branch and parallel execution highlighting", () => {
         await navigateToExecution(page, execId);
         await assertNoErrorBoundary(page);
         await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
+        await switchCenterView(page, "graph");
 
-        const takenEdges = page.locator('[data-edge-execution-state="taken"]');
-        await expect(takenEdges.first()).toBeVisible({ timeout: 10_000 });
+        // Presence, not visibility — see the zero-width-path note above.
+        const takenEdges = getExecutionGraph(page).locator(
+          '[data-edge-execution-state="taken"]',
+        );
+        await expect(takenEdges.first()).toBeAttached({ timeout: 10_000 });
 
         const count = await takenEdges.count();
         expect(count).toBeGreaterThanOrEqual(2);
@@ -251,9 +264,12 @@ test.describe("T06: Branch and parallel execution highlighting", () => {
         await navigateToExecution(page, execId);
         await assertNoErrorBoundary(page);
         await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
+        await switchCenterView(page, "graph");
 
         // The fork node should have completed status.
-        const forkNode = page.locator('[data-task-kind="fork"][data-execution-status="completed"]');
+        const forkNode = getExecutionGraph(page).locator(
+          '[data-task-kind="fork"][data-execution-status="completed"]',
+        );
         await expect(forkNode).toBeVisible({ timeout: 10_000 });
       } finally {
         await stigmerClient.workflowExecution.delete(execution.metadata!.id).catch(() => {});

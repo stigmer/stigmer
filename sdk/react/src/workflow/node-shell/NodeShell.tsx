@@ -185,6 +185,10 @@ function SvgShell({
           height={shapeHeight}
           viewBox={`0 0 ${width} ${shapeHeight}`}
           aria-hidden="true"
+          // The stable hook for "this node renders an SVG shape
+          // background" — kind icons are also <svg>s, so a bare svg
+          // selector cannot distinguish shaped shells from task cards.
+          data-cursor-target="node-shape"
         >
           <path
             d={pathD ?? ""}

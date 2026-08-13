@@ -1,4 +1,5 @@
 import type { Page, Locator } from "@playwright/test";
+import { expect } from "@playwright/test";
 
 /**
  * Returns a locator for the visual editor's React Flow canvas.
@@ -16,12 +17,31 @@ export function getEditorCanvas(page: Page): Locator {
 }
 
 /**
+ * Returns a locator for the Overview tab's read-only React Flow canvas —
+ * the OTHER canvas of the dual-canvas hazard `getEditorCanvas` documents.
+ * Overview-tab specs must scope through this, not a bare `.react-flow`.
+ */
+export function getOverviewCanvas(page: Page): Locator {
+  return page
+    .getByRole("tabpanel", { name: "Overview" })
+    .locator(".react-flow");
+}
+
+/**
  * Navigates to a workflow's visual editor canvas.
  *
  * 1. Goes to the workflow detail page
  * 2. Clicks the Editor tab
- * 3. Switches to Visual mode
- * 4. Waits for the React Flow canvas to render
+ * 3. Switches the editor from Code mode (the default) to Visual mode,
+ *    accepting the one-time "YAML will be normalized" confirmation
+ * 4. Waits for the editable React Flow canvas to render
+ *
+ * Code mode also renders a read-only graph PREVIEW inside the Editor
+ * tabpanel, so `getEditorCanvas` resolving is NOT proof of Visual mode —
+ * only the mode tab's `aria-selected` is. Skipping the confirmation was
+ * the root cause of the oss#571 editor-lane cascade: every design-mode
+ * affordance (insert buttons, selection, inspector tabs) exists only on
+ * the Visual canvas.
  */
 export async function navigateToVisualEditor(
   page: Page,
@@ -34,14 +54,47 @@ export async function navigateToVisualEditor(
     .waitFor({ timeout: 15_000 });
 
   await page.getByRole("tab", { name: "Editor" }).click();
-  await page.waitForTimeout(1000);
-
-  const visualTab = page.getByRole("tab", { name: "Visual" });
-  if (await visualTab.isVisible()) {
-    await visualTab.click();
-  }
-
+  await switchEditorToVisualMode(page);
   await getEditorCanvas(page).waitFor({ timeout: 15_000 });
+}
+
+/**
+ * Opens the visual editor for a workflow detail URL captured earlier
+ * (the functional lane discovers an arbitrary workflow's URL in a
+ * beforeAll). Element-anchored waits only — `networkidle` never settles
+ * on pages with live connections.
+ */
+export async function openVisualEditorAtUrl(
+  page: Page,
+  detailUrl: string,
+): Promise<void> {
+  await page.goto(detailUrl);
+  await page
+    .getByRole("tablist", { name: "Workflow detail tabs" })
+    .waitFor({ timeout: 15_000 });
+  await page.getByRole("tab", { name: "Editor" }).click();
+  await switchEditorToVisualMode(page);
+  await getEditorCanvas(page).waitFor({ timeout: 15_000 });
+}
+
+/**
+ * Switches an already-open Editor tab from Code mode (the default) to
+ * Visual mode, accepting the normalization confirmation. No-op when
+ * Visual is already selected.
+ */
+export async function switchEditorToVisualMode(page: Page): Promise<void> {
+  const modeTabs = page.getByRole("tablist", { name: "Editor mode" });
+  await modeTabs.waitFor({ timeout: 15_000 });
+
+  const visualTab = modeTabs.getByRole("tab", { name: "Visual" });
+  if ((await visualTab.getAttribute("aria-selected")) !== "true") {
+    await visualTab.click();
+    // Valid YAML → the normalization warning banner; accept it. (Invalid
+    // YAML skips the banner and surfaces a save error instead — seeded
+    // fixtures are always valid, so Continue is expected here.)
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(visualTab).toHaveAttribute("aria-selected", "true");
+  }
 }
 
 /**
