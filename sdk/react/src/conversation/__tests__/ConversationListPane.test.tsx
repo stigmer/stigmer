@@ -145,7 +145,7 @@ describe("ConversationListPane", () => {
     ).toBeDefined();
   });
 
-  it("uses the house tooltip for the attention badge and no native titles anywhere (F-18)", () => {
+  it("uses the house tooltip for the attention badge and awaiting dot, no native titles anywhere (F-18)", () => {
     const { container } = render(
       <ConversationListPane
         {...baseProps()}
@@ -154,6 +154,9 @@ describe("ConversationListPane", () => {
             displayName: "Pat with a very long name that will truncate",
             needsAttention: true,
             attentionReason: "refund I cannot process",
+            // The awaiting dot renders too, so its tooltip trigger is
+            // under the same no-title / no-tab-stop assertions below.
+            awaitingReply: true,
           }),
         ]}
       />,
@@ -204,8 +207,12 @@ describe("ConversationListPane", () => {
       />,
     );
 
+    // The copy names the stake, not just the fact (cloud#266): a
+    // human-held wait is one only a person can end.
     expect(
-      screen.getByText("Customer awaiting reply — the conversation is human-held"),
+      screen.getByText(
+        "Customer awaiting reply — a human has this conversation; the agent will not answer",
+      ),
     ).toBeDefined();
   });
 
@@ -217,9 +224,13 @@ describe("ConversationListPane", () => {
       />,
     );
 
-    expect(screen.getByText("Customer awaiting reply")).toBeDefined();
     expect(
-      screen.queryByText("Customer awaiting reply — the conversation is human-held"),
+      screen.getByText("Customer awaiting reply — the agent has this conversation"),
+    ).toBeDefined();
+    expect(
+      screen.queryByText(
+        "Customer awaiting reply — a human has this conversation; the agent will not answer",
+      ),
     ).toBeNull();
   });
 

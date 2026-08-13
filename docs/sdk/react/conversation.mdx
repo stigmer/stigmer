@@ -313,12 +313,17 @@ function useConversationTimeline(agentChannelId: string, conversationKey: string
 ### ConversationAttentionBanner
 
 The needs-attention banner (channel-conversations DD-008): the
-escalating agent's reason, verbatim, with the false-alarm dismissal.
+escalating agent's reason, verbatim, with the escalation's ANSWER
+beside its false-alarm dismissal.
+
+Take over is the primary action because the human arriving IS the
+answer to an escalation — taking over clears attention structurally.
+It renders only while the agent holds the conversation on a channel
+with a staff lane; a human already holding it IS the attention
+answered, so only Dismiss remains.
 
 Dismiss is `clearAttention` — attention clears in place and control
-never moves (taking over also clears it, structurally, because the
-human arriving IS the answer to an escalation). Renders nothing while
-the conversation is unflagged.
+never moves. Renders nothing while the conversation is unflagged.
 
 **Props** — `ConversationAttentionBannerProps`
 
@@ -327,6 +332,7 @@ the conversation is unflagged.
     className: { type: "string", description: "Additional classes for the banner container." },
     conversation: { type: "ChannelConversation", description: "The conversation's fresh participation state.", required: true },
     participation: { type: "UseConversationParticipationReturn", description: "The participation commands (from `useConversationParticipation`).", required: true, typeDescriptionLink: "#useconversationparticipationreturn" },
+    supportsStaffReplies: { type: "boolean", description: "Whether the channel's provider has a staff send lane — the same fact ConversationControlBanner takes. When `false` the banner offers only Dismiss: a takeover would silence the agent with no way to reply, and the control banner beside this one already explains the missing lane. Defaults to `true`." },
   }}
 />
 
