@@ -26,10 +26,15 @@ COPY client-apps/web/ client-apps/web/
 
 # Install dependencies and build. @stigmer/embed is built explicitly
 # because its IIFE loader (copied to public/embed.js by the web build)
-# is a Vite bundle that transpilePackages does not cover.
+# is a Vite bundle that transpilePackages does not cover, and
+# @stigmer/react's stylesheet is built explicitly because
+# globals.css imports ./dist/styles.css — a compiled artifact since the
+# prefix-isolation change (#471), not source that transpilePackages
+# reaches.
 RUN npm ci && \
     npm run build -w @stigmer/protos && \
     npm run build -w @stigmer/embed && \
+    npm run build:css -w @stigmer/react && \
     npm run build -w client-apps/web
 
 # Runtime stage — nginx serves the static export + runtime config
