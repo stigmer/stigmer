@@ -34,6 +34,11 @@ import {
   toFoundryDeploymentName,
 } from "./llm-backend.js";
 import { resolveToApiModelId } from "./model-registry.js";
+import {
+  toAnthropicServiceTier,
+  toOpenAiServiceTier,
+  type EffectiveServiceTier,
+} from "./service-tier.js";
 
 export interface BuildChatModelOptions {
   /** Registry id ("claude-haiku-4.5"), "provider:model", or a provider API id. */
@@ -63,6 +68,20 @@ export interface BuildChatModelOptions {
    */
   readonly timeoutMs?: number;
   readonly maxRetries?: number;
+  /**
+   * The execution's EFFECTIVE service tier (stigmer/stigmer#361) — already
+   * resolved by the caller (resolveEffectiveServiceTier), never
+   * UNSPECIFIED. When set, every provider request pins its tier explicitly
+   * (OpenAI `service_tier`; Anthropic `service_tier` via invocationKwargs)
+   * so the provider ACCOUNT's default can never pick the price — the #357
+   * contract, held on the native harness. Deliberately optional:
+   * platform-internal utility calls (tool-approval classification, session
+   * subjects, structured extraction, workflow llm_call) are not the
+   * execution's own turns and send no tier — the provider treats an absent
+   * parameter as its standard behavior, and those calls' models are
+   * platform-chosen economy models.
+   */
+  readonly serviceTier?: EffectiveServiceTier;
 }
 
 /**
@@ -249,6 +268,18 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
       ? { clientOptions: anthropicClientOptions }
       : {};
 
+  // The tier rides the request body per provider dialect (#361): OpenAI
+  // takes `service_tier` as a first-class constructor field; ChatAnthropic
+  // has no such field, so it rides `invocationKwargs`, which the wrapper
+  // spreads into every request body. Both spellings resolve through the
+  // shared mapping so no construction site can invent a third one.
+  const openAiServiceTierField = opts.serviceTier !== undefined
+    ? { service_tier: toOpenAiServiceTier(opts.serviceTier) }
+    : {};
+  const anthropicServiceTierField = opts.serviceTier !== undefined
+    ? { invocationKwargs: { service_tier: toAnthropicServiceTier(opts.serviceTier) } }
+    : {};
+
   // The two SDKs name the transport-override block differently (OpenAI:
   // `configuration`, Anthropic: `clientOptions`) — encapsulating that here is
   // the whole point, since the shape mismatch is where bugs used to hide.
@@ -256,6 +287,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     ? new ChatOpenAI({
         model: apiModelId,
         ...common,
+        ...openAiServiceTierField,
         ...(timeoutMs ? { timeout: timeoutMs } : {}),
         ...(baseUrl || headers
           ? {
@@ -273,6 +305,13 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
         // provided) is what lets this construct with no ANTHROPIC_API_KEY.
         // (Backend mode never has a proxy — see the precedence rule above —
         // so the clientOptions here carry at most the timeout.)
+        //
+        // service_tier deliberately does NOT ride backend requests:
+        // standard/priority tiers are an Anthropic-FIRST-PARTY billing
+        // concept, and Vertex/Bedrock/Foundry bill through the cloud
+        // provider with no tier dimension — an unknown body param there is
+        // a request refusal waiting to happen. The account-default price
+        // hole this parameter closes does not exist on those backends.
         new ChatAnthropic({
           model: wireModelId,
           ...common,
@@ -282,6 +321,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
       : new ChatAnthropic({
           model: apiModelId,
           ...common,
+          ...anthropicServiceTierField,
           ...anthropicClientOptionsField,
         });
 
