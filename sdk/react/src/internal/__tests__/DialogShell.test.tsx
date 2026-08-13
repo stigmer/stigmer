@@ -160,6 +160,45 @@ describe("DialogShell chrome", () => {
   });
 });
 
+describe("DialogShell backdrop dismiss", () => {
+  it("dismissOnBackdrop: a click on the dialog element itself reports close intent", () => {
+    const onOpenChange = vi.fn();
+    const { container } = render(
+      <DialogShell open onOpenChange={onOpenChange} dismissOnBackdrop>
+        <p>body</p>
+      </DialogShell>,
+    );
+
+    fireEvent.click(dialogOf(container));
+    expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
+  });
+
+  it("dismissOnBackdrop: clicks on content descendants never dismiss", () => {
+    const onOpenChange = vi.fn();
+    const { container, getByText } = render(
+      <DialogShell open onOpenChange={onOpenChange} dismissOnBackdrop>
+        <p>body</p>
+      </DialogShell>,
+    );
+
+    fireEvent.click(getByText("body"));
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(dialogOf(container).open).toBe(true);
+  });
+
+  it("default: backdrop clicks are inert (form dialogs)", () => {
+    const onOpenChange = vi.fn();
+    const { container } = render(
+      <DialogShell open onOpenChange={onOpenChange}>
+        <p>body</p>
+      </DialogShell>,
+    );
+
+    fireEvent.click(dialogOf(container));
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+});
+
 describe("DialogShell non-modal mode", () => {
   it("renders in-flow: open attribute, no backdrop, no fixed positioning", () => {
     const { container, rerender } = render(

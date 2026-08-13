@@ -2,6 +2,7 @@
 
 import { lazy, Suspense, useCallback, useEffect, useRef } from "react";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../internal/DialogShell.js";
 import { toast } from "../feedback/toast.js";
 import { RedactedSecretsNotice } from "./RedactedSecretsNotice.js";
 import {
@@ -71,21 +72,9 @@ export function ApplyManifestDialog({
   org,
   onApplied,
 }: ApplyManifestDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const manifest = useApplyManifest(org);
   const { reset } = manifest;
-
-  // Sync dialog open state with the native <dialog> element.
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) {
-      dialog.showModal();
-    } else if (!open && dialog.open) {
-      dialog.close();
-    }
-  }, [open]);
 
   // Start each session clean.
   useEffect(() => {
@@ -109,10 +98,11 @@ export function ApplyManifestDialog({
     if (applied.length > 0) onApplied?.(applied);
   }, [onOpenChange, manifest.entries, onApplied]);
 
-  const handleCancel = useCallback(
-    (e: React.SyntheticEvent) => {
-      e.preventDefault();
-      closeAndMaybeRefresh();
+  // Escape/cancel routes through the same dismiss-after-partial path as the
+  // Close button, via the shell's single close-intent callback.
+  const handleShellOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) closeAndMaybeRefresh();
     },
     [closeAndMaybeRefresh],
   );
@@ -151,15 +141,7 @@ export function ApplyManifestDialog({
     !manifest.isApplying;
 
   return (
-    <dialog
-      ref={dialogRef}
-      onCancel={handleCancel}
-      className={cn(
-        "stg:fixed stg:inset-0 stg:z-50 stg:m-auto stg:w-full stg:max-w-3xl stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:p-0 stg:text-popover-foreground stg:shadow-lg",
-        "stg:backdrop:bg-backdrop",
-        "stg:open:animate-in stg:open:fade-in-0 stg:open:zoom-in-95",
-      )}
-    >
+    <DialogShell open={open} onOpenChange={handleShellOpenChange} width="3xl" aria-label="Apply YAML">
       <div className="stg:flex stg:flex-col stg:gap-4 stg:p-6">
         {/* Header */}
         <div className="stg:flex stg:flex-col stg:gap-1">
@@ -252,7 +234,7 @@ export function ApplyManifestDialog({
           </div>
         </div>
       </div>
-    </dialog>
+    </DialogShell>
   );
 }
 

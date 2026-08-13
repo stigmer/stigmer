@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import type { ReactNode, SyntheticEvent } from "react";
+import type { MouseEvent, ReactNode, SyntheticEvent } from "react";
 import { cn } from "@stigmer/theme";
 
 /**
@@ -42,6 +42,15 @@ export interface DialogShellProps {
    * trap) — the channel-dialog embedding mode.
    */
   readonly modal?: boolean;
+  /**
+   * Light dismiss: a click on the backdrop (the dialog element itself —
+   * clicks inside the content land on descendants) reports close intent.
+   * The house rule from the pre-extraction census: read-only viewers
+   * (diff/YAML/explain/lightbox/pickers) dismiss on backdrop, form dialogs
+   * do NOT — a stray click must never discard a half-filled form. Default
+   * `false`.
+   */
+  readonly dismissOnBackdrop?: boolean;
   /**
    * Merged after the shell's own chrome, so deliberate outliers (a
    * lightbox's viewport sizing, a fullscreen graph's `h-[90vh]`, a
@@ -86,6 +95,7 @@ export function DialogShell({
   onOpenChange,
   width = "md",
   modal = true,
+  dismissOnBackdrop = false,
   className,
   children,
   "aria-label": ariaLabel,
@@ -122,12 +132,22 @@ export function DialogShell({
     if (open) onOpenChange(false);
   }, [open, onOpenChange]);
 
+  // Backdrop clicks hit the <dialog> element itself; clicks anywhere in the
+  // content land on a descendant, so the target check is exact.
+  const handleClick = useCallback(
+    (e: MouseEvent<HTMLDialogElement>) => {
+      if (e.target === e.currentTarget) onOpenChange(false);
+    },
+    [onOpenChange],
+  );
+
   return (
     <dialog
       ref={dialogRef}
       open={modal ? undefined : open || undefined}
       onCancel={modal ? handleCancel : undefined}
       onClose={modal ? handleClose : undefined}
+      onClick={modal && dismissOnBackdrop ? handleClick : undefined}
       aria-label={ariaLabel}
       aria-labelledby={ariaLabelledby}
       className={cn(

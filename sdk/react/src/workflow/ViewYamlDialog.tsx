@@ -1,9 +1,9 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef } from "react";
-import { cn } from "@stigmer/theme";
+import { memo, useCallback } from "react";
 import type { WorkflowGraphModel } from "./workflow-graph-model.js";
 import { taskToYaml } from "./inspector/task-to-yaml.js";
+import { DialogShell } from "../internal/DialogShell.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
 /** Props for {@link ViewYamlDialog}. */
@@ -32,7 +32,6 @@ export const ViewYamlDialog = memo(function ViewYamlDialog({
   graph,
   onClose,
 }: ViewYamlDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const { copy, copied } = useCopyFeedback();
 
   const node = nodeId && graph
@@ -41,45 +40,27 @@ export const ViewYamlDialog = memo(function ViewYamlDialog({
 
   const yaml = node ? taskToYaml(node) : "";
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (nodeId && node) {
-      if (!dialog.open) dialog.showModal();
-    } else {
-      if (dialog.open) dialog.close();
-    }
-  }, [nodeId, node]);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    const handleClose = () => onClose();
-    dialog.addEventListener("close", handleClose);
-    return () => dialog.removeEventListener("close", handleClose);
-  }, [onClose]);
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) onClose();
+    },
+    [onClose],
+  );
 
   const handleCopy = useCallback(() => {
     void copy(yaml);
   }, [copy, yaml]);
 
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent<HTMLDialogElement>) => {
-      if (e.target === dialogRef.current) {
-        onClose();
-      }
-    },
-    [onClose],
-  );
-
   return (
-    <dialog
-      ref={dialogRef}
-      className={cn(
-        "stgm stg:m-auto stg:max-h-[80vh] stg:w-full stg:max-w-lg stg:rounded-lg stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-background,#fff)] stg:p-0 stg:shadow-xl",
-        "stg:backdrop:bg-backdrop",
-      )}
-      onClick={handleBackdropClick}
+    <DialogShell
+      open={Boolean(nodeId && node)}
+      onOpenChange={handleOpenChange}
+      width="lg"
+      dismissOnBackdrop
+      // `stgm` re-establishes the theme scope (this dialog renders from the
+      // workflow canvas); the var-fallback styling of the body predates the
+      // token utilities and stays untouched here.
+      className="stgm stg:max-h-[80vh] stg:bg-[var(--stgm-background,#fff)] stg:border-[var(--stgm-border,#e5e5e5)]"
       aria-label={node ? `YAML for ${node.taskName}` : "View YAML"}
     >
       {node && (
@@ -121,7 +102,7 @@ export const ViewYamlDialog = memo(function ViewYamlDialog({
           </div>
         </div>
       )}
-    </dialog>
+    </DialogShell>
   );
 });
 
