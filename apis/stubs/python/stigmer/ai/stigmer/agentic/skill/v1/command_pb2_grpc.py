@@ -22,6 +22,11 @@ class SkillCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
                 _registered_method=True)
+        self.createArtifactUploadUrl = channel.unary_unary(
+                '/ai.stigmer.agentic.skill.v1.SkillCommandController/createArtifactUploadUrl',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.CreateSkillArtifactUploadUrlRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillArtifactUploadUrl.FromString,
+                _registered_method=True)
         self.pushFromExecutionArtifact = channel.unary_unary(
                 '/ai.stigmer.agentic.skill.v1.SkillCommandController/pushFromExecutionArtifact',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillFromExecutionArtifactRequest.SerializeToString,
@@ -61,6 +66,25 @@ class SkillCommandControllerServicer(object):
         5. Store the artifact (deduplicated by hash)
         6. Update skill spec and status
         7. Archive the previous version (if updating)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def createArtifactUploadUrl(self, request, context):
+        """Mint a short-lived, single-use upload URL for staging a skill artifact
+        that exceeds the gRPC message-size cap (10MB). Flow:
+
+        1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
+        2. HTTP PUT the ZIP bytes to url
+        3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,
+        validation, and versioning as an inline push
+
+        The server refuses over-limit size_bytes here, before any bytes move.
+
+        @internal
+        Authorization matches push() — the URL is a capability to stage bytes,
+        so minting one requires the same permission as consuming it.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -115,6 +139,11 @@ def add_SkillCommandControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
             ),
+            'createArtifactUploadUrl': grpc.unary_unary_rpc_method_handler(
+                    servicer.createArtifactUploadUrl,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.CreateSkillArtifactUploadUrlRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillArtifactUploadUrl.SerializeToString,
+            ),
             'pushFromExecutionArtifact': grpc.unary_unary_rpc_method_handler(
                     servicer.pushFromExecutionArtifact,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillFromExecutionArtifactRequest.FromString,
@@ -159,6 +188,33 @@ class SkillCommandController(object):
             '/ai.stigmer.agentic.skill.v1.SkillCommandController/push',
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def createArtifactUploadUrl(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.skill.v1.SkillCommandController/createArtifactUploadUrl',
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.CreateSkillArtifactUploadUrlRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillArtifactUploadUrl.FromString,
             options,
             channel_credentials,
             insecure,

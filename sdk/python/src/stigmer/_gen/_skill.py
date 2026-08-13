@@ -36,6 +36,12 @@ class SkillClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def create_artifact_upload_url(self, input: io_pb2.CreateSkillArtifactUploadUrlRequest) -> io_pb2.SkillArtifactUploadUrl:
+        try:
+            return self._command.createArtifactUploadUrl(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def push_from_execution_artifact(self, input: io_pb2.PushSkillFromExecutionArtifactRequest) -> api_pb2.Skill:
         try:
             return self._command.pushFromExecutionArtifact(input)
@@ -71,6 +77,12 @@ class SkillClient:
     def get_artifact(self, input: io_pb2.GetArtifactRequest) -> io_pb2.GetArtifactResponse:
         try:
             return self._query.getArtifact(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_artifact_download_url(self, input: io_pb2.GetArtifactRequest) -> io_pb2.SkillArtifactDownloadUrl:
+        try:
+            return self._query.getArtifactDownloadUrl(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

@@ -19,18 +19,48 @@ class SkillId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class PushSkillRequest(_message.Message):
-    __slots__ = ("org", "artifact", "tag", "git_provenance", "message")
+    __slots__ = ("org", "artifact", "tag", "git_provenance", "message", "artifact_upload_ref")
     ORG_FIELD_NUMBER: _ClassVar[int]
     ARTIFACT_FIELD_NUMBER: _ClassVar[int]
     TAG_FIELD_NUMBER: _ClassVar[int]
     GIT_PROVENANCE_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    ARTIFACT_UPLOAD_REF_FIELD_NUMBER: _ClassVar[int]
     org: str
     artifact: bytes
     tag: str
     git_provenance: _status_pb2.GitProvenance
     message: str
-    def __init__(self, org: _Optional[str] = ..., artifact: _Optional[bytes] = ..., tag: _Optional[str] = ..., git_provenance: _Optional[_Union[_status_pb2.GitProvenance, _Mapping]] = ..., message: _Optional[str] = ...) -> None: ...
+    artifact_upload_ref: str
+    def __init__(self, org: _Optional[str] = ..., artifact: _Optional[bytes] = ..., tag: _Optional[str] = ..., git_provenance: _Optional[_Union[_status_pb2.GitProvenance, _Mapping]] = ..., message: _Optional[str] = ..., artifact_upload_ref: _Optional[str] = ...) -> None: ...
+
+class CreateSkillArtifactUploadUrlRequest(_message.Message):
+    __slots__ = ("org", "size_bytes")
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    SIZE_BYTES_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    size_bytes: int
+    def __init__(self, org: _Optional[str] = ..., size_bytes: _Optional[int] = ...) -> None: ...
+
+class SkillArtifactUploadUrl(_message.Message):
+    __slots__ = ("url", "artifact_upload_ref", "ttl_seconds")
+    URL_FIELD_NUMBER: _ClassVar[int]
+    ARTIFACT_UPLOAD_REF_FIELD_NUMBER: _ClassVar[int]
+    TTL_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    url: str
+    artifact_upload_ref: str
+    ttl_seconds: int
+    def __init__(self, url: _Optional[str] = ..., artifact_upload_ref: _Optional[str] = ..., ttl_seconds: _Optional[int] = ...) -> None: ...
+
+class SkillArtifactDownloadUrl(_message.Message):
+    __slots__ = ("url", "ttl_seconds", "size_bytes")
+    URL_FIELD_NUMBER: _ClassVar[int]
+    TTL_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    SIZE_BYTES_FIELD_NUMBER: _ClassVar[int]
+    url: str
+    ttl_seconds: int
+    size_bytes: int
+    def __init__(self, url: _Optional[str] = ..., ttl_seconds: _Optional[int] = ..., size_bytes: _Optional[int] = ...) -> None: ...
 
 class PushSkillFromExecutionArtifactRequest(_message.Message):
     __slots__ = ("org", "execution_id", "storage_key", "tag")

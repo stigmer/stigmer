@@ -17,6 +17,14 @@
           "description": "Push a skill artifact.\n Creates a skill if it does not exist, or creates a new version of an\n existing skill. The artifact must contain a SKILL.md file."
         },
         {
+          "name": "CreateArtifactUploadUrl",
+          "inputType": "CreateSkillArtifactUploadUrlRequest",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest",
+          "outputType": "SkillArtifactUploadUrl",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl",
+          "description": "Mint a short-lived, single-use upload URL for staging a skill artifact\n that exceeds the gRPC message-size cap (10MB). Flow:\n\n 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }\n 2. HTTP PUT the ZIP bytes to url\n 3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,\n    validation, and versioning as an inline push\n\n The server refuses over-limit size_bytes here, before any bytes move."
+        },
+        {
           "name": "PushFromExecutionArtifact",
           "inputType": "PushSkillFromExecutionArtifactRequest",
           "inputFullType": "ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest",
@@ -72,6 +80,14 @@
           "description": "Download skill artifact from storage by its storage key.\n Returns the ZIP file containing SKILL.md and implementation files."
         },
         {
+          "name": "GetArtifactDownloadUrl",
+          "inputType": "GetArtifactRequest",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.GetArtifactRequest",
+          "outputType": "SkillArtifactDownloadUrl",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl",
+          "description": "Mint a URL for downloading a skill artifact over HTTP.\n\n Preferred over getArtifact for anything that might exceed the gRPC\n message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill\n limit is deliverable. Callers should try this first and fall back to\n getArtifact against servers that predate it (UNIMPLEMENTED)."
+        },
+        {
           "name": "ListVersions",
           "inputType": "ListSkillVersionsInput",
           "inputFullType": "ai.stigmer.agentic.skill.v1.ListSkillVersionsInput",
@@ -86,7 +102,7 @@
   "methodTypes": [
     {
       "name": "PushSkillRequest",
-      "description": "PushSkillRequest contains the skill artifact and metadata for upload.\n Creates a skill if it does not exist, or creates a new version of an\n existing skill.",
+      "description": "PushSkillRequest contains the skill artifact and metadata for upload.\n Creates a skill if it does not exist, or creates a new version of an\n existing skill.\n\n The artifact travels one of two ways (exactly one must be set):\n - artifact: inline ZIP bytes. Simple one-round-trip push, but bounded by\n   the gRPC transport's message-size cap (10MB) — well below the 100MB\n   skill limit.\n - artifact_upload_ref: reference to bytes already staged via\n   createArtifactUploadUrl() + HTTP PUT. Required for artifacts above the\n   transport cap; works for any size up to the skill limit.",
       "protoType": "ai.stigmer.agentic.skill.v1.PushSkillRequest",
       "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
       "fields": [
@@ -110,11 +126,8 @@
           "type": {
             "kind": "bytes"
           },
-          "description": "Skill artifact as a ZIP file (binary content).\n The ZIP must contain:\n - SKILL.md (required): Interface definition and documentation with YAML frontmatter\n   - name: Skill identifier (required in frontmatter, kebab-case)\n   - description: Human-readable description (optional but recommended)\n - Tool executables/scripts (optional)\n - Additional files referenced in SKILL.md",
-          "required": true,
-          "validation": {
-            "required": true
-          }
+          "description": "Skill artifact as a ZIP file (binary content).\n The ZIP must contain:\n - SKILL.md (required): Interface definition and documentation with YAML frontmatter\n   - name: Skill identifier (required in frontmatter, kebab-case)\n   - description: Human-readable description (optional but recommended)\n - Tool executables/scripts (optional)\n - Additional files referenced in SKILL.md\n\n Mutually exclusive with artifact_upload_ref (see the message comment).",
+          "required": false
         },
         {
           "name": "Tag",
@@ -148,6 +161,85 @@
             "kind": "string"
           },
           "description": "Optional human-readable message describing what changed in this version.\n Stored in metadata.version.message for version history display.\n Analogous to a git commit message. If empty, the version timeline falls\n back to displaying git_provenance.commit message when available.",
+          "required": false
+        },
+        {
+          "name": "ArtifactUploadRef",
+          "jsonName": "artifactUploadRef",
+          "protoField": "artifact_upload_ref",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Reference to an artifact staged via createArtifactUploadUrl().\n Set this instead of artifact when the ZIP exceeds the gRPC message-size\n cap. The reference is single-use and expires with its upload URL.\n\n Mutually exclusive with artifact (see the message comment).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "CreateSkillArtifactUploadUrlRequest",
+      "description": "CreateSkillArtifactUploadUrlRequest asks the server to mint a staging\n slot for a skill artifact that is too large to travel inline in\n PushSkillRequest.artifact (the gRPC message cap is 10MB; skills may be\n up to 100MB).",
+      "protoType": "ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest",
+      "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that will own the skill (authorization scope — the caller\n needs the same can_create_skill permission that push requires).",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "SizeBytes",
+          "jsonName": "sizeBytes",
+          "protoField": "size_bytes",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Declared size of the artifact ZIP in bytes.\n\n Lets the server refuse over-limit artifacts BEFORE any bytes move —\n the fail-loud-at-authoring contract from #675. The upload endpoint\n additionally enforces the declared size against the actual bytes.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SkillArtifactUploadUrl",
+      "description": "SkillArtifactUploadUrl is a short-lived, single-use capability for\n staging a skill artifact over HTTP.",
+      "protoType": "ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl",
+      "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
+      "fields": [
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "protoField": "url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to PUT the artifact ZIP bytes to. Content-Type: application/zip.",
+          "required": false
+        },
+        {
+          "name": "ArtifactUploadRef",
+          "jsonName": "artifactUploadRef",
+          "protoField": "artifact_upload_ref",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Opaque reference to pass as PushSkillRequest.artifact_upload_ref after\n the PUT succeeds. Single-use; invalid after the push consumes it or\n the TTL lapses.",
+          "required": false
+        },
+        {
+          "name": "TtlSeconds",
+          "jsonName": "ttlSeconds",
+          "protoField": "ttl_seconds",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Time-to-live for the upload URL in seconds. After this duration the\n URL and the reference expire and a new one must be requested.",
           "required": false
         }
       ]
@@ -376,6 +468,44 @@
             "kind": "bytes"
           },
           "description": "The skill artifact as a ZIP file (binary content).\n Contains SKILL.md and implementation files.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SkillArtifactDownloadUrl",
+      "description": "SkillArtifactDownloadUrl provides a URL for downloading a skill\n artifact over HTTP.",
+      "protoType": "ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl",
+      "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
+      "fields": [
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "protoField": "url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to download the artifact ZIP via HTTP GET.",
+          "required": false
+        },
+        {
+          "name": "TtlSeconds",
+          "jsonName": "ttlSeconds",
+          "protoField": "ttl_seconds",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Time-to-live for the download URL in seconds.\n Typically 900 (15 minutes) for Cloud, 0 (no expiry) for OSS.",
+          "required": false
+        },
+        {
+          "name": "SizeBytes",
+          "jsonName": "sizeBytes",
+          "protoField": "size_bytes",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Size of the artifact ZIP in bytes. Lets clients pre-allocate or\n sanity-check before fetching.",
           "required": false
         }
       ]

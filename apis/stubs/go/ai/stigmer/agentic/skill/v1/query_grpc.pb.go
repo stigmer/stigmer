@@ -20,10 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SkillQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.skill.v1.SkillQueryController/get"
-	SkillQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getByReference"
-	SkillQueryController_GetArtifact_FullMethodName    = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifact"
-	SkillQueryController_ListVersions_FullMethodName   = "/ai.stigmer.agentic.skill.v1.SkillQueryController/listVersions"
+	SkillQueryController_Get_FullMethodName                    = "/ai.stigmer.agentic.skill.v1.SkillQueryController/get"
+	SkillQueryController_GetByReference_FullMethodName         = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getByReference"
+	SkillQueryController_GetArtifact_FullMethodName            = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifact"
+	SkillQueryController_GetArtifactDownloadUrl_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifactDownloadUrl"
+	SkillQueryController_ListVersions_FullMethodName           = "/ai.stigmer.agentic.skill.v1.SkillQueryController/listVersions"
 )
 
 // SkillQueryControllerClient is the client API for SkillQueryController service.
@@ -53,6 +54,18 @@ type SkillQueryControllerClient interface {
 	// sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
 	// storage key itself acts as a capability token.
 	GetArtifact(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*GetArtifactResponse, error)
+	// Mint a URL for downloading a skill artifact over HTTP.
+	//
+	// Preferred over getArtifact for anything that might exceed the gRPC
+	// message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
+	// limit is deliverable. Callers should try this first and fall back to
+	// getArtifact against servers that predate it (UNIMPLEMENTED).
+	//
+	// @internal
+	// Authorization is skipped for the same reason as getArtifact: the
+	// content-hash storage key acts as the capability token. Cloud returns a
+	// pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
+	GetArtifactDownloadUrl(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*SkillArtifactDownloadUrl, error)
 	// List version history for a skill.
 	//
 	// Returns all historical versions ordered by push time (newest first).
@@ -103,6 +116,16 @@ func (c *skillQueryControllerClient) GetArtifact(ctx context.Context, in *GetArt
 	return out, nil
 }
 
+func (c *skillQueryControllerClient) GetArtifactDownloadUrl(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*SkillArtifactDownloadUrl, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SkillArtifactDownloadUrl)
+	err := c.cc.Invoke(ctx, SkillQueryController_GetArtifactDownloadUrl_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *skillQueryControllerClient) ListVersions(ctx context.Context, in *ListSkillVersionsInput, opts ...grpc.CallOption) (*ListSkillVersionsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListSkillVersionsResponse)
@@ -140,6 +163,18 @@ type SkillQueryControllerServer interface {
 	// sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
 	// storage key itself acts as a capability token.
 	GetArtifact(context.Context, *GetArtifactRequest) (*GetArtifactResponse, error)
+	// Mint a URL for downloading a skill artifact over HTTP.
+	//
+	// Preferred over getArtifact for anything that might exceed the gRPC
+	// message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
+	// limit is deliverable. Callers should try this first and fall back to
+	// getArtifact against servers that predate it (UNIMPLEMENTED).
+	//
+	// @internal
+	// Authorization is skipped for the same reason as getArtifact: the
+	// content-hash storage key acts as the capability token. Cloud returns a
+	// pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
+	GetArtifactDownloadUrl(context.Context, *GetArtifactRequest) (*SkillArtifactDownloadUrl, error)
 	// List version history for a skill.
 	//
 	// Returns all historical versions ordered by push time (newest first).
@@ -167,6 +202,9 @@ func (UnimplementedSkillQueryControllerServer) GetByReference(context.Context, *
 }
 func (UnimplementedSkillQueryControllerServer) GetArtifact(context.Context, *GetArtifactRequest) (*GetArtifactResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetArtifact not implemented")
+}
+func (UnimplementedSkillQueryControllerServer) GetArtifactDownloadUrl(context.Context, *GetArtifactRequest) (*SkillArtifactDownloadUrl, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetArtifactDownloadUrl not implemented")
 }
 func (UnimplementedSkillQueryControllerServer) ListVersions(context.Context, *ListSkillVersionsInput) (*ListSkillVersionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListVersions not implemented")
@@ -245,6 +283,24 @@ func _SkillQueryController_GetArtifact_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SkillQueryController_GetArtifactDownloadUrl_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetArtifactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SkillQueryControllerServer).GetArtifactDownloadUrl(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SkillQueryController_GetArtifactDownloadUrl_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SkillQueryControllerServer).GetArtifactDownloadUrl(ctx, req.(*GetArtifactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _SkillQueryController_ListVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListSkillVersionsInput)
 	if err := dec(in); err != nil {
@@ -281,6 +337,10 @@ var SkillQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getArtifact",
 			Handler:    _SkillQueryController_GetArtifact_Handler,
+		},
+		{
+			MethodName: "getArtifactDownloadUrl",
+			Handler:    _SkillQueryController_GetArtifactDownloadUrl_Handler,
 		},
 		{
 			MethodName: "listVersions",

@@ -42,7 +42,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "commons/apiresource/io.proto\0328ai/stigmer" +
       "/commons/apiresource/rpc_service_options" +
       ".proto\032+ai/stigmer/commons/rpc/method_op" +
-      "tions.proto2\207\004\n\024SkillQueryController\022{\n\003" +
+      "tions.proto2\220\005\n\024SkillQueryController\022{\n\003" +
       "get\022$.ai.stigmer.agentic.skill.v1.SkillI" +
       "d\032\".ai.stigmer.agentic.skill.v1.Skill\"*\302" +
       "\270\030&\010\001\020+\"\005value*\031unauthorized to get skil" +
@@ -51,15 +51,18 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "tigmer.agentic.skill.v1.Skill\"\004\320\270\030\001\022v\n\013g" +
       "etArtifact\022/.ai.stigmer.agentic.skill.v1" +
       ".GetArtifactRequest\0320.ai.stigmer.agentic" +
-      ".skill.v1.GetArtifactResponse\"\004\320\270\030\001\022\201\001\n\014" +
-      "listVersions\0223.ai.stigmer.agentic.skill." +
-      "v1.ListSkillVersionsInput\0326.ai.stigmer.a" +
-      "gentic.skill.v1.ListSkillVersionsRespons" +
-      "e\"\004\320\270\030\001\032\004\240\377++B\235\001B\nQueryProtoP\001\242\002\004ASAS\252\002\033" +
-      "Ai.Stigmer.Agentic.Skill.V1\312\002\033Ai\\Stigmer" +
-      "\\Agentic\\Skill\\V1\342\002\'Ai\\Stigmer\\Agentic\\S" +
-      "kill\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agent" +
-      "ic::Skill::V1b\006proto3"
+      ".skill.v1.GetArtifactResponse\"\004\320\270\030\001\022\206\001\n\026" +
+      "getArtifactDownloadUrl\022/.ai.stigmer.agen" +
+      "tic.skill.v1.GetArtifactRequest\0325.ai.sti" +
+      "gmer.agentic.skill.v1.SkillArtifactDownl" +
+      "oadUrl\"\004\320\270\030\001\022\201\001\n\014listVersions\0223.ai.stigm" +
+      "er.agentic.skill.v1.ListSkillVersionsInp" +
+      "ut\0326.ai.stigmer.agentic.skill.v1.ListSki" +
+      "llVersionsResponse\"\004\320\270\030\001\032\004\240\377++B\235\001B\nQuery" +
+      "ProtoP\001\242\002\004ASAS\252\002\033Ai.Stigmer.Agentic.Skil" +
+      "l.V1\312\002\033Ai\\Stigmer\\Agentic\\Skill\\V1\342\002\'Ai\\" +
+      "Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\352\002\037A" +
+      "i::Stigmer::Agentic::Skill::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
