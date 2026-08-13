@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useState,
-  type FormEvent,
-  type KeyboardEvent,
-} from "react";
+import { type FormEvent, type KeyboardEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -59,6 +54,7 @@ export function CreatePlatformClientForm({
   onCancel,
   className,
 }: CreatePlatformClientFormProps) {
+  const baseId = useId();
   const { create, isCreating, error, clearError } =
     useCreatePlatformClient();
 
@@ -161,7 +157,7 @@ export function CreatePlatformClientForm({
   return (
     <form onSubmit={handleSubmit} className={cn("stg:space-y-3", className)}>
       <FormField
-        id="stgm-pc-name"
+        id={`${baseId}-name`}
         label="Name"
         value={name}
         onChange={setName}
@@ -184,13 +180,13 @@ export function CreatePlatformClientForm({
         {!neverExpires && (
           <div className="stg:space-y-1">
             <label
-              htmlFor="stgm-pc-expires-at"
+              htmlFor={`${baseId}-expires-at`}
               className="stg:text-xs stg:font-medium stg:text-foreground"
             >
               Expires at
             </label>
             <input
-              id="stgm-pc-expires-at"
+              id={`${baseId}-expires-at`}
               type="datetime-local"
               value={expiresAt}
               onChange={(e) => setExpiresAt(e.target.value)}
@@ -235,13 +231,13 @@ export function CreatePlatformClientForm({
         {autoGrant && (
           <div className="stg:space-y-1">
             <label
-              htmlFor="stgm-pc-grant-role"
+              htmlFor={`${baseId}-grant-role`}
               className="stg:text-xs stg:font-medium stg:text-foreground"
             >
               Auto-grant role
             </label>
             <select
-              id="stgm-pc-grant-role"
+              id={`${baseId}-grant-role`}
               value={String(autoGrantRole)}
               onChange={(e) =>
                 setAutoGrantRole(Number(e.target.value) as IamRole)

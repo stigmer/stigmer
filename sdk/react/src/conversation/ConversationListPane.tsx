@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useRef } from "react";
+import { memo, useCallback, useId, useRef } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { MessageSquare, TriangleAlert, User } from "lucide-react";
 import { cn } from "@stigmer/theme";
@@ -110,6 +110,7 @@ export function ConversationListPane({
   now,
   className,
 }: ConversationListPaneProps) {
+  const channelFilterId = useId();
   const providerById = new Map(
     channels.map((channel) => [
       channel.metadata?.id ?? "",
@@ -129,11 +130,11 @@ export function ConversationListPane({
           )}
           {channels.length > 1 && (
             <>
-              <label className="stg:sr-only" htmlFor="stgm-conversation-channel-filter">
+              <label className="stg:sr-only" htmlFor={channelFilterId}>
                 Filter by channel
               </label>
               <select
-                id="stgm-conversation-channel-filter"
+                id={channelFilterId}
                 value={channelFilter}
                 onChange={(e) => onChannelFilterChange(e.target.value)}
                 className={cn(

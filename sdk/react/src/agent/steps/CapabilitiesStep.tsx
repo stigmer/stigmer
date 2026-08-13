@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
 import { McpServerPicker } from "../../mcp-server/McpServerPicker.js";
@@ -142,13 +142,16 @@ function CollapsibleSection({
   readonly onToggle: (id: string) => void;
   readonly children: React.ReactNode;
 }) {
+  // The disclosure-panel DOM id is minted per mount — deriving it from the
+  // semantic section key would collide when two wizards mount on one page.
+  const panelId = useId();
   return (
     <div className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border">
       <button
         type="button"
         onClick={() => onToggle(id)}
         aria-expanded={expanded}
-        aria-controls={`stgm-wizard-section-${id}`}
+        aria-controls={panelId}
         className={cn(
           "stg:flex stg:w-full stg:items-center stg:justify-between stg:px-4 stg:py-3 stg:text-left stg:transition-colors",
           "stg:hover:bg-accent-hover",
@@ -174,7 +177,7 @@ function CollapsibleSection({
 
       {expanded && (
         <div
-          id={`stgm-wizard-section-${id}`}
+          id={panelId}
           className="stg:border-t stg:border-border stg:px-4 stg:py-4"
         >
           {children}

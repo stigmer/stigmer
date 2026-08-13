@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyListPanel } from "../api-key/ApiKeyListPanel.js";
 import { CreateApiKeyForm } from "../api-key/CreateApiKeyForm.js";
@@ -16,6 +16,7 @@ type FlowState =
 
 /** Settings section for listing and creating organization API keys. */
 export function ApiKeysSection() {
+  const headingId = useId();
   const org = useActiveOrgSlug();
   const apiKeysAvailable = useResourceAvailable(ApiResourceKind.api_key);
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
@@ -37,10 +38,10 @@ export function ApiKeysSection() {
   }, []);
 
   return (
-    <section aria-labelledby="api-keys-heading">
+    <section aria-labelledby={headingId}>
       <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
         <h2
-          id="api-keys-heading"
+          id={headingId}
           className="stg:text-foreground stg:text-sm stg:font-semibold"
         >
           API Keys

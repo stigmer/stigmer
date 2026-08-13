@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { BillingAccountStatus } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
@@ -53,14 +53,15 @@ export function BillingSection({
   onDismissCheckoutSuccess,
   className,
 }: BillingSectionProps) {
+  const headingId = useId();
   const { activeOrg } = useOrg();
   const mode = useDeploymentMode();
   const orgId = activeOrg?.metadata?.id ?? "";
 
   return (
-    <section aria-labelledby="billing-heading" className={className}>
+    <section aria-labelledby={headingId} className={className}>
       <h2
-        id="billing-heading"
+        id={headingId}
         className="stg:text-foreground stg:mb-1 stg:text-sm stg:font-semibold"
       >
         Billing

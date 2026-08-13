@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useId, useRef } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { MessageSquare, User, X } from "lucide-react";
 import { cn } from "@stigmer/theme";
@@ -69,6 +69,7 @@ export function ChannelConversationsDialog({
   modal = true,
 }: ChannelConversationsDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
 
   const handleClose = useCallback(() => {
     dialogRef.current?.close();
@@ -99,11 +100,12 @@ export function ChannelConversationsDialog({
         "stg:w-full stg:max-w-lg stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
         modal ? "stg:fixed stg:inset-0 stg:m-auto stg:backdrop:bg-backdrop" : "stg:relative",
       )}
-      aria-labelledby="channel-conversations-title"
+      aria-labelledby={titleId}
     >
       {/* Body mounts only while open so each opening fetches fresh. */}
       {open && (
         <ChannelConversationsDialogBody
+          titleId={titleId}
           channel={channel}
           sessionHref={sessionHref}
           onClose={handleClose}
@@ -114,10 +116,12 @@ export function ChannelConversationsDialog({
 }
 
 function ChannelConversationsDialogBody({
+  titleId,
   channel,
   sessionHref,
   onClose,
 }: {
+  readonly titleId: string;
   readonly channel: AgentChannel;
   readonly sessionHref?: (sessionId: string) => string;
   readonly onClose: () => void;
@@ -133,7 +137,7 @@ function ChannelConversationsDialogBody({
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3 stg:border-b stg:border-border stg:px-5 stg:py-4">
         <div className="stg:min-w-0">
           <h2
-            id="channel-conversations-title"
+            id={titleId}
             className="stg:text-sm stg:font-semibold stg:text-popover-foreground"
           >
             Sessions

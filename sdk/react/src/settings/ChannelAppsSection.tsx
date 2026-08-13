@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppListPanel } from "../channel-app/ChannelAppListPanel.js";
 import {
@@ -38,6 +38,7 @@ type FlowState =
  * Channels tab offers it as the serving app.
  */
 export function ChannelAppsSection() {
+  const headingId = useId();
   const org = useActiveOrgSlug();
   // Channel installs (the consumer of these credentials) are cloud-only;
   // gate the whole section the way the Channels tab gates connects.
@@ -72,10 +73,10 @@ export function ChannelAppsSection() {
   }, []);
 
   return (
-    <section aria-labelledby="channel-apps-heading">
+    <section aria-labelledby={headingId}>
       <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
         <h2
-          id="channel-apps-heading"
+          id={headingId}
           className="stg:text-foreground stg:text-sm stg:font-semibold"
         >
           Channel Apps

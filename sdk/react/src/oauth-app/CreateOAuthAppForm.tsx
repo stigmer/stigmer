@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, type FormEvent } from "react";
+import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
@@ -57,6 +57,7 @@ export function CreateOAuthAppForm({
   onCancel,
   className,
 }: CreateOAuthAppFormProps) {
+  const baseId = useId();
   const { create, isCreating, error, clearError } = useCreateOAuthApp();
 
   const [name, setName] = useState("");
@@ -152,7 +153,7 @@ export function CreateOAuthAppForm({
     <form onSubmit={handleSubmit} className={cn("stg:space-y-3", className)}>
       <div className="stg:space-y-3">
         <FormField
-          id="stgm-oauth-name"
+          id={`${baseId}-name`}
           label="Name"
           value={name}
           onChange={setName}
@@ -162,7 +163,7 @@ export function CreateOAuthAppForm({
         />
 
         <FormField
-          id="stgm-oauth-provider"
+          id={`${baseId}-provider`}
           label="Provider"
           value={provider}
           onChange={setProvider}
@@ -173,7 +174,7 @@ export function CreateOAuthAppForm({
         />
 
         <FormField
-          id="stgm-oauth-client-id"
+          id={`${baseId}-client-id`}
           label="Client ID"
           value={clientId}
           onChange={setClientId}
@@ -183,7 +184,7 @@ export function CreateOAuthAppForm({
         />
 
         <FormField
-          id="stgm-oauth-client-secret"
+          id={`${baseId}-client-secret`}
           label="Client secret"
           value={clientSecret}
           onChange={setClientSecret}
@@ -194,7 +195,7 @@ export function CreateOAuthAppForm({
         />
 
         <FormField
-          id="stgm-oauth-auth-url"
+          id={`${baseId}-auth-url`}
           label="Authorization URL"
           value={authorizationUrl}
           onChange={setAuthorizationUrl}
@@ -205,7 +206,7 @@ export function CreateOAuthAppForm({
         />
 
         <FormField
-          id="stgm-oauth-token-url"
+          id={`${baseId}-token-url`}
           label="Token URL"
           value={tokenUrl}
           onChange={setTokenUrl}
@@ -229,7 +230,7 @@ export function CreateOAuthAppForm({
           {showAdvanced && (
             <div className="stg:mt-2 stg:space-y-3 stg:border-l-2 stg:border-border-muted stg:pl-3">
               <FormField
-                id="stgm-oauth-scopes"
+                id={`${baseId}-scopes`}
                 label="Scopes"
                 value={scopes}
                 onChange={setScopes}
@@ -239,7 +240,7 @@ export function CreateOAuthAppForm({
               />
 
               <FormField
-                id="stgm-oauth-userinfo-url"
+                id={`${baseId}-userinfo-url`}
                 label="Userinfo URL"
                 value={userinfoUrl}
                 onChange={setUserinfoUrl}
@@ -249,7 +250,7 @@ export function CreateOAuthAppForm({
               />
 
               <FormField
-                id="stgm-oauth-scope-param"
+                id={`${baseId}-scope-param`}
                 label="Scope parameter name"
                 value={scopeParameterName}
                 onChange={setScopeParameterName}
@@ -260,13 +261,13 @@ export function CreateOAuthAppForm({
 
               <div className="stg:space-y-1">
                 <label
-                  htmlFor="stgm-oauth-approval-status"
+                  htmlFor={`${baseId}-approval-status`}
                   className="stg:text-xs stg:font-medium stg:text-foreground"
                 >
                   Vendor approval status
                 </label>
                 <select
-                  id="stgm-oauth-approval-status"
+                  id={`${baseId}-approval-status`}
                   value={vendorApprovalStatus}
                   onChange={(e) =>
                     setVendorApprovalStatus(
@@ -291,7 +292,7 @@ export function CreateOAuthAppForm({
               </div>
 
               <FormField
-                id="stgm-oauth-approval-docs"
+                id={`${baseId}-approval-docs`}
                 label="Vendor approval docs URL"
                 value={vendorApprovalDocsUrl}
                 onChange={setVendorApprovalDocsUrl}

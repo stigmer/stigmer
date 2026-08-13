@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, type FormEvent } from "react";
+import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import {
   getUserMessage,
@@ -85,6 +85,7 @@ export function ScheduleForm({
   onCancel,
   className,
 }: ScheduleFormProps) {
+  const baseId = useId();
   const { create, isCreating, error, clearError } = useCreateSchedule();
 
   const [name, setName] = useState("");
@@ -210,11 +211,11 @@ export function ScheduleForm({
     >
       {/* Name */}
       <div className="stg:space-y-1">
-        <label htmlFor="stgm-new-schedule-name" className={labelClasses}>
+        <label htmlFor={`${baseId}-name`} className={labelClasses}>
           Name
         </label>
         <input
-          id="stgm-new-schedule-name"
+          id={`${baseId}-name`}
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -228,13 +229,13 @@ export function ScheduleForm({
 
       {/* Target agent */}
       <div className="stg:space-y-1">
-        <span id="stgm-new-schedule-agent-label" className={labelClasses}>
+        <span id={`${baseId}-agent-label`} className={labelClasses}>
           Agent to run
         </span>
         <Popover.Root open={pickerOpen} onOpenChange={setPickerOpen}>
           <Popover.Trigger
             disabled={isCreating}
-            aria-labelledby="stgm-new-schedule-agent-label"
+            aria-labelledby={`${baseId}-agent-label`}
             className={cn(
               "stg:flex stg:w-full stg:items-center stg:justify-between stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-left stg:text-xs",
               "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
@@ -268,11 +269,11 @@ export function ScheduleForm({
 
       {/* Message */}
       <div className="stg:space-y-1">
-        <label htmlFor="stgm-new-schedule-message" className={labelClasses}>
+        <label htmlFor={`${baseId}-message`} className={labelClasses}>
           Message
         </label>
         <textarea
-          id="stgm-new-schedule-message"
+          id={`${baseId}-message`}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="The instruction the agent receives on every fire — write it for a run with no human present."
@@ -315,7 +316,7 @@ export function ScheduleForm({
           schedule fire, so the picker is filtered to visibility_org —
           the same credential surface a channel binding uses. */}
       <div className="stg:space-y-1">
-        <span id="stgm-new-schedule-env-label" className={labelClasses}>
+        <span id={`${baseId}-env-label`} className={labelClasses}>
           Environments <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
         </span>
         <EnvironmentPicker
@@ -392,12 +393,12 @@ export function ScheduleForm({
           surface: nobody is watching a 3 AM fire (DD-018 D-5). Clamped
           by the platform profile; tool-round bounds stay API-only. */}
       <div className="stg:space-y-1">
-        <label htmlFor="stgm-new-schedule-budget" className={labelClasses}>
+        <label htmlFor={`${baseId}-budget`} className={labelClasses}>
           Budget per run (USD){" "}
           <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
         </label>
         <input
-          id="stgm-new-schedule-budget"
+          id={`${baseId}-budget`}
           type="number"
           min="0"
           step="any"
@@ -416,11 +417,11 @@ export function ScheduleForm({
 
       {/* Time zone */}
       <div className="stg:space-y-1">
-        <label htmlFor="stgm-new-schedule-tz" className={labelClasses}>
+        <label htmlFor={`${baseId}-tz`} className={labelClasses}>
           Time zone
         </label>
         <TimeZoneField
-          id="stgm-new-schedule-tz"
+          id={`${baseId}-tz`}
           value={timeZone}
           onChange={setTimeZone}
           disabled={isCreating}
@@ -430,16 +431,16 @@ export function ScheduleForm({
       {/* Enabled */}
       <div className="stg:flex stg:items-start stg:gap-3">
         <Switch
-          id="stgm-new-schedule-enabled"
+          id={`${baseId}-enabled`}
           checked={enabled}
           onCheckedChange={setEnabled}
           disabled={isCreating}
-          aria-labelledby="stgm-new-schedule-enabled-label"
+          aria-labelledby={`${baseId}-enabled-label`}
         />
         <div className="stg:space-y-0.5">
           <label
-            id="stgm-new-schedule-enabled-label"
-            htmlFor="stgm-new-schedule-enabled"
+            id={`${baseId}-enabled-label`}
+            htmlFor={`${baseId}-enabled`}
             className={labelClasses}
           >
             Enabled

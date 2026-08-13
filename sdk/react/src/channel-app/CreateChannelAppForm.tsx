@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, type FormEvent } from "react";
+import { type FormEvent, useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
@@ -81,6 +81,7 @@ export function CreateChannelAppForm({
   onCancel,
   className,
 }: CreateChannelAppFormProps) {
+  const baseId = useId();
   const { create, isCreating, error, clearError } = useCreateChannelApp();
 
   const [provider, setProvider] = useState<ChannelProviderId>("slack");
@@ -186,7 +187,7 @@ export function CreateChannelAppForm({
         />
 
         <FormField
-          id="stgm-chapp-name"
+          id={`${baseId}-name`}
           label="Name"
           value={name}
           onChange={setName}
@@ -283,6 +284,7 @@ function ProviderPicker({
   readonly onChange: (id: ChannelProviderId) => void;
   readonly disabled: boolean;
 }) {
+  const groupName = useId();
   return (
     <fieldset>
       <legend className="stg:mb-1.5 stg:block stg:text-xs stg:font-medium stg:text-foreground">
@@ -304,7 +306,7 @@ function ProviderPicker({
               <input
                 id={`stgm-chapp-provider-${p.id}`}
                 type="radio"
-                name="stgm-chapp-provider"
+                name={`${groupName}-provider`}
                 checked={checked}
                 onChange={() => onChange(p.id)}
                 disabled={disabled}
@@ -343,6 +345,7 @@ function SlackCreateSection({
   readonly onSigningSecretChange: (v: string) => void;
   readonly disabled: boolean;
 }) {
+  const baseId = useId();
   return (
     <>
       <div className="stg:space-y-1.5">
@@ -381,7 +384,7 @@ function SlackCreateSection({
         </p>
 
         <FormField
-          id="stgm-chapp-client-id"
+          id={`${baseId}-client-id`}
           label="Client ID"
           value={clientId}
           onChange={onClientIdChange}
@@ -391,7 +394,7 @@ function SlackCreateSection({
         />
 
         <FormField
-          id="stgm-chapp-client-secret"
+          id={`${baseId}-client-secret`}
           label="Client secret"
           value={clientSecret}
           onChange={onClientSecretChange}
@@ -402,7 +405,7 @@ function SlackCreateSection({
         />
 
         <FormField
-          id="stgm-chapp-signing-secret"
+          id={`${baseId}-signing-secret`}
           label="Signing secret"
           value={signingSecret}
           onChange={onSigningSecretChange}
@@ -442,6 +445,7 @@ function WhatsAppCreateSection({
   readonly onVerifyTokenChange: (v: string) => void;
   readonly disabled: boolean;
 }) {
+  const baseId = useId();
   return (
     <>
       <div className="stg:space-y-1.5">
@@ -477,7 +481,7 @@ function WhatsAppCreateSection({
         </p>
 
         <FormField
-          id="stgm-chapp-app-id"
+          id={`${baseId}-app-id`}
           label="App ID"
           value={appId}
           onChange={onAppIdChange}
@@ -487,7 +491,7 @@ function WhatsAppCreateSection({
         />
 
         <FormField
-          id="stgm-chapp-app-secret"
+          id={`${baseId}-app-secret`}
           label="App secret"
           value={appSecret}
           onChange={onAppSecretChange}
@@ -499,7 +503,7 @@ function WhatsAppCreateSection({
         />
 
         <FormField
-          id="stgm-chapp-access-token"
+          id={`${baseId}-access-token`}
           label="Access token"
           value={accessToken}
           onChange={onAccessTokenChange}
@@ -511,7 +515,7 @@ function WhatsAppCreateSection({
         />
 
         <FormField
-          id="stgm-chapp-verify-token"
+          id={`${baseId}-verify-token`}
           label="Verify token"
           value={verifyToken}
           onChange={onVerifyTokenChange}

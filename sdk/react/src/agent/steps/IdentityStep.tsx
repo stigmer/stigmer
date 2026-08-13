@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useId } from "react";
 import { cn } from "@stigmer/theme";
 import { generateSlug } from "../../internal/slug.js";
 import type { AgentWizardData } from "./types.js";
@@ -28,6 +28,7 @@ export function IdentityStep({
   updateData,
   validationError,
 }: IdentityStepProps) {
+  const baseId = useId();
   const handleNameChange = useCallback(
     (value: string) => {
       if (!data.slugTouched) {
@@ -72,13 +73,13 @@ export function IdentityStep({
         {/* Name */}
         <div className="stg:space-y-1.5">
           <label
-            htmlFor="stgm-wizard-agent-name"
+            htmlFor={`${baseId}-name`}
             className="stg:text-sm stg:font-medium stg:text-foreground"
           >
             Name <span className="stg:text-destructive">*</span>
           </label>
           <input
-            id="stgm-wizard-agent-name"
+            id={`${baseId}-name`}
             type="text"
             value={data.name}
             onChange={(e) => handleNameChange(e.target.value)}
@@ -95,13 +96,13 @@ export function IdentityStep({
         {/* Slug */}
         <div className="stg:space-y-1.5">
           <label
-            htmlFor="stgm-wizard-agent-slug"
+            htmlFor={`${baseId}-slug`}
             className="stg:text-sm stg:font-medium stg:text-foreground"
           >
             Slug
           </label>
           <input
-            id="stgm-wizard-agent-slug"
+            id={`${baseId}-slug`}
             type="text"
             value={data.slug}
             onChange={(e) => handleSlugChange(e.target.value)}
@@ -129,13 +130,13 @@ export function IdentityStep({
       {/* Description */}
       <div className="stg:space-y-1.5">
         <label
-          htmlFor="stgm-wizard-agent-description"
+          htmlFor={`${baseId}-description`}
           className="stg:text-sm stg:font-medium stg:text-foreground"
         >
           Description
         </label>
         <input
-          id="stgm-wizard-agent-description"
+          id={`${baseId}-description`}
           type="text"
           value={data.description}
           onChange={(e) => updateData({ description: e.target.value })}
@@ -153,13 +154,13 @@ export function IdentityStep({
       <div className="stg:grid stg:gap-4 stg:sm:grid-cols-2">
         <div className="stg:space-y-1.5">
           <label
-            htmlFor="stgm-wizard-agent-icon"
+            htmlFor={`${baseId}-icon`}
             className="stg:text-sm stg:font-medium stg:text-foreground"
           >
             Icon URL
           </label>
           <input
-            id="stgm-wizard-agent-icon"
+            id={`${baseId}-icon`}
             type="url"
             value={data.iconUrl}
             onChange={(e) => updateData({ iconUrl: e.target.value })}
@@ -177,13 +178,17 @@ export function IdentityStep({
             Visibility
           </legend>
           <div className="stg:flex stg:gap-2">
+            {/* The radio-group name is minted per mount: a hardcoded name
+                would merge two mounted wizards into one keyboard group. */}
             <VisibilityOption
+              name={`${baseId}-visibility`}
               value="private"
               label="Private"
               checked={data.visibility === "private"}
               onChange={() => updateData({ visibility: "private" })}
             />
             <VisibilityOption
+              name={`${baseId}-visibility`}
               value="public"
               label="Public"
               checked={data.visibility === "public"}
@@ -196,7 +201,7 @@ export function IdentityStep({
       {/* Instructions */}
       <div className="stg:space-y-1.5">
         <label
-          htmlFor="stgm-wizard-agent-instructions"
+          htmlFor={`${baseId}-instructions`}
           className="stg:text-sm stg:font-medium stg:text-foreground"
         >
           Instructions
@@ -205,7 +210,7 @@ export function IdentityStep({
           The system prompt that defines this agent&apos;s behavior.
         </p>
         <textarea
-          id="stgm-wizard-agent-instructions"
+          id={`${baseId}-instructions`}
           value={data.instructions}
           onChange={(e) => updateData({ instructions: e.target.value })}
           placeholder="You are a helpful assistant that..."
@@ -226,11 +231,13 @@ export function IdentityStep({
 // ---------------------------------------------------------------------------
 
 function VisibilityOption({
+  name,
   value,
   label,
   checked,
   onChange,
 }: {
+  readonly name: string;
   readonly value: string;
   readonly label: string;
   readonly checked: boolean;
@@ -247,7 +254,7 @@ function VisibilityOption({
     >
       <input
         type="radio"
-        name="stgm-wizard-agent-visibility"
+        name={name}
         value={value}
         checked={checked}
         onChange={onChange}

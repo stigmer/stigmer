@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { McpServerWizardData, EnvVarEntry } from "./types.js";
 
@@ -25,6 +25,7 @@ export function EnvironmentAuthStep({
   data,
   updateData,
 }: EnvironmentAuthStepProps) {
+  const baseId = useId();
   const [envExpanded, setEnvExpanded] = useState(data.env.length > 0);
 
   return (
@@ -41,7 +42,6 @@ export function EnvironmentAuthStep({
 
       {/* Environment Variables */}
       <CollapsibleSection
-        id="env"
         title="Environment Variables"
         subtitle="Secrets and configuration the server requires at runtime"
         count={data.env.length}
@@ -56,7 +56,6 @@ export function EnvironmentAuthStep({
 
       {/* Auth Configuration */}
       <CollapsibleSection
-        id="auth"
         title="OAuth Authentication"
         subtitle="Configure OAuth for servers that require user authorization"
         expanded={data.authEnabled}
@@ -66,13 +65,13 @@ export function EnvironmentAuthStep({
           <div className="stg:grid stg:gap-4 stg:sm:grid-cols-2">
             <div className="stg:space-y-1.5">
               <label
-                htmlFor="stgm-wizard-mcp-auth-app-org"
+                htmlFor={`${baseId}-app-org`}
                 className="stg:text-sm stg:font-medium stg:text-foreground"
               >
                 OAuth App Organization
               </label>
               <input
-                id="stgm-wizard-mcp-auth-app-org"
+                id={`${baseId}-app-org`}
                 type="text"
                 value={data.authOAuthAppOrg}
                 onChange={(e) =>
@@ -89,13 +88,13 @@ export function EnvironmentAuthStep({
 
             <div className="stg:space-y-1.5">
               <label
-                htmlFor="stgm-wizard-mcp-auth-app-slug"
+                htmlFor={`${baseId}-app-slug`}
                 className="stg:text-sm stg:font-medium stg:text-foreground"
               >
                 OAuth App Slug
               </label>
               <input
-                id="stgm-wizard-mcp-auth-app-slug"
+                id={`${baseId}-app-slug`}
                 type="text"
                 value={data.authOAuthAppSlug}
                 onChange={(e) =>
@@ -113,13 +112,13 @@ export function EnvironmentAuthStep({
 
           <div className="stg:space-y-1.5">
             <label
-              htmlFor="stgm-wizard-mcp-auth-target-var"
+              htmlFor={`${baseId}-target-var`}
               className="stg:text-sm stg:font-medium stg:text-foreground"
             >
               Target Environment Variable
             </label>
             <input
-              id="stgm-wizard-mcp-auth-target-var"
+              id={`${baseId}-target-var`}
               type="text"
               value={data.authTargetEnvVar}
               onChange={(e) =>
@@ -140,13 +139,13 @@ export function EnvironmentAuthStep({
           <div className="stg:grid stg:gap-4 stg:sm:grid-cols-2">
             <div className="stg:space-y-1.5">
               <label
-                htmlFor="stgm-wizard-mcp-auth-lifetime"
+                htmlFor={`${baseId}-lifetime`}
                 className="stg:text-sm stg:font-medium stg:text-foreground"
               >
                 Token Lifetime Hint
               </label>
               <input
-                id="stgm-wizard-mcp-auth-lifetime"
+                id={`${baseId}-lifetime`}
                 type="text"
                 value={data.authTokenLifetimeHint}
                 onChange={(e) =>
@@ -163,13 +162,13 @@ export function EnvironmentAuthStep({
 
             <div className="stg:space-y-1.5">
               <label
-                htmlFor="stgm-wizard-mcp-auth-scopes"
+                htmlFor={`${baseId}-scopes`}
                 className="stg:text-sm stg:font-medium stg:text-foreground"
               >
                 Scope Hints
               </label>
               <input
-                id="stgm-wizard-mcp-auth-scopes"
+                id={`${baseId}-scopes`}
                 type="text"
                 value={data.authScopeHints}
                 onChange={(e) =>
@@ -190,13 +189,13 @@ export function EnvironmentAuthStep({
 
           <div className="stg:space-y-1.5">
             <label
-              htmlFor="stgm-wizard-mcp-auth-discovery"
+              htmlFor={`${baseId}-discovery`}
               className="stg:text-sm stg:font-medium stg:text-foreground"
             >
               Discovery URL
             </label>
             <input
-              id="stgm-wizard-mcp-auth-discovery"
+              id={`${baseId}-discovery`}
               type="url"
               value={data.authDiscoveryUrl}
               onChange={(e) =>
@@ -221,7 +220,6 @@ export function EnvironmentAuthStep({
 // ---------------------------------------------------------------------------
 
 function CollapsibleSection({
-  id,
   title,
   subtitle,
   count,
@@ -229,7 +227,6 @@ function CollapsibleSection({
   onToggle,
   children,
 }: {
-  readonly id: string;
   readonly title: string;
   readonly subtitle: string;
   readonly count?: number;
@@ -237,13 +234,16 @@ function CollapsibleSection({
   readonly onToggle: () => void;
   readonly children: React.ReactNode;
 }) {
+  // The disclosure-panel DOM id is minted per mount — deriving it from a
+  // static section key would collide when two wizards mount on one page.
+  const panelId = useId();
   return (
     <div className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        aria-controls={`stgm-wizard-section-${id}`}
+        aria-controls={panelId}
         className={cn(
           "stg:flex stg:w-full stg:items-center stg:justify-between stg:px-4 stg:py-3 stg:text-left stg:transition-colors",
           "stg:hover:bg-accent-hover",
@@ -269,7 +269,7 @@ function CollapsibleSection({
 
       {expanded && (
         <div
-          id={`stgm-wizard-section-${id}`}
+          id={panelId}
           className="stg:border-t stg:border-border stg:px-4 stg:py-4"
         >
           {children}

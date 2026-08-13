@@ -274,7 +274,10 @@ describe("WorkspaceSidebar — chrome", () => {
     expect(screen.getByTestId("footer-slot")).toBeTruthy();
     const toggle = screen.getByLabelText("Collapse sidebar");
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
-    expect(toggle.getAttribute("aria-controls")).toBe("sidebar");
+    // The nav id is minted per mount; assert the association, not the value.
+    const controlsId = toggle.getAttribute("aria-controls");
+    expect(controlsId).toBeTruthy();
+    expect(document.getElementById(controlsId!)?.tagName).toBe("NAV");
   });
 
   it("resolves the org switcher from the mocked transport", async () => {

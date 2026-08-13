@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, type ReactNode } from "react";
+import { useCallback, useId, useRef, type ReactNode } from "react";
 import { ExternalLink, LayoutTemplate, X } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
@@ -90,6 +90,7 @@ export function ChannelTemplatesDialog({
   modal = true,
 }: ChannelTemplatesDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
 
   const handleClose = useCallback(() => {
     dialogRef.current?.close();
@@ -122,12 +123,13 @@ export function ChannelTemplatesDialog({
         "stg:w-full stg:max-w-2xl stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
         modal ? "stg:fixed stg:inset-0 stg:m-auto stg:backdrop:bg-backdrop" : "stg:relative",
       )}
-      aria-labelledby="channel-templates-title"
+      aria-labelledby={titleId}
     >
       {/* Body mounts only while open so each opening fetches fresh —
           approval statuses change on the provider's side at any time. */}
       {open && (
         <ChannelTemplatesDialogBody
+          titleId={titleId}
           channel={channel}
           onEditYaml={onEditYaml}
           onClose={handleClose}
@@ -138,10 +140,12 @@ export function ChannelTemplatesDialog({
 }
 
 function ChannelTemplatesDialogBody({
+  titleId,
   channel,
   onEditYaml,
   onClose,
 }: {
+  readonly titleId: string;
   readonly channel: AgentChannel;
   readonly onEditYaml?: () => void;
   readonly onClose: () => void;
@@ -154,7 +158,7 @@ function ChannelTemplatesDialogBody({
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3 stg:border-b stg:border-border stg:px-5 stg:py-4">
         <div className="stg:min-w-0">
           <h2
-            id="channel-templates-title"
+            id={titleId}
             className="stg:text-sm stg:font-semibold stg:text-popover-foreground"
           >
             Templates

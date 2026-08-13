@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, useCallback, useRef, useEffect } from "react";
+import { memo, useState, useCallback, useId, useRef, useEffect } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import { useStigmerPortalContainer } from "../../portal-container.js";
@@ -76,6 +76,7 @@ export const BranchAddPopover = memo(function BranchAddPopover({
   side = "bottom",
   align = "start",
 }: BranchAddPopoverProps) {
+  const errorId = useId();
   const portalContainer = useStigmerPortalContainer();
   const config = MODE_CONFIG[mode];
   const nameRef = useRef<HTMLInputElement>(null);
@@ -175,11 +176,11 @@ export const BranchAddPopover = memo(function BranchAddPopover({
                       nameError ? "stg:border-[var(--stgm-destructive,#ef4444)]" : "stg:border-border",
                     )}
                     aria-invalid={!!nameError}
-                    aria-describedby={nameError ? "branch-name-error" : undefined}
+                    aria-describedby={nameError ? errorId : undefined}
                   />
                   {nameError && (
                     <p
-                      id="branch-name-error"
+                      id={errorId}
                       className="stg:mt-0.5 stg:text-[10px] stg:text-[var(--stgm-destructive,#ef4444)]"
                     >
                       {nameError}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, type FormEvent } from "react";
+import { type FormEvent, useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
@@ -188,6 +188,7 @@ function SlackAppDetail({
   readonly consoleOrigin?: string;
   readonly onUpdated?: (app: ChannelApp) => void;
 }) {
+  const baseId = useId();
   const stigmer = useStigmer();
   const { update, isUpdating, error: updateError, clearError } = useUpdateChannelApp();
 
@@ -278,7 +279,7 @@ function SlackAppDetail({
         </p>
 
         <FormField
-          id="stgm-chapp-edit-client-id"
+          id={`${baseId}-client-id`}
           label="Client ID"
           value={clientId}
           onChange={setClientId}
@@ -287,7 +288,7 @@ function SlackAppDetail({
           required
         />
         <FormField
-          id="stgm-chapp-edit-client-secret"
+          id={`${baseId}-client-secret`}
           label="Client secret"
           value={clientSecret}
           onChange={setClientSecret}
@@ -297,7 +298,7 @@ function SlackAppDetail({
           required
         />
         <FormField
-          id="stgm-chapp-edit-signing-secret"
+          id={`${baseId}-signing-secret`}
           label="Signing secret"
           value={signingSecret}
           onChange={setSigningSecret}
@@ -343,6 +344,7 @@ function WhatsAppAppDetail({
   readonly createHandoff?: ChannelAppCreateHandoff;
   readonly onUpdated?: (app: ChannelApp) => void;
 }) {
+  const baseId = useId();
   const stigmer = useStigmer();
   const { update, isUpdating, error: updateError, clearError } = useUpdateChannelApp();
 
@@ -447,7 +449,7 @@ function WhatsAppAppDetail({
         </p>
 
         <FormField
-          id="stgm-chapp-edit-app-id"
+          id={`${baseId}-app-id`}
           label="App ID"
           value={metaAppId}
           onChange={setMetaAppId}
@@ -456,7 +458,7 @@ function WhatsAppAppDetail({
           required
         />
         <FormField
-          id="stgm-chapp-edit-app-secret"
+          id={`${baseId}-app-secret`}
           label="App secret"
           value={appSecret}
           onChange={setAppSecret}
@@ -466,7 +468,7 @@ function WhatsAppAppDetail({
           required
         />
         <FormField
-          id="stgm-chapp-edit-access-token"
+          id={`${baseId}-access-token`}
           label="Access token"
           value={accessToken}
           onChange={setAccessToken}
@@ -476,7 +478,7 @@ function WhatsAppAppDetail({
           required
         />
         <FormField
-          id="stgm-chapp-edit-verify-token"
+          id={`${baseId}-verify-token`}
           label="Verify token"
           value={verifyToken}
           onChange={setVerifyToken}

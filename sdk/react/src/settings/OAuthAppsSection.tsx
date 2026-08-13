@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { OAuthAppListPanel } from "../oauth-app/OAuthAppListPanel.js";
 import { CreateOAuthAppForm } from "../oauth-app/CreateOAuthAppForm.js";
@@ -16,6 +16,7 @@ type FlowState =
 
 /** Settings section for organization OAuth app credentials. */
 export function OAuthAppsSection() {
+  const headingId = useId();
   const org = useActiveOrgSlug();
   const oauthAppsAvailable = useResourceAvailable(ApiResourceKind.oauth_app);
 
@@ -42,10 +43,10 @@ export function OAuthAppsSection() {
   }, []);
 
   return (
-    <section aria-labelledby="oauth-apps-heading">
+    <section aria-labelledby={headingId}>
       <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
         <h2
-          id="oauth-apps-heading"
+          id={headingId}
           className="stg:text-foreground stg:text-sm stg:font-semibold"
         >
           OAuth Apps

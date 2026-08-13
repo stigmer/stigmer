@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, type FormEvent } from "react";
+import { useCallback, useId, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
@@ -62,6 +62,7 @@ export function CreateApiKeyForm({
   className,
 }: CreateApiKeyFormProps) {
   const { create, isCreating, error, clearError } = useCreateApiKey();
+  const baseId = useId();
 
   const [name, setName] = useState(initialName);
   const [expiry, setExpiry] = useState<ExpiryOption>("never");
@@ -97,13 +98,13 @@ export function CreateApiKeyForm({
         {/* Name */}
         <div className="stg:space-y-1">
           <label
-            htmlFor="stgm-new-apikey-name"
+            htmlFor={`${baseId}-name`}
             className="stg:text-xs stg:font-medium stg:text-foreground"
           >
             Name
           </label>
           <input
-            id="stgm-new-apikey-name"
+            id={`${baseId}-name`}
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -126,9 +127,12 @@ export function CreateApiKeyForm({
             Expiration
           </legend>
           <div className="stg:flex stg:flex-wrap stg:gap-2">
+            {/* The radio-group name is minted per mount: a hardcoded name
+                would merge two mounted forms into one keyboard group. */}
             {EXPIRY_OPTIONS.map(({ value, label }) => (
               <ExpiryRadio
                 key={value}
+                name={`${baseId}-expiry`}
                 value={value}
                 label={label}
                 checked={expiry === value}
@@ -201,12 +205,14 @@ function daysFromNow(days: number): Date {
 // ---------------------------------------------------------------------------
 
 function ExpiryRadio({
+  name,
   value,
   label,
   checked,
   disabled,
   onChange,
 }: {
+  name: string;
   value: ExpiryOption;
   label: string;
   checked: boolean;
@@ -225,7 +231,7 @@ function ExpiryRadio({
     >
       <input
         type="radio"
-        name="stgm-apikey-expiry"
+        name={name}
         value={value}
         checked={checked}
         disabled={disabled}

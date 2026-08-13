@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useId } from "react";
 import { cn } from "@stigmer/theme";
 import type { AutoRechargeConfig } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
 import { BillingAccountStatus } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
@@ -64,6 +64,7 @@ export function AutoRechargeCard({
   onSaved,
   className,
 }: AutoRechargeCardProps) {
+  const baseId = useId();
   const { setConfig, isSubmitting, error, clearError } =
     useSetAutoRechargeConfig();
 
@@ -168,7 +169,7 @@ export function AutoRechargeCard({
       {canConfigure && (
         <div className="stg:mt-4 stg:space-y-3">
           <DollarInput
-            id="ar-threshold"
+            id={`${baseId}-threshold`}
             label="When balance drops below"
             value={threshold}
             onChange={setThreshold}
@@ -176,7 +177,7 @@ export function AutoRechargeCard({
             placeholder="e.g. 5"
           />
           <DollarInput
-            id="ar-amount"
+            id={`${baseId}-amount`}
             label="Recharge amount"
             value={amount}
             onChange={setAmount}
@@ -184,7 +185,7 @@ export function AutoRechargeCard({
             placeholder="e.g. 50"
           />
           <DollarInput
-            id="ar-cap"
+            id={`${baseId}-cap`}
             label="Monthly cap"
             value={cap}
             onChange={setCap}

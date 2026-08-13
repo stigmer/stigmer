@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderListPanel } from "../identity-provider/IdentityProviderListPanel.js";
 import { IdentityProviderWizard } from "../identity-provider/IdentityProviderWizard.js";
@@ -28,6 +28,7 @@ type FlowState =
 export function IdentityProvidersSection({
   ssoLoginBaseUrl,
 }: IdentityProvidersSectionProps = {}) {
+  const headingId = useId();
   const { activeOrg } = useOrg();
   const idpAvailable = useResourceAvailable(ApiResourceKind.identity_provider);
   const orgSlug = activeOrg?.metadata?.slug ?? "";
@@ -54,10 +55,10 @@ export function IdentityProvidersSection({
     (typeof window !== "undefined" ? window.location.origin : "");
 
   return (
-    <section aria-labelledby="identity-providers-heading">
+    <section aria-labelledby={headingId}>
       <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
         <h2
-          id="identity-providers-heading"
+          id={headingId}
           className="stg:text-foreground stg:text-sm stg:font-semibold"
         >
           Identity Providers

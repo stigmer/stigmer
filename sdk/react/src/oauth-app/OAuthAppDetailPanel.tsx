@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, type FormEvent } from "react";
+import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
@@ -62,6 +62,7 @@ export function OAuthAppDetailPanel({
   onBack,
   className,
 }: OAuthAppDetailPanelProps) {
+  const baseId = useId();
   const spec = oauthApp.spec;
   const meta = oauthApp.metadata;
 
@@ -298,7 +299,7 @@ export function OAuthAppDetailPanel({
       ) : (
         <form onSubmit={handleSave} className="stg:space-y-3">
           <FieldInput
-            id="stgm-oauth-edit-provider"
+            id={`${baseId}-provider`}
             label="Provider"
             value={provider}
             onChange={setProvider}
@@ -307,7 +308,7 @@ export function OAuthAppDetailPanel({
             required
           />
           <FieldInput
-            id="stgm-oauth-edit-client-id"
+            id={`${baseId}-client-id`}
             label="Client ID"
             value={clientId}
             onChange={setClientId}
@@ -316,7 +317,7 @@ export function OAuthAppDetailPanel({
             required
           />
           <FieldInput
-            id="stgm-oauth-edit-client-secret"
+            id={`${baseId}-client-secret`}
             label="Client secret"
             value={clientSecret}
             onChange={setClientSecret}
@@ -326,7 +327,7 @@ export function OAuthAppDetailPanel({
             disabled={isUpdating}
           />
           <FieldInput
-            id="stgm-oauth-edit-auth-url"
+            id={`${baseId}-auth-url`}
             label="Authorization URL"
             value={authorizationUrl}
             onChange={setAuthorizationUrl}
@@ -335,7 +336,7 @@ export function OAuthAppDetailPanel({
             required
           />
           <FieldInput
-            id="stgm-oauth-edit-token-url"
+            id={`${baseId}-token-url`}
             label="Token URL"
             value={tokenUrl}
             onChange={setTokenUrl}
@@ -344,7 +345,7 @@ export function OAuthAppDetailPanel({
             required
           />
           <FieldInput
-            id="stgm-oauth-edit-scopes"
+            id={`${baseId}-scopes`}
             label="Scopes"
             value={scopes}
             onChange={setScopes}
@@ -353,7 +354,7 @@ export function OAuthAppDetailPanel({
             disabled={isUpdating}
           />
           <FieldInput
-            id="stgm-oauth-edit-userinfo-url"
+            id={`${baseId}-userinfo-url`}
             label="Userinfo URL"
             value={userinfoUrl}
             onChange={setUserinfoUrl}
@@ -362,7 +363,7 @@ export function OAuthAppDetailPanel({
             disabled={isUpdating}
           />
           <FieldInput
-            id="stgm-oauth-edit-scope-param"
+            id={`${baseId}-scope-param`}
             label="Scope parameter name"
             value={scopeParameterName}
             onChange={setScopeParameterName}
@@ -373,13 +374,13 @@ export function OAuthAppDetailPanel({
 
           <div className="stg:space-y-1">
             <label
-              htmlFor="stgm-oauth-edit-approval-status"
+              htmlFor={`${baseId}-approval-status`}
               className="stg:text-xs stg:font-medium stg:text-foreground"
             >
               Vendor approval status
             </label>
             <select
-              id="stgm-oauth-edit-approval-status"
+              id={`${baseId}-approval-status`}
               value={vendorApprovalStatus}
               onChange={(e) =>
                 setVendorApprovalStatus(
@@ -401,7 +402,7 @@ export function OAuthAppDetailPanel({
           </div>
 
           <FieldInput
-            id="stgm-oauth-edit-approval-docs"
+            id={`${baseId}-approval-docs`}
             label="Vendor approval docs URL"
             value={vendorApprovalDocsUrl}
             onChange={setVendorApprovalDocsUrl}
