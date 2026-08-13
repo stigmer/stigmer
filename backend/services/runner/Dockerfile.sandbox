@@ -92,7 +92,6 @@ RUN curl -fsSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux
         -o /usr/local/bin/yq && \
     chmod +x /usr/local/bin/yq
 
-# --- Pre-warm seedpack MCP server caches (warm-agent-surfaces Phase 1) ---
 # --- Unified runner ---
 COPY --from=builder /build/backend/services/runner/dist/ /runner/dist/
 COPY --from=builder /build/backend/services/runner/node_modules/ /runner/node_modules/
