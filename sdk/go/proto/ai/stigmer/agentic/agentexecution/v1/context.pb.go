@@ -21,213 +21,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// ResolvedExecutionContext captures the resolved configuration state at execution time.
-// Populated once after all resources are resolved, before the agent begins processing.
-//
-// ## Purpose
-//
-// Provides visibility into what the agent actually had access to during execution:
-// - Which environment variables were available (keys only, not values for security)
-// - Which MCP servers were configured and their resolution status
-// - Which skills were injected into the agent's context
-//
-// This enables:
-// - **Debugging**: Understanding what environment/tools were available when investigating failures
-// - **Auditing**: Tracking what resources each execution consumed
-// - **Security review**: Verifying which secrets (by key name only) were exposed
-// - **UX transparency**: Showing users what their agent can access
-//
-// ## Timing
-//
-// Populated by the agent runner once resolution completes (skills, env vars,
-// MCP servers) but before the streaming loop begins, and reported through the
-// execution status-update path. This represents the "snapshot" of resolved
-// state. Once set, this field is immutable for the remainder of the execution.
-//
-// ## Security Considerations
-//
-// - Environment values are NEVER included (only keys)
-// - MCP server credentials are not exposed
-// - This is safe to include in status responses to clients
-type ResolvedExecutionContext struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Environment variable keys available to the agent (NOT values for security).
-	// Represents the merged environment values (instance environment_refs <
-	// runtime_env) filtered to the keys declared in Agent.spec.env — the agent
-	// env map is a declaration whitelist, not a value source.
-	// Keys are sorted alphabetically for consistent ordering and deterministic comparison.
-	// Examples: ["API_KEY", "DATABASE_URL", "LOG_LEVEL"]
-	EnvironmentKeys []string `protobuf:"bytes,1,rep,name=environment_keys,json=environmentKeys,proto3" json:"environment_keys,omitempty"`
-	// MCP servers referenced by the agent and their resolution status.
-	// Key: MCP server slug (e.g., "github-mcp", "slack-mcp")
-	// Value: Resolution status including success/failure and diagnostic information
-	//
-	// Note: This tracks configuration resolution, not runtime connection status.
-	// A server showing resolved=true means it was found and transformed successfully;
-	// actual WebSocket/stdio connection happens later in the Graphton runtime.
-	McpServers map[string]*McpServerResolutionStatus `protobuf:"bytes,2,rep,name=mcp_servers,json=mcpServers,proto3" json:"mcp_servers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Names of skills injected into the agent's system prompt.
-	// Each skill's SKILL.md content is appended to the instructions.
-	// Sorted alphabetically for consistent ordering and deterministic comparison.
-	// Examples: ["code-review", "docker-expert", "kubernetes-operator"]
-	SkillNames []string `protobuf:"bytes,3,rep,name=skill_names,json=skillNames,proto3" json:"skill_names,omitempty"`
-	// Skills that were available but excluded from the system prompt because
-	// they were not relevant to the current execution context.
-	// Enables visibility into the filtering decision for debugging and tuning.
-	// Sorted alphabetically for consistent ordering and deterministic comparison.
-	//
-	// When smart context filtering is active, this captures skills that were
-	// configured on the agent but scored below the relevance threshold for the
-	// current user message. Empty when all skills are included (no filtering).
-	ExcludedSkillNames []string `protobuf:"bytes,4,rep,name=excluded_skill_names,json=excludedSkillNames,proto3" json:"excluded_skill_names,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *ResolvedExecutionContext) Reset() {
-	*x = ResolvedExecutionContext{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_context_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ResolvedExecutionContext) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ResolvedExecutionContext) ProtoMessage() {}
-
-func (x *ResolvedExecutionContext) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_context_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ResolvedExecutionContext.ProtoReflect.Descriptor instead.
-func (*ResolvedExecutionContext) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_context_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *ResolvedExecutionContext) GetEnvironmentKeys() []string {
-	if x != nil {
-		return x.EnvironmentKeys
-	}
-	return nil
-}
-
-func (x *ResolvedExecutionContext) GetMcpServers() map[string]*McpServerResolutionStatus {
-	if x != nil {
-		return x.McpServers
-	}
-	return nil
-}
-
-func (x *ResolvedExecutionContext) GetSkillNames() []string {
-	if x != nil {
-		return x.SkillNames
-	}
-	return nil
-}
-
-func (x *ResolvedExecutionContext) GetExcludedSkillNames() []string {
-	if x != nil {
-		return x.ExcludedSkillNames
-	}
-	return nil
-}
-
-// McpServerResolutionStatus captures the resolution outcome for a single MCP server.
-// Provides richer information than a simple boolean for better debugging and visibility.
-//
-// ## Resolution vs Connection
-//
-// This tracks whether the MCP server definition was successfully loaded and configured,
-// NOT whether the runtime connection succeeded. Resolution includes:
-// - Looking up the McpServer resource by reference
-// - Transforming the server config (resolving env var placeholders)
-// - Determining which tools to enable
-//
-// Runtime connection (WebSocket/stdio) happens later and is not tracked here.
-type McpServerResolutionStatus struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Whether the MCP server was successfully resolved and configured.
-	// true: Server found, config transformed, ready for runtime connection
-	// false: Resolution failed (server not found, missing env var, invalid config)
-	Resolved bool `protobuf:"varint,1,opt,name=resolved,proto3" json:"resolved,omitempty"`
-	// Human-readable status message explaining the resolution outcome.
-	// For success: "Configured successfully"
-	// For failure: Describes what went wrong
-	// Examples:
-	//   - "Configured successfully"
-	//   - "Server not found"
-	//   - "Missing required environment variable: GITHUB_TOKEN"
-	//   - "Invalid server configuration: missing command"
-	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	// Number of tools enabled from this MCP server.
-	// Reflects the intersection of server's available tools and enabled_tools config.
-	// 0 if resolution failed, server has no tools, or all tools disabled.
-	EnabledToolCount int32 `protobuf:"varint,3,opt,name=enabled_tool_count,json=enabledToolCount,proto3" json:"enabled_tool_count,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
-}
-
-func (x *McpServerResolutionStatus) Reset() {
-	*x = McpServerResolutionStatus{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_context_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *McpServerResolutionStatus) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*McpServerResolutionStatus) ProtoMessage() {}
-
-func (x *McpServerResolutionStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_context_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use McpServerResolutionStatus.ProtoReflect.Descriptor instead.
-func (*McpServerResolutionStatus) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_context_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *McpServerResolutionStatus) GetResolved() bool {
-	if x != nil {
-		return x.Resolved
-	}
-	return false
-}
-
-func (x *McpServerResolutionStatus) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
-func (x *McpServerResolutionStatus) GetEnabledToolCount() int32 {
-	if x != nil {
-		return x.EnabledToolCount
-	}
-	return 0
-}
-
 // SummarizationEvent records a single summarization occurrence during execution.
 //
 // Each time the context window approaches the model's limit and summarization
@@ -310,7 +103,7 @@ type SummarizationEvent struct {
 
 func (x *SummarizationEvent) Reset() {
 	*x = SummarizationEvent{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_context_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_context_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -322,7 +115,7 @@ func (x *SummarizationEvent) String() string {
 func (*SummarizationEvent) ProtoMessage() {}
 
 func (x *SummarizationEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_context_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_context_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -335,7 +128,7 @@ func (x *SummarizationEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SummarizationEvent.ProtoReflect.Descriptor instead.
 func (*SummarizationEvent) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_context_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_agentexecution_v1_context_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *SummarizationEvent) GetTimestamp() string {
@@ -519,7 +312,7 @@ type ContextInfo struct {
 
 func (x *ContextInfo) Reset() {
 	*x = ContextInfo{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_context_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_context_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -531,7 +324,7 @@ func (x *ContextInfo) String() string {
 func (*ContextInfo) ProtoMessage() {}
 
 func (x *ContextInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_context_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_context_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -544,7 +337,7 @@ func (x *ContextInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContextInfo.ProtoReflect.Descriptor instead.
 func (*ContextInfo) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_context_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_agentic_agentexecution_v1_context_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ContextInfo) GetCurrentTokenCount() int32 {
@@ -600,21 +393,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_context_proto protoreflect.FileDes
 
 const file_ai_stigmer_agentic_agentexecution_v1_context_proto_rawDesc = "" +
 	"\n" +
-	"2ai/stigmer/agentic/agentexecution/v1/context.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\"\x89\x03\n" +
-	"\x18ResolvedExecutionContext\x12)\n" +
-	"\x10environment_keys\x18\x01 \x03(\tR\x0fenvironmentKeys\x12o\n" +
-	"\vmcp_servers\x18\x02 \x03(\v2N.ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntryR\n" +
-	"mcpServers\x12\x1f\n" +
-	"\vskill_names\x18\x03 \x03(\tR\n" +
-	"skillNames\x120\n" +
-	"\x14excluded_skill_names\x18\x04 \x03(\tR\x12excludedSkillNames\x1a~\n" +
-	"\x0fMcpServersEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12U\n" +
-	"\x05value\x18\x02 \x01(\v2?.ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatusR\x05value:\x028\x01\"\x7f\n" +
-	"\x19McpServerResolutionStatus\x12\x1a\n" +
-	"\bresolved\x18\x01 \x01(\bR\bresolved\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\x12,\n" +
-	"\x12enabled_tool_count\x18\x03 \x01(\x05R\x10enabledToolCount\"\xd0\x04\n" +
+	"2ai/stigmer/agentic/agentexecution/v1/context.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\"\xd0\x04\n" +
 	"\x12SummarizationEvent\x12\x1c\n" +
 	"\ttimestamp\x18\x01 \x01(\tR\ttimestamp\x12#\n" +
 	"\rtokens_before\x18\x02 \x01(\x05R\ftokensBefore\x12!\n" +
@@ -652,25 +431,20 @@ func file_ai_stigmer_agentic_agentexecution_v1_context_proto_rawDescGZIP() []byt
 	return file_ai_stigmer_agentic_agentexecution_v1_context_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_context_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_agentic_agentexecution_v1_context_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_agentic_agentexecution_v1_context_proto_goTypes = []any{
-	(*ResolvedExecutionContext)(nil),  // 0: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext
-	(*McpServerResolutionStatus)(nil), // 1: ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
-	(*SummarizationEvent)(nil),        // 2: ai.stigmer.agentic.agentexecution.v1.SummarizationEvent
-	(*ContextInfo)(nil),               // 3: ai.stigmer.agentic.agentexecution.v1.ContextInfo
-	nil,                               // 4: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
-	(SummarizationSource)(0),          // 5: ai.stigmer.agentic.agentexecution.v1.SummarizationSource
+	(*SummarizationEvent)(nil), // 0: ai.stigmer.agentic.agentexecution.v1.SummarizationEvent
+	(*ContextInfo)(nil),        // 1: ai.stigmer.agentic.agentexecution.v1.ContextInfo
+	(SummarizationSource)(0),   // 2: ai.stigmer.agentic.agentexecution.v1.SummarizationSource
 }
 var file_ai_stigmer_agentic_agentexecution_v1_context_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.mcp_servers:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
-	5, // 1: ai.stigmer.agentic.agentexecution.v1.SummarizationEvent.source:type_name -> ai.stigmer.agentic.agentexecution.v1.SummarizationSource
-	2, // 2: ai.stigmer.agentic.agentexecution.v1.ContextInfo.summarization_events:type_name -> ai.stigmer.agentic.agentexecution.v1.SummarizationEvent
-	1, // 3: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	2, // 0: ai.stigmer.agentic.agentexecution.v1.SummarizationEvent.source:type_name -> ai.stigmer.agentic.agentexecution.v1.SummarizationSource
+	0, // 1: ai.stigmer.agentic.agentexecution.v1.ContextInfo.summarization_events:type_name -> ai.stigmer.agentic.agentexecution.v1.SummarizationEvent
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_context_proto_init() }
@@ -685,7 +459,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_context_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_context_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_context_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

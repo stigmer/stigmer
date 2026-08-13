@@ -377,11 +377,6 @@ func applyUpdateStatusMerge(
 		status.ContextInfo = requestStatus.ContextInfo
 	}
 
-	// Merge resolved_context (replace with latest from request)
-	if requestStatus.ResolvedContext != nil {
-		status.ResolvedContext = requestStatus.ResolvedContext
-	}
-
 	// Merge setup_progress (replace with latest from request)
 	if requestStatus.SetupProgress != nil {
 		status.SetupProgress = requestStatus.SetupProgress
@@ -409,7 +404,6 @@ func applyUpdateStatusMerge(
 		Int("write_backs_count", len(status.WorkspaceWriteBacks)).
 		Int("pending_approvals_count", len(status.PendingApprovals)).
 		Bool("has_context_info", status.ContextInfo != nil).
-		Bool("has_resolved_context", status.ResolvedContext != nil).
 		Bool("has_setup_progress", status.SetupProgress != nil).
 		Bool("has_streaming_usage", status.StreamingUsage != nil).
 		Bool("has_structured_output", status.StructuredOutput != nil).

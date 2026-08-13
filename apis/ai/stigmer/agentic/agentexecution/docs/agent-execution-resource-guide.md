@@ -246,28 +246,6 @@ Defined in `ai/stigmer/agentic/agentexecution/v1/api.proto`. All fields are syst
 
 To calculate total execution cost, sum `status.usage` with `usage` from each entry in `sub_agent_executions`.
 
-### Resolved Execution Context
-
-| Field | Type | Description |
-|---|---|---|
-| `resolved_context` | `ResolvedExecutionContext` | Snapshot of all resources the agent had access to at the start of execution. Immutable after initial population. |
-
-**ResolvedExecutionContext fields:**
-
-| Field | Type | Description |
-|---|---|---|
-| `environment_keys` | `repeated string` | Environment variable keys available to the agent (keys only — values are never included for security). Sorted alphabetically. |
-| `mcp_servers` | `map<string, McpServerResolutionStatus>` | MCP servers and their resolution status. Key: MCP server slug. |
-| `skill_names` | `repeated string` | Names of skills injected into the agent's system prompt. Sorted alphabetically. |
-
-**McpServerResolutionStatus fields:**
-
-| Field | Type | Description |
-|---|---|---|
-| `resolved` | `bool` | `true` if the server was found and configured successfully; `false` if resolution failed. |
-| `message` | `string` | Human-readable status. Example: `"Configured successfully"` or `"Missing required environment variable: GITHUB_TOKEN"`. |
-| `enabled_tool_count` | `int32` | Number of tools enabled from this server. `0` if resolution failed. |
-
 ### Context Info
 
 | Field | Type | Description |

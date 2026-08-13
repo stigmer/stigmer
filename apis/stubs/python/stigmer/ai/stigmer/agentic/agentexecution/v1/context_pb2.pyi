@@ -7,35 +7,6 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-class ResolvedExecutionContext(_message.Message):
-    __slots__ = ("environment_keys", "mcp_servers", "skill_names", "excluded_skill_names")
-    class McpServersEntry(_message.Message):
-        __slots__ = ("key", "value")
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        VALUE_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        value: McpServerResolutionStatus
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[McpServerResolutionStatus, _Mapping]] = ...) -> None: ...
-    ENVIRONMENT_KEYS_FIELD_NUMBER: _ClassVar[int]
-    MCP_SERVERS_FIELD_NUMBER: _ClassVar[int]
-    SKILL_NAMES_FIELD_NUMBER: _ClassVar[int]
-    EXCLUDED_SKILL_NAMES_FIELD_NUMBER: _ClassVar[int]
-    environment_keys: _containers.RepeatedScalarFieldContainer[str]
-    mcp_servers: _containers.MessageMap[str, McpServerResolutionStatus]
-    skill_names: _containers.RepeatedScalarFieldContainer[str]
-    excluded_skill_names: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, environment_keys: _Optional[_Iterable[str]] = ..., mcp_servers: _Optional[_Mapping[str, McpServerResolutionStatus]] = ..., skill_names: _Optional[_Iterable[str]] = ..., excluded_skill_names: _Optional[_Iterable[str]] = ...) -> None: ...
-
-class McpServerResolutionStatus(_message.Message):
-    __slots__ = ("resolved", "message", "enabled_tool_count")
-    RESOLVED_FIELD_NUMBER: _ClassVar[int]
-    MESSAGE_FIELD_NUMBER: _ClassVar[int]
-    ENABLED_TOOL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    resolved: bool
-    message: str
-    enabled_tool_count: int
-    def __init__(self, resolved: bool = ..., message: _Optional[str] = ..., enabled_tool_count: _Optional[int] = ...) -> None: ...
-
 class SummarizationEvent(_message.Message):
     __slots__ = ("timestamp", "tokens_before", "tokens_after", "compression_ratio", "duration_ms", "summarization_model", "messages_before", "messages_after", "source", "summarization_input_tokens", "summarization_output_tokens", "summarization_cost_usd")
     TIMESTAMP_FIELD_NUMBER: _ClassVar[int]

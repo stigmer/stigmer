@@ -339,39 +339,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
 
   /**
    * <pre>
-   * Resolved execution context showing what resources the agent had access to.
-   * Populated once before streaming begins, after all resources are resolved.
-   * Immutable after initial population - represents the "snapshot" of resolved state.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext resolved_context = 12 [json_name = "resolvedContext"];</code>
-   * @return Whether the resolvedContext field is set.
-   */
-  boolean hasResolvedContext();
-  /**
-   * <pre>
-   * Resolved execution context showing what resources the agent had access to.
-   * Populated once before streaming begins, after all resources are resolved.
-   * Immutable after initial population - represents the "snapshot" of resolved state.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext resolved_context = 12 [json_name = "resolvedContext"];</code>
-   * @return The resolvedContext.
-   */
-  ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext getResolvedContext();
-  /**
-   * <pre>
-   * Resolved execution context showing what resources the agent had access to.
-   * Populated once before streaming begins, after all resources are resolved.
-   * Immutable after initial population - represents the "snapshot" of resolved state.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext resolved_context = 12 [json_name = "resolvedContext"];</code>
-   */
-  ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContextOrBuilder getResolvedContextOrBuilder();
-
-  /**
-   * <pre>
    * Active pending approval requests for this execution.
    *
    * Contains one entry per tool call that requires user approval before

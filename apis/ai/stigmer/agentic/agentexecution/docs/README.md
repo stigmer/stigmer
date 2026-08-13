@@ -50,7 +50,7 @@ All types in this package are defined in `ai/stigmer/agentic/agentexecution/v1/`
 
 | File | Contents |
 |---|---|
-| `api.proto` | `AgentExecution`, `AgentExecutionStatus`, `ToolCall`, `SubAgentExecution`, `UsageMetrics`, `ResolvedExecutionContext`, `ContextInfo`, `ExecutionArtifact`, `PendingApproval` |
+| `api.proto` | `AgentExecution`, `AgentExecutionStatus`, `ToolCall`, `SubAgentExecution`, `UsageMetrics`, `ContextInfo`, `ExecutionArtifact`, `PendingApproval` |
 | `spec.proto` | `AgentExecutionSpec`, `ExecutionConfig`, `ContextManagementConfig`, `Attachment` |
 | `enum.proto` | `ExecutionPhase`, `MessageType`, `ToolCallStatus`, `TodoStatus`, `SubAgentStatus`, `ExecutionArtifactKind`, `ApprovalAction` |
 | `command.proto` | `AgentExecutionCommandController` — create, update, cancel, terminate, pause, resume, recover, submitApproval, uploadAttachment |

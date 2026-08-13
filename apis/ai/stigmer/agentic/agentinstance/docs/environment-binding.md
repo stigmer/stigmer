@@ -69,14 +69,14 @@ A declared key marked required (`optional: false`, the default) that has no valu
 
 ## Resolution at Execution Start
 
-When an AgentExecution is created, the server resolves all environment references from the instance, merges and filters them, and persists the result as the execution's ExecutionContext. The keys are later reported in `AgentExecutionStatus.resolved_context.environment_keys` — the keys available to the agent (values are never exposed for security).
+When an AgentExecution is created, the server resolves all environment references from the instance, merges and filters them, and persists the result as the execution's ExecutionContext (values are never exposed to clients for security).
 
 Resolution fails the create if:
 
 - An Environment resource that is referenced no longer exists.
 - The caller is not permitted to read the referenced Environment.
 
-A required key declared in the Agent's `spec.env` that has no value after merging does **not** fail the create — it logs a warning and the execution proceeds (see [Declared-Key Filtering](#declared-key-filtering)). MCP servers whose required variables are missing surface per-server diagnostics in `ResolvedExecutionContext.mcp_servers[].message`.
+A required key declared in the Agent's `spec.env` that has no value after merging does **not** fail the create — it logs a warning and the execution proceeds (see [Declared-Key Filtering](#declared-key-filtering)). MCP servers whose required variables are missing fail at connect time with a per-server diagnostic in the runner logs.
 
 ---
 

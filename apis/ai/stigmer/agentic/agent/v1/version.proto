@@ -27,7 +27,7 @@ import "google/protobuf/timestamp.proto";
 // Prerequisites before implementation:
 // - Mark agent kind_meta is_versioned: true in api_resource_kind.proto
 // - Add version_hash to AgentStatus
-// - Add agent_version_hash to AgentExecutionStatus (or resolved_context)
+// - Add agent_version_hash to AgentExecutionStatus
 // - Wire SaveAudit into agent create/update pipeline (Go + Java)
 // - Update agent runner to resolve versioned spec
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -1864,7 +1864,6 @@ AgentExecutionStatus contains all execution results and state.
     completedAt: { type: "string", description: "ISO 8601 timestamp when execution completed, failed, or was cancelled." },
     todos: { type: "Record<string, TodoItem>", description: "Todo list tracking multi-step tasks and progress for this execution." },
     callbackToken: { type: "Uint8Array", description: "Callback token for notifying a parent workflow when this execution completes." },
-    resolvedContext: { type: "ResolvedExecutionContext", description: "Resolved execution context showing what resources the agent had access to.", typeDescriptionLink: "#resolvedexecutioncontext" },
     pendingApprovals: { type: "PendingApproval[]", description: "Active pending approval requests for this execution.", typeDescriptionLink: "#pendingapproval" },
     approvalEventStream: { type: "ApprovalEventStream", description: "Server-authored, append-only record of every approval request and decision.", typeDescriptionLink: "#approvaleventstream" },
     contextInfo: { type: "ContextInfo", description: "Context window utilization and summarization tracking.", typeDescriptionLink: "#contextinfo" },
@@ -2211,18 +2210,6 @@ A git no-commit tree snapshot (write-tree + a stigmer-namespaced ref).
   }}
 />
 
-### McpServerResolutionStatus
-
-McpServerResolutionStatus captures the resolution outcome for a single MCP server.
-
-<TypeTable
-  type={{
-    resolved: { type: "boolean", description: "Whether the MCP server was successfully resolved and configured." },
-    message: { type: "string", description: "Human-readable status message explaining the resolution outcome." },
-    enabledToolCount: { type: "number", description: "Number of tools enabled from this MCP server." },
-  }}
-/>
-
 ### PendingApproval
 
 A pending approval request for a tool call that requires user consent before execution.
@@ -2243,19 +2230,6 @@ A pending approval request for a tool call that requires user consent before exe
     headShaAtDeny: { type: "string", description: "Git HEAD SHA at the time the tool was denied." },
     toolKind: { type: "ToolKind", description: "Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the server-side projection (exactly as mcp_server_slug above is).", typeDescriptionLink: "#toolkind" },
     approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that gated this tool call, copied from ToolCall.approval_policy_source by the server-side projection (exactly as tool_kind above is).", typeDescriptionLink: "#approvalpolicysource" },
-  }}
-/>
-
-### ResolvedExecutionContext
-
-ResolvedExecutionContext captures the resolved configuration state at execution time.
-
-<TypeTable
-  type={{
-    environmentKeys: { type: "string[]", description: "Environment variable keys available to the agent (NOT values for security)." },
-    mcpServers: { type: "Record<string, McpServerResolutionStatus>", description: "MCP servers referenced by the agent and their resolution status." },
-    skillNames: { type: "string[]", description: "Names of skills injected into the agent's system prompt." },
-    excludedSkillNames: { type: "string[]", description: "Skills that were available but excluded from the system prompt because they were not relevant to the current execution context." },
   }}
 />
 

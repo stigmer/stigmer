@@ -172,10 +172,6 @@ type AgentExecutionStatus struct {
 	// - WorkflowExecution.spec.callback_token (field 7) - Same pattern
 	// - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
 	CallbackToken []byte `protobuf:"bytes,10,opt,name=callback_token,json=callbackToken,proto3" json:"callback_token,omitempty"`
-	// Resolved execution context showing what resources the agent had access to.
-	// Populated once before streaming begins, after all resources are resolved.
-	// Immutable after initial population - represents the "snapshot" of resolved state.
-	ResolvedContext *ResolvedExecutionContext `protobuf:"bytes,12,opt,name=resolved_context,json=resolvedContext,proto3" json:"resolved_context,omitempty"`
 	// Active pending approval requests for this execution.
 	//
 	// Contains one entry per tool call that requires user approval before
@@ -446,13 +442,6 @@ func (x *AgentExecutionStatus) GetCallbackToken() []byte {
 	return nil
 }
 
-func (x *AgentExecutionStatus) GetResolvedContext() *ResolvedExecutionContext {
-	if x != nil {
-		return x.ResolvedContext
-	}
-	return nil
-}
-
 func (x *AgentExecutionStatus) GetPendingApprovals() []*PendingApproval {
 	if x != nil {
 		return x.PendingApprovals
@@ -596,7 +585,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0eAgentExecutionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12L\n" +
 	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpecR\x04spec\x12R\n" +
-	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xd7\x0e\n" +
+	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\x84\x0e\n" +
 	"\x14AgentExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12N\n" +
 	"\bmessages\x18\x01 \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12T\n" +
@@ -608,8 +597,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\fcompleted_at\x18\b \x01(\tR\vcompletedAt\x12[\n" +
 	"\x05todos\x18\t \x03(\v2E.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntryR\x05todos\x12%\n" +
 	"\x0ecallback_token\x18\n" +
-	" \x01(\fR\rcallbackToken\x12i\n" +
-	"\x10resolved_context\x18\f \x01(\v2>.ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContextR\x0fresolvedContext\x12b\n" +
+	" \x01(\fR\rcallbackToken\x12b\n" +
 	"\x11pending_approvals\x18\x10 \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovals\x12m\n" +
 	"\x15approval_event_stream\x18\x16 \x01(\v29.ai.stigmer.agentic.agentexecution.v1.ApprovalEventStreamR\x13approvalEventStream\x12T\n" +
 	"\fcontext_info\x18\x0e \x01(\v21.ai.stigmer.agentic.agentexecution.v1.ContextInfoR\vcontextInfo\x12U\n" +
@@ -624,7 +612,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\n" +
 	"TodosEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
-	"\x05value\x18\x02 \x01(\v2..ai.stigmer.agentic.agentexecution.v1.TodoItemR\x05value:\x028\x01\"4\n" +
+	"\x05value\x18\x02 \x01(\v2..ai.stigmer.agentic.agentexecution.v1.TodoItemR\x05value:\x028\x01J\x04\b\f\x10\rR\x10resolved_context\"4\n" +
 	"\rSetupProgress\x12#\n" +
 	"\rcurrent_phase\x18\x01 \x01(\tR\fcurrentPhaseB\xcb\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\bApiProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
@@ -653,18 +641,17 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes = []any{
 	(*AgentMessage)(nil),                    // 7: ai.stigmer.agentic.agentexecution.v1.AgentMessage
 	(ExecutionPhase)(0),                     // 8: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
 	(*SubAgentExecution)(nil),               // 9: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution
-	(*ResolvedExecutionContext)(nil),        // 10: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext
-	(*PendingApproval)(nil),                 // 11: ai.stigmer.agentic.agentexecution.v1.PendingApproval
-	(*ApprovalEventStream)(nil),             // 12: ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream
-	(*ContextInfo)(nil),                     // 13: ai.stigmer.agentic.agentexecution.v1.ContextInfo
-	(*ExecutionArtifact)(nil),               // 14: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
-	(*WorkspaceWriteBack)(nil),              // 15: ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack
-	(*StreamingUsageSummary)(nil),           // 16: ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
-	(*structpb.Struct)(nil),                 // 17: google.protobuf.Struct
-	(*FileChangeSet)(nil),                   // 18: ai.stigmer.agentic.agentexecution.v1.FileChangeSet
-	(*FileReviewEventStream)(nil),           // 19: ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream
-	(*FileChangeProgress)(nil),              // 20: ai.stigmer.agentic.agentexecution.v1.FileChangeProgress
-	(*TodoItem)(nil),                        // 21: ai.stigmer.agentic.agentexecution.v1.TodoItem
+	(*PendingApproval)(nil),                 // 10: ai.stigmer.agentic.agentexecution.v1.PendingApproval
+	(*ApprovalEventStream)(nil),             // 11: ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream
+	(*ContextInfo)(nil),                     // 12: ai.stigmer.agentic.agentexecution.v1.ContextInfo
+	(*ExecutionArtifact)(nil),               // 13: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
+	(*WorkspaceWriteBack)(nil),              // 14: ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack
+	(*StreamingUsageSummary)(nil),           // 15: ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
+	(*structpb.Struct)(nil),                 // 16: google.protobuf.Struct
+	(*FileChangeSet)(nil),                   // 17: ai.stigmer.agentic.agentexecution.v1.FileChangeSet
+	(*FileReviewEventStream)(nil),           // 18: ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream
+	(*FileChangeProgress)(nil),              // 19: ai.stigmer.agentic.agentexecution.v1.FileChangeProgress
+	(*TodoItem)(nil),                        // 20: ai.stigmer.agentic.agentexecution.v1.TodoItem
 }
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	4,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
@@ -675,24 +662,23 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	8,  // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
 	9,  // 6: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.sub_agent_executions:type_name -> ai.stigmer.agentic.agentexecution.v1.SubAgentExecution
 	3,  // 7: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.todos:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry
-	10, // 8: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.resolved_context:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext
-	11, // 9: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
-	12, // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.approval_event_stream:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream
-	13, // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.context_info:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextInfo
-	14, // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.artifacts:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
-	15, // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.workspace_write_backs:type_name -> ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack
-	2,  // 14: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.setup_progress:type_name -> ai.stigmer.agentic.agentexecution.v1.SetupProgress
-	16, // 15: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.streaming_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
-	17, // 16: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.structured_output:type_name -> google.protobuf.Struct
-	18, // 17: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.file_change_sets:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeSet
-	19, // 18: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.file_review_event_stream:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream
-	20, // 19: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.file_change_progress:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeProgress
-	21, // 20: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
-	21, // [21:21] is the sub-list for method output_type
-	21, // [21:21] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	10, // 8: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
+	11, // 9: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.approval_event_stream:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream
+	12, // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.context_info:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextInfo
+	13, // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.artifacts:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
+	14, // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.workspace_write_backs:type_name -> ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack
+	2,  // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.setup_progress:type_name -> ai.stigmer.agentic.agentexecution.v1.SetupProgress
+	15, // 14: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.streaming_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
+	16, // 15: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.structured_output:type_name -> google.protobuf.Struct
+	17, // 16: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.file_change_sets:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeSet
+	18, // 17: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.file_review_event_stream:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream
+	19, // 18: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.file_change_progress:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeProgress
+	20, // 19: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
+	20, // [20:20] is the sub-list for method output_type
+	20, // [20:20] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() }
