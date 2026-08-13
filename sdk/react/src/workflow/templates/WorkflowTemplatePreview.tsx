@@ -83,7 +83,7 @@ export function WorkflowTemplatePreview({
       ref={dialogRef}
       className={cn(
         "stgm stg:m-auto stg:max-h-[85vh] stg:w-full stg:max-w-3xl stg:rounded-lg stg:border stg:border-border stg:bg-background stg:p-0 stg:shadow-lg",
-        "stg:backdrop:bg-black/50",
+        "stg:backdrop:bg-backdrop",
       )}
     >
       <div className="stg:flex stg:flex-col">

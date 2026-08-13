@@ -712,7 +712,7 @@ export function McpServerDetailView({
         onCancel={handleByoaDialogCancel}
         className={cn(
           "stg:m-auto stg:w-full stg:max-w-md stg:rounded-lg stg:border stg:border-border stg:bg-background stg:p-6 stg:shadow-lg",
-          "stg:backdrop:bg-black/50",
+          "stg:backdrop:bg-backdrop",
         )}
       >
         <h3 className="stg:mb-4 stg:text-base stg:font-semibold stg:text-foreground">

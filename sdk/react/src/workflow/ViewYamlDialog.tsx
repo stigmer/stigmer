@@ -92,7 +92,7 @@ export const ViewYamlDialog = memo(function ViewYamlDialog({
       ref={dialogRef}
       className={cn(
         "stgm stg:m-auto stg:max-h-[80vh] stg:w-full stg:max-w-lg stg:rounded-lg stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-background,#fff)] stg:p-0 stg:shadow-xl",
-        "stg:backdrop:bg-black/40",
+        "stg:backdrop:bg-backdrop",
       )}
       onClick={handleBackdropClick}
       aria-label={node ? `YAML for ${node.taskName}` : "View YAML"}

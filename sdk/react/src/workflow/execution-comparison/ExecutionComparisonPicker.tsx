@@ -120,7 +120,7 @@ export const ExecutionComparisonPicker = memo(function ExecutionComparisonPicker
       ref={dialogRef}
       className={cn(
         "stgm stg:m-auto stg:max-h-[70vh] stg:w-full stg:max-w-md stg:rounded-lg stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-background,#fff)] stg:p-0 stg:shadow-xl",
-        "stg:backdrop:bg-black/40",
+        "stg:backdrop:bg-backdrop",
       )}
       onClick={handleBackdropClick}
       aria-label="Select execution to compare"
