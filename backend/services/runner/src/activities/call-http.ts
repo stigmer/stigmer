@@ -101,10 +101,27 @@ export async function callHttpAction(
     fetchOptions.redirect = "manual";
   }
 
+  // Honor the author's timeout_seconds (#686). Non-retryable by design:
+  // the workflow author declared the budget, so a breach is a task failure
+  // they can catch with try/catch — Temporal re-running the same slow call
+  // up to 5 times would multiply the wait without changing the outcome.
+  const timeoutMs = resolved.timeout_seconds ? resolved.timeout_seconds * 1000 : undefined;
+  if (timeoutMs !== undefined) {
+    fetchOptions.signal = AbortSignal.timeout(timeoutMs);
+  }
+
   let response: Response;
   try {
     response = await fetch(uri, fetchOptions);
   } catch (err: unknown) {
+    if (timeoutMs !== undefined && err instanceof Error &&
+        (err.name === "TimeoutError" || err.name === "AbortError")) {
+      throw ApplicationFailure.nonRetryable(
+        `HTTP ${method} ${uri} timed out after ${resolved.timeout_seconds}s (task timeout_seconds)`,
+        "HTTP_CALL_TIMEOUT",
+        { timeoutSeconds: resolved.timeout_seconds },
+      );
+    }
     throw new Error(
       `HTTP ${method} ${uri} failed: ${err instanceof Error ? err.message : String(err)}`,
     );

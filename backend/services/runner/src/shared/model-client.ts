@@ -215,11 +215,18 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
       ? (process.env.OPENAI_API_KEY ?? "")
       : (process.env.ANTHROPIC_API_KEY ?? "");
 
+  // maxRetries applies when a timeout is bound (a retry loop under a bound
+  // multiplies the wall-clock budget) or when the caller pinned it
+  // explicitly (call-llm hands retry ownership to Temporal, #686). Callers
+  // that set neither keep LangChain's default retry behavior unchanged.
+  const maxRetries = timeoutMs !== undefined || opts.maxRetries !== undefined
+    ? { maxRetries: opts.maxRetries ?? 0 }
+    : {};
   const common = {
     temperature: opts.temperature ?? 0,
     apiKey,
     ...(maxTokens ? { maxTokens } : {}),
-    ...(timeoutMs ? { maxRetries: opts.maxRetries ?? 0 } : {}),
+    ...maxRetries,
   };
 
   // The request timeout lives in a different slot per wrapper: ChatOpenAI
