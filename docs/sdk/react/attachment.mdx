@@ -134,6 +134,33 @@ function CustomComposer() {
 
 ## Types
 
+### assessVisionPreflight
+
+Predict which attached images the runner will degrade this turn.
+
+Pure and deterministic — safe to call in render (memoized by callers).
+Non-image attachments never warn. The byte assessment replicates the
+runner's sequential admission: an image over the per-image cap is
+degraded WITHOUT consuming budget; remaining images are admitted in
+order until the count or total-byte budget is exhausted.
+
+```tsx
+function assessVisionPreflight(attachments: readonly VisionPreflightAttachment[], options?: AssessVisionPreflightOptions): VisionPreflight
+```
+
+
+### AssessVisionPreflightOptions
+
+Options for [`assessVisionPreflight`](#assessvisionpreflight).
+
+<TypeTable
+  type={{
+    limits: { type: "VisionLimits", description: "The advertised byte budget from `useModelRegistry().visionLimits`. `undefined` (older server, still loading) disables the byte assessment, never the capability verdict.", typeDescriptionLink: "/docs/sdk/react/models#visionlimits" },
+    model: { type: "ModelInfo", description: "The model the turn will run on. `undefined` (unknown/still loading) disables the capability verdict, never the byte assessment.", typeDescriptionLink: "/docs/sdk/react/models#modelinfo" },
+  }}
+/>
+
+
 ### AttachmentEntry
 
 State for a single file being managed by the hook.
@@ -367,6 +394,81 @@ Integer pixel dimensions produced by [`fitToVisionResolution`](#fittovisionresol
   type={{
     height: { type: "number", description: "", required: true },
     width: { type: "number", description: "", required: true },
+  }}
+/>
+
+
+### VisionPreflight
+
+Result of [`assessVisionPreflight`](#assessvisionpreflight).
+
+<TypeTable
+  type={{
+    modelCannotSeeImages: { type: "boolean", description: "True when the selected model is explicitly blind (`vision: false`) and at least one image is attached. When set, every image warning carries `model_no_vision` — resending smaller images cannot help, so warning UI should lead with the model, not the files.", required: true },
+    warnings: { type: "readonly VisionPreflightWarning[]", description: "Predicted-degraded images in attachment order. Empty = all clear.", required: true },
+  }}
+/>
+
+
+### VisionPreflightAttachment
+
+Minimal attachment shape the preflight needs — pure data, no `File`.
+
+<TypeTable
+  type={{
+    contentType: { type: "string", description: "Declared/detected MIME type (`AttachmentEntry.contentType`).", required: true },
+    name: { type: "string", description: "Display name used in warning copy (the chip's filename).", required: true },
+    sizeBytes: { type: "number", description: "Raw byte size — what the runner's budget counts.", required: true },
+  }}
+/>
+
+
+### visionPreflightMessage
+
+One-line human copy for a [`VisionPreflight`](#visionpreflight) — the client-side twin
+of the runner's `visionDisclosureLines`, worded for BEFORE the turn
+("will arrive as a file") instead of after ("was not viewable").
+
+Returns `null` when there is nothing to warn about. Copy rules:
+- a blind model leads with the model, never the files — no smaller
+  resend can help, so file-size advice would be dishonest;
+- `too_large` names the files (up to two, then a count) and the actual
+  cap, so the fix — export smaller — is self-evident;
+- `budget_exhausted` explains the per-turn budget, the only fix being
+  fewer images this turn.
+
+```tsx
+function visionPreflightMessage(preflight: VisionPreflight, options?: VisionPreflightMessageOptions): string | null
+```
+
+
+### VisionPreflightMessageOptions
+
+Options for [`visionPreflightMessage`](#visionpreflightmessage).
+
+<TypeTable
+  type={{
+    limits: { type: "VisionLimits", description: "The advertised budget — names the caps in the copy when present.", typeDescriptionLink: "/docs/sdk/react/models#visionlimits" },
+    modelDisplayName: { type: "string", description: "Display name of the selected model, for the capability wording." },
+  }}
+/>
+
+
+### VisionPreflightReason
+
+Why an image will not be viewable inline — the client-assessable subset
+of the runner's `VisionDegradedReason` vocabulary, same spellings.
+
+
+### VisionPreflightWarning
+
+One image the runner is predicted to degrade, and why.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "", required: true },
+    reason: { type: "VisionPreflightReason", description: "", required: true, typeDescriptionLink: "#visionpreflightreason" },
+    sizeBytes: { type: "number", description: "", required: true },
   }}
 />
 
