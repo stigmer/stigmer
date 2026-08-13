@@ -160,8 +160,15 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
+      # Yarn Berry defaults enableImmutableInstalls to true when CI=true,
+      # which aborts any install that would write a lockfile (YN0028). This
+      # job's entire design is a lockfile-free fresh resolve, so the CI
+      # default must be overridden here — without it the lane can never pass
+      # (issue #687: red on every run since it shipped).
       - name: Install dependencies (yarn, fresh resolution)
         run: yarn install
+        env:
+          YARN_ENABLE_IMMUTABLE_INSTALLS: "false"
 
       - name: Build @stigmer/protos dist
         run: yarn workspace @stigmer/protos run build
