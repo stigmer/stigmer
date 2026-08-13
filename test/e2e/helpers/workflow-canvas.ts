@@ -49,9 +49,11 @@ export async function navigateToVisualEditor(
   slug: string,
 ): Promise<void> {
   await page.goto(`/library/workflows/${org}/${slug}`);
+  // 30s: a cold Next dev server compiles the route on first hit, and
+  // parallel workers can queue behind that compile.
   await page
     .getByRole("tablist", { name: "Workflow detail tabs" })
-    .waitFor({ timeout: 15_000 });
+    .waitFor({ timeout: 30_000 });
 
   await page.getByRole("tab", { name: "Editor" }).click();
   await switchEditorToVisualMode(page);
@@ -69,9 +71,11 @@ export async function openVisualEditorAtUrl(
   detailUrl: string,
 ): Promise<void> {
   await page.goto(detailUrl);
+  // 30s: a cold Next dev server compiles the route on first hit, and
+  // parallel workers can queue behind that compile.
   await page
     .getByRole("tablist", { name: "Workflow detail tabs" })
-    .waitFor({ timeout: 15_000 });
+    .waitFor({ timeout: 30_000 });
   await page.getByRole("tab", { name: "Editor" }).click();
   await switchEditorToVisualMode(page);
   await getEditorCanvas(page).waitFor({ timeout: 15_000 });

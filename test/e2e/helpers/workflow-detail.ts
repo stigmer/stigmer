@@ -11,9 +11,11 @@ export async function navigateToWorkflowDetail(
   slug: string,
 ): Promise<void> {
   await page.goto(`/library/workflows/${org}/${slug}`);
+  // 30s: a cold Next dev server compiles the route on first hit, and
+  // parallel workers can queue behind that compile.
   await page.getByRole("tablist", { name: "Workflow detail tabs" }).waitFor({
     state: "visible",
-    timeout: 15_000,
+    timeout: 30_000,
   });
 }
 
