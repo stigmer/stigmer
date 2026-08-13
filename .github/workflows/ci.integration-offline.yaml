@@ -18,6 +18,13 @@
 #
 # Job 1 is intentionally isolated so it can be replaced with a pre-built
 # artifact download when stigmer-cloud publishes standalone JAR releases.
+#
+# Cross-repo coupling contract: Job 1 builds stigmer-cloud@main at run time,
+# so a breaking change spanning both repos must merge its stigmer-cloud PR
+# FIRST and its OSS PR second (remove-side merges last). Merging OSS first
+# opens a window where every suite fails at service boot — the Datastore
+# removal hit exactly this (oss#553 at 21:38 UTC vs cloud#395 at 21:48 UTC;
+# run 31643768168). The red heals with a full re-run once cloud main lands.
 # Job 2 runs the suites concurrently rather than sequentially: each suite owns
 # its infrastructure, so wall-clock time is the slowest suite, not their sum.
 # =============================================================================
