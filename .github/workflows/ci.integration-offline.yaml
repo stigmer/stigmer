@@ -81,9 +81,10 @@ jobs:
   # ---------------------------------------------------------------------------
   # Job 1: Build the Stigmer Cloud Java service fat JAR from source.
   #
-  # Uses Bazel with the repo's own .bazelrc (which configures BuildBuddy
-  # remote cache for read-only access). The setup-bazel action adds local
-  # disk and repository caching for faster subsequent runs.
+  # Uses Bazel with the repo's own .bazelrc. BuildBuddy is opt-in there
+  # (stigmer-cloud#405 / DD-020: no committed key, --config=bb), and this job
+  # deliberately does not opt in, so the build is fully offline. The
+  # setup-bazel action's disk and repository caches keep subsequent runs warm.
   # ---------------------------------------------------------------------------
   build-service-jar:
     name: Build Service JAR
