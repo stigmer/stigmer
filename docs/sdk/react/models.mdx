@@ -51,6 +51,7 @@ function useModelRegistry(options?: UseModelRegistryOptions): UseModelRegistryRe
     models: { type: "readonly ModelInfo[]", description: "All enabled models for the selected mode." },
     providers: { type: "readonly Provider[]", description: "Ordered list of enabled provider identifiers." },
     refetch: { type: "() => void", description: "Retry fetching the model registry. No-op while a fetch is in flight." },
+    visionLimits: { type: "VisionLimits | undefined", description: "Document-level vision byte budget advertised by the registry (stigmer/stigmer#365). `undefined` while loading or when the server predates the `limits` block — treat as unassessed and stay silent." },
   }}
 />
 
@@ -199,8 +200,21 @@ To re-enable a provider, simply remove it from this set.
 
 Fetch the model registry from the authenticated API endpoint.
 
+Thin compatibility wrapper over [`fetchModelRegistryDocument`](#fetchmodelregistrydocument) —
+prefer the document fetch when the caller also needs document-level
+metadata such as [`VisionLimits`](#visionlimits).
+
 ```tsx
 function fetchModelRegistry(apiUrl: string, token: string | null, customFetch?: (input: URL | RequestInfo, init?: RequestInit) => Promise<Response>): Promise<ModelInfo[]>
+```
+
+
+### fetchModelRegistryDocument
+
+Fetch the model-registry document from the authenticated API endpoint.
+
+```tsx
+function fetchModelRegistryDocument(apiUrl: string, token: string | null, customFetch?: (input: URL | RequestInfo, init?: RequestInit) => Promise<Response>): Promise<ModelRegistryDocument>
 ```
 
 
@@ -246,6 +260,7 @@ UI-relevant metadata for a single platform-supported LLM model.
     serviceTiers: { type: "readonly string[]", description: "Pricing-variant keys the registry prices for this model (e.g. `[\"fast\"]`). A priced variant is a *selectable* service tier (stigmer/stigmer#357): the fast-tier switch in the model popover's options area renders only while the selected model's `serviceTiers` includes it. Empty for models with no variants.  Distinct from speedTier, which is a static latency badge, not a selectable option.", required: true },
     shortDescription: { type: "string", description: "3-6 word pitch explaining why to pick this model. Shown in the curated view.", required: true },
     speedTier: { type: "SpeedTier", description: "Latency characteristic shown as a badge (Fastest / Fast / Balanced / Slow).", required: true },
+    visionCapability: { type: "boolean", description: "Tri-state vision capability from the registry's `capabilities` block (stigmer/stigmer#386). The registry serializes `capabilities` only for models whose capabilities were actually assessed, so:  - `true` — images sent with a turn reach the model - `false` — explicitly assessed as blind; warn at selection/send time - `undefined` — never assessed; **stay silent, never treat as false**  Mirrors the runner's `parseVisionCapability` convention (backend/services/runner/src/shared/model-registry.ts) — both sides parse the same document and must agree on what absence means." },
   }}
 />
 
@@ -278,6 +293,21 @@ this context instead of a static JSON import, enabling always-fresh
 model data without npm package updates.
 
 
+### ModelRegistryDocument
+
+Parsed model-registry document: the per-model list plus document-level
+platform metadata. `visionLimits` is `undefined` when the served document
+predates the `limits` block (older servers) — consumers must stay silent
+rather than assume a budget.
+
+<TypeTable
+  type={{
+    models: { type: "readonly ModelInfo[]", description: "", required: true },
+    visionLimits: { type: "VisionLimits", description: "", typeDescriptionLink: "#visionlimits" },
+  }}
+/>
+
+
 ### ModelRegistryState
 
 Internal state held by the model registry context provider.
@@ -288,6 +318,7 @@ Internal state held by the model registry context provider.
     isLoading: { type: "boolean", description: "", required: true },
     models: { type: "readonly ModelInfo[]", description: "", required: true },
     refetch: { type: "() => void", description: "Retry fetching the model registry. No-op while a fetch is in flight.", required: true },
+    visionLimits: { type: "VisionLimits", description: "Document-level vision byte budget (stigmer/stigmer#365). `undefined` while loading or when the served document predates the `limits` block — consumers stay silent rather than assume a budget.", typeDescriptionLink: "#visionlimits" },
   }}
 />
 
@@ -314,12 +345,27 @@ function parseModelKey(key: string): ParsedModelKey | undefined
 ```
 
 
+### parseRegistryDocument
+
+Parse a raw registry document (from the API or a static file) into the
+per-model list plus document-level metadata.
+
+Expects the shape `{ models: RegistryJsonEntry[], limits?: {...} }`.
+Filters out comment entries and invalid rows. Unknown top-level fields
+are ignored (the document contract is additive).
+
+```tsx
+function parseRegistryDocument(data: unknown): ModelRegistryDocument
+```
+
+
 ### parseRegistryJson
 
-Parse raw registry JSON (from the API or a static file) into `ModelInfo[]`.
+Parse raw registry JSON into `ModelInfo[]`.
 
-Expects the shape `{ models: RegistryJsonEntry[] }`. Filters out comment
-entries and invalid rows, then maps to the `ModelInfo` interface.
+Thin compatibility wrapper over [`parseRegistryDocument`](#parseregistrydocument) — prefer
+the document parser when the caller also needs document-level metadata
+such as [`VisionLimits`](#visionlimits).
 
 ```tsx
 function parseRegistryJson(data: unknown): ModelInfo[]
@@ -350,6 +396,28 @@ Options for [`useModelRegistry`](#usemodelregistry).
 <TypeTable
   type={{
     harness: { type: "HarnessOption", description: "Restrict to a single harness.  - `\"cursor\"` — only Cursor-harness models, default → DEFAULT_CURSOR_MODEL_ID - `\"native\"` — only native-harness models, filtered by DISABLED_PROVIDERS - omitted — **unified mode**: all enabled models from both harnesses", typeDescriptionLink: "#harnessoption" },
+  }}
+/>
+
+
+### VisionLimits
+
+Document-level vision byte budget advertised by the registry
+(stigmer/stigmer#365) — the runner's inline-image delivery caps, exposed
+so clients can warn *before* an upload the runner would degrade to
+"not viewable inline". Field names match the runner's `VisionBudget`
+options verbatim (backend/services/runner/src/shared/attachment-vision.ts).
+
+ADVERTISED == ENFORCED: the serving side (cloud
+`ModelRegistryDocumentCodec`) and the runner pin the same literal values
+in their test suites. Treat an absent block as unassessed — no warnings —
+exactly like the per-model `capabilities` tri-state.
+
+<TypeTable
+  type={{
+    maxImageBytes: { type: "number", description: "Per-image raw byte cap for inline vision delivery.", required: true },
+    maxImages: { type: "number", description: "Per-turn inline image count cap.", required: true },
+    maxTotalBytes: { type: "number", description: "Per-turn total byte cap across all inline images.", required: true },
   }}
 />
 

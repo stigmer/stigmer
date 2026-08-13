@@ -2,7 +2,7 @@ export { toProtoExecutionTarget, fromProtoExecutionTarget } from "./execution-ta
 export type { ExecutionTargetOption } from "./execution-target.js";
 
 export type { RuntimeEnvProvider } from "./runtime-env.js";
-export type { SessionAudience } from "./audience.js";
+export type { SessionAudience, SessionPanelMode } from "./audience.js";
 export {
   CHANNEL_SESSION_LABELS,
   isChannelOriginSession,

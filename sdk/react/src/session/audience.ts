@@ -45,3 +45,21 @@
  * presentation means without breaking embedders.
  */
 export type SessionAudience = "integrator" | "endUser" | "guest" | "observer";
+
+/**
+ * Whether the session organisms offer the session panel surface.
+ *
+ * - `"auto"` (default) — the panel and its toggle chip are available
+ *   whenever the audience allows them (every audience except `"guest"`).
+ * - `"none"` — the panel and chip are absent entirely: plan-mode
+ *   auto-open is suppressed and transcript file paths keep their default
+ *   copy behavior. For hosts whose surrounding surface already renders
+ *   the workspace — the composer keeps every capability the audience
+ *   allows, which is what separates this from `audience="guest"`.
+ *
+ * Orthogonal to {@link SessionAudience} on purpose: audience is who is
+ * looking, panel mode is what the host's geometry has room for. A union
+ * (not a boolean) so a future mode — e.g. a host-rendered panel fed by
+ * the SDK's controller — extends the vocabulary instead of breaking it.
+ */
+export type SessionPanelMode = "auto" | "none";

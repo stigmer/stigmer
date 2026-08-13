@@ -61,7 +61,7 @@ import {
 import type { SetupTabProps } from "./facets/SetupTab.js";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { RuntimeEnvProvider } from "./runtime-env.js";
-import type { SessionAudience } from "./audience.js";
+import type { SessionAudience, SessionPanelMode } from "./audience.js";
 
 /**
  * Where the approved plan mounts in the implement execution's workspace —
@@ -227,6 +227,43 @@ export interface SessionViewerProps {
    */
   readonly audience?: SessionAudience;
   /**
+   * Whether the viewer offers the session panel at all. `"none"` removes the
+   * panel AND its toggle chip, suppresses plan-mode auto-open, and lets
+   * transcript file paths keep their default copy behavior — for hosts whose
+   * surrounding surface already renders the workspace — while keeping every
+   * composer capability the audience allows. This is the panel half of what
+   * `audience="guest"` does, WITHOUT guest's composer strip-down; guest
+   * still forces it regardless of this prop. A union (not a boolean) so a
+   * future mode (e.g. a host-rendered panel) extends rather than breaks it.
+   *
+   * @default "auto"
+   */
+  readonly panel?: SessionPanelMode;
+  /**
+   * Initial open state of the session panel in uncontrolled mode — a docking
+   * host that wants the workspace visible from the first paint passes `true`.
+   * Ignored when {@link SessionViewerProps.panelOpen} is provided.
+   *
+   * @default false
+   */
+  readonly defaultPanelOpen?: boolean;
+  /**
+   * Controlled open state of the session panel. When provided, the host owns
+   * the panel: the chip toggle, file/plan/artifact opens, and plan-mode
+   * auto-open surface through {@link SessionViewerProps.onPanelOpenChange}
+   * instead of flipping state, and the panel follows this value. Leave
+   * `undefined` for the self-managing default.
+   */
+  readonly panelOpen?: boolean;
+  /**
+   * Called on every panel open/close transition, in BOTH modes — pass it
+   * alone (uncontrolled) to simply observe the panel, e.g. widening a docked
+   * pane when a streaming plan auto-opens it and reclaiming the room on
+   * close. See {@link UseSessionPanelOptions.onOpenChange} for the exact
+   * request-vs-transition semantics in each mode.
+   */
+  readonly onPanelOpenChange?: (open: boolean) => void;
+  /**
    * Slot for host-injected header actions. Rendered in the top-right corner
    * of the viewer, beside the panel chip. Keeps the SDK organism
    * unopinionated about Console auth (DD-004).
@@ -306,6 +343,10 @@ export function SessionViewer({
   workspaceContentSearcher,
   getRuntimeEnv,
   audience = "integrator",
+  panel: panelMode = "auto",
+  defaultPanelOpen,
+  panelOpen,
+  onPanelOpenChange,
   headerActions,
   accessSlot,
   onApplied,
@@ -326,6 +367,12 @@ export function SessionViewer({
   // Curated audiences (endUser, guest, observer) lock the agent and hide the
   // integrator configuration; guest and observer add their own restrictions.
   const isCurated = audience !== "integrator" || isObserver;
+  // The one flag every panel affordance keys on: the host opted out
+  // (`panel="none"`) or the audience forbids it (guests have no business
+  // with session configuration). Everything the panel touches — the chip,
+  // the region, plan auto-open, transcript path clicks — gates on this, so
+  // the four affordances can never drift apart.
+  const panelEnabled = panelMode !== "none" && !isGuest;
 
   const [modelId, setModelId] = flow.model;
   const [interactionMode, setInteractionMode] = flow.interactionMode;
@@ -405,9 +452,16 @@ export function SessionViewer({
   const panel = useSessionPanel({
     phase: hasPhase ? phase : null,
     hasChanges: hasWriteBacks,
-    // A streaming plan auto-opens the panel via its key — but guests have
-    // no panel, so the trigger is suppressed along with the chip.
-    planKey: isGuest ? null : panelPlanKey,
+    // A streaming plan auto-opens the panel via its key — but a viewer
+    // without a panel (guest, or panel="none") suppresses the trigger
+    // along with the chip.
+    planKey: panelEnabled ? panelPlanKey : null,
+    // With the panel disabled the controller is pinned controlled-closed
+    // and unobserved — airtight inertness, not just hidden UI: no intent
+    // can flip state or reach the host's callback.
+    open: panelEnabled ? panelOpen : false,
+    defaultOpen: defaultPanelOpen,
+    onOpenChange: panelEnabled ? onPanelOpenChange : undefined,
   });
 
   const handleBuildFromPlan = useCallback(() => {
@@ -520,10 +574,10 @@ export function SessionViewer({
   // (which subscribes), never this streaming column.
   const handleTranscriptFilePathClick = useCallback(
     (path: string): boolean => {
-      // Guests have no panel (and no file viewer), so paths keep their
-      // default copy behavior instead of opening a surface that cannot
-      // render.
-      if (isGuest) return false;
+      // No panel (guest, or panel="none") means no file viewer, so paths
+      // keep their default copy behavior instead of opening a surface that
+      // cannot render.
+      if (!panelEnabled) return false;
       const selection = resolveWorkspaceFileSelection(
         path,
         flow.workspace.entries,
@@ -533,7 +587,7 @@ export function SessionViewer({
       panel.openFile(selection.entryId, selection.path);
       return true;
     },
-    [isGuest, flow.workspace.entries, flow.sandboxWorkspaceRoot, panel.openFile],
+    [panelEnabled, flow.workspace.entries, flow.sandboxWorkspaceRoot, panel.openFile],
   );
 
   if (conv.isLoading) {
@@ -558,12 +612,12 @@ export function SessionViewer({
       // Top-right controls: host actions + the panel chip. The chip is the
       // panel's always-mounted toggle; while collapsed it carries only the
       // pending-item count. Execution status is never surfaced as header
-      // chrome — the thread itself communicates run state. Guests get no
-      // chip: the panel exposes session configuration a visitor has no
-      // business with, so its only toggle is simply absent.
+      // chrome — the thread itself communicates run state. A viewer without
+      // a panel (guests — session configuration is not a visitor's business
+      // — or a host's panel="none") has no toggle: it is simply absent.
       headerActions={headerActions}
       chip={
-        !isGuest ? (
+        panelEnabled ? (
           <SessionPanelChip
             isOpen={panel.isOpen}
             onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
@@ -598,7 +652,7 @@ export function SessionViewer({
         />
       }
       panel={
-        panel.isOpen && !isGuest ? (
+        panel.isOpen && panelEnabled ? (
           <SessionPanelRegion
             flow={flow}
             org={org}
