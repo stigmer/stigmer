@@ -47,9 +47,10 @@ case "$lang" in
   ts)
     template=buf.gen.ts.yaml
     outroot=stubs/ts
-    # "google" carries the google.rpc error-detail types generated from the
-    # dedicated googleapis input in buf.gen.ts.yaml.
-    managed="ai buf google"
+    # "google" carries the google.rpc error-detail types and "grpc" the
+    # grpc.health.v1 probe service, each generated from its dedicated
+    # module input in buf.gen.ts.yaml.
+    managed="ai buf google grpc"
     stamp=stubs/ts/.stub-hash
     ;;
   *)

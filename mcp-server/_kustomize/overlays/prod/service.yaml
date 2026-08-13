@@ -61,14 +61,22 @@ spec:
           # keys). No issuer is assumed here, so bring-your-own-IdP works.
           - name: STIGMER_SERVER_ADDRESS
             value: $var/@prod/stigmer-api/kube-endpoint
-      # Health probes for zero-downtime deployments (HTTP /health).
+      # Probe split (stigmer/stigmer#316): readiness exercises the BACKEND HOP
+      # (/ready makes one credential-free grpc.health.v1 Check against
+      # stigmer-server — the transport-level failure class once sat invisible
+      # for weeks behind a green /health), while liveness and startup stay on
+      # process-only /health. The asymmetry is deliberate: a backend outage
+      # must drain traffic from the bridge, not restart-loop it — a restart
+      # cannot fix the backend and destroys every live MCP session.
+      # timeoutSeconds must exceed READINESS_RPC_TIMEOUT_MS (4s, readiness.ts)
+      # so a hung backend surfaces as a reasoned 503, not a probe timeout.
       readinessProbe:
         httpGet:
-          path: /health
+          path: /ready
           portNumber: 8080
         initialDelaySeconds: 5
         periodSeconds: 10
-        timeoutSeconds: 3
+        timeoutSeconds: 5
         failureThreshold: 3
       livenessProbe:
         httpGet:
@@ -86,6 +94,13 @@ spec:
         periodSeconds: 2
         timeoutSeconds: 3
         failureThreshold: 30
+  # SINGLE-REPLICA ASSUMPTION (stigmer/stigmer#316): MCP sessions live in an
+  # in-process Map keyed by Mcp-Session-Id, so every replica holds a disjoint
+  # session set. Scaling out behind one Service would route follow-up requests
+  # to pods that never saw the session (random 404s). Until session state is
+  # externalized, keep one replica; a restart/deploy orphans live sessions,
+  # which clients recover from via the JSON-RPC-framed 404 (the spec's
+  # start-a-new-session signal).
   availability:
     deploymentStrategy:
       maxUnavailable: "0"

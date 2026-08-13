@@ -21,3 +21,12 @@ inputs:
   - module: buf.build/googleapis/googleapis
     paths:
       - google/rpc/error_details.proto
+  # grpc.health.v1 for the MCP bridge's /ready probe: a native-gRPC
+  # Health/Check against stigmer-server is the one backend RPC both
+  # editions serve credential-free (the Go server sets it SERVING before
+  # its listener opens; the cloud Java interceptors exempt it by name).
+  # Same paths-filtered pattern as google/rpc above — nothing in our
+  # protos imports it.
+  - module: buf.build/grpc/grpc
+    paths:
+      - grpc/health/v1/health.proto
