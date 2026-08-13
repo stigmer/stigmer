@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../internal/DialogShell.js";
 import type { EnvVarInput } from "@stigmer/sdk";
 import { useMcpServer } from "./useMcpServer.js";
 import { useMcpServerCredentials } from "./useMcpServerCredentials.js";
@@ -88,29 +89,11 @@ export function McpServerConnectDialog({
   onOpenDetails,
   className,
 }: McpServerConnectDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const resolvedOrg = activeOrg || org;
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (open && !dialog.open) {
-      dialog.showModal();
-    } else if (!open && dialog.open) {
-      dialog.close();
-    }
-  }, [open]);
-
-  const handleDialogClose = useCallback(() => {
-    onClose();
-  }, [onClose]);
-
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent<HTMLDialogElement>) => {
-      if (e.target === dialogRef.current) {
-        onClose();
-      }
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) onClose();
     },
     [onClose],
   );
@@ -118,15 +101,18 @@ export function McpServerConnectDialog({
   if (!open) return null;
 
   return (
-    <dialog
-      ref={dialogRef}
-      onClose={handleDialogClose}
-      onClick={handleBackdropClick}
+    <DialogShell
+      open
+      onOpenChange={handleOpenChange}
+      width="md"
+      dismissOnBackdrop
+      // Card surface + visible overflow are deliberate: the connect form
+      // hosts popovers that extend past the dialog bounds.
       className={cn(
-        "stg:m-auto stg:max-h-[85vh] stg:w-full stg:max-w-md stg:overflow-visible stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-0 stg:text-foreground stg:shadow-lg",
-        "stg:backdrop:bg-backdrop",
+        "stg:max-h-[85vh] stg:overflow-visible stg:bg-card stg:text-foreground",
         className,
       )}
+      aria-label={`Connect ${slug}`}
     >
       <div
         className="stg:flex stg:max-h-[85vh] stg:flex-col stg:overflow-y-auto stg:p-6"
@@ -141,7 +127,7 @@ export function McpServerConnectDialog({
           onOpenDetails={onOpenDetails}
         />
       </div>
-    </dialog>
+    </DialogShell>
   );
 }
 

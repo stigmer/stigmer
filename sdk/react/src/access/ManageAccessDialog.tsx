@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useId, useRef, type ReactNode } from "react";
+import { useCallback, useId, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../internal/DialogShell.js";
 import { hasGrantableRoles } from "@stigmer/sdk";
 import { PeopleWithAccess } from "../iam-policy/PeopleWithAccess.js";
 import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl.js";
@@ -76,8 +77,6 @@ export function ManageAccessDialog({
   visibility,
   extraSection,
 }: ManageAccessDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
   // Instance-scoped title id (oss#593): a reusable component must not
   // hardcode DOM ids — hosts legitimately mount this dialog more than once
   // per page (e.g. zone-cached detail pages), and duplicate ids break the
@@ -85,35 +84,16 @@ export function ManageAccessDialog({
   const titleId = useId();
 
   const handleClose = useCallback(() => {
-    dialogRef.current?.close();
     onOpenChange(false);
   }, [onOpenChange]);
-
-  // Sync native dialog open state (matches the SDK dialog convention).
-  const prevOpenRef = useRef(false);
-  if (open !== prevOpenRef.current) {
-    prevOpenRef.current = open;
-    if (open) {
-      requestAnimationFrame(() => {
-        if (dialogRef.current && !dialogRef.current.open) {
-          dialogRef.current.showModal();
-        }
-      });
-    } else if (dialogRef.current?.open) {
-      dialogRef.current.close();
-    }
-  }
 
   const showPeople = hasGrantableRoles(resource.kind);
 
   return (
-    <dialog
-      ref={dialogRef}
-      onClose={handleClose}
-      className={cn(
-        "stg:fixed stg:inset-0 stg:m-auto stg:w-full stg:max-w-md stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
-        "stg:backdrop:bg-backdrop",
-      )}
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      width="md"
       aria-labelledby={titleId}
     >
       {/* Body mounts only while open so the access-list fetch is lazy. */}
@@ -206,7 +186,7 @@ export function ManageAccessDialog({
           </div>
         </div>
       )}
-    </dialog>
+    </DialogShell>
   );
 }
 
