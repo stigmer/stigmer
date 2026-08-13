@@ -1,19 +1,23 @@
-// Configuration captured at `up` time so the daemon can restart components with
-// the same settings the user launched with. Persisted as `startup-config.json`
-// in the data dir; JSON keys are snake_case to match the Go CLI's file.
+// A diagnostic snapshot of the settings `up` launched with, persisted as
+// `startup-config.json` in the data dir and removed by `down`. Nothing in the
+// CLI or daemon reads it back — it exists for humans and support tooling
+// inspecting a running stack, so keep it truthful: a field that no component
+// consumes does not belong here (oss#314 removed the write-only llm_* trio).
+// JSON keys stay snake_case for continuity with previously-written files.
 
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { STARTUP_CONFIG_FILE } from "../constants.js";
 
-/** The persisted launch configuration. Mirrors the Go `StartupConfig` struct. */
+/**
+ * The persisted launch snapshot. `loadStartupConfig` parses leniently (a cast,
+ * not a validator), so files written by older CLIs with extra fields — e.g.
+ * the removed llm_* trio — load without migration.
+ */
 export interface StartupConfig {
   data_dir: string;
   log_dir: string;
   temporal_addr: string;
-  llm_provider: string;
-  llm_model: string;
-  llm_base_url: string;
   execution_mode: string;
   sandbox_image: string;
   sandbox_auto_pull: boolean;

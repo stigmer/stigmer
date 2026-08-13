@@ -4,7 +4,7 @@
 // The config module (config/config.ts) carries `backend.local` through verbatim
 // so the CLI never drops fields it does not model. This module adds a *typed
 // lens* for the one sub-tree setup owns — `local.llm` — and resolves the
-// effective provider/model with env-override precedence (env > config file >
+// effective provider/key with env-override precedence (env > config file >
 // API-key autodetect). Writes merge into a shallow copy of `local`, preserving
 // every sibling key (temporal, execution, …).
 //
@@ -12,10 +12,13 @@
 // Anthropic clients, and the platform model registry's native-harness entries
 // are all Anthropic models. Two invariants follow:
 //
-//   1. The model registry — not this config — owns the default execution model.
-//      The runner resolves it from the registry at execution time, so this
-//      module never hardcodes a model version (hardcoded versions here drifted
-//      from the registry repeatedly). An unset model means "platform default".
+//   1. The model registry — not this config — owns the execution model, so
+//      there is deliberately NO model field here. A config-level model pin
+//      existed once but never reached execution (oss#314): the launcher
+//      forwards only the API key, making such a pin config-that-lies. Per-run
+//      overrides belong to `stigmer run --model`. Stale `model` keys in
+//      existing config files are silently ignored (verbatim carry-through)
+//      and cleared by the next `setup` write.
 //   2. `provider` exists to route the right API key to the runner, not to
 //      select an execution backend; "anthropic" is the only provider the local
 //      stack can serve.
@@ -25,7 +28,6 @@ import type { Config } from "../config/config.js";
 /** LLM settings as persisted under `backend.local.llm` (snake_case = YAML keys). */
 export interface LlmSettings {
   provider?: string;
-  model?: string;
   api_key?: string;
 }
 
@@ -59,15 +61,6 @@ export function resolveProvider(config: Config, env: NodeJS.ProcessEnv = process
   const llm = readLlm(config);
   if (llm?.provider) return llm.provider;
   return detectProviderFromEnv(env);
-}
-
-/**
- * Effective model override: env override > config. Empty string means "no
- * override" — the runner picks the default from the platform model registry.
- */
-export function resolveModel(config: Config, env: NodeJS.ProcessEnv = process.env): string {
-  if (env.STIGMER_LLM_MODEL) return env.STIGMER_LLM_MODEL;
-  return readLlm(config)?.model ?? "";
 }
 
 /** Effective API key: ANTHROPIC_API_KEY env var > config. */

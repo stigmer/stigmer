@@ -21,11 +21,10 @@ describe("PROVIDER_CHOICES", () => {
 });
 
 describe("buildLlmForChoice", () => {
-  it("persists no model unless explicitly overridden — the registry owns the default", () => {
+  it("persists provider and key only — there is no model concept, the registry owns it (oss#314)", () => {
     expect(buildLlmForChoice("anthropic")).toEqual({ provider: "anthropic" });
-    expect(buildLlmForChoice("anthropic", { apiKey: "k", model: "m" })).toEqual({
+    expect(buildLlmForChoice("anthropic", { apiKey: "k" })).toEqual({
       provider: "anthropic",
-      model: "m",
       api_key: "k",
     });
   });

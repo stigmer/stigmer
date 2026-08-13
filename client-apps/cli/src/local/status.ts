@@ -13,7 +13,7 @@ import { load as loadConfig } from "../config/config.js";
 import { configPath } from "../config/paths.js";
 import { CommandResult } from "../output/command-result.js";
 import { SERVER_PORT, TEMPORAL_UI_PORT, WEB_CONSOLE_PORT } from "./constants.js";
-import { resolveApiKey, resolveModel, resolveProvider } from "./llm-config.js";
+import { resolveApiKey, resolveProvider } from "./llm-config.js";
 import { tcpConnects } from "./net/tcp.js";
 import { dataDir } from "./paths.js";
 import { type ComponentState, type HealthState, loadHealthState } from "./state/health-state.js";
@@ -130,12 +130,11 @@ function addLlmSection(result: CommandResult, home: string): void {
     return;
   }
 
-  // An unset model is not a gap: the platform model registry picks the
-  // execution default, so the CLI reports that truthfully instead of asserting
-  // a version it does not control.
-  const model = resolveModel(config);
+  // The model line is a constant: the platform model registry picks the
+  // execution default and the CLI has no model concept to report (oss#314
+  // removed the dead config pin). Per-run overrides ride `stigmer run --model`.
   section.field("Provider", "Anthropic (Cloud)");
-  section.field("Model", model !== "" ? model : "Auto (platform default)");
+  section.field("Model", "Auto (platform default)");
   section.field("API Key", resolveApiKey(config) !== "" ? "Configured ✓" : "Not configured ✗");
 }
 

@@ -18,8 +18,9 @@ configuration, preserving every other setting.
 Supported providers: `anthropic`, and `skip` to clear the configuration.
 
 You don't pick a model during setup: the platform model registry selects the
-default automatically, so it stays current without CLI updates. To pin a
-specific model, pass `--model` explicitly.
+default automatically, so it stays current without CLI updates. To run a
+specific model, pass `--model` to [`stigmer run`](./run) — model choice is a
+per-run decision, not a setup-time setting.
 
 ## Usage
 
@@ -42,13 +43,12 @@ stigmer setup --provider skip
 
 ## Options
 
-| Flag         | Type     | Default | Description                                                    |
-| ------------ | -------- | ------- | -------------------------------------------------------------- |
-| `--api-key`  | `string` |         | Anthropic API key                                              |
-| `--json`     | `bool`   |         | emit the result as JSON                                        |
-| `--model`    | `string` |         | pin a specific model (defaults to the platform-selected model) |
-| `--provider` | `string` |         | provider: anthropic, or skip to clear (non-interactive)        |
-| `--quiet`    | `bool`   |         | print only the status line                                     |
+| Flag         | Type     | Default | Description                                             |
+| ------------ | -------- | ------- | ------------------------------------------------------- |
+| `--api-key`  | `string` |         | Anthropic API key                                       |
+| `--json`     | `bool`   |         | emit the result as JSON                                 |
+| `--provider` | `string` |         | provider: anthropic, or skip to clear (non-interactive) |
+| `--quiet`    | `bool`   |         | print only the status line                              |
 
 ## Examples
 

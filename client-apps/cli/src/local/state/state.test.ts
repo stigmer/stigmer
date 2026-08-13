@@ -82,9 +82,6 @@ describe("startup-config", () => {
       data_dir: dir,
       log_dir: join(dir, "logs"),
       temporal_addr: "127.0.0.1:7233",
-      llm_provider: "anthropic",
-      llm_model: "claude",
-      llm_base_url: "",
       execution_mode: "local",
       sandbox_image: "",
       sandbox_auto_pull: false,
@@ -97,6 +94,29 @@ describe("startup-config", () => {
     expect(loadStartupConfig(dir)).toEqual(config);
     removeStartupConfig(dir);
     expect(loadStartupConfig(dir)).toBeNull();
+  });
+
+  it("loads files written by older CLIs carrying since-removed fields (e.g. the llm_* trio)", () => {
+    // The lenient-load contract oss#314 leans on: no migration for on-disk
+    // files — extra keys simply come along and nothing consumes them.
+    const dir = tempDir("stigmer-startup-");
+    const legacy = {
+      data_dir: dir,
+      log_dir: join(dir, "logs"),
+      temporal_addr: "127.0.0.1:7233",
+      llm_provider: "anthropic",
+      llm_model: "claude",
+      llm_base_url: "",
+      execution_mode: "local",
+      sandbox_image: "",
+      sandbox_auto_pull: false,
+      sandbox_cleanup: true,
+      sandbox_ttl: 0,
+      stigmer_server_pid: 999,
+      server_only: false,
+    };
+    writeFileSync(join(dir, "startup-config.json"), JSON.stringify(legacy));
+    expect(loadStartupConfig(dir)).toMatchObject({ temporal_addr: "127.0.0.1:7233", stigmer_server_pid: 999 });
   });
 });
 
