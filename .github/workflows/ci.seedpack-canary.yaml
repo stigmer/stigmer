@@ -139,22 +139,23 @@ jobs:
           echo "$install_dir" >> "$GITHUB_PATH"
           "$install_dir/planton" version
 
-      # The CLI's documented non-interactive (CI/CD) auth path: registers the
-      # hosted planton.ai instance — `secret get` refuses to run with no
-      # backend configured. --skip-validation because the CLI's whoAmI
-      # validation RPC is Unimplemented on the prod backend (CLI/backend
-      # skew, observed 2026-08-13); the fetch step's per-secret empty-value
-      # guards live-validate the key immediately afterwards anyway.
-      - name: Authenticate Planton CLI
-        env:
-          PLANTON_API_KEY: ${{ secrets.PLANTON_API_KEY }}
-        run: planton login --api-key "$PLANTON_API_KEY" --skip-validation
-
+      # Stateless env-driven CLI configuration — the overrides the CLI
+      # provides for exactly this: PLANTON_API_ENDPOINT satisfies the
+      # backend guard and wins endpoint resolution outright, PLANTON_API_KEY
+      # is first in the credential chain. No `planton login` state: the
+      # login command's --api-key path is broken both ways right now
+      # (validation calls a whoAmI RPC that is Unimplemented on prod;
+      # --skip-validation stores the key under an empty account the store
+      # cannot find again — observed 2026-08-13).
+      #
       # Empty-value guard matters here: the canary tests t.Skip on missing
       # env vars, so a silently-empty export would turn the lane green with
       # every vendor skipped. GITHUB_ENV values are not auto-masked, hence
       # the explicit add-mask before each write.
       - name: Fetch canary credentials
+        env:
+          PLANTON_API_ENDPOINT: api.live.planton.ai:443
+          PLANTON_API_KEY: ${{ secrets.PLANTON_API_KEY }}
         run: |
           fetch() {
             local env_name="$1" slug="$2"
