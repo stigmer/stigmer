@@ -170,8 +170,9 @@ public interface LlmCallTaskConfigOrBuilder extends
    * <pre>
    * Timeout for the LLM call in seconds. Max: 600 (10 minutes).
    * Optional — unset (0) leaves the call bounded by the runner's activity
-   * timeout. NOTE: an explicit value is accepted but not yet applied by the
-   * runner; the activity timeout governs either way.
+   * timeout. When set, the runner bounds the provider request at this
+   * budget and a breach fails the task with LLM_TIMEOUT (non-retryable —
+   * catchable with try/catch); the activity timeout widens to fit (#686).
    *
    * Unset (0) is valid: proto3 implicit presence makes an omitted field
    * indistinguishable from 0, so the range rule must not fire on it (#673).
@@ -213,7 +214,7 @@ public interface LlmCallTaskConfigOrBuilder extends
    * schema, giving it an opportunity to self-correct.
    *
    * Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.
-   * Valid range when set: 1-5.
+   * Default when unset: 1. Valid range when set: 1-5.
    *
    * Unset (0) is valid: proto3 implicit presence makes an omitted field
    * indistinguishable from 0, so the range rule must not fire on it (#673).

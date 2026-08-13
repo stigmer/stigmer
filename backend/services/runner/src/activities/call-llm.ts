@@ -41,7 +41,25 @@ export interface LlmCallConfig {
   readonly response_schema?: Record<string, unknown>;
   readonly temperature?: number;
   readonly max_tokens?: number;
+  /**
+   * Author-declared call budget in seconds (proto: LlmCallTaskConfig.timeout,
+   * 1-600). Bounds the provider request via buildChatModel's timeout seam;
+   * a breach fails non-retryably with LLM_TIMEOUT (#686). The engine widens
+   * the activity's startToClose to fit values above the default 5m.
+   */
   readonly timeout?: number;
+  /**
+   * Schema-validation policy (proto: LlmCallTaskConfig.on_invalid). The
+   * retry/fallback ORCHESTRATION lives in the workflow engine
+   * (call-function.ts, mirroring call-agent.ts); this activity only reads
+   * it to pick the failure channel: soft policies get a `parse_error`
+   * result the engine can act on, the default throws LLM_SCHEMA_VALIDATION.
+   */
+  readonly on_invalid?: string;
+  /** Engine-owned (see on_invalid); accepted here so config passes through. */
+  readonly max_retries?: number;
+  /** Engine-owned (see on_invalid); accepted here so config passes through. */
+  readonly fallback_task?: string;
 }
 
 export interface LlmCallResult {
@@ -142,6 +160,18 @@ function classifyAndThrowLlmError(
   );
 }
 
+/**
+ * Matches the request-timeout errors the provider SDKs raise when
+ * buildChatModel's timeout bound fires (OpenAI: APIConnectionTimeoutError
+ * "Request timed out."; Anthropic mirrors the shape). Only consulted when
+ * the task declared an explicit `timeout`, so the loose message match
+ * cannot reclassify errors on unbudgeted calls.
+ */
+function isRequestTimeoutError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return err.name === "APIConnectionTimeoutError" || /timed?\s*out/i.test(err.message);
+}
+
 export async function callLlmAction(
   config: LlmCallConfig,
   runtimeEnv: Record<string, unknown>,
@@ -185,6 +215,12 @@ export async function callLlmAction(
   // Anthropic requires an explicit maxTokens; preserve the 4096 default here
   // (buildChatModel intentionally imposes none). resolvedModel is already an
   // API id, so buildChatModel's resolve step is a no-op for it.
+  //
+  // maxRetries: 0 — Temporal owns retries for this activity (callProxy
+  // retries up to 5x). LangChain's default retry loop underneath would
+  // multiply that, and it also blind-retries schema-validation failures:
+  // before this was pinned to 0, one non-conforming structured response
+  // burned ~7 identical model calls before surfacing (#686).
   const { model } = await buildChatModel({
     modelName: resolvedModel,
     proxyEndpoint: proxyActive ? proxyEndpoint : undefined,
@@ -192,6 +228,10 @@ export async function callLlmAction(
     headerScope: { workflowExecutionId: executionId },
     temperature: config.temperature,
     maxTokens: provider === "anthropic" ? (config.max_tokens ?? 4096) : config.max_tokens,
+    // The author's per-call budget rides the same seam as the operator's
+    // STIGMER_LLM_REQUEST_TIMEOUT_MS (#468); an explicit value wins there.
+    timeoutMs: config.timeout ? config.timeout * 1000 : undefined,
+    maxRetries: 0,
   });
 
   const messages: (HumanMessage | SystemMessage)[] = [];
@@ -199,6 +239,14 @@ export async function callLlmAction(
     messages.push(new SystemMessage(config.system_prompt));
   }
   messages.push(new HumanMessage(config.prompt));
+
+  // Soft schema-failure channel: when the engine will orchestrate
+  // ON_INVALID_RETRY / ON_INVALID_FALLBACK, a validation miss is a signal
+  // (parse_error result), not a failure — the engine re-prompts or
+  // branches. ON_INVALID_FAIL (and unset) keeps the throwing contract.
+  const softSchemaFailure =
+    config.on_invalid === "ON_INVALID_RETRY" ||
+    config.on_invalid === "ON_INVALID_FALLBACK";
 
   let result: LlmCallResult;
 
@@ -231,7 +279,31 @@ export async function callLlmAction(
       };
     }
   } catch (err) {
-    classifyAndThrowLlmError(err, modelId, provider, proxyActive);
+    if (softSchemaFailure && err instanceof z.ZodError) {
+      // Usage is unrecoverable here — the structured runnable throws
+      // before exposing the raw response (same loss as the throwing path).
+      result = {
+        input_tokens: 0,
+        output_tokens: 0,
+        result: undefined,
+        model: modelId,
+        provider,
+        parse_error: err.errors
+          .map((e) => `${e.path.join(".")}: ${e.message}`)
+          .join("; "),
+      };
+    } else if (config.timeout && isRequestTimeoutError(err)) {
+      // The author declared this budget in the task config; breaching it is
+      // a task failure they can catch, not a transient to retry — Temporal
+      // re-running the same over-budget call 5x would multiply the wait.
+      throw ApplicationFailure.nonRetryable(
+        `LLM call for model "${modelId}" timed out after ${config.timeout}s (task timeout)`,
+        "LLM_TIMEOUT",
+        { timeoutSeconds: config.timeout },
+      );
+    } else {
+      classifyAndThrowLlmError(err, modelId, provider, proxyActive);
+    }
   }
 
   const costMicros = computeLlmCostMicros(config.model, result.input_tokens, result.output_tokens);

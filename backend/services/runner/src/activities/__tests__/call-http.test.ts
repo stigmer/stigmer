@@ -217,6 +217,42 @@ describe("callHttpAction", () => {
     });
   });
 
+  describe("task timeout (#686)", () => {
+    it("times out with non-retryable HTTP_CALL_TIMEOUT when timeout_seconds is breached", async () => {
+      mockFetch.mockImplementation((_url: string, init?: RequestInit) => {
+        // Hang until the AbortSignal.timeout fires, like a stalled server.
+        return new Promise((_, reject) => {
+          init?.signal?.addEventListener("abort", () =>
+            reject(Object.assign(new Error("The operation was aborted due to timeout"), { name: "TimeoutError" })),
+          );
+        });
+      });
+
+      await expect(
+        callHttpAction(
+          { method: "GET", endpoint: { uri: "https://api.example.com/slow" }, timeout_seconds: 1 },
+          {},
+        ),
+      ).rejects.toMatchObject({ type: "HTTP_CALL_TIMEOUT", nonRetryable: true });
+    }, 15_000);
+
+    it("passes a timeout signal to fetch only when timeout_seconds is set", async () => {
+      mockFetch.mockImplementation(() => Promise.resolve(jsonResponse({ ok: true })));
+
+      await callHttpAction(
+        { method: "GET", endpoint: { uri: "https://api.example.com/a" } },
+        {},
+      );
+      expect(mockFetch.mock.calls[0][1].signal).toBeUndefined();
+
+      await callHttpAction(
+        { method: "GET", endpoint: { uri: "https://api.example.com/b" }, timeout_seconds: 30 },
+        {},
+      );
+      expect(mockFetch.mock.calls[1][1].signal).toBeInstanceOf(AbortSignal);
+    });
+  });
+
   describe("runtime placeholder resolution", () => {
     it("resolves ${.secrets.KEY} in headers", async () => {
       mockFetch.mockResolvedValue(jsonResponse({ ok: true }));

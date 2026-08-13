@@ -208,6 +208,111 @@ describe("CallFunctionTaskBuilder", () => {
   // The config resolver must never pre-evaluate them — the pre-fix
   // behavior substituted the evaluated boolean back into the config and
   // crashed the validate activity with `expr.includes is not a function`.
+  describe("llm on_invalid policy orchestration (#686)", () => {
+    const schemaTaskDef = (extra: Record<string, unknown>): CallFunctionTaskDef => ({
+      kind: "call:function",
+      call: "llm",
+      with: {
+        model: "gpt-4o-mini",
+        prompt: "Classify",
+        response_schema: { type: "object", properties: { answer: { type: "number" } } },
+        ...extra,
+      },
+    });
+
+    const invalidResult = {
+      result: undefined, model: "gpt-4o-mini", provider: "openai",
+      input_tokens: 0, output_tokens: 0, parse_error: "answer: Required",
+    };
+    const validResult = {
+      result: { answer: 42 }, model: "gpt-4o-mini", provider: "openai",
+      input_tokens: 10, output_tokens: 5,
+    };
+
+    it("ON_INVALID_RETRY re-prompts with the validation errors and succeeds", async () => {
+      mockCallFunction
+        .mockResolvedValueOnce(invalidResult)
+        .mockResolvedValueOnce(validResult);
+
+      const builder = new CallFunctionTaskBuilder(
+        "classify", schemaTaskDef({ on_invalid: "ON_INVALID_RETRY", max_retries: 2 }),
+      );
+      const result = await builder.build()(null, createState(), makeCtx());
+
+      expect(result).toMatchObject({ structured: { answer: 42 } });
+      expect(mockCallFunction).toHaveBeenCalledTimes(2);
+      const retryConfig = mockCallFunction.mock.calls[1][1] as Record<string, unknown>;
+      expect(retryConfig.prompt).toContain("Classify");
+      expect(retryConfig.prompt).toContain("answer: Required");
+      expect(retryConfig.prompt).toContain("RETRY");
+    });
+
+    it("ON_INVALID_RETRY exhausts max_retries then fails without a fallback_task", async () => {
+      mockCallFunction.mockResolvedValue(invalidResult);
+
+      const builder = new CallFunctionTaskBuilder(
+        "classify", schemaTaskDef({ on_invalid: "ON_INVALID_RETRY", max_retries: 2 }),
+      );
+
+      await expect(builder.build()(null, createState(), makeCtx()))
+        .rejects.toThrow(/validation failed after 3 attempt\(s\).*answer: Required/);
+      // first attempt + max_retries retries
+      expect(mockCallFunction).toHaveBeenCalledTimes(3);
+    });
+
+    it("ON_INVALID_RETRY defaults max_retries to 1 (proto contract)", async () => {
+      mockCallFunction.mockResolvedValue(invalidResult);
+
+      const builder = new CallFunctionTaskBuilder(
+        "classify", schemaTaskDef({ on_invalid: "ON_INVALID_RETRY" }),
+      );
+
+      await expect(builder.build()(null, createState(), makeCtx())).rejects.toThrow();
+      expect(mockCallFunction).toHaveBeenCalledTimes(2);
+    });
+
+    it("exhausted retries branch to fallback_task when set", async () => {
+      mockCallFunction.mockResolvedValue(invalidResult);
+
+      const builder = new CallFunctionTaskBuilder(
+        "classify",
+        schemaTaskDef({ on_invalid: "ON_INVALID_RETRY", max_retries: 1, fallback_task: "human_review" }),
+      );
+      const result = await builder.build()(null, createState(), makeCtx());
+
+      expect(result).toEqual({
+        __flow_directive__: "human_review",
+        validation_errors: ["answer: Required"],
+      });
+      expect(mockCallFunction).toHaveBeenCalledTimes(2);
+    });
+
+    it("ON_INVALID_FALLBACK branches immediately without retrying", async () => {
+      mockCallFunction.mockResolvedValue(invalidResult);
+
+      const builder = new CallFunctionTaskBuilder(
+        "classify",
+        schemaTaskDef({ on_invalid: "ON_INVALID_FALLBACK", fallback_task: "human_review" }),
+      );
+      const result = await builder.build()(null, createState(), makeCtx());
+
+      expect(result).toMatchObject({ __flow_directive__: "human_review" });
+      expect(mockCallFunction).toHaveBeenCalledTimes(1);
+    });
+
+    it("a parse_error without a soft policy passes through as normal output (activity owns the failure)", async () => {
+      // Default policy: the activity throws LLM_SCHEMA_VALIDATION itself and
+      // never returns parse_error — the engine must not add a second layer.
+      mockCallFunction.mockResolvedValue(validResult);
+
+      const builder = new CallFunctionTaskBuilder("classify", schemaTaskDef({}));
+      const result = await builder.build()(null, createState(), makeCtx());
+
+      expect(result).toMatchObject({ structured: { answer: 42 } });
+      expect(mockCallFunction).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("deferred expression fields", () => {
     it("passes validate rules[].expression through unresolved while input and message interpolate", async () => {
       mockCallFunction.mockResolvedValue({ valid: true, errors: [] });
