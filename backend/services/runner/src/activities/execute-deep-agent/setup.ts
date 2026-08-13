@@ -676,6 +676,14 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
           isCapturablePath,
           captureIgnored: captureMode && !!artifactStorage,
           recordBlockedSecret: (rawPath: string) => casObserver.recordBlockedSecret(rawPath),
+          // Pre-delete byte capture (issue #303): deepagents has no backend
+          // delete method for the CAS backend to observe, so a flowing delete's
+          // before-bytes are recorded by the gate at authorization time, through
+          // the SAME shared observer — the turn boundary then reads after=null
+          // and authors a reviewable, restorable DELETE. recordBefore's own
+          // ownership predicate (gitignored-only in a git tree, everything in
+          // non-git) agrees with the gate's not-capturable condition.
+          captureDeleteBefore: (rawPath: string) => casObserver.recordBefore(rawPath),
           unattended,
           unattendedSkips,
         }

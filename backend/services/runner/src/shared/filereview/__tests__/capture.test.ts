@@ -946,6 +946,54 @@ describe("capture orchestration — CAS-only non-git workspace (Slice 2a)", () =
     await expect(readFile(join(ws, "drop.txt"), "utf-8")).rejects.toThrow();
   });
 
+  it("authors a DELETE from {before, after:null} and reconciles it both ways (issue #303)", async () => {
+    // The delete flow end-to-end at this seam: the harness captured the
+    // pre-delete bytes and the file is gone from disk (the tool ran). The
+    // candidate must carry a DELETE with the before blob; an approved DELETE
+    // stays deleted, a rejected DELETE is restored byte-exact from the blob.
+    const status = newStatus();
+    const storage = makeStorage();
+    const readBlob = reconcilerReadBlob(storage);
+    const enc = (s: string) => new TextEncoder().encode(s);
+
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      harnessId: HARNESS, gitWorkspace: false,
+    });
+    await captureCandidateToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS, gitWorkspace: false, storage,
+      casCaptures: [
+        { path: "gone-approved.txt", before: enc("A"), after: null, captureClass: FileCaptureClass.NON_GIT_CAS },
+        { path: "gone-rejected.txt", before: enc("B"), after: null, captureClass: FileCaptureClass.NON_GIT_CAS },
+      ],
+    });
+
+    const cand = candidateChanges(status);
+    expect(cand.map((c) => c.kind)).toEqual([FileChangeKind.DELETE, FileChangeKind.DELETE]);
+    // A DELETE names its path on the BEFORE side only, with the restorable blob.
+    expect(cand.map((c) => c.pathBefore)).toEqual(["gone-approved.txt", "gone-rejected.txt"]);
+    expect(cand.map((c) => c.pathAfter)).toEqual(["", ""]);
+    expect(cand[0].before?.body.case).toBe("ref");
+    expect(cand[0].after).toBeUndefined();
+
+    const changeSet = decidedChangeSet(status, {
+      "gone-approved.txt": FileDecisionAction.APPROVE,
+      "gone-rejected.txt": FileDecisionAction.REJECT,
+    });
+    const result = await applyCaptureDecisions({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
+      gitWorkspace: false, storage, readBlob,
+    });
+
+    expect(result.failed).toBe(false);
+    expect(result.approvedPaths).toEqual(["gone-approved.txt"]);
+    expect(result.rejectedPaths).toEqual(["gone-rejected.txt"]);
+    // Approved DELETE: the file stays gone. Rejected DELETE: restored byte-exact.
+    await expect(readFile(join(ws, "gone-approved.txt"), "utf-8")).rejects.toThrow();
+    expect(await readFile(join(ws, "gone-rejected.txt"), "utf-8")).toBe("B");
+  });
+
   it("is not a capture turn when neither a git ref nor a CAS manifest exists", async () => {
     const status = newStatus();
     const storage = makeStorage();

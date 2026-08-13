@@ -112,10 +112,11 @@ export function captureBaselineToLedger(opts: {
  * bytes withheld from durable storage.
  *
  * `deniedTokens` are the identities the hook gated this turn (shell/MCP, or a
- * gitignored delete). A streamed file-edit row whose identity is in that set is
- * left for the deny-gate reconcile path — it did NOT flow. A flowed gitignored
- * write is NOT in that set (the hook allowed it), so it is stamped like any
- * other flowed edit and its captured delta surfaces as a CAS entry in the set.
+ * secret-like delete — non-secret CAS deletes flow since issue #303). A streamed
+ * file-edit row whose identity is in that set is left for the deny-gate
+ * reconcile path — it did NOT flow. A flowed gitignored write or delete is NOT
+ * in that set (the hook allowed it), so it is stamped like any other flowed
+ * edit and its captured delta surfaces as a CAS entry in the set.
  *
  * `hitlDir`/`storage` are omitted only by callers with no artifact storage
  * (captureIgnored off); the CAS half is then skipped and this is a git-only

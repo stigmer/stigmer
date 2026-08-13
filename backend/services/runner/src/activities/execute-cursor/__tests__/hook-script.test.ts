@@ -753,11 +753,47 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(obs.secretPaths).toEqual([]);
     });
 
-    it("still gates a gitignored DELETE (no CAS capture path, parity with deep-agent)", async () => {
+    it("stages a non-secret gitignored DELETE and allows it (issue #303)", async () => {
       const h = setup({ captureMode: true, captureIgnored: true, gitignored: ["*.log"] });
-      expect(h.decide(hookDelete("app.log")).permission).toBe("deny");
+      writeFileSync(join(h.root, "app.log"), "DOOMED", "utf-8");
+      expect(h.decide(hookDelete("app.log")).permission).toBe("allow");
+      // Flowed, not denied — reviewed post-hoc as a DELETE entry, not a pause.
+      expect(h.ledger()).toEqual([]);
+      const obs = await h.observations();
+      expect(obs.secretPaths).toEqual([]);
+      expect(obs.captured).toHaveLength(1);
+      expect(obs.captured[0].path).toBe("app.log");
+      // The pre-delete bytes are staged — the restorable "before" side.
+      expect(Buffer.from(obs.captured[0].before!).toString("utf8")).toBe("DOOMED");
+    });
+
+    it("first-touch-wins across write-then-delete: the true pre-turn before survives", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitignored: ["*.log"] });
+      writeFileSync(join(h.root, "app.log"), "ORIGINAL", "utf-8");
+      expect(h.decide(hookWrite("app.log", "REWRITTEN")).permission).toBe("allow");
+      // Simulate the write having applied, then a delete later this turn.
+      writeFileSync(join(h.root, "app.log"), "REWRITTEN", "utf-8");
+      expect(h.decide(hookDelete("app.log")).permission).toBe("allow");
+      const obs = await h.observations();
+      expect(obs.captured).toHaveLength(1);
+      expect(Buffer.from(obs.captured[0].before!).toString("utf8")).toBe("ORIGINAL");
+    });
+
+    it("keeps a SECRET-LIKE gitignored delete on the deny-gate: approvable, never staged (issue #303)", async () => {
+      // Unlike a secret write (hard-blocked — its content must never surface), a
+      // delete's args expose no secret content, so a human may approve it. Its
+      // before-bytes must never enter the sidecar though: staging would both
+      // persist the secret bytes and mark the path "secret", making the boundary
+      // author a blocking DIFF_UNREVIEWABLE for a merely-gated delete.
+      const h = setup({ captureMode: true, captureIgnored: true, gitignored: [".env"] });
+      writeFileSync(join(h.root, ".env"), "API_KEY=abc", "utf-8");
+      const d = h.decide(hookDelete(".env"));
+      expect(d.permission).toBe("deny");
+      expect(d.raw).toContain("submitted to the user for approval"); // gated, not blocked
+      expect(h.ledger().map((e) => e.kind)).toEqual(["approval"]);
       const obs = await h.observations();
       expect(obs.captured).toEqual([]);
+      expect(obs.secretPaths).toEqual([]); // no secret marker for a gated delete
     });
 
     it("with captureIgnored OFF, a gitignored write stays denied and stages nothing", async () => {
@@ -768,10 +804,10 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     });
   });
 
-  // Slice 2c: a NON-git workspace has no git snapshot, so EVERY file write is
-  // CAS-staged and flowed for review (not only gitignored ones), a delete stays
-  // gated (no CAS delete-capture path, parity with the deep-agent), and shell/MCP
-  // gate as always. The workspace is deliberately NOT git-initialized.
+  // Slice 2c: a NON-git workspace has no git snapshot, so EVERY file write and
+  // (issue #303) every non-secret delete is CAS-staged and flowed for review —
+  // not only gitignored ones — while shell/MCP gate as always. The workspace is
+  // deliberately NOT git-initialized.
   describe("non-git workspace CAS capture (Slice 2c)", () => {
     it("stages EVERY write (not just gitignored) and allows it, no denial", async () => {
       const h = setup({ captureMode: true, captureIgnored: true, gitWorkspace: false });
@@ -806,12 +842,27 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(obs.secretPaths).toEqual([".env"]);
     });
 
-    it("still gates a DELETE (deny-gate, parity with deep-agent) and stages nothing", async () => {
+    it("stages a DELETE with its pre-delete bytes and allows it (issue #303)", async () => {
       const h = setup({ captureMode: true, captureIgnored: true, gitWorkspace: false });
-      expect(h.decide(hookDelete("notes.md")).permission).toBe("deny");
-      expect(h.ledger()).toHaveLength(1);
+      writeFileSync(join(h.root, "notes.md"), "KEEP ME", "utf-8");
+      expect(h.decide(hookDelete("notes.md")).permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+      const obs = await h.observations();
+      expect(obs.captured).toHaveLength(1);
+      expect(obs.captured[0].path).toBe("notes.md");
+      expect(Buffer.from(obs.captured[0].before!).toString("utf8")).toBe("KEEP ME");
+    });
+
+    it("keeps a secret-like DELETE gated (approvable) and stages nothing", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitWorkspace: false });
+      writeFileSync(join(h.root, ".env"), "API_KEY=abc", "utf-8");
+      const d = h.decide(hookDelete(".env"));
+      expect(d.permission).toBe("deny");
+      expect(d.raw).toContain("submitted to the user for approval");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["approval"]);
       const obs = await h.observations();
       expect(obs.captured).toEqual([]);
+      expect(obs.secretPaths).toEqual([]);
     });
 
     it("still gates shell (never git-reversible, never CAS-captured)", async () => {
