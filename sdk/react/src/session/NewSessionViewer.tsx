@@ -19,6 +19,7 @@ import { useSessionRailViews } from "./useSessionRailViews.js";
 import { SessionPanelChip } from "./SessionPanelChip.js";
 import type { RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience, SessionPanelMode } from "./audience.js";
+import type { SessionRunConfig } from "./run-config.js";
 
 /** Props for {@link NewSessionViewer}. */
 export interface NewSessionViewerProps {
@@ -97,6 +98,27 @@ export interface NewSessionViewerProps {
    * @default "integrator"
    */
   readonly audience?: SessionAudience;
+
+  /**
+   * Owner-pinned model/tier for the session's first execution
+   * (stigmer/stigmer#664). Same contract as
+   * {@link SessionViewerProps.runConfig} (DD-016 parity): wins over the
+   * composer and the restored preference, hides the model picker, and
+   * is ignored for the `"guest"` audience. Pair with the same pin on
+   * the conversation's `SessionViewer` so follow-ups match. See
+   * {@link SessionRunConfig}.
+   */
+  readonly runConfig?: SessionRunConfig;
+
+  /**
+   * Whether the composer offers the model picker. Same contract as
+   * {@link SessionViewerProps.showModelSelector} (DD-016 parity):
+   * forced off by a {@link NewSessionViewerProps.runConfig} model pin
+   * and for the `"guest"` audience.
+   *
+   * @default true
+   */
+  readonly showModelSelector?: boolean;
 
   /**
    * Whether the launcher offers the session panel at all — `"none"` removes
@@ -224,6 +246,8 @@ export function NewSessionViewer({
   workspaceContentSearcher,
   getRuntimeEnv,
   audience = "integrator",
+  runConfig,
+  showModelSelector = true,
   panel: panelMode = "auto",
   defaultPanelOpen,
   panelOpen,
@@ -246,9 +270,16 @@ export function NewSessionViewer({
     getRuntimeEnv,
     defaultHarness,
     audience,
+    runConfig,
   });
   const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
   const isGuest = audience === "guest";
+  // A pinned model makes the picker a dead control (the pin wins over any
+  // choice it could offer), so the pin forces it hidden; the guest strip
+  // and the host's explicit opt-out compose with it (DD-016: same rule as
+  // SessionViewer).
+  const modelSelectorVisible =
+    showModelSelector && !isGuest && runConfig?.modelName === undefined;
   // Both curated audiences (endUser, guest) lock the agent and hide the
   // integrator pickers; guest adds its own restrictions below.
   const isCurated = audience !== "integrator";
@@ -408,7 +439,7 @@ export function NewSessionViewer({
           interactionMode={interactionMode}
           onInteractionModeChange={setInteractionMode}
           showInteractionModePicker={!isGuest}
-          showModelSelector={!isGuest}
+          showModelSelector={modelSelectorVisible}
           enableAttachments={!isGuest}
           defaultModelId={flow.modelId}
           onModelChange={flow.setModelId}

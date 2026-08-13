@@ -19,6 +19,7 @@ import { useApprovalDefaults } from "../approval-defaults-context.js";
 import { useRunnerAdapter } from "../runner-adapter.js";
 import { resolveExecutionRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience } from "./audience.js";
+import { assertValidRunConfig, type SessionRunConfig } from "./run-config.js";
 
 const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
 
@@ -142,6 +143,16 @@ export interface UseNewSessionFlowOptions {
    * or Environment resources. Large values bloat every prompt.
    */
   readonly sessionContext?: string;
+  /**
+   * Owner-pinned model/tier for the session's first execution
+   * (stigmer/stigmer#664). Stamped at submit, winning over the
+   * composer's selection and the restored Console preference. Pair
+   * with the same pin on the conversation surface
+   * (`useSessionPageFlow` / `SessionViewer`) so follow-ups match.
+   * Ignored for the `"guest"` audience (the platform share policy owns
+   * guest execution config). See {@link SessionRunConfig}.
+   */
+  readonly runConfig?: SessionRunConfig;
 }
 
 /** Return value of {@link useNewSessionFlow}. */
@@ -258,6 +269,14 @@ export function useNewSessionFlow(
     sessionContext,
   } = options;
   const isGuest = options.audience === "guest";
+  // Guests never carry a client pin: guest execution config is owned by
+  // the server-side share policy (GUEST_HARNESS reasoning). Validated at
+  // render so a statically-wrong pin (fast tier, no model) fails in the
+  // embedder's dev loop, not as the end user's failed send.
+  const runConfig = isGuest ? undefined : options.runConfig;
+  if (runConfig) assertValidRunConfig(runConfig);
+  const pinnedModelName = runConfig?.modelName;
+  const pinnedServiceTier = runConfig?.serviceTier;
   const contextTarget = useExecutionTarget();
   const executionTarget = options.executionTarget ?? contextTarget;
   const adapter = useRunnerAdapter();
@@ -393,11 +412,17 @@ export function useNewSessionFlow(
         const executionFields = {
           org,
           message,
-          modelName: selectedModel ?? validModelId,
+          // The owner pin wins over the composer and the restored
+          // preference (#664); the pinned tier is stamped only as
+          // "fast" — standard stays off the wire, preserving the #357
+          // UNSPECIFIED-vs-explicit telemetry distinction.
+          modelName: pinnedModelName ?? selectedModel ?? validModelId,
           runtimeEnv,
           attachments: context?.attachments,
           interactionMode: context?.interactionMode,
-          serviceTier: context?.serviceTier,
+          serviceTier: pinnedModelName
+            ? (pinnedServiceTier === "fast" ? "fast" : undefined)
+            : context?.serviceTier,
           workspaceFileRefs: context?.workspaceFileRefs,
           autoApproveAll,
         };
@@ -490,6 +515,8 @@ export function useNewSessionFlow(
       adapter,
       getRuntimeEnv,
       validModelId,
+      pinnedModelName,
+      pinnedServiceTier,
       workspace,
       mcpServerUsages,
       skillRefs,

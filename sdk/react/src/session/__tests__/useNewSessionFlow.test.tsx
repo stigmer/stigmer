@@ -296,6 +296,86 @@ describe("useNewSessionFlow", () => {
     });
   });
 
+  describe("submit — owner-pinned runConfig (#664)", () => {
+    it("stamps the pinned model and fast tier over the composer's selection and the restored preference", async () => {
+      localStorage.setItem(STORAGE_KEY_MODEL_NATIVE, DEFAULT_MODEL_ID);
+      const { result } = renderHook(
+        () =>
+          useNewSessionFlow({
+            ...defaultOptions(),
+            runConfig: { modelName: "pinned-model", serviceTier: "fast" },
+          }),
+        { wrapper: createWrapper() },
+      );
+
+      await act(async () => {
+        await result.current.submit("Hello", "user-picked-model");
+      });
+
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.modelName).toBe("pinned-model");
+      expect(execInput.serviceTier).toBe("fast");
+    });
+
+    it("a model-only pin suppresses a composer-armed fast tier (the pin owns the whole run config)", async () => {
+      const { result } = renderHook(
+        () =>
+          useNewSessionFlow({
+            ...defaultOptions(),
+            runConfig: { modelName: "pinned-model" },
+          }),
+        { wrapper: createWrapper() },
+      );
+
+      await act(async () => {
+        await result.current.submit("Hello", undefined, { serviceTier: "fast" });
+      });
+
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.modelName).toBe("pinned-model");
+      expect(execInput.serviceTier).toBeUndefined();
+    });
+
+    it("ignores the pin entirely for guests — the platform share policy owns guest config", async () => {
+      const { result } = renderHook(
+        () =>
+          useNewSessionFlow({
+            ...defaultOptions(),
+            audience: "guest",
+            runConfig: { modelName: "pinned-model", serviceTier: "fast" },
+          }),
+        { wrapper: createWrapper() },
+      );
+
+      // Guests submit against an explicitly pinned shared agent.
+      act(() => {
+        result.current.setAgentRef({ org: "acme", slug: "shared-agent" });
+        result.current.setResolution({ mode: "saved", instanceId: "inst-shared" });
+      });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.modelName).toBeUndefined();
+      expect(execInput.serviceTier).toBeUndefined();
+    });
+
+    it("throws at render for the statically-wrong pin (fast tier, no model)", () => {
+      expect(() =>
+        renderHook(
+          () =>
+            useNewSessionFlow({
+              ...defaultOptions(),
+              runConfig: { serviceTier: "fast" },
+            }),
+          { wrapper: createWrapper() },
+        ),
+      ).toThrowError(/serviceTier "fast" requires modelName/);
+    });
+  });
+
   describe("submit — one-call bootstrap", () => {
     it("creates the execution with an embedded sessionSpec in a single call", async () => {
       const opts = defaultOptions();

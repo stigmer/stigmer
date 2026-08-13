@@ -62,6 +62,7 @@ import type { SetupTabProps } from "./facets/SetupTab.js";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience, SessionPanelMode } from "./audience.js";
+import type { SessionRunConfig } from "./run-config.js";
 
 /**
  * Where the approved plan mounts in the implement execution's workspace —
@@ -227,6 +228,29 @@ export interface SessionViewerProps {
    */
   readonly audience?: SessionAudience;
   /**
+   * Owner-pinned model/tier for every execution sent from this viewer
+   * (stigmer/stigmer#664) — for product-embedded conversations where
+   * the platform, not the end user, decides what serves the session
+   * (pair with `audience="endUser"`). A pinned model wins over the
+   * composer, the persisted Console preference, and the last
+   * execution's model — follow-ups and retries included — and hides
+   * the model picker (a control that has no effect must not render).
+   * Ignored for the `"guest"` audience, whose execution config the
+   * server-side share policy owns. See {@link SessionRunConfig}.
+   */
+  readonly runConfig?: SessionRunConfig;
+  /**
+   * Whether the follow-up composer offers the model picker. `false`
+   * hides the picker while keeping the SDK's model sourcing (persisted
+   * preference, then the last execution's model) — for hosts whose
+   * surrounding surface owns model choice without pinning it. Forced
+   * off by a {@link SessionViewerProps.runConfig} model pin and for the
+   * `"guest"` audience.
+   *
+   * @default true
+   */
+  readonly showModelSelector?: boolean;
+  /**
    * Whether the viewer offers the session panel at all. `"none"` removes the
    * panel AND its toggle chip, suppresses plan-mode auto-open, and lets
    * transcript file paths keep their default copy behavior — for hosts whose
@@ -343,6 +367,8 @@ export function SessionViewer({
   workspaceContentSearcher,
   getRuntimeEnv,
   audience = "integrator",
+  runConfig,
+  showModelSelector = true,
   panel: panelMode = "auto",
   defaultPanelOpen,
   panelOpen,
@@ -353,9 +379,20 @@ export function SessionViewer({
   threadSlots,
   className,
 }: SessionViewerProps) {
-  const flow = useSessionPageFlow({ sessionId, org, getRuntimeEnv, audience });
+  const flow = useSessionPageFlow({
+    sessionId,
+    org,
+    getRuntimeEnv,
+    audience,
+    runConfig,
+  });
   const { conv } = flow;
   const isGuest = audience === "guest";
+  // A pinned model makes the picker a dead control (the pin wins over any
+  // choice it could offer), so the pin forces it hidden; the guest strip
+  // and the host's explicit opt-out compose with it.
+  const modelSelectorVisible =
+    showModelSelector && !isGuest && runConfig?.modelName === undefined;
   // Channel-originated sessions (Slack/WhatsApp conversations owned by the
   // channel runtime) are read-only for every console caller — the server
   // grants channel viewers can_view without can_create_execution_in — so the
@@ -648,6 +685,7 @@ export function SessionViewer({
           isCurated={isCurated}
           isGuest={isGuest}
           isObserver={isObserver}
+          modelSelectorVisible={modelSelectorVisible}
           threadSlots={threadSlots}
         />
       }
@@ -729,6 +767,13 @@ interface ConversationColumnProps {
    * stream indicators stay (watching an in-flight turn is the point).
    */
   readonly isObserver: boolean;
+  /**
+   * Whether the composer offers the model picker — the composed result
+   * of the host's `showModelSelector`, the guest strip, and a
+   * `runConfig` model pin (a pinned model makes the picker a dead
+   * control, so the pin forces it hidden).
+   */
+  readonly modelSelectorVisible: boolean;
   readonly threadSlots?: MessageThreadSlots;
 }
 
@@ -753,6 +798,7 @@ const ConversationColumn = memo(function ConversationColumn({
   isCurated,
   isGuest,
   isObserver,
+  modelSelectorVisible,
   threadSlots,
 }: ConversationColumnProps) {
   const { conv } = flow;
@@ -945,7 +991,7 @@ const ConversationColumn = memo(function ConversationColumn({
             interactionMode={interactionMode}
             onInteractionModeChange={setInteractionMode}
             showInteractionModePicker={!isGuest}
-            showModelSelector={!isGuest}
+            showModelSelector={modelSelectorVisible}
             enableAttachments={!isGuest}
             workspace={isGuest ? undefined : flow.workspace}
             gitHubConnection={isGuest ? undefined : gitHubConnection}
