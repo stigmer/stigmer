@@ -96,8 +96,10 @@ Wraps `stigmer.workflowInstance.delete()` with loading/error state.
 The caller is responsible for handling post-delete UI updates
 (e.g., refreshing the instance list, closing a detail panel).
 
-Deletion cascades to all WorkflowExecution resources that belong
-to the instance. The confirmation UI should warn the user about this.
+Deletion is instance-only on both editions — executions are NOT
+cascaded (deliberate platform posture: they keep a denormalized
+workflow reference and remain in the workflow's execution history).
+Confirmation UI must not claim execution history is deleted.
 
 **Signature**
 
@@ -110,7 +112,7 @@ function useDeleteWorkflowInstance(): UseDeleteWorkflowInstanceReturn
 <TypeTable
   type={{
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    deleteInstance: { type: "(id: string) => Promise<WorkflowInstance>", description: "Delete a workflow instance by ID. Returns the deleted resource.  WARNING: Deleting an instance cascades — all executions belonging to this instance are permanently removed." },
+    deleteInstance: { type: "(id: string) => Promise<WorkflowInstance>", description: "Delete a workflow instance by ID. Returns the deleted resource.  Deletion does NOT cascade to executions: runs already created against the instance are preserved and stay visible in the parent workflow's execution history (every execution carries a denormalized workflow reference). Only the instance itself — its environment bindings and configuration — is removed." },
     error: { type: "Error | null", description: "Error from the last failed delete, or `null` when healthy." },
     isDeleting: { type: "boolean", description: "`true` while the delete request is in flight." },
   }}
@@ -2116,6 +2118,7 @@ handling, and backdrop. Styled via `--stgm-*` design tokens.
 <TypeTable
   type={{
     defaultInstanceId: { type: "string", description: "The platform-managed default instance ID (from workflow.status.defaultInstanceId). Passed through to the form's instance picker to control visibility threshold." },
+    initialInstanceId: { type: "string | null", description: "Instance to preselect when the dialog opens — wire this from a row-level \"Run\" action so the form reflects the instance the user clicked. Applied on each open transition (after the form resets); ignored when the id is not in `instances`, so a stale id degrades to the default option. Omit (or pass `null`) for the server-resolved default. Same convention as SessionComposer's `initialInstanceId`." },
     instances: { type: "readonly WorkflowInstance[]", description: "Available workflow instances for the instance selector.", required: true },
     onError: { type: "(message: string) => void", description: "Called when submission fails. Receives a human-readable message. Use for toast notifications." },
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog should close (cancel, backdrop click, Escape).", required: true },
