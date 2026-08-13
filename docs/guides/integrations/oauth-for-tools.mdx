@@ -62,21 +62,20 @@ The `auth` block tells Stigmer two things:
   so you know what access you're granting before you authorize.
 
 The `oauth_app_ref` names the OAuth app registration that backs the sign-in.
-Marketplace servers ship refs pinned to `org: stigmer` — on the hosted
-platform that is the platform's own registration, which is why sign-in works
-with no setup.
+Marketplace servers ship refs pinned to `org: stigmer` — on the hosted platform
+that is the platform's own registration, which is why sign-in works with no
+setup.
 
 <Callout type="info">
   **Self-hosted deployments.** The platform's OAuth app registration does not
   ship with a self-hosted install, so a marketplace server's sign-in button
-  works only after you register your own OAuth app with the vendor and apply
-  it as an `OAuthApp` resource carrying the same slug the ref names (for the
-  GitHub server above, `github-oauth`). Your app is found regardless of which
-  organization it lives in: resolution prefers an exact org match and
-  otherwise accepts the app as long as its slug is unique across your
-  deployment. See [Bring Your Own OAuth
-  App](/docs/guides/integrations/bring-your-own-oauth) for the vendor-side
-  registration steps.
+  works only after you register your own OAuth app with the vendor and apply it
+  as an `OAuthApp` resource carrying the same slug the ref names (for the GitHub
+  server above, `github-oauth`). Your app is found regardless of which
+  organization it lives in: resolution prefers an exact org match and otherwise
+  accepts the app as long as its slug is unique across your deployment. See
+  [Bring Your Own OAuth App](/docs/guides/integrations/bring-your-own-oauth) for
+  the vendor-side registration steps.
 </Callout>
 
 The Environment variable section in the detail view labels the OAuth-managed
