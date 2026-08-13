@@ -185,6 +185,32 @@
       }
     }
   }, {
+    "id" : "claude-opus-5",
+    "displayName" : "Claude Opus 5",
+    "shortDescription" : "Frontier Opus via Cursor",
+    "speedTier" : "slow",
+    "provider" : "anthropic",
+    "harness" : "cursor",
+    "costTier" : "premium",
+    "featured" : false,
+    "pricing" : {
+      "inputPricePerMillion" : 5.0,
+      "outputPricePerMillion" : 25.0,
+      "cacheWritePricePerMillion" : 6.25,
+      "cacheReadPricePerMillion" : 0.5,
+      "cursorTokenRatePerMillion" : 0.25,
+      "source" : "cursor_pricing_page",
+      "sourceNote" : "cursor.com/docs/models-and-pricing 2026-08-12: 'Claude Opus 5' row $5 / $6.25 / $0.5 / $25. Fast mode (claude-opus-5-fast) exists in the dispatch catalog but the pricing page names NO number — deliberately entered WITHOUT a pricingVariants.fast block so fast usage refuses as VARIANT_PRICE_MISSING instead of undercharging at base rate; add the variant when Cursor publishes a fast price (tracked in oss#493).",
+      "effectiveAt" : "2026-08-12T08:25:31.178003927Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
+    }
+  }, {
     "id" : "claude-sonnet-4",
     "displayName" : "Claude 4 Sonnet",
     "shortDescription" : "Sonnet 4 via Cursor",
@@ -284,40 +310,6 @@
       "streaming" : true,
       "thinking" : true,
       "adaptiveThinking" : false
-    }
-  }, {
-    "id" : "composer-1.5",
-    "displayName" : "Composer 1.5",
-    "shortDescription" : "Cursor's balanced model",
-    "speedTier" : "fast",
-    "provider" : "cursor",
-    "harness" : "cursor",
-    "costTier" : "standard",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 3.5,
-      "outputPricePerMillion" : 17.5,
-      "cacheWritePricePerMillion" : 0.0,
-      "cacheReadPricePerMillion" : 0.35,
-      "source" : "cursor_pricing_page",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    }
-  }, {
-    "id" : "composer-2",
-    "displayName" : "Composer 2",
-    "shortDescription" : "Cursor's fast model",
-    "speedTier" : "fastest",
-    "provider" : "cursor",
-    "harness" : "cursor",
-    "costTier" : "economy",
-    "featured" : true,
-    "pricing" : {
-      "inputPricePerMillion" : 0.5,
-      "outputPricePerMillion" : 2.5,
-      "cacheWritePricePerMillion" : 0.0,
-      "cacheReadPricePerMillion" : 0.2,
-      "source" : "cursor_pricing_page",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
     }
   }, {
     "id" : "composer-2.5",
@@ -516,22 +508,30 @@
       "adaptiveThinking" : false
     }
   }, {
-    "id" : "kimi-k2.5",
-    "displayName" : "Kimi K2.5",
-    "shortDescription" : "Moonshot's capable model",
-    "speedTier" : "fast",
-    "provider" : "moonshot",
+    "id" : "gemini-3.6-flash",
+    "displayName" : "Gemini 3.6 Flash",
+    "shortDescription" : "Google's newest fast model",
+    "speedTier" : "fastest",
+    "provider" : "google",
     "harness" : "cursor",
-    "costTier" : "economy",
+    "costTier" : "standard",
     "featured" : false,
     "pricing" : {
-      "inputPricePerMillion" : 0.6,
-      "outputPricePerMillion" : 3.0,
+      "inputPricePerMillion" : 1.5,
+      "outputPricePerMillion" : 7.5,
       "cacheWritePricePerMillion" : 0.0,
-      "cacheReadPricePerMillion" : 0.1,
+      "cacheReadPricePerMillion" : 0.15,
       "cursorTokenRatePerMillion" : 0.25,
-      "source" : "moonshot_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "source" : "cursor_pricing_page",
+      "sourceNote" : "cursor.com/docs/models-and-pricing 2026-08-12: 'Gemini 3.6 Flash' row $1.5 / – / $0.15 / $7.5 (dash = no separate cache-write fee). Headline (non-hidden) model on the page.",
+      "effectiveAt" : "2026-08-12T08:25:31.744850067Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false
     }
   }, {
     "id" : "kimi-k2.7-code",
@@ -556,6 +556,32 @@
       "vision" : true,
       "streaming" : true,
       "thinking" : false,
+      "adaptiveThinking" : false
+    }
+  }, {
+    "id" : "kimi-k3",
+    "displayName" : "Kimi K3",
+    "shortDescription" : "Moonshot's flagship reasoning model",
+    "speedTier" : "balanced",
+    "provider" : "moonshot",
+    "harness" : "cursor",
+    "costTier" : "standard",
+    "featured" : false,
+    "pricing" : {
+      "inputPricePerMillion" : 3.0,
+      "outputPricePerMillion" : 15.0,
+      "cacheWritePricePerMillion" : 0.0,
+      "cacheReadPricePerMillion" : 0.3,
+      "cursorTokenRatePerMillion" : 0.25,
+      "source" : "cursor_pricing_page",
+      "sourceNote" : "cursor.com/docs/models-and-pricing 2026-08-12: 'Kimi K3' row $3 / – / $0.3 / $15; page notes 'No separate cache-write fee'.",
+      "effectiveAt" : "2026-08-12T08:25:32.268065962Z"
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : false,
+      "streaming" : true,
+      "thinking" : true,
       "adaptiveThinking" : false
     }
   }, {
@@ -609,42 +635,6 @@
       "adaptiveThinking" : false
     }
   }, {
-    "id" : "gpt-5.1-codex-max",
-    "displayName" : "GPT-5.1 Codex Max",
-    "shortDescription" : "Extended code output",
-    "speedTier" : "fast",
-    "provider" : "openai",
-    "harness" : "cursor",
-    "costTier" : "standard",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 1.25,
-      "outputPricePerMillion" : 10.0,
-      "cacheWritePricePerMillion" : 0.0,
-      "cacheReadPricePerMillion" : 0.125,
-      "cursorTokenRatePerMillion" : 0.25,
-      "source" : "openai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    }
-  }, {
-    "id" : "gpt-5.1-codex-mini",
-    "displayName" : "GPT-5.1 Codex Mini",
-    "shortDescription" : "Budget code tasks",
-    "speedTier" : "fastest",
-    "provider" : "openai",
-    "harness" : "cursor",
-    "costTier" : "economy",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 0.25,
-      "outputPricePerMillion" : 2.0,
-      "cacheWritePricePerMillion" : 0.0,
-      "cacheReadPricePerMillion" : 0.025,
-      "cursorTokenRatePerMillion" : 0.25,
-      "source" : "openai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    }
-  }, {
     "id" : "gpt-5.2",
     "displayName" : "GPT-5.2",
     "shortDescription" : "Previous GPT generation",
@@ -668,24 +658,6 @@
       "streaming" : true,
       "thinking" : true,
       "adaptiveThinking" : false
-    }
-  }, {
-    "id" : "gpt-5.2-codex",
-    "displayName" : "GPT-5.2 Codex",
-    "shortDescription" : "Code-optimized, prior gen",
-    "speedTier" : "fast",
-    "provider" : "openai",
-    "harness" : "cursor",
-    "costTier" : "standard",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 1.75,
-      "outputPricePerMillion" : 14.0,
-      "cacheWritePricePerMillion" : 0.0,
-      "cacheReadPricePerMillion" : 0.175,
-      "cursorTokenRatePerMillion" : 0.25,
-      "source" : "openai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
     }
   }, {
     "id" : "gpt-5.3-codex",
@@ -933,60 +905,6 @@
         "sourceNote" : "Pricing-page note: \"Fast mode is available at 2x pricing\" — derived as 2x all standard buckets. Confirmed 2026-07-20 against the live pricing page: the explicit GPT-5 Fast row is exactly 2x the GPT-5 base on every bucket, corroborating the 2x-all-buckets reading.",
         "effectiveAt" : "2026-08-10T11:35:55.601106637Z"
       }
-    }
-  }, {
-    "id" : "grok-4-20",
-    "displayName" : "Grok 4.20",
-    "shortDescription" : "xAI's reasoning model",
-    "speedTier" : "fast",
-    "provider" : "xai",
-    "harness" : "cursor",
-    "costTier" : "standard",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 2.0,
-      "outputPricePerMillion" : 6.0,
-      "cacheWritePricePerMillion" : 0.0,
-      "cacheReadPricePerMillion" : 0.2,
-      "cursorTokenRatePerMillion" : 0.25,
-      "source" : "xai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    }
-  }, {
-    "id" : "grok-4.3",
-    "displayName" : "Grok 4.3",
-    "shortDescription" : "xAI's latest reasoning model",
-    "speedTier" : "fast",
-    "provider" : "xai",
-    "harness" : "cursor",
-    "costTier" : "economy",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 1.25,
-      "outputPricePerMillion" : 2.5,
-      "cacheWritePricePerMillion" : 0.0,
-      "cacheReadPricePerMillion" : 0.2,
-      "cursorTokenRatePerMillion" : 0.25,
-      "source" : "xai_api",
-      "effectiveAt" : "2026-06-02T00:00:00Z"
-    }
-  }, {
-    "id" : "grok-build-0.1",
-    "displayName" : "Grok Build 0.1",
-    "shortDescription" : "xAI agentic build model",
-    "speedTier" : "fast",
-    "provider" : "xai",
-    "harness" : "cursor",
-    "costTier" : "economy",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 1.0,
-      "outputPricePerMillion" : 2.0,
-      "cacheWritePricePerMillion" : 0.0,
-      "cacheReadPricePerMillion" : 0.2,
-      "cursorTokenRatePerMillion" : 0.25,
-      "source" : "xai_api",
-      "effectiveAt" : "2026-06-02T00:00:00Z"
     }
   }, {
     "id" : "glm-5.2",
