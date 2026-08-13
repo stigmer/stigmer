@@ -9,13 +9,23 @@
 # workflow built sdk/go, so `make check-go` was red on every developer
 # machine while CI stayed green.
 #
-# Two gates, one job:
+# Three gates, one job:
 #   - freshness — regenerates the SDK client code (Stage 2, schemas are
 #     committed) and fails if the committed copy differs, so stale or
 #     hand-edited generated code fails here rather than silently drifting
 #     from the generator.
+#   - hygiene — gofmt -s and go mod tidy -diff (oss#264): neither is checked
+#     anywhere else in CI, so an unformatted file or a stale go.mod/go.sum
+#     would otherwise only surface as noise in the next contributor's diff.
 #   - build + vet + test — compiles the whole module, so any codegen output
-#     that cannot compile fails pre-merge instead of at release time.
+#     that cannot compile fails pre-merge instead of at release time. Tests
+#     run with -race to match the root `make test` / `make check-go`
+#     convention (this lane is the only CI that runs these tests at all).
+#
+# sdk/go is a go.work member, so workspace-level changes (module set, Go
+# version, the root genproto replace) change how this module builds — both
+# files are therefore trigger paths, and the Go toolchain version comes from
+# go.work instead of a hardcoded copy that can drift.
 # =============================================================================
 
 name: ci.go-sdk
@@ -26,6 +36,8 @@ on:
       - "apis/**"
       - "sdk/go/**"
       - "tools/codegen/**"
+      - "go.work"
+      - "go.work.sum"
       - ".github/workflows/ci.go-sdk.yaml"
   push:
     branches: [main]
@@ -33,6 +45,8 @@ on:
       - "apis/**"
       - "sdk/go/**"
       - "tools/codegen/**"
+      - "go.work"
+      - "go.work.sum"
       - ".github/workflows/ci.go-sdk.yaml"
   workflow_dispatch: {}
 
@@ -54,7 +68,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version-file: go.work
           cache-dependency-path: |
             sdk/go/go.sum
             tools/go.sum
@@ -67,12 +81,30 @@ jobs:
       - name: Verify committed generated code is fresh
         run: git diff --exit-code sdk/go/internal/gen
 
+      # gofmt -s -l prints offending files; grep them into the log before the
+      # exit code fails the step, so the fix is visible without a local run.
+      - name: Verify formatting (gofmt -s)
+        working-directory: sdk/go
+        run: |
+          unformatted=$(gofmt -s -l .)
+          if [ -n "$unformatted" ]; then
+            echo "files need gofmt -s:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      # -diff reports what tidy WOULD change and exits non-zero, without
+      # mutating the checkout.
+      - name: Verify go.mod/go.sum are tidy
+        working-directory: sdk/go
+        run: go mod tidy -diff
+
       - name: Build, vet, and test
         working-directory: sdk/go
         run: |
           go build ./...
           go vet ./...
-          go test ./... -count=1
+          go test -race -timeout 30s ./... -count=1
 
       # ./codegen/... (not just ./codegen/generator/...) so the proto2schema
       # extraction tests run too — the @internal strip (oss#327) lives there
