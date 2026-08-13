@@ -4,7 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleDetailView, useBreadcrumbOverride } from "@stigmer/react";
-import { useLibraryNavigation } from "@/domain/library/library-navigation";
+import {
+  useLibraryNavigation,
+  useRouteDetailYieldsToOverlay,
+} from "@/domain/library/library-navigation";
 import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 
@@ -75,10 +78,12 @@ export function ScheduleDetailPageInner({
 }
 
 export function ScheduleDetailPage() {
+  // The zone overlay owns detail rendering while it is active (oss#621).
+  const yieldsToOverlay = useRouteDetailYieldsToOverlay();
   const org = useStaticRouteParam("org", 2);
   const slug = useStaticRouteParam("slug");
 
-  if (!org || !slug) return null;
+  if (yieldsToOverlay || !org || !slug) return null;
 
   return <ScheduleDetailPageInner org={org} slug={slug} />;
 }
