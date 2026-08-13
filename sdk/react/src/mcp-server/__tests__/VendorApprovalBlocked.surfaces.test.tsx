@@ -17,7 +17,6 @@ import {
 import {
   McpServerStatusSchema,
   OAuthStatusSchema,
-  OAuthAppSource,
   ValidationState,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
@@ -56,8 +55,11 @@ const DOCS_URL = "https://vendor.example.com/oauth-docs";
 
 /**
  * An oauth_only vendor-OAuth server whose platform OAuth app is blocked.
- * `withAppRef` controls the BYOA arm: with a ref and a platform-sourced
- * effective app, `canBringOwnApp` is true.
+ * `withAppRef` controls the BYOA arm: with a ref and no org override,
+ * `canBringOwnApp` is true. The org-override state itself comes from the
+ * `getOrgOAuthApp` transport handler (client-side derivation,
+ * stigmer-cloud#401) — status.oauth_status carries only the
+ * vendor-approval fields, matching what backends actually populate.
  */
 function buildBlockedOAuthOnlyServer(options: {
   status: VendorApprovalStatus;
@@ -89,7 +91,6 @@ function buildBlockedOAuthOnlyServer(options: {
     oauthStatus: create(OAuthStatusSchema, {
       vendorApprovalStatus: options.status,
       vendorApprovalDocsUrl: DOCS_URL,
-      effectiveOauthSource: OAuthAppSource.OAUTH_APP_SOURCE_PLATFORM,
     }),
   });
   return server;
@@ -212,6 +213,48 @@ describe("McpServerConnectDialog — oauth_only + vendor-blocked", () => {
     });
     expect(docs.getAttribute("href")).toBe(DOCS_URL);
   });
+
+  it("enables sign-in with the org's own app when a BYOA override is active", async () => {
+    // The platform app is still vendor-blocked, but the org brought its
+    // own approved app — the block describes an app sign-in won't use
+    // (stigmer-cloud#401). Before the client-side derivation this state
+    // was a dead end: disabled button AND no way forward.
+    renderWithTransport(
+      <McpServerConnectDialog
+        org={ORG}
+        slug={SLUG}
+        open
+        onClose={() => {}}
+      />,
+      (router) => {
+        router.service(McpServerQueryController, {
+          getByReference: () =>
+            buildBlockedOAuthOnlyServer({
+              status: VendorApprovalStatus.PENDING,
+              withAppRef: true,
+            }),
+          getOAuthGrantStatus: noGrant,
+          getOrgOAuthApp: () =>
+            create(GetOrgOAuthAppOutputSchema, {
+              hasOverride: true,
+              oauthAppId: "oauthapp_01acme",
+              clientId: "acme-client-id",
+            }),
+        });
+      },
+    );
+
+    const signIn = await screen.findByRole("button", {
+      name: "Sign in with your app",
+    });
+    expect((signIn as HTMLButtonElement).disabled).toBe(false);
+    // The blocked notice describes the platform app — suppressed while
+    // the org's own app is the effective one.
+    expect(screen.queryByText(/awaiting vendor approval/)).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Use your own OAuth app" }),
+    ).toBeNull();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -265,6 +308,47 @@ describe("McpServerDetailView — oauth_only + vendor-blocked", () => {
     // The byoa-setup docs tour targets this marker; it must survive the
     // extraction into the shared notice.
     expect(cta.getAttribute("data-cursor-target")).toBe("byoa-cta-button");
+  });
+
+  it("enables 'Sign in with your app' when the org's BYOA override is active", async () => {
+    // The vendor block gates the PLATFORM app; with the org's own app
+    // effective, sign-in must be enabled and the BYOA CTA retired
+    // (stigmer-cloud#401 — the signal these gates key on never fired).
+    renderWithTransport(
+      <McpServerDetailView
+        org={ORG}
+        slug={SLUG}
+        mcpServerState={loadedState(
+          buildBlockedOAuthOnlyServer({
+            status: VendorApprovalStatus.PENDING,
+            withAppRef: true,
+          }),
+        )}
+      />,
+      (router) => {
+        router.service(McpServerQueryController, {
+          getOAuthGrantStatus: noGrant,
+          getOrgOAuthApp: () =>
+            create(GetOrgOAuthAppOutputSchema, {
+              hasOverride: true,
+              oauthAppId: "oauthapp_01acme",
+              clientId: "acme-client-id",
+            }),
+        });
+      },
+    );
+
+    const signIn = await screen.findByRole("button", {
+      name: "Sign in with your app",
+    });
+    expect((signIn as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.getByText("Using your OAuth app")).toBeTruthy();
+    // The blocked banner and BYOA offer describe the platform app —
+    // both retire while the override is active.
+    expect(screen.queryByText(/awaiting vendor approval/)).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Use your own OAuth app" }),
+    ).toBeNull();
   });
 });
 

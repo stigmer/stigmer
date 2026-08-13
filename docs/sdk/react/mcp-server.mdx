@@ -266,6 +266,15 @@ active grant. The OAuth variable is excluded from `missingVariables`
 form. Additional non-OAuth vars still appear in `missingVariables`
 (mixed mode).
 
+**Org-override-aware**: for vendor-OAuth servers with an
+`oauth_app_ref`, the hook also composes `useOrgOAuthApp` to
+resolve which OAuth app the connect flow will use for `org`
+(`effectiveOAuthSource` / `isOrgOAuthApp` / `canBringOwnApp`).
+The `org` parameter must therefore be the caller's ACTIVE org — the
+org credentials are stored in and the org whose BYOA override
+applies — not necessarily the org that owns the MCP server (they
+differ when browsing another org's public server).
+
 Unlike [`useMcpServerSetup`](#usemcpserversetup) which manages multi-server setup
 for session creation, this hook is scoped to a single server and
 always persists to the personal environment (no one-time option).
@@ -294,11 +303,11 @@ function useMcpServerCredentials(org: string | null, mcpServer: McpServer | null
     canBringOwnApp: { type: "boolean", description: "`true` when the BYOA option is relevant for this server: the server uses vendor OAuth (`authMode === \"oauth\"` with an `oauth_app_ref`), no org override is currently active, AND the backend supports the org-override surface at all.  The last condition is an edition capability, confirmed by probing `getOrgOAuthApp` (see useOrgOAuthApp): the surface is hosted-only, so on OSS deployments — where the submit could only answer UNIMPLEMENTED — this stays `false` and no BYOA affordance renders (stigmer/stigmer#558).  When `true`, the UI should offer \"Use your own OAuth app\" as either a primary action (when vendor approval is blocked) or a secondary link (when vendor approval is granted)." },
     canDisconnect: { type: "boolean", description: "`true` when the user can disconnect (i.e., an OAuth grant exists). Always `false` when `authMode` is `\"manual\"` or no grant is present." },
     connectionHealth: { type: "OAuthConnectionHealth", description: "Health of the OAuth connection for this server.  Provides a four-state signal beyond the binary `isOAuthConnected`: healthy, expired-but-refreshable, expired (re-auth needed), or no grant. `UNSPECIFIED` when `authMode` is `\"manual\"` or the status has not been fetched yet." },
-    effectiveOAuthSource: { type: "OAuthAppSource", description: "Where the effective OAuth app was resolved from for the caller's org.  Enriched at query time by the backend — no additional RPC needed. `UNSPECIFIED` when `authMode` is `\"manual\"` or enrichment has not been performed yet." },
+    effectiveOAuthSource: { type: "OAuthAppSource", description: "Where the effective OAuth app is resolved from for the caller's org — the same source the connect flow will use.  Resolved client-side from the `getOrgOAuthApp` RPC keyed on this hook's `org` parameter. It cannot come from the fetched McpServer: the caller's active org is client-side context the read RPCs never carry, so `status.oauth_status` fields 3-4 are never populated by any backend (see the OAuthStatus proto).  `UNSPECIFIED` when `authMode` is `\"manual\"` or while the override lookup has not yet resolved." },
     error: { type: "Error | null", description: "Error from the personal environment or grant status fetch, or `null`." },
     isLoading: { type: "boolean", description: "`true` while the personal environment or grant status is being fetched." },
     isOAuthConnected: { type: "boolean", description: "`true` when the user has an active OAuth grant for this server. Derived from the `getOAuthGrantStatus` API, not from personal environment key presence. Always `false` when `authMode` is `\"manual\"`." },
-    isOrgOAuthApp: { type: "boolean", description: "`true` when an org-level BYOA override is active for this server. Derived from `effectiveOAuthSource === OAUTH_APP_SOURCE_ORG_OVERRIDE`." },
+    isOrgOAuthApp: { type: "boolean", description: "`true` when an org-level BYOA override is active for this server and org. Derived from the `getOrgOAuthApp` lookup." },
     isReady: { type: "boolean", description: "`true` when all required (non-optional) credentials are available — both OAuth-managed and manual variables. For OAuth servers this means the OAuth grant is connected AND any additional required manual vars are present in the personal environment.  Servers whose env vars are all optional are always ready." },
     isSaving: { type: "boolean", description: "`true` while a save operation is in flight." },
     isVendorApprovalBlocked: { type: "boolean", description: "`true` when the platform OAuth app's vendor approval is PENDING or REJECTED — i.e., the platform sign-in flow is blocked. Covers both statuses since the user-facing behavior is the same: sign-in is disabled and BYOA / manual entry are the available alternatives.  See also isVendorApprovalPending which only checks PENDING." },

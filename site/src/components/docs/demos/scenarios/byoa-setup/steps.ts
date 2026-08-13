@@ -23,7 +23,6 @@ import {
   DiscoveredCapabilitiesSchema,
   DiscoveredToolSchema,
   OAuthStatusSchema,
-  OAuthAppSource,
   ValidationState,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import {
@@ -92,13 +91,15 @@ function buildSlackBase(): McpServer {
     }),
   });
 
+  // The org-override signal (effectiveOAuthSource / isOrgOAuthApp) is
+  // client-derived from the mocked getOrgOAuthApp responses (the per-step
+  // orgApp fixtures below) — status.oauth_status carries only the
+  // vendor-approval fields, matching what backends actually populate.
   server.status = create(McpServerStatusSchema, {
     validationState: ValidationState.valid,
     oauthStatus: create(OAuthStatusSchema, {
       vendorApprovalStatus: VendorApprovalStatus.PENDING,
       vendorApprovalDocsUrl: "https://api.slack.com/authentication/oauth-v2",
-      effectiveOauthSource: OAuthAppSource.OAUTH_APP_SOURCE_PLATFORM,
-      effectiveOauthAppId: "oauthapp_slack_platform",
     }),
   });
 
@@ -112,8 +113,6 @@ function buildSlackOrgApp(): McpServer {
     validationState: ValidationState.valid,
     oauthStatus: create(OAuthStatusSchema, {
       vendorApprovalStatus: VendorApprovalStatus.APPROVED,
-      effectiveOauthSource: OAuthAppSource.OAUTH_APP_SOURCE_ORG_OVERRIDE,
-      effectiveOauthAppId: "oauthapp_acme_slack",
     }),
   });
 
@@ -165,8 +164,6 @@ function buildSlackConnected(): McpServer {
     ],
     oauthStatus: create(OAuthStatusSchema, {
       vendorApprovalStatus: VendorApprovalStatus.APPROVED,
-      effectiveOauthSource: OAuthAppSource.OAUTH_APP_SOURCE_ORG_OVERRIDE,
-      effectiveOauthAppId: "oauthapp_acme_slack",
     }),
   });
 

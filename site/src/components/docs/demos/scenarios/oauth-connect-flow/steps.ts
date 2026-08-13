@@ -21,8 +21,6 @@ import {
   McpServerStatusSchema,
   DiscoveredCapabilitiesSchema,
   DiscoveredToolSchema,
-  OAuthStatusSchema,
-  OAuthAppSource,
   ValidationState,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import {
@@ -89,12 +87,12 @@ function buildGitHubBase(): McpServer {
     }),
   });
 
+  // No oauth_status block: the platform app is approved, so a real backend
+  // leaves it absent (presence signals a vendor gate). The PLATFORM source
+  // is client-derived from spec.auth.oauth_app_ref plus the mocked
+  // getOrgOAuthApp (NO_ORG_OVERRIDE) response.
   server.status = create(McpServerStatusSchema, {
     validationState: ValidationState.valid,
-    oauthStatus: create(OAuthStatusSchema, {
-      effectiveOauthSource: OAuthAppSource.OAUTH_APP_SOURCE_PLATFORM,
-      effectiveOauthAppId: "oauthapp_github_platform",
-    }),
   });
 
   return server;
@@ -153,10 +151,6 @@ function buildGitHubConnected(): McpServer {
         message: "Push files to {{args.repo}} on {{args.branch}}",
       }),
     ],
-    oauthStatus: create(OAuthStatusSchema, {
-      effectiveOauthSource: OAuthAppSource.OAUTH_APP_SOURCE_PLATFORM,
-      effectiveOauthAppId: "oauthapp_github_platform",
-    }),
   });
 
   return server;

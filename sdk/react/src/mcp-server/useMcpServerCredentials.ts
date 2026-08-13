@@ -94,9 +94,15 @@ export interface UseMcpServerCredentialsReturn {
    * Servers whose env vars are all optional are always ready.
    */
   readonly isReady: boolean;
-  /** `true` while the personal environment or grant status is being fetched. */
+  /**
+   * `true` while the personal environment, grant status, or org-override
+   * lookup is being fetched.
+   */
   readonly isLoading: boolean;
-  /** Error from the personal environment or grant status fetch, or `null`. */
+  /**
+   * Error from the personal environment, grant status, or org-override
+   * fetch, or `null`.
+   */
   readonly error: Error | null;
   /**
    * Save the provided credentials to the user's personal environment.
@@ -132,16 +138,22 @@ export interface UseMcpServerCredentialsReturn {
    */
   readonly isVendorApprovalBlocked: boolean;
   /**
-   * Where the effective OAuth app was resolved from for the caller's org.
+   * Where the effective OAuth app is resolved from for the caller's org
+   * — the same source the connect flow will use.
    *
-   * Enriched at query time by the backend — no additional RPC needed.
-   * `UNSPECIFIED` when `authMode` is `"manual"` or enrichment has not
-   * been performed yet.
+   * Resolved client-side from the `getOrgOAuthApp` RPC keyed on this
+   * hook's `org` parameter. It cannot come from the fetched McpServer:
+   * the caller's active org is client-side context the read RPCs never
+   * carry, so `status.oauth_status` fields 3-4 are never populated by
+   * any backend (see the OAuthStatus proto).
+   *
+   * `UNSPECIFIED` when `authMode` is `"manual"` or while the override
+   * lookup has not yet resolved.
    */
   readonly effectiveOAuthSource: OAuthAppSource;
   /**
-   * `true` when an org-level BYOA override is active for this server.
-   * Derived from `effectiveOAuthSource === OAUTH_APP_SOURCE_ORG_OVERRIDE`.
+   * `true` when an org-level BYOA override is active for this server
+   * and org. Derived from the `getOrgOAuthApp` lookup.
    */
   readonly isOrgOAuthApp: boolean;
   /**
@@ -208,6 +220,15 @@ export interface UseMcpServerCredentialsReturn {
  * — it is acquired via {@link useMcpServerOAuthConnect}, not a manual
  * form. Additional non-OAuth vars still appear in `missingVariables`
  * (mixed mode).
+ *
+ * **Org-override-aware**: for vendor-OAuth servers with an
+ * `oauth_app_ref`, the hook also composes {@link useOrgOAuthApp} to
+ * resolve which OAuth app the connect flow will use for `org`
+ * (`effectiveOAuthSource` / `isOrgOAuthApp` / `canBringOwnApp`).
+ * The `org` parameter must therefore be the caller's ACTIVE org — the
+ * org credentials are stored in and the org whose BYOA override
+ * applies — not necessarily the org that owns the MCP server (they
+ * differ when browsing another org's public server).
  *
  * Unlike {@link useMcpServerSetup} which manages multi-server setup
  * for session creation, this hook is scoped to a single server and
@@ -289,29 +310,51 @@ export function useMcpServerCredentials(
       oauthStatus?.vendorApprovalStatus === VendorApprovalStatus.REJECTED);
   const vendorApprovalDocsUrl = oauthStatus?.vendorApprovalDocsUrl || null;
 
-  const effectiveOAuthSource =
-    oauthStatus?.effectiveOauthSource ??
-    OAuthAppSource.OAUTH_APP_SOURCE_UNSPECIFIED;
-  const isOrgOAuthApp =
-    effectiveOAuthSource === OAuthAppSource.OAUTH_APP_SOURCE_ORG_OVERRIDE;
   const hasOAuthAppRef = Boolean(auth?.oauthAppRef?.slug);
 
-  // Capability probe for the hosted-only org-override surface — fetches
-  // only for the exact population that could render a BYOA affordance.
-  // Mutation state on this instance is unused; the probe shares its fetch
-  // with any sibling useOrgOAuthApp instance through the fetch cache.
-  const orgOverrideProbe = useOrgOAuthApp(
+  // Org-override lookup, two duties in one fetch (shared cross-mount via
+  // the hook's fetch cache):
+  //  1. Capability probe (`isSupported`) — the org-override surface is
+  //     hosted-only, so BYOA affordances must hide on OSS (#558).
+  //  2. The override signal (`hasOverride`) — which OAuthApp the connect
+  //     flow will actually use for this org. Resolved client-side because
+  //     the caller's active org is client-side context the read RPCs never
+  //     carry (get has no org; getByReference's org is the server's OWNING
+  //     org, which differs from the caller's org when browsing another
+  //     org's public server), so the fetched McpServer cannot answer this
+  //     (stigmer-cloud#401).
+  // Scoped to vendor-OAuth servers with a platform app ref — the only
+  // shape an override can exist for — so manual/DCR servers pay no RPC.
+  const orgOverride = useOrgOAuthApp(
     authMode === "oauth" && hasOAuthAppRef
       ? (mcpServer?.metadata?.id ?? null)
       : null,
-    authMode === "oauth" && hasOAuthAppRef ? org : null,
+    org,
   );
 
+  const isOrgOAuthApp = orgOverride.hasOverride;
+  // While the lookup is in flight, failed, or unposable (an app ref exists
+  // but no org to resolve an override for), the override state is unknown —
+  // report UNSPECIFIED rather than guessing PLATFORM, matching the
+  // documented "not yet resolved" contract. UNSUPPORTED is not unknown:
+  // on OSS the platform-ref app is truthfully the effective source.
+  const overrideUnknown =
+    orgOverride.isLoading ||
+    orgOverride.error !== null ||
+    (hasOAuthAppRef && !org);
+  const effectiveOAuthSource =
+    authMode !== "oauth" || overrideUnknown
+      ? OAuthAppSource.OAUTH_APP_SOURCE_UNSPECIFIED
+      : isOrgOAuthApp
+        ? OAuthAppSource.OAUTH_APP_SOURCE_ORG_OVERRIDE
+        : hasOAuthAppRef
+          ? OAuthAppSource.OAUTH_APP_SOURCE_PLATFORM
+          : OAuthAppSource.OAUTH_APP_SOURCE_NONE;
   const canBringOwnApp =
     authMode === "oauth" &&
     hasOAuthAppRef &&
     !isOrgOAuthApp &&
-    orgOverrideProbe.isSupported;
+    orgOverride.isSupported;
 
   const grantStatus = useOAuthGrantStatus(
     authMode === "oauth" ? (mcpServer?.metadata?.id ?? null) : null,
@@ -362,7 +405,8 @@ export function useMcpServerCredentials(
   const refetch = useCallback(() => {
     personalEnv.refetch();
     grantStatus.refetch();
-  }, [personalEnv, grantStatus]);
+    orgOverride.refetch();
+  }, [personalEnv, grantStatus, orgOverride]);
 
   return {
     authMode,
@@ -381,8 +425,9 @@ export function useMcpServerCredentials(
     manualEntrySupported,
     missingVariables,
     isReady,
-    isLoading: personalEnv.isLoading || grantStatus.isLoading,
-    error: personalEnv.error ?? grantStatus.error,
+    isLoading:
+      personalEnv.isLoading || grantStatus.isLoading || orgOverride.isLoading,
+    error: personalEnv.error ?? grantStatus.error ?? orgOverride.error,
     saveCredentials,
     isSaving: personalEnv.isMutating,
     refetch,

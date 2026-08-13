@@ -318,9 +318,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * OAuth-related enrichment state, populated at query time by the backend.
-   * Contains vendor approval status (resolved from the referenced OAuthApp)
-   * and BYOA resolution chain results (which OAuthApp is effective for the
-   * caller's org context). None of these fields are persisted.
+   * Carries the vendor approval status resolved from the referenced OAuthApp
+   * (fields 1-2; fields 3-4 are never populated — see OAuthStatus).
+   * None of these fields are persisted.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5 [json_name = "oauthStatus"];</code>
@@ -333,9 +333,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * OAuth-related enrichment state, populated at query time by the backend.
-   * Contains vendor approval status (resolved from the referenced OAuthApp)
-   * and BYOA resolution chain results (which OAuthApp is effective for the
-   * caller's org context). None of these fields are persisted.
+   * Carries the vendor approval status resolved from the referenced OAuthApp
+   * (fields 1-2; fields 3-4 are never populated — see OAuthStatus).
+   * None of these fields are persisted.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5 [json_name = "oauthStatus"];</code>
@@ -348,9 +348,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * OAuth-related enrichment state, populated at query time by the backend.
-   * Contains vendor approval status (resolved from the referenced OAuthApp)
-   * and BYOA resolution chain results (which OAuthApp is effective for the
-   * caller's org context). None of these fields are persisted.
+   * Carries the vendor approval status resolved from the referenced OAuthApp
+   * (fields 1-2; fields 3-4 are never populated — see OAuthStatus).
+   * None of these fields are persisted.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5 [json_name = "oauthStatus"];</code>
@@ -1811,9 +1811,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * OAuth-related enrichment state, populated at query time by the backend.
-     * Contains vendor approval status (resolved from the referenced OAuthApp)
-     * and BYOA resolution chain results (which OAuthApp is effective for the
-     * caller's org context). None of these fields are persisted.
+     * Carries the vendor approval status resolved from the referenced OAuthApp
+     * (fields 1-2; fields 3-4 are never populated — see OAuthStatus).
+     * None of these fields are persisted.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5 [json_name = "oauthStatus"];</code>
@@ -1825,9 +1825,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * OAuth-related enrichment state, populated at query time by the backend.
-     * Contains vendor approval status (resolved from the referenced OAuthApp)
-     * and BYOA resolution chain results (which OAuthApp is effective for the
-     * caller's org context). None of these fields are persisted.
+     * Carries the vendor approval status resolved from the referenced OAuthApp
+     * (fields 1-2; fields 3-4 are never populated — see OAuthStatus).
+     * None of these fields are persisted.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5 [json_name = "oauthStatus"];</code>
@@ -1843,9 +1843,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * OAuth-related enrichment state, populated at query time by the backend.
-     * Contains vendor approval status (resolved from the referenced OAuthApp)
-     * and BYOA resolution chain results (which OAuthApp is effective for the
-     * caller's org context). None of these fields are persisted.
+     * Carries the vendor approval status resolved from the referenced OAuthApp
+     * (fields 1-2; fields 3-4 are never populated — see OAuthStatus).
+     * None of these fields are persisted.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5 [json_name = "oauthStatus"];</code>
@@ -1866,9 +1866,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * OAuth-related enrichment state, populated at query time by the backend.
-     * Contains vendor approval status (resolved from the referenced OAuthApp)
-     * and BYOA resolution chain results (which OAuthApp is effective for the
-     * caller's org context). None of these fields are persisted.
+     * Carries the vendor approval status resolved from the referenced OAuthApp
+     * (fields 1-2; fields 3-4 are never populated — see OAuthStatus).
+     * None of these fields are persisted.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5 [json_name = "oauthStatus"];</code>
@@ -1887,9 +1887,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * OAuth-related enrichment state, populated at query time by the backend.
-     * Contains vendor approval status (resolved from the referenced OAuthApp)
-     * and BYOA resolution chain results (which OAuthApp is effective for the
-     * caller's org context). None of these fields are persisted.
+     * Carries the vendor approval status resolved from the referenced OAuthApp
+     * (fields 1-2; fields 3-4 are never populated — see OAuthStatus).
+     * None of these fields are persisted.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5 [json_name = "oauthStatus"];</code>
@@ -1915,9 +1915,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * OAuth-related enrichment state, populated at query time by the backend.
-     * Contains vendor approval status (resolved from the referenced OAuthApp)
-     * and BYOA resolution chain results (which OAuthApp is effective for the
-     * caller's org context). None of these fields are persisted.
+     * Carries the vendor approval status resolved from the referenced OAuthApp
+     * (fields 1-2; fields 3-4 are never populated — see OAuthStatus).
+     * None of these fields are persisted.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5 [json_name = "oauthStatus"];</code>
@@ -1935,9 +1935,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * OAuth-related enrichment state, populated at query time by the backend.
-     * Contains vendor approval status (resolved from the referenced OAuthApp)
-     * and BYOA resolution chain results (which OAuthApp is effective for the
-     * caller's org context). None of these fields are persisted.
+     * Carries the vendor approval status resolved from the referenced OAuthApp
+     * (fields 1-2; fields 3-4 are never populated — see OAuthStatus).
+     * None of these fields are persisted.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5 [json_name = "oauthStatus"];</code>
@@ -1950,9 +1950,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * OAuth-related enrichment state, populated at query time by the backend.
-     * Contains vendor approval status (resolved from the referenced OAuthApp)
-     * and BYOA resolution chain results (which OAuthApp is effective for the
-     * caller's org context). None of these fields are persisted.
+     * Carries the vendor approval status resolved from the referenced OAuthApp
+     * (fields 1-2; fields 3-4 are never populated — see OAuthStatus).
+     * None of these fields are persisted.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5 [json_name = "oauthStatus"];</code>
@@ -1968,9 +1968,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * OAuth-related enrichment state, populated at query time by the backend.
-     * Contains vendor approval status (resolved from the referenced OAuthApp)
-     * and BYOA resolution chain results (which OAuthApp is effective for the
-     * caller's org context). None of these fields are persisted.
+     * Carries the vendor approval status resolved from the referenced OAuthApp
+     * (fields 1-2; fields 3-4 are never populated — see OAuthStatus).
+     * None of these fields are persisted.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5 [json_name = "oauthStatus"];</code>

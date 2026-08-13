@@ -344,6 +344,7 @@ function ConnectDialogContent({
           onSignIn={handleOAuthSignIn}
           isVendorApprovalBlocked={creds.isVendorApprovalBlocked}
           isVendorApprovalPending={creds.isVendorApprovalPending}
+          isOrgOAuthApp={creds.isOrgOAuthApp}
           manualEntrySupported={creds.manualEntrySupported}
           canBringOwnApp={creds.canBringOwnApp}
           vendorApprovalDocsUrl={creds.vendorApprovalDocsUrl}
@@ -459,6 +460,7 @@ function OAuthSection({
   onSignIn,
   isVendorApprovalBlocked,
   isVendorApprovalPending,
+  isOrgOAuthApp,
   manualEntrySupported,
   canBringOwnApp,
   vendorApprovalDocsUrl,
@@ -471,6 +473,14 @@ function OAuthSection({
   readonly onSignIn: () => void;
   readonly isVendorApprovalBlocked: boolean;
   readonly isVendorApprovalPending: boolean;
+  /**
+   * `true` when the org's own BYOA OAuth app is the effective one. The
+   * vendor-approval block describes the PLATFORM app, so it neither
+   * disables sign-in nor warrants the blocked notice when the org's own
+   * app is what sign-in will use (the caller-side org-override gate the
+   * notice's contract expects).
+   */
+  readonly isOrgOAuthApp: boolean;
   readonly manualEntrySupported: boolean;
   readonly canBringOwnApp: boolean;
   readonly vendorApprovalDocsUrl: string | null;
@@ -502,7 +512,9 @@ function OAuthSection({
       <button
         type="button"
         onClick={onSignIn}
-        disabled={disabled || isInProgress || isVendorApprovalBlocked}
+        disabled={
+          disabled || isInProgress || (isVendorApprovalBlocked && !isOrgOAuthApp)
+        }
         className={cn(
           "stg:inline-flex stg:w-full stg:items-center stg:justify-center stg:gap-2 stg:rounded-md stg:px-4 stg:py-2 stg:text-sm stg:font-medium",
           "stg:bg-primary stg:text-primary-foreground",
@@ -512,17 +524,23 @@ function OAuthSection({
         )}
       >
         {isInProgress && <LoadingSpinner size="sm" />}
-        {isInProgress ? (phaseLabel[phase] ?? "Connecting...") : "Sign in with OAuth"}
+        {isInProgress
+          ? (phaseLabel[phase] ?? "Connecting...")
+          : isOrgOAuthApp
+            ? "Sign in with your app"
+            : "Sign in with OAuth"}
       </button>
-      <VendorApprovalBlockedNotice
-        blocked={isVendorApprovalBlocked}
-        pending={isVendorApprovalPending}
-        manualEntrySupported={manualEntrySupported}
-        canBringOwnApp={canBringOwnApp}
-        docsUrl={vendorApprovalDocsUrl}
-        onBringOwnApp={onOpenDetails}
-        className="stg:rounded-md stg:border stg:border-amber-500/20"
-      />
+      {!isOrgOAuthApp && (
+        <VendorApprovalBlockedNotice
+          blocked={isVendorApprovalBlocked}
+          pending={isVendorApprovalPending}
+          manualEntrySupported={manualEntrySupported}
+          canBringOwnApp={canBringOwnApp}
+          docsUrl={vendorApprovalDocsUrl}
+          onBringOwnApp={onOpenDetails}
+          className="stg:rounded-md stg:border stg:border-amber-500/20"
+        />
+      )}
       {onSwitchToManual && (
         <button
           type="button"

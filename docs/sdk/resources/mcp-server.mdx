@@ -1281,8 +1281,8 @@ OAuthStatus holds system-derived OAuth enrichment state for an MCP server.
   type={{
     vendorApprovalStatus: { type: "VendorApprovalStatus", description: "Vendor marketplace/app-review approval status for this MCP server's OAuth app.", typeDescriptionLink: "#vendorapprovalstatus" },
     vendorApprovalDocsUrl: { type: "string", description: "Documentation URL for users who want to bring their own OAuth app credentials while the platform's OAuth app is pending vendor approval." },
-    effectiveOauthSource: { type: "OAuthAppSource", description: "Where the effective OAuth app was resolved from for the caller's org.", typeDescriptionLink: "#oauthappsource" },
-    effectiveOauthAppId: { type: "string", description: "System-generated ID (metadata.id) of the OAuthApp that the resolution chain selected." },
+    effectiveOauthSource: { type: "OAuthAppSource", description: "NEVER POPULATED (see the message comment): the caller's active org is client-side context, so no backend can evaluate the resolution chain at read time.", typeDescriptionLink: "#oauthappsource" },
+    effectiveOauthAppId: { type: "string", description: "NEVER POPULATED (see the message comment)." },
   }}
 />
 

@@ -8,10 +8,17 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * OAuthAppSource identifies where the effective OAuth app for an MCP server
- * was resolved from. Populated at query time by the backend enricher to tell
- * the frontend which credential source is active for the current org context.
+ * was resolved from.
  *
- * Used in OAuthStatus.effective_oauth_source (read-only, not persisted).
+ * The resolution chain is the same one the OAuth connect flow evaluates:
+ * 1. OAuthAppOverride for (resource_id, resource_kind, org_id) → ORG_OVERRIDE
+ * 2. McpServerAuth.oauth_app_ref → PLATFORM
+ * 3. Neither exists → NONE
+ *
+ * Resolved CLIENT-SIDE by the shared SDK from the getOrgOAuthApp RPC: the
+ * resolution is per (server, caller's active org), and the caller's active
+ * org is client-side context the read RPCs never carry, so no backend can
+ * compute it at enrichment time (see OAuthStatus fields 3-4).
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.mcpserver.v1.OAuthAppSource}
