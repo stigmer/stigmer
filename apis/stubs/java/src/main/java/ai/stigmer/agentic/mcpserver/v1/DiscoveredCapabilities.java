@@ -23,7 +23,7 @@ package ai.stigmer.agentic.mcpserver.v1;
  *
  * Populated by:
  * - Seedpack bootstrap (built-in servers with known, stable tool sets)
- * - The connect RPC (web console, CLI, or Graphton first-time-use backfill)
+ * - The connect RPC (web console, CLI, or the runner's first-time-use backfill)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities}
@@ -447,7 +447,7 @@ private static final long serialVersionUID = 0L;
    *
    * Populated by:
    * - Seedpack bootstrap (built-in servers with known, stable tool sets)
-   * - The connect RPC (web console, CLI, or Graphton first-time-use backfill)
+   * - The connect RPC (web console, CLI, or the runner's first-time-use backfill)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities}

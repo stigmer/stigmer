@@ -1,224 +1,187 @@
 # Stigmer Backend Services
 
-Backend services for the open-source Stigmer agentic framework.
+Backend services for the open-source Stigmer agentic platform.
+
+`backend/services/` holds exactly two services. Earlier editions had separate
+Python (`agent-runner`) and Go (`workflow-runner`) execution services — both
+are retired; one TypeScript runner now executes everything.
 
 ## Services
 
-### agent-runner
-
-Python Temporal worker that executes Graphton agents.
-
-**Location**: `services/agent-runner/`  
-**Language**: Python (Poetry)  
-**Purpose**: Execute agent instances with real-time status updates
-
-**Key Features**:
-- Graphton agent execution
-- Session-based sandbox management
-- gRPC status updates to stigmer-server
-- Skills integration
-
-**See**: [services/agent-runner/README.md](services/agent-runner/README.md)
-
-### workflow-runner
-
-Go Temporal worker that executes CNCF Serverless Workflows.
-
-**Location**: `services/workflow-runner/`  
-**Language**: Go  
-**Purpose**: Execute workflow instances using Temporal orchestration
-
-**Key Features**:
-- CNCF Serverless Workflow interpreter
-- Claim Check pattern for large payloads
-- Continue-As-New for unbounded workflows
-- gRPC command controller
-
-**See**: [services/workflow-runner/docs/README.md](services/workflow-runner/docs/README.md)
-
 ### stigmer-server
 
-Go gRPC API server for local Stigmer deployment.
+Go gRPC control plane for local Stigmer deployment.
 
-**Location**: `services/stigmer-server/`  
-**Language**: Go  
-**Purpose**: Main API server with SQLite storage
+**Location**: `services/stigmer-server/`
+**Language**: Go (version pinned in `go.work`)
+**Entry point**: `cmd/server/`
 
-**Key Features**:
-- gRPC API controllers (Agent, Workflow, Skill, etc.)
-- SQLite storage with generic resource table (JSON documents)
-- In-process gRPC calls (no network overhead)
-- Protobuf validation
+**Key responsibilities**:
 
-**Architecture**: See [ADR-007: Generic Resource Storage Strategy](../docs/adr/2026-01/2026-01-19-170000-sqllite-with-json-data.md)
+- gRPC command/query controllers for every API resource (Agent, Workflow,
+  Skill, Session, Environment, McpServer, …)
+- SQLite storage (see [Storage](#storage) below)
+- Temporal workflow orchestration for agent executions, workflow
+  executions, and MCP server discovery
+- Serves platform documents such as the model registry
+  (`GET /v1/proxy/model-registry`, mirrored from the cloud edition)
 
-## Libraries
+**See**: [services/stigmer-server/README.md](services/stigmer-server/README.md)
 
-### backend/libs/go/sqlite
+### runner
 
-Generic resource storage using SQLite with JSON documents.
+TypeScript Temporal worker (`@stigmer/runner`, "stigmer-runner") that
+executes **both agent sessions and workflow executions**, across both
+harnesses:
 
-**Pattern**: Single table with `kind` discriminator (simulates MongoDB collections)
+- **deep-agent** — LangGraph.js-based agentic loop calling LLM provider
+  APIs directly
+- **cursor** — delegates execution to Cursor via `@cursor/sdk`
 
-**Key Components**:
-- `Store` - SQLite connection and transaction management
-- `SaveResource()` - Universal upsert for any proto message
-- `ListResources()` - Query by resource kind
-- `GetResource()` - Fetch by ID
+**Location**: `services/runner/`
+**Language**: TypeScript (Node version pinned in `.nvmrc`)
+**Entry point**: `src/main.ts` (`npm start` runs it via `tsx`)
 
-### backend/libs/go/grpc
+**Key responsibilities**:
 
-gRPC server utilities and middleware.
+- Agent session execution: prompt assembly, tool orchestration, HITL
+  approvals, attachments/vision, streaming status updates back to the
+  control plane over gRPC
+- Workflow execution: task interpretation and orchestration for every
+  workflow task kind
+- MCP server connection and capability discovery
+  (`workflows/connect-mcp-server.ts`)
+- Skill loading and sandbox/workspace management
 
-**Key Components**:
-- Server lifecycle management
-- Request/response logging
-- Error handling and status codes
-- Authentication middleware (future)
+The same runner image runs in the cloud edition — execution behavior is
+identical in both editions by construction.
 
-### backend/libs/go/validation
+## Libraries (`backend/libs/go/`)
 
-Protobuf validation utilities.
-
-**Key Components**:
-- Proto message validation
-- Field-level constraint checking
-- Error formatting
+| Library | Purpose |
+|---------|---------|
+| `store` | Storage interface + SQLite implementation (generic resource table, audit, execution events) |
+| `grpc` | gRPC server lifecycle, request pipeline, interceptors, error mapping |
+| `apiresource` | API resource metadata/kind helpers shared across domains |
+| `envmerge` | Environment variable merge semantics (personal env ⊕ runtime env) |
+| `mcpdiscovery` | MCP server capability discovery shared logic |
+| `telemetry` | OpenTelemetry wiring |
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     Stigmer CLI                              │
-│                  (cmd/stigmer/main.go)                       │
-└──────────────────────┬──────────────────────────────────────┘
-                       │ In-process gRPC
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│ stigmer CLI  │  │ Web console  │  │ SDKs / MCP   │
+│ (@stigmer/   │  │ (Next.js)    │  │ clients      │
+│  cli, TS)    │  │              │  │              │
+└──────┬───────┘  └──────┬───────┘  └──────┬───────┘
+       │ gRPC (local port)│                │
+       ↓                  ↓                ↓
+┌─────────────────────────────────────────────────┐
+│                 stigmer-server (Go)             │
+│  command/query controllers per API resource     │
+│                       │                         │
+│              ┌────────┴────────┐                │
+│              │ SQLite storage  │                │
+│              │ (libs/go/store) │                │
+│              └─────────────────┘                │
+└──────────────────────┬──────────────────────────┘
+                       │ Temporal
                        ↓
-┌─────────────────────────────────────────────────────────────┐
-│                  stigmer-server                              │
-│              (Go gRPC API Server)                            │
-│                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ Agent API    │  │ Workflow API │  │ Skill API    │      │
-│  │ Controller   │  │ Controller   │  │ Controller   │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-│         │                  │                  │              │
-│         └──────────────────┴──────────────────┘              │
-│                       │                                      │
-│                       ↓                                      │
-│         ┌──────────────────────────────┐                    │
-│         │   SQLite Storage Layer       │                    │
-│         │  (libs/go/sqlite)            │                    │
-│         │                              │                    │
-│         │  resources table:            │                    │
-│         │  - id (PK)                   │                    │
-│         │  - kind (discriminator)      │                    │
-│         │  - data (JSON)               │                    │
-│         └──────────────────────────────┘                    │
-└─────────────────────────────────────────────────────────────┘
-                       │
-                       ↓
-         ┌──────────────────────────────┐
-         │   Temporal Orchestration     │
-         └──────────────────────────────┘
-                   ↙         ↘
-          ┌──────────┐   ┌──────────────┐
-          │  agent-  │   │  workflow-   │
-          │  runner  │   │  runner      │
-          └──────────┘   └──────────────┘
+        ┌──────────────────────────────┐
+        │      runner (TypeScript)     │
+        │  agent sessions + workflow   │
+        │  executions, both harnesses  │
+        │  (deep-agent · cursor)       │
+        └──────────────────────────────┘
 ```
+
+In local mode the CLI acts as a supervisor: it downloads `stigmer-server`
+and the Temporal dev server into `~/.stigmer/bin`, launches them as
+daemons, and talks to the server over gRPC on a local port
+(`client-apps/cli/src/local/`).
 
 ## Local Development
 
 ### Prerequisites
 
-- Go 1.21+
-- Python 3.11+
-- Poetry
-- Temporal Server (for agent/workflow execution)
+- Go (version pinned in `go.work`)
+- Node.js (version pinned in `.nvmrc` — `nvm use`)
+- Temporal dev server (the CLI downloads one automatically; for manual
+  runs use the [Temporal CLI](https://docs.temporal.io/cli))
 
-### Running Services
+### Building and running
 
-**stigmer-server**:
 ```bash
-cd backend/services/stigmer-server
-go run cmd/server/main.go
+# Build the control plane → bin/stigmer-server
+make build-server
+
+# One-shot prep for the runner (proto stub dist + deps)
+make bootstrap-runner
+
+# Run the runner (Temporal worker)
+cd backend/services/runner && npm start
+
+# Run the control plane directly
+cd backend/services/stigmer-server && go run ./cmd/server
 ```
 
-**agent-runner**:
-```bash
-cd backend/services/agent-runner
-poetry install
-poetry run python main.py
-```
+For the end-user path, the published `stigmer` CLI (npm:
+`@stigmer/cli`) supervises all of this automatically.
 
-**workflow-runner**:
-```bash
-cd backend/services/workflow-runner
-go run cmd/grpc-server/main.go
-```
+## Storage
 
-## Storage Strategy
-
-Stigmer uses a **generic single-table pattern** to avoid migration hell.
-
-**Problem**: MongoDB automatically creates collections. SQLite requires schema migrations.
-
-**Solution**: One `resources` table acts as a universal container with a `kind` discriminator.
+The core is a **generic resource table** — one row per API resource,
+serialized proto bytes in a single column, `kind` as the discriminator:
 
 ```sql
-CREATE TABLE IF NOT EXISTS resources (
-    id TEXT PRIMARY KEY,
-    kind TEXT NOT NULL,           -- "Agent", "Workflow", "Skill"
-    org_id TEXT DEFAULT '',       -- Kept for cloud parity
-    project_id TEXT DEFAULT '',
-    data JSON NOT NULL,           -- Full proto serialized to JSON
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+CREATE TABLE resources (
+    kind TEXT NOT NULL,          -- "Agent", "Workflow", "Skill", …
+    id   TEXT NOT NULL,
+    data BLOB NOT NULL,          -- serialized proto
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (kind, id)
+) WITHOUT ROWID;
 ```
 
-**Benefits**:
-- Zero schema migrations when adding new resource kinds
-- 90% less persistence layer code
-- Cloud parity (mimics MongoDB document model)
+Adding a new resource kind requires **no schema migration** — define the
+proto, run `make codegen`, add the controller. Purpose-built side tables
+exist where a generic row is the wrong shape (resource audit history,
+workflow execution events, bootstrap state) — see
+`backend/libs/go/store/sqlite/store.go` for the authoritative schema.
 
-**Trade-offs**:
-- Loss of type safety at DB level (validated at proto layer)
-- Slower JSON queries (acceptable for local datasets <10k items)
+**Trade-offs**: no type safety at the DB level (validation lives at the
+proto layer); queries by anything other than `(kind, id)` scan — fine for
+local datasets.
 
 **See**: [ADR-007: Generic Resource Storage Strategy](../docs/adr/2026-01/2026-01-19-170000-sqllite-with-json-data.md)
 
 ## Design Principles
 
-### 1. Cloud Parity with Local Simplicity
+### 1. Cloud parity with local simplicity
 
-The open-source backend mirrors the cloud architecture but optimized for single-user local development:
+The open-source backend mirrors the cloud architecture, optimized for
+single-user local development:
 
-| Component | Cloud | Open Source |
-|-----------|-------|-------------|
-| API Server | stigmer-service (Java) | stigmer-server (Go) |
-| Storage | MongoDB | SQLite + JSON |
-| Auth | Auth0 + FGA | Local (no multi-tenancy) |
-| Deployment | Kubernetes | Local binary |
+| Component | Cloud (`stigmer-cloud`) | Open source (this repo) |
+|-----------|------------------------|-------------------------|
+| Control plane | `stigmer-service` (Java, Spring Boot) | `stigmer-server` (Go) |
+| Runner | same TypeScript runner image | `services/runner` |
+| Storage | MongoDB (+ Redis, Postgres, object storage) | SQLite |
+| Auth | Auth0 + OpenFGA | lightweight local identity |
+| Deployment | Kubernetes | local binaries under `~/.stigmer` |
 
-### 2. In-Process gRPC
+The proto contracts in `apis/` are the single source of truth for both
+editions; core resource behavior must be identical across them.
 
-For local mode, gRPC calls happen in-process (no network overhead):
+### 2. Proto-first
 
-- CLI embeds stigmer-server as a library
-- gRPC communication via in-memory transport
-- Zero network latency, zero port conflicts
+Every backend change starts at the proto contract. After any `.proto`
+change, run `make codegen` — generated stubs (five languages), JSON
+schemas, and API docs all flow from it. Never edit generated files.
 
-### 3. Extensibility
+### 3. One runner, two harnesses
 
-Adding a new resource kind requires:
-
-1. Define proto in `apis/`
-2. Generate code: `make protos`
-3. Add controller in `stigmer-server`
-4. **That's it** - no database migrations needed
-
----
-
-**Last Updated**: January 19, 2026  
-**Maintained By**: Stigmer Engineering Team
+Agent and workflow execution deliberately share one worker, one deploy
+artifact, and one set of execution semantics. Adding execution behavior
+means extending the runner — not adding a service.

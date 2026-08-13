@@ -26,7 +26,6 @@ const (
 // Agent defines an AI assistant's identity, tools, skills, and delegation model.
 //
 // @internal
-// Uses Graphton configuration for state management.
 type Agent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

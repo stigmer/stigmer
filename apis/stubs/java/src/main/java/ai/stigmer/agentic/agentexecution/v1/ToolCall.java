@@ -834,7 +834,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Sanitized preview of tool arguments for UI display.
    * Sensitive values (passwords, tokens, keys) are redacted.
-   * Populated at tool call creation time by the agent-runner.
+   * Populated at tool call creation time by the runner.
    * Used by the server-side ComputePendingApprovals projection
    * and by CLI/UI for inline argument visibility.
    *
@@ -861,7 +861,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Sanitized preview of tool arguments for UI display.
    * Sensitive values (passwords, tokens, keys) are redacted.
-   * Populated at tool call creation time by the agent-runner.
+   * Populated at tool call creation time by the runner.
    * Used by the server-side ComputePendingApprovals projection
    * and by CLI/UI for inline argument visibility.
    *
@@ -3869,7 +3869,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Sanitized preview of tool arguments for UI display.
      * Sensitive values (passwords, tokens, keys) are redacted.
-     * Populated at tool call creation time by the agent-runner.
+     * Populated at tool call creation time by the runner.
      * Used by the server-side ComputePendingApprovals projection
      * and by CLI/UI for inline argument visibility.
      *
@@ -3895,7 +3895,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Sanitized preview of tool arguments for UI display.
      * Sensitive values (passwords, tokens, keys) are redacted.
-     * Populated at tool call creation time by the agent-runner.
+     * Populated at tool call creation time by the runner.
      * Used by the server-side ComputePendingApprovals projection
      * and by CLI/UI for inline argument visibility.
      *
@@ -3922,7 +3922,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Sanitized preview of tool arguments for UI display.
      * Sensitive values (passwords, tokens, keys) are redacted.
-     * Populated at tool call creation time by the agent-runner.
+     * Populated at tool call creation time by the runner.
      * Used by the server-side ComputePendingApprovals projection
      * and by CLI/UI for inline argument visibility.
      *
@@ -3945,7 +3945,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Sanitized preview of tool arguments for UI display.
      * Sensitive values (passwords, tokens, keys) are redacted.
-     * Populated at tool call creation time by the agent-runner.
+     * Populated at tool call creation time by the runner.
      * Used by the server-side ComputePendingApprovals projection
      * and by CLI/UI for inline argument visibility.
      *
@@ -3965,7 +3965,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Sanitized preview of tool arguments for UI display.
      * Sensitive values (passwords, tokens, keys) are redacted.
-     * Populated at tool call creation time by the agent-runner.
+     * Populated at tool call creation time by the runner.
      * Used by the server-side ComputePendingApprovals projection
      * and by CLI/UI for inline argument visibility.
      *

@@ -23,7 +23,6 @@ export const file_ai_stigmer_agentic_workflow_v1_api: GenFile = /*@__PURE__*/
  * Workflow defines a multi-step task orchestration with sequential, parallel, and conditional execution.
  *
  * @internal
- * Uses Graphton configuration for state management.
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.Workflow
  */

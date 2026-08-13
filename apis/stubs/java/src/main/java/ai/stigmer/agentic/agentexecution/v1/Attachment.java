@@ -17,7 +17,7 @@ package ai.stigmer.agentic.agentexecution.v1;
  * 1. Client calls uploadAttachment RPC with file content
  * 2. Server returns a storage_key
  * 3. Client creates execution with Attachment containing that storage_key
- * 4. Agent-runner downloads file from storage and injects into sandbox
+ * 4. The runner downloads file from storage and injects into sandbox
  *
  * ## Mount Path
  *
@@ -596,7 +596,7 @@ private static final long serialVersionUID = 0L;
    * 1. Client calls uploadAttachment RPC with file content
    * 2. Server returns a storage_key
    * 3. Client creates execution with Attachment containing that storage_key
-   * 4. Agent-runner downloads file from storage and injects into sandbox
+   * 4. The runner downloads file from storage and injects into sandbox
    *
    * ## Mount Path
    *

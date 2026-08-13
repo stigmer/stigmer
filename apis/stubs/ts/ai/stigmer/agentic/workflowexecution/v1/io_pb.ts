@@ -329,7 +329,7 @@ export type WorkflowExecutionUpdateStatusInput = Message<"ai.stigmer.agentic.wor
    * Append-only: events are added to the persistent event log, never replaced.
    * This contrasts with status.tasks which uses full-replace protocol.
    *
-   * The workflow-runner appends events atomically with each status update,
+   * The runner appends events atomically with each status update,
    * ensuring the event log stays consistent with the status snapshot.
    * Events must have monotonically increasing sequence_numbers — the handler
    * rejects batches where any event's sequence_number is <= the current
@@ -596,7 +596,7 @@ export const SubmitWorkflowFileDecisionInputSchema: GenMessage<SubmitWorkflowFil
  * 5. Sends the signal via SignalWithStart for race-proof delivery
  *
  * The reviewer's decision (outcome + form_data) becomes the task output after
- * the workflow-runner receives and processes the signal.
+ * the runner receives and processes the signal.
  *
  * @since T13b (Java/Cloud Backend Parity)
  *

@@ -53,7 +53,7 @@ export const AgentExecutionCommandController = {
      * Update an agent execution's status.
      *
      * @internal
-     * Used by agent-runner to send progressive status updates (messages,
+     * Used by the runner to send progressive status updates (messages,
      * tool_calls, phase, etc.). The runner authenticates as the triggering user,
      * who owns the execution through the session ownership chain.
      * Optimized for frequent status updates and merges status fields with
@@ -471,7 +471,7 @@ export const AgentExecutionCommandController = {
      * 1. Client calls uploadAttachment with file content
      * 2. Server uploads to storage, returns storage_key
      * 3. Client creates AgentExecution with Attachment using storage_key
-     * 4. Agent-runner downloads attachment content when execution starts
+     * 4. The runner downloads attachment content when execution starts
      *
      * @since Artifact Lifecycle (Attachments & Artifacts)
      *

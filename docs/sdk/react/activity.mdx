@@ -54,18 +54,20 @@ function useRecentActivity(options?: UseRecentActivityOptions): UseRecentActivit
 
 ### formatRelativeTime
 
-Compact relative-time formatter for recent-activity rows.
+The SDK's compact relative-time vocabulary: one deterministic "how long
+ago" formatter so timestamps read identically everywhere (consolidated
+from eight per-component drifting copies — stigmer-cloud#269). Pass
+`now` to freeze the clock in tests.
 
-The recents list sorts by LAST ACTIVITY (`statusAudit.updatedAt`), while
-execution names embed their CREATION time — so an old run legitimately
-re-bumped by a status change (a cancel, a late failure) sorts above
-newer-named items and reads as "wrong order" unless the row says why it
-is there. This stamp is that explanation: it renders the sort key the
-user cannot otherwise see.
-
-Compact single-unit output — a sidebar row suffix, not prose:
+Compact single-unit output — a row suffix, not prose:
 `now`, `5m`, `3h`, `6d`, then a short date (`Jul 12`, `Jul 12, 2025`)
 once "days ago" stops being how people think about it.
+
+Born on the recents list, where it renders the otherwise-invisible sort
+key: the list sorts by LAST ACTIVITY (`statusAudit.updatedAt`) while
+execution names embed their CREATION time, so an old run re-bumped by a
+late status change sorts above newer-named items and reads as "wrong
+order" unless the row says why it is there.
 
 ```tsx
 function formatRelativeTime(date: Date, now?: Date): string

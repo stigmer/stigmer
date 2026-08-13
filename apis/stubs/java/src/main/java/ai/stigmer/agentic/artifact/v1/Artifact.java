@@ -13,7 +13,7 @@ package ai.stigmer.agentic.artifact.v1;
  * Follows the standard Stigmer resource pattern:
  * api_version + kind + metadata + spec + status.
  *
- * Artifacts are created by the workflow-runner or agent-runner when task
+ * Artifacts are created by the runner when task
  * outputs exceed the auto-promotion threshold or when the workflow author
  * explicitly declares an artifact (Phase 1).
  *
@@ -539,7 +539,7 @@ private static final long serialVersionUID = 0L;
    * Follows the standard Stigmer resource pattern:
    * api_version + kind + metadata + spec + status.
    *
-   * Artifacts are created by the workflow-runner or agent-runner when task
+   * Artifacts are created by the runner when task
    * outputs exceed the auto-promotion threshold or when the workflow author
    * explicitly declares an artifact (Phase 1).
    *

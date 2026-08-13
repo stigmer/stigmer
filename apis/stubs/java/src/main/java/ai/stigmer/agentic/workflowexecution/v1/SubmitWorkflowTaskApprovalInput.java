@@ -21,7 +21,7 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * 5. Sends the signal via SignalWithStart for race-proof delivery
  *
  * The reviewer's decision (outcome + form_data) becomes the task output after
- * the workflow-runner receives and processes the signal.
+ * the runner receives and processes the signal.
  *
  * &#64;since T13b (Java/Cloud Backend Parity)
  * </pre>
@@ -640,7 +640,7 @@ private static final long serialVersionUID = 0L;
    * 5. Sends the signal via SignalWithStart for race-proof delivery
    *
    * The reviewer's decision (outcome + form_data) becomes the task output after
-   * the workflow-runner receives and processes the signal.
+   * the runner receives and processes the signal.
    *
    * &#64;since T13b (Java/Cloud Backend Parity)
    * </pre>

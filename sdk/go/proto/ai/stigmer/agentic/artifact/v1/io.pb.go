@@ -138,7 +138,7 @@ func (x *ArtifactList) GetEntries() []*Artifact {
 // CreateArtifactInput provides the data needed to create an artifact.
 //
 // @internal
-// Used by the workflow-runner and agent-runner to persist task outputs.
+// Used by the runner (stigmer-runner) to persist task outputs.
 // This is a system-level RPC — not exposed to end users or the SDK.
 //
 // The backend:

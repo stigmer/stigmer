@@ -505,7 +505,7 @@ public interface WorkflowTaskOrBuilder extends
    * &#64;internal
    * Non-zero for cost-incurring task kinds (llm_call, agent_call).
    * Zero for non-LLM tasks (transform, validate, emit_event, etc.).
-   * Set by the workflow-runner when the task completes.
+   * Set by the runner when the task completes.
    *
    * &#64;since Cost Data Pipeline
    * </pre>
@@ -557,7 +557,7 @@ public interface WorkflowTaskOrBuilder extends
    * generic review.
    *
    * &#64;internal
-   * Written by the workflow-runner's task status accumulator on the
+   * Written by the runner's task status accumulator on the
    * waiting_approval transition and retained after the gate resolves
    * (the record of what kind of review was performed). The user-input
    * length constraint (max 63 chars) is enforced at the source field,
@@ -587,7 +587,7 @@ public interface WorkflowTaskOrBuilder extends
    * generic review.
    *
    * &#64;internal
-   * Written by the workflow-runner's task status accumulator on the
+   * Written by the runner's task status accumulator on the
    * waiting_approval transition and retained after the gate resolves
    * (the record of what kind of review was performed). The user-input
    * length constraint (max 63 chars) is enforced at the source field,

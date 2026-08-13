@@ -17,7 +17,7 @@ export const file_ai_stigmer_agentic_artifact_v1_spec: GenFile = /*@__PURE__*/
  * ArtifactSpec defines the properties of an artifact provided at creation time.
  *
  * @internal
- * Artifacts are created by the workflow-runner or agent-runner when a task
+ * Artifacts are created by the runner when a task
  * produces output that should be persisted outside the execution status
  * snapshot (either because it exceeds the size threshold or because the
  * workflow author explicitly requested artifact persistence).

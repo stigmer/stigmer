@@ -2,7 +2,8 @@
  * OpenTelemetry spans and metrics middleware for deep-agent execution.
  *
  * Creates stigmer.llm.call and stigmer.mcp.tool_call spans with
- * attributes matching the Go workflow-runner schema (pkg/otel/spans.go).
+ * attributes matching the span schema inherited from the retired Go
+ * workflow-runner (kept stable so dashboards survived the migration).
  * Also records metrics (histograms + counters) for aggregate dashboards.
  *
  * Graceful no-op when no TracerProvider/MeterProvider is configured.

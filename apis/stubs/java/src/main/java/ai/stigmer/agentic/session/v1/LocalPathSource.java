@@ -13,7 +13,7 @@ package ai.stigmer.agentic.session.v1;
  * and persistent. No copy or clone is made.
  *
  * &#64;internal
- * Deployment constraint: only valid when the agent-runner is in local mode.
+ * Deployment constraint: only valid when the runner is in local mode.
  * Cloud runners reject this at provisioning time with a clear error, the same
  * way GitRepoSource rejects SSH URLs at validation time.
  * </pre>
@@ -272,7 +272,7 @@ private static final long serialVersionUID = 0L;
    * and persistent. No copy or clone is made.
    *
    * &#64;internal
-   * Deployment constraint: only valid when the agent-runner is in local mode.
+   * Deployment constraint: only valid when the runner is in local mode.
    * Cloud runners reject this at provisioning time with a clear error, the same
    * way GitRepoSource rejects SSH URLs at validation time.
    * </pre>

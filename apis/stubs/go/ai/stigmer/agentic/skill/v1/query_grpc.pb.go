@@ -49,7 +49,7 @@ type SkillQueryControllerClient interface {
 	// Returns the ZIP file containing SKILL.md and implementation files.
 	//
 	// @internal
-	// Used by the agent-runner to download and extract skill artifacts into the
+	// Used by the runner to download and extract skill artifacts into the
 	// sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
 	// storage key itself acts as a capability token.
 	GetArtifact(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*GetArtifactResponse, error)
@@ -136,7 +136,7 @@ type SkillQueryControllerServer interface {
 	// Returns the ZIP file containing SKILL.md and implementation files.
 	//
 	// @internal
-	// Used by the agent-runner to download and extract skill artifacts into the
+	// Used by the runner to download and extract skill artifacts into the
 	// sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
 	// storage key itself acts as a capability token.
 	GetArtifact(context.Context, *GetArtifactRequest) (*GetArtifactResponse, error)

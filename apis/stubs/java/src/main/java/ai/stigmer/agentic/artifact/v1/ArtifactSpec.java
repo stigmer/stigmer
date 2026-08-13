@@ -10,7 +10,7 @@ package ai.stigmer.agentic.artifact.v1;
  * ArtifactSpec defines the properties of an artifact provided at creation time.
  *
  * &#64;internal
- * Artifacts are created by the workflow-runner or agent-runner when a task
+ * Artifacts are created by the runner when a task
  * produces output that should be persisted outside the execution status
  * snapshot (either because it exceeds the size threshold or because the
  * workflow author explicitly requested artifact persistence).
@@ -514,7 +514,7 @@ private static final long serialVersionUID = 0L;
    * ArtifactSpec defines the properties of an artifact provided at creation time.
    *
    * &#64;internal
-   * Artifacts are created by the workflow-runner or agent-runner when a task
+   * Artifacts are created by the runner when a task
    * produces output that should be persisted outside the execution status
    * snapshot (either because it exceeds the size threshold or because the
    * workflow author explicitly requested artifact persistence).

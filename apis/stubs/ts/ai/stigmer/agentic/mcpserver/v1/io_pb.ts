@@ -47,7 +47,7 @@ export const McpServerIdSchema: GenMessage<McpServerId> = /*@__PURE__*/
  * Triggers server-side MCP discovery and tool approval classification:
  * the backend creates an ephemeral ExecutionContext with the resolved
  * environment variables, starts a Temporal workflow that connects to the
- * MCP server (via the agent-runner), enumerates tools and resource
+ * MCP server (via the runner), enumerates tools and resource
  * templates, classifies tool approval policies, and stores the results
  * in status.discovered_capabilities and status.tool_approvals.
  *
@@ -60,7 +60,7 @@ export const McpServerIdSchema: GenMessage<McpServerId> = /*@__PURE__*/
  * Callers:
  * - Web console: calls connect after saving credentials to personal environment.
  * - CLI: calls connect with runtime_env populated from local env vars.
- * - Graphton backfill: calls connect with runtime_env from execution context
+ * - Runner backfill: calls connect with runtime_env from execution context
  *   when status.discovered_capabilities is empty on first agent execution.
  *
  * Prerequisites:

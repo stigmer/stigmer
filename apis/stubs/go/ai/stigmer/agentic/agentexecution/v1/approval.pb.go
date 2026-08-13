@@ -37,7 +37,7 @@ const (
 //
 // Lifecycle:
 // 1. Tool with requires_approval=true is about to execute
-// 2. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+// 2. The runner sets ToolCall.status = WAITING_APPROVAL on the message
 // 3. Server recomputes pending_approvals, entry appears
 // 4. User calls SubmitApproval RPC with their decision
 // 5. Agent resumes, ToolCall.status advances, next recompute drops the entry

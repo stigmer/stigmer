@@ -5,7 +5,7 @@
  * the result in the {@link StigmerProvider} context. This eliminates the
  * static JSON file that previously shipped in the npm package.
  *
- * Platform consumers (React SDK, cursor-runner, graphton) all fetch from the
+ * Platform consumers (React SDK, the runner) all fetch from the
  * same endpoint, each with their own local TTL cache.
  */
 

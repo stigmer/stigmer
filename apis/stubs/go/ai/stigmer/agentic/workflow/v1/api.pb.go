@@ -26,7 +26,6 @@ const (
 // Workflow defines a multi-step task orchestration with sequential, parallel, and conditional execution.
 //
 // @internal
-// Uses Graphton configuration for state management.
 type Workflow struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

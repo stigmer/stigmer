@@ -10,7 +10,6 @@ package ai.stigmer.agentic.agentinstance.v1;
  * AgentInstance defines a configured deployment of an Agent template.
  *
  * &#64;internal
- * Uses Graphton configuration for state management.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentinstance.v1.AgentInstance}
@@ -494,7 +493,6 @@ private static final long serialVersionUID = 0L;
    * AgentInstance defines a configured deployment of an Agent template.
    *
    * &#64;internal
-   * Uses Graphton configuration for state management.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentinstance.v1.AgentInstance}

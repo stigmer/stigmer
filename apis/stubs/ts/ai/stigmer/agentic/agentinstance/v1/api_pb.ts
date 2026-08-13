@@ -23,7 +23,6 @@ export const file_ai_stigmer_agentic_agentinstance_v1_api: GenFile = /*@__PURE__
  * AgentInstance defines a configured deployment of an Agent template.
  *
  * @internal
- * Uses Graphton configuration for state management.
  *
  * @generated from message ai.stigmer.agentic.agentinstance.v1.AgentInstance
  */
