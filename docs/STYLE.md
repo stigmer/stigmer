@@ -80,6 +80,16 @@ internal DSL form (`- task_name: { call: ... }`) — always the authoring form.
 Content that is markdown-with-frontmatter (like a `SKILL.md` listing) belongs in
 a ` ```md ` fence, not ` ```yaml `.
 
+Manifests and task lists are additionally held to **platform-parity
+protovalidate rules** (stigmer/stigmer#305): the rules the platform itself
+evaluates when the resource is applied — required fields, value lists, name
+patterns — on the manifest and on each task entry's outer fields. Rules
+*inside* `task_config` are not enforced (the platform does not evaluate them
+either; a doc example must never be held stricter than the platform), and
+anchored fragments are never rule-checked — partial-by-intent is their point.
+Run `make report-docs-yaml-rules` for the full-depth picture, including the
+latent findings enforcement deliberately skips.
+
 ## Classify every page
 
 Every hand-authored page has an entry in `docs/_inventory/classification.yaml`,

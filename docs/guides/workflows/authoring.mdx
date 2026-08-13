@@ -31,7 +31,13 @@ spec:
     version: "1.0.0"
   env: {}
   budget: {}
-  tasks: []
+  # At least one task is required — see "Defining tasks" below.
+  tasks:
+    - name: hello
+      kind: wait
+      task_config:
+        duration:
+          seconds: 5
 ```
 
 | Field                     | Required | Purpose                                        |

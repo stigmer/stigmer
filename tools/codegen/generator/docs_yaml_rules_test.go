@@ -91,14 +91,35 @@ func TestRuleEvaluationEnforceMode(t *testing.T) {
 		}
 	})
 
-	t.Run("rule violations inside a typed task_config fail (recursion-level evaluation)", func(t *testing.T) {
+	t.Run("nested task_config violations do NOT fail — the platform parity boundary", func(t *testing.T) {
+		// TransformTaskConfig.expression is required by the contract, but
+		// the platform never evaluates it (task_config is an opaque Struct
+		// to its Layer 1, and Layer 2 does not hand-port this rule) — so
+		// the docs gate must not fail an example the platform accepts.
+		// The finding still surfaces in report mode (see the report test).
 		class, problems := classifyAndValidateFence(fenceAt("", ruleTestTaskListNestedViolation), reg)
+		if class != blockTaskList || len(problems) != 0 {
+			t.Errorf("class = %v, problems = %v; want blockTaskList with none (latent rules are report-only)", class, problems)
+		}
+	})
+
+	t.Run("outer WorkflowTask violations fail — platform-visible on task lists", func(t *testing.T) {
+		// The task NAME pattern lives on the outer WorkflowTask, which the
+		// platform's Layer 1 DOES evaluate inside every Workflow create —
+		// so a hyphenated name is enforced drift, not a latent finding.
+		body := `- name: bad-name
+  kind: transform
+  task_config:
+    engine: TRANSFORM_ENGINE_JQ
+    expression: "{name: .full_name}"
+`
+		class, problems := classifyAndValidateFence(fenceAt("", body), reg)
 		if class != blockInvalid {
 			t.Fatalf("class = %v, want blockInvalid", class)
 		}
 		joined := strings.Join(problems, "\n")
-		if !strings.Contains(joined, "expression") || !strings.Contains(joined, "(rule:") {
-			t.Errorf("expected a rule problem on TransformTaskConfig.expression, got:\n%s", joined)
+		if !strings.Contains(joined, "name") || !strings.Contains(joined, "(rule:") {
+			t.Errorf("expected a rule problem on WorkflowTask.name, got:\n%s", joined)
 		}
 	})
 
@@ -148,6 +169,32 @@ func TestRuleEvaluationReportMode(t *testing.T) {
 	}
 	if !sawRequired {
 		t.Errorf("expected a required violation, got: %+v", reg.rules.violations)
+	}
+}
+
+func TestRuleEvaluationReportModeRecordsLatentNestedFindings(t *testing.T) {
+	// Report mode keeps the FULL picture: the nested TransformTaskConfig
+	// violation that enforce (platform parity) ignores is recorded here,
+	// flagged latent — this is the drift detector for the day the platform
+	// starts evaluating typed configs.
+	reg := mustBuildRegistriesWithRules(t, ruleModeReport)
+
+	class, problems := classifyAndValidateFence(fenceAt("", ruleTestTaskListNestedViolation), reg)
+	if class != blockTaskList || len(problems) != 0 {
+		t.Fatalf("report mode must not fail the block: class = %v, problems = %v", class, problems)
+	}
+	var latentOnConfig *docsYamlRuleViolation
+	for i := range reg.rules.violations {
+		f := &reg.rules.violations[i]
+		if f.MessageType == "ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig" {
+			latentOnConfig = f
+		}
+	}
+	if latentOnConfig == nil {
+		t.Fatalf("no violation recorded on the typed task_config; got: %+v", reg.rules.violations)
+	}
+	if !latentOnConfig.Latent {
+		t.Errorf("the nested task_config finding must be flagged Latent: %+v", *latentOnConfig)
 	}
 }
 

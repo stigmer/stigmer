@@ -356,10 +356,12 @@ func validateDiscriminatedStruct(
 	if err := protojson.Unmarshal(cfgJSON, msg); err != nil {
 		return []string{fmt.Sprintf("%s is not a valid %s: %v", path, variant.Descriptor().FullName(), err)}
 	}
-	// Rule evaluation must happen at THIS decode point too: on the parent
+	// Rule evaluation happens at THIS decode point too — on the parent
 	// message the config was an opaque Struct, invisible to protovalidate —
-	// only the typed variant decoded here carries the rules.
-	problems := reg.rules.evaluate(msg, path)
+	// but as the NESTED (latent) class: the platform's own validation stops
+	// at the Struct envelope, so these findings are report-only (the #305
+	// parity ruling; see docs_yaml_rules.go).
+	problems := reg.rules.evaluateNested(msg, path)
 	return append(problems, validateDiscriminatedStructs(msg.ProtoReflect(), reg, path)...)
 }
 

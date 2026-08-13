@@ -10,27 +10,42 @@ package main
 // teaching examples elide fields on purpose and blanket enforcement could
 // force every fragment into a verbose full manifest (stigmer/stigmer#305).
 //
-// This file is that measurement instrument and, if the ruling lands on
-// enforcement, the enforcement mechanism — one implementation, three modes:
+// This file is that measurement instrument and the enforcement mechanism —
+// one implementation, three modes:
 //
-//   - off (default): rules are not evaluated; the gate behaves exactly as
-//     before this file existed.
-//   - report: rules are evaluated and violations are printed as a bucketed
-//     report (rule family × block class × file), but the gate's pass/fail
-//     result is unchanged. This is the #305 dry-run mode.
-//   - enforce: violations join the regular problem stream and fail the gate
-//     like any decode error.
+//   - off (default flag value): rules are not evaluated; the gate behaves
+//     exactly as before this file existed.
+//   - report: rules are evaluated at EVERY typed decode point and printed
+//     as a bucketed report (rule family × block class × platform
+//     visibility), but the gate's pass/fail result is unchanged. This was
+//     the #305 dry-run mode and remains the full-picture drift detector.
+//   - enforce: PLATFORM-PARITY violations join the regular problem stream
+//     and fail the gate like any decode error. This is what CI runs (see
+//     check-docs-yaml in the Makefile).
+//
+// THE PARITY BOUNDARY (the #305 ruling, 2026-08-13): enforce evaluates only
+// TOP-LEVEL typed decodes — the resource manifest and each task-list entry's
+// outer WorkflowTask — because that is exactly what the platform itself
+// evaluates: stigmer-server's Layer 1 (the protovalidate interceptor +
+// ValidateProtoStep) sees the full typed message tree but stops at
+// google.protobuf.Struct envelopes, and Layer 2 (crossref.go's
+// ValidateTaskConfigRequiredFields and friends) re-implements only a
+// hand-picked subset of the interior rules. Enforcing deeper would fail
+// docs examples the platform accepts, violating DD-03's founding principle
+// (docs strictness = platform strictness). The dry run measured the gap: 52
+// of 54 findings sat inside task_config envelopes no production path
+// evaluates — 46 of them range rules firing on UNSET "Optional, Default: X"
+// fields, a proto-contract presence bug, not docs drift.
+//
+// Nested (discriminated-Struct recursion) findings therefore surface only
+// in report mode, flagged "latent (platform-blind)". If the proto rules
+// ever gain ignore/presence semantics and the platform starts evaluating
+// typed configs, promoting nested findings into enforce is a one-line
+// change at the evaluateNested call site.
 //
 // Anchored fragments (validate-as blocks) are NEVER rule-evaluated in any
 // mode: a fragment is a deliberately partial instance — `required` would
-// fail it by construction, which is elision, not drift. Auto-classified
-// manifests and task lists are complete documents, so rules apply there.
-//
-// Evaluation happens at every TYPED decode point, not just the block's top
-// level: task_config fields are google.protobuf.Struct on their parent
-// message (rules-invisible to protovalidate), so each discriminated-Struct
-// recursion level evaluates the typed variant it just decoded — mirroring
-// how the decode checks themselves descend.
+// fail it by construction, which is elision, not drift.
 
 import (
 	"fmt"
@@ -79,6 +94,10 @@ type docsYamlRuleViolation struct {
 	// "enum.defined_only", "string.min_len", or a custom CEL id).
 	RuleID string
 	Msg    string
+	// Latent marks a nested (Struct-recursion) finding — a rule the
+	// platform itself never evaluates (see the parity boundary above).
+	// Latent findings are report-only, never enforced.
+	Latent bool
 }
 
 // ruleFamily buckets a rule id into the families the #305 measurement is
@@ -151,14 +170,30 @@ func (e *docsYamlRuleEval) setBlockClass(class string) {
 	e.blockClass = class
 }
 
-// evaluate runs protovalidate over one typed message decoded from the current
-// block. In report mode findings are accumulated and nothing is returned; in
+// evaluate runs protovalidate over one TOP-LEVEL typed message decoded from
+// the current block — the platform-parity surface (see the file comment).
+// In report mode findings are accumulated and nothing is returned; in
 // enforce mode they come back as gate problems in the house error voice.
-// Compilation/runtime errors from the evaluator itself are always returned as
-// problems — a rule that cannot be evaluated is a contract bug, not a docs
-// finding.
+// Compilation/runtime errors from the evaluator itself are always returned
+// as problems — a rule that cannot be evaluated is a contract bug, not a
+// docs finding.
 func (e *docsYamlRuleEval) evaluate(msg proto.Message, at string) []string {
+	return e.run(msg, at, false)
+}
+
+// evaluateNested runs protovalidate over a typed variant decoded by the
+// discriminated-Struct recursion — rules the platform is blind to (its own
+// validation stops at the Struct envelope). Latent findings surface in
+// report mode only; enforce never fails on them, by the #305 parity ruling.
+func (e *docsYamlRuleEval) evaluateNested(msg proto.Message, at string) []string {
+	return e.run(msg, at, true)
+}
+
+func (e *docsYamlRuleEval) run(msg proto.Message, at string, latent bool) []string {
 	if e == nil || e.blockClass == "" {
+		return nil
+	}
+	if latent && e.mode == ruleModeEnforce {
 		return nil
 	}
 	err := e.validator.Validate(msg)
@@ -182,6 +217,7 @@ func (e *docsYamlRuleEval) evaluate(msg proto.Message, at string) []string {
 			Field:       protovalidate.FieldPathString(v.Proto.GetField()),
 			RuleID:      v.Proto.GetRuleId(),
 			Msg:         v.Proto.GetMessage(),
+			Latent:      latent,
 		}
 		switch e.mode {
 		case ruleModeReport:
@@ -218,15 +254,20 @@ func (e *docsYamlRuleEval) printRuleReport() {
 	families := map[string]int{}
 	classes := map[string]int{}
 	fences := map[string]bool{}
+	latent := 0
 	for _, f := range e.violations {
 		families[ruleFamily(f.RuleID)]++
 		classes[f.BlockClass]++
 		fences[fmt.Sprintf("%s:%d", f.Path, f.Line)] = true
+		if f.Latent {
+			latent++
+		}
 	}
-	fmt.Printf("docs YAML rule report: %d violation(s) in %d block(s) — required: %d, in-list: %d, other: %d · manifests: %d, task lists: %d\n\n",
+	fmt.Printf("docs YAML rule report: %d violation(s) in %d block(s) — required: %d, in-list: %d, other: %d · manifests: %d, task lists: %d · platform-enforced: %d, latent (platform-blind): %d\n\n",
 		len(e.violations), len(fences),
 		families["required"], families["in-list"], families["other"],
-		classes["manifest"], classes["task list"])
+		classes["manifest"], classes["task list"],
+		len(e.violations)-latent, latent)
 
 	sorted := make([]docsYamlRuleViolation, len(e.violations))
 	copy(sorted, e.violations)
@@ -244,7 +285,11 @@ func (e *docsYamlRuleEval) printRuleReport() {
 			fmt.Printf("  %s [%s]\n", fence, f.BlockClass)
 			lastFence = fence
 		}
-		fmt.Printf("    %s\n", f.problemString())
+		marker := ""
+		if f.Latent {
+			marker = " [latent — the platform never evaluates this rule]"
+		}
+		fmt.Printf("    %s%s\n", f.problemString(), marker)
 	}
 	fmt.Printf("\nreport mode never fails the build — see stigmer/stigmer#305 for the enforcement decision\n")
 }
