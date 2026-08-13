@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import type { RefObject } from "react";
 import { useNodesState, useEdgesState, useReactFlow } from "@xyflow/react";
 import type {
   Node,
@@ -165,14 +164,12 @@ export interface UseWorkflowCanvasReturn {
  * is derived from the model after each mutation.
  *
  * @param yaml - The workflow YAML to initialize from. Changes trigger re-parse.
- * @param containerRef - Ref to the canvas container for keyboard shortcut scoping.
  * @param options - Optional configuration including a custom layout engine.
  *
  * @since T15 (Visual Canvas Editor)
  */
 export function useWorkflowCanvas(
   yaml: string | null,
-  containerRef: RefObject<HTMLDivElement | null>,
   options?: UseWorkflowCanvasOptions,
 ): UseWorkflowCanvasReturn {
   const [error, setError] = useState<string | null>(null);
@@ -195,7 +192,7 @@ export function useWorkflowCanvas(
   }, [yaml]);
 
   // Set up graph history with the parsed model
-  const history = useGraphHistory(parsedModel, containerRef);
+  const history = useGraphHistory(parsedModel);
 
   // Sync: when YAML changes, reset the history and RF elements
   useEffect(() => {
@@ -1083,15 +1080,20 @@ export function useWorkflowCanvas(
   // Undo / Redo (delegates to history, then syncs RF)
   // ---------------------------------------------------------------------------
 
+  // Sync from the model RETURNED by the mutation, mirroring dispatch().
+  // `history.currentModel` is a render-time snapshot — reading it here
+  // after undo()/redo() yields the PRE-mutation model (oss#588: the
+  // canvas re-rendered the still-deleted graph while the inspector,
+  // reading state on the next render, showed the restored node).
   const undo = useCallback(() => {
-    history.undo();
-    syncFromModel(history.currentModel);
-  }, [history, syncFromModel]);
+    const next = history.undo();
+    if (next) syncFromModel(next);
+  }, [history.undo, syncFromModel]);
 
   const redo = useCallback(() => {
-    history.redo();
-    syncFromModel(history.currentModel);
-  }, [history, syncFromModel]);
+    const next = history.redo();
+    if (next) syncFromModel(next);
+  }, [history.redo, syncFromModel]);
 
   // ---------------------------------------------------------------------------
   // Dirty tracking: model reference comparison

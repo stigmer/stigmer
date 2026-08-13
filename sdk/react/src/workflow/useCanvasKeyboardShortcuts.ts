@@ -19,6 +19,14 @@ export interface UseCanvasKeyboardShortcutsOptions {
   readonly copySelection?: () => void;
   readonly pasteAtCenter?: () => void;
   readonly cutSelection?: () => void;
+  /**
+   * Undo/redo MUST be the orchestrator's canvas-syncing wrappers
+   * (`useWorkflowCanvas.undo`/`redo`), never `useGraphHistory`'s raw
+   * mutations — a model mutation that skips the React Flow sync leaves
+   * the inspector editing a node the canvas doesn't show (oss#588).
+   */
+  readonly undo?: () => void;
+  readonly redo?: () => void;
 }
 
 function isTextInput(target: EventTarget | null): boolean {
@@ -39,12 +47,15 @@ function isFocusInsideContainer(container: HTMLElement): boolean {
  * Canvas-scoped keyboard shortcuts for the workflow editor.
  *
  * Binds shortcuts that are only active when focus is inside the canvas
- * container, using the same capture-phase listener pattern as
- * {@link useGraphHistory} (undo/redo). Bare-key shortcuts (N, Escape)
- * are suppressed when a text input has focus.
+ * container, using a capture-phase document listener. Shortcuts that
+ * collide with native text-editing (undo/redo, copy/paste/cut, bare
+ * keys) are suppressed when a text input has focus, so inspector
+ * fields keep their native behavior.
  *
  * | Shortcut          | Action                                |
  * |-------------------|---------------------------------------|
+ * | `Ctrl/Cmd+Z`      | Undo (canvas-synced, see oss#588)     |
+ * | `Ctrl/Cmd+Shift+Z`| Redo                                  |
  * | `Ctrl/Cmd+D`      | Duplicate selected node               |
  * | `Ctrl/Cmd+A`      | Select all non-sentinel nodes         |
  * | `Ctrl/Cmd+C`      | Copy selected node(s) to clipboard    |
@@ -66,6 +77,8 @@ export function useCanvasKeyboardShortcuts({
   copySelection,
   pasteAtCenter,
   cutSelection,
+  undo,
+  redo,
 }: UseCanvasKeyboardShortcutsOptions): void {
   useEffect(() => {
     const container = containerRef.current;
@@ -75,6 +88,21 @@ export function useCanvasKeyboardShortcuts({
       if (!container || !isFocusInsideContainer(container)) return;
 
       const isMod = e.metaKey || e.ctrlKey;
+
+      // Ctrl/Cmd+Z / Ctrl/Cmd+Shift+Z — undo/redo. Text inputs keep
+      // their native text undo (deliberate change with oss#588: the old
+      // binding hijacked Cmd+Z while typing in inspector fields).
+      if (isMod && !e.altKey && e.key.toLowerCase() === "z") {
+        if (isTextInput(e.target)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.shiftKey) {
+          redo?.();
+        } else {
+          undo?.();
+        }
+        return;
+      }
 
       // Ctrl/Cmd+D — duplicate selected node
       if (isMod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "d") {
@@ -169,5 +197,7 @@ export function useCanvasKeyboardShortcuts({
     copySelection,
     pasteAtCenter,
     cutSelection,
+    undo,
+    redo,
   ]);
 }
