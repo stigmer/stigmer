@@ -30,7 +30,9 @@ async function createInstance(page: Page, name: string): Promise<void> {
   await dialog.getByRole("button", { name: "Create Instance" }).click();
 
   await expect(dialog).not.toBeVisible();
-  await expect(page.getByRole("cell", { name })).toBeVisible({
+  // exact: the row's Actions cell is named "Actions for <name>" via its
+  // kebab button, so a substring cell match resolves to two cells.
+  await expect(page.getByRole("cell", { name, exact: true })).toBeVisible({
     timeout: 10_000,
   });
 }

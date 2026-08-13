@@ -26,9 +26,11 @@ export async function navigateToExecution(
   executionId: string,
 ): Promise<void> {
   await page.goto(`/executions/${executionId}`);
+  // 30s: a cold Next dev server compiles the route on first hit, and
+  // parallel workers can queue behind that compile.
   await getCenterViewSwitcher(page).waitFor({
     state: "visible",
-    timeout: 15_000,
+    timeout: 30_000,
   });
 }
 
