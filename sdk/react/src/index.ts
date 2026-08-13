@@ -220,6 +220,7 @@ export type {
   ExecutionTargetOption,
   RuntimeEnvProvider,
   SessionAudience,
+  SessionPanelMode,
   SetupTabProps,
   SetupTabMutationCallbacks,
 } from "./session/index.js";

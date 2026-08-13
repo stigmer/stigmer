@@ -278,6 +278,120 @@ describe("useSessionPanel — artifact document tabs", () => {
   });
 });
 
+describe("useSessionPanel — observed open state (uncontrolled + onOpenChange)", () => {
+  // The panel opens ITSELF (file/artifact/plan opens, plan auto-open), so —
+  // unlike useDetailTabs' user-driven-only tabs — onOpenChange fires in BOTH
+  // modes: passing only the callback observes the panel without controlling
+  // it (the issue-#300 docking-host case).
+  it("reports the chip toggle without taking control", () => {
+    const seen: boolean[] = [];
+    const { result } = renderPanel({ onOpenChange: (o) => seen.push(o) });
+    act(() => result.current.openPanel());
+    expect(result.current.isOpen).toBe(true);
+    act(() => result.current.closePanel());
+    expect(result.current.isOpen).toBe(false);
+    expect(seen).toEqual([true, false]);
+  });
+
+  it("reports internal open intents (openFile), once per actual transition", () => {
+    const seen: boolean[] = [];
+    const { result } = renderPanel({ onOpenChange: (o) => seen.push(o) });
+    act(() => result.current.openFile("e1", "a.ts"));
+    // Already open — a second open intent is not a transition.
+    act(() => result.current.openFile("e1", "b.ts"));
+    act(() => result.current.openPanel());
+    expect(seen).toEqual([true]);
+  });
+
+  it("reports the plan auto-open — the beat a docking host makes room for", () => {
+    const seen: boolean[] = [];
+    const onOpenChange = (o: boolean) => seen.push(o);
+    const { rerender } = renderPanel({ onOpenChange });
+    rerender({ phase: null, hasChanges: false, planKey: "e1:streaming", onOpenChange });
+    expect(seen).toEqual([true]);
+  });
+
+  it("starts open when defaultOpen is set, without a spurious notification", () => {
+    const seen: boolean[] = [];
+    const { result } = renderPanel({
+      defaultOpen: true,
+      onOpenChange: (o) => seen.push(o),
+    });
+    expect(result.current.isOpen).toBe(true);
+    expect(seen).toEqual([]);
+  });
+});
+
+describe("useSessionPanel — controlled open state", () => {
+  it("follows the host's open value and ignores defaultOpen", () => {
+    const { result, rerender } = renderPanel({ open: false, defaultOpen: true });
+    expect(result.current.isOpen).toBe(false);
+    rerender({ phase: null, hasChanges: false, open: true, defaultOpen: true });
+    expect(result.current.isOpen).toBe(true);
+  });
+
+  it("surfaces intents through onOpenChange without flipping state itself", () => {
+    const seen: boolean[] = [];
+    const onOpenChange = (o: boolean) => seen.push(o);
+    const { result, rerender } = renderPanel({ open: false, onOpenChange });
+    act(() => result.current.openPanel());
+    expect(seen).toEqual([true]);
+    expect(result.current.isOpen).toBe(false);
+    // The host grants the request.
+    rerender({ phase: null, hasChanges: false, open: true, onOpenChange });
+    expect(result.current.isOpen).toBe(true);
+    act(() => result.current.closePanel());
+    expect(seen).toEqual([true, false]);
+    expect(result.current.isOpen).toBe(true);
+  });
+
+  it("re-fires a declined request (once per request, not per transition)", () => {
+    const seen: boolean[] = [];
+    const onOpenChange = (o: boolean) => seen.push(o);
+    const { result } = renderPanel({ open: false, onOpenChange });
+    act(() => result.current.openFile("e1", "a.ts"));
+    // The host declined (open stayed false) — a later intent must re-fire,
+    // not be swallowed by a stale "already requested" memory.
+    act(() => result.current.openFile("e1", "b.ts"));
+    expect(seen).toEqual([true, true]);
+  });
+
+  it("plan auto-open is reported, not applied — but the tab is pinned and ready", () => {
+    const seen: boolean[] = [];
+    const onOpenChange = (o: boolean) => seen.push(o);
+    const { result, rerender } = renderPanel({ open: false, onOpenChange });
+    rerender({
+      phase: null,
+      hasChanges: false,
+      planKey: "e1:hash-a",
+      open: false,
+      onOpenChange,
+    });
+    expect(seen).toEqual([true]);
+    expect(result.current.isOpen).toBe(false);
+    // View state stays SDK-owned: the plan tab is pinned regardless, so the
+    // moment the host opens the panel the plan is what greets the user.
+    expect(result.current.editorsStore.getSnapshot().editors).toEqual([
+      { entryId: PLAN_DOCUMENT_ENTRY_ID, path: PLAN_DOCUMENT_PATH, preview: false },
+    ]);
+  });
+
+  it("auto-surfaces Changes against the HOST's open state, not the internal one", () => {
+    // The first-write-back trigger reads the effective open value: a
+    // controlled-open panel (whose internal state was never touched) must
+    // still surface Changes…
+    const { result, rerender } = renderPanel({ open: true });
+    rerender({ phase: null, hasChanges: true, open: true });
+    expect(result.current.view).toBe("changes");
+  });
+
+  it("…and a controlled-closed panel must not", () => {
+    const { result, rerender } = renderPanel({ open: false });
+    rerender({ phase: null, hasChanges: true, open: false });
+    expect(result.current.view).toBe("files");
+  });
+});
+
 describe("useSessionPanel — defaultView (home view)", () => {
   it("seeds the view to the provided defaultView (launcher homes on Config)", () => {
     const { result } = renderPanel({ defaultView: "configure" });

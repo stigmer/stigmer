@@ -1049,6 +1049,7 @@ apps inject platform-specific values via props (DD-004/DD-016).
     autoFocus: { type: "boolean", description: "Auto-focus the textarea on mount." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultHarness: { type: "HarnessOption", description: "Harness pre-selected for new sessions when the user has not made an explicit choice yet. The user can still switch before starting the session, and their explicit choice wins on subsequent visits.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
+    defaultPanelOpen: { type: "boolean", description: "Initial open state of the session panel in uncontrolled mode. Ignored when NewSessionViewerProps.panelOpen is provided. Same contract as SessionViewerProps.defaultPanelOpen (DD-016 parity)." },
     enableGitHub: { type: "boolean", description: "Whether to enable GitHub workspace sources." },
     enableLocal: { type: "boolean", description: "Whether to enable local workspace sources." },
     footerContent: { type: "ReactNode", description: "Slot for host-injected actions rendered below the composer (e.g., submit error messages). Keeps the SDK organism unopinionated about Console-specific error rendering (DD-004)." },
@@ -1061,8 +1062,11 @@ apps inject platform-specific values via props (DD-004/DD-016).
     initialRows: { type: "number", description: "Initial number of visible textarea rows." },
     onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback for desktop environments. Desktop supplies this via Tauri's dialog plugin." },
     onError: { type: "(message: string) => void", description: "Called on error (for toast notifications or other UI feedback)." },
+    onPanelOpenChange: { type: "(open: boolean) => void", description: "Called on every panel open/close transition, in both modes. Same contract as SessionViewerProps.onPanelOpenChange (DD-016 parity); the launcher has no plan auto-open, so its transitions come from the chip toggle and file opens only." },
     onSessionCreated: { type: "(sessionId: string) => void", description: "Called after the session and first execution are created.", required: true },
     org: { type: "string", description: "Organization slug. Required for session creation.", required: true },
+    panel: { type: "SessionPanelMode", description: "Whether the launcher offers the session panel at all — `\"none\"` removes the panel and its toggle chip while keeping every composer capability the audience allows. Same contract as SessionViewerProps.panel (DD-016 parity); see SessionPanelMode.", typeDescriptionLink: "#sessionpanelmode" },
+    panelOpen: { type: "boolean", description: "Controlled open state of the session panel. Same contract as SessionViewerProps.panelOpen (DD-016 parity)." },
     placeholder: { type: "string", description: "Placeholder for the composer textarea." },
     workspaceContentSearcher: { type: "WorkspaceContentSearcher", description: "Platform-injected content (text) searcher — the same capability `SessionViewer` accepts (DD-016 parity). Desktop injects a native ripgrep-backed searcher; web leaves it undefined (DD-09).", typeDescriptionLink: "/docs/sdk/react/workspace#workspacecontentsearcher" },
     workspaceFileLister: { type: "WorkspaceFileLister", description: "Platform-injected file lister for workspace entries. When provided, each entry in the Setup tab's workspace section renders an expandable file tree. (DD-004 capability injection, DD-011 opt-in.)", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilelister" },
@@ -1192,6 +1196,7 @@ apps inject platform-specific values via props (DD-004/DD-016).
     accessSlot: { type: "ReactNode", description: "Host-injected access management control (e.g. the Console's `ManageAccessButton` with its own permission gating). Rendered inside the panel's Config facet rather than the header — access is session configuration, not a moment-to-moment action (DD-004 slot injection)." },
     audience: { type: "SessionAudience", description: "Presentation audience for the viewer. `\"endUser\"` locks the session's agent and hides the MCP server, skill, and session-variable configuration in both the composer and the inspector's Setup tab — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, attachments, and workspace picker remain.  `\"guest\"` (anonymous visitor with a guest token) is pure chat: it additionally hides the model/mode pickers, attachments, the workspace picker, and the session panel, and skips the org-level reads a guest principal cannot make — follow-ups simply continue on the session's bound agent instance.  `\"observer\"` is a read-only transcript: no composer, no approval/edit/retry/build affordances, no access management. The viewer also self-selects observer for channel-originated sessions (the `stigmer.ai/channel-id` label) regardless of this prop, since channel viewers hold `can_view` only.  See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     className: { type: "string", description: "Additional CSS classes for the root container." },
+    defaultPanelOpen: { type: "boolean", description: "Initial open state of the session panel in uncontrolled mode — a docking host that wants the workspace visible from the first paint passes `true`. Ignored when SessionViewerProps.panelOpen is provided." },
     enableGitHub: { type: "boolean", description: "Whether to enable GitHub workspace features in the composer." },
     enableLocal: { type: "boolean", description: "Whether to enable local workspace features in the composer. Web passes `deploymentMode === \"local\"`, desktop passes `true`." },
     getRuntimeEnv: { type: "RuntimeEnvProvider", description: "Supplies host-app environment variables for every follow-up execution (e.g. short-lived credentials for MCP tools, minted as the signed-in user). Evaluated fresh at each send; host values win over composer-collected env on key collisions. If the provider throws, the send is blocked and an error banner is shown — see RuntimeEnvProvider.", typeDescriptionLink: "#runtimeenvprovider" },
@@ -1199,7 +1204,10 @@ apps inject platform-specific values via props (DD-004/DD-016).
     headerActions: { type: "ReactNode", description: "Slot for host-injected header actions. Rendered in the top-right corner of the viewer, beside the panel chip. Keeps the SDK organism unopinionated about Console auth (DD-004)." },
     onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied from the Artifacts tab." },
     onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback for desktop environments.  When provided alongside `enableLocal`, the composer renders a \"Browse Folder\" button that opens the system folder dialog. Without this callback `enableLocal` alone is not sufficient for the UI to render the local option.  Desktop apps supply this via Tauri's dialog plugin. Web apps omit it (no native picker available)." },
+    onPanelOpenChange: { type: "(open: boolean) => void", description: "Called on every panel open/close transition, in BOTH modes — pass it alone (uncontrolled) to simply observe the panel, e.g. widening a docked pane when a streaming plan auto-opens it and reclaiming the room on close. See UseSessionPanelOptions.onOpenChange for the exact request-vs-transition semantics in each mode." },
     org: { type: "string", description: "Organization slug.", required: true },
+    panel: { type: "SessionPanelMode", description: "Whether the viewer offers the session panel at all. `\"none\"` removes the panel AND its toggle chip, suppresses plan-mode auto-open, and lets transcript file paths keep their default copy behavior — for hosts whose surrounding surface already renders the workspace — while keeping every composer capability the audience allows. This is the panel half of what `audience=\"guest\"` does, WITHOUT guest's composer strip-down; guest still forces it regardless of this prop. A union (not a boolean) so a future mode (e.g. a host-rendered panel) extends rather than breaks it.", typeDescriptionLink: "#sessionpanelmode" },
+    panelOpen: { type: "boolean", description: "Controlled open state of the session panel. When provided, the host owns the panel: the chip toggle, file/plan/artifact opens, and plan-mode auto-open surface through SessionViewerProps.onPanelOpenChange instead of flipping state, and the panel follows this value. Leave `undefined` for the self-managing default." },
     sessionId: { type: "string", description: "Session ID to load and display.", required: true },
     threadSlots: { type: "MessageThreadSlots", description: "Component overrides for the conversation thread's chrome (message bubbles, approval card, to-dos card, plan cards, thinking indicator) — forwarded to the inner MessageThread. See MessageThreadSlots. Define the object and its components at module level (or memoize) so thread rows keep their streaming re-render guarantees.", typeDescriptionLink: "/docs/sdk/react/execution#messagethreadslots" },
     workspaceContentSearcher: { type: "WorkspaceContentSearcher", description: "Platform-injected content (text) searcher. When provided, the session panel's Search pane gains a `Name | Text` toggle for full-text search across the workspace. Desktop injects a native ripgrep-backed searcher; web leaves it undefined (git content search needs a branch-accurate backend — DD-09), keeping Search filename-only there (DD-004, DD-011 opt-in).", typeDescriptionLink: "/docs/sdk/react/workspace#workspacecontentsearcher" },
@@ -1746,7 +1754,7 @@ streaming conversation column (DD-009/DD-010, invariant 2).
     closeEditor: { type: "(entryId: string, path: string) => void", description: "Close an editor tab. The panel stays open even when the group empties — unlike the retired workspace-mode flip, the panel is more than files.", required: true },
     closePanel: { type: "() => void", description: "Collapse the panel to the chip, preserving editors and view.", required: true },
     editorsStore: { type: "WorkspaceEditorsStore", description: "The open-editor group store; subscribe with `useWorkspaceEditors`.", required: true },
-    isOpen: { type: "boolean", description: "Whether the panel is expanded (chat narrow) or collapsed to the chip.", required: true },
+    isOpen: { type: "boolean", description: "Whether the panel is expanded (chat narrow) or collapsed to the chip. In controlled mode (UseSessionPanelOptions.open) this mirrors the host's value.", required: true },
     openArtifact: { type: "(artifact: ExecutionArtifact) => void", description: "Open (or focus) an artifact as an editor-pane document tab and expand the panel. Uses the PREVIEW slot — like files and content-search hits, casual artifact browsing reuses one tab (single-click), and double-clicking the tab pins it. Distinct from `openPlanDocument`, which pins its single tab: a plan is the turn's deliverable, artifacts are browsable outputs. The artifact's artifactKey is the tab identity, shared with the `SurfaceVirtualDocument` the viewer builds for the open tab.", required: true },
     openFile: { type: "(entryId: string, path: string, options?: OpenFileOptions) => void", description: "Open a file as a preview tab and expand the panel. Pass `options.line` to jump to and highlight a specific 1-based line (e.g. a content-search hit) — the file opens in its line-faithful File view scrolled to that line.", required: true },
     openPanel: { type: "() => void", description: "Expand the panel, restoring the previous view.", required: true },
@@ -1757,6 +1765,24 @@ streaming conversation column (DD-009/DD-010, invariant 2).
     view: { type: "string", description: "The active rail view id (`\"files\"`, `\"search\"`, or an injected facet).", required: true },
   }}
 />
+
+
+### SessionPanelMode
+
+Whether the session organisms offer the session panel surface.
+
+- `"auto"` (default) — the panel and its toggle chip are available
+  whenever the audience allows them (every audience except `"guest"`).
+- `"none"` — the panel and chip are absent entirely: plan-mode
+  auto-open is suppressed and transcript file paths keep their default
+  copy behavior. For hosts whose surrounding surface already renders
+  the workspace — the composer keeps every capability the audience
+  allows, which is what separates this from `audience="guest"`.
+
+Orthogonal to [`SessionAudience`](#sessionaudience) on purpose: audience is who is
+looking, panel mode is what the host's geometry has room for. A union
+(not a boolean) so a future mode — e.g. a host-rendered panel fed by
+the SDK's controller — extends the vocabulary instead of breaking it.
 
 
 ### SessionWriteBackEntry
@@ -1875,8 +1901,11 @@ Options for [`useSessionPanel`](#usesessionpanel).
 
 <TypeTable
   type={{
+    defaultOpen: { type: "boolean", description: "Initial open state in uncontrolled mode. Ignored when UseSessionPanelOptions.open is provided." },
     defaultView: { type: "string", description: "The panel's home view — the view it opens on and the one every automatic reset returns to (running⇄terminal transition, selection cleared). Defaults to `\"files\"` (the Explorer), which suits the session viewer. The launcher passes `\"configure\"`: pre-session there is no workspace, so the Config facet — carrying the run defaults (harness/model) — is the useful landing view. Auto-switches (Changes) and explicit rail picks still take over from here exactly as before." },
     hasChanges: { type: "boolean", description: "Whether the session has git write-backs. The first arrival auto-surfaces the Changes view — but only while the panel is open; a collapsed panel signals through badges instead of pulling the user out of the chat.", required: true },
+    onOpenChange: { type: "(open: boolean) => void", description: "Called on every effective open/close transition — in BOTH modes, unlike `useDetailTabs`'s DD-T05A-001 convention of swallowing the callback when uncontrolled. The difference is principled, not stylistic: tabs change only through user clicks, so an uncontrolled host loses nothing by not hearing about them — but this panel opens ITSELF (`openFile`, `openArtifact`, `openPlanDocument`, and the plan-key auto-open all expand a collapsed panel), and an embedding host that must react to those moments (widen a dock, make room for a streaming plan) has no other seam. Passing only this callback observes the panel without controlling it.  In controlled mode this fires once per open/close REQUEST (the host may decline by not updating `open` — a later identical request re-fires); in uncontrolled mode it fires once per actual transition." },
+    open: { type: "boolean", description: "Controlled open state. When provided, the host owns whether the panel is expanded: internal open intents (the chip toggle, a file/artifact/plan open, plan auto-open) no longer flip state themselves — they surface through UseSessionPanelOptions.onOpenChange and the panel follows this value. Leave `undefined` for the self-managing default." },
     phase: { type: "ExecutionPhase | null", description: "The display execution's phase, or `null` before any execution exists. A transition between running and terminal resets the user's sticky view pick (mirroring the retired inspector-tab FSM).", required: true },
     planKey: { type: "string | null", description: "Identity of the session's current plan, or `null` when none exists. Two identity families, supplied by the viewer: `<executionId>:streaming` while the active turn is WRITING a plan (see `findStreamingPlan`), then the published identity (`planDraftKey`) once the artifact exists. A NEW identity — a plan starting to stream, the first published plan, or a refined plan superseding it — auto-opens the plan document tab (see SessionPanelController.openPlanDocument), expanding a collapsed panel. This deliberately breaks the Changes/Inspect \"never open a collapsed panel\" convention: a plan is not ambient state, it is the deliverable of the turn the user just requested, and with the thread showing only a compact card there is no other review surface — live or settled. The streaming→published transition is itself a new identity, harmlessly re-firing the (idempotent) open as the tab's content settles. Keyed on plan IDENTITY, not presence, so a refined plan re-surfaces too; the identity present at mount is swallowed (loading a session with an old plan — or mid-stream — never hijacks the layout)." },
   }}

@@ -18,7 +18,7 @@ import { useSessionPanel } from "./useSessionPanel.js";
 import { useSessionRailViews } from "./useSessionRailViews.js";
 import { SessionPanelChip } from "./SessionPanelChip.js";
 import type { RuntimeEnvProvider } from "./runtime-env.js";
-import type { SessionAudience } from "./audience.js";
+import type { SessionAudience, SessionPanelMode } from "./audience.js";
 
 /** Props for {@link NewSessionViewer}. */
 export interface NewSessionViewerProps {
@@ -97,6 +97,40 @@ export interface NewSessionViewerProps {
    * @default "integrator"
    */
   readonly audience?: SessionAudience;
+
+  /**
+   * Whether the launcher offers the session panel at all — `"none"` removes
+   * the panel and its toggle chip while keeping every composer capability
+   * the audience allows. Same contract as
+   * {@link SessionViewerProps.panel} (DD-016 parity); see
+   * {@link SessionPanelMode}.
+   *
+   * @default "auto"
+   */
+  readonly panel?: SessionPanelMode;
+
+  /**
+   * Initial open state of the session panel in uncontrolled mode. Ignored
+   * when {@link NewSessionViewerProps.panelOpen} is provided. Same contract
+   * as {@link SessionViewerProps.defaultPanelOpen} (DD-016 parity).
+   *
+   * @default false
+   */
+  readonly defaultPanelOpen?: boolean;
+
+  /**
+   * Controlled open state of the session panel. Same contract as
+   * {@link SessionViewerProps.panelOpen} (DD-016 parity).
+   */
+  readonly panelOpen?: boolean;
+
+  /**
+   * Called on every panel open/close transition, in both modes. Same
+   * contract as {@link SessionViewerProps.onPanelOpenChange} (DD-016
+   * parity); the launcher has no plan auto-open, so its transitions come
+   * from the chip toggle and file opens only.
+   */
+  readonly onPanelOpenChange?: (open: boolean) => void;
 
   /**
    * Harness pre-selected for new sessions when the user has not made
@@ -190,6 +224,10 @@ export function NewSessionViewer({
   workspaceContentSearcher,
   getRuntimeEnv,
   audience = "integrator",
+  panel: panelMode = "auto",
+  defaultPanelOpen,
+  panelOpen,
+  onPanelOpenChange,
   defaultHarness,
   initialAgentRef,
   initialInstanceId,
@@ -214,6 +252,9 @@ export function NewSessionViewer({
   // Both curated audiences (endUser, guest) lock the agent and hide the
   // integrator pickers; guest adds its own restrictions below.
   const isCurated = audience !== "integrator";
+  // Host opt-out or audience restriction — the same single flag
+  // SessionViewer derives (DD-016), gating the chip and the region together.
+  const panelEnabled = panelMode !== "none" && !isGuest;
 
   // Guest agent binding is host configuration, not a picker interaction:
   // the composer's agent machinery (picker, env-collection, personal
@@ -238,6 +279,11 @@ export function NewSessionViewer({
     phase: null,
     hasChanges: false,
     defaultView: "configure",
+    // Same inertness contract as SessionViewer: a disabled panel is pinned
+    // controlled-closed and unobserved (DD-016).
+    open: panelEnabled ? panelOpen : false,
+    defaultOpen: defaultPanelOpen,
+    onOpenChange: panelEnabled ? onPanelOpenChange : undefined,
   });
   const { editors, activeKey, activeFile, reveal } = useWorkspaceEditors(
     panel.editorsStore,
@@ -396,11 +442,12 @@ export function NewSessionViewer({
       // collapse control when the last context item is removed. Always-on is
       // the predictable, discoverable shape; opening homes on the Config
       // facet, which carries useful defaults (harness/model) pre-session.
-      // Guests are the exception: the panel exposes configuration a visitor
-      // has no business with, so the chip (the panel's only toggle) is
-      // simply absent and the panel can never open.
+      // A panel-less viewer is the exception: guests (the panel exposes
+      // configuration a visitor has no business with) and hosts passing
+      // panel="none" get no chip — the panel's only toggle is simply
+      // absent and the panel can never open.
       chip={
-        !isGuest ? (
+        panelEnabled ? (
           <SessionPanelChip
             isOpen={panel.isOpen}
             onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
@@ -409,7 +456,7 @@ export function NewSessionViewer({
       }
       conversation={composerNode}
       panel={
-        panel.isOpen ? (
+        panel.isOpen && panelEnabled ? (
           <WorkspaceSurface
             entries={flow.workspace.entries}
             lister={workspaceFileLister}

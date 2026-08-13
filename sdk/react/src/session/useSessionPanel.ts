@@ -58,6 +58,37 @@ export interface UseSessionPanelOptions {
    * @default "files"
    */
   readonly defaultView?: string;
+  /**
+   * Controlled open state. When provided, the host owns whether the panel is
+   * expanded: internal open intents (the chip toggle, a file/artifact/plan
+   * open, plan auto-open) no longer flip state themselves — they surface
+   * through {@link UseSessionPanelOptions.onOpenChange} and the panel follows
+   * this value. Leave `undefined` for the self-managing default.
+   */
+  readonly open?: boolean;
+  /**
+   * Initial open state in uncontrolled mode. Ignored when
+   * {@link UseSessionPanelOptions.open} is provided.
+   *
+   * @default false
+   */
+  readonly defaultOpen?: boolean;
+  /**
+   * Called on every effective open/close transition — in BOTH modes, unlike
+   * `useDetailTabs`'s DD-T05A-001 convention of swallowing the callback when
+   * uncontrolled. The difference is principled, not stylistic: tabs change
+   * only through user clicks, so an uncontrolled host loses nothing by not
+   * hearing about them — but this panel opens ITSELF (`openFile`,
+   * `openArtifact`, `openPlanDocument`, and the plan-key auto-open all expand
+   * a collapsed panel), and an embedding host that must react to those
+   * moments (widen a dock, make room for a streaming plan) has no other seam.
+   * Passing only this callback observes the panel without controlling it.
+   *
+   * In controlled mode this fires once per open/close REQUEST (the host may
+   * decline by not updating `open` — a later identical request re-fires); in
+   * uncontrolled mode it fires once per actual transition.
+   */
+  readonly onOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -81,7 +112,11 @@ export interface UseSessionPanelOptions {
 export interface SessionPanelController {
   /** The open-editor group store; subscribe with `useWorkspaceEditors`. */
   readonly editorsStore: WorkspaceEditorsStore;
-  /** Whether the panel is expanded (chat narrow) or collapsed to the chip. */
+  /**
+   * Whether the panel is expanded (chat narrow) or collapsed to the chip.
+   * In controlled mode ({@link UseSessionPanelOptions.open}) this mirrors
+   * the host's value.
+   */
   readonly isOpen: boolean;
   /** The active rail view id (`"files"`, `"search"`, or an injected facet). */
   readonly view: string;
@@ -149,9 +184,49 @@ export function useSessionPanel({
   hasChanges,
   planKey = null,
   defaultView = "files",
+  open,
+  defaultOpen = false,
+  onOpenChange,
 }: UseSessionPanelOptions): SessionPanelController {
   const editorsStore = useWorkspaceEditorsStoreRef();
-  const [isOpen, setIsOpen] = useState(false);
+
+  // Uncontrolled-by-default / controlled-when-`open`-is-provided (React's own
+  // value/defaultValue convention — presence of the value prop decides, so an
+  // observe-only host can pass just `onOpenChange`). Everything below reads
+  // the EFFECTIVE value: the render-adjust triggers (first write-back) and
+  // the returned controller must agree with the host's state, never a stale
+  // internal one.
+  const isControlled = open !== undefined;
+  const [internalIsOpen, setInternalIsOpen] = useState(defaultOpen);
+  const isOpen = isControlled ? open : internalIsOpen;
+
+  // Latest-ref idiom (see YamlEditor's onChangeRef): the host's callback and
+  // the mode/value mirrors live in refs so `requestOpenChange` — and every
+  // action callback built on it — stays referentially stable regardless of
+  // how the host authored `onOpenChange` (DD-010: an inline lambda must not
+  // churn the memoized controller and re-render the panel subtree).
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
+  const isControlledRef = useRef(isControlled);
+  isControlledRef.current = isControlled;
+  const isOpenRef = useRef(isOpen);
+  isOpenRef.current = isOpen;
+
+  // The single seam every open/close intent routes through — the chip
+  // toggle, file/artifact/plan opens, the surface's collapse affordance, and
+  // the plan-key auto-open. Uncontrolled: apply + notify (the ref is updated
+  // eagerly so two same-tick intents produce one notification). Controlled:
+  // notify only — the host owns the state, and the panel follows the `open`
+  // prop; the ref is NOT updated, so a declined request stays re-fireable.
+  const requestOpenChange = useCallback((next: boolean) => {
+    if (isOpenRef.current === next) return;
+    if (!isControlledRef.current) {
+      isOpenRef.current = next;
+      setInternalIsOpen(next);
+    }
+    onOpenChangeRef.current?.(next);
+  }, []);
+
   const [view, setViewState] = useState(defaultView);
 
   // Sticky explicit pick (rail click) — auto-switching yields to it until a
@@ -184,8 +259,8 @@ export function useSessionPanel({
 
   const openPlanDocument = useCallback(() => {
     editorsStore.openPinned(PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH);
-    setIsOpen(true);
-  }, [editorsStore]);
+    requestOpenChange(true);
+  }, [editorsStore, requestOpenChange]);
 
   // A new plan arrived (first plan, or a refinement superseding it) → open the
   // plan document tab, expanding a collapsed panel (see the planKey option doc
@@ -204,9 +279,15 @@ export function useSessionPanel({
     }
   }, [planKey, openPlanDocument]);
 
-  const openPanel = useCallback(() => setIsOpen(true), []);
+  const openPanel = useCallback(
+    () => requestOpenChange(true),
+    [requestOpenChange],
+  );
 
-  const closePanel = useCallback(() => setIsOpen(false), []);
+  const closePanel = useCallback(
+    () => requestOpenChange(false),
+    [requestOpenChange],
+  );
 
   const setView = useCallback((viewId: string) => {
     userPickedViewRef.current = true;
@@ -216,17 +297,17 @@ export function useSessionPanel({
   const openFile = useCallback(
     (entryId: string, path: string, options?: OpenFileOptions) => {
       editorsStore.openPreview(entryId, path, options);
-      setIsOpen(true);
+      requestOpenChange(true);
     },
-    [editorsStore],
+    [editorsStore, requestOpenChange],
   );
 
   const openArtifact = useCallback(
     (artifact: ExecutionArtifact) => {
       editorsStore.openPreview(ARTIFACT_DOCUMENT_ENTRY_ID, artifactKey(artifact));
-      setIsOpen(true);
+      requestOpenChange(true);
     },
-    [editorsStore],
+    [editorsStore, requestOpenChange],
   );
 
   const pinArtifact = useCallback(
