@@ -8,6 +8,9 @@
 
 name: ci.docs
 
+# `Lint & Build` is a required status check on main. ci.docs-noop.yaml reports
+# a passing twin on the PRs these path filters skip — its `paths-ignore` list
+# must mirror this `paths` list entry for entry; change both in one commit.
 on:
   pull_request:
     paths:
