@@ -52,6 +52,14 @@ type ApiResourceMetadata struct {
 	// - PUBLIC: Anyone can access (read). Write access still requires org membership.
 	// Default: config-driven per kind — blueprint kinds (marked
 	// defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
+	//
+	// Mutation contract: visibility is set at create and changed ONLY through
+	// the kind's UpdateVisibility RPC, where the visibility guards live
+	// (per-kind level support, default-instance rejection). A plain Update
+	// preserves the stored value — a request-carried level is ignored, never
+	// applied. Declarative clients that want a manifest's visibility to land
+	// on update must follow up with UpdateVisibility (the CLI and MCP apply
+	// surfaces do this automatically).
 	Visibility ApiResourceVisibility `protobuf:"varint,5,opt,name=visibility,proto3,enum=ai.stigmer.commons.apiresource.ApiResourceVisibility" json:"visibility,omitempty"`
 	// Key-value labels for organization and filtering.
 	Labels map[string]string `protobuf:"bytes,6,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`

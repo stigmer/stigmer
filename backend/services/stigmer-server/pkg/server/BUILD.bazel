@@ -1,8 +1,9 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "server",
     srcs = [
+        "registry_cors.go",
         "server.go",
         "temporal_manager.go",
     ],
@@ -100,4 +101,10 @@ go_library(
         "@io_temporal_go_sdk//log",
         "@io_temporal_go_sdk//worker",
     ],
+)
+
+go_test(
+    name = "server_test",
+    srcs = ["registry_cors_test.go"],
+    embed = [":server"],
 )
