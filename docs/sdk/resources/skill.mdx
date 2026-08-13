@@ -58,10 +58,12 @@ Skill skill = client.skills().get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 |--------|-------------|
 | [`get`](#get) | Get a single skill by ID. |
 | [`getArtifact`](#getartifact) | Download skill artifact from storage by its storage key. |
+| [`getArtifactDownloadUrl`](#getartifactdownloadurl) | Mint a URL for downloading a skill artifact over HTTP. |
 | [`getByReference`](#getbyreference) | Get a skill by API resource reference with version support. |
 | [`listVersions`](#listversions) | List version history for a skill. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an existing skill. |
 | [`delete`](#delete) | Delete a skill and all its versions. |
+| [`createArtifactUploadUrl`](#createartifactuploadurl) | Mint a short-lived, single-use upload URL for staging a skill artifact that exceeds the gRPC message-size cap (10MB). |
 | [`push`](#push) | Push a skill artifact. |
 | [`pushFromExecutionArtifact`](#pushfromexecutionartifact) | Push a skill from an execution artifact already in storage. |
 
@@ -138,6 +140,47 @@ GetArtifactResponse getArtifactResponse = client.skills().getArtifact(GetArtifac
 **Parameters**: [`GetArtifactRequest`](#getartifactrequest)
 
 **Returns**: [`GetArtifactResponse`](#getartifactresponse)
+
+### getArtifactDownloadUrl
+
+Mint a URL for downloading a skill artifact over HTTP.
+
+Preferred over getArtifact for anything that might exceed the gRPC message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill limit is deliverable. Callers should try this first and fall back to getArtifact against servers that predate it (UNIMPLEMENTED).
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const skillArtifactDownloadUrl = await stigmer.skill.getArtifactDownloadUrl({
+  artifactStorageKey: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+skillArtifactDownloadUrl, err := client.Skill.GetArtifactDownloadUrl(ctx, &stigmer.GetArtifactRequest{
+  ArtifactStorageKey: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+skill_artifact_download_url = client.skills.get_artifact_download_url(GetArtifactRequest(
+    artifact_storage_key="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SkillArtifactDownloadUrl skillArtifactDownloadUrl = client.skills().getArtifactDownloadUrl(GetArtifactRequest.builder()
+    .artifactStorageKey("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetArtifactRequest`](#getartifactrequest)
+
+**Returns**: [`SkillArtifactDownloadUrl`](#skillartifactdownloadurl)
 
 ### getByReference
 
@@ -323,6 +366,53 @@ Skill skill = client.skills().delete(id);
 
 **Returns**: [`Skill`](#skill)
 
+### createArtifactUploadUrl
+
+Mint a short-lived, single-use upload URL for staging a skill artifact that exceeds the gRPC message-size cap (10MB). Flow:
+
+1. createArtifactUploadUrl(org, size_bytes) → \{ url, artifact_upload_ref \} 2. HTTP PUT the ZIP bytes to url 3. push(PushSkillRequest\{ artifact_upload_ref \}) — same pipeline, validation, and versioning as an inline push
+
+The server refuses over-limit size_bytes here, before any bytes move.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const skillArtifactUploadUrl = await stigmer.skill.createArtifactUploadUrl({
+  org: "...",
+  sizeBytes: 0,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+skillArtifactUploadUrl, err := client.Skill.CreateArtifactUploadUrl(ctx, &stigmer.CreateSkillArtifactUploadUrlRequest{
+  Org:       "...",
+  SizeBytes: 0,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+skill_artifact_upload_url = client.skills.create_artifact_upload_url(CreateSkillArtifactUploadUrlRequest(
+    org="...",
+    size_bytes=0,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SkillArtifactUploadUrl skillArtifactUploadUrl = client.skills().createArtifactUploadUrl(CreateSkillArtifactUploadUrlRequest.builder()
+    .org("...")
+    .sizeBytes(0)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`CreateSkillArtifactUploadUrlRequest`](#createskillartifactuploadurlrequest)
+
+**Returns**: [`SkillArtifactUploadUrl`](#skillartifactuploadurl)
+
 ### push
 
 Push a skill artifact. Creates a skill if it does not exist, or creates a new version of an existing skill. The artifact must contain a SKILL.md file.
@@ -336,17 +426,19 @@ const skill = await stigmer.skill.push({
   tag: "...",
   gitProvenance: {},
   message: "...",
+  artifactUploadRef: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 skill, err := client.Skill.Push(ctx, &stigmer.PushSkillRequest{
-  Org:           "...",
-  Artifact:      "...",
-  Tag:           "...",
-  GitProvenance: &stigmer.GitProvenanceInput{},
-  Message:       "...",
+  Org:               "...",
+  Artifact:          "...",
+  Tag:               "...",
+  GitProvenance:     &stigmer.GitProvenanceInput{},
+  Message:           "...",
+  ArtifactUploadRef: "...",
 })
 ```
 </Tab>
@@ -358,6 +450,7 @@ skill = client.skills.push(PushSkillRequest(
     tag="...",
     git_provenance=None,
     message="...",
+    artifact_upload_ref="...",
 ))
 ```
 </Tab>
@@ -369,6 +462,7 @@ Skill skill = client.skills().push(PushSkillRequest.builder()
     .tag("...")
     .gitProvenance(null)
     .message("...")
+    .artifactUploadRef("...")
     .build());
 ```
 </Tab>
@@ -454,10 +548,34 @@ PushSkillRequest contains the skill artifact and metadata for upload.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns this skill.", required: true },
-    artifact: { type: "Uint8Array", description: "Skill artifact as a ZIP file (binary content).", required: true },
+    artifact: { type: "Uint8Array", description: "Skill artifact as a ZIP file (binary content)." },
     tag: { type: "string", description: "Optional tag to associate with this version." },
     gitProvenance: { type: "GitProvenanceInput", description: "Git provenance for this skill version." },
     message: { type: "string", description: "Optional human-readable message describing what changed in this version." },
+    artifactUploadRef: { type: "string", description: "Reference to an artifact staged via createArtifactUploadUrl()." },
+  }}
+/>
+
+### CreateSkillArtifactUploadUrlRequest
+
+CreateSkillArtifactUploadUrlRequest asks the server to mint a staging slot for a skill artifact that is too large to travel inline in PushSkillRequest.artifact (the gRPC message cap is 10MB; skills may be up to 100MB).
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that will own the skill (authorization scope — the caller needs the same can_create_skill permission that push requires).", required: true },
+    sizeBytes: { type: "number", description: "Declared size of the artifact ZIP in bytes." },
+  }}
+/>
+
+### SkillArtifactUploadUrl
+
+SkillArtifactUploadUrl is a short-lived, single-use capability for staging a skill artifact over HTTP.
+
+<TypeTable
+  type={{
+    url: { type: "string", description: "URL to PUT the artifact ZIP bytes to." },
+    artifactUploadRef: { type: "string", description: "Opaque reference to pass as PushSkillRequest.artifact_upload_ref after the PUT succeeds." },
+    ttlSeconds: { type: "number", description: "Time-to-live for the upload URL in seconds." },
   }}
 />
 
@@ -515,6 +633,18 @@ GetArtifactResponse contains the skill artifact content.
 <TypeTable
   type={{
     artifact: { type: "Uint8Array", description: "The skill artifact as a ZIP file (binary content)." },
+  }}
+/>
+
+### SkillArtifactDownloadUrl
+
+SkillArtifactDownloadUrl provides a URL for downloading a skill artifact over HTTP.
+
+<TypeTable
+  type={{
+    url: { type: "string", description: "URL to download the artifact ZIP via HTTP GET." },
+    ttlSeconds: { type: "number", description: "Time-to-live for the download URL in seconds." },
+    sizeBytes: { type: "number", description: "Size of the artifact ZIP in bytes." },
   }}
 />
 
