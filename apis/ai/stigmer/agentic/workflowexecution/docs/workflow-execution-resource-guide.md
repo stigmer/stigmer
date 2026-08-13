@@ -159,8 +159,9 @@ Execution-scoped environment variables. These override values from the WorkflowI
 
 **Merge priority (highest to lowest):**
 1. `runtime_env` (this field) — execution-specific overrides
-2. Environment values (from `WorkflowInstance.environment_ids`)
-3. Workflow defaults (from `Workflow.spec.env_spec`)
+2. Environment values (from `WorkflowInstance.environment_refs`, in order; a later ref wins)
+
+The merged result is filtered to the keys declared in `Workflow.spec.env` — the workflow env map is a declaration whitelist (name + `is_secret` + `optional`), never a value source. Undeclared keys are dropped; a missing required key logs a warning but does not fail the run.
 
 ```yaml
 spec:

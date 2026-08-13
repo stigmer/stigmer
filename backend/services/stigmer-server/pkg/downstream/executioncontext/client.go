@@ -53,9 +53,10 @@ func NewClient(conn *grpc.ClientConn) *Client {
 // ensuring all gRPC interceptors run before reaching the handler.
 //
 // Use case: During agent execution creation, the execution engine builds an
-// ExecutionContext with the fully-merged environment (agent defaults + environment_refs
-// + runtime_env) and persists it so the agent-runner can retrieve it without secrets
-// flowing through the Temporal workflow history.
+// ExecutionContext with the fully-merged environment (environment_refs values
+// overridden by runtime_env, filtered to the agent's declared env keys) and
+// persists it so the agent-runner can retrieve it without secrets flowing
+// through the Temporal workflow history.
 func (c *Client) Create(ctx context.Context, ec *executioncontextv1.ExecutionContext) (*executioncontextv1.ExecutionContext, error) {
 	log.Debug().
 		Str("execution_id", ec.GetSpec().GetExecutionId()).

@@ -94,8 +94,9 @@ export interface SharedAgentExecutionFields {
    *
    * Values are injected into the agent sandbox for this execution only
    * and deleted when the execution completes. They take the highest
-   * merge priority, overriding both Environment values and agent
-   * defaults.
+   * merge priority, overriding Environment values bound via the
+   * instance. Keys must be declared in the agent's env declarations
+   * (a whitelist, not a value source) or they are dropped.
    *
    * Use this for B2B integrations where per-call credentials are
    * injected at runtime, or for one-off secrets that should not persist.

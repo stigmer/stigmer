@@ -70,7 +70,7 @@ Optional overrides for this specific execution. When not specified, defaults are
 
 | Field | Type | Description |
 |---|---|---|
-| `runtime_env` | `map<string, ExecutionValue>` | Execution-scoped secrets and environment variables. Available only for this execution. Deleted when execution completes. Highest merge priority: Agent defaults < Environment < `runtime_env`. |
+| `runtime_env` | `map<string, ExecutionValue>` | Execution-scoped secrets and environment variables. Available only for this execution. Deleted when execution completes. Highest merge priority: Environment values (via instance `environment_refs`) < `runtime_env`. Keys must be declared in `Agent.spec.env` (a declaration whitelist, not a value source) or they are dropped. |
 
 Use `runtime_env` for B2B integrations where secrets must be injected at runtime per-caller, not stored in the agent configuration.
 

@@ -13,10 +13,13 @@ package ai.stigmer.agentic.session.v1;
  *
  * &#64;internal
  * Authentication: The provisioner resolves GITHUB_TOKEN from the merged
- * environment (Agent defaults &lt; Environment &lt; ExecutionContext.runtime_env)
- * and injects it into the clone URL. The token is consumed by provisioning
- * and stripped before forwarding to the agent runtime (see AD-05).
- * SSH key authentication is a future enhancement.
+ * environment (instance environment_refs &lt; ExecutionContext.runtime_env). As a
+ * workspace-provisioning key it is re-injected past the Agent.spec.env
+ * declared-key filter when the session has git_repo entries, with a fallback
+ * to the caller's personal environment (see the agentexecution controller's
+ * executionContextBuilder). The token is injected into the clone URL, consumed
+ * by provisioning, and stripped before forwarding to the agent runtime (see
+ * AD-05). SSH key authentication is a future enhancement.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.session.v1.GitRepoSource}
@@ -522,10 +525,13 @@ private static final long serialVersionUID = 0L;
    *
    * &#64;internal
    * Authentication: The provisioner resolves GITHUB_TOKEN from the merged
-   * environment (Agent defaults &lt; Environment &lt; ExecutionContext.runtime_env)
-   * and injects it into the clone URL. The token is consumed by provisioning
-   * and stripped before forwarding to the agent runtime (see AD-05).
-   * SSH key authentication is a future enhancement.
+   * environment (instance environment_refs &lt; ExecutionContext.runtime_env). As a
+   * workspace-provisioning key it is re-injected past the Agent.spec.env
+   * declared-key filter when the session has git_repo entries, with a fallback
+   * to the caller's personal environment (see the agentexecution controller's
+   * executionContextBuilder). The token is injected into the clone URL, consumed
+   * by provisioning, and stripped before forwarding to the agent runtime (see
+   * AD-05). SSH key authentication is a future enhancement.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.session.v1.GitRepoSource}
