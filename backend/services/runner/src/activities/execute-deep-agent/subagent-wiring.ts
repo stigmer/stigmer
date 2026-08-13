@@ -110,19 +110,26 @@ export function buildSubAgentMiddleware(
   stack.push(createToolTruncationMiddleware(options.toolTruncation));
 
   if (options.approvalGate) {
-    // captureIgnored (DD-19): a sub-agent flows gitignored writes into CAS iff a
-    // CAS observer backs its filesystem backend (compileSubagents passes this as
+    // captureIgnored (DD-19): a sub-agent flows gitignored writes — and, since
+    // issue #303, non-secret CAS-owned deletes — into CAS iff a CAS observer
+    // backs its filesystem backend (compileSubagents passes this as
     // `!!casObserver`). When true, inherit the parent gate verbatim so its
-    // captureIgnored + recordBlockedSecret feed the SAME shared observer that
-    // backs the sub-agent's writes. When false (default; non-capture mode, or no
-    // observer), force CAS routing off and drop the blocked-secret sink so
-    // gitignored paths stay on the interrupt gate — a flowed gitignored edit on an
-    // unobserved backend would apply unobserved, unreviewable bytes. Sub-agent
-    // git-tracked edits are always captured by the backend-agnostic boundary diff.
+    // captureIgnored + recordBlockedSecret + captureDeleteBefore feed the SAME
+    // shared observer that backs the sub-agent's writes. When false (default;
+    // non-capture mode, or no observer), force CAS routing off and drop both
+    // observer sinks so gitignored paths stay on the interrupt gate — a flowed
+    // gitignored edit on an unobserved backend would apply unobserved,
+    // unreviewable bytes. Sub-agent git-tracked edits are always captured by
+    // the backend-agnostic boundary diff.
     stack.push(createApprovalGateMiddleware(
       options.captureIgnored
         ? options.approvalGate
-        : { ...options.approvalGate, captureIgnored: false, recordBlockedSecret: undefined },
+        : {
+            ...options.approvalGate,
+            captureIgnored: false,
+            recordBlockedSecret: undefined,
+            captureDeleteBefore: undefined,
+          },
     ));
   }
 

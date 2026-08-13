@@ -88,10 +88,11 @@ export interface ApprovalGateConfig {
    * `write`/`delete` whose target path is capturable (git-tracked — see
    * {@link isCapturablePath}) FLOWS instead of interrupting: the edit is reviewed
    * post-hoc as a captured `FileChangeSet`, not gated before it runs. A gitignored
-   * path is NOT capturable, so it stays gated (the git substrate cannot capture or
-   * revert it) — the exact twin of the Cursor hook's `__stigmer_is_gitignored`
-   * allow-branch. `shell` and MCP tools are never bypassed by this flag. Off (the
-   * default) keeps the classic true-pause gate for every mutation.
+   * path is NOT capturable by the git substrate, so it stays gated unless
+   * {@link captureIgnored} routes it into CAS capture — the exact twin of the
+   * Cursor hook's `__stigmer_is_gitignored` allow-branch. `shell` and MCP tools
+   * are never bypassed by this flag. Off (the default) keeps the classic
+   * true-pause gate for every mutation.
    */
   readonly fileCaptureMode?: boolean;
   /**
@@ -107,12 +108,12 @@ export interface ApprovalGateConfig {
    * instead of the interrupt gate, applying the DD-E secret gate. When off, a
    * gitignored path stays on the interrupt gate exactly as before.
    *
-   * TRUE ONLY FOR THE PARENT GATE. Sub-agents build their own plain filesystem
-   * backends, which the CAS observer does not wrap, so flowing their gitignored
-   * edits would apply unobserved, unreviewable bytes. `buildSubAgentMiddleware`
-   * therefore forces this to false for sub-agent gates — it must NOT be inherited
-   * as true. (Sub-agent git-tracked edits are still captured by the turn-boundary
-   * git diff, which is backend-agnostic.)
+   * True only for gates whose backend a CAS observer wraps: the parent gate
+   * always (setup.ts), and — since DD-19 — sub-agent gates too, because
+   * `compileSubagents` gives every sub-agent a CAS-observing backend wired to
+   * the SAME shared observer and `buildSubAgentMiddleware` then inherits this
+   * config verbatim. A gate over an UNOBSERVED backend must keep this false:
+   * flowing its gitignored edits would apply unobserved, unreviewable bytes.
    */
   readonly captureIgnored?: boolean;
   /**
@@ -122,6 +123,20 @@ export interface ApprovalGateConfig {
    * secret; the CONTENT never leaves the workspace). Absent ⇒ nothing recorded.
    */
   readonly recordBlockedSecret?: (rawPath: string) => void;
+  /**
+   * Capture a file's pre-delete bytes into the CAS observer so a CAS-owned
+   * (gitignored / non-git) DELETE can flow under {@link captureIgnored} and be
+   * reviewed post-hoc exactly like a write (issue #303) — the delete twin of the
+   * backend's `recordBefore` write observation. A delete is the one mutation the
+   * backend cannot observe (deepagents has no backend delete method to wrap), so
+   * the gate captures at authorization time instead: the file's bytes are still
+   * on disk here, and the turn boundary then reads after=null and authors a
+   * `FILE_CHANGE_KIND_DELETE` with the same discard-restores contract.
+   *
+   * Absent ⇒ deletes keep today's interrupt-gate behavior (fail-closed: a delete
+   * we cannot capture cannot be reviewed, so it must be approved up front).
+   */
+  readonly captureDeleteBefore?: (rawPath: string) => Promise<void>;
   /**
    * Unattended approval mode (ExecutionConfig.approval_mode = UNATTENDED):
    * the creating surface — a messaging channel, a guest share — has no
@@ -213,22 +228,39 @@ export function createApprovalGateMiddleware(
             emitExecutionReceipt(config, toolCall, serverSlug, category, "auto_approve", "file_capture");
             return await handler(request);
           }
-          // Gitignored path. Only the PARENT gate (captureIgnored) routes it into
-          // CAS capture; sub-agent gates fall through to the interrupt gate below,
-          // exactly as before (their backends are not CAS-observed).
+          // Gitignored / non-git path: a gate whose backend the shared CAS
+          // observer wraps (captureIgnored — the parent gate, and sub-agent
+          // gates since DD-19) routes it into CAS capture; any other gate falls
+          // through to the interrupt gate below.
           if (config.captureIgnored) {
-            if (isSecretLikePath(path)) {
-              // DD-E fail-closed: a secret-like gitignored edit is NEVER applied
-              // and NEVER captured. Record it so the turn boundary authors a
-              // DIFF_UNREVIEWABLE entry (blocking approval); nothing is written.
-              config.recordBlockedSecret?.(path);
-              return secretBlockToolMessage(toolName, path, toolCall.id);
-            }
             if (category === "write") {
+              if (isSecretLikePath(path)) {
+                // DD-E fail-closed: a secret-like gitignored WRITE is NEVER
+                // applied and NEVER captured — its content must not surface
+                // anywhere, approval prompt included. Record it so the turn
+                // boundary authors a DIFF_UNREVIEWABLE entry (blocking
+                // approval); nothing is written.
+                config.recordBlockedSecret?.(path);
+                return secretBlockToolMessage(toolName, path, toolCall.id);
+              }
               // Non-secret gitignored write/edit: flows (apply-then-review). The
               // CAS observer already holds its before-bytes and the turn boundary
-              // captures it into CAS. (A gitignored delete has no backend capture
-              // path, so it falls through to the interrupt gate.)
+              // captures it into CAS.
+              emitExecutionReceipt(config, toolCall, serverSlug, category, "auto_approve", "file_capture");
+              return await handler(request);
+            }
+            if (category === "delete" && config.captureDeleteBefore && !isSecretLikePath(path)) {
+              // Non-secret CAS-owned delete: capture the before-bytes NOW (the
+              // one moment they still exist on disk — no backend delete method
+              // to observe them), then flow. The turn boundary reads after=null
+              // and authors a reviewable, restorable DELETE entry (issue #303).
+              //
+              // A SECRET-LIKE delete deliberately falls through to the interrupt
+              // gate instead: unlike a write, its args expose no secret content,
+              // so a human may safely approve it — but its before-bytes must
+              // never enter CAS, so it cannot flow. (This also aligns the twins:
+              // the Cursor hook routes secret deletes to its deny-gate.)
+              await config.captureDeleteBefore(path);
               emitExecutionReceipt(config, toolCall, serverSlug, category, "auto_approve", "file_capture");
               return await handler(request);
             }
@@ -244,8 +276,10 @@ export function createApprovalGateMiddleware(
       // continues) exactly like the capture-mode secret block — a secret write is
       // never applied or persisted in ANY mode. Placed AFTER the capture block so
       // capture-mode paths stay byte-identical (a capturable write already flowed;
-      // a captureIgnored gitignored secret is already blocked). Deletes carry no
-      // content and stay on the deny-gate. recordBlockedSecret is a no-op unless a
+      // a captureIgnored gitignored secret write is already blocked). A delete
+      // carries no content, so a secret-like delete needs no hard-block: it stays
+      // on the interrupt gate below, where a human may still approve it (its
+      // bytes are simply never captured). recordBlockedSecret is a no-op unless a
       // turn boundary reads it (the git-no-storage case, where it authors a
       // content-less DIFF_UNREVIEWABLE).
       if (!serverSlug && category === "write") {

@@ -21,7 +21,9 @@
  *
  * deepagents mutates only via `write` (create/overwrite) and `edit` (modify);
  * there is no backend delete/rename, so this observes CREATE and MODIFY. A
- * gitignored delete can only arrive via shell, which stays on the approval gate.
+ * delete-category tool consequently cannot be observed here — the approval gate
+ * records its before-bytes at authorization time instead (`captureDeleteBefore`,
+ * issue #303). A delete via shell (`rm`) stays on the approval gate as always.
  *
  * @since File-Change HITL Redesign (Phase 3 — CAS deep-agent wiring); sub-agent
  * gitignored capture parity (Session 26, DD-19); shell restore (issue #248)
