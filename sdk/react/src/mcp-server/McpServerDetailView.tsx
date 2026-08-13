@@ -27,6 +27,9 @@ import type { OAuthConnectPhase } from "./useMcpServerOAuthConnect.js";
 import { StdioSandboxNotice } from "./StdioSandboxNotice.js";
 import { OAuthRequiredNotice } from "./OAuthRequiredNotice.js";
 import { VendorApprovalBlockedNotice } from "./VendorApprovalBlockedNotice.js";
+import { DefinitionDriftNotice } from "./DefinitionDriftNotice.js";
+import { useMcpServerDefinitionDrift } from "./useMcpServerDefinitionDrift.js";
+import { buildRefreshInput } from "./internal/definitionDrift.js";
 import { useDisconnectOAuth } from "./useDisconnectOAuth.js";
 import { useOrgOAuthApp } from "./useOrgOAuthApp.js";
 import { OAuthAppForm } from "./OAuthAppForm.js";
@@ -226,6 +229,50 @@ export function McpServerDetailView({
   const credentials = useMcpServerCredentials(activeOrg ?? org, mcpServer ?? null);
   const connection = useMcpServerConnect();
   const oauth = useMcpServerOAuthConnect();
+
+  // Definition drift is only checked for editable servers: the paired
+  // refresh writes to the resource, so read-only viewers (e.g. anyone
+  // browsing another org's marketplace row) have nothing to act on.
+  const { drift: definitionDrift } = useMcpServerDefinitionDrift(
+    editable ? (mcpServer ?? null) : null,
+  );
+  const [isRefreshingDefinition, setIsRefreshingDefinition] = useState(false);
+  const handleDefinitionRefresh = useCallback(async () => {
+    if (!mcpServer?.metadata?.id || !definitionDrift) return;
+    setIsRefreshingDefinition(true);
+    try {
+      const updated = await updateMcpServer(
+        buildRefreshInput(mcpServer, definitionDrift.template),
+      );
+      onResourceUpdated?.(updated);
+      // The update RPC does not re-run discovery (only apply does), so
+      // reconnect explicitly — the refreshed transport/auth configuration
+      // is exactly what discovery needs to be retried against.
+      const envKeys = Object.keys(updated.spec?.env ?? {});
+      await connection.connect(
+        updated.metadata!.id,
+        activeOrg ?? org,
+        undefined,
+        envKeys,
+      );
+    } catch {
+      // Update errors surface through useUpdateMcpServer's error state;
+      // a failed re-discovery lands in connection.error next to the
+      // Connect button. Either way the page stays usable.
+    } finally {
+      setIsRefreshingDefinition(false);
+      refetch();
+    }
+  }, [
+    mcpServer,
+    definitionDrift,
+    updateMcpServer,
+    onResourceUpdated,
+    connection,
+    activeOrg,
+    org,
+    refetch,
+  ]);
   const disconnectOAuth = useDisconnectOAuth();
   const orgOAuthApp = useOrgOAuthApp(
     mcpServer?.metadata?.id ?? null,
@@ -588,6 +635,12 @@ export function McpServerDetailView({
       {/* scrollTarget: guided tours/demos bring the connect flow into view
           (see IdentityTransportStep's "mcp-transport" for the convention). */}
       <Section title="Connection" scrollTarget="mcp-connection">
+        <DefinitionDriftNotice
+          drift={definitionDrift}
+          onRefresh={handleDefinitionRefresh}
+          isRefreshing={isRefreshingDefinition}
+          className="stg:mb-3"
+        />
         <StdioSandboxNotice serverType={spec?.serverType} className="stg:mb-3" />
         <OAuthRequiredNotice oauthOnly={spec?.auth?.oauthOnly} className="stg:mb-3" />
         <ConnectBar
