@@ -217,12 +217,6 @@ test.describe("Workflow context menus and keyboard shortcuts (T11)", () => {
     page,
     testMultiKindWorkflow,
   }) => {
-    // Live-confirmed product bug: undo restores the MODEL (the inspector
-    // rebinds to the deleted node, the history entry is consumed) but the
-    // canvas node never re-renders — the assertion below is correct and
-    // ready; un-fixme when the canvas derivation picks up restored nodes.
-    test.fixme(true, "undo restores model but not the canvas node — stigmer/stigmer#588");
-
     await navigateToVisualEditor(
       page,
       testMultiKindWorkflow.org,
@@ -238,16 +232,39 @@ test.describe("Workflow context menus and keyboard shortcuts (T11)", () => {
       timeout: 5_000,
     });
 
-    // Undo via the toolbar button — the Cmd+Z shortcut is gated on focus
-    // being INSIDE the canvas container (useGraphHistory), and React
-    // Flow's drag handler prevents default on node mousedown, so pointer
-    // interactions never move focus there. Keyboard undo after a
-    // pointer-driven delete is therefore unreachable without tabbing —
-    // a keyboard-a11y gap noted in the oss#571 wrap-up; the button is
-    // the discoverable affordance either way.
     const undoButton = page.getByRole("button", { name: "Undo" });
     await expect(undoButton).toBeEnabled();
     await undoButton.click();
+
+    await expect(getCanvasNode(page, "init_vars")).toBeAttached({
+      timeout: 5_000,
+    });
+  });
+
+  test("Cmd/Ctrl+Z restores a deleted node after pointer interactions", async ({
+    page,
+    testMultiKindWorkflow,
+  }) => {
+    // Pins the oss#588 focus fix: canvas pointerdown now moves focus
+    // into the container, so the keyboard shortcut is reachable after a
+    // pointer-driven delete (previously it required tabbing into the
+    // canvas — the shortcut the Undo tooltip advertises did nothing).
+    await navigateToVisualEditor(
+      page,
+      testMultiKindWorkflow.org,
+      testMultiKindWorkflow.slug,
+    );
+    await assertNoErrorBoundary(page);
+
+    const node = await getCanvasNode(page, "init_vars");
+    await node.click();
+    await page.keyboard.press("Delete");
+
+    await expect(getCanvasNode(page, "init_vars")).not.toBeAttached({
+      timeout: 5_000,
+    });
+
+    await page.keyboard.press("ControlOrMeta+z");
 
     await expect(getCanvasNode(page, "init_vars")).toBeAttached({
       timeout: 5_000,

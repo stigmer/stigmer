@@ -87,7 +87,7 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
   layoutEngine,
 }: WorkflowCanvasEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvas = useWorkflowCanvas(yaml, containerRef, { layoutEngine: layoutEngine ?? undefined });
+  const canvas = useWorkflowCanvas(yaml, { layoutEngine: layoutEngine ?? undefined });
   const [paletteCollapsed, setPaletteCollapsed] = useState(false);
   const togglePalette = useCallback(() => setPaletteCollapsed((p) => !p), []);
 
@@ -161,7 +161,34 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
     copySelection: canvas.copySelection,
     pasteAtCenter: canvas.pasteAtCenter,
     cutSelection: canvas.cutSelection,
+    undo: canvas.undo,
+    redo: canvas.redo,
   });
+
+  // All canvas shortcuts are gated on focus being inside the container,
+  // but React Flow's pane prevents default on mousedown, so pane clicks
+  // never move focus into it on their own — without this, Cmd+Z (etc.)
+  // after a pane interaction silently does nothing (oss#588). Focusing
+  // unconditionally also commits-and-blurs an inspector field when the
+  // user clicks back into the canvas. Scoped to the canvas column so
+  // palette and inspector clicks keep their native focus flow; when the
+  // press lands on a real focusable (node, toolbar button, picker
+  // input), the default mousedown focus takes over right after.
+  const handleCanvasPointerDownCapture = useCallback(() => {
+    containerRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  // Deleting the focused node drops DOM focus to <body> when React Flow
+  // unmounts the element, disarming every canvas shortcut at exactly the
+  // moment the user reaches for Cmd+Z (oss#588). Return focus to the
+  // container after any node deletion so undo stays reachable.
+  const handleNodesDelete = useCallback(
+    (deleted: Parameters<typeof canvas.onNodesDelete>[0]) => {
+      canvas.onNodesDelete(deleted);
+      containerRef.current?.focus({ preventScroll: true });
+    },
+    [canvas.onNodesDelete],
+  );
 
   useEffect(() => {
     onDirtyChange?.(canvas.isDirty);
@@ -239,10 +266,10 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
 
   const handleContextMenuDeleteNode = useCallback(
     (nodeId: string) => {
-      canvas.onNodesDelete([{ id: nodeId } as import("@xyflow/react").Node]);
+      handleNodesDelete([{ id: nodeId } as import("@xyflow/react").Node]);
       setContextMenu(null);
     },
-    [canvas.onNodesDelete],
+    [handleNodesDelete],
   );
 
   const handleContextMenuDuplicateNode = useCallback(
@@ -371,6 +398,9 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
   const handleContextMenuDeleteSelection = useCallback(() => {
     canvas.deleteSelection();
     setContextMenu(null);
+    // Same focus restoration as handleNodesDelete — the selection may
+    // include the focused node element.
+    containerRef.current?.focus({ preventScroll: true });
   }, [canvas.deleteSelection]);
 
   const handleSelectionContextMenu = useCallback(
@@ -475,9 +505,9 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
 
   const handleDeleteNode = useCallback(
     (nodeId: string) => {
-      canvas.onNodesDelete([{ id: nodeId } as import("@xyflow/react").Node]);
+      handleNodesDelete([{ id: nodeId } as import("@xyflow/react").Node]);
     },
-    [canvas.onNodesDelete],
+    [handleNodesDelete],
   );
 
   const handleDuplicateNode = useCallback(
@@ -580,7 +610,7 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
 
       {showPalette && !paletteCollapsed && <WorkflowTaskPalette />}
 
-      <div className="stg:relative stg:flex-1">
+      <div className="stg:relative stg:flex-1" onPointerDownCapture={handleCanvasPointerDownCapture}>
         {showPalette && (
           <PaletteToggle
             collapsed={paletteCollapsed}
@@ -613,7 +643,7 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
               isValidConnection={canvas.isValidConnection}
               onDrop={canvas.onDrop}
               onDragOver={canvas.onDragOver}
-              onNodesDelete={canvas.onNodesDelete}
+              onNodesDelete={handleNodesDelete}
               onEdgesDelete={canvas.onEdgesDelete}
               onNodeContextMenu={handleNodeContextMenu}
               onEdgeContextMenu={handleEdgeContextMenu}

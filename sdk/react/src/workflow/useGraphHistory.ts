@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import type { RefObject } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { WorkflowGraphModel } from "./workflow-graph-model.js";
 import type { GraphCommand } from "./graph-commands.js";
 import { GraphHistory } from "./graph-commands.js";
@@ -12,27 +11,34 @@ export interface UseGraphHistoryReturn {
   readonly canUndo: boolean;
   readonly canRedo: boolean;
   readonly dispatch: (command: GraphCommand) => WorkflowGraphModel;
-  readonly undo: () => void;
-  readonly redo: () => void;
+  readonly undo: () => WorkflowGraphModel | null;
+  readonly redo: () => WorkflowGraphModel | null;
   readonly reset: (model: WorkflowGraphModel) => void;
 }
 
 /**
  * React wrapper around {@link GraphHistory} providing undo/redo state
- * management and keyboard shortcut binding.
+ * management.
  *
- * Keyboard shortcuts (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z) are only active
- * when the referenced container element contains the active focus target,
- * preventing conflicts with other editors on the page.
+ * Every mutation (`dispatch`, `undo`, `redo`) returns the resulting model
+ * SYNCHRONOUSLY so callers can derive dependent state (React Flow
+ * elements) in the same event handler. `currentModel` is a render-time
+ * snapshot — inside a callback it may be stale, so consumers reacting to
+ * a mutation must use the returned model, never `currentModel`
+ * (oss#588 was exactly that stale read).
+ *
+ * This hook deliberately owns NO DOM listeners: it cannot sync the canvas,
+ * so letting it mutate the model from a keyboard shortcut would desync
+ * model and canvas. Keyboard undo/redo binding lives with the other
+ * canvas shortcuts in `useCanvasKeyboardShortcuts`, wired to the
+ * orchestrator's syncing wrappers (`useWorkflowCanvas.undo`/`redo`).
  *
  * @param initialModel - The starting graph model (from YAML parse).
- * @param containerRef - Ref to the DOM element that scopes keyboard shortcuts.
  *
  * @since T15 Batch 2 (Node Authoring)
  */
 export function useGraphHistory(
   initialModel: WorkflowGraphModel | null,
-  containerRef: RefObject<HTMLDivElement | null>,
 ): UseGraphHistoryReturn {
   const historyRef = useRef<GraphHistory | null>(null);
   const [model, setModel] = useState<WorkflowGraphModel | null>(null);
@@ -61,20 +67,22 @@ export function useGraphHistory(
     [forceUpdate],
   );
 
-  const undo = useCallback(() => {
+  const undo = useCallback((): WorkflowGraphModel | null => {
     const history = historyRef.current;
-    if (!history?.canUndo) return;
+    if (!history?.canUndo) return null;
     const next = history.undo();
     setModel(next);
     forceUpdate();
+    return next;
   }, [forceUpdate]);
 
-  const redo = useCallback(() => {
+  const redo = useCallback((): WorkflowGraphModel | null => {
     const history = historyRef.current;
-    if (!history?.canRedo) return;
+    if (!history?.canRedo) return null;
     const next = history.redo();
     setModel(next);
     forceUpdate();
+    return next;
   }, [forceUpdate]);
 
   const reset = useCallback(
@@ -89,33 +97,6 @@ export function useGraphHistory(
     },
     [forceUpdate],
   );
-
-  // Keyboard shortcuts: Ctrl/Cmd+Z (undo), Ctrl/Cmd+Shift+Z (redo)
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    function handleKeyDown(e: KeyboardEvent) {
-      if (!container?.contains(document.activeElement) && document.activeElement !== container) {
-        return;
-      }
-
-      const isMod = e.metaKey || e.ctrlKey;
-      if (!isMod || e.key.toLowerCase() !== "z") return;
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (e.shiftKey) {
-        redo();
-      } else {
-        undo();
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown, true);
-    return () => document.removeEventListener("keydown", handleKeyDown, true);
-  }, [containerRef, undo, redo]);
 
   const canUndo = historyRef.current?.canUndo ?? false;
   const canRedo = historyRef.current?.canRedo ?? false;
