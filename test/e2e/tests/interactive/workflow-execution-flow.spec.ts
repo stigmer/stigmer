@@ -70,8 +70,8 @@ test.describe("Workflow execution flow", () => {
 
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
 
-      await expect(page.getByText("step-one")).toBeVisible();
-      await expect(page.getByText("step-two")).toBeVisible();
+      await expect(page.getByText("step_one")).toBeVisible();
+      await expect(page.getByText("step_two")).toBeVisible();
     } finally {
       await execution.cleanup();
     }

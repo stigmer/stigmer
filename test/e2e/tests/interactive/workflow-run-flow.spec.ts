@@ -70,7 +70,7 @@ test.describe("Workflow execution via Run button", () => {
     await expect(timeline).toBeVisible();
     await verifyTimelineHasEvents(page, 1);
 
-    await expect(page.getByText("step-one")).toBeVisible();
+    await expect(page.getByText("step_one")).toBeVisible();
   });
 
   test("pause a running execution then resume to completion", async ({

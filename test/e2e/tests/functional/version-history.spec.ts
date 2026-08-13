@@ -31,7 +31,7 @@ test.describe("Version history timeline", () => {
       ...baseInput,
       tasks: [
         {
-          name: "step-one",
+          name: "step_one",
           kind: WorkflowTaskKind.set_vars,
           taskConfig: { variables: { greeting: "v1" } },
           export: { as: "${ . }" },
@@ -46,7 +46,7 @@ test.describe("Version history timeline", () => {
         ...baseInput,
         tasks: [
           {
-            name: "step-one",
+            name: "step_one",
             kind: WorkflowTaskKind.set_vars,
             taskConfig: { variables: { greeting: "v2-changed" } },
             export: { as: "${ . }" },
@@ -89,7 +89,7 @@ test.describe("Version history timeline", () => {
       document: { dsl: "1.0.0", namespace: org, name, version: "1.0.0" },
       tasks: [
         {
-          name: "only-step",
+          name: "only_step",
           kind: WorkflowTaskKind.set_vars,
           taskConfig: { variables: { value: "constant" } },
           export: { as: "${ . }" },

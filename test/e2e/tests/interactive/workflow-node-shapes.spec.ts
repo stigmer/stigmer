@@ -4,6 +4,7 @@ import {
   navigateToVisualEditor,
   getCanvasNode,
   getCanvasNodeByKind,
+  getEditorCanvas,
   getNodeVisualClass,
 } from "../../helpers/workflow-canvas";
 
@@ -19,7 +20,9 @@ test.describe("Workflow node visual classes (T01)", () => {
     );
     await assertNoErrorBoundary(page);
 
-    const nodesWithVisualClass = page.locator("[data-visual-class]");
+    // Scoped: the Overview tabpanel mounts a second canvas whose nodes
+    // would inflate a page-wide count.
+    const nodesWithVisualClass = getEditorCanvas(page).locator("[data-visual-class]");
     await expect(nodesWithVisualClass.first()).toBeVisible({ timeout: 10_000 });
 
     const count = await nodesWithVisualClass.count();
@@ -106,7 +109,7 @@ test.describe("Workflow node visual classes (T01)", () => {
       testMultiKindWorkflow.slug,
     );
 
-    const startNode = page.locator(
+    const startNode = getEditorCanvas(page).locator(
       '[data-task-kind="workflow_task_kind_unspecified"][data-visual-class="terminal-pill"]',
     );
     await expect(startNode.first()).toBeVisible({ timeout: 10_000 });
