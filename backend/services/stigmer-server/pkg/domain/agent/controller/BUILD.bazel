@@ -31,6 +31,7 @@ go_library(
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
         "//backend/services/stigmer-server/pkg/domain/agent/defaultagent",
+        "//backend/services/stigmer-server/pkg/domain/agentinstance/defaultinstance",
         "//backend/services/stigmer-server/pkg/downstream/agentinstance",
         "//backend/services/stigmer-server/pkg/query/search/extractor",
         "@com_github_rs_zerolog//log",

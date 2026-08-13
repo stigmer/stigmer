@@ -202,6 +202,36 @@ describe("Workflow conformance — CRUD & identity", () => {
   });
 });
 
+describe("Workflow instance conformance — default-instance visibility guard", () => {
+  it("updateVisibility on the workflow's default instance rejects entirely (FailedPrecondition)", async () => {
+    // The workflow twin of the agent-side pin: default instances are
+    // system-managed, their access always follows the parent workflow, so
+    // both editions reject any visibility update on them (cloud:
+    // label-keyed guard in ValidateVisibilityUpdateStep; OSS:
+    // label+pointer-keyed RejectDefaultInstanceVisibilityUpdate step,
+    // stigmer#556). The rejection text is part of the cross-edition
+    // contract.
+    const { org } = await target.provisionTenancy();
+    const created = await createWorkflow(org, uniqueName("wf"));
+    const defaultInstanceId = created.status?.defaultInstanceId;
+    expect(defaultInstanceId, "create provisions a default instance").toMatch(/^win_[0-9a-z]+$/);
+
+    const err = await expectGrpcCode(
+      () =>
+        clients.workflowInstanceCommand.updateVisibility({
+          resourceId: defaultInstanceId!,
+          visibility: ApiResourceVisibility.visibility_org,
+        }),
+      Code.FailedPrecondition,
+      "update visibility of the workflow's default instance",
+    );
+    expect(err.message, "both editions emit the same rejection text").toContain(
+      "Default instances do not have their own visibility - access always follows " +
+        "the parent blueprint. Change the blueprint's visibility instead.",
+    );
+  });
+});
+
 describe("Workflow conformance — version history", () => {
   it("apply creates on first call and updates on second (same name)", async () => {
     const { org } = await target.provisionTenancy();

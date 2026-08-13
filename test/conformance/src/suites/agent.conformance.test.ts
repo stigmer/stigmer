@@ -316,11 +316,11 @@ describe("Agent instance conformance — visibility level validation", () => {
   // proto config (cloud: ValidateVisibilityStep / ValidateVisibilityUpdateStep;
   // OSS: the shared Go steps, stigmer#489), emitting the same message.
   //
-  // The pins use a STANDALONE instance, not the agent's auto-created default:
-  // default instances are system-managed and the cloud edition rejects ANY
-  // visibility update on them (FailedPrecondition) before the level check is
-  // reached, so only a standalone instance exercises the level contract on
-  // both editions.
+  // The LEVEL pins use a STANDALONE instance, not the agent's auto-created
+  // default: default instances are system-managed and both editions reject
+  // ANY visibility update on them (FailedPrecondition, stigmer#556) before
+  // the level check is reached — that rejection has its own pin below — so
+  // only a standalone instance exercises the level contract.
   const AGENT_INSTANCE_API_VERSION = "agentic.stigmer.ai/v1";
   const AGENT_INSTANCE_KIND = "AgentInstance";
 
@@ -377,6 +377,33 @@ describe("Agent instance conformance — visibility level validation", () => {
     const stored = await clients.agentInstanceQuery.get({ value: instance.metadata!.id });
     expect(stored.metadata?.visibility, "the rejected update must not change the stored level").toBe(
       ApiResourceVisibility.visibility_private,
+    );
+  });
+
+  it("updateVisibility on the agent's default instance rejects entirely (FailedPrecondition)", async () => {
+    // Default instances are system-managed: their access always follows the
+    // parent agent, so both editions reject any visibility update on them
+    // (cloud: label-keyed guard in ValidateVisibilityUpdateStep; OSS:
+    // label+pointer-keyed RejectDefaultInstanceVisibilityUpdate step,
+    // stigmer#556). The FailedPrecondition wins over the level check, and
+    // the rejection text is part of the cross-edition contract.
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgent(org, uniqueName("agent"));
+    const defaultInstanceId = agent.status?.defaultInstanceId;
+    expect(defaultInstanceId, "create provisions a default instance").toMatch(/^ain_[0-9a-z]+$/);
+
+    const err = await expectGrpcCode(
+      () =>
+        clients.agentInstanceCommand.updateVisibility({
+          resourceId: defaultInstanceId!,
+          visibility: ApiResourceVisibility.visibility_org,
+        }),
+      Code.FailedPrecondition,
+      "update visibility of the agent's default instance",
+    );
+    expect(err.message, "both editions emit the same rejection text").toContain(
+      "Default instances do not have their own visibility - access always follows " +
+        "the parent blueprint. Change the blueprint's visibility instead.",
     );
   });
 });

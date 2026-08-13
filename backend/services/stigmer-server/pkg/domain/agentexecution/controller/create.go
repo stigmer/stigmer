@@ -10,7 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -22,6 +21,7 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/defaultagent"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/defaultinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
@@ -344,29 +344,8 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 		Str("agent_id", agentID).
 		Msg("Agent missing default instance, creating one")
 
-	// Use agent's name (matching Java implementation)
-	// Java: String agentSlug = agent.getMetadata().getName();
-	agentSlug := agent.GetMetadata().GetName()
-	agentOrg := agent.GetMetadata().GetOrg()
-
-	instanceMetadataBuilder := &apiresource.ApiResourceMetadata{
-		Name: agentSlug + "-default",
-		Org:  agentOrg, // All resources belong to an org
-	}
-
-	instanceRequest := &agentinstancev1.AgentInstance{
-		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "AgentInstance",
-		Metadata:   instanceMetadataBuilder,
-		Spec: &agentinstancev1.AgentInstanceSpec{
-			AgentId:     agentID,
-			Description: "Default instance (auto-created, no custom configuration)",
-		},
-	}
-
-	log.Debug().
-		Str("agent_id", agentID).
-		Msg("Built default instance request")
+	instanceRequest := defaultinstance.BuildRequest(
+		agentID, agent.GetMetadata().GetName(), agent.GetMetadata().GetOrg())
 
 	// 4. Create instance via downstream client (in-process, system credentials)
 	createdInstance, err := s.agentInstanceClient.CreateAsSystem(ctx.Context(), instanceRequest)

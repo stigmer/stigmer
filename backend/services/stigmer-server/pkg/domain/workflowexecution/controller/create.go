@@ -8,7 +8,6 @@ import (
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
@@ -17,6 +16,7 @@ import (
 	wftemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
 	wfactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowinstance/defaultinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 	"google.golang.org/protobuf/proto"
@@ -217,7 +217,7 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 	// 3. Default instance ID not set - check if instance exists by slug
 	// This handles the case where instance was created but workflow status update failed
 	workflowSlug := workflow.GetMetadata().GetName()
-	defaultInstanceSlug := workflowSlug + "-default"
+	defaultInstanceSlug := defaultinstance.Slug(workflowSlug)
 
 	log.Debug().
 		Str("workflow_id", workflowID).
@@ -279,27 +279,8 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 		Str("workflow_id", workflowID).
 		Msg("Default instance not found, creating new one")
 
-	workflowOrg := workflow.GetMetadata().GetOrg()
-
-	instanceMetadata := &apiresource.ApiResourceMetadata{
-		Name: defaultInstanceSlug,
-		Org:  workflowOrg, // All resources belong to an org
-	}
-
-	instanceRequest := &workflowinstancev1.WorkflowInstance{
-		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "WorkflowInstance",
-		Metadata:   instanceMetadata,
-		Spec: &workflowinstancev1.WorkflowInstanceSpec{
-			WorkflowId:  workflowID,
-			Description: "Default instance (auto-created, no custom configuration)",
-		},
-	}
-
-	log.Debug().
-		Str("workflow_id", workflowID).
-		Str("instance_name", instanceMetadata.Name).
-		Msg("Built default instance request")
+	instanceRequest := defaultinstance.BuildRequest(
+		workflowID, workflowSlug, workflow.GetMetadata().GetOrg())
 
 	// 6. Create instance via downstream gRPC (system context)
 	createdInstance, err := s.workflowInstanceClient.CreateAsSystem(ctx.Context(), instanceRequest)

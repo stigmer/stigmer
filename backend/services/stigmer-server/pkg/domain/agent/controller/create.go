@@ -6,12 +6,11 @@ import (
 
 	"github.com/rs/zerolog/log"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/defaultinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 )
@@ -114,20 +113,7 @@ func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv
 		Str("org", agentOrg).
 		Msg("Creating default instance for agent")
 
-	defaultInstanceName := agentSlug + "-default"
-
-	instanceRequest := &agentinstancev1.AgentInstance{
-		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "AgentInstance",
-		Metadata: &apiresource.ApiResourceMetadata{
-			Name: defaultInstanceName,
-			Org:  agentOrg,
-		},
-		Spec: &agentinstancev1.AgentInstanceSpec{
-			AgentId:     agentID,
-			Description: "Default instance (auto-created, no custom configuration)",
-		},
-	}
+	instanceRequest := defaultinstance.BuildRequest(agentID, agentSlug, agentOrg)
 
 	// Use Apply (not Create) for idempotency. Agent delete now cascades the
 	// default instance, so this normally routes to CREATE; the UPDATE route

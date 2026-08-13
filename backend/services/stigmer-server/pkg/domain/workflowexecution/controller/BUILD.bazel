@@ -54,6 +54,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows",
+        "//backend/services/stigmer-server/pkg/domain/workflowinstance/defaultinstance",
         "//backend/services/stigmer-server/pkg/downstream/executioncontext",
         "//backend/services/stigmer-server/pkg/downstream/workflowinstance",
         "//backend/services/stigmer-server/pkg/query/search/extractor",

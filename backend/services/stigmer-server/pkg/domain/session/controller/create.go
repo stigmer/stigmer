@@ -7,15 +7,14 @@ import (
 
 	"github.com/rs/zerolog/log"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/defaultagent"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/defaultinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
@@ -140,21 +139,8 @@ func (s *resolveDefaultAgentInstanceStep) Execute(ctx *pipeline.RequestContext[*
 	if defaultInstanceID == "" {
 		log.Info().Str("agent_id", agentID).Msg("Default instance missing, creating one")
 
-		agentSlug := defaultAgent.GetMetadata().GetName()
-		agentOrg := defaultAgent.GetMetadata().GetOrg()
-
-		instanceRequest := &agentinstancev1.AgentInstance{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "AgentInstance",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name: agentSlug + "-default",
-				Org:  agentOrg,
-			},
-			Spec: &agentinstancev1.AgentInstanceSpec{
-				AgentId:     agentID,
-				Description: "Default instance (auto-created, no custom configuration)",
-			},
-		}
+		instanceRequest := defaultinstance.BuildRequest(
+			agentID, defaultAgent.GetMetadata().GetName(), defaultAgent.GetMetadata().GetOrg())
 
 		createdInstance, createErr := s.agentInstanceClient.CreateAsSystem(ctx.Context(), instanceRequest)
 		if createErr != nil {
