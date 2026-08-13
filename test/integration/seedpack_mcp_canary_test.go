@@ -295,12 +295,17 @@ func TestCanary_ApiKey_GoogleMaps(t *testing.T) {
 			Org:  "test-org",
 		},
 		Spec: &mcpserverv1.McpServerSpec{
-			Description: "Canary test: Google Maps (custom header API key)",
+			Description: "Canary test: Google Maps (API key)",
+			// Mirrors seedpack/mcp-servers/google-maps.yaml — the canary's
+			// value is proving the shipped seedpack shape still connects.
+			// This test had drifted behind the seedpack onto Google's
+			// retired v1alpha endpoint (caught by the lane's first real
+			// run, oss#565); keep the two in lockstep.
 			ServerType: &mcpserverv1.McpServerSpec_Http{
 				Http: &mcpserverv1.HttpServerConfig{
-					Url: "https://mcp.googleapis.com/v1alpha/maps:streamGenerateContent",
+					Url: "https://mapstools.googleapis.com/mcp",
 					Headers: map[string]string{
-						"X-Goog-Api-Key": "${GOOGLE_MAPS_API_KEY}",
+						"Authorization": "Bearer ${GOOGLE_MAPS_API_KEY}",
 					},
 				},
 			},
