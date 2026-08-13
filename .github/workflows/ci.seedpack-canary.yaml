@@ -1,10 +1,17 @@
 # Live-tests marketplace MCP servers: transport reachability plus canary calls
 # with real vendor credentials fetched from Planton at run time.
 #
-# The suites are full-harness integration tests (test/integration TestMain
-# boots the stigmer-service JAR, Temporal, and the unified runner), so this
-# lane builds the JAR from stigmer-cloud first — the ci.integration-canary
-# two-job shape. Without a JAR the suite exits 0 having run nothing (oss#565).
+# Two independent test jobs, deliberately decoupled (oss#569):
+#   - seedpack-transport: credential-free HTTP probes from the seedpack
+#     module — no harness, no JAR, runs in parallel with the JAR build.
+#   - seedpack-canary: full-harness integration tests (test/integration
+#     TestMain boots the stigmer-service JAR, Temporal, and the unified
+#     runner), so it builds the JAR from stigmer-cloud first — the
+#     ci.integration-canary two-job shape. Without a JAR the suite exits 0
+#     having run nothing (oss#565).
+# Decoupled so a vendor outage (transport red) still yields canary signal
+# and vice versa — as sequential steps, the first failure hid the second
+# suite entirely.
 
 name: ci.seedpack-canary
 
@@ -37,6 +44,46 @@ env:
   PLANTON_CLI_VERSION: v0.0.34-cli.20260805.0
 
 jobs:
+  seedpack-transport:
+    name: Seedpack Transport Reachability
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@v1.13.0
+
+      - name: Run transport reachability tests
+        run: make test-seedpack-transport
+
+      - name: Upload transport test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seedpack-transport-test-results
+          path: seedpack/.test-output-transport/
+          retention-days: 30
+          if-no-files-found: ignore
+          # The output dir is dot-prefixed and upload-artifact@v4 excludes
+          # hidden paths by default — without this the artifact is silently
+          # empty (found on the integration-canary lane's first real run, #323).
+          include-hidden-files: true
+
+      - name: Publish transport test report
+        if: always() && hashFiles('seedpack/.test-output-transport/junit.xml') != ''
+        uses: dorny/test-reporter@v3
+        with:
+          name: Seedpack Transport Test Report
+          path: seedpack/.test-output-transport/junit.xml
+          reporter: java-junit
+
   build-service-jar:
     name: Build Service JAR
     runs-on: ubuntu-latest
@@ -177,44 +224,37 @@ jobs:
           fetch LINEAR_ACCESS_TOKEN mcp-canary-linear-api-key
           fetch GOOGLE_MAPS_API_KEY mcp-canary-google-maps-api-key
 
-      - name: Run transport reachability tests
-        env:
-          STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
-        run: make test-seedpack-transport
-
       - name: Run canary tests
         env:
           STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
         run: make test-seedpack-canary
 
-      - name: Upload seedpack test results
+      - name: Upload seedpack canary test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: seedpack-test-results
-          path: |
-            test/integration/.test-output-seedpack-transport/
-            test/integration/.test-output-seedpack-canary/
+          name: seedpack-canary-test-results
+          path: test/integration/.test-output-seedpack-canary/
           retention-days: 30
           if-no-files-found: ignore
-          # The output dirs are dot-prefixed and upload-artifact@v4 excludes
+          # The output dir is dot-prefixed and upload-artifact@v4 excludes
           # hidden paths by default — without this the artifact is silently
           # empty (found on the integration-canary lane's first real run, #323).
           include-hidden-files: true
 
-      - name: Publish seedpack test report
-        if: always() && hashFiles('test/integration/.test-output-seedpack-*/junit.xml') != ''
+      - name: Publish seedpack canary test report
+        if: always() && hashFiles('test/integration/.test-output-seedpack-canary/junit.xml') != ''
         uses: dorny/test-reporter@v3
         with:
-          name: Seedpack Test Report
-          path: test/integration/.test-output-seedpack-*/junit.xml
+          name: Seedpack Canary Test Report
+          path: test/integration/.test-output-seedpack-canary/junit.xml
           reporter: java-junit
 
   # Scheduled runs are unattended; manual dispatches are watched (#477).
   # Shared file-or-comment mechanics live in notify-failure.yaml.
   notify-failure:
     name: File Seedpack Canary Failure Issue
-    needs: [build-service-jar, seedpack-canary]
+    needs: [seedpack-transport, build-service-jar, seedpack-canary]
     if: failure() && github.event_name == 'schedule'
     permissions:
       issues: write

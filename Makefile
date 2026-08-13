@@ -493,8 +493,27 @@ benchmark-cursor-modes: ## Compare Cursor local vs cloud runtime latency and tok
 test-seedpack-static: ## Run seedpack static validation tests (fast, no network)
 	cd seedpack && go test -v -count=1 ./...
 
+# Runs the seedpack module with the `transport` build tag, which compiles in
+# the live HTTP probes (seedpack/transport_test.go) alongside the static
+# validation tests — no harness, no service JAR (the probes moved out of
+# test/integration's full-stack TestMain, oss#569). The static tests riding
+# along cost sub-second and fail with a clearer message than a probe would
+# when a YAML itself is broken. gotestsum for the junit.xml the nightly
+# ci.seedpack-canary lane's test report consumes.
 test-seedpack-transport: ## Run seedpack transport reachability tests (network required, nightly)
-	$(MAKE) -C test/integration test-seedpack-transport
+	@command -v gotestsum >/dev/null 2>&1 || { \
+		echo "error: gotestsum not found"; \
+		echo "  install: go install gotest.tools/gotestsum@latest"; \
+		exit 1; \
+	}
+	@mkdir -p seedpack/.test-output-transport
+	cd seedpack && gotestsum \
+		--junitfile .test-output-transport/junit.xml \
+		--junitfile-testsuite-name short \
+		--jsonfile .test-output-transport/test-output.json \
+		--format testname \
+		--packages ./... \
+		-- -tags transport -timeout 120s -count=1
 
 test-seedpack-canary: ## Run seedpack canary tests with real credentials (nightly)
 	$(MAKE) -C test/integration test-seedpack-canary
