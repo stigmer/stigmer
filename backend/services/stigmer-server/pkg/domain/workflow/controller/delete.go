@@ -15,7 +15,8 @@ import (
 // 1. ValidateProto - Validate proto field constraints (workflow ID wrapper)
 // 2. ExtractResourceId - Extract ID from WorkflowId.Value wrapper
 // 3. LoadExistingForDelete - Load workflow from database (stores in context)
-// 4. DeleteResource - Delete workflow from database
+// 4. CascadeDeleteInstances - Delete ALL the workflow's instances (see delete_cascade.go)
+// 5. DeleteResource - Delete workflow from database
 func (c *WorkflowController) Delete(ctx context.Context, workflowId *workflowv1.WorkflowId) (*workflowv1.Workflow, error) {
 	// Create request context with the ID wrapper
 	reqCtx := pipeline.NewRequestContext(ctx, workflowId)
@@ -41,7 +42,8 @@ func (c *WorkflowController) buildDeletePipeline() *pipeline.Pipeline[*workflowv
 		AddStep(steps.NewValidateProtoStep[*workflowv1.WorkflowId]()).                                      // 1. Validate field constraints
 		AddStep(steps.NewExtractResourceIdStep[*workflowv1.WorkflowId]()).                                  // 2. Extract ID from wrapper
 		AddStep(steps.NewLoadExistingForDeleteStep[*workflowv1.WorkflowId, *workflowv1.Workflow](c.store)). // 3. Load workflow
-		AddStep(steps.NewDeleteResourceStep[*workflowv1.WorkflowId](c.store)).                              // 4. Delete from database
-		AddStep(steps.NewDeleteSearchIndexStep[*workflowv1.WorkflowId](c.store)).                           // 5. Remove from search index
+		AddStep(newCascadeDeleteInstancesStep(c.store)).                                                    // 4. Cascade: instances before parent
+		AddStep(steps.NewDeleteResourceStep[*workflowv1.WorkflowId](c.store)).                              // 5. Delete from database
+		AddStep(steps.NewDeleteSearchIndexStep[*workflowv1.WorkflowId](c.store)).                           // 6. Remove from search index
 		Build()
 }

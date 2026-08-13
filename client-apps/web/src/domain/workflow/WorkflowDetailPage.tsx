@@ -176,7 +176,9 @@ export function WorkflowDetailPageInner({
     const confirmed = await confirm({
       title: `Delete ${resourceName}?`,
       description:
-        "This action cannot be undone. The workflow and its configuration will be permanently removed.",
+        "This permanently removes the workflow and all of its instances. " +
+        "Past executions are preserved in the execution history. " +
+        "This action cannot be undone.",
       confirmLabel: "Delete",
       variant: "destructive",
     });

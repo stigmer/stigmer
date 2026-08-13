@@ -296,7 +296,8 @@ export function WorkflowInstanceDetailPanel({
             ) : (
               <div className="stg:space-y-2 stg:rounded-md stg:border stg:border-destructive/30 stg:p-3 stg:bg-destructive/5">
                 <p className="stg:text-xs stg:text-destructive stg:font-medium">
-                  This will permanently delete this instance and all its execution history.
+                  This permanently removes the instance and its environment bindings. Executions
+                  already run against it are preserved in the workflow&apos;s execution history.
                   This action cannot be undone.
                 </p>
                 {deleteError && (
