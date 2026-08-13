@@ -161,11 +161,13 @@ message CursorAccountView {
   // Every stored member key joined with roster and spend facts.
   repeated CursorMemberKeyView key_views = 3;
 
-  // Deprecated: superseded by members_without_keys_views, which carries
-  // the same roster entries with their spend joined server-side. Still
-  // populated (protos are published; older clients may read it); current
-  // clients must read the views field.
-  repeated CursorTeamMember members_without_keys = 4 [deprecated = true];
+  // Field 4 was `repeated CursorTeamMember members_without_keys`, the
+  // pre-spend-join flat list superseded by members_without_keys_views.
+  // Removed once its last released reader (the v3.3.0 console) was ten
+  // releases stale (stigmer#313); the number and name stay reserved so
+  // neither can ever be reused with different semantics.
+  reserved 4;
+  reserved "members_without_keys";
 
   // Active roster members (role != "removed") for whom no member key is
   // stored — the operator's "coverage gap" list, each joined with the

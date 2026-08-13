@@ -137,16 +137,8 @@ function scenarView() {
         }),
       }),
     ],
-    // The server populates both the deprecated flat list and the
-    // spend-joined views; the console reads only the views.
-    membersWithoutKeys: [
-      create(CursorTeamMemberSchema, {
-        userId: "u2",
-        email: "uncovered@scenar.ai",
-        name: "Uncovered U",
-        role: "member",
-      }),
-    ],
+    // The console reads the spend-joined views (field 4's flat list is
+    // gone from the proto — stigmer#313).
     membersWithoutKeysViews: [
       create(CursorTeamMemberViewSchema, {
         member: create(CursorTeamMemberSchema, {
