@@ -70,7 +70,7 @@ func runMCPTSGeneration(schemaDir, outputDir string) error {
 		resourceSchemaDir := filepath.Join(schemaDir, rel)
 		resource := filepath.Base(rel)
 
-		gen, err := NewGenerator(resourceSchemaDir, outputDir, resource, "")
+		gen, err := NewGenerator(resourceSchemaDir, outputDir, resource)
 		if err != nil {
 			return fmt.Errorf("load schemas for %s: %w", rel, err)
 		}

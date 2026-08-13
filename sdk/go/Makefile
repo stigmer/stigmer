@@ -72,7 +72,6 @@ codegen-clients: ## Generate SDK client code from service schemas (Stage 2)
 	@rm -rf internal/gen
 	@mkdir -p internal/gen
 	@cd ../.. && go run ./tools/codegen/generator/ \
-		--comprehensive \
 		--schema-dir tools/codegen/schemas \
 		--output-dir sdk/go/internal/gen \
 		--target sdk-client

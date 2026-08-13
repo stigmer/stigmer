@@ -22,13 +22,12 @@ import (
 // schemas.
 //
 // Deliberately NOT scanned:
-//   - sdk/go/gen — stale on main from long before the strip landed
-//     (regenerating it sweeps in unrelated schema-evolution drift); its
-//     reconciliation is tracked in oss#496 and it joins this gate when it
-//     is regenerated.
 //   - sdk/typescript/src/gen — its only "@internal" occurrences are
 //     intentional hand-authored TSDoc visibility markers hardcoded in the
 //     generator template (sdk_client_ts.go), not proto-derived text.
+//
+// (sdk/go/gen was excluded here while it sat stale; oss#496 resolved that
+// by deleting the directory and its producer target outright.)
 func TestNoInternalSectionsLeak(t *testing.T) {
 	repoRoot := repoRootDir(t)
 

@@ -33,7 +33,6 @@ codegen-clients: ## Generate SDK client code from service schemas (Stage 2)
 	@rm -rf $(SDK_GEN_DIR)
 	@mkdir -p $(SDK_GEN_DIR)
 	@cd ../.. && go run ./tools/codegen/generator/ \
-		--comprehensive \
 		--schema-dir tools/codegen/schemas \
 		--output-dir sdk/java/$(SDK_GEN_DIR) \
 		--target sdk-client-java

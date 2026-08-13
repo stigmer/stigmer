@@ -12,7 +12,6 @@ codegen-clients: ## Generate SDK client code from service schemas
 	@rm -rf src/gen
 	@mkdir -p src/gen
 	@cd ../.. && go run ./tools/codegen/generator/ \
-		--comprehensive \
 		--schema-dir tools/codegen/schemas \
 		--output-dir sdk/typescript/src/gen \
 		--target sdk-client-ts
