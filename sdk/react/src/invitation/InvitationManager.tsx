@@ -18,6 +18,7 @@ import { InvitationCreatedAlert } from "./InvitationCreatedAlert.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { RoleSelector } from "../iam-policy/RoleSelector.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -399,7 +400,7 @@ function InvitationRow({
   onCancelRevoke: () => void;
   onRevoked: () => void;
 }) {
-  const [copied, setCopied] = useState(false);
+  const { copy, copied } = useCopyFeedback();
 
   const id = invitation.metadata?.id ?? "";
   const label = invitation.spec?.label || invitation.metadata?.name || "Unnamed invite";
@@ -411,15 +412,9 @@ function InvitationRow({
   const expiresAt = invitation.spec?.expiresAt;
   const isActive = state === InvitationState.active;
 
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(buildInviteUrl(token));
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // silently fail — copy is a convenience, not critical
-    }
-  }, [token, buildInviteUrl]);
+  const handleCopy = useCallback(() => {
+    void copy(buildInviteUrl(token));
+  }, [copy, token, buildInviteUrl]);
 
   if (isRevoking) {
     return (

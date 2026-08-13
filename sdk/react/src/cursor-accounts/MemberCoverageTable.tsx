@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { cn } from "@stigmer/theme";
 import {
   CursorMemberKeyState,
@@ -420,21 +420,10 @@ function KeyStatusBadge({
  * would join the operator's own Cursor account to the team.
  */
 function CopyInviteButton({ inviteLink }: { readonly inviteLink: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(inviteLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard unavailable (permissions, non-secure context) — the
-      // section description still points at the Cursor dashboard.
-    }
-  }, [inviteLink]);
+  const { copy, copied } = useCopyFeedback();
 
   return (
-    <Button size="sm" variant="outline" onClick={() => void handleCopy()}>
+    <Button size="sm" variant="outline" onClick={() => void copy(inviteLink)}>
       {copied ? "Copied" : "Copy invite"}
     </Button>
   );

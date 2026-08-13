@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo } from "react";
 import { toast } from "../feedback/toast.js";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
 export interface UseCopyResourceReturn {
   /** Copy arbitrary text to the clipboard with toast feedback. */
@@ -17,9 +18,10 @@ export interface UseCopyResourceReturn {
 /**
  * Clipboard helper for resource detail pages.
  *
- * Wraps `navigator.clipboard.writeText` with toast feedback so every
- * copy action is confirmed visually (Nielsen heuristic #1 — visibility
- * of system status). Falls back to a hidden textarea for older browsers.
+ * Wraps the shared copy behavior (`useCopyFeedback`) with toast feedback so
+ * every copy action is confirmed visually (Nielsen heuristic #1 — visibility
+ * of system status). A rejected write (insecure context, denied permission)
+ * toasts an error instead of claiming a copy that didn't happen.
  *
  * @example
  * ```tsx
@@ -31,15 +33,18 @@ export interface UseCopyResourceReturn {
  * ```
  */
 export function useCopyResource(): UseCopyResourceReturn {
-  const copy = useCallback(async (text: string, label: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success(`${label} copied`);
-    } catch {
-      fallbackCopy(text);
-      toast.success(`${label} copied`);
-    }
-  }, []);
+  const { copy: copyText } = useCopyFeedback();
+
+  const copy = useCallback(
+    async (text: string, label: string) => {
+      if (await copyText(text)) {
+        toast.success(`${label} copied`);
+      } else {
+        toast.error(`Couldn't copy ${label}`);
+      }
+    },
+    [copyText],
+  );
 
   const copyId = useCallback(
     (id: string) => copy(id, "ID"),
@@ -60,15 +65,4 @@ export function useCopyResource(): UseCopyResourceReturn {
     () => ({ copy, copyId, copySlug, copyQualifiedSlug }),
     [copy, copyId, copySlug, copyQualifiedSlug],
   );
-}
-
-function fallbackCopy(text: string): void {
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.style.position = "fixed";
-  textarea.style.opacity = "0";
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand("copy");
-  document.body.removeChild(textarea);
 }

@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef } from "react";
 import { cn } from "@stigmer/theme";
+import { selectElementText } from "../internal/select-element-text.js";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
 /** Props for {@link PlatformClientSecretAlert}. */
 export interface PlatformClientSecretAlertProps {
@@ -16,8 +18,6 @@ export interface PlatformClientSecretAlertProps {
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
-
-const COPIED_FEEDBACK_MS = 2000;
 
 /**
  * One-time reveal component displayed after a platform client is
@@ -50,34 +50,6 @@ export function PlatformClientSecretAlert({
   onDismiss,
   className,
 }: PlatformClientSecretAlertProps) {
-  const [copiedField, setCopiedField] = useState<
-    "id" | "secret" | null
-  >(null);
-
-  const handleCopy = useCallback(
-    async (value: string, field: "id" | "secret") => {
-      try {
-        await navigator.clipboard.writeText(value);
-        setCopiedField(field);
-        setTimeout(() => setCopiedField(null), COPIED_FEEDBACK_MS);
-      } catch {
-        const el = document.getElementById(
-          field === "secret"
-            ? "stgm-pc-secret-reveal"
-            : "stgm-pc-client-id-reveal",
-        );
-        if (el) {
-          const selection = window.getSelection();
-          const range = document.createRange();
-          range.selectNodeContents(el);
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-        }
-      }
-    },
-    [],
-  );
-
   const title =
     context === "created"
       ? "Platform client created"
@@ -117,26 +89,12 @@ export function PlatformClientSecretAlert({
           id="stgm-pc-client-id-reveal"
           label="Client ID"
           value={clientId}
-          copied={copiedField === "id"}
-          onCopy={() => handleCopy(clientId, "id")}
         />
         <CopyableField
           id="stgm-pc-secret-reveal"
           label="Client secret"
           value={clientSecret}
-          copied={copiedField === "secret"}
-          onCopy={() => handleCopy(clientSecret, "secret")}
         />
-      </div>
-
-      <div
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-        className="stg:sr-only"
-      >
-        {copiedField === "id" && "Client ID copied to clipboard"}
-        {copiedField === "secret" && "Client secret copied to clipboard"}
       </div>
     </div>
   );
@@ -150,15 +108,23 @@ function CopyableField({
   id,
   label,
   value,
-  copied,
-  onCopy,
 }: {
   id: string;
   label: string;
   value: string;
-  copied: boolean;
-  onCopy: () => void;
 }) {
+  // Each field owns its feedback: the copied flag and the select-text
+  // fallback belong to the markup they describe, so two fields never
+  // share (and race on) one parent-level "which field copied" state.
+  const { copy, copied } = useCopyFeedback();
+  const revealRef = useRef<HTMLElement>(null);
+
+  const handleCopy = useCallback(async () => {
+    if (await copy(value)) return;
+    // Rejected write: select the revealed value so the user can copy manually.
+    if (revealRef.current) selectElementText(revealRef.current);
+  }, [copy, value]);
+
   return (
     <div>
       <span className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
@@ -166,6 +132,7 @@ function CopyableField({
       </span>
       <div className="stg:mt-0.5 stg:flex stg:items-center stg:gap-2">
         <code
+          ref={revealRef}
           id={id}
           className={cn(
             "stg:min-w-0 stg:flex-1 stg:select-all stg:truncate stg:rounded-md",
@@ -177,7 +144,7 @@ function CopyableField({
         </code>
         <button
           type="button"
-          onClick={onCopy}
+          onClick={() => void handleCopy()}
           aria-label={`Copy ${label}`}
           className={cn(
             "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
@@ -188,6 +155,15 @@ function CopyableField({
           {copied ? <CheckIcon /> : <CopyIcon />}
           {copied ? "Copied" : "Copy"}
         </button>
+      </div>
+
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="stg:sr-only"
+      >
+        {copied && `${label} copied to clipboard`}
       </div>
     </div>
   );

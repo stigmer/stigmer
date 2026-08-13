@@ -12,8 +12,7 @@ import {
   useApplyResource,
   type ApplyResourceResult,
 } from "../library/useApplyResource.js";
-
-const COPIED_FEEDBACK_MS = 2000;
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
 /** Options for {@link useArtifactInspection}. */
 export interface UseArtifactInspectionOptions {
@@ -198,14 +197,11 @@ export function useArtifactInspection(
 
   // --- Copy -----------------------------------------------------------------
 
-  const [copied, setCopied] = useState(false);
+  const { copy: copyToClipboard, copied } = useCopyFeedback();
   const copy = useCallback(() => {
     if (!content) return;
-    void navigator.clipboard.writeText(content).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
-    });
-  }, [content]);
+    void copyToClipboard(content);
+  }, [content, copyToClipboard]);
 
   return useMemo(
     () => ({

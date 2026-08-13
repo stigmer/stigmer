@@ -3,15 +3,14 @@
 // Editor-area document rendering one workflow Artifact resource's content.
 // Domain: workflow (the Artifact-resource counterpart of execution/ArtifactDocument).
 
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { cn } from "@stigmer/theme";
 import { ArtifactFileContent } from "../execution/ArtifactFileContent.js";
 import { formatArtifactSize } from "../execution/artifact-utils.js";
 import { useArtifactContentById } from "../execution/useArtifactContentById.js";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { useWorkflowArtifactDownload } from "./useWorkflowArtifactDownload.js";
-
-const COPIED_FEEDBACK_MS = 2000;
 
 /** Props for {@link WorkflowArtifactDocument}. */
 export interface WorkflowArtifactDocumentProps {
@@ -78,14 +77,11 @@ export function WorkflowArtifactDocument({
 
   const { download, isDownloading } = useWorkflowArtifactDownload();
 
-  const [copied, setCopied] = useState(false);
+  const { copy: copyToClipboard, copied } = useCopyFeedback();
   const copy = useCallback(() => {
     if (!content) return;
-    void navigator.clipboard.writeText(content).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
-    });
-  }, [content]);
+    void copyToClipboard(content);
+  }, [content, copyToClipboard]);
 
   const showCopy = content !== null;
 

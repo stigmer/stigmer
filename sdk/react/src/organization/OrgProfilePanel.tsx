@@ -15,6 +15,7 @@ import { useUpdateOrganization } from "./useUpdateOrganization.js";
 import { useIdentityProviderList } from "../identity-provider/useIdentityProviderList.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -454,14 +455,7 @@ function ReadOnlyField({
   value: string;
   mono?: boolean;
 }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(value).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
-  }, [value]);
+  const { copy, copied } = useCopyFeedback();
 
   if (!value) return null;
 
@@ -481,7 +475,7 @@ function ReadOnlyField({
         </span>
         <button
           type="button"
-          onClick={handleCopy}
+          onClick={() => void copy(value)}
           className={cn(
             "stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[0.6rem]",
             "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",

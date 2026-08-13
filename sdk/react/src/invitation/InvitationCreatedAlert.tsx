@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef } from "react";
 import { cn } from "@stigmer/theme";
+import { selectElementText } from "../internal/select-element-text.js";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -47,24 +49,14 @@ export function InvitationCreatedAlert({
   onDismiss,
   className,
 }: InvitationCreatedAlertProps) {
-  const [copied, setCopied] = useState(false);
+  const { copy, copied } = useCopyFeedback();
+  const revealRef = useRef<HTMLElement>(null);
 
   const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(inviteUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      const el = document.getElementById("stgm-invite-url-reveal");
-      if (el) {
-        const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(el);
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-      }
-    }
-  }, [inviteUrl]);
+    if (await copy(inviteUrl)) return;
+    // Rejected write: select the revealed URL so the user can copy manually.
+    if (revealRef.current) selectElementText(revealRef.current);
+  }, [copy, inviteUrl]);
 
   return (
     <div
@@ -99,6 +91,7 @@ export function InvitationCreatedAlert({
 
       <div className="stg:flex stg:items-center stg:gap-2">
         <code
+          ref={revealRef}
           id="stgm-invite-url-reveal"
           className={cn(
             "stg:min-w-0 stg:flex-1 stg:select-all stg:truncate stg:rounded-md",

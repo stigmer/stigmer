@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 import { WorkspaceWriteBackPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 import { cn } from "@stigmer/theme";
 import { DiffSummary } from "../version-history/DiffSummary.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { TruncatedText } from "../internal/truncated-text.js";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import {
   parseDiffStatSummary,
   trailingDiffStatLine,
@@ -202,9 +203,6 @@ function PullRequestRow({ url, number }: { url: string; number: number }) {
 // Branch row — info + sibling hover-revealed copy control
 // ---------------------------------------------------------------------------
 
-/** How long the copy control shows its "copied" confirmation. */
-const COPIED_FEEDBACK_MS = 2000;
-
 function BranchRow({
   branchName,
   baseBranch,
@@ -212,27 +210,10 @@ function BranchRow({
   branchName: string;
   baseBranch: string;
 }) {
-  const [copied, setCopied] = useState(false);
-
-  // Clear the pending feedback timer on unmount so a resolved copy never
-  // sets state on an unmounted component (same guard as useArtifactCopy).
-  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    return () => {
-      if (copiedTimer.current !== null) clearTimeout(copiedTimer.current);
-    };
-  }, []);
-
+  const { copy, copied } = useCopyFeedback();
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(branchName).then(() => {
-      setCopied(true);
-      if (copiedTimer.current !== null) clearTimeout(copiedTimer.current);
-      copiedTimer.current = setTimeout(
-        () => setCopied(false),
-        COPIED_FEEDBACK_MS,
-      );
-    });
-  }, [branchName]);
+    void copy(branchName);
+  }, [copy, branchName]);
 
   return (
     <div className="stg:group stg:flex stg:items-stretch">

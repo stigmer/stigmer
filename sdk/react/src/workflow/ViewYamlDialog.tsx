@@ -1,9 +1,10 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import { cn } from "@stigmer/theme";
 import type { WorkflowGraphModel } from "./workflow-graph-model.js";
 import { taskToYaml } from "./inspector/task-to-yaml.js";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
 /** Props for {@link ViewYamlDialog}. */
 export interface ViewYamlDialogProps {
@@ -32,7 +33,7 @@ export const ViewYamlDialog = memo(function ViewYamlDialog({
   onClose,
 }: ViewYamlDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [copied, setCopied] = useState(false);
+  const { copy, copied } = useCopyFeedback();
 
   const node = nodeId && graph
     ? graph.nodes.find((n) => n.id === nodeId) ?? null
@@ -58,25 +59,9 @@ export const ViewYamlDialog = memo(function ViewYamlDialog({
     return () => dialog.removeEventListener("close", handleClose);
   }, [onClose]);
 
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(yaml);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Fallback for environments without clipboard API
-      const textarea = document.createElement("textarea");
-      textarea.value = yaml;
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  }, [yaml]);
+  const handleCopy = useCallback(() => {
+    void copy(yaml);
+  }, [copy, yaml]);
 
   const handleBackdropClick = useCallback(
     (e: React.MouseEvent<HTMLDialogElement>) => {
