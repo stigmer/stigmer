@@ -1,6 +1,6 @@
 /**
  * Workspace-relative path normalization for permission-rule-bearing graphs
- * (issue #429).
+ * (issues #429, #528).
  *
  * deepagents' permission enforcement canonicalizes tool-call paths BEFORE any
  * rule or backend runs, and its validation refuses non-absolute paths — on
@@ -20,13 +20,26 @@
  * resolves relative paths under the workspace root, so act mode keeps a
  * byte-zero delta.
  *
+ * It also supplies the workspace root when `ls`/`glob`/`grep` are called
+ * with NO path argument (issue #528). Those tools' schema default is "/" —
+ * the OS ROOT under the legacy backend — and the default is applied inside
+ * the tool, after this seam, so under the workspace read boundary a bare
+ * first `ls` would otherwise die with `permission denied for read on /`
+ * (the same first-turn degradation class #429 fixed). An EXPLICIT "/" is
+ * deliberately NOT rewritten: the model asked for the OS root, and the
+ * honest answer under plan mode's read boundary is the rules' denial —
+ * silently substituting workspace contents would be an answer to a
+ * different question.
+ *
  * Invariant — nothing becomes newly reachable: only paths whose resolution
  * stays INSIDE the workspace root are rewritten. Escaping relatives (`../x`)
  * and `~`-carrying paths are left raw so today's validation refusal keeps
  * speaking (a naive join would resolve `..` away and smuggle an out-of-root
  * read past validation), and absolute paths pass through byte-untouched.
  * The middleware converts false errors into correct behavior — never a
- * refusal into an allowance the rules didn't decide.
+ * refusal into an allowance the rules didn't decide. (The absent-path
+ * injection honors the same line: it narrows the tool's own OS-root default
+ * to the workspace, granting nothing the rules would refuse.)
  *
  * Tool matching is by bare built-in name, the house doctrine (an MCP server
  * is not expected to shadow a built-in name — see shared/tool-kind.ts); the
@@ -41,9 +54,8 @@ import type { StigmerMiddleware } from "./types.js";
 
 /**
  * The path-bearing argument of each deepagents built-in filesystem tool.
- * `ls`/`glob`/`grep` take a base directory `path` (defaulting to "/" when
- * omitted — absolute, so untouched here); the file tools take `file_path`.
- * Confirmed against the installed deepagents' tool definitions.
+ * `ls`/`glob`/`grep` take a base directory `path`; the file tools take
+ * `file_path`. Confirmed against the installed deepagents' tool definitions.
  */
 const PATH_ARG_BY_TOOL: ReadonlyMap<string, string> = new Map([
   ["ls", "path"],
@@ -53,6 +65,15 @@ const PATH_ARG_BY_TOOL: ReadonlyMap<string, string> = new Map([
   ["write_file", "file_path"],
   ["edit_file", "file_path"],
 ]);
+
+/**
+ * The tools whose path argument is optional with an OS-root ("/") schema
+ * default. When the model omits it, this middleware supplies the workspace
+ * root instead (issue #528). The file tools are deliberately excluded: an
+ * absent `file_path` is a genuine model error, and the tool's own input
+ * validation gives the better message.
+ */
+const DIR_DEFAULTING_TOOLS: ReadonlySet<string> = new Set(["ls", "glob", "grep"]);
 
 export interface PathNormalizationConfig {
   /** The workspace root the graph's filesystem backend resolves against. */
@@ -108,6 +129,22 @@ export function createPathNormalizationMiddleware(
       if (!argKey) return handler(request);
 
       const raw = request.toolCall.args[argKey];
+
+      // Absent base directory on ls/glob/grep: the middleware sees the
+      // model's raw args, BEFORE the tool's zod parse applies the "/"
+      // (OS root) schema default — so the omission must be filled here,
+      // where the workspace root is known. An explicit "/" is not this
+      // case and flows through to an honest rule denial (header doctrine).
+      if (raw == null && DIR_DEFAULTING_TOOLS.has(request.toolCall.name)) {
+        return handler({
+          ...request,
+          toolCall: {
+            ...request.toolCall,
+            args: { ...request.toolCall.args, [argKey]: rootDir },
+          },
+        });
+      }
+
       if (typeof raw !== "string") return handler(request);
 
       const normalized = normalizeWorkspacePathArg(raw, rootDir);

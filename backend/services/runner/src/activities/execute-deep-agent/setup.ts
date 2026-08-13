@@ -52,7 +52,7 @@ import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { WorkspaceBackend, ProvisionResult } from "../../shared/workspace/types.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
 import { buildShellEnv } from "./shell-env.js";
-import { PLAN_MODE_PERMISSIONS } from "../../shared/plan-mode-permissions.js";
+import { buildPlanModePermissions } from "../../shared/plan-mode-permissions.js";
 import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { isGitWorkTree, isPathCapturable } from "../../shared/filereview/git-substrate.js";
 import { deriveCaptureMode } from "../../shared/filereview/capture.js";
@@ -598,8 +598,12 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     // every sub-agent graph, AND the path-normalization middleware (issue #429)
     // all derive from this single value, so a rule-bearing graph can never miss
     // the shim that keeps prompt-compliant relative paths from dying in rule
-    // validation (`path must be absolute`).
-    const planModePermissions = isPlanMode ? PLAN_MODE_PERMISSIONS : undefined;
+    // validation (`path must be absolute`). Built from the same rootDir the
+    // backends and the shim resolve against, so the workspace read boundary
+    // (issue #528) and the paths it must admit agree by construction.
+    const planModePermissions = isPlanMode
+      ? buildPlanModePermissions(workspaceBackend.rootDir)
+      : undefined;
 
     const toolServerMap = new Map<string, string>();
     if (mcpConnection) {

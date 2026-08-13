@@ -422,14 +422,19 @@ describe("buildEnhancedSystemPrompt", () => {
       injectedFiles: [],
     };
 
-    it("appends the shared plan-mode directive as the final section", () => {
+    it("appends the shared plan-mode directive plus the native-only read-boundary line as the final section", () => {
       const prompt = buildEnhancedSystemPrompt({
         ...base,
         interactionMode: InteractionMode.PLAN,
       });
 
       expect(prompt).toContain("## Plan mode");
-      expect(prompt.endsWith(PLAN_MODE_DIRECTIVE)).toBe(true);
+      expect(prompt).toContain(PLAN_MODE_DIRECTIVE);
+      // The read boundary (issue #528) is enforced only on the native
+      // harness, so its sentence rides OUTSIDE the shared directive — after
+      // it, still in the plan-mode section.
+      expect(prompt.endsWith("paths outside it are refused.")).toBe(true);
+      expect(PLAN_MODE_DIRECTIVE).not.toContain("File reads are limited");
     });
 
     it("omits the directive for Agent mode", () => {

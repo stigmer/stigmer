@@ -104,9 +104,35 @@ describe("createPathNormalizationMiddleware", () => {
     expect(args.file_path).toBe("/etc/hosts");
   });
 
-  it("leaves an omitted base path (backend default) alone", async () => {
-    const args = await argsSeenByHandler("ls", {});
-    expect(args.path).toBeUndefined();
+  it("supplies the workspace root when the base path is omitted on ls/glob/grep", async () => {
+    // Deliberate reversal of the original #429 pin ("leaves an omitted base
+    // path alone"): the tools' schema default is "/" — the OS ROOT under the
+    // legacy backend — applied inside the tool AFTER this seam, so under the
+    // #528 workspace read boundary an untouched omission would deny the bare
+    // first listing. The middleware fills the omission with the root it
+    // already knows.
+    for (const tool of ["ls", "glob", "grep"]) {
+      const args = await argsSeenByHandler(tool, { pattern: "TOKEN" });
+      expect(args.path).toBe(ROOT);
+      expect(args.pattern).toBe("TOKEN");
+    }
+  });
+
+  it("does not fill an omitted file_path on the file tools", async () => {
+    // An absent file_path is a genuine model error — the tool's own input
+    // validation gives the better message than any path this seam could invent.
+    const args = await argsSeenByHandler("read_file", {});
+    expect(args.file_path).toBeUndefined();
+  });
+
+  it("leaves an explicit '/' untouched on the dir tools — the rules answer it honestly", async () => {
+    // The model asked for the OS root; under plan mode's read boundary the
+    // honest answer is the rules' denial, not silently substituted workspace
+    // contents (the #429 never-convert-a-refusal-into-an-allowance doctrine).
+    for (const tool of ["ls", "glob", "grep"]) {
+      const args = await argsSeenByHandler(tool, { path: "/" });
+      expect(args.path).toBe("/");
+    }
   });
 
   it("never touches tools outside the built-in filesystem set", async () => {

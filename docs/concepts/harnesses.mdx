@@ -37,7 +37,8 @@ specifying a Harness, it uses native.
 - Shell command execution on local Workspaces through the `execute` tool.
   Commands run on the host machine attached to the runner, and every command
   goes through the same approval gate as other mutating tools. Plan mode
-  (read-only Sessions) does not expose shell execution.
+  (read-only Sessions) does not expose shell execution, and its file reads are
+  scoped to the Session's Workspace — the Agent cannot read paths outside it.
 - Built-in web retrieval through the `web_fetch` tool — every native Session can
   fetch a public URL and read it as Markdown, with no MCP server to configure.
   The tool is read-only and never prompts for approval; on managed cloud runners

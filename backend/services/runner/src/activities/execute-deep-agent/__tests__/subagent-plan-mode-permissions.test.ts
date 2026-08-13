@@ -13,8 +13,8 @@
  * rules (act mode) the same write flows — this change is a plan-mode-only
  * delta.
  *
- * The rule under test is the PRODUCTION constant from
- * shared/plan-mode-permissions.ts (the same one setup.ts applies to both
+ * The rules under test are the PRODUCTION buildPlanModePermissions output
+ * from shared/plan-mode-permissions.ts (the same setup.ts applies to both
  * graph sites), not a test copy, so a change to the plan-mode permission set
  * re-proves sub-agent coverage automatically.
  */
@@ -25,7 +25,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HumanMessage, ToolMessage, type BaseMessage } from "@langchain/core/messages";
 
-import { PLAN_MODE_PERMISSIONS } from "../../../shared/plan-mode-permissions.js";
+import { buildPlanModePermissions } from "../../../shared/plan-mode-permissions.js";
 import { CasCaptureObserver } from "../cas-capture-observer.js";
 import { compileSubagents } from "../subagent-transformer.js";
 import { ScriptedModel, type ScriptSelector } from "../__test-utils__/scripted-model.js";
@@ -64,7 +64,7 @@ describe("plan-mode sub-agent filesystem permissions (issue #255)", () => {
         workspaceRootDir: root,
         casObserver: observer,
         modelFactory: async () => new ScriptedModel(script),
-        ...(planMode ? { permissions: PLAN_MODE_PERMISSIONS } : {}),
+        ...(planMode ? { permissions: buildPlanModePermissions(root) } : {}),
       },
     );
     expect(compiled).toHaveLength(1);
@@ -174,5 +174,36 @@ describe("plan-mode sub-agent filesystem permissions (issue #255)", () => {
     const readResult = toolResultById(result.messages, "c_read_rel");
     expect(readResult).toContain("PLAN_MODE_README_TOKEN");
     expect(readResult).not.toMatch(/path must be absolute/i);
+  });
+
+  it("scopes sub-agent reads to the workspace and fills the bare-ls default (issue #528)", async () => {
+    // The read boundary must hold on SUB-AGENT graphs too — they carry their
+    // own rules (issue #255) and their own normalization shim (#429), so a
+    // parent-only fix would leave sub-agents reading anywhere. One turn,
+    // three calls: out-of-root read denied, in-root read flows, bare ls
+    // (whose schema default is the OS root) lists the workspace.
+    const script: ScriptSelector = () => ({
+      toolCalls: [
+        { name: "read_file", args: { file_path: "/etc/hosts" }, id: "c_read_out" },
+        { name: "read_file", args: { file_path: join(root, "notes.md") }, id: "c_read_in" },
+        { name: "ls", args: {}, id: "c_ls_bare" },
+      ],
+      done: "worker done",
+    });
+
+    const worker = await compileWorker(script, true);
+    const result = (await worker.runnable.invoke(
+      { messages: [new HumanMessage({ content: "go" })] },
+      { configurable: { thread_id: "t4" }, recursionLimit: 50 },
+    )) as { messages: BaseMessage[] };
+
+    const outResult = toolResultById(result.messages, "c_read_out");
+    expect(outResult).toMatch(/permission denied for read/i);
+
+    expect(toolResultById(result.messages, "c_read_in")).toContain("PLAN_MODE_README_TOKEN");
+
+    const lsResult = toolResultById(result.messages, "c_ls_bare");
+    expect(lsResult).toContain("notes.md");
+    expect(lsResult).not.toMatch(/permission denied/i);
   });
 });
