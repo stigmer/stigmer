@@ -168,6 +168,12 @@ export const OAuthGrantSchema: GenMessage<OAuthGrant> = /*@__PURE__*/
  *   2. McpServerAuth.oauth_app_ref on the resource spec — platform default
  *   3. None — no OAuth app available (manual token or DCR only)
  *
+ * Edition scoping: the override binding — and the whole resolution chain
+ * above it — exists only on the hosted platform. OSS resolves the
+ * oauth_app_ref directly against its flat OAuthApp store (the ref IS the
+ * whole resolution) and answers UNIMPLEMENTED for the org-OAuth-app RPCs;
+ * see McpServerQueryController.getOrgOAuthApp for the contract.
+ *
  * The override is resource-agnostic: currently used for MCP servers, but the
  * composite key supports any API resource kind that needs BYOA (e.g., workflows).
  *

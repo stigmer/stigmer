@@ -627,6 +627,10 @@ public final class McpServerCommandControllerGrpc {
      * (endpoint URLs, scopes) and applies the org-provided client credentials.
      * Idempotent: if an override already exists for this resource + org, the
      * existing OAuthApp is updated with the new credentials.
+     * Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
+     * design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp —
+     * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
+     * the RPC clients probe.
      * &#64;internal
      * Authorization: Requires can_create_oauth_app permission on the organization.
      * This is an org-admin operation — setting credentials that affect all users
@@ -648,6 +652,10 @@ public final class McpServerCommandControllerGrpc {
      * Deletes the OAuthAppOverride binding and the OAuthApp resource that
      * was created for it. After this, the resolution chain falls back to
      * the platform default.
+     * Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
+     * design, as one capability with getOrgOAuthApp and setOrgOAuthApp —
+     * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
+     * the RPC clients probe.
      * Existing user OAuthGrants that were issued using the org's OAuthApp
      * will fail on next token refresh — those users will need to
      * re-authenticate using the platform default or a new org override.
@@ -911,6 +919,10 @@ public final class McpServerCommandControllerGrpc {
      * (endpoint URLs, scopes) and applies the org-provided client credentials.
      * Idempotent: if an override already exists for this resource + org, the
      * existing OAuthApp is updated with the new credentials.
+     * Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
+     * design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp —
+     * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
+     * the RPC clients probe.
      * &#64;internal
      * Authorization: Requires can_create_oauth_app permission on the organization.
      * This is an org-admin operation — setting credentials that affect all users
@@ -933,6 +945,10 @@ public final class McpServerCommandControllerGrpc {
      * Deletes the OAuthAppOverride binding and the OAuthApp resource that
      * was created for it. After this, the resolution chain falls back to
      * the platform default.
+     * Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
+     * design, as one capability with getOrgOAuthApp and setOrgOAuthApp —
+     * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
+     * the RPC clients probe.
      * Existing user OAuthGrants that were issued using the org's OAuthApp
      * will fail on next token refresh — those users will need to
      * re-authenticate using the platform default or a new org override.
@@ -1167,6 +1183,10 @@ public final class McpServerCommandControllerGrpc {
      * (endpoint URLs, scopes) and applies the org-provided client credentials.
      * Idempotent: if an override already exists for this resource + org, the
      * existing OAuthApp is updated with the new credentials.
+     * Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
+     * design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp —
+     * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
+     * the RPC clients probe.
      * &#64;internal
      * Authorization: Requires can_create_oauth_app permission on the organization.
      * This is an org-admin operation — setting credentials that affect all users
@@ -1188,6 +1208,10 @@ public final class McpServerCommandControllerGrpc {
      * Deletes the OAuthAppOverride binding and the OAuthApp resource that
      * was created for it. After this, the resolution chain falls back to
      * the platform default.
+     * Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
+     * design, as one capability with getOrgOAuthApp and setOrgOAuthApp —
+     * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
+     * the RPC clients probe.
      * Existing user OAuthGrants that were issued using the org's OAuthApp
      * will fail on next token refresh — those users will need to
      * re-authenticate using the platform default or a new org override.
@@ -1421,6 +1445,10 @@ public final class McpServerCommandControllerGrpc {
      * (endpoint URLs, scopes) and applies the org-provided client credentials.
      * Idempotent: if an override already exists for this resource + org, the
      * existing OAuthApp is updated with the new credentials.
+     * Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
+     * design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp —
+     * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
+     * the RPC clients probe.
      * &#64;internal
      * Authorization: Requires can_create_oauth_app permission on the organization.
      * This is an org-admin operation — setting credentials that affect all users
@@ -1442,6 +1470,10 @@ public final class McpServerCommandControllerGrpc {
      * Deletes the OAuthAppOverride binding and the OAuthApp resource that
      * was created for it. After this, the resolution chain falls back to
      * the platform default.
+     * Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
+     * design, as one capability with getOrgOAuthApp and setOrgOAuthApp —
+     * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
+     * the RPC clients probe.
      * Existing user OAuthGrants that were issued using the org's OAuthApp
      * will fail on next token refresh — those users will need to
      * re-authenticate using the platform default or a new org override.
@@ -1684,6 +1716,10 @@ public final class McpServerCommandControllerGrpc {
      * (endpoint URLs, scopes) and applies the org-provided client credentials.
      * Idempotent: if an override already exists for this resource + org, the
      * existing OAuthApp is updated with the new credentials.
+     * Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
+     * design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp —
+     * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
+     * the RPC clients probe.
      * &#64;internal
      * Authorization: Requires can_create_oauth_app permission on the organization.
      * This is an org-admin operation — setting credentials that affect all users
@@ -1706,6 +1742,10 @@ public final class McpServerCommandControllerGrpc {
      * Deletes the OAuthAppOverride binding and the OAuthApp resource that
      * was created for it. After this, the resolution chain falls back to
      * the platform default.
+     * Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by
+     * design, as one capability with getOrgOAuthApp and setOrgOAuthApp —
+     * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
+     * the RPC clients probe.
      * Existing user OAuthGrants that were issued using the org's OAuthApp
      * will fail on next token refresh — those users will need to
      * re-authenticate using the platform default or a new org override.

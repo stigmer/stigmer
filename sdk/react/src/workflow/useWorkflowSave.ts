@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useStigmer } from "../hooks.js";
+import { isUnimplemented } from "../internal/isUnimplemented.js";
 import { parseWorkflowYaml } from "./serialize-workflow-yaml.js";
 
 /** Options for a single save invocation. */
@@ -57,7 +58,7 @@ export function useWorkflowSave(org: string): UseWorkflowSaveReturn {
         const wrapped =
           err instanceof Error ? err : new Error(String(err));
 
-        if (isUnimplementedError(err)) {
+        if (isUnimplemented(err)) {
           setError(
             new Error(
               "Workflow save is not yet available on this server. " +
@@ -76,18 +77,4 @@ export function useWorkflowSave(org: string): UseWorkflowSaveReturn {
   );
 
   return useMemo(() => ({ save, isSaving, error }), [save, isSaving, error]);
-}
-
-/**
- * Detect gRPC UNIMPLEMENTED (code 12) from a Connect error or
- * a StigmerError wrapping one. The SDK's CODE_MAP doesn't include
- * Unimplemented so it surfaces as "unknown" — check connectCode.
- */
-function isUnimplementedError(err: unknown): boolean {
-  if (!err || typeof err !== "object") return false;
-  if ("connectCode" in err && (err as { connectCode: number }).connectCode === 12) {
-    return true;
-  }
-  const msg = (err as { message?: string }).message ?? "";
-  return msg.includes("[unimplemented]") || msg.includes("UNIMPLEMENTED");
 }

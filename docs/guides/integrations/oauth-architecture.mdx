@@ -70,6 +70,16 @@ when the frontend queries the OAuth status. This is why removing a BYOA override
 takes effect immediately: the next resolution returns the platform default
 instead of the Organization's app.
 
+<Callout type="info">
+  **Self-hosted deployments** have no override level: the `oauth_app_ref` on the
+  server definition resolves directly against the deployment's own OAuth apps,
+  and that ref is the whole resolution. Since a self-hosted operator owns every
+  OAuth app outright, the org-override concept — and the BYOA affordances built
+  on it — apply only to the hosted platform. See the note in [Bring Your Own
+  OAuth
+  App](/docs/guides/integrations/bring-your-own-oauth#when-to-bring-your-own-app).
+</Callout>
+
 ## Where credentials live
 
 OAuth tokens are split across two storage layers with a deliberate security

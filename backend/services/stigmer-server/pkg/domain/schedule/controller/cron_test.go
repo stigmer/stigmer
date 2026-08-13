@@ -15,18 +15,18 @@ import (
 
 func TestValidateScheduleCron_AcceptedForms(t *testing.T) {
 	accepted := []string{
-		"0 9 * * *",           // daily at 09:00
-		"*/5 * * * *",         // every 5 minutes
-		"0 0 1,15 * *",        // 1st and 15th
-		"30 8 * * MON-FRI",    // weekday names
-		"0 12 * Jan,Apr *",    // month names
-		"15 8-17 * * 0-6/2",   // ranges with steps
-		"@hourly",             // shorthands
+		"0 9 * * *",         // daily at 09:00
+		"*/5 * * * *",       // every 5 minutes
+		"0 0 1,15 * *",      // 1st and 15th
+		"30 8 * * MON-FRI",  // weekday names
+		"0 12 * Jan,Apr *",  // month names
+		"15 8-17 * * 0-6/2", // ranges with steps
+		"@hourly",           // shorthands
 		"@daily",
 		"@weekly",
 		"@monthly",
 		"@yearly",
-		"  0 9 * * *  ",       // surrounding whitespace collapses
+		"  0 9 * * *  ", // surrounding whitespace collapses
 	}
 	for _, cron := range accepted {
 		if err := validateScheduleCron(cron); err != nil {

@@ -215,6 +215,8 @@ Query whether an org has a BYOA override for a resource.
 
 Returns override metadata (existence, OAuthApp ID, client_id) without exposing secrets. The frontend uses this to show which credential source is active and to offer override management options to org admins.
 
+Edition scoping: hosted-only, together with setOrgOAuthApp and deleteOrgOAuthApp — the three org-OAuth-app RPCs are ONE capability. The OSS server answers UNIMPLEMENTED for all of them by design: its flat OAuthApp store has no override binding, its OAuth resolution has no override level to consult, and BYOA's clone-from-platform-template model has no template to clone (self-hosted users apply their own OAuthApp and reference it from spec.auth.oauth_app_ref — a strictly more powerful path). Clients probe the capability through THIS RPC: an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the surface without the other two and the client-side gate.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -725,6 +727,8 @@ Remove an org-level BYOA override for a resource.
 
 Deletes the OAuthAppOverride binding and the OAuthApp resource that was created for it. After this, the resolution chain falls back to the platform default.
 
+Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by design, as one capability with getOrgOAuthApp and setOrgOAuthApp — see the full scoping note on McpServerQueryController.getOrgOAuthApp, the RPC clients probe.
+
 Existing user OAuthGrants that were issued using the org's OAuthApp will fail on next token refresh — those users will need to re-authenticate using the platform default or a new org override.
 
 <SDKTabs>
@@ -867,6 +871,8 @@ Create or update an org-level BYOA OAuth app override for a resource.
 Allows an organization to use its own OAuth app credentials instead of the platform default. The handler clones the platform OAuthApp template (endpoint URLs, scopes) and applies the org-provided client credentials.
 
 Idempotent: if an override already exists for this resource + org, the existing OAuthApp is updated with the new credentials.
+
+Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp — see the full scoping note on McpServerQueryController.getOrgOAuthApp, the RPC clients probe.
 
 <SDKTabs>
 <Tab value="TypeScript">

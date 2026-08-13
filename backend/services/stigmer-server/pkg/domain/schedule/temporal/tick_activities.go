@@ -75,11 +75,11 @@ type FailureRecorded struct {
 // Activity name constants — slash-namespaced like the platform's other
 // Go-owned system activities, and registered under these exact names.
 const (
-	RecordTickActivityName        = "stigmer/schedule/record-tick"
-	StartScheduledRunActivityName = "stigmer/schedule/start-run"
-	PollExecutionPhaseActivityName = "stigmer/schedule/poll-phase"
+	RecordTickActivityName          = "stigmer/schedule/record-tick"
+	StartScheduledRunActivityName   = "stigmer/schedule/start-run"
+	PollExecutionPhaseActivityName  = "stigmer/schedule/poll-phase"
 	RecordSuccessfulRunActivityName = "stigmer/schedule/record-success"
-	RecordFailedRunActivityName    = "stigmer/schedule/record-failure"
+	RecordFailedRunActivityName     = "stigmer/schedule/record-failure"
 )
 
 // TickActivities is the tick workflow's activity surface. Nominal fire

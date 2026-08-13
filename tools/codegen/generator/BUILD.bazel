@@ -72,10 +72,10 @@ go_test(
     srcs = [
         "conversion_test.go",
         "docs_yaml_gate_test.go",
-        "integration_test.go",
         "internal_leak_gate_test.go",
         "main_test.go",
         "mdx_fence_scanner_test.go",
+        "schema_loading_test.go",
         "sdk_docs_test.go",
         "task_example_validation_test.go",
     ],
