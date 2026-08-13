@@ -20,10 +20,9 @@
 // authorization layer, allows it — a real edition divergence, unlike
 // WorkflowInstance's same-org rule which both editions enforce.
 //
-// Deliberately NOT asserted, with rulings pending:
-//   - spec.agent_id immutability on update: the proto docs claim it, but
-//     NEITHER edition enforces it (generic full-spec-replacement update) —
-//     stigmer#646 holds the ruling. Only genuinely mutable fields are updated.
+// spec.agent_id immutability on update is pinned (stigmer#646, ruled
+// enforce-in-both-editions): repointing -> FAILED_PRECONDITION, matching the
+// AgentChannel/Schedule guard posture.
 //
 // The parent Agent's default-instance machinery (provisioning, the
 // updateVisibility guard, cascade-only-the-default on agent delete) is
@@ -147,9 +146,8 @@ describe("AgentInstance conformance — CRUD & identity", () => {
     const { id, slug } = created.metadata!;
 
     const renamed = uniqueName("renamed");
-    // The same agent_id is resubmitted: whether a DIFFERENT parent ref is
-    // rejected is unpinned — the proto docs claim immutability but neither
-    // edition enforces it (stigmer#646 holds that ruling).
+    // The same agent_id is resubmitted — the parent ref is immutable and a
+    // repoint is rejected (stigmer#646; pinned below).
     const updated = await clients.agentInstanceCommand.update({
       apiVersion: AGENT_INSTANCE_API_VERSION,
       kind: AGENT_INSTANCE_KIND,
@@ -164,6 +162,33 @@ describe("AgentInstance conformance — CRUD & identity", () => {
     expect(updated.metadata?.name).toBe(renamed);
     expect(updated.spec?.description).toBe("after");
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
+  });
+
+  it("update rejects a repointed agent_id (FailedPrecondition) and leaves the stored parent untouched", async () => {
+    // The parent ref is immutable (stigmer#646): repointing would change
+    // what the instance's executions run while keeping its identity,
+    // history, and references intact. Both editions reject with the same
+    // guard; the message's stable fragment is part of the contract.
+    const { org } = await target.provisionTenancy();
+    const agentA = await provisionAgent(org);
+    const agentB = await provisionAgent(org);
+    const created = await createInstance(org, agentA.metadata!.id, uniqueName("agi"));
+
+    const err = await expectGrpcCode(
+      () =>
+        clients.agentInstanceCommand.update({
+          apiVersion: AGENT_INSTANCE_API_VERSION,
+          kind: AGENT_INSTANCE_KIND,
+          metadata: { id: created.metadata!.id, name: created.metadata!.name, org },
+          spec: makeAgentInstanceSpec({ agentId: agentB.metadata!.id }),
+        }),
+      Code.FailedPrecondition,
+      "update with repointed agent_id",
+    );
+    expect(err.message).toContain("spec.agent_id is immutable");
+
+    const stored = await clients.agentInstanceQuery.get({ value: created.metadata!.id });
+    expect(stored.spec?.agentId, "rejected repoint must not persist").toBe(agentA.metadata?.id);
   });
 
   it("delete returns the resource and a subsequent get reports NotFound", async () => {

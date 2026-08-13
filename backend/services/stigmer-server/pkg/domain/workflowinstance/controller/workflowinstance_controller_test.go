@@ -16,6 +16,8 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -567,6 +569,52 @@ func TestWorkflowInstanceController_Update(t *testing.T) {
 		_, err := controllers.workflowInstance.Update(contextWithWorkflowInstanceKind(), instance)
 		if err == nil {
 			t.Error("Expected error for updating non-existent instance")
+		}
+	})
+
+	t.Run("repointing workflow_id is rejected", func(t *testing.T) {
+		// spec.workflow_id is immutable on update — the contract
+		// command.proto documents, enforced since oss#646: repointing would
+		// change what the instance's executions run while keeping its
+		// identity, history, and references intact.
+		workflowA := createTestWorkflow(t, controllers, "repoint-workflow-a", "")
+		workflowB := createTestWorkflow(t, controllers, "repoint-workflow-b", "")
+
+		instance := &workflowinstancev1.WorkflowInstance{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "WorkflowInstance",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: "Repoint Test Instance",
+				Org:  "test-org",
+			},
+			Spec: &workflowinstancev1.WorkflowInstanceSpec{
+				WorkflowId:  workflowA.Metadata.Id,
+				Description: "Original description",
+			},
+		}
+
+		created, err := controllers.workflowInstance.Create(contextWithWorkflowInstanceKind(), instance)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		// Even a repoint to another EXISTING workflow must fail loudly.
+		created.Spec.WorkflowId = workflowB.Metadata.Id
+		_, err = controllers.workflowInstance.Update(contextWithWorkflowInstanceKind(), created)
+		if err == nil {
+			t.Fatal("Expected error when repointing workflow_id on update")
+		}
+		if st, ok := status.FromError(err); !ok || st.Code() != codes.FailedPrecondition {
+			t.Errorf("Expected FailedPrecondition for repointed workflow_id, got %v", err)
+		}
+
+		// The rejected attempt must not have changed the stored parent ref.
+		stored, err := controllers.workflowInstance.Get(contextWithWorkflowInstanceKind(), &workflowinstancev1.WorkflowInstanceId{Value: created.Metadata.Id})
+		if err != nil {
+			t.Fatalf("Get after rejected update failed: %v", err)
+		}
+		if stored.Spec.WorkflowId != workflowA.Metadata.Id {
+			t.Errorf("Expected stored workflow_id '%s', got '%s'", workflowA.Metadata.Id, stored.Spec.WorkflowId)
 		}
 	})
 }

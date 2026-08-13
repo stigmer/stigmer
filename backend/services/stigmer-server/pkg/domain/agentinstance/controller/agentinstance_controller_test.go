@@ -430,6 +430,85 @@ func TestAgentInstanceController_Update(t *testing.T) {
 		}
 	})
 
+	t.Run("repointing agent_id is rejected", func(t *testing.T) {
+		// spec.agent_id is immutable on update (oss#646): repointing would
+		// change what the instance's executions run while keeping its
+		// identity, history, and references intact.
+		saveParentAgent(t, store, "repoint-agent-a", "test-org", "")
+		saveParentAgent(t, store, "repoint-agent-b", "test-org", "")
+
+		instance := &agentinstancev1.AgentInstance{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "AgentInstance",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: "Repoint Test Instance",
+				Org:  "test-org",
+			},
+			Spec: &agentinstancev1.AgentInstanceSpec{
+				AgentId:     "repoint-agent-a",
+				Description: "Original description",
+			},
+		}
+
+		created, err := controller.Create(contextWithAgentInstanceKind(), instance)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		// Even a repoint to another EXISTING agent must fail loudly.
+		created.Spec.AgentId = "repoint-agent-b"
+		_, err = controller.Update(contextWithAgentInstanceKind(), created)
+		if err == nil {
+			t.Fatal("Expected error when repointing agent_id on update")
+		}
+		if st, ok := status.FromError(err); !ok || st.Code() != codes.FailedPrecondition {
+			t.Errorf("Expected FailedPrecondition for repointed agent_id, got %v", err)
+		}
+
+		// The rejected attempt must not have changed the stored parent ref.
+		stored, err := controller.Get(contextWithAgentInstanceKind(), &agentinstancev1.AgentInstanceId{Value: created.Metadata.Id})
+		if err != nil {
+			t.Fatalf("Get after rejected update failed: %v", err)
+		}
+		if stored.Spec.AgentId != "repoint-agent-a" {
+			t.Errorf("Expected stored agent_id 'repoint-agent-a', got '%s'", stored.Spec.AgentId)
+		}
+	})
+
+	t.Run("repointing agent_id via apply is rejected", func(t *testing.T) {
+		// Apply delegates to Update for existing resources — the guard must
+		// cover the declarative door too.
+		saveParentAgent(t, store, "apply-agent-a", "test-org", "")
+		saveParentAgent(t, store, "apply-agent-b", "test-org", "")
+
+		instance := &agentinstancev1.AgentInstance{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "AgentInstance",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: "Apply Repoint Test Instance",
+				Org:  "test-org",
+			},
+			Spec: &agentinstancev1.AgentInstanceSpec{
+				AgentId:     "apply-agent-a",
+				Description: "Original description",
+			},
+		}
+
+		created, err := controller.Create(contextWithAgentInstanceKind(), instance)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		created.Spec.AgentId = "apply-agent-b"
+		_, err = controller.Apply(contextWithAgentInstanceKind(), created)
+		if err == nil {
+			t.Fatal("Expected error when repointing agent_id via apply")
+		}
+		if st, ok := status.FromError(err); !ok || st.Code() != codes.FailedPrecondition {
+			t.Errorf("Expected FailedPrecondition for repointed agent_id via apply, got %v", err)
+		}
+	})
+
 }
 
 func TestAgentInstanceController_Delete(t *testing.T) {

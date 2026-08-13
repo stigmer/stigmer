@@ -64,6 +64,14 @@ export const AgentInstanceCommandController: GenService<{
    * @internal
    * Replaces the entire instance configuration including metadata, spec, and secrets.
    * No individual field updates — always provide complete state.
+   *
+   * Mutable fields:
+   * - spec.description, spec.environment_refs
+   * - metadata.name, metadata.labels, metadata.tags, metadata.annotations
+   *
+   * Immutable fields (must delete and recreate to change):
+   * - spec.agent_id, metadata.id, metadata.org
+   *
    * Authorization: Only owner can update (can_edit permission).
    *
    * @generated from rpc ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController.update
