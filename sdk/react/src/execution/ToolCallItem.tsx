@@ -105,7 +105,9 @@ export interface ToolCallItemProps {
  *
  * Shows category-aware labels (e.g., "Shell", "Read", "Edit") with
  * the primary argument as a subtitle, a category-specific icon, and
- * an inline approval decision badge when applicable.
+ * an inline approval decision badge when applicable. A shell row whose
+ * call carries a model-authored intent phrase is titled with that phrase
+ * instead — the command becomes the subtitle (stigmer#276).
  *
  * Wrapped in `React.memo` — structural sharing (DD-009/010) preserves
  * the `ToolCall` reference when unchanged, so a settled row skips
@@ -138,7 +140,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   const duration = formatHeaderDuration(toolCall.startedAt, toolCall.completedAt);
   const isSubAgent = subAgentExecution != null;
 
-  const { category, label, primaryArg, result, resultSummary, disclosure, chrome } =
+  const { category, label, intent, title, primaryArg, result, resultSummary, disclosure, chrome } =
     useToolPresentation(toolCall);
   const CategoryIcon = CATEGORY_ICON[category];
 
@@ -173,9 +175,12 @@ export const ToolCallItem = memo(function ToolCallItem({
     initialOpen: defaultExpanded || autoOpen,
   });
 
+  // Sub-agents title the row with their subject; every other row titles with
+  // the resolved presentation `title` (host label override > model-authored
+  // shell intent > category label, stigmer#276).
   const displayLabel = isSubAgent
     ? subAgentExecution.subject || subAgentExecution.name || label
-    : label;
+    : title;
 
   const approvalBadge = getApprovalBadge(toolCall);
 
@@ -308,11 +313,17 @@ export const ToolCallItem = memo(function ToolCallItem({
     );
   }
 
-  // Shell shows neither a command subtitle nor an exit summary in the header —
-  // both live in the terminal session body below, so the header stays minimal
-  // (icon + label + status + duration).
-  const displaySubtitle =
-    isSubAgent || category === "shell" ? null : primaryArg;
+  // Shell headers stay minimal (icon + label + status + duration) — the
+  // command and exit summary live in the terminal session body — EXCEPT when
+  // the model authored an intent title (stigmer#276): the title then says
+  // *why*, so the command surfaces as the secondary text and a fully
+  // collapsed row still reads like a narrated log. Intent-less shell rows
+  // render byte-identically to before.
+  const displaySubtitle = isSubAgent
+    ? null
+    : category === "shell"
+      ? (intent ? primaryArg : null)
+      : primaryArg;
 
   // For file tools the subtitle is a path: render it filename-first through
   // FilePathLink (full path on hover) rather than the raw, often-absolute string
