@@ -12,11 +12,12 @@
 // execution-visibility axis (updateExecutionVisibility), and spec-first
 // negative paths (environment_refs kind is CEL-pinned to environment).
 //
+// spec.workflow_id immutability on update is pinned (stigmer#646, ruled
+// enforce-in-both-editions): repointing -> FAILED_PRECONDITION, matching the
+// AgentChannel/Schedule guard posture and the contract command.proto has
+// documented all along.
+//
 // Deliberately NOT asserted, with rulings pending or taken:
-//   - spec.workflow_id immutability on update: the proto docs claim it, but
-//     NEITHER edition enforces it (generic full-spec-replacement update) —
-//     stigmer#646 holds the enforce-vs-truth-the-docs ruling. Only genuinely
-//     mutable fields (description, environment_refs) are updated here.
 //   - execution cascade on instance delete: the command.proto comment claims
 //     it, but OSS deliberately does not cascade executions (the #582 ruling:
 //     run history survives its instance).
@@ -140,9 +141,8 @@ describe("WorkflowInstance conformance — CRUD & identity", () => {
     const { id, slug } = created.metadata!;
 
     const renamed = uniqueName("renamed");
-    // The same workflow_id is resubmitted: whether a DIFFERENT parent ref is
-    // rejected is unpinned — the proto docs claim immutability but neither
-    // edition enforces it (stigmer#646 holds that ruling).
+    // The same workflow_id is resubmitted — the parent ref is immutable and
+    // a repoint is rejected (stigmer#646; pinned below).
     const updated = await clients.workflowInstanceCommand.update({
       apiVersion: WORKFLOW_INSTANCE_API_VERSION,
       kind: WORKFLOW_INSTANCE_KIND,
@@ -157,6 +157,33 @@ describe("WorkflowInstance conformance — CRUD & identity", () => {
     expect(updated.metadata?.name).toBe(renamed);
     expect(updated.spec?.description).toBe("after");
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
+  });
+
+  it("update rejects a repointed workflow_id (FailedPrecondition) and leaves the stored parent untouched", async () => {
+    // The parent ref is immutable (stigmer#646): repointing would change
+    // what the instance's executions run while keeping its identity,
+    // history, and references intact. Both editions reject with the same
+    // guard; the message's stable fragment is part of the contract.
+    const { org } = await target.provisionTenancy();
+    const workflowA = await provisionWorkflow(org);
+    const workflowB = await provisionWorkflow(org);
+    const created = await createInstance(org, workflowA.metadata!.id, uniqueName("wfi"));
+
+    const err = await expectGrpcCode(
+      () =>
+        clients.workflowInstanceCommand.update({
+          apiVersion: WORKFLOW_INSTANCE_API_VERSION,
+          kind: WORKFLOW_INSTANCE_KIND,
+          metadata: { id: created.metadata!.id, name: created.metadata!.name, org },
+          spec: makeWorkflowInstanceSpec({ workflowId: workflowB.metadata!.id }),
+        }),
+      Code.FailedPrecondition,
+      "update with repointed workflow_id",
+    );
+    expect(err.message).toContain("spec.workflow_id is immutable");
+
+    const stored = await clients.workflowInstanceQuery.get({ value: created.metadata!.id });
+    expect(stored.spec?.workflowId, "rejected repoint must not persist").toBe(workflowA.metadata?.id);
   });
 
   it("delete returns the resource and a subsequent get reports NotFound", async () => {
