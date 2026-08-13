@@ -1,29 +1,30 @@
 import type { Page } from "@playwright/test";
 import { test, expect } from "../../fixtures";
+import { navigateToAgents, clickResourceCard } from "../../helpers/library";
 
 /**
- * Duplicate DOM id / radio-name audit on library detail pages
- * (stigmer/stigmer#593).
+ * Library zone mount-contract and duplicate DOM id / radio-name audit
+ * (stigmer/stigmer#593, #621).
  *
  * The library zone bypasses Next.js routing for detail navigation
  * (static-export constraint): `LibraryNavigationProvider` initializes
- * `activeDetail` from `window.location.pathname`, and `LibraryLayout`
- * renders that overlay copy while ALSO keeping the route-rendered copy
- * mounted (hidden + aria-hidden). On a DIRECT load of a detail URL both
- * copies are the same detail page — so any SDK component that hardcodes a
- * DOM id and renders it unconditionally duplicates that id, and
- * document-order id lookup resolves label/aria-labelledby associations
- * into the HIDDEN copy: screen readers land on aria-hidden nodes and
- * getByLabel locators match nothing. A hardcoded radio-group `name` is the
- * same defect with sharper teeth: radios in both copies join ONE keyboard
- * group. (Click-through navigation arms only the overlay over the hidden
- * LIST page, so the deep-link/reload path is the one that must be audited.)
+ * `activeDetail` from `window.location.pathname` and `LibraryLayout`
+ * renders the detail as an overlay. The route-rendered children are
+ * handled two ways, and each has its own pin here:
  *
- * The fix (oss#593, following the oss#571 precedent) is instance-scoped
- * ids/names minted with useId(). These specs pin that invariant on the two
- * double-mounted surfaces that carry always-rendered dialog forms; the
- * page-wide audit also catches any future component that regresses into
- * hardcoded ids on these pages.
+ * - DIRECT load of a detail URL: the route children ARE the detail page,
+ *   so LibraryLayout unmounts them entirely (oss#621) — the page renders
+ *   exactly once. Before that fix both copies mounted (one hidden +
+ *   aria-hidden), duplicating every unconditionally-rendered DOM id and
+ *   resolving label/aria-labelledby lookups into the hidden copy (#593's
+ *   symptom).
+ *
+ * - SOFT navigation from a list page: the hidden list copy stays mounted
+ *   BY DESIGN (list scroll/filter state survives under the overlay).
+ *   Hidden list + visible detail is the surviving double-mount shape, so
+ *   the id/radio audits run against it: any SDK component that hardcodes
+ *   a DOM id or radio-group `name` and renders on both surfaces would
+ *   merge the copies (useId() is the fix pattern — oss#571/#593/#619).
  */
 
 /** Ids page-wide that appear more than once (always invalid HTML). */
@@ -40,9 +41,9 @@ async function findDuplicateIds(page: Page): Promise<string[]> {
 }
 
 /**
- * Radio-group names whose inputs span BOTH the aria-hidden route copy and
- * the visible overlay copy — i.e. two component instances merged into one
- * keyboard group. (A name shared within one copy is a legitimate group.)
+ * Radio-group names whose inputs span BOTH an aria-hidden subtree and the
+ * visible page — i.e. two component instances merged into one keyboard
+ * group. (A name shared within one copy is a legitimate group.)
  */
 async function findLeakedRadioGroups(page: Page): Promise<string[]> {
   return page.evaluate(() => {
@@ -61,32 +62,11 @@ async function findLeakedRadioGroups(page: Page): Promise<string[]> {
   });
 }
 
-/**
- * Asserts the double-mount is actually armed before auditing — a passing
- * audit on a single-mounted page would prove nothing. Armed means the
- * page heading exists TWICE: once in the hidden route copy, once in the
- * visible overlay (CSS locators, unlike role locators, see through
- * aria-hidden).
- */
-async function auditDoubleMountedPage(page: Page, headingText: string) {
-  const diagnostics = await page.evaluate((text) => {
-    const headings = Array.from(document.querySelectorAll("h1, h2")).filter(
-      (h) => (h.textContent ?? "").includes(text),
-    );
-    const hiddenWrapper = document.querySelector('div.hidden[aria-hidden="true"]');
-    return {
-      headingCopies: headings.length,
-      hiddenWrapperPresent: hiddenWrapper !== null,
-      hiddenWrapperChildCount: hiddenWrapper?.childElementCount ?? 0,
-    };
-  }, headingText);
-  expect(
-    diagnostics.headingCopies,
-    `double-mount not armed: expected the detail heading in both the hidden route copy and the visible overlay (diagnostics: ${JSON.stringify(diagnostics)})`,
-  ).toBeGreaterThanOrEqual(2);
-
+async function auditIdsAndRadios(page: Page) {
   const duplicateIds = await findDuplicateIds(page);
-  expect(duplicateIds, `duplicate DOM ids: ${duplicateIds.join(", ")}`).toEqual([]);
+  expect(duplicateIds, `duplicate DOM ids: ${duplicateIds.join(", ")}`).toEqual(
+    [],
+  );
 
   const leakedGroups = await findLeakedRadioGroups(page);
   expect(
@@ -95,8 +75,36 @@ async function auditDoubleMountedPage(page: Page, headingText: string) {
   ).toEqual([]);
 }
 
+/**
+ * Pins the oss#621 single-mount contract on a directly-loaded detail URL:
+ * the route copy yields to the overlay (useRouteDetailYieldsToOverlay),
+ * so the route-children slot renders EMPTY and the detail heading exists
+ * exactly ONCE. Counted with CSS selectors — unlike role locators they
+ * see through aria-hidden, so a regression back to a hidden second copy
+ * cannot hide from this count.
+ */
+async function assertSingleMountedDetail(page: Page, headingText: string) {
+  const diagnostics = await page.evaluate((text) => {
+    const slot = document.querySelector('[data-slot="library-route-children"]');
+    return {
+      routeChildrenElementCount: slot?.childElementCount ?? 0,
+      headingCopies: Array.from(document.querySelectorAll("h1, h2")).filter(
+        (h) => (h.textContent ?? "").includes(text),
+      ).length,
+    };
+  }, headingText);
+  expect(
+    diagnostics.routeChildrenElementCount,
+    "route copy rendered content on a direct detail load — the oss#621 yield regressed",
+  ).toBe(0);
+  expect(
+    diagnostics.headingCopies,
+    `expected the detail heading exactly once (route copy yields, oss#621); got ${diagnostics.headingCopies}`,
+  ).toBe(1);
+}
+
 test.describe("Library detail pages carry no duplicate DOM ids", () => {
-  test("agent detail page (direct load arms overlay + hidden route copy)", async ({
+  test("direct load renders the agent detail exactly once — no hidden route copy", async ({
     page,
     testAgent,
   }) => {
@@ -106,14 +114,11 @@ test.describe("Library detail pages carry no duplicate DOM ids", () => {
       page.getByRole("heading", { name: testAgent.slug }).first(),
     ).toBeVisible({ timeout: 15_000 });
 
-    // CreateAgentInstanceDialog renders its form unconditionally (closed
-    // <dialog> still in the DOM), so before the useId fix this audit fails
-    // with the agent-instance name/description ids duplicated across the
-    // hidden and visible copies.
-    await auditDoubleMountedPage(page, testAgent.slug);
+    await assertSingleMountedDetail(page, testAgent.slug);
+    await auditIdsAndRadios(page);
   });
 
-  test("workflow detail page (direct load arms overlay + hidden route copy)", async ({
+  test("direct load renders the workflow detail exactly once — no hidden route copy", async ({
     page,
     testWorkflow,
   }) => {
@@ -123,8 +128,40 @@ test.describe("Library detail pages carry no duplicate DOM ids", () => {
       page.getByRole("heading", { name: testWorkflow.slug }).first(),
     ).toBeVisible({ timeout: 15_000 });
 
-    // Guards the CreateWorkflowInstanceDialog useId fix (oss#571) and any
-    // future hardcoded-id regression on this surface.
-    await auditDoubleMountedPage(page, testWorkflow.slug);
+    await assertSingleMountedDetail(page, testWorkflow.slug);
+    await auditIdsAndRadios(page);
+  });
+
+  test("soft navigation keeps the hidden list copy without id or radio leaks", async ({
+    page,
+    testAgent,
+  }) => {
+    await navigateToAgents(page);
+    await clickResourceCard(page, testAgent.slug);
+
+    await expect(
+      page.getByRole("heading", { name: testAgent.slug }).first(),
+    ).toBeVisible({ timeout: 15_000 });
+
+    // Arming check: the hidden list copy must actually be there — a
+    // passing audit against a single-mounted page proves nothing. The
+    // route-children slot identifies the list copy structurally (its
+    // text content is not reliable evidence: virtualized card grids may
+    // render nothing at display:none).
+    const armed = await page.evaluate(() => {
+      const slot = document.querySelector(
+        '[data-slot="library-route-children"]',
+      );
+      return {
+        slotPresent: slot !== null,
+        slotHidden: slot?.getAttribute("aria-hidden") === "true",
+      };
+    });
+    expect(
+      armed.slotPresent && armed.slotHidden,
+      `hidden list copy not armed under the overlay — the audit has no double-mount to check (${JSON.stringify(armed)})`,
+    ).toBe(true);
+
+    await auditIdsAndRadios(page);
   });
 });

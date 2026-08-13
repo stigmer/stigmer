@@ -206,6 +206,31 @@ export function LibraryNavigationProvider({
 // ---------------------------------------------------------------------------
 
 /**
+ * Whether a route-file detail page must yield rendering to the zone
+ * overlay.
+ *
+ * The route-level detail wrappers (`AgentDetailPage` etc.) mount only via
+ * `src/app/library/<type>/[org]/[slug]/page.tsx`. Whenever a detail
+ * overlay is active, the overlay is rendering that same page (or the one
+ * navigated to since), so a route copy under the layout's hidden wrapper
+ * would double-fetch every data hook and give document-global behavior
+ * (portals, focus, keyboard listeners) a second live instance (oss#621).
+ * List pages never yield — preserving their state under the overlay is
+ * the reason this zone keeps children mounted at all.
+ *
+ * Deliberately derived from `activeDetail`, not the URL: after
+ * `navigateToDetail`'s pushState, Next syncs `usePathname()` to the
+ * pushed detail URL without having rendered that route, so the URL cannot
+ * distinguish "Next rendered a detail route" from "a detail URL was
+ * pushed over the list route". The overlay state is the single source of
+ * truth either way.
+ */
+export function useRouteDetailYieldsToOverlay(): boolean {
+  const { activeDetail } = useLibraryNavigation();
+  return activeDetail != null;
+}
+
+/**
  * Access the library navigation context.
  *
  * Throws if called outside `<LibraryNavigationProvider>` — this surfaces

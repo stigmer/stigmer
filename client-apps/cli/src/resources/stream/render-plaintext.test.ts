@@ -39,6 +39,57 @@ describe("PlaintextRenderer", () => {
     expect(status).toContain("✗ shell: exploded");
   });
 
+  it("titles shell status lines with the model-authored intent when present (stigmer#276)", () => {
+    const { status } = render([
+      {
+        kind: "toolRunning",
+        toolCallId: "t1",
+        subAgentId: "",
+        toolCall: toolInfo({
+          name: "execute",
+          status: "running",
+          args: { command: "npx vitest run src/parser", description: "Run unit tests for the parser" },
+        }),
+      },
+      {
+        kind: "toolCompleted",
+        toolCallId: "t1",
+        subAgentId: "",
+        toolCall: toolInfo({
+          name: "execute",
+          args: { command: "npx vitest run src/parser", description: "Run unit tests for the parser" },
+        }),
+      },
+    ]);
+    expect(status).toContain("⠋ Run unit tests for the parser");
+    expect(status).toContain("✓ Run unit tests for the parser");
+    expect(status).not.toContain("execute");
+  });
+
+  it("keeps the raw tool name when there is no intent, and never titles non-shell tools from description", () => {
+    const { status } = render([
+      {
+        kind: "toolCompleted",
+        toolCallId: "t1",
+        subAgentId: "",
+        toolCall: toolInfo({ name: "execute", args: { command: "ls" } }),
+      },
+      {
+        kind: "toolCompleted",
+        toolCallId: "t2",
+        subAgentId: "",
+        toolCall: toolInfo({
+          name: "task",
+          args: { description: "general-purpose research", prompt: "Find the docs" },
+        }),
+      },
+    ]);
+    // A task tool's description is the sub-agent subject, never a row title.
+    expect(status).toContain("✓ execute");
+    expect(status).toContain("✓ task");
+    expect(status).not.toContain("general-purpose research");
+  });
+
   it("renders an interrupted tool with the neutral glyph, not a checkmark (issue #207)", () => {
     const { status } = render([
       { kind: "toolInterrupted", toolCallId: "t1", subAgentId: "", toolCall: toolInfo({ name: "shell", status: "interrupted" }) },
