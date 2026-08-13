@@ -10,7 +10,13 @@
  * their sanctioned delivery channel, and denying them here would break it.
  *
  * Consumers:
- * - shell-env.ts: SHELL_ENV_DENYLIST for the native harness `execute` tool.
+ * - runner-credential-store.ts: captures every name listed in this module
+ *   out of `process.env` at boot (issue #508 — the Cursor SDK's local agent
+ *   runtime runs in-process and its shell tool spawns from the runner's own
+ *   env, so credentials must not LIVE there; see that module for custody
+ *   rules).
+ * - shell-env.ts: SHELL_ENV_DENYLIST for the native harness `execute` tool
+ *   (defense-in-depth behind the boot scrub).
  * - mcp-manager.test.ts: leak-tripwire canaries for MCP stdio subprocesses
  *   (that path passes NO runner env by construction; the test plants these
  *   names to prove none leak through).
@@ -43,4 +49,33 @@ export const RUNNER_CREDENTIAL_ENV_KEYS: readonly string[] = [
   // Bedrock backend bearer credential, read by the AWS SDK's chain
   // (llm-backend.ts documents it as a supported auth path).
   "AWS_BEARER_TOKEN_BEDROCK",
+];
+
+/**
+ * Env var names of the runner's non-credential secrets — material that is
+ * not an outbound-call credential (so it does not belong in
+ * {@link RUNNER_CREDENTIAL_ENV_KEYS}, whose inclusion rule is pinned above)
+ * but is every bit as sensitive in an agent-readable environment
+ * (owner ruling on #508: same boot scrub, separate constant so the #385
+ * rule keeps its meaning).
+ *
+ * The `*_KEY_ID` companions are deliberately absent: key identifiers are
+ * rotation bookkeeping, not secrets.
+ */
+export const RUNNER_ENCRYPTION_ENV_KEYS: readonly string[] = [
+  // Temporal payload-encryption keys (encryption/config.ts). An agent that
+  // reads these could decrypt the runner's Temporal history payloads.
+  "STIGMER_PAYLOAD_ENCRYPTION_KEY",
+  "STIGMER_PAYLOAD_ENCRYPTION_SECONDARY_KEY",
+];
+
+/**
+ * Every env name whose VALUE the credential store takes custody of at boot:
+ * the #385 credential set plus the #508 encryption-key set. This is the
+ * scrub list — after `captureRunnerSecrets()`, none of these names remain
+ * in `process.env`.
+ */
+export const RUNNER_SECRET_ENV_KEYS: readonly string[] = [
+  ...RUNNER_CREDENTIAL_ENV_KEYS,
+  ...RUNNER_ENCRYPTION_ENV_KEYS,
 ];

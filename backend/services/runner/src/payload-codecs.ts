@@ -15,6 +15,7 @@
 import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
 import type { BootstrapKeyMaterial } from "./encryption/config.js";
+import { getRunnerSecret } from "./shared/runner-credential-store.js";
 
 export async function createPayloadCodecs(
   config: Config,
@@ -30,7 +31,7 @@ export async function createPayloadCodecs(
   const encryptionConfig = loadPayloadEncryptionConfig(bootstrapKeys);
   if (encryptionConfig) {
     codecs.push(new EncryptionPayloadCodec(encryptionConfig));
-    const source = process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY ? "env" : "bootstrap";
+    const source = getRunnerSecret("STIGMER_PAYLOAD_ENCRYPTION_KEY") ? "env" : "bootstrap";
     console.log(
       `[runner] Payload encryption enabled (source=${source}, ` +
         `key_id=${encryptionConfig.primary.keyId}` +

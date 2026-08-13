@@ -39,6 +39,7 @@ import {
   toOpenAiServiceTier,
   type EffectiveServiceTier,
 } from "./service-tier.js";
+import { getRunnerSecret } from "./runner-credential-store.js";
 
 export interface BuildChatModelOptions {
   /** Registry id ("claude-haiku-4.5"), "provider:model", or a provider API id. */
@@ -147,11 +148,11 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
   // tests. Prerequisites are re-checked here (not only in
   // the factories' preflight) so paths that construct models without a
   // runner factory still fail at dispatch with the catalog message instead
-  // of mid-request. Credentials are read natively by each SDK from its
-  // standard conventions (GCP: CLOUD_ML_REGION + ADC; AWS: AWS_REGION +
-  // the credential chain / AWS_BEARER_TOKEN_BEDROCK; Foundry:
-  // ANTHROPIC_FOUNDRY_API_KEY, or the Azure credential chain when no key
-  // is set).
+  // of mid-request. Ambient credentials are read natively by each SDK from
+  // its standard conventions (GCP: CLOUD_ML_REGION + ADC; AWS: AWS_REGION +
+  // the credential chain); runner-held keys (AWS_BEARER_TOKEN_BEDROCK,
+  // ANTHROPIC_FOUNDRY_API_KEY) are passed explicitly from the credential
+  // store because the boot capture empties their env slots (#508).
   let backendCreateClient:
     | ((options: { maxRetries?: number; timeout?: number }) => unknown)
     | undefined;
@@ -168,8 +169,17 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     const prereq = checkBedrockPrerequisites();
     if (prereq !== null) throw new Error(prereq);
     const { AnthropicBedrock } = await import("@anthropic-ai/bedrock-sdk");
+    // The SDK's own default for `apiKey` is process.env.AWS_BEARER_TOKEN_BEDROCK,
+    // which the boot capture has emptied (#508) — hand it the stored value
+    // explicitly. `undefined` when absent preserves the SDK's fallthrough to
+    // the ambient AWS credential chain (env keys, IRSA, config files).
+    const bedrockBearerToken = getRunnerSecret("AWS_BEARER_TOKEN_BEDROCK");
     backendCreateClient = (options) =>
-      new AnthropicBedrock({ maxRetries: options.maxRetries, timeout: options.timeout });
+      new AnthropicBedrock({
+        apiKey: bedrockBearerToken,
+        maxRetries: options.maxRetries,
+        timeout: options.timeout,
+      });
     wireModelId = toBedrockModelId(apiModelId);
     if (maxTokens === undefined) {
       // LangChain's per-model maxTokens table prefix-matches the model
@@ -198,8 +208,13 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     // so refreshed tokens flow without reconstruction (pinned by
     // foundry-seam.test.ts). Endpoint (resource or base URL) and the key
     // are read natively by the SDK from its own env vars.
+    // The SDK's own default for `apiKey` is process.env.ANTHROPIC_FOUNDRY_API_KEY,
+    // which the boot capture has emptied (#508) — resolve it from the store
+    // and hand it over explicitly. The either/or stays intact: exactly one of
+    // apiKey / azureADTokenProvider reaches the constructor.
+    const foundryApiKey = getRunnerSecret("ANTHROPIC_FOUNDRY_API_KEY")?.trim() || undefined;
     let azureADTokenProvider: (() => Promise<string>) | undefined;
-    if (!process.env.ANTHROPIC_FOUNDRY_API_KEY?.trim()) {
+    if (!foundryApiKey) {
       const { DefaultAzureCredential, getBearerTokenProvider } = await import("@azure/identity");
       azureADTokenProvider = getBearerTokenProvider(
         new DefaultAzureCredential(),
@@ -210,7 +225,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
       new AnthropicFoundry({
         maxRetries: options.maxRetries,
         timeout: options.timeout,
-        ...(azureADTokenProvider ? { azureADTokenProvider } : {}),
+        ...(foundryApiKey ? { apiKey: foundryApiKey } : { azureADTokenProvider }),
       });
     // Unlike the vertex/bedrock ids, the deployment name needs no maxTokens
     // handling: stripping the snapshot date preserves LangChain's per-model
@@ -226,13 +241,14 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     ? buildProxyHeaders(opts.stigmerToken, opts.headerScope ?? {})
     : undefined;
 
-  // Proxy mode authenticates with the Stigmer token; direct mode falls back to
-  // the provider's own env-var key.
+  // Proxy mode authenticates with the Stigmer token; direct mode falls back
+  // to the provider's own key, resolved from the credential store (the boot
+  // capture moved it out of process.env, #508).
   const apiKey = opts.proxyEndpoint
     ? (opts.stigmerToken ?? "proxy-managed")
     : provider === "openai"
-      ? (process.env.OPENAI_API_KEY ?? "")
-      : (process.env.ANTHROPIC_API_KEY ?? "");
+      ? (getRunnerSecret("OPENAI_API_KEY") ?? "")
+      : (getRunnerSecret("ANTHROPIC_API_KEY") ?? "");
 
   // maxRetries applies when a timeout is bound (a retry loop under a bound
   // multiplies the wall-clock budget) or when the caller pinned it

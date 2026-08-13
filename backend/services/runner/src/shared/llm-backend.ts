@@ -15,6 +15,7 @@
  */
 
 import type { LlmProvider } from "./llm-proxy.js";
+import { runnerSecretsEnvView } from "./runner-credential-store.js";
 
 // ─── Backend selection ───────────────────────────────────────────────────────
 
@@ -345,7 +346,12 @@ export function checkFoundryPrerequisites(
  */
 export function checkDirectCredentials(
   provider: LlmProvider,
-  env: NodeJS.ProcessEnv = process.env,
+  // Credential keys live in the runner credential store after the boot
+  // capture (#508), so the default is the store view, not bare process.env.
+  // The other checks in this module keep the process.env default: they read
+  // deployment CONFIG (backend selection, regions), which is deliberately
+  // not captured.
+  env: NodeJS.ProcessEnv = runnerSecretsEnvView(),
 ): string | null {
   if (provider === "openai") {
     if (env.OPENAI_API_KEY?.trim()) return null;

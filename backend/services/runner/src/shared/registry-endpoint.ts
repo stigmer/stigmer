@@ -21,6 +21,7 @@
 
 import { normalizeEndpoint } from "../config.js";
 import type { FetchRetryPolicy } from "./http-retry.js";
+import { runnerSecretsEnvView } from "./runner-credential-store.js";
 
 /** Default local stigmer-server origin — mirrors config.ts's local-mode default. */
 const DEFAULT_LOCAL_BACKEND = "http://localhost:7234";
@@ -68,8 +69,15 @@ export function resolveRegistryBaseUrl(env: NodeJS.ProcessEnv = process.env): st
 /**
  * Build request headers for registry fetches: bearer auth when a token is
  * present (cloud requires it; the local server ignores it).
+ *
+ * The default env is the credential-store view, not bare `process.env`:
+ * both token names are captured out of the environment at boot (#508), and
+ * the store also carries rotated tokens (manager updateToken / static
+ * renewal) that never touch env at all.
  */
-export function buildRegistryHeaders(env: NodeJS.ProcessEnv = process.env): Record<string, string> {
+export function buildRegistryHeaders(
+  env: NodeJS.ProcessEnv = runnerSecretsEnvView(),
+): Record<string, string> {
   const token = env.STIGMER_TOKEN ?? env.STIGMER_AUTH_TOKEN;
   return token ? { Authorization: `Bearer ${token}` } : {};
 }

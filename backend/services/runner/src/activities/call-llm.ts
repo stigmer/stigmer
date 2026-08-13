@@ -31,6 +31,7 @@ import {
 import { computeLlmCostMicros, ensureLoaded as ensurePricingLoaded } from "../shared/model-pricing.js";
 import { resolveToApiModelId } from "../shared/model-registry.js";
 import { buildChatModel } from "../shared/model-client.js";
+import { getRunnerSecret } from "../shared/runner-credential-store.js";
 import { checkDirectCredentials } from "../shared/llm-backend.js";
 import { classifyModelCallError } from "../shared/model-error.js";
 
@@ -192,7 +193,10 @@ export async function callLlmAction(
   await ensurePricingLoaded().catch(() => {});
 
   const proxyEndpoint = process.env.STIGMER_PROXY_ENDPOINT;
-  const stigmerToken = process.env.STIGMER_TOKEN;
+  // Per-call store read: rotation (manager updateToken / static renewal)
+  // must be visible to in-flight workers, exactly like the env read it
+  // replaced (#508).
+  const stigmerToken = getRunnerSecret("STIGMER_TOKEN");
   const proxyActive = !!(proxyEndpoint && stigmerToken);
 
   console.log(

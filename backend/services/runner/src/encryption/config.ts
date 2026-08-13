@@ -25,6 +25,8 @@
  * on the next runner boot — there is no live re-key.
  */
 
+import { getRunnerSecret } from "../shared/runner-credential-store.js";
+
 export interface EncryptionKey {
   readonly keyId: string;
   /** 32-byte AES-256 key. */
@@ -75,14 +77,18 @@ const AES_256_KEY_BYTES = 32;
 export function loadPayloadEncryptionConfig(
   bootstrap?: BootstrapKeyMaterial,
 ): PayloadEncryptionConfig | undefined {
-  const rawKey = process.env[KEY_ENV];
+  // Key VALUES resolve through the credential store (the #508 boot capture
+  // moves them out of process.env — agent shells must not read them); the
+  // *_KEY_ID companions are rotation bookkeeping, not secrets, and stay
+  // plain env reads.
+  const rawKey = getRunnerSecret(KEY_ENV);
   if (rawKey) {
     const primary: EncryptionKey = {
       keyId: requireKeyId(KEY_ID_ENV),
       key: parseKey(rawKey, KEY_ENV),
     };
 
-    const rawSecondary = process.env[SECONDARY_KEY_ENV];
+    const rawSecondary = getRunnerSecret(SECONDARY_KEY_ENV);
     const secondary: EncryptionKey | undefined = rawSecondary
       ? {
           keyId: requireKeyId(SECONDARY_KEY_ID_ENV),

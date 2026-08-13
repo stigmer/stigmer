@@ -20,6 +20,7 @@
  */
 
 import { randomBytes, type BinaryLike } from "node:crypto";
+import { getRunnerSecret } from "./runner-credential-store.js";
 
 const ENV_VAR = "STIGMER_RUNNER_HITL_SECRET";
 
@@ -27,13 +28,14 @@ let cached: Buffer | undefined;
 let warned = false;
 
 /**
- * Return the runner's HITL master secret (env-configured, else a stable
- * per-process random fallback). Memoized.
+ * Return the runner's HITL master secret (operator-configured via the
+ * {@link ENV_VAR} env var, resolved through the credential store since the
+ * #508 boot capture; else a stable per-process random fallback). Memoized.
  */
 export function getRunnerHitlMasterSecret(): BinaryLike {
   if (cached) return cached;
 
-  const fromEnv = process.env[ENV_VAR];
+  const fromEnv = getRunnerSecret(ENV_VAR);
   if (fromEnv && fromEnv.length > 0) {
     cached = Buffer.from(fromEnv, "utf-8");
     return cached;
