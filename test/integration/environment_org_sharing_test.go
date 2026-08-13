@@ -444,13 +444,20 @@ func TestOrgSharedEnvironment_VisibilityGuardrails(t *testing.T) {
 		assert.Equal(t, codes.FailedPrecondition, st.Code())
 	})
 
-	t.Run("generic_update_visibility_change_is_honored", func(t *testing.T) {
-		// Visibility set through generic update must behave identically to
-		// the targeted RPC (validated + tuple-reconciled) — the runtime gate
-		// reads the same field either way.
+	t.Run("generic_update_ignores_carried_visibility", func(t *testing.T) {
+		// Visibility is update-immutable (#573, PR #595): a level carried on
+		// a generic update joins id/slug/org in preserveImmutableFields — the
+		// update succeeds but the carried level is ignored, never applied.
+		// updateVisibility is the only door, so its guards (#489 level
+		// support, #556 default-instance rejection) cannot be bypassed.
+		// This subtest previously pinned the inverse ("generic update is
+		// honored") — the pre-#595 contract (stigmer/stigmer#634).
 		env := createSecretEnvironment(t, ctx, clients, "test-t06-update-vis")
-
 		meta := env.GetMetadata()
+		stored := meta.GetVisibility()
+		require.NotEqual(t, visOrgLevel, stored,
+			"fixture must start below org visibility for the preserve assertion to mean anything")
+
 		updated, err := clients.EnvironmentCommand.Update(ctx, &environmentv1.Environment{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Environment",
@@ -462,15 +469,25 @@ func TestOrgSharedEnvironment_VisibilityGuardrails(t *testing.T) {
 			},
 			Spec: env.GetSpec(),
 		})
-		require.NoError(t, err, "generic update setting org visibility should succeed")
-		assert.Equal(t, visOrgLevel, updated.GetMetadata().GetVisibility())
+		require.NoError(t, err, "generic update carrying a visibility level should still succeed")
+		assert.Equal(t, stored, updated.GetMetadata().GetVisibility(),
+			"carried visibility must be ignored, not applied")
 
 		fetched, err := clients.EnvironmentQuery.Get(ctx, &apiresource.ApiResourceId{
 			Value: meta.GetId(),
 		})
 		require.NoError(t, err)
+		assert.Equal(t, stored, fetched.GetMetadata().GetVisibility(),
+			"stored visibility must survive a generic update that carries a level")
+
+		// The guarded door remains the way to change it.
+		setEnvironmentVisibility(t, ctx, clients, meta.GetId(), visOrgLevel)
+		fetched, err = clients.EnvironmentQuery.Get(ctx, &apiresource.ApiResourceId{
+			Value: meta.GetId(),
+		})
+		require.NoError(t, err)
 		assert.Equal(t, visOrgLevel, fetched.GetMetadata().GetVisibility(),
-			"org visibility set via generic update must persist")
+			"updateVisibility must still land the org level")
 	})
 
 	t.Run("create_with_org_visibility_works", func(t *testing.T) {
