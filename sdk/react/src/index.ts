@@ -1043,6 +1043,18 @@ export type {
   CursorAccountEditorProps,
 } from "./cursor-accounts/index.js";
 
+// Provider standing — read-only platform-operator view of the platform's
+// LLM provider account health (canary-probe verdicts, cloud#447)
+export {
+  useProviderStanding,
+  ProviderStandingConsole,
+  ProviderStandingAccessNotice,
+} from "./provider-standing/index.js";
+export type {
+  UseProviderStandingReturn,
+  ProviderStandingConsoleProps,
+} from "./provider-standing/index.js";
+
 // Settings — navigation structure + section components shared across app shells
 export {
   SETTINGS_NAV_GROUPS,
