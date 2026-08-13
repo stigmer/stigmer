@@ -14,6 +14,7 @@ import (
 	oauthappv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/oauthapp/v1"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/oauthapp/refresolution"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption"
 )
 
@@ -246,7 +247,7 @@ func (c *McpServerController) initiateVendorOAuth(
 ) (*initiateResult, error) {
 	ref := mcpServer.GetSpec().GetAuth().GetOauthAppRef()
 
-	oauthApp, err := resolveOAuthAppByRef(ctx, c.store, ref)
+	oauthApp, err := refresolution.Resolve(ctx, c.store, ref)
 	if err != nil {
 		return nil, grpclib.InternalError(err, "failed to list oauth apps")
 	}

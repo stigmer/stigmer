@@ -17,7 +17,7 @@ import (
 // OAuthApp OVER a platform-managed default. OSS has no platform operator
 // distinct from the user — the flat oauthapp domain gives the user full CRUD
 // over the very apps a hosted org could only override — and the OSS OAuth
-// resolution (resolveOAuthAppByRef) has no override level to consult: the
+// resolution (the oauthapp refresolution package) has no override level to consult: the
 // ref IS the whole resolution. Cloud's setOrgOAuthApp additionally clones
 // endpoint URLs from the platform template, which OSS installs do not ship.
 //

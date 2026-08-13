@@ -18,6 +18,7 @@ go_library(
         "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
+        "//backend/services/stigmer-server/pkg/domain/oauthapp/refresolution",
         "//backend/services/stigmer-server/pkg/encryption",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_protobuf//proto",
