@@ -51,6 +51,23 @@ describe("Overview graph pipeline", () => {
     expect((taskNode!.data as CanvasTaskNodeData).isSentinel).toBeFalsy();
   });
 
+  test("sentinel nodes carry the pseudo-kind as kindString, never the enum fallback (oss#581)", () => {
+    const laid = applyDagreLayout(threeNodeGraph);
+    const { nodes } = toReactFlowElements(laid);
+    const startData = nodes.find((n) => n.id === START_NODE_ID)!.data as CanvasTaskNodeData;
+    const endData = nodes.find((n) => n.id === END_NODE_ID)!.data as CanvasTaskNodeData;
+    expect(startData.kindString).toBe(START_NODE_ID);
+    expect(endData.kindString).toBe(END_NODE_ID);
+  });
+
+  test("no node's kindString is ever the internal unknown_* fallback", () => {
+    const laid = applyDagreLayout(threeNodeGraph);
+    const { nodes } = toReactFlowElements(laid);
+    for (const node of nodes) {
+      expect((node.data as CanvasTaskNodeData).kindString).not.toMatch(/^unknown_/);
+    }
+  });
+
   test("task nodes carry correct kindString and category", () => {
     const laid = applyDagreLayout(threeNodeGraph);
     const { nodes } = toReactFlowElements(laid);

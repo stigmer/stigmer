@@ -28,7 +28,7 @@ export const WorkflowNode = memo(function WorkflowNode({
   selected,
 }: NodeProps & { data: CanvasTaskNodeData }) {
   const mode = useWorkflowGraphMode();
-  const visualSpec = getVisualSpec(data.isSentinel ? id : data.kindString);
+  const visualSpec = getVisualSpec(data.kindString);
   const categoryColor = CATEGORY_COLORS[data.category];
   const errorCount = data.errorCount ?? 0;
   const isNested = NESTED_TASK_KINDS.has(data.kindString);
@@ -38,7 +38,10 @@ export const WorkflowNode = memo(function WorkflowNode({
   return (
     <div
       data-visual-class={data.visualClass}
-      data-task-kind={data.kindString}
+      // data-task-kind is a sanctioned e2e/embedding hook meaning "real
+      // workflow task kind" — sentinels omit it and are targeted via
+      // data-id + data-visual-class instead (oss#581).
+      data-task-kind={data.isSentinel ? undefined : data.kindString}
       data-execution-status={executionState?.status}
       data-diff-status={diffState?.status}
       aria-label={buildAriaLabel(data, errorCount, executionState?.status)}

@@ -4,6 +4,7 @@ import {
   SENTINEL_NODE_WIDTH,
   SENTINEL_NODE_HEIGHT,
 } from "./canvas-constants.js";
+import { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model.js";
 
 /**
  * Semantic shape identifier for workflow nodes.
@@ -203,9 +204,10 @@ export const VISUAL_REGISTRY: ReadonlyMap<string, TaskTypeVisualSpec> = Object.f
     ["notification", EVENT_CIRCLE],
     ["raise_error", EVENT_CIRCLE],
 
-    // sentinels
-    ["__start__", TERMINAL_PILL],
-    ["__end__", TERMINAL_PILL_END],
+    // Sentinel pseudo-kinds: keyed by the sentinel node ids, which double
+    // as the sentinels' kindString (see graphNodeKindString).
+    [START_NODE_ID, TERMINAL_PILL],
+    [END_NODE_ID, TERMINAL_PILL_END],
   ]),
 );
 
