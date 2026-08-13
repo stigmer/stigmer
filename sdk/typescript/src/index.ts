@@ -85,6 +85,7 @@ export type { RecentActivityEntry as RecentActivityEntryProto } from "./activity
 // Billing client
 export {
   BillingClient,
+  type AdjustCreditsParams,
   type CreateCheckoutSessionParams,
   type CreateBillingPortalSessionParams,
   type SetAutoRechargeConfigParams,

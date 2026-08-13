@@ -104,6 +104,25 @@ with StigmerClient("sk_live_abc123") as client:
     ))
 ```
 
+## Billing
+
+Credit balance queries, ledger history, and manual credit adjustments for an
+organization. Commands require the `can_manage_billing` permission on the org:
+
+```python
+from stigmer import StigmerClient, AdjustCreditsParams
+
+with StigmerClient("sk_live_abc123") as client:
+    balance = client.billing.get_credit_balance(org_id)
+
+    entry = client.billing.adjust_credits(AdjustCreditsParams(
+        org_id=org_id,
+        amount_micros=25_000_000,  # +$25.00
+        reason="initial tenant funding",
+        idempotency_key=f"fund-{org_id}",
+    ))
+```
+
 ## Error Handling
 
 All SDK operations raise `StigmerError` with structured error codes:

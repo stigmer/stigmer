@@ -63,6 +63,23 @@ Every resource type has a typed client accessible as a property on the `Stigmer`
 | `workflowExecution`  | WorkflowExecution  |
 | `workflowInstance`   | WorkflowInstance   |
 | `search`             | Cross-resource search |
+| `billing`            | Billing (credits, ledger, Stripe) |
+
+### Billing
+
+Credit balance queries, ledger history, and manual credit adjustments for an
+organization. Commands require the `can_manage_billing` permission on the org:
+
+```typescript
+const balance = await stigmer.billing.getCreditBalance(orgId);
+
+const entry = await stigmer.billing.adjustCredits({
+  orgId,
+  amountMicros: 25_000_000n, // +$25.00
+  reason: "initial tenant funding",
+  idempotencyKey: `fund-${orgId}`,
+});
+```
 
 ### Common operations
 

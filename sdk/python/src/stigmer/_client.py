@@ -7,6 +7,7 @@ from types import TracebackType
 
 import grpc
 
+from ._billing import BillingClient
 from ._gen._client import GeneratedClient
 from ._github import GitHubClient
 from ._runner_adapter import RunnerAdapter
@@ -34,6 +35,7 @@ class StigmerClient(GeneratedClient):
     - Configuration and gRPC channel setup
     - Cross-resource :attr:`search` client
     - :attr:`github` OAuth integration client
+    - :attr:`billing` bounded-context client
 
     Usage::
 
@@ -53,6 +55,7 @@ class StigmerClient(GeneratedClient):
 
     search: SearchClient
     github: GitHubClient
+    billing: BillingClient
     default_execution_target: int
     runner_adapter: RunnerAdapter | None
 
@@ -93,6 +96,7 @@ class StigmerClient(GeneratedClient):
         self.runner_adapter = runner_adapter
         self.search = SearchClient(self._channel)
         self.github = GitHubClient(self._channel)
+        self.billing = BillingClient(self._channel)
 
     def close(self) -> None:
         """Release the underlying gRPC channel."""
