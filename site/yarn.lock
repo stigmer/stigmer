@@ -2638,7 +2638,7 @@ __metadata:
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=15143e&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=9b3172&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protovalidate": "npm:^1.1.1"
     "@dagrejs/dagre": "npm:^1.1.4"
@@ -2706,7 +2706,7 @@ __metadata:
       optional: true
     recharts:
       optional: true
-  checksum: 10c0/845c73985699bfb17cb5d5aec19f2f408e60054faa960b49d360b0c3c590a59910135b3d9f7dd2810c067757a30bf4887379a2c6def9fbc5f9ce19615bbe7273
+  checksum: 10c0/ba39de3eaff302c7cb8ad3d6bc72a63dcf9f984b920c6160bac3071bd83478579adee38f8d0252de4adefcc08ae8faf5531c7ddc0e0c45b6f4b13cc5504a23c2
   languageName: node
   linkType: hard
 

@@ -109,15 +109,16 @@ test.describe("Workflow node visual classes (T01)", () => {
       testMultiKindWorkflow.slug,
     );
 
-    // Anchor on the semantic node ids — `data-task-kind` on sentinels is
-    // an enum-fallback artifact ("unknown_0"), tracked as its own issue,
-    // and tests must not calcify around it.
+    // Anchor on the semantic node ids. Since oss#581 (PR #586) sentinels
+    // carry an honest contract: terminal-pill visual class and NO
+    // data-task-kind (that attribute means "real workflow task kind").
     const canvas = getEditorCanvas(page);
     for (const sentinelId of ["__start__", "__end__"]) {
-      const sentinel = canvas.locator(
-        `[data-id="${sentinelId}"] [data-visual-class="terminal-pill"]`,
-      );
-      await expect(sentinel).toBeVisible({ timeout: 10_000 });
+      const sentinel = canvas
+        .locator(`[data-id="${sentinelId}"]`)
+        .locator('[data-visual-class="terminal-pill"]');
+      await expect(sentinel.first()).toBeVisible({ timeout: 10_000 });
+      await expect(sentinel.first()).not.toHaveAttribute("data-task-kind");
     }
   });
 

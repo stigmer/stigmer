@@ -101,12 +101,9 @@ test.describe("Workflow overview page", () => {
       overviewCanvas.locator(".react-flow__node").first(),
     ).toBeVisible({ timeout: 10_000 });
 
-    // A non-sentinel node (sentinels carry the terminal-pill visual class
-    // — their data-task-kind is an enum-fallback artifact, not a stable
-    // anchor)
-    const taskNode = overviewCanvas
-      .locator('[data-task-kind]:not([data-visual-class="terminal-pill"])')
-      .first();
+    // Sentinels carry no data-task-kind (oss#581), so the bare attribute
+    // selector matches real task nodes only.
+    const taskNode = overviewCanvas.locator("[data-task-kind]").first();
     await expect(taskNode).toBeVisible();
     await taskNode.click();
 

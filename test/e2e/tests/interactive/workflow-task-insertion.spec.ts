@@ -268,12 +268,10 @@ test.describe("Workflow task insertion (T08)", () => {
     const endNode = canvas.locator('[data-id="__end__"]');
     await expect(endNode).toBeAttached({ timeout: 10_000 });
 
-    // The last REAL task node — sentinels also carry [data-task-kind]
-    // (and are non-selectable), so exclude the terminal pills. It sits
-    // under the minimap after fit-view; zoom it clear before clicking.
-    const nodeBeforeEnd = canvas
-      .locator('[data-task-kind]:not([data-visual-class="terminal-pill"])')
-      .last();
+    // The last REAL task node — sentinels carry no data-task-kind
+    // (oss#581), so the bare attribute selector matches task nodes only.
+    // It sits under the minimap after fit-view; zoom it clear first.
+    const nodeBeforeEnd = canvas.locator("[data-task-kind]").last();
     await zoomClearOfMinimap(page, canvas, nodeBeforeEnd);
     await openAddAfterPicker(page, nodeBeforeEnd);
 

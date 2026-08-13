@@ -17,13 +17,11 @@ import { assertNoErrorBoundary } from "../../helpers/navigation";
 
 /**
  * The first REAL task node on the editor canvas — scoped (the Overview
- * tabpanel mounts a second canvas) and excluding the start/end sentinels
- * (also `[data-task-kind]` carriers, but non-selectable).
+ * tabpanel mounts a second canvas). Sentinels carry no data-task-kind
+ * (oss#581), so the bare attribute selector matches task nodes only.
  */
 function getFirstTaskNode(page: Page) {
-  return getEditorCanvas(page)
-    .locator('[data-task-kind]:not([data-visual-class="terminal-pill"])')
-    .first();
+  return getEditorCanvas(page).locator("[data-task-kind]").first();
 }
 
 test.describe("Workflow inspector panel", () => {
