@@ -7,6 +7,7 @@
 // data map with secret flags, and the recursive workflow task_config expansion
 // (http_call leaf, fork/for_each nesting).
 
+import { clone } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
 import {
@@ -18,7 +19,7 @@ import type { AddressInfo } from "node:net";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { type Agent, AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
@@ -29,6 +30,7 @@ import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/wo
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import type { UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { configureLogger } from "../logger";
@@ -42,6 +44,13 @@ let appliedAgent: Agent | undefined;
 let appliedMcpServer: McpServerProto | undefined;
 let appliedWorkflow: Workflow | undefined;
 let appliedEnvironment: Environment | undefined;
+const visibilityUpdates: UpdateVisibilityInput[] = [];
+
+// The single-door contract (oss#573): a plain update preserves the STORED
+// visibility, so the apply response can disagree with the request. This slug
+// makes the mock backend simulate that — apply echoes back a pre-existing
+// resource whose stored level is org, regardless of the requested one.
+const STORED_ORG_SLUG = "stored-org-agent";
 const openSessions = new Set<ServerHttp2Session>();
 
 interface ToolResult {
@@ -58,7 +67,20 @@ beforeAll(async () => {
     router.service(AgentCommandController, {
       apply: (req) => {
         appliedAgent = req;
+        if (req.metadata?.slug === STORED_ORG_SLUG) {
+          const stored = clone(AgentSchema, req);
+          stored.metadata!.id = "agent-stored-1";
+          stored.metadata!.visibility = ApiResourceVisibility.visibility_org;
+          return stored;
+        }
         return req;
+      },
+      updateVisibility: (input) => {
+        visibilityUpdates.push(input);
+        const updated = clone(AgentSchema, appliedAgent!);
+        updated.metadata!.id = input.resourceId;
+        updated.metadata!.visibility = input.visibility;
+        return updated;
       },
     });
     router.service(McpServerCommandController, {
@@ -232,6 +254,38 @@ describe("apply tools integration", () => {
     const forCfg = tasks[2]?.taskConfig as { each?: string; do?: unknown[] };
     expect(forCfg.each).toBe("item");
     expect(forCfg.do).toHaveLength(1);
+  });
+
+  it("apply_agent lands a declared visibility the update preserved away via UpdateVisibility (oss#573)", async () => {
+    const result = await callTool("apply_agent", {
+      name: "Stored Org Agent",
+      org: "acme",
+      visibility: "PUBLIC",
+      instructions: "i",
+    });
+    expect(result.isError).toBeFalsy();
+
+    // Server "preserved" stored org; the tool must follow up once through
+    // the guarded door and return the landed level, not the stale one.
+    expect(visibilityUpdates).toHaveLength(1);
+    expect(visibilityUpdates[0].resourceId).toBe("agent-stored-1");
+    expect(visibilityUpdates[0].visibility).toBe(ApiResourceVisibility.visibility_public);
+    const text = result.content.find((c) => c.type === "text")?.text ?? "";
+    expect(JSON.parse(text).metadata.visibility).toBe("visibility_public");
+  });
+
+  it("apply_agent skips the follow-up when the server already matches", async () => {
+    visibilityUpdates.length = 0;
+    const result = await callTool("apply_agent", {
+      name: "Plain Agent",
+      org: "acme",
+      visibility: "PUBLIC",
+      instructions: "i",
+    });
+    expect(result.isError).toBeFalsy();
+    // The echo backend returns the requested level (and no id) — no diff,
+    // no follow-up.
+    expect(visibilityUpdates).toHaveLength(0);
   });
 
   it("apply_environment rebuilds the data map with secret flags", async () => {

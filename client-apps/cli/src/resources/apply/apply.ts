@@ -9,6 +9,8 @@
 import { create, fromJson, type JsonValue, type Message } from "@bufbuild/protobuf";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import {
   type ApiResourceMetadata,
   ApiResourceMetadataSchema,
@@ -131,19 +133,78 @@ export async function applyMessage(
   org: string,
   dryRun: boolean,
 ): Promise<ApplyOutcome> {
-  const warning = injectOrg(message, org);
+  const orgWarning = injectOrg(message, org);
   const created = (metaOf(message)?.id ?? "") === "";
 
   if (dryRun) {
-    return { result: buildDryRunResult(handler, message), warning };
+    return { result: buildDryRunResult(handler, message), warning: orgWarning };
   }
 
   const applied = await handler.apply(controller, message);
+  const visibilityWarning = await applyDeclaredVisibility(controller, handler, message, applied);
+  const warning = combineWarnings(orgWarning, visibilityWarning);
   const result = buildApplyResult(handler, applied, created);
   if (handler.kind === ApiResourceKind.mcp_server) {
     return { result, appliedMcpServer: applied as McpServer, warning, applied };
   }
   return { result, warning, applied };
+}
+
+/**
+ * Land a manifest-declared visibility through the guarded door. Plain
+ * updates preserve the stored visibility on both editions (oss#573) — the
+ * `updateVisibility` RPC is the only mutation path, so when the applied
+ * resource comes back with a different level than the manifest declared,
+ * follow up with one RPC (the skill-push precedent: no-ops are skipped, an
+ * unchanged manifest costs nothing extra). Server-side guard rejections
+ * (unsupported level, default-instance) propagate as command failures —
+ * the spec update has landed at that point, and the error says so.
+ *
+ * Returns a warning (instead of following up) for kinds without the RPC:
+ * their manifests can only carry a level the create path already rejected,
+ * so a diff here means a pre-existing resource and an unsupported ask.
+ */
+async function applyDeclaredVisibility(
+  controller: ControllerFn,
+  handler: ApplyHandler,
+  message: Message,
+  applied: Message,
+): Promise<string | undefined> {
+  const declared = metaOf(message)?.visibility ?? ApiResourceVisibility.api_resource_visibility_unspecified;
+  if (declared === ApiResourceVisibility.api_resource_visibility_unspecified) return undefined;
+
+  const appliedMeta = metaOf(applied);
+  const resourceId = appliedMeta?.id ?? "";
+  if (resourceId === "" || appliedMeta?.visibility === declared) return undefined;
+
+  if (handler.updateVisibility === undefined) {
+    return (
+      `${handler.displayName} visibility cannot be changed declaratively — ` +
+      "the manifest's metadata.visibility was ignored (the stored value is kept)"
+    );
+  }
+
+  try {
+    const updated = await handler.updateVisibility(
+      controller,
+      create(UpdateVisibilityInputSchema, { resourceId, visibility: declared }),
+    );
+    // Reflect the landed level on the outcome the caller already holds.
+    const updatedMeta = metaOf(updated);
+    if (appliedMeta !== undefined && updatedMeta !== undefined) {
+      appliedMeta.visibility = updatedMeta.visibility;
+    }
+    return undefined;
+  } catch (err) {
+    throw new UsageError(
+      `${handler.displayName} spec applied, but the manifest's visibility change was rejected: ${(err as Error).message}`,
+    );
+  }
+}
+
+function combineWarnings(...warnings: (string | undefined)[]): string | undefined {
+  const present = warnings.filter((w): w is string => w !== undefined);
+  return present.length > 0 ? present.join("; ") : undefined;
 }
 
 /** Read a resource message's metadata (id/name/slug/org), if present. */

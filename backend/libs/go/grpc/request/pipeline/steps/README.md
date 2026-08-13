@@ -69,11 +69,13 @@ pipeline := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
     ...
 ```
 
-**Where it is wired:** every create pipeline, plus the environment and
-agent_share plain-update pipelines (the two kinds Cloud also guards at plain
-update — plain updates keep a request-carried level). It reads the request's
-embedded metadata, so it only fits pipelines whose request IS the resource;
-UpdateVisibility pipelines use `ValidateVisibilityUpdateStep` instead.
+**Where it is wired:** every create pipeline — and only create pipelines.
+Plain updates preserve the stored visibility unconditionally
+(`preserveImmutableFields`, oss#573), so there is no update-side level to
+validate; the `updateVisibility` RPC is the only door for visibility changes.
+It reads the request's embedded metadata, so it only fits pipelines whose
+request IS the resource; UpdateVisibility pipelines use
+`ValidateVisibilityUpdateStep` instead.
 
 **Deliberate divergences from Cloud** (recorded in the step doc): no
 platform-anchor check (OSS has no IdentityProvider domain) and no wiring in
@@ -97,9 +99,11 @@ pipeline := pipeline.NewPipeline[*apiresourcepb.UpdateVisibilityInput]("agent-up
     ...
 ```
 
-**Deliberate divergence from Cloud** (recorded in the step doc): no
-default-instance guard — OSS default instances carry no marking to key it on;
-tracked as its own issue.
+**Deliberate divergence from Cloud** (recorded in the step doc): the
+default-instance guard is not folded into this step. It lives as a domain
+step in the two instance controllers (`RejectDefaultInstanceVisibilityUpdate`,
+shipped for oss#556), placed BEFORE this step to preserve Cloud's error
+precedence.
 
 ## Creating Custom Steps
 

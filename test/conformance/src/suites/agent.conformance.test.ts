@@ -408,6 +408,75 @@ describe("Agent instance conformance — visibility level validation", () => {
   });
 });
 
+describe("Agent conformance — plain-update visibility door (stigmer#573)", () => {
+  // The updateVisibility RPC is the ONLY door for visibility changes on both
+  // editions: every guard (per-kind level support stigmer#489, the
+  // default-instance rejection stigmer#556) lives on the updateVisibility
+  // pipelines, so plain updates preserve the stored level UNCONDITIONALLY —
+  // a request-carried level is ignored, never applied and never an error
+  // (stale manifests re-applied after a console visibility change must not
+  // fail the whole update). OSS: preserveImmutableFields; cloud:
+  // UpdateOperationPreserveResourceIdentifiersStepV2.
+
+  it("update carrying a different level succeeds but leaves the stored level untouched", async () => {
+    const { org } = await target.provisionTenancy();
+    const created = await createAgent(org, uniqueName("agent"));
+    expect(created.metadata?.visibility, "precondition: blueprint default").toBe(ApiResourceVisibility.visibility_org);
+
+    const updated = await clients.agentCommand.update({
+      apiVersion: AGENT_API_VERSION,
+      kind: AGENT_KIND,
+      metadata: {
+        id: created.metadata!.id,
+        name: created.metadata!.name,
+        org,
+        // The stigmer#573 bypass shape: an explicitly carried level on a
+        // plain update. Must be ignored like the slug/org mutations above.
+        visibility: ApiResourceVisibility.visibility_public,
+      },
+      spec: makeAgentSpec({ description: "updated alongside a carried level" }),
+    });
+
+    expect(updated.spec?.description, "the spec update itself lands").toBe("updated alongside a carried level");
+    expect(updated.metadata?.visibility, "the carried level is ignored").toBe(ApiResourceVisibility.visibility_org);
+
+    const stored = await clients.agentQuery.get({ value: created.metadata!.id });
+    expect(stored.metadata?.visibility, "the stored level is untouched").toBe(ApiResourceVisibility.visibility_org);
+  });
+
+  it("update cannot flip a default instance's visibility (the stigmer#556 guard is not bypassable)", async () => {
+    // updateVisibility on a default instance rejects with FailedPrecondition
+    // (pinned above). A plain update carrying a level was the remaining way
+    // to stamp visibility onto one; with the single-door contract it
+    // silently preserves instead — the structurally-invalid state can no
+    // longer be reached through any write path.
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgent(org, uniqueName("agent"));
+    const defaultInstanceId = agent.status?.defaultInstanceId;
+    expect(defaultInstanceId, "create provisions a default instance").toMatch(/^ain_[0-9a-z]+$/);
+
+    const instance = await clients.agentInstanceQuery.get({ value: defaultInstanceId! });
+    const storedLevel = instance.metadata?.visibility;
+
+    const updated = await clients.agentInstanceCommand.update({
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "AgentInstance",
+      metadata: {
+        id: instance.metadata!.id,
+        name: instance.metadata!.name,
+        org,
+        visibility: ApiResourceVisibility.visibility_public,
+      },
+      spec: instance.spec,
+    });
+
+    expect(updated.metadata?.visibility, "the carried level is ignored on the default instance").toBe(storedLevel);
+
+    const stored = await clients.agentInstanceQuery.get({ value: defaultInstanceId! });
+    expect(stored.metadata?.visibility, "the stored level is untouched").toBe(storedLevel);
+  });
+});
+
 describe("Agent conformance — McpServer references", () => {
   it("accepts an agent referencing an existing McpServer and normalizes the reference org", async () => {
     const { org } = await target.provisionTenancy();

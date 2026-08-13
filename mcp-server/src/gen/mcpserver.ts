@@ -18,7 +18,7 @@ export const McpServerInputShape = {
   name: z.string().describe("Human-readable name of the resource."),
   slug: z.string().optional().describe("URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted."),
   org: z.string().describe("Organization that owns this resource (e.g. acme)."),
-  visibility: z.string().optional().describe("Resource visibility: PRIVATE or PUBLIC. Omit to leave unchanged on updates."),
+  visibility: z.string().optional().describe("Resource visibility: PRIVATE or PUBLIC. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged."),
   labels: z.record(z.string()).optional().describe("Key-value labels for organization and filtering."),
   tags: z.array(z.string()).optional().describe("Tags for categorization and discovery."),
   description: z.string().optional().describe("Human-readable description for marketplace display and documentation. Should explain what this MCP server does and its primary use cases. Example: 'GitHub MCP server for repository operations, code search, and PR management'"),

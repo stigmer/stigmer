@@ -7,7 +7,10 @@
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+
 import { mcpServerInputToProto, type McpServerInput } from "../../gen/mcpserver.js";
+import { applyDeclaredVisibility } from "../apply-visibility.js";
 import { withClient } from "../client.js";
 import { toProtoJson } from "../marshal.js";
 import { rpcError } from "../rpcerr.js";
@@ -26,7 +29,13 @@ export async function applyMcpServer(
     token,
     async (client, callOptions) => {
       try {
-        const result = await client.apply(server, callOptions);
+        const applied = await client.apply(server, callOptions);
+        const result = await applyDeclaredVisibility(
+          client,
+          callOptions,
+          applied,
+          server.metadata?.visibility ?? ApiResourceVisibility.api_resource_visibility_unspecified,
+        );
         return toProtoJson(McpServerSchema, result);
       } catch (err) {
         throw rpcError(err, desc);

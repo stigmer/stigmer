@@ -6,7 +6,10 @@
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+
 import { agentInputToProto, type AgentInput } from "../../gen/agent.js";
+import { applyDeclaredVisibility } from "../apply-visibility.js";
 import { withClient } from "../client.js";
 import { toProtoJson } from "../marshal.js";
 import { rpcError } from "../rpcerr.js";
@@ -21,7 +24,13 @@ export async function applyAgent(
   const desc = `agent "${agent.metadata?.slug ?? ""}" in org "${agent.metadata?.org ?? ""}"`;
   return withClient(AgentCommandController, serverAddress, token, async (client, callOptions) => {
     try {
-      const result = await client.apply(agent, callOptions);
+      const applied = await client.apply(agent, callOptions);
+      const result = await applyDeclaredVisibility(
+        client,
+        callOptions,
+        applied,
+        agent.metadata?.visibility ?? ApiResourceVisibility.api_resource_visibility_unspecified,
+      );
       return toProtoJson(AgentSchema, result);
     } catch (err) {
       throw rpcError(err, desc);

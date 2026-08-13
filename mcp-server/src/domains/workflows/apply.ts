@@ -11,7 +11,10 @@
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+
 import { workflowInputToProto, type WorkflowInput } from "../../gen/workflow.js";
+import { applyDeclaredVisibility } from "../apply-visibility.js";
 import { withClient } from "../client.js";
 import { toProtoJson } from "../marshal.js";
 import { rpcError } from "../rpcerr.js";
@@ -30,7 +33,13 @@ export async function applyWorkflow(
     token,
     async (client, callOptions) => {
       try {
-        const result = await client.apply(workflow, callOptions);
+        const applied = await client.apply(workflow, callOptions);
+        const result = await applyDeclaredVisibility(
+          client,
+          callOptions,
+          applied,
+          workflow.metadata?.visibility ?? ApiResourceVisibility.api_resource_visibility_unspecified,
+        );
         return toProtoJson(WorkflowSchema, result);
       } catch (err) {
         throw rpcError(err, desc);

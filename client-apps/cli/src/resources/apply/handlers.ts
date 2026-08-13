@@ -24,6 +24,7 @@
 
 import type { DescMessage, DescService, Message } from "@bufbuild/protobuf";
 import type { Client } from "@connectrpc/connect";
+import type { UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { type Session, SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import {
@@ -54,6 +55,14 @@ export interface ApplyHandler {
   readonly applyOrder: number;
   /** Drive the controller's `apply` RPC with the full resource message. */
   apply(controller: ControllerFn, message: Message): Promise<Message>;
+  /**
+   * Drive the controller's `updateVisibility` RPC — the only door for
+   * visibility changes (plain updates preserve stored visibility, oss#573).
+   * Present exactly when the kind has the RPC; the apply core follows up
+   * through it when a manifest-declared level differs from the stored one.
+   * Manifest kinds inherit the binding from the SDK registry.
+   */
+  updateVisibility?(controller: ControllerFn, input: UpdateVisibilityInput): Promise<Message>;
 }
 
 // The SDK registry's applyOrder values end at schedule = 12; the extras slot
@@ -72,6 +81,7 @@ const CLI_EXTRA_HANDLERS: readonly ApplyHandler[] = [
     schema: WorkflowInstanceSchema,
     applyOrder: 13,
     apply: (c, m) => c(WorkflowInstanceCommandController).apply(m as WorkflowInstance),
+    updateVisibility: (c, i) => c(WorkflowInstanceCommandController).updateVisibility(i),
   },
   {
     kind: ApiResourceKind.session,
