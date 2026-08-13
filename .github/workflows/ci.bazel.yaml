@@ -1,0 +1,215 @@
+# =============================================================================
+# Bazel graph integrity gate
+# =============================================================================
+# No lane exercised the bazel graph before this one, and four breakages landed
+# on main invisibly — each found by a session's accidental wildcard build,
+# never by CI (oss#616):
+#   - oss#596  — test target referencing a deleted source (unbuildable)
+#   - oss#604  — pluginpb link conflict (unlinkable)
+#   - cloud#414 — the class with opposite polarity: sources with no target
+#   - the apis/ai BUILD zone — five never-buildable files, live four months
+#
+# Two arms, split by SIGNAL rather than schedule cost:
+#
+#   graph (every PR; the required check):
+#     - `bazelw build //...` compiles and links every target INCLUDING test
+#       binaries without running them — this alone catches the #596/#604
+#       class at PR time.
+#     - `bazelw run //:gazelle -- -mode=diff` fails when any BUILD file is
+#       stale — the only detector for the cloud#414 class (a target that was
+#       never generated cannot fail to build). Scope: the gazelle-managed Go
+#       tree (root directives exclude apis/ai and sdk; buf owns proto
+#       generation and ci.codegen gates the committed stubs).
+#     Zero test execution: no secrets, no flake surface. `make check-bazel`
+#     is this arm's local twin.
+#
+#   test (nightly + dispatch):
+#     - `bazelw test //...` for the residual signal build cannot see:
+#       sandbox/runfiles/data-dep drift in how tests run UNDER bazel. The
+#       tests themselves already run with stronger flags (-race) in check-go,
+#       so this arm is a canary, not the primary test gate. Three targets
+#       whose committed data files were never wired as bazel data deps are
+#       excluded until oss#722 lands them.
+#
+# Required-check shape (the #709 lesson): this workflow triggers on EVERY
+# pull request and gates internally — the `changes` job reads the PR's file
+# list and the graph job skips (conclusion "skipped", which branch protection
+# accepts) when nothing bazel-adjacent changed. Workflow-level `paths` would
+# either break required checks or need a noop twin, whose mixed-PR hole is
+# exactly how PR #662 broke main's docs gate (#688).
+#
+# Deliberately NOT `--config=ci`: that config exists for release stamping,
+# and --stamp re-links every stamped binary — it would poison the disk cache
+# this lane's speed depends on.
+# =============================================================================
+
+name: ci.bazel
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    # Keep in lockstep with the changes job's filter below — same list, one
+    # file, checked in one review. Pushes to main run the graph arm to keep
+    # the shared disk cache warm for PR branches (actions caches created on
+    # main are visible to every PR).
+    paths:
+      - "**/*.go"
+      - "**/go.mod"
+      - "**/go.sum"
+      - "go.work"
+      - "go.work.sum"
+      - "**/BUILD.bazel"
+      - "**/*.bzl"
+      - "MODULE.bazel"
+      - "MODULE.bazel.lock"
+      - ".bazelrc"
+      - ".bazelversion"
+      - "bazelw"
+      - ".github/workflows/ci.bazel.yaml"
+  schedule:
+    # 05:30 UTC — offset from ci.integration-canary (06:00) so unattended
+    # failures file distinct issues in the same morning sweep.
+    - cron: "30 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bazel-${{ github.event_name }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Decides whether the bazel gates apply, from the PR's actual changed-file
+  # list. Push, schedule, and dispatch events always run their arms: pushes
+  # are already narrowed by the trigger's `paths` above, and schedule/dispatch
+  # are explicit "run it".
+  changes:
+    name: Detect bazel-adjacent changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      bazel: ${{ steps.verdict.outputs.bazel }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Pinned by commit SHA (v3 / v3.0.2): the required check's verdict
+      # depends on this third-party action's output, so a mutable tag is not
+      # an acceptable trust anchor here (the ci.docs precedent).
+      - name: Filter changed paths
+        id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.2
+        with:
+          filters: |
+            bazel:
+              - "**/*.go"
+              - "**/go.mod"
+              - "**/go.sum"
+              - "go.work"
+              - "go.work.sum"
+              - "**/BUILD.bazel"
+              - "**/*.bzl"
+              - "MODULE.bazel"
+              - "MODULE.bazel.lock"
+              - ".bazelrc"
+              - ".bazelversion"
+              - "bazelw"
+              - ".github/workflows/ci.bazel.yaml"
+
+      - name: Verdict
+        id: verdict
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "bazel=${{ steps.filter.outputs.bazel }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "bazel=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  graph:
+    name: Bazel Graph
+    runs-on: ubuntu-latest
+    needs: changes
+    # Skipped (not absent) on non-bazel PRs — branch protection accepts a
+    # skipped required check. The schedule event goes to the test arm, whose
+    # wildcard `bazel test` subsumes this build.
+    if: >-
+      needs.changes.outputs.bazel == 'true' &&
+      github.event_name != 'schedule'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Pinned by commit SHA (v0.19.0): same trust-anchor rule as the filter
+      # action above. One shared disk-cache key for both arms — the test
+      # arm's build outputs are byte-identical to this arm's.
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: bazel-graph
+          repository-cache: true
+
+      - name: Build the full graph
+        run: ./bazelw build //...
+
+      - name: BUILD-file freshness (gazelle)
+        run: |
+          if ! ./bazelw run //:gazelle -- -mode=diff; then
+            echo ""
+            echo "BUILD files are stale for the sources on this branch."
+            echo "Fix: ./bazelw run //:gazelle   — then commit the regenerated files."
+            exit 1
+          fi
+
+  test:
+    name: Bazel Test (nightly canary)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: bazel-graph
+          repository-cache: true
+
+      # Three go_test targets read committed corpus/fixture files that were
+      # never wired as bazel data deps, so they cannot run in the sandbox
+      # (they are fully covered by check-go's `go test -race`). Excluded
+      # until oss#722 wires their runfiles; keep this list in lockstep with
+      # that issue.
+      - name: Run the full test graph
+        run: >-
+          ./bazelw test --keep_going --test_output=errors --
+          //...
+          -//backend/services/stigmer-server/pkg/domain/agentexecution/approval:approval_test
+          -//backend/services/stigmer-server/pkg/domain/agentexecution/filereview:filereview_test
+          -//test/integration/harness:harness_test
+
+  # Unattended-failure escalation (#477): a red nightly files or updates one
+  # issue per breakage window instead of rotting unseen (the #323 lesson).
+  # The file-or-comment mechanics live in notify-failure.yaml.
+  notify-failure:
+    name: File Bazel Nightly Failure Issue
+    needs: [test]
+    if: failure() && github.event_name == 'schedule'
+    permissions:
+      issues: write
+    uses: ./.github/workflows/notify-failure.yaml
+    with:
+      label: ci-bazel-failure
+      title: "ci.bazel: the nightly bazel test canary is failing"
+      body-context: >-
+        The nightly arm runs the full `bazel test` wildcard. The same tests
+        pass under check-go's `go test -race` unless main is broken outright,
+        so a failure here usually means bazel-graph drift: a stale BUILD
+        file, a missing data dep, or toolchain/sandbox breakage — start with
+        the failing target's BUILD.bazel rather than the test code.
