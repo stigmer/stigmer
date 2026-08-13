@@ -324,7 +324,7 @@ func identityZodFields(w *bytes.Buffer) {
 	fmt.Fprintf(w, "  name: z.string().describe(%s),\n", strconv.Quote("Human-readable name of the resource."))
 	fmt.Fprintf(w, "  slug: z.string().optional().describe(%s),\n", strconv.Quote("URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted."))
 	fmt.Fprintf(w, "  org: z.string().describe(%s),\n", strconv.Quote("Organization that owns this resource (e.g. acme)."))
-	fmt.Fprintf(w, "  visibility: z.string().optional().describe(%s),\n", strconv.Quote("Resource visibility: PRIVATE or PUBLIC. Omit to leave unchanged on updates."))
+	fmt.Fprintf(w, "  visibility: z.string().optional().describe(%s),\n", strconv.Quote("Resource visibility: PRIVATE or PUBLIC. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged."))
 	fmt.Fprintf(w, "  labels: z.record(z.string()).optional().describe(%s),\n", strconv.Quote("Key-value labels for organization and filtering."))
 	fmt.Fprintf(w, "  tags: z.array(z.string()).optional().describe(%s),\n", strconv.Quote("Tags for categorization and discovery."))
 }

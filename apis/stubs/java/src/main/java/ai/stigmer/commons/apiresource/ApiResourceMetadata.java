@@ -298,6 +298,14 @@ private static final long serialVersionUID = 0L;
    * - PUBLIC: Anyone can access (read). Write access still requires org membership.
    * Default: config-driven per kind — blueprint kinds (marked
    * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
+   *
+   * Mutation contract: visibility is set at create and changed ONLY through
+   * the kind's UpdateVisibility RPC, where the visibility guards live
+   * (per-kind level support, default-instance rejection). A plain Update
+   * preserves the stored value — a request-carried level is ignored, never
+   * applied. Declarative clients that want a manifest's visibility to land
+   * on update must follow up with UpdateVisibility (the CLI and MCP apply
+   * surfaces do this automatically).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -313,6 +321,14 @@ private static final long serialVersionUID = 0L;
    * - PUBLIC: Anyone can access (read). Write access still requires org membership.
    * Default: config-driven per kind — blueprint kinds (marked
    * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
+   *
+   * Mutation contract: visibility is set at create and changed ONLY through
+   * the kind's UpdateVisibility RPC, where the visibility guards live
+   * (per-kind level support, default-instance rejection). A plain Update
+   * preserves the stored value — a request-carried level is ignored, never
+   * applied. Declarative clients that want a manifest's visibility to land
+   * on update must follow up with UpdateVisibility (the CLI and MCP apply
+   * surfaces do this automatically).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -1625,6 +1641,14 @@ java.lang.String defaultValue) {
      * - PUBLIC: Anyone can access (read). Write access still requires org membership.
      * Default: config-driven per kind — blueprint kinds (marked
      * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
+     *
+     * Mutation contract: visibility is set at create and changed ONLY through
+     * the kind's UpdateVisibility RPC, where the visibility guards live
+     * (per-kind level support, default-instance rejection). A plain Update
+     * preserves the stored value — a request-carried level is ignored, never
+     * applied. Declarative clients that want a manifest's visibility to land
+     * on update must follow up with UpdateVisibility (the CLI and MCP apply
+     * surfaces do this automatically).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -1640,6 +1664,14 @@ java.lang.String defaultValue) {
      * - PUBLIC: Anyone can access (read). Write access still requires org membership.
      * Default: config-driven per kind — blueprint kinds (marked
      * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
+     *
+     * Mutation contract: visibility is set at create and changed ONLY through
+     * the kind's UpdateVisibility RPC, where the visibility guards live
+     * (per-kind level support, default-instance rejection). A plain Update
+     * preserves the stored value — a request-carried level is ignored, never
+     * applied. Declarative clients that want a manifest's visibility to land
+     * on update must follow up with UpdateVisibility (the CLI and MCP apply
+     * surfaces do this automatically).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -1660,6 +1692,14 @@ java.lang.String defaultValue) {
      * - PUBLIC: Anyone can access (read). Write access still requires org membership.
      * Default: config-driven per kind — blueprint kinds (marked
      * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
+     *
+     * Mutation contract: visibility is set at create and changed ONLY through
+     * the kind's UpdateVisibility RPC, where the visibility guards live
+     * (per-kind level support, default-instance rejection). A plain Update
+     * preserves the stored value — a request-carried level is ignored, never
+     * applied. Declarative clients that want a manifest's visibility to land
+     * on update must follow up with UpdateVisibility (the CLI and MCP apply
+     * surfaces do this automatically).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -1677,6 +1717,14 @@ java.lang.String defaultValue) {
      * - PUBLIC: Anyone can access (read). Write access still requires org membership.
      * Default: config-driven per kind — blueprint kinds (marked
      * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
+     *
+     * Mutation contract: visibility is set at create and changed ONLY through
+     * the kind's UpdateVisibility RPC, where the visibility guards live
+     * (per-kind level support, default-instance rejection). A plain Update
+     * preserves the stored value — a request-carried level is ignored, never
+     * applied. Declarative clients that want a manifest's visibility to land
+     * on update must follow up with UpdateVisibility (the CLI and MCP apply
+     * surfaces do this automatically).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -1697,6 +1745,14 @@ java.lang.String defaultValue) {
      * - PUBLIC: Anyone can access (read). Write access still requires org membership.
      * Default: config-driven per kind — blueprint kinds (marked
      * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
+     *
+     * Mutation contract: visibility is set at create and changed ONLY through
+     * the kind's UpdateVisibility RPC, where the visibility guards live
+     * (per-kind level support, default-instance rejection). A plain Update
+     * preserves the stored value — a request-carried level is ignored, never
+     * applied. Declarative clients that want a manifest's visibility to land
+     * on update must follow up with UpdateVisibility (the CLI and MCP apply
+     * surfaces do this automatically).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>

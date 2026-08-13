@@ -345,4 +345,18 @@ describe("manifest registry", () => {
       expect(manifestHandlerForYamlKind(kind), `missing handler for ${kind}`).toBeDefined();
     }
   });
+
+  it("declares the updateVisibility binding on exactly the guarded-RPC kinds (oss#573)", () => {
+    // Visibility changes go through the updateVisibility RPC only (plain
+    // updates preserve stored visibility on both editions). The binding set
+    // mirrors the kinds whose proto VisibilityConfig grants non-private
+    // levels, minus Skill (push flow, not a manifest kind) — a kind added
+    // here without the RPC fails at compile time, one dropped from here
+    // silently strands manifest-declared visibility, which this pins.
+    const withBinding = manifestKinds()
+      .filter((h) => h.updateVisibility !== undefined)
+      .map((h) => h.yamlKind)
+      .sort();
+    expect(withBinding).toEqual(["Agent", "AgentInstance", "Environment", "McpServer", "Workflow"]);
+  });
 });

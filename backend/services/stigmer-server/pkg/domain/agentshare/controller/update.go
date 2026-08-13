@@ -43,7 +43,6 @@ func (c *AgentShareController) Update(ctx context.Context, share *agentsharev1.A
 func (c *AgentShareController) buildUpdatePipeline() *pipeline.Pipeline[*agentsharev1.AgentShare] {
 	return pipeline.NewPipeline[*agentsharev1.AgentShare]("agent-share-update").
 		AddStep(steps.NewValidateProtoStep[*agentsharev1.AgentShare]()).
-		AddStep(steps.NewValidateVisibilityStep[*agentsharev1.AgentShare]()). // Reject unsupported visibility levels (plain updates keep a request-carried level; Cloud guards this kind here too)
 		AddStep(steps.NewResolveSlugStep[*agentsharev1.AgentShare]()).
 		AddStep(steps.NewLoadExistingStep[*agentsharev1.AgentShare](c.store)).
 		AddStep(&validateShareUpdateStep{}).

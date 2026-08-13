@@ -27,9 +27,11 @@ import (
 // This is the Go analog of Cloud's ValidateVisibilityStep, wired the same
 // way: into every create pipeline immediately after proto-constraint
 // validation (before slug resolution and the duplicate check, so a request
-// that is wrong in multiple ways reports INVALID_ARGUMENT on both editions),
-// and into the plain-update pipelines of the kinds Cloud also guards there
-// (environment, agent_share — plain updates keep a request-carried level).
+// that is wrong in multiple ways reports INVALID_ARGUMENT on both editions).
+// It is create-only: plain updates preserve the stored visibility
+// unconditionally (see preserveImmutableFields, oss#573), so there is no
+// update-side level to validate — updateVisibility is the only door, and
+// ValidateVisibilityUpdateStep guards it.
 //
 // Deliberate divergences from the cloud step, and why:
 //   - No platform-anchor check (Cloud additionally requires the owning org to

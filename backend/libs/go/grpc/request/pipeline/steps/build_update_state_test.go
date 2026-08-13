@@ -126,12 +126,14 @@ func TestBuildUpdateStateStep_Execute(t *testing.T) {
 	}
 }
 
-// Visibility must survive a full update that omits it (proto zero value),
-// mirroring Java's UpdateOperationPreserveResourceIdentifiersStepV2. Console
-// inline edits and manifests without metadata.visibility send unspecified;
-// without the preserve-on-omit guard they would silently reset the stored
-// visibility. An update that explicitly carries a level must still apply it.
-func TestBuildUpdateStateStep_VisibilityPreservedWhenOmitted(t *testing.T) {
+// Visibility is update-immutable (oss#573): a plain Update NEVER changes the
+// stored level, whether the request omits visibility (proto zero value) or
+// explicitly carries a different one. Every visibility guard — the per-kind
+// level-support check (oss#489) and the default-instance rejection (oss#556)
+// — lives on the updateVisibility pipelines, so a carried level applied here
+// would bypass them all. Mirrors Java's
+// UpdateOperationPreserveResourceIdentifiersStepV2.
+func TestBuildUpdateStateStep_VisibilityAlwaysPreserved(t *testing.T) {
 	tests := []struct {
 		name            string
 		inputVisibility apiresource.ApiResourceVisibility
@@ -143,9 +145,18 @@ func TestBuildUpdateStateStep_VisibilityPreservedWhenOmitted(t *testing.T) {
 			wantVisibility:  apiresource.ApiResourceVisibility_visibility_org,
 		},
 		{
-			name:            "explicit visibility is applied",
+			// The oss#573 bypass shape: an update explicitly carrying a
+			// different level must be ignored, not applied.
+			name:            "explicitly carried level is ignored",
 			inputVisibility: apiresource.ApiResourceVisibility_visibility_private,
-			wantVisibility:  apiresource.ApiResourceVisibility_visibility_private,
+			wantVisibility:  apiresource.ApiResourceVisibility_visibility_org,
+		},
+		{
+			// Carrying the stored level back (idempotent manifest re-apply)
+			// is equally a no-op.
+			name:            "carrying the stored level back is a no-op",
+			inputVisibility: apiresource.ApiResourceVisibility_visibility_org,
+			wantVisibility:  apiresource.ApiResourceVisibility_visibility_org,
 		},
 	}
 

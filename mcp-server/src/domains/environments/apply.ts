@@ -11,7 +11,10 @@
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+
 import { environmentInputToProto, type EnvironmentInput } from "../../gen/environment.js";
+import { applyDeclaredVisibility } from "../apply-visibility.js";
 import { withClient } from "../client.js";
 import { toProtoJson } from "../marshal.js";
 import { rpcError } from "../rpcerr.js";
@@ -30,7 +33,13 @@ export async function applyEnvironment(
     token,
     async (client, callOptions) => {
       try {
-        const result = await client.apply(environment, callOptions);
+        const applied = await client.apply(environment, callOptions);
+        const result = await applyDeclaredVisibility(
+          client,
+          callOptions,
+          applied,
+          environment.metadata?.visibility ?? ApiResourceVisibility.api_resource_visibility_unspecified,
+        );
         return toProtoJson(EnvironmentSchema, result);
       } catch (err) {
         throw rpcError(err, desc);

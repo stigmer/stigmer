@@ -95,18 +95,19 @@ func (s *BuildUpdateStateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error
 
 // preserveImmutableFields copies immutable fields from existing to merged resource
 //
-// Immutable fields (matching Java UpdateOperationPreserveResourceIdentifiersStepV2):
-// - metadata.id (resource ID - cannot be changed)
-// - metadata.slug (URL-safe identifier - cannot be changed once set)
-// - metadata.org (organization - cannot be changed once set)
-//
-// Preserve-on-omit fields (also matching the Java step):
-//   - metadata.visibility - kept from existing when the request carries the
-//     proto zero value (unspecified). Clients that don't manage visibility
-//     (e.g. console inline edits, manifests without metadata.visibility) omit
-//     it; without this guard a full update would silently reset the stored
-//     visibility. Explicit visibility changes go through the dedicated
-//     updateVisibility RPC, but an update that DOES carry a level keeps it.
+// Update-immutable fields (matching Java UpdateOperationPreserveResourceIdentifiersStepV2):
+//   - metadata.id (resource ID - cannot be changed)
+//   - metadata.slug (URL-safe identifier - cannot be changed once set)
+//   - metadata.org (organization - cannot be changed once set)
+//   - metadata.visibility - the updateVisibility RPC is the ONLY door for
+//     visibility changes (oss#573). Every visibility guard — the per-kind
+//     level-support check (oss#489) and the default-instance rejection
+//     (oss#556) — lives on the updateVisibility pipelines, so a plain
+//     Update that changed the level would bypass all of them (and, on
+//     cloud, either grant/revoke real FGA access unvalidated or drift the
+//     stored enum away from FGA). Preserving unconditionally makes the
+//     bypass structurally impossible; declarative clients (CLI apply, MCP
+//     apply tools) diff and follow up with updateVisibility instead.
 //
 // Mutable fields (NOT preserved, can be updated):
 // - metadata.name (display name - CAN be changed)
@@ -135,11 +136,11 @@ func preserveImmutableFields[T proto.Message](merged, existing T) error {
 	mergedMeta.Slug = existingMeta.Slug // Slug (immutable, derived from original name)
 	mergedMeta.Org = existingMeta.Org   // Organization (immutable)
 
-	// When the request omits visibility (unspecified / proto zero value),
-	// keep the existing resource's visibility instead of overwriting it.
-	if mergedMeta.Visibility == commonspb.ApiResourceVisibility_api_resource_visibility_unspecified {
-		mergedMeta.Visibility = existingMeta.Visibility
-	}
+	// Visibility is update-immutable: only the guarded updateVisibility RPC
+	// may change it (see the function doc). A request-carried level is
+	// deliberately ignored, never rejected — stale manifests re-applied
+	// after a console visibility change must not fail the whole update.
+	mergedMeta.Visibility = existingMeta.Visibility
 
 	// Note: metadata.name is NOT preserved - it can be updated by the client!
 	// Other metadata fields (title, description, labels, tags) are also mutable

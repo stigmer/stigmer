@@ -14,7 +14,7 @@
 import type { DescMessage, DescService, Message } from "@bufbuild/protobuf";
 import type { Client } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type { ApiResourceReference, UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 import { type Agent, AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
@@ -83,6 +83,17 @@ export interface ManifestKindHandler {
   apply(clientFor: ServiceClientFn, message: Message): Promise<Message>;
   /** Load the current server state by org/slug reference. */
   getByReference(clientFor: ServiceClientFn, ref: ApiResourceReference): Promise<Message>;
+  /**
+   * Drive the command controller's `updateVisibility` RPC — the ONLY door
+   * for visibility changes (both editions preserve stored visibility on
+   * plain updates, oss#573). Declared only on kinds whose controller has
+   * the RPC (exactly the kinds supporting non-private levels); a manifest
+   * engine that finds a visibility diff after apply follows up through
+   * this binding so the server-side guards (level support, default-instance
+   * rejection) run. Absent on private-only kinds — a visibility diff there
+   * is unactionable and should be surfaced to the user, not swallowed.
+   */
+  updateVisibility?(clientFor: ServiceClientFn, input: UpdateVisibilityInput): Promise<Message>;
 }
 
 const AGENTIC_V1 = "agentic.stigmer.ai/v1";
@@ -98,6 +109,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     applyOrder: 1,
     apply: (c, m) => c(McpServerCommandController).apply(m as McpServer),
     getByReference: (c, ref) => c(McpServerQueryController).getByReference(ref),
+    updateVisibility: (c, i) => c(McpServerCommandController).updateVisibility(i),
   },
   {
     kind: ApiResourceKind.agent,
@@ -108,6 +120,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     applyOrder: 3,
     apply: (c, m) => c(AgentCommandController).apply(m as Agent),
     getByReference: (c, ref) => c(AgentQueryController).getByReference(ref),
+    updateVisibility: (c, i) => c(AgentCommandController).updateVisibility(i),
   },
   {
     kind: ApiResourceKind.workflow,
@@ -118,6 +131,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     applyOrder: 4,
     apply: (c, m) => c(WorkflowCommandController).apply(m as Workflow),
     getByReference: (c, ref) => c(WorkflowQueryController).getByReference(ref),
+    updateVisibility: (c, i) => c(WorkflowCommandController).updateVisibility(i),
   },
   {
     kind: ApiResourceKind.environment,
@@ -128,6 +142,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     applyOrder: 5,
     apply: (c, m) => c(EnvironmentCommandController).apply(m as Environment),
     getByReference: (c, ref) => c(EnvironmentQueryController).getByReference(ref),
+    updateVisibility: (c, i) => c(EnvironmentCommandController).updateVisibility(i),
   },
   {
     kind: ApiResourceKind.identity_provider,
@@ -168,6 +183,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     applyOrder: 9,
     apply: (c, m) => c(AgentInstanceCommandController).apply(m as AgentInstance),
     getByReference: (c, ref) => c(AgentInstanceQueryController).getByReference(ref),
+    updateVisibility: (c, i) => c(AgentInstanceCommandController).updateVisibility(i),
   },
   {
     kind: ApiResourceKind.agent_share,
