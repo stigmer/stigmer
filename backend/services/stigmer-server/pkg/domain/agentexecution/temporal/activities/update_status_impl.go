@@ -221,11 +221,6 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 				status.ContextInfo = statusUpdates.ContextInfo
 			}
 
-			// Merge resolved_context (replace with latest from request)
-			if statusUpdates.ResolvedContext != nil {
-				status.ResolvedContext = statusUpdates.ResolvedContext
-			}
-
 			// Update audit timestamp (status was modified)
 			if status.Audit == nil {
 				status.Audit = &apiresource.ApiResourceAudit{}
@@ -244,7 +239,6 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 				Int("pending_approvals", len(status.GetPendingApprovals())).
 				Str("phase", status.GetPhase().String()).
 				Bool("has_context_info", status.GetContextInfo() != nil).
-				Bool("has_resolved_context", status.GetResolvedContext() != nil).
 				Msg("Built updated execution - new status")
 
 			return nil

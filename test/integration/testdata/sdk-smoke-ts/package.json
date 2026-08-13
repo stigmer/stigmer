@@ -3,10 +3,10 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@stigmer/sdk": "*",
-    "@stigmer/protos": "*",
     "@bufbuild/protobuf": "^2.0.0",
     "@connectrpc/connect": "^2.0.0",
-    "@connectrpc/connect-node": "^2.0.0"
+    "@connectrpc/connect-node": "^2.0.0",
+    "@stigmer/protos": "*",
+    "@stigmer/sdk": "*"
   }
 }

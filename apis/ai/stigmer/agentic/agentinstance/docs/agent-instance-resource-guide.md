@@ -80,7 +80,7 @@ Each entry in `spec.environment_refs` is an `ApiResourceReference`. All entries 
 | `name` | Human-readable name for display. Optional. |
 | `org` | Organization that owns the Environment. |
 
-Environments are resolved at execution start. If an environment cannot be resolved (e.g., it was deleted or the instance lacks access), the execution fails with a `ResolvedExecutionContext` error.
+Environments are resolved at execution start. If an environment cannot be resolved (e.g., it was deleted or the instance lacks access), the execution create fails with a resolution error.
 
 ---
 

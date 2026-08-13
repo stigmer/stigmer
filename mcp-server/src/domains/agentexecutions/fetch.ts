@@ -23,12 +23,11 @@ export const DEFAULT_MESSAGE_LIMIT = 5;
 
 /**
  * Bulky status fields pruned from the compact view. These are server-side
- * bookkeeping (resolved-resource snapshot, append-only approval ledger,
- * Temporal callback token) and sub-agent transcripts — none of which the
- * poll loop (phase? messages? approvals?) needs.
+ * bookkeeping (append-only approval ledger, Temporal callback token) and
+ * sub-agent transcripts — none of which the poll loop (phase? messages?
+ * approvals?) needs.
  */
 const COMPACT_PRUNED_STATUS_FIELDS = [
-  "resolved_context",
   "approval_events",
   "callback_token",
   "sub_agent_executions",

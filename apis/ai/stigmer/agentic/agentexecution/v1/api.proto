@@ -110,16 +110,14 @@ message AgentExecutionStatus {
   // - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
   bytes callback_token = 10;
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Resolved Execution Context (Phase 2.5)
-  //
-  // Captures what resources the agent actually had access to at execution time.
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // Resolved execution context showing what resources the agent had access to.
-  // Populated once before streaming begins, after all resources are resolved.
-  // Immutable after initial population - represents the "snapshot" of resolved state.
-  ResolvedExecutionContext resolved_context = 12;
+  // Field 12 held `ResolvedExecutionContext resolved_context` — a snapshot of
+  // the resources the agent had access to at execution start. The contract was
+  // retired (2026-08, issue #600): its only producer was the long-deleted
+  // Python runner, so the field never carried data in any deployment. Reserved
+  // so a future, deliberately designed observability surface cannot collide
+  // with stale clients.
+  reserved 12;
+  reserved "resolved_context";
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Pending Approvals (HITL — Computed Projection)

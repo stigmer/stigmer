@@ -12,154 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/context.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_context: GenFile = /*@__PURE__*/
-  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvY29udGV4dC5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIsACChhSZXNvbHZlZEV4ZWN1dGlvbkNvbnRleHQSGAoQZW52aXJvbm1lbnRfa2V5cxgBIAMoCRJjCgttY3Bfc2VydmVycxgCIAMoCzJOLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5SZXNvbHZlZEV4ZWN1dGlvbkNvbnRleHQuTWNwU2VydmVyc0VudHJ5EhMKC3NraWxsX25hbWVzGAMgAygJEhwKFGV4Y2x1ZGVkX3NraWxsX25hbWVzGAQgAygJGnIKD01jcFNlcnZlcnNFbnRyeRILCgNrZXkYASABKAkSTgoFdmFsdWUYAiABKAsyPy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuTWNwU2VydmVyUmVzb2x1dGlvblN0YXR1czoCOAEiWgoZTWNwU2VydmVyUmVzb2x1dGlvblN0YXR1cxIQCghyZXNvbHZlZBgBIAEoCBIPCgdtZXNzYWdlGAIgASgJEhoKEmVuYWJsZWRfdG9vbF9jb3VudBgDIAEoBSKGAwoSU3VtbWFyaXphdGlvbkV2ZW50EhEKCXRpbWVzdGFtcBgBIAEoCRIVCg10b2tlbnNfYmVmb3JlGAIgASgFEhQKDHRva2Vuc19hZnRlchgDIAEoBRIZChFjb21wcmVzc2lvbl9yYXRpbxgEIAEoAhITCgtkdXJhdGlvbl9tcxgFIAEoBRIbChNzdW1tYXJpemF0aW9uX21vZGVsGAYgASgJEhcKD21lc3NhZ2VzX2JlZm9yZRgHIAEoBRIWCg5tZXNzYWdlc19hZnRlchgIIAEoBRJJCgZzb3VyY2UYCSABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU3VtbWFyaXphdGlvblNvdXJjZRIiChpzdW1tYXJpemF0aW9uX2lucHV0X3Rva2VucxgKIAEoBRIjChtzdW1tYXJpemF0aW9uX291dHB1dF90b2tlbnMYCyABKAUSHgoWc3VtbWFyaXphdGlvbl9jb3N0X3VzZBgMIAEoASKqAgoLQ29udGV4dEluZm8SGwoTY3VycmVudF90b2tlbl9jb3VudBgBIAEoBRIcChRjb250ZXh0X3dpbmRvd19saW1pdBgCIAEoBRInCh9zdW1tYXJpemF0aW9uX3RyaWdnZXJfdGhyZXNob2xkGAMgASgFEiMKG3N1bW1hcml6YXRpb25fdGFyZ2V0X3Rva2VucxgEIAEoBRIdChVzdW1tYXJpemF0aW9uX2VuYWJsZWQYBSABKAgSVgoUc3VtbWFyaXphdGlvbl9ldmVudHMYBiADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU3VtbWFyaXphdGlvbkV2ZW50EhsKE3V0aWxpemF0aW9uX3BlcmNlbnQYByABKAJiBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_enum]);
-
-/**
- * ResolvedExecutionContext captures the resolved configuration state at execution time.
- * Populated once after all resources are resolved, before the agent begins processing.
- *
- * ## Purpose
- *
- * Provides visibility into what the agent actually had access to during execution:
- * - Which environment variables were available (keys only, not values for security)
- * - Which MCP servers were configured and their resolution status
- * - Which skills were injected into the agent's context
- *
- * This enables:
- * - **Debugging**: Understanding what environment/tools were available when investigating failures
- * - **Auditing**: Tracking what resources each execution consumed
- * - **Security review**: Verifying which secrets (by key name only) were exposed
- * - **UX transparency**: Showing users what their agent can access
- *
- * ## Timing
- *
- * Populated by the agent runner once resolution completes (skills, env vars,
- * MCP servers) but before the streaming loop begins, and reported through the
- * execution status-update path. This represents the "snapshot" of resolved
- * state. Once set, this field is immutable for the remainder of the execution.
- *
- * ## Security Considerations
- *
- * - Environment values are NEVER included (only keys)
- * - MCP server credentials are not exposed
- * - This is safe to include in status responses to clients
- *
- * @generated from message ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext
- */
-export type ResolvedExecutionContext = Message<"ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext"> & {
-  /**
-   * Environment variable keys available to the agent (NOT values for security).
-   * Represents the merged environment values (instance environment_refs <
-   * runtime_env) filtered to the keys declared in Agent.spec.env — the agent
-   * env map is a declaration whitelist, not a value source.
-   * Keys are sorted alphabetically for consistent ordering and deterministic comparison.
-   * Examples: ["API_KEY", "DATABASE_URL", "LOG_LEVEL"]
-   *
-   * @generated from field: repeated string environment_keys = 1;
-   */
-  environmentKeys: string[];
-
-  /**
-   * MCP servers referenced by the agent and their resolution status.
-   * Key: MCP server slug (e.g., "github-mcp", "slack-mcp")
-   * Value: Resolution status including success/failure and diagnostic information
-   *
-   * Note: This tracks configuration resolution, not runtime connection status.
-   * A server showing resolved=true means it was found and transformed successfully;
-   * actual WebSocket/stdio connection happens later in the Graphton runtime.
-   *
-   * @generated from field: map<string, ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus> mcp_servers = 2;
-   */
-  mcpServers: { [key: string]: McpServerResolutionStatus };
-
-  /**
-   * Names of skills injected into the agent's system prompt.
-   * Each skill's SKILL.md content is appended to the instructions.
-   * Sorted alphabetically for consistent ordering and deterministic comparison.
-   * Examples: ["code-review", "docker-expert", "kubernetes-operator"]
-   *
-   * @generated from field: repeated string skill_names = 3;
-   */
-  skillNames: string[];
-
-  /**
-   * Skills that were available but excluded from the system prompt because
-   * they were not relevant to the current execution context.
-   * Enables visibility into the filtering decision for debugging and tuning.
-   * Sorted alphabetically for consistent ordering and deterministic comparison.
-   *
-   * When smart context filtering is active, this captures skills that were
-   * configured on the agent but scored below the relevance threshold for the
-   * current user message. Empty when all skills are included (no filtering).
-   *
-   * @generated from field: repeated string excluded_skill_names = 4;
-   */
-  excludedSkillNames: string[];
-};
-
-/**
- * Describes the message ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.
- * Use `create(ResolvedExecutionContextSchema)` to create a new message.
- */
-export const ResolvedExecutionContextSchema: GenMessage<ResolvedExecutionContext> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_context, 0);
-
-/**
- * McpServerResolutionStatus captures the resolution outcome for a single MCP server.
- * Provides richer information than a simple boolean for better debugging and visibility.
- *
- * ## Resolution vs Connection
- *
- * This tracks whether the MCP server definition was successfully loaded and configured,
- * NOT whether the runtime connection succeeded. Resolution includes:
- * - Looking up the McpServer resource by reference
- * - Transforming the server config (resolving env var placeholders)
- * - Determining which tools to enable
- *
- * Runtime connection (WebSocket/stdio) happens later and is not tracked here.
- *
- * @generated from message ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
- */
-export type McpServerResolutionStatus = Message<"ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus"> & {
-  /**
-   * Whether the MCP server was successfully resolved and configured.
-   * true: Server found, config transformed, ready for runtime connection
-   * false: Resolution failed (server not found, missing env var, invalid config)
-   *
-   * @generated from field: bool resolved = 1;
-   */
-  resolved: boolean;
-
-  /**
-   * Human-readable status message explaining the resolution outcome.
-   * For success: "Configured successfully"
-   * For failure: Describes what went wrong
-   * Examples:
-   *   - "Configured successfully"
-   *   - "Server not found"
-   *   - "Missing required environment variable: GITHUB_TOKEN"
-   *   - "Invalid server configuration: missing command"
-   *
-   * @generated from field: string message = 2;
-   */
-  message: string;
-
-  /**
-   * Number of tools enabled from this MCP server.
-   * Reflects the intersection of server's available tools and enabled_tools config.
-   * 0 if resolution failed, server has no tools, or all tools disabled.
-   *
-   * @generated from field: int32 enabled_tool_count = 3;
-   */
-  enabledToolCount: number;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus.
- * Use `create(McpServerResolutionStatusSchema)` to create a new message.
- */
-export const McpServerResolutionStatusSchema: GenMessage<McpServerResolutionStatus> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_context, 1);
+  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvY29udGV4dC5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIoYDChJTdW1tYXJpemF0aW9uRXZlbnQSEQoJdGltZXN0YW1wGAEgASgJEhUKDXRva2Vuc19iZWZvcmUYAiABKAUSFAoMdG9rZW5zX2FmdGVyGAMgASgFEhkKEWNvbXByZXNzaW9uX3JhdGlvGAQgASgCEhMKC2R1cmF0aW9uX21zGAUgASgFEhsKE3N1bW1hcml6YXRpb25fbW9kZWwYBiABKAkSFwoPbWVzc2FnZXNfYmVmb3JlGAcgASgFEhYKDm1lc3NhZ2VzX2FmdGVyGAggASgFEkkKBnNvdXJjZRgJIAEoDjI5LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5TdW1tYXJpemF0aW9uU291cmNlEiIKGnN1bW1hcml6YXRpb25faW5wdXRfdG9rZW5zGAogASgFEiMKG3N1bW1hcml6YXRpb25fb3V0cHV0X3Rva2VucxgLIAEoBRIeChZzdW1tYXJpemF0aW9uX2Nvc3RfdXNkGAwgASgBIqoCCgtDb250ZXh0SW5mbxIbChNjdXJyZW50X3Rva2VuX2NvdW50GAEgASgFEhwKFGNvbnRleHRfd2luZG93X2xpbWl0GAIgASgFEicKH3N1bW1hcml6YXRpb25fdHJpZ2dlcl90aHJlc2hvbGQYAyABKAUSIwobc3VtbWFyaXphdGlvbl90YXJnZXRfdG9rZW5zGAQgASgFEh0KFXN1bW1hcml6YXRpb25fZW5hYmxlZBgFIAEoCBJWChRzdW1tYXJpemF0aW9uX2V2ZW50cxgGIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5TdW1tYXJpemF0aW9uRXZlbnQSGwoTdXRpbGl6YXRpb25fcGVyY2VudBgHIAEoAmIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum]);
 
 /**
  * SummarizationEvent records a single summarization occurrence during execution.
@@ -306,7 +159,7 @@ export type SummarizationEvent = Message<"ai.stigmer.agentic.agentexecution.v1.S
  * Use `create(SummarizationEventSchema)` to create a new message.
  */
 export const SummarizationEventSchema: GenMessage<SummarizationEvent> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_context, 2);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_context, 0);
 
 /**
  * ContextInfo provides visibility into context window utilization.
@@ -443,5 +296,5 @@ export type ContextInfo = Message<"ai.stigmer.agentic.agentexecution.v1.ContextI
  * Use `create(ContextInfoSchema)` to create a new message.
  */
 export const ContextInfoSchema: GenMessage<ContextInfo> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_context, 3);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_context, 1);
 

@@ -27,21 +27,6 @@ public final class ContextProto extends com.google.protobuf.GeneratedFile {
         (com.google.protobuf.ExtensionRegistryLite) registry);
   }
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_agentexecution_v1_ResolvedExecutionContext_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_agentexecution_v1_ResolvedExecutionContext_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_agentexecution_v1_ResolvedExecutionContext_McpServersEntry_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_agentexecution_v1_ResolvedExecutionContext_McpServersEntry_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_agentexecution_v1_McpServerResolutionStatus_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_agentexecution_v1_McpServerResolutionStatus_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_agentexecution_v1_SummarizationEvent_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -63,84 +48,53 @@ public final class ContextProto extends com.google.protobuf.GeneratedFile {
       "\n2ai/stigmer/agentic/agentexecution/v1/c" +
       "ontext.proto\022$ai.stigmer.agentic.agentex" +
       "ecution.v1\032/ai/stigmer/agentic/agentexec" +
-      "ution/v1/enum.proto\"\211\003\n\030ResolvedExecutio" +
-      "nContext\022)\n\020environment_keys\030\001 \003(\tR\017envi" +
-      "ronmentKeys\022o\n\013mcp_servers\030\002 \003(\0132N.ai.st" +
-      "igmer.agentic.agentexecution.v1.Resolved" +
-      "ExecutionContext.McpServersEntryR\nmcpSer" +
-      "vers\022\037\n\013skill_names\030\003 \003(\tR\nskillNames\0220\n" +
-      "\024excluded_skill_names\030\004 \003(\tR\022excludedSki" +
-      "llNames\032~\n\017McpServersEntry\022\020\n\003key\030\001 \001(\tR" +
-      "\003key\022U\n\005value\030\002 \001(\0132?.ai.stigmer.agentic" +
-      ".agentexecution.v1.McpServerResolutionSt" +
-      "atusR\005value:\0028\001\"\177\n\031McpServerResolutionSt" +
-      "atus\022\032\n\010resolved\030\001 \001(\010R\010resolved\022\030\n\007mess" +
-      "age\030\002 \001(\tR\007message\022,\n\022enabled_tool_count" +
-      "\030\003 \001(\005R\020enabledToolCount\"\320\004\n\022Summarizati" +
-      "onEvent\022\034\n\ttimestamp\030\001 \001(\tR\ttimestamp\022#\n" +
-      "\rtokens_before\030\002 \001(\005R\014tokensBefore\022!\n\014to" +
-      "kens_after\030\003 \001(\005R\013tokensAfter\022+\n\021compres" +
-      "sion_ratio\030\004 \001(\002R\020compressionRatio\022\037\n\013du" +
-      "ration_ms\030\005 \001(\005R\ndurationMs\022/\n\023summariza" +
-      "tion_model\030\006 \001(\tR\022summarizationModel\022\'\n\017" +
-      "messages_before\030\007 \001(\005R\016messagesBefore\022%\n" +
-      "\016messages_after\030\010 \001(\005R\rmessagesAfter\022Q\n\006" +
-      "source\030\t \001(\01629.ai.stigmer.agentic.agente" +
-      "xecution.v1.SummarizationSourceR\006source\022" +
-      "<\n\032summarization_input_tokens\030\n \001(\005R\030sum" +
-      "marizationInputTokens\022>\n\033summarization_o" +
-      "utput_tokens\030\013 \001(\005R\031summarizationOutputT" +
-      "okens\0224\n\026summarization_cost_usd\030\014 \001(\001R\024s" +
-      "ummarizationCostUsd\"\312\003\n\013ContextInfo\022.\n\023c" +
-      "urrent_token_count\030\001 \001(\005R\021currentTokenCo" +
-      "unt\0220\n\024context_window_limit\030\002 \001(\005R\022conte" +
-      "xtWindowLimit\022F\n\037summarization_trigger_t" +
-      "hreshold\030\003 \001(\005R\035summarizationTriggerThre" +
-      "shold\022>\n\033summarization_target_tokens\030\004 \001" +
-      "(\005R\031summarizationTargetTokens\0223\n\025summari" +
-      "zation_enabled\030\005 \001(\010R\024summarizationEnabl" +
-      "ed\022k\n\024summarization_events\030\006 \003(\01328.ai.st" +
-      "igmer.agentic.agentexecution.v1.Summariz" +
-      "ationEventR\023summarizationEvents\022/\n\023utili" +
-      "zation_percent\030\007 \001(\002R\022utilizationPercent" +
-      "B\303\001B\014ContextProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer." +
-      "Agentic.Agentexecution.V1\312\002$Ai\\Stigmer\\A" +
-      "gentic\\Agentexecution\\V1\342\0020Ai\\Stigmer\\Ag" +
-      "entic\\Agentexecution\\V1\\GPBMetadata\352\002(Ai" +
-      "::Stigmer::Agentic::Agentexecution::V1b\006" +
-      "proto3"
+      "ution/v1/enum.proto\"\320\004\n\022SummarizationEve" +
+      "nt\022\034\n\ttimestamp\030\001 \001(\tR\ttimestamp\022#\n\rtoke" +
+      "ns_before\030\002 \001(\005R\014tokensBefore\022!\n\014tokens_" +
+      "after\030\003 \001(\005R\013tokensAfter\022+\n\021compression_" +
+      "ratio\030\004 \001(\002R\020compressionRatio\022\037\n\013duratio" +
+      "n_ms\030\005 \001(\005R\ndurationMs\022/\n\023summarization_" +
+      "model\030\006 \001(\tR\022summarizationModel\022\'\n\017messa" +
+      "ges_before\030\007 \001(\005R\016messagesBefore\022%\n\016mess" +
+      "ages_after\030\010 \001(\005R\rmessagesAfter\022Q\n\006sourc" +
+      "e\030\t \001(\01629.ai.stigmer.agentic.agentexecut" +
+      "ion.v1.SummarizationSourceR\006source\022<\n\032su" +
+      "mmarization_input_tokens\030\n \001(\005R\030summariz" +
+      "ationInputTokens\022>\n\033summarization_output" +
+      "_tokens\030\013 \001(\005R\031summarizationOutputTokens" +
+      "\0224\n\026summarization_cost_usd\030\014 \001(\001R\024summar" +
+      "izationCostUsd\"\312\003\n\013ContextInfo\022.\n\023curren" +
+      "t_token_count\030\001 \001(\005R\021currentTokenCount\0220" +
+      "\n\024context_window_limit\030\002 \001(\005R\022contextWin" +
+      "dowLimit\022F\n\037summarization_trigger_thresh" +
+      "old\030\003 \001(\005R\035summarizationTriggerThreshold" +
+      "\022>\n\033summarization_target_tokens\030\004 \001(\005R\031s" +
+      "ummarizationTargetTokens\0223\n\025summarizatio" +
+      "n_enabled\030\005 \001(\010R\024summarizationEnabled\022k\n" +
+      "\024summarization_events\030\006 \003(\01328.ai.stigmer" +
+      ".agentic.agentexecution.v1.Summarization" +
+      "EventR\023summarizationEvents\022/\n\023utilizatio" +
+      "n_percent\030\007 \001(\002R\022utilizationPercentB\303\001B\014" +
+      "ContextProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agent" +
+      "ic.Agentexecution.V1\312\002$Ai\\Stigmer\\Agenti" +
+      "c\\Agentexecution\\V1\342\0020Ai\\Stigmer\\Agentic" +
+      "\\Agentexecution\\V1\\GPBMetadata\352\002(Ai::Sti" +
+      "gmer::Agentic::Agentexecution::V1b\006proto" +
+      "3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor(),
         });
-    internal_static_ai_stigmer_agentic_agentexecution_v1_ResolvedExecutionContext_descriptor =
-      getDescriptor().getMessageType(0);
-    internal_static_ai_stigmer_agentic_agentexecution_v1_ResolvedExecutionContext_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_agentexecution_v1_ResolvedExecutionContext_descriptor,
-        new java.lang.String[] { "EnvironmentKeys", "McpServers", "SkillNames", "ExcludedSkillNames", });
-    internal_static_ai_stigmer_agentic_agentexecution_v1_ResolvedExecutionContext_McpServersEntry_descriptor =
-      internal_static_ai_stigmer_agentic_agentexecution_v1_ResolvedExecutionContext_descriptor.getNestedType(0);
-    internal_static_ai_stigmer_agentic_agentexecution_v1_ResolvedExecutionContext_McpServersEntry_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_agentexecution_v1_ResolvedExecutionContext_McpServersEntry_descriptor,
-        new java.lang.String[] { "Key", "Value", });
-    internal_static_ai_stigmer_agentic_agentexecution_v1_McpServerResolutionStatus_descriptor =
-      getDescriptor().getMessageType(1);
-    internal_static_ai_stigmer_agentic_agentexecution_v1_McpServerResolutionStatus_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_agentexecution_v1_McpServerResolutionStatus_descriptor,
-        new java.lang.String[] { "Resolved", "Message", "EnabledToolCount", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_SummarizationEvent_descriptor =
-      getDescriptor().getMessageType(2);
+      getDescriptor().getMessageType(0);
     internal_static_ai_stigmer_agentic_agentexecution_v1_SummarizationEvent_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_SummarizationEvent_descriptor,
         new java.lang.String[] { "Timestamp", "TokensBefore", "TokensAfter", "CompressionRatio", "DurationMs", "SummarizationModel", "MessagesBefore", "MessagesAfter", "Source", "SummarizationInputTokens", "SummarizationOutputTokens", "SummarizationCostUsd", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_ContextInfo_descriptor =
-      getDescriptor().getMessageType(3);
+      getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_agentexecution_v1_ContextInfo_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ContextInfo_descriptor,

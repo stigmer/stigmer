@@ -2742,17 +2742,6 @@
         "required": false
       },
       {
-        "name": "ResolvedContext",
-        "jsonName": "resolvedContext",
-        "protoField": "resolved_context",
-        "type": {
-          "kind": "message",
-          "messageType": "ResolvedExecutionContext"
-        },
-        "description": "Resolved execution context showing what resources the agent had access to.\n Populated once before streaming begins, after all resources are resolved.\n Immutable after initial population - represents the \"snapshot\" of resolved state.",
-        "required": false
-      },
-      {
         "name": "PendingApprovals",
         "jsonName": "pendingApprovals",
         "protoField": "pending_approvals",
@@ -4745,44 +4734,6 @@
       ]
     },
     {
-      "name": "McpServerResolutionStatus",
-      "description": "McpServerResolutionStatus captures the resolution outcome for a single MCP server.\n Provides richer information than a simple boolean for better debugging and visibility.\n\n ## Resolution vs Connection\n\n This tracks whether the MCP server definition was successfully loaded and configured,\n NOT whether the runtime connection succeeded. Resolution includes:\n - Looking up the McpServer resource by reference\n - Transforming the server config (resolving env var placeholders)\n - Determining which tools to enable\n\n Runtime connection (WebSocket/stdio) happens later and is not tracked here.",
-      "protoType": "ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus",
-      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/context.proto",
-      "fields": [
-        {
-          "name": "Resolved",
-          "jsonName": "resolved",
-          "protoField": "resolved",
-          "type": {
-            "kind": "bool"
-          },
-          "description": "Whether the MCP server was successfully resolved and configured.\n true: Server found, config transformed, ready for runtime connection\n false: Resolution failed (server not found, missing env var, invalid config)",
-          "required": false
-        },
-        {
-          "name": "Message",
-          "jsonName": "message",
-          "protoField": "message",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Human-readable status message explaining the resolution outcome.\n For success: \"Configured successfully\"\n For failure: Describes what went wrong\n Examples:\n   - \"Configured successfully\"\n   - \"Server not found\"\n   - \"Missing required environment variable: GITHUB_TOKEN\"\n   - \"Invalid server configuration: missing command\"",
-          "required": false
-        },
-        {
-          "name": "EnabledToolCount",
-          "jsonName": "enabledToolCount",
-          "protoField": "enabled_tool_count",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Number of tools enabled from this MCP server.\n Reflects the intersection of server's available tools and enabled_tools config.\n 0 if resolution failed, server has no tools, or all tools disabled.",
-          "required": false
-        }
-      ]
-    },
-    {
       "name": "PendingApproval",
       "description": "A pending approval request for a tool call that requires user consent before execution.\n\n Each entry represents one tool call waiting for a user decision (approve, skip,\n or reject). Sub-agent approvals are included with from_sub_agent set to true\n and sub_agent_name identifying the origin.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.PendingApproval",
@@ -4953,70 +4904,6 @@
             ]
           },
           "description": "Policy layer that gated this tool call, copied from\n ToolCall.approval_policy_source by the server-side projection (exactly as\n tool_kind above is). Lets the approval surface explain WHY the tool requires\n approval (e.g. \"required by agent override\") without a client-side lookup.\n See ApprovalPolicySource.",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "ResolvedExecutionContext",
-      "description": "ResolvedExecutionContext captures the resolved configuration state at execution time.\n Populated once after all resources are resolved, before the agent begins processing.\n\n ## Purpose\n\n Provides visibility into what the agent actually had access to during execution:\n - Which environment variables were available (keys only, not values for security)\n - Which MCP servers were configured and their resolution status\n - Which skills were injected into the agent's context\n\n This enables:\n - **Debugging**: Understanding what environment/tools were available when investigating failures\n - **Auditing**: Tracking what resources each execution consumed\n - **Security review**: Verifying which secrets (by key name only) were exposed\n - **UX transparency**: Showing users what their agent can access\n\n ## Timing\n\n Populated by the agent runner once resolution completes (skills, env vars,\n MCP servers) but before the streaming loop begins, and reported through the\n execution status-update path. This represents the \"snapshot\" of resolved\n state. Once set, this field is immutable for the remainder of the execution.\n\n ## Security Considerations\n\n - Environment values are NEVER included (only keys)\n - MCP server credentials are not exposed\n - This is safe to include in status responses to clients",
-      "protoType": "ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext",
-      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/context.proto",
-      "fields": [
-        {
-          "name": "EnvironmentKeys",
-          "jsonName": "environmentKeys",
-          "protoField": "environment_keys",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "string"
-            }
-          },
-          "description": "Environment variable keys available to the agent (NOT values for security).\n Represents the merged environment values (instance environment_refs \u003c\n runtime_env) filtered to the keys declared in Agent.spec.env — the agent\n env map is a declaration whitelist, not a value source.\n Keys are sorted alphabetically for consistent ordering and deterministic comparison.\n Examples: [\"API_KEY\", \"DATABASE_URL\", \"LOG_LEVEL\"]",
-          "required": false
-        },
-        {
-          "name": "McpServers",
-          "jsonName": "mcpServers",
-          "protoField": "mcp_servers",
-          "type": {
-            "kind": "map",
-            "keyType": {
-              "kind": "string"
-            },
-            "valueType": {
-              "kind": "message",
-              "messageType": "McpServerResolutionStatus"
-            }
-          },
-          "description": "MCP servers referenced by the agent and their resolution status.\n Key: MCP server slug (e.g., \"github-mcp\", \"slack-mcp\")\n Value: Resolution status including success/failure and diagnostic information\n\n Note: This tracks configuration resolution, not runtime connection status.\n A server showing resolved=true means it was found and transformed successfully;\n actual WebSocket/stdio connection happens later in the Graphton runtime.",
-          "required": false
-        },
-        {
-          "name": "SkillNames",
-          "jsonName": "skillNames",
-          "protoField": "skill_names",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "string"
-            }
-          },
-          "description": "Names of skills injected into the agent's system prompt.\n Each skill's SKILL.md content is appended to the instructions.\n Sorted alphabetically for consistent ordering and deterministic comparison.\n Examples: [\"code-review\", \"docker-expert\", \"kubernetes-operator\"]",
-          "required": false
-        },
-        {
-          "name": "ExcludedSkillNames",
-          "jsonName": "excludedSkillNames",
-          "protoField": "excluded_skill_names",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "string"
-            }
-          },
-          "description": "Skills that were available but excluded from the system prompt because\n they were not relevant to the current execution context.\n Enables visibility into the filtering decision for debugging and tuning.\n Sorted alphabetically for consistent ordering and deterministic comparison.\n\n When smart context filtering is active, this captures skills that were\n configured on the agent but scored below the relevance threshold for the\n current user message. Empty when all skills are included (no filtering).",
           "required": false
         }
       ]
