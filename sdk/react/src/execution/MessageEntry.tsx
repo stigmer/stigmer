@@ -20,6 +20,7 @@ import {
 import { PlanDocumentMessage } from "./PlanDocumentMessage.js";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
 /** Props for {@link MessageEntry}. */
 export interface MessageEntryProps {
@@ -192,29 +193,29 @@ function HumanMessage({
         />
       )}
       <p className="stg:text-sm stg:text-foreground stg:whitespace-pre-wrap">{content}</p>
-      {onEdit && (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button
-                type="button"
-                onClick={onEdit}
-                aria-label="Edit message"
-                className={cn(
-                  "stg:absolute stg:-top-2.5 stg:-right-2.5 stg:inline-flex stg:h-7 stg:w-7 stg:items-center stg:justify-center stg:rounded-full",
-                  "stg:border stg:border-border stg:bg-card stg:text-muted-foreground stg:shadow-sm stg:transition",
-                  "stg:hover:text-foreground stg:hover:bg-accent-hover",
-                  "stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                )}
-              />
-            }
-          >
-            <EditIcon />
-          </TooltipTrigger>
-          <TooltipContent side="top">Edit</TooltipContent>
-        </Tooltip>
-      )}
+      {/* The hover-revealed action cluster on the bubble's shoulder: copy is
+          always offered (the message text is the content), edit only when the
+          host wired the callback. */}
+      <div className="stg:absolute stg:-top-2.5 stg:-right-2.5 stg:flex stg:gap-1">
+        <CopyMessageButton text={content} variant="bubble" />
+        {onEdit && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={onEdit}
+                  aria-label="Edit message"
+                  className={BUBBLE_ACTION_CLASSES}
+                />
+              }
+            >
+              <EditIcon />
+            </TooltipTrigger>
+            <TooltipContent side="top">Edit</TooltipContent>
+          </Tooltip>
+        )}
+      </div>
     </div>
   );
 }
@@ -269,7 +270,7 @@ function AiMessage({
       role="article"
       aria-label="AI response"
       aria-busy={isStreaming}
-      className={cn("stg:px-4 stg:py-3", className)}
+      className={cn("stg:group stg:px-4 stg:py-3", className)}
     >
       <div className="stgm-prose">
         <Streamdown
@@ -280,7 +281,115 @@ function AiMessage({
           {markdown}
         </Streamdown>
       </div>
+      {/* The quiet per-message actions row (issue #278). Height is reserved
+          whenever it renders, so the hover reveal never shifts the prose; it
+          appears only once the message settles — a streaming message's text
+          is still changing, so a copy would race the content. Copies the
+          display markdown (fence-unwrapped), i.e. what the reader sees. */}
+      {!isStreaming && markdown.trim().length > 0 && (
+        <div className="stg:mt-1 stg:flex stg:h-6 stg:items-center">
+          <CopyMessageButton text={markdown} variant="quiet" />
+        </div>
+      )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Per-message copy affordance (issue #278)
+// ---------------------------------------------------------------------------
+
+// The floating circular action on a human bubble's shoulder — shared by the
+// copy and edit buttons so the cluster reads as one control family.
+const BUBBLE_ACTION_CLASSES = cn(
+  "stg:inline-flex stg:h-7 stg:w-7 stg:items-center stg:justify-center stg:rounded-full",
+  "stg:border stg:border-border stg:bg-card stg:text-muted-foreground stg:shadow-sm stg:transition",
+  "stg:hover:text-foreground stg:hover:bg-accent-hover",
+  "stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
+  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+);
+
+// The quiet in-flow variant for AI prose: no border or fill, one contrast
+// step below the reading text (`muted-foreground-subtle`, rising to
+// `muted-foreground` on hover) — findable when wanted, invisible while
+// reading. The same hover/focus reveal keeps both variants keyboard-reachable.
+const QUIET_ACTION_CLASSES = cn(
+  "stg:inline-flex stg:h-6 stg:w-6 stg:items-center stg:justify-center stg:rounded-md",
+  "stg:text-muted-foreground-subtle stg:transition",
+  "stg:hover:text-muted-foreground stg:hover:bg-accent-hover",
+  "stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
+  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+);
+
+/**
+ * The per-message copy control: writes the message's text to the clipboard
+ * and flips to a check for the feedback window. `variant` selects the visual
+ * home — `"bubble"` joins the human bubble's floating action cluster,
+ * `"quiet"` sits in the AI message's reserved actions row.
+ */
+function CopyMessageButton({
+  text,
+  variant,
+}: {
+  text: string;
+  variant: "bubble" | "quiet";
+}) {
+  const { copy, copied } = useCopyFeedback();
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            onClick={() => void copy(text)}
+            aria-label={copied ? "Copied" : "Copy message"}
+            className={
+              variant === "bubble" ? BUBBLE_ACTION_CLASSES : QUIET_ACTION_CLASSES
+            }
+          />
+        }
+      >
+        {copied ? <CheckIcon /> : <CopyMessageIcon />}
+      </TooltipTrigger>
+      <TooltipContent side="top">{copied ? "Copied" : "Copy"}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function CopyMessageIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
   );
 }
 
