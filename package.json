@@ -38,6 +38,7 @@
     "tsx": "^4.21.0"
   },
   "resolutions": {
+    "@bufbuild/protobuf": "2.12.0",
     "@stigmer/protos": "workspace:*",
     "@stigmer/sdk": "workspace:*",
     "@stigmer/theme": "workspace:*",
