@@ -139,14 +139,16 @@ jobs:
           echo "$install_dir" >> "$GITHUB_PATH"
           "$install_dir/planton" version
 
-      # The CLI's documented non-interactive (CI/CD) auth path. It registers
-      # the hosted planton.ai instance — `secret get` refuses to run with no
-      # backend configured — and validates the key, so a dead PLANTON_API_KEY
-      # fails here with a clear error, not mid-fetch.
+      # The CLI's documented non-interactive (CI/CD) auth path: registers the
+      # hosted planton.ai instance — `secret get` refuses to run with no
+      # backend configured. --skip-validation because the CLI's whoAmI
+      # validation RPC is Unimplemented on the prod backend (CLI/backend
+      # skew, observed 2026-08-13); the fetch step's per-secret empty-value
+      # guards live-validate the key immediately afterwards anyway.
       - name: Authenticate Planton CLI
         env:
           PLANTON_API_KEY: ${{ secrets.PLANTON_API_KEY }}
-        run: planton login --api-key "$PLANTON_API_KEY"
+        run: planton login --api-key "$PLANTON_API_KEY" --skip-validation
 
       # Empty-value guard matters here: the canary tests t.Skip on missing
       # env vars, so a silently-empty export would turn the lane green with
