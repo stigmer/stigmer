@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { cn } from "@stigmer/theme";
@@ -47,6 +48,12 @@ export function RoleSelector({
   disabled = false,
   className,
 }: RoleSelectorProps) {
+  // Instance-scoped radio-group name (oss#593): a hardcoded name would make
+  // every mounted RoleSelector share ONE radio group — with two copies on a
+  // page (e.g. zone-cached detail pages), keyboard selection escapes into
+  // the other, possibly aria-hidden, copy.
+  const groupName = useId();
+
   const { options, selected: internalSelected, select } = useRoleSelector(
     kind,
     defaultRole,
@@ -84,7 +91,7 @@ export function RoleSelector({
             >
               <input
                 type="radio"
-                name="stgm-role-selector"
+                name={groupName}
                 value={opt.value}
                 checked={isChecked}
                 disabled={disabled}

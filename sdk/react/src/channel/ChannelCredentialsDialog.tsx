@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -53,6 +53,12 @@ export function ChannelCredentialsDialog({
 }: ChannelCredentialsDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
+  // Instance-scoped title id (oss#593): a reusable component must not
+  // hardcode DOM ids — hosts legitimately mount this dialog more than once
+  // per page (e.g. zone-cached detail pages), and duplicate ids break the
+  // aria-labelledby association for every copy after the first.
+  const titleId = useId();
+
   const handleClose = useCallback(() => {
     dialogRef.current?.close();
     onOpenChange(false);
@@ -82,7 +88,7 @@ export function ChannelCredentialsDialog({
         "stg:w-full stg:max-w-md stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
         modal ? "stg:fixed stg:inset-0 stg:m-auto stg:backdrop:bg-black/50" : "stg:relative",
       )}
-      aria-labelledby="channel-credentials-title"
+      aria-labelledby={titleId}
     >
       {/* Body mounts only while open so its draft resets per session —
           reopening never resumes stale, unsaved edits. */}
@@ -92,6 +98,7 @@ export function ChannelCredentialsDialog({
           channel={channel}
           onSaved={onSaved}
           onClose={handleClose}
+          titleId={titleId}
         />
       )}
     </dialog>
@@ -103,11 +110,14 @@ function ChannelCredentialsDialogBody({
   channel,
   onSaved,
   onClose,
+  titleId,
 }: {
   readonly agent: Agent;
   readonly channel: AgentChannel;
   readonly onSaved?: () => void;
   readonly onClose: () => void;
+  /** Heading id minted by the outer dialog for its aria-labelledby. */
+  readonly titleId: string;
 }) {
   const channelName =
     channel.metadata?.name || channel.metadata?.slug || "this channel";
@@ -142,7 +152,7 @@ function ChannelCredentialsDialogBody({
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3 stg:border-b stg:border-border stg:px-5 stg:py-4">
         <div className="stg:min-w-0">
           <h2
-            id="channel-credentials-title"
+            id={titleId}
             className="stg:text-sm stg:font-semibold stg:text-foreground"
           >
             Tool credentials

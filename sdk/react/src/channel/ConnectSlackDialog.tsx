@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useId, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getErrorReason, type ResourceRef } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -91,6 +91,12 @@ export function ConnectSlackDialog({
 }: ConnectSlackDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
+  // Instance-scoped title id (oss#593): a reusable component must not
+  // hardcode DOM ids — hosts legitimately mount this dialog more than once
+  // per page (e.g. zone-cached detail pages), and duplicate ids break the
+  // aria-labelledby association for every copy after the first.
+  const titleId = useId();
+
   const handleClose = useCallback(() => {
     dialogRef.current?.close();
     onOpenChange(false);
@@ -122,7 +128,7 @@ export function ConnectSlackDialog({
         "stg:w-full stg:max-w-md stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
         modal ? "stg:fixed stg:inset-0 stg:m-auto stg:backdrop:bg-black/50" : "stg:relative",
       )}
-      aria-labelledby="connect-slack-title"
+      aria-labelledby={titleId}
     >
       {/* Body mounts only while open so its flow state resets per
           session — reopening the dialog never resumes a stale flow. */}
@@ -132,6 +138,7 @@ export function ConnectSlackDialog({
           channel={channel ?? null}
           onChannelsChanged={onChannelsChanged}
           onClose={handleClose}
+          titleId={titleId}
           channelAppsHref={channelAppsHref}
         />
       )}
@@ -149,6 +156,8 @@ interface ConnectSlackDialogBodyProps {
   readonly onChannelsChanged?: () => void;
   readonly onClose: () => void;
   readonly channelAppsHref?: string;
+  /** Heading id minted by the outer dialog for its aria-labelledby. */
+  readonly titleId: string;
 }
 
 function ConnectSlackDialogBody({
@@ -157,6 +166,7 @@ function ConnectSlackDialogBody({
   onChannelsChanged,
   onClose,
   channelAppsHref,
+  titleId,
 }: ConnectSlackDialogBodyProps) {
   const deploymentMode = useDeploymentMode();
   const agentName = agent.metadata?.name || agent.metadata?.slug || "this agent";
@@ -276,7 +286,7 @@ function ConnectSlackDialogBody({
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3 stg:border-b stg:border-border stg:px-5 stg:py-4">
         <div className="stg:flex stg:items-center stg:gap-2.5">
           <SlackMarkIcon className="stg:size-5 stg:text-foreground" />
-          <h2 id="connect-slack-title" className="stg:text-sm stg:font-semibold stg:text-foreground">
+          <h2 id={titleId} className="stg:text-sm stg:font-semibold stg:text-foreground">
             {channel ? "Reconnect to Slack" : "Connect to Slack"}
           </h2>
         </div>

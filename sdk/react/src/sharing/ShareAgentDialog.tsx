@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
 import {
   MAX_ALLOWED_ORIGINS,
@@ -139,6 +139,12 @@ export function ShareAgentDialog({
 }: ShareAgentDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
+  // Instance-scoped title id (oss#593): a reusable component must not
+  // hardcode DOM ids — hosts legitimately mount this dialog more than once
+  // per page (e.g. zone-cached detail pages), and duplicate ids break the
+  // aria-labelledby association for every copy after the first.
+  const titleId = useId();
+
   const handleClose = useCallback(() => {
     dialogRef.current?.close();
     onOpenChange(false);
@@ -170,7 +176,7 @@ export function ShareAgentDialog({
         "stg:w-full stg:max-w-lg stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
         modal ? "stg:fixed stg:inset-0 stg:m-auto stg:backdrop:bg-black/50" : "stg:relative",
       )}
-      aria-labelledby="share-agent-title"
+      aria-labelledby={titleId}
     >
       {/* Body mounts only while open so its draft state resets per
           session — reopening the dialog never shows a stale draft. */}
@@ -182,6 +188,7 @@ export function ShareAgentDialog({
           buildShareUrl={buildShareUrl}
           onSharingChanged={onSharingChanged}
           onClose={handleClose}
+          titleId={titleId}
         />
       )}
     </dialog>
@@ -207,6 +214,7 @@ function ShareAgentDialogBody({
   buildShareUrl,
   onSharingChanged,
   onClose,
+  titleId,
 }: {
   readonly agent: Agent;
   readonly share: AgentShare | null;
@@ -214,6 +222,8 @@ function ShareAgentDialogBody({
   readonly buildShareUrl?: (org: string, slug: string) => string;
   readonly onSharingChanged?: () => void;
   readonly onClose: () => void;
+  /** Heading id minted by the outer dialog for its aria-labelledby. */
+  readonly titleId: string;
 }) {
   const [created, setCreated] = useState<AgentShare | null>(null);
   const activeShare = share ?? created;
@@ -229,7 +239,7 @@ function ShareAgentDialogBody({
       <div className="stg:flex stg:items-start stg:justify-between stg:border-b stg:border-border stg:px-6 stg:py-4">
         <div className="stg:min-w-0">
           <h2
-            id="share-agent-title"
+            id={titleId}
             className="stg:text-base stg:font-semibold stg:text-foreground"
           >
             {isCreating ? "Create share" : "Share"}
@@ -321,6 +331,11 @@ function CreateShareForm({
 }) {
   const agentName = agent.metadata?.name || (agent.metadata?.slug ?? "");
   const isCrossOrg = shareOrg !== (agent.metadata?.org ?? "");
+
+  // Instance-scoped field ids (oss#593) — see the outer dialog's titleId.
+  const baseId = useId();
+  const nameId = `${baseId}-name`;
+  const slugId = `${baseId}-slug`;
 
   const [name, setName] = useState(agentName);
   const [slug, setSlug] = useState(agent.metadata?.slug ?? "");
@@ -421,13 +436,13 @@ function CreateShareForm({
       {/* ---- Name ---- */}
       <div className="stg:space-y-1">
         <label
-          htmlFor="stgm-new-share-name"
+          htmlFor={nameId}
           className="stg:text-xs stg:font-medium stg:text-foreground"
         >
           Name
         </label>
         <input
-          id="stgm-new-share-name"
+          id={nameId}
           type="text"
           value={name}
           onChange={(e) => handleNameChange(e.target.value)}
@@ -457,13 +472,13 @@ function CreateShareForm({
       {/* ---- Slug ---- */}
       <div className="stg:space-y-1">
         <label
-          htmlFor="stgm-new-share-slug"
+          htmlFor={slugId}
           className="stg:text-xs stg:font-medium stg:text-foreground"
         >
           Slug
         </label>
         <input
-          id="stgm-new-share-slug"
+          id={slugId}
           type="text"
           value={slug}
           onChange={(e) => handleSlugChange(e.target.value)}
@@ -532,6 +547,9 @@ function ShareAgentForm({
   readonly onSharingChanged?: () => void;
 }) {
   const agentName = agent.metadata?.name || (agent.metadata?.slug ?? "");
+
+  // Instance-scoped label id (oss#593) — see the outer dialog's titleId.
+  const enabledLabelId = useId();
 
   // The latest server share is the single baseline: the draft, the link
   // token, and the share id for rotation all derive from it.
@@ -644,7 +662,7 @@ function ShareAgentForm({
         <div className="stg:flex stg:items-start stg:justify-between stg:gap-4">
           <div className="stg:min-w-0">
             <span
-              id="share-enabled-label"
+              id={enabledLabelId}
               className="stg:text-sm stg:font-medium stg:text-foreground"
             >
               {isOrgAudience
@@ -657,7 +675,7 @@ function ShareAgentForm({
             checked={draft.enabled}
             onCheckedChange={handleToggle}
             disabled={isPending}
-            aria-labelledby="share-enabled-label"
+            aria-labelledby={enabledLabelId}
           />
         </div>
         {!isCrossOrg && (

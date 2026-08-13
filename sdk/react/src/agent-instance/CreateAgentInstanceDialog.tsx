@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
@@ -41,6 +41,15 @@ export function CreateAgentInstanceDialog({
 }: CreateAgentInstanceDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const { create, isCreating, error, clearError } = useCreateAgentInstance();
+
+  // Instance-scoped element ids (oss#593): a reusable component must not
+  // hardcode DOM ids — hosts legitimately mount this dialog more than once
+  // per page (e.g. zone-cached detail pages), and duplicate ids silently
+  // break the label→input association for every copy after the first.
+  const baseId = useId();
+  const titleId = `${baseId}-title`;
+  const nameId = `${baseId}-name`;
+  const descriptionId = `${baseId}-description`;
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -108,12 +117,12 @@ export function CreateAgentInstanceDialog({
         "stg:fixed stg:inset-0 stg:m-auto stg:w-full stg:max-w-lg stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
         "stg:backdrop:bg-black/50",
       )}
-      aria-labelledby="create-agent-instance-title"
+      aria-labelledby={titleId}
     >
       <form onSubmit={handleSubmit} className="stg:flex stg:flex-col">
         {/* Header */}
         <div className="stg:flex stg:items-center stg:justify-between stg:border-b stg:border-border stg:px-6 stg:py-4">
-          <h2 id="create-agent-instance-title" className="stg:text-base stg:font-semibold stg:text-foreground">
+          <h2 id={titleId} className="stg:text-base stg:font-semibold stg:text-foreground">
             Create Agent Instance
           </h2>
           <button
@@ -134,11 +143,11 @@ export function CreateAgentInstanceDialog({
         <div className="stg:space-y-5 stg:px-6 stg:py-5">
           {/* Name */}
           <div>
-            <label htmlFor="agent-instance-name" className="stg:block stg:text-sm stg:font-medium stg:text-foreground stg:mb-1.5">
+            <label htmlFor={nameId} className="stg:block stg:text-sm stg:font-medium stg:text-foreground stg:mb-1.5">
               Name <span className="stg:text-destructive">*</span>
             </label>
             <input
-              id="agent-instance-name"
+              id={nameId}
               type="text"
               required
               value={name}
@@ -160,11 +169,11 @@ export function CreateAgentInstanceDialog({
 
           {/* Description */}
           <div>
-            <label htmlFor="agent-instance-description" className="stg:block stg:text-sm stg:font-medium stg:text-foreground stg:mb-1.5">
+            <label htmlFor={descriptionId} className="stg:block stg:text-sm stg:font-medium stg:text-foreground stg:mb-1.5">
               Description
             </label>
             <textarea
-              id="agent-instance-description"
+              id={descriptionId}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What is this instance used for?"
