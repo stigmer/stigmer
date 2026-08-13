@@ -340,6 +340,7 @@ export function ConversationsWorkbench({
             <ConversationAttentionBanner
               conversation={detail.conversation}
               participation={participation}
+              supportsStaffReplies={descriptor?.supportsStaffReplies ?? true}
             />
           )}
           {detail.conversation && (
