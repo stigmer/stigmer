@@ -17,7 +17,7 @@ The AgentInstance controller manages agent instance resources using a pipeline-b
 
 | Handler | Purpose | Pipeline Steps |
 |---------|---------|----------------|
-| **Create** | Create new agent instance | ValidateProto → ResolveSlug → CheckDuplicate → SetDefaults → Persist |
+| **Create** | Create new agent instance | ValidateProto → ValidateVisibility → ResolveSlug → LoadParentAgent → CheckDuplicate → BuildNewState → NormalizeReferences → Persist → IndexSearch |
 | **Update** | Update existing instance | ValidateProto → ResolveSlug → LoadExisting → BuildUpdateState → Persist |
 | **Delete** | Delete instance by ID | ValidateProto → ExtractResourceId → LoadExistingForDelete → DeleteResource |
 | **Get** | Retrieve instance by ID | ValidateProto → ExtractResourceId → LoadTarget |
@@ -37,9 +37,16 @@ The Go OSS implementation is **simplified** compared to the Java Cloud version:
 - ✅ **TransformResponse** - No response transformations needed
 
 ### Business Logic EXCLUDED in OSS:
-- ✅ **LoadParentAgent** - Parent agent validation (OSS is simpler, no cross-org restrictions)
-- ✅ **ValidateSameOrgBusinessRule** - No org-scoping restrictions in local usage
+- ✅ **ValidateSameOrgBusinessRule** - Deliberately absent in BOTH editions for agent
+  instances (unlike WorkflowInstance): an agent is a shareable blueprint and one agent
+  legitimately has instances in several orgs (the marketplace case). Cloud governs
+  cross-org creation with FGA authorization, which OSS excludes.
 - ✅ **QueryAuthorizedIds** - No authorization filtering for list operations
+
+### Business Logic KEPT in OSS:
+- ✅ **LoadParentAgent** - An unknown `spec.agent_id` is rejected with NotFound instead
+  of persisting a dangling instance (oss#645), matching cloud and this server's own
+  WorkflowInstance create pipeline.
 
 ### What's KEPT:
 - ✅ All standard CRUD operations
@@ -88,6 +95,7 @@ All files are well under 200 lines, following Go best practices.
 
 | Step | Purpose | Handler |
 |------|---------|---------|
+| `loadParentAgentStep` | Reject unknown parent agent with NotFound | Create |
 | `loadByReferenceStep` | Load by slug/org reference | GetByReference |
 | `loadByAgentStep` | Load instances for agent | GetByAgent |
 
@@ -99,12 +107,17 @@ All files are well under 200 lines, following Go best practices.
 
 **Pipeline**:
 1. ValidateProto - Validate field constraints
-2. ResolveSlug - Generate slug from metadata.name
-3. CheckDuplicate - Verify no duplicate exists by slug
-4. SetDefaults - Set ID, kind, api_version, timestamps
-5. Persist - Save to database
+2. ValidateVisibility - Reject unsupported visibility levels
+3. ResolveSlug - Generate slug from metadata.name
+4. LoadParentAgent - Reject unknown `spec.agent_id` with NotFound (oss#645)
+5. CheckDuplicate - Verify no duplicate exists by slug
+6. BuildNewState - Set ID, kind, api_version, timestamps
+7. NormalizeReferences - Make references absolute
+8. Persist - Save to database
+9. IndexSearch - Update search index
 
-**Business Logic**: Standard create with no special validation (OSS is local/single-user).
+**Business Logic**: Parent must exist; cross-org creation is allowed (marketplace
+case — see "Business Logic EXCLUDED in OSS" above).
 
 ### Update Handler
 
@@ -235,17 +248,21 @@ pipeline()
 
 ### Go (Stigmer OSS)
 ```go
-// Create Handler (simplified)
+// Create Handler (simplified — no authorize/IAM/publish/transform)
 pipeline.NewPipeline[*AgentInstance]("agent-instance-create").
     AddStep(steps.NewValidateProtoStep()).           // 1
-    AddStep(steps.NewResolveSlugStep()).             // 2
-    AddStep(steps.NewCheckDuplicateStep(store)).     // 3
-    AddStep(steps.NewSetDefaultsStep()).             // 4
-    AddStep(steps.NewPersistStep(store)).            // 5
+    AddStep(steps.NewValidateVisibilityStep()).      // 2
+    AddStep(steps.NewResolveSlugStep()).             // 3
+    AddStep(newLoadParentAgentStep(agentClient)).    // 4 - Custom
+    AddStep(steps.NewCheckDuplicateStep(store)).     // 5
+    AddStep(steps.NewBuildNewStateStep()).           // 6
+    AddStep(steps.NewNormalizeReferencesStep()).     // 7
+    AddStep(steps.NewPersistStep(store)).            // 8
+    AddStep(steps.NewIndexSearchStep(store, ...)).   // 9
     Build()
 ```
 
-**Result**: Go version is **50% simpler** (5 steps vs 12 steps) due to local/single-user usage model.
+**Result**: Go version keeps cloud's parent validation but drops the auth/IAM/event steps (local/single-user usage model).
 
 ## Testing
 

@@ -243,7 +243,8 @@ func Run() error {
 	grpcServer := server.GRPCServer()
 
 	// Create and register AgentInstance controller
-	agentInstanceController := agentinstancecontroller.NewAgentInstanceController(store)
+	// Agent client will be set after in-process server starts (circular dependency)
+	agentInstanceController := agentinstancecontroller.NewAgentInstanceController(store, nil)
 	agentinstancev1.RegisterAgentInstanceCommandControllerServer(grpcServer, agentInstanceController)
 	agentinstancev1.RegisterAgentInstanceQueryControllerServer(grpcServer, agentInstanceController)
 
@@ -608,6 +609,7 @@ func Run() error {
 	// Now inject dependencies into controllers that need them
 	// Note: Controllers are already registered, we're just updating their internal state
 	agentController.SetAgentInstanceClient(agentInstanceClient)
+	agentInstanceController.SetAgentClient(agentClient)
 	agentExecutionController.SetClients(agentClient, agentInstanceClient, sessionClient, environmentClient, executionContextClient)
 	sessionController.SetClients(agentClient, agentInstanceClient)
 	workflowController.SetWorkflowInstanceClient(workflowInstanceClient)
