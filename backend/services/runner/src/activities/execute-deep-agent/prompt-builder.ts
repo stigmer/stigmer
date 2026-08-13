@@ -251,7 +251,17 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
   // reads. (PLAN and build_from_plan are mutually exclusive in practice —
   // the build turn is always an Agent-mode execution.)
   if (input.interactionMode === InteractionMode.PLAN) {
-    prompt += "\n\n## Plan mode\n\n" + PLAN_MODE_DIRECTIVE;
+    // The read-boundary sentence is native-harness-only, appended OUTSIDE the
+    // shared directive: PLAN_MODE_DIRECTIVE also serves the Cursor harness,
+    // which has no tool-level read boundary — there the sentence would be
+    // false. Here it is enforced fact (shared/plan-mode-permissions.ts,
+    // issue #528), stated so the model doesn't burn rounds probing paths the
+    // rules will refuse.
+    prompt +=
+      "\n\n## Plan mode\n\n" +
+      PLAN_MODE_DIRECTIVE +
+      "\n- File reads are limited to your workspace (including its " +
+      "`.stigmer/` directory); paths outside it are refused.";
   }
 
   if (input.buildFromPlan) {
