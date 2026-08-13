@@ -74,8 +74,10 @@ export interface SendFollowUpOptions {
    * Execution-scoped secrets and configuration (Execution Flow).
    *
    * Values are injected into the agent sandbox for this execution only
-   * and deleted when the execution completes. They override both
-   * Environment values and agent defaults.
+   * and deleted when the execution completes. They take the highest
+   * merge priority, overriding Environment values bound via the
+   * instance. Keys must be declared in the agent's env declarations
+   * (a whitelist, not a value source) or they are dropped.
    *
    * @see {@link CreateAgentExecutionInput.runtimeEnv}
    */

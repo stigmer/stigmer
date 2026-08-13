@@ -456,10 +456,25 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Runtime environment variables and secrets (execution-scoped).
-   * These values are only available for this specific execution.
-   * Use case: B2B integrations where secrets are injected at runtime (e.g., Plant &amp; Cloud).
-   * These values are stored in ExecutionContext and deleted when execution completes.
-   * Merge priority: Agent defaults &lt; Environment &lt; runtime_env (highest)
+   * These values are only available for this specific execution and take the
+   * highest merge priority, overriding values from Environments bound via
+   * environment_refs. A key must be declared in Agent.spec.env to survive the
+   * merge: the agent env map is a declaration whitelist (name + is_secret +
+   * optional), never a value source — undeclared keys are dropped.
+   * Use case: B2B integrations where secrets are injected at runtime per call.
+   * These values are consumed into the ExecutionContext (deleted when the
+   * execution completes) and cleared from the persisted execution.
+   *
+   * &#64;internal
+   * Merge priority (lowest to highest): resolved Environment values — from the
+   * creating schedule's or agent_call task's environment_refs (when present),
+   * then the instance's environment_refs; a later ref wins — then runtime_env
+   * (this field). The merged map is filtered to the keys declared in
+   * Agent.spec.env (no filtering when the agent declares none); a missing
+   * required key only logs a warning — the run is not failed. The merge is
+   * owned by backend/libs/go/envmerge and the agentexecution controller's
+   * executionContextBuilder, and asserted by
+   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -481,10 +496,25 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Runtime environment variables and secrets (execution-scoped).
-   * These values are only available for this specific execution.
-   * Use case: B2B integrations where secrets are injected at runtime (e.g., Plant &amp; Cloud).
-   * These values are stored in ExecutionContext and deleted when execution completes.
-   * Merge priority: Agent defaults &lt; Environment &lt; runtime_env (highest)
+   * These values are only available for this specific execution and take the
+   * highest merge priority, overriding values from Environments bound via
+   * environment_refs. A key must be declared in Agent.spec.env to survive the
+   * merge: the agent env map is a declaration whitelist (name + is_secret +
+   * optional), never a value source — undeclared keys are dropped.
+   * Use case: B2B integrations where secrets are injected at runtime per call.
+   * These values are consumed into the ExecutionContext (deleted when the
+   * execution completes) and cleared from the persisted execution.
+   *
+   * &#64;internal
+   * Merge priority (lowest to highest): resolved Environment values — from the
+   * creating schedule's or agent_call task's environment_refs (when present),
+   * then the instance's environment_refs; a later ref wins — then runtime_env
+   * (this field). The merged map is filtered to the keys declared in
+   * Agent.spec.env (no filtering when the agent declares none); a missing
+   * required key only logs a warning — the run is not failed. The merge is
+   * owned by backend/libs/go/envmerge and the agentexecution controller's
+   * executionContextBuilder, and asserted by
+   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -496,10 +526,25 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Runtime environment variables and secrets (execution-scoped).
-   * These values are only available for this specific execution.
-   * Use case: B2B integrations where secrets are injected at runtime (e.g., Plant &amp; Cloud).
-   * These values are stored in ExecutionContext and deleted when execution completes.
-   * Merge priority: Agent defaults &lt; Environment &lt; runtime_env (highest)
+   * These values are only available for this specific execution and take the
+   * highest merge priority, overriding values from Environments bound via
+   * environment_refs. A key must be declared in Agent.spec.env to survive the
+   * merge: the agent env map is a declaration whitelist (name + is_secret +
+   * optional), never a value source — undeclared keys are dropped.
+   * Use case: B2B integrations where secrets are injected at runtime per call.
+   * These values are consumed into the ExecutionContext (deleted when the
+   * execution completes) and cleared from the persisted execution.
+   *
+   * &#64;internal
+   * Merge priority (lowest to highest): resolved Environment values — from the
+   * creating schedule's or agent_call task's environment_refs (when present),
+   * then the instance's environment_refs; a later ref wins — then runtime_env
+   * (this field). The merged map is filtered to the keys declared in
+   * Agent.spec.env (no filtering when the agent declares none); a missing
+   * required key only logs a warning — the run is not failed. The merge is
+   * owned by backend/libs/go/envmerge and the agentexecution controller's
+   * executionContextBuilder, and asserted by
+   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -518,10 +563,25 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   /**
    * <pre>
    * Runtime environment variables and secrets (execution-scoped).
-   * These values are only available for this specific execution.
-   * Use case: B2B integrations where secrets are injected at runtime (e.g., Plant &amp; Cloud).
-   * These values are stored in ExecutionContext and deleted when execution completes.
-   * Merge priority: Agent defaults &lt; Environment &lt; runtime_env (highest)
+   * These values are only available for this specific execution and take the
+   * highest merge priority, overriding values from Environments bound via
+   * environment_refs. A key must be declared in Agent.spec.env to survive the
+   * merge: the agent env map is a declaration whitelist (name + is_secret +
+   * optional), never a value source — undeclared keys are dropped.
+   * Use case: B2B integrations where secrets are injected at runtime per call.
+   * These values are consumed into the ExecutionContext (deleted when the
+   * execution completes) and cleared from the persisted execution.
+   *
+   * &#64;internal
+   * Merge priority (lowest to highest): resolved Environment values — from the
+   * creating schedule's or agent_call task's environment_refs (when present),
+   * then the instance's environment_refs; a later ref wins — then runtime_env
+   * (this field). The merged map is filtered to the keys declared in
+   * Agent.spec.env (no filtering when the agent declares none); a missing
+   * required key only logs a warning — the run is not failed. The merge is
+   * owned by backend/libs/go/envmerge and the agentexecution controller's
+   * executionContextBuilder, and asserted by
+   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -3029,10 +3089,25 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Runtime environment variables and secrets (execution-scoped).
-     * These values are only available for this specific execution.
-     * Use case: B2B integrations where secrets are injected at runtime (e.g., Plant &amp; Cloud).
-     * These values are stored in ExecutionContext and deleted when execution completes.
-     * Merge priority: Agent defaults &lt; Environment &lt; runtime_env (highest)
+     * These values are only available for this specific execution and take the
+     * highest merge priority, overriding values from Environments bound via
+     * environment_refs. A key must be declared in Agent.spec.env to survive the
+     * merge: the agent env map is a declaration whitelist (name + is_secret +
+     * optional), never a value source — undeclared keys are dropped.
+     * Use case: B2B integrations where secrets are injected at runtime per call.
+     * These values are consumed into the ExecutionContext (deleted when the
+     * execution completes) and cleared from the persisted execution.
+     *
+     * &#64;internal
+     * Merge priority (lowest to highest): resolved Environment values — from the
+     * creating schedule's or agent_call task's environment_refs (when present),
+     * then the instance's environment_refs; a later ref wins — then runtime_env
+     * (this field). The merged map is filtered to the keys declared in
+     * Agent.spec.env (no filtering when the agent declares none); a missing
+     * required key only logs a warning — the run is not failed. The merge is
+     * owned by backend/libs/go/envmerge and the agentexecution controller's
+     * executionContextBuilder, and asserted by
+     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -3054,10 +3129,25 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Runtime environment variables and secrets (execution-scoped).
-     * These values are only available for this specific execution.
-     * Use case: B2B integrations where secrets are injected at runtime (e.g., Plant &amp; Cloud).
-     * These values are stored in ExecutionContext and deleted when execution completes.
-     * Merge priority: Agent defaults &lt; Environment &lt; runtime_env (highest)
+     * These values are only available for this specific execution and take the
+     * highest merge priority, overriding values from Environments bound via
+     * environment_refs. A key must be declared in Agent.spec.env to survive the
+     * merge: the agent env map is a declaration whitelist (name + is_secret +
+     * optional), never a value source — undeclared keys are dropped.
+     * Use case: B2B integrations where secrets are injected at runtime per call.
+     * These values are consumed into the ExecutionContext (deleted when the
+     * execution completes) and cleared from the persisted execution.
+     *
+     * &#64;internal
+     * Merge priority (lowest to highest): resolved Environment values — from the
+     * creating schedule's or agent_call task's environment_refs (when present),
+     * then the instance's environment_refs; a later ref wins — then runtime_env
+     * (this field). The merged map is filtered to the keys declared in
+     * Agent.spec.env (no filtering when the agent declares none); a missing
+     * required key only logs a warning — the run is not failed. The merge is
+     * owned by backend/libs/go/envmerge and the agentexecution controller's
+     * executionContextBuilder, and asserted by
+     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -3069,10 +3159,25 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Runtime environment variables and secrets (execution-scoped).
-     * These values are only available for this specific execution.
-     * Use case: B2B integrations where secrets are injected at runtime (e.g., Plant &amp; Cloud).
-     * These values are stored in ExecutionContext and deleted when execution completes.
-     * Merge priority: Agent defaults &lt; Environment &lt; runtime_env (highest)
+     * These values are only available for this specific execution and take the
+     * highest merge priority, overriding values from Environments bound via
+     * environment_refs. A key must be declared in Agent.spec.env to survive the
+     * merge: the agent env map is a declaration whitelist (name + is_secret +
+     * optional), never a value source — undeclared keys are dropped.
+     * Use case: B2B integrations where secrets are injected at runtime per call.
+     * These values are consumed into the ExecutionContext (deleted when the
+     * execution completes) and cleared from the persisted execution.
+     *
+     * &#64;internal
+     * Merge priority (lowest to highest): resolved Environment values — from the
+     * creating schedule's or agent_call task's environment_refs (when present),
+     * then the instance's environment_refs; a later ref wins — then runtime_env
+     * (this field). The merged map is filtered to the keys declared in
+     * Agent.spec.env (no filtering when the agent declares none); a missing
+     * required key only logs a warning — the run is not failed. The merge is
+     * owned by backend/libs/go/envmerge and the agentexecution controller's
+     * executionContextBuilder, and asserted by
+     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -3090,10 +3195,25 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Runtime environment variables and secrets (execution-scoped).
-     * These values are only available for this specific execution.
-     * Use case: B2B integrations where secrets are injected at runtime (e.g., Plant &amp; Cloud).
-     * These values are stored in ExecutionContext and deleted when execution completes.
-     * Merge priority: Agent defaults &lt; Environment &lt; runtime_env (highest)
+     * These values are only available for this specific execution and take the
+     * highest merge priority, overriding values from Environments bound via
+     * environment_refs. A key must be declared in Agent.spec.env to survive the
+     * merge: the agent env map is a declaration whitelist (name + is_secret +
+     * optional), never a value source — undeclared keys are dropped.
+     * Use case: B2B integrations where secrets are injected at runtime per call.
+     * These values are consumed into the ExecutionContext (deleted when the
+     * execution completes) and cleared from the persisted execution.
+     *
+     * &#64;internal
+     * Merge priority (lowest to highest): resolved Environment values — from the
+     * creating schedule's or agent_call task's environment_refs (when present),
+     * then the instance's environment_refs; a later ref wins — then runtime_env
+     * (this field). The merged map is filtered to the keys declared in
+     * Agent.spec.env (no filtering when the agent declares none); a missing
+     * required key only logs a warning — the run is not failed. The merge is
+     * owned by backend/libs/go/envmerge and the agentexecution controller's
+     * executionContextBuilder, and asserted by
+     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -3116,10 +3236,25 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Runtime environment variables and secrets (execution-scoped).
-     * These values are only available for this specific execution.
-     * Use case: B2B integrations where secrets are injected at runtime (e.g., Plant &amp; Cloud).
-     * These values are stored in ExecutionContext and deleted when execution completes.
-     * Merge priority: Agent defaults &lt; Environment &lt; runtime_env (highest)
+     * These values are only available for this specific execution and take the
+     * highest merge priority, overriding values from Environments bound via
+     * environment_refs. A key must be declared in Agent.spec.env to survive the
+     * merge: the agent env map is a declaration whitelist (name + is_secret +
+     * optional), never a value source — undeclared keys are dropped.
+     * Use case: B2B integrations where secrets are injected at runtime per call.
+     * These values are consumed into the ExecutionContext (deleted when the
+     * execution completes) and cleared from the persisted execution.
+     *
+     * &#64;internal
+     * Merge priority (lowest to highest): resolved Environment values — from the
+     * creating schedule's or agent_call task's environment_refs (when present),
+     * then the instance's environment_refs; a later ref wins — then runtime_env
+     * (this field). The merged map is filtered to the keys declared in
+     * Agent.spec.env (no filtering when the agent declares none); a missing
+     * required key only logs a warning — the run is not failed. The merge is
+     * owned by backend/libs/go/envmerge and the agentexecution controller's
+     * executionContextBuilder, and asserted by
+     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -3143,10 +3278,25 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Runtime environment variables and secrets (execution-scoped).
-     * These values are only available for this specific execution.
-     * Use case: B2B integrations where secrets are injected at runtime (e.g., Plant &amp; Cloud).
-     * These values are stored in ExecutionContext and deleted when execution completes.
-     * Merge priority: Agent defaults &lt; Environment &lt; runtime_env (highest)
+     * These values are only available for this specific execution and take the
+     * highest merge priority, overriding values from Environments bound via
+     * environment_refs. A key must be declared in Agent.spec.env to survive the
+     * merge: the agent env map is a declaration whitelist (name + is_secret +
+     * optional), never a value source — undeclared keys are dropped.
+     * Use case: B2B integrations where secrets are injected at runtime per call.
+     * These values are consumed into the ExecutionContext (deleted when the
+     * execution completes) and cleared from the persisted execution.
+     *
+     * &#64;internal
+     * Merge priority (lowest to highest): resolved Environment values — from the
+     * creating schedule's or agent_call task's environment_refs (when present),
+     * then the instance's environment_refs; a later ref wins — then runtime_env
+     * (this field). The merged map is filtered to the keys declared in
+     * Agent.spec.env (no filtering when the agent declares none); a missing
+     * required key only logs a warning — the run is not failed. The merge is
+     * owned by backend/libs/go/envmerge and the agentexecution controller's
+     * executionContextBuilder, and asserted by
+     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -3164,10 +3314,25 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Runtime environment variables and secrets (execution-scoped).
-     * These values are only available for this specific execution.
-     * Use case: B2B integrations where secrets are injected at runtime (e.g., Plant &amp; Cloud).
-     * These values are stored in ExecutionContext and deleted when execution completes.
-     * Merge priority: Agent defaults &lt; Environment &lt; runtime_env (highest)
+     * These values are only available for this specific execution and take the
+     * highest merge priority, overriding values from Environments bound via
+     * environment_refs. A key must be declared in Agent.spec.env to survive the
+     * merge: the agent env map is a declaration whitelist (name + is_secret +
+     * optional), never a value source — undeclared keys are dropped.
+     * Use case: B2B integrations where secrets are injected at runtime per call.
+     * These values are consumed into the ExecutionContext (deleted when the
+     * execution completes) and cleared from the persisted execution.
+     *
+     * &#64;internal
+     * Merge priority (lowest to highest): resolved Environment values — from the
+     * creating schedule's or agent_call task's environment_refs (when present),
+     * then the instance's environment_refs; a later ref wins — then runtime_env
+     * (this field). The merged map is filtered to the keys declared in
+     * Agent.spec.env (no filtering when the agent declares none); a missing
+     * required key only logs a warning — the run is not failed. The merge is
+     * owned by backend/libs/go/envmerge and the agentexecution controller's
+     * executionContextBuilder, and asserted by
+     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -3187,10 +3352,25 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Runtime environment variables and secrets (execution-scoped).
-     * These values are only available for this specific execution.
-     * Use case: B2B integrations where secrets are injected at runtime (e.g., Plant &amp; Cloud).
-     * These values are stored in ExecutionContext and deleted when execution completes.
-     * Merge priority: Agent defaults &lt; Environment &lt; runtime_env (highest)
+     * These values are only available for this specific execution and take the
+     * highest merge priority, overriding values from Environments bound via
+     * environment_refs. A key must be declared in Agent.spec.env to survive the
+     * merge: the agent env map is a declaration whitelist (name + is_secret +
+     * optional), never a value source — undeclared keys are dropped.
+     * Use case: B2B integrations where secrets are injected at runtime per call.
+     * These values are consumed into the ExecutionContext (deleted when the
+     * execution completes) and cleared from the persisted execution.
+     *
+     * &#64;internal
+     * Merge priority (lowest to highest): resolved Environment values — from the
+     * creating schedule's or agent_call task's environment_refs (when present),
+     * then the instance's environment_refs; a later ref wins — then runtime_env
+     * (this field). The merged map is filtered to the keys declared in
+     * Agent.spec.env (no filtering when the agent declares none); a missing
+     * required key only logs a warning — the run is not failed. The merge is
+     * owned by backend/libs/go/envmerge and the agentexecution controller's
+     * executionContextBuilder, and asserted by
+     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>

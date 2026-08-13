@@ -266,25 +266,31 @@ java.lang.String defaultValue);
 
   /**
    * <pre>
-   * Execution-scoped environment variables and secrets that override instance defaults.
+   * Execution-scoped environment variables and secrets, available only to this
+   * execution. Values here take the highest merge priority, overriding values
+   * from Environments bound via the instance's environment_refs. A key must be
+   * declared in Workflow.spec.env to survive the merge: the workflow env map is
+   * a declaration whitelist (name + is_secret + optional), never a value source
+   * — undeclared keys are dropped.
    *
    * &#64;internal
-   * These values are only available for this specific execution and override values
-   * from Environments and Workflow defaults.
+   * Merge priority (lowest to highest):
+   * 1. Environment values (resolved from WorkflowInstance.environment_refs, in
+   * order; a later ref wins on key conflicts)
+   * 2. runtime_env (this field)
    *
-   * Merge Priority (highest to lowest):
-   * 1. runtime_env (this field) - Execution-specific overrides
-   * 2. Environment values (from WorkflowInstance.environment_ids)
-   * 3. Workflow defaults (from Workflow.default_env)
-   *
-   * Value Types:
-   * - value: Plain text value (not encrypted, use for non-sensitive config)
-   * - secret_ref: Reference to a Secret resource (encrypted, use for API keys, passwords)
+   * The merged map is then filtered to the keys declared in Workflow.spec.env
+   * (no filtering when the workflow declares none); a declared-but-required key
+   * that is still missing only logs a warning — the run is not failed. The
+   * merge is owned by backend/libs/go/envmerge and the workflowexecution
+   * controller's createExecutionContextStep, and asserted by
+   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
    *
    * Security:
-   * - runtime_env values are stored in ExecutionContext
+   * - runtime_env values are consumed into the ExecutionContext at create time
+   * and cleared from the persisted execution (never in Temporal history)
    * - ExecutionContext is deleted when execution completes (ephemeral secrets)
-   * - Secret references are resolved at runtime (never exposed in logs)
+   * - Values with is_secret=true are encrypted at rest and redacted in logs
    *
    * Tasks can access these values using: {{env.VARIABLE_NAME}}
    * </pre>
@@ -294,25 +300,31 @@ java.lang.String defaultValue);
   int getRuntimeEnvCount();
   /**
    * <pre>
-   * Execution-scoped environment variables and secrets that override instance defaults.
+   * Execution-scoped environment variables and secrets, available only to this
+   * execution. Values here take the highest merge priority, overriding values
+   * from Environments bound via the instance's environment_refs. A key must be
+   * declared in Workflow.spec.env to survive the merge: the workflow env map is
+   * a declaration whitelist (name + is_secret + optional), never a value source
+   * — undeclared keys are dropped.
    *
    * &#64;internal
-   * These values are only available for this specific execution and override values
-   * from Environments and Workflow defaults.
+   * Merge priority (lowest to highest):
+   * 1. Environment values (resolved from WorkflowInstance.environment_refs, in
+   * order; a later ref wins on key conflicts)
+   * 2. runtime_env (this field)
    *
-   * Merge Priority (highest to lowest):
-   * 1. runtime_env (this field) - Execution-specific overrides
-   * 2. Environment values (from WorkflowInstance.environment_ids)
-   * 3. Workflow defaults (from Workflow.default_env)
-   *
-   * Value Types:
-   * - value: Plain text value (not encrypted, use for non-sensitive config)
-   * - secret_ref: Reference to a Secret resource (encrypted, use for API keys, passwords)
+   * The merged map is then filtered to the keys declared in Workflow.spec.env
+   * (no filtering when the workflow declares none); a declared-but-required key
+   * that is still missing only logs a warning — the run is not failed. The
+   * merge is owned by backend/libs/go/envmerge and the workflowexecution
+   * controller's createExecutionContextStep, and asserted by
+   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
    *
    * Security:
-   * - runtime_env values are stored in ExecutionContext
+   * - runtime_env values are consumed into the ExecutionContext at create time
+   * and cleared from the persisted execution (never in Temporal history)
    * - ExecutionContext is deleted when execution completes (ephemeral secrets)
-   * - Secret references are resolved at runtime (never exposed in logs)
+   * - Values with is_secret=true are encrypted at rest and redacted in logs
    *
    * Tasks can access these values using: {{env.VARIABLE_NAME}}
    * </pre>
@@ -329,25 +341,31 @@ java.lang.String defaultValue);
   getRuntimeEnv();
   /**
    * <pre>
-   * Execution-scoped environment variables and secrets that override instance defaults.
+   * Execution-scoped environment variables and secrets, available only to this
+   * execution. Values here take the highest merge priority, overriding values
+   * from Environments bound via the instance's environment_refs. A key must be
+   * declared in Workflow.spec.env to survive the merge: the workflow env map is
+   * a declaration whitelist (name + is_secret + optional), never a value source
+   * — undeclared keys are dropped.
    *
    * &#64;internal
-   * These values are only available for this specific execution and override values
-   * from Environments and Workflow defaults.
+   * Merge priority (lowest to highest):
+   * 1. Environment values (resolved from WorkflowInstance.environment_refs, in
+   * order; a later ref wins on key conflicts)
+   * 2. runtime_env (this field)
    *
-   * Merge Priority (highest to lowest):
-   * 1. runtime_env (this field) - Execution-specific overrides
-   * 2. Environment values (from WorkflowInstance.environment_ids)
-   * 3. Workflow defaults (from Workflow.default_env)
-   *
-   * Value Types:
-   * - value: Plain text value (not encrypted, use for non-sensitive config)
-   * - secret_ref: Reference to a Secret resource (encrypted, use for API keys, passwords)
+   * The merged map is then filtered to the keys declared in Workflow.spec.env
+   * (no filtering when the workflow declares none); a declared-but-required key
+   * that is still missing only logs a warning — the run is not failed. The
+   * merge is owned by backend/libs/go/envmerge and the workflowexecution
+   * controller's createExecutionContextStep, and asserted by
+   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
    *
    * Security:
-   * - runtime_env values are stored in ExecutionContext
+   * - runtime_env values are consumed into the ExecutionContext at create time
+   * and cleared from the persisted execution (never in Temporal history)
    * - ExecutionContext is deleted when execution completes (ephemeral secrets)
-   * - Secret references are resolved at runtime (never exposed in logs)
+   * - Values with is_secret=true are encrypted at rest and redacted in logs
    *
    * Tasks can access these values using: {{env.VARIABLE_NAME}}
    * </pre>
@@ -358,25 +376,31 @@ java.lang.String defaultValue);
   getRuntimeEnvMap();
   /**
    * <pre>
-   * Execution-scoped environment variables and secrets that override instance defaults.
+   * Execution-scoped environment variables and secrets, available only to this
+   * execution. Values here take the highest merge priority, overriding values
+   * from Environments bound via the instance's environment_refs. A key must be
+   * declared in Workflow.spec.env to survive the merge: the workflow env map is
+   * a declaration whitelist (name + is_secret + optional), never a value source
+   * — undeclared keys are dropped.
    *
    * &#64;internal
-   * These values are only available for this specific execution and override values
-   * from Environments and Workflow defaults.
+   * Merge priority (lowest to highest):
+   * 1. Environment values (resolved from WorkflowInstance.environment_refs, in
+   * order; a later ref wins on key conflicts)
+   * 2. runtime_env (this field)
    *
-   * Merge Priority (highest to lowest):
-   * 1. runtime_env (this field) - Execution-specific overrides
-   * 2. Environment values (from WorkflowInstance.environment_ids)
-   * 3. Workflow defaults (from Workflow.default_env)
-   *
-   * Value Types:
-   * - value: Plain text value (not encrypted, use for non-sensitive config)
-   * - secret_ref: Reference to a Secret resource (encrypted, use for API keys, passwords)
+   * The merged map is then filtered to the keys declared in Workflow.spec.env
+   * (no filtering when the workflow declares none); a declared-but-required key
+   * that is still missing only logs a warning — the run is not failed. The
+   * merge is owned by backend/libs/go/envmerge and the workflowexecution
+   * controller's createExecutionContextStep, and asserted by
+   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
    *
    * Security:
-   * - runtime_env values are stored in ExecutionContext
+   * - runtime_env values are consumed into the ExecutionContext at create time
+   * and cleared from the persisted execution (never in Temporal history)
    * - ExecutionContext is deleted when execution completes (ephemeral secrets)
-   * - Secret references are resolved at runtime (never exposed in logs)
+   * - Values with is_secret=true are encrypted at rest and redacted in logs
    *
    * Tasks can access these values using: {{env.VARIABLE_NAME}}
    * </pre>
@@ -390,25 +414,31 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrDefault(
 ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
   /**
    * <pre>
-   * Execution-scoped environment variables and secrets that override instance defaults.
+   * Execution-scoped environment variables and secrets, available only to this
+   * execution. Values here take the highest merge priority, overriding values
+   * from Environments bound via the instance's environment_refs. A key must be
+   * declared in Workflow.spec.env to survive the merge: the workflow env map is
+   * a declaration whitelist (name + is_secret + optional), never a value source
+   * — undeclared keys are dropped.
    *
    * &#64;internal
-   * These values are only available for this specific execution and override values
-   * from Environments and Workflow defaults.
+   * Merge priority (lowest to highest):
+   * 1. Environment values (resolved from WorkflowInstance.environment_refs, in
+   * order; a later ref wins on key conflicts)
+   * 2. runtime_env (this field)
    *
-   * Merge Priority (highest to lowest):
-   * 1. runtime_env (this field) - Execution-specific overrides
-   * 2. Environment values (from WorkflowInstance.environment_ids)
-   * 3. Workflow defaults (from Workflow.default_env)
-   *
-   * Value Types:
-   * - value: Plain text value (not encrypted, use for non-sensitive config)
-   * - secret_ref: Reference to a Secret resource (encrypted, use for API keys, passwords)
+   * The merged map is then filtered to the keys declared in Workflow.spec.env
+   * (no filtering when the workflow declares none); a declared-but-required key
+   * that is still missing only logs a warning — the run is not failed. The
+   * merge is owned by backend/libs/go/envmerge and the workflowexecution
+   * controller's createExecutionContextStep, and asserted by
+   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
    *
    * Security:
-   * - runtime_env values are stored in ExecutionContext
+   * - runtime_env values are consumed into the ExecutionContext at create time
+   * and cleared from the persisted execution (never in Temporal history)
    * - ExecutionContext is deleted when execution completes (ephemeral secrets)
-   * - Secret references are resolved at runtime (never exposed in logs)
+   * - Values with is_secret=true are encrypted at rest and redacted in logs
    *
    * Tasks can access these values using: {{env.VARIABLE_NAME}}
    * </pre>

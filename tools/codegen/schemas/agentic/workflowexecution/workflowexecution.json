@@ -65,7 +65,7 @@
           "messageType": "ExecutionValue"
         }
       },
-      "description": "Execution-scoped environment variables and secrets that override instance defaults.",
+      "description": "Execution-scoped environment variables and secrets, available only to this\n execution. Values here take the highest merge priority, overriding values\n from Environments bound via the instance's environment_refs. A key must be\n declared in Workflow.spec.env to survive the merge: the workflow env map is\n a declaration whitelist (name + is_secret + optional), never a value source\n — undeclared keys are dropped.",
       "required": false
     },
     {

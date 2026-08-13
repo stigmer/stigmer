@@ -13,7 +13,9 @@ public interface ResolvedExecutionContextOrBuilder extends
   /**
    * <pre>
    * Environment variable keys available to the agent (NOT values for security).
-   * Represents the merged result of: template env_spec + instance environment_refs + runtime_env.
+   * Represents the merged environment values (instance environment_refs &lt;
+   * runtime_env) filtered to the keys declared in Agent.spec.env — the agent
+   * env map is a declaration whitelist, not a value source.
    * Keys are sorted alphabetically for consistent ordering and deterministic comparison.
    * Examples: ["API_KEY", "DATABASE_URL", "LOG_LEVEL"]
    * </pre>
@@ -26,7 +28,9 @@ public interface ResolvedExecutionContextOrBuilder extends
   /**
    * <pre>
    * Environment variable keys available to the agent (NOT values for security).
-   * Represents the merged result of: template env_spec + instance environment_refs + runtime_env.
+   * Represents the merged environment values (instance environment_refs &lt;
+   * runtime_env) filtered to the keys declared in Agent.spec.env — the agent
+   * env map is a declaration whitelist, not a value source.
    * Keys are sorted alphabetically for consistent ordering and deterministic comparison.
    * Examples: ["API_KEY", "DATABASE_URL", "LOG_LEVEL"]
    * </pre>
@@ -38,7 +42,9 @@ public interface ResolvedExecutionContextOrBuilder extends
   /**
    * <pre>
    * Environment variable keys available to the agent (NOT values for security).
-   * Represents the merged result of: template env_spec + instance environment_refs + runtime_env.
+   * Represents the merged environment values (instance environment_refs &lt;
+   * runtime_env) filtered to the keys declared in Agent.spec.env — the agent
+   * env map is a declaration whitelist, not a value source.
    * Keys are sorted alphabetically for consistent ordering and deterministic comparison.
    * Examples: ["API_KEY", "DATABASE_URL", "LOG_LEVEL"]
    * </pre>
@@ -51,7 +57,9 @@ public interface ResolvedExecutionContextOrBuilder extends
   /**
    * <pre>
    * Environment variable keys available to the agent (NOT values for security).
-   * Represents the merged result of: template env_spec + instance environment_refs + runtime_env.
+   * Represents the merged environment values (instance environment_refs &lt;
+   * runtime_env) filtered to the keys declared in Agent.spec.env — the agent
+   * env map is a declaration whitelist, not a value source.
    * Keys are sorted alphabetically for consistent ordering and deterministic comparison.
    * Examples: ["API_KEY", "DATABASE_URL", "LOG_LEVEL"]
    * </pre>

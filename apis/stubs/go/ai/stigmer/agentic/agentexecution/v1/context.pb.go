@@ -39,9 +39,10 @@ const (
 //
 // ## Timing
 //
-// Populated in execute_graphton.py after Steps 3-5 complete (skills, env vars, MCP servers)
-// but before the streaming loop begins. This represents the "snapshot" of resolved state.
-// Once set, this field is immutable for the remainder of the execution.
+// Populated by the agent runner once resolution completes (skills, env vars,
+// MCP servers) but before the streaming loop begins, and reported through the
+// execution status-update path. This represents the "snapshot" of resolved
+// state. Once set, this field is immutable for the remainder of the execution.
 //
 // ## Security Considerations
 //
@@ -51,7 +52,9 @@ const (
 type ResolvedExecutionContext struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Environment variable keys available to the agent (NOT values for security).
-	// Represents the merged result of: template env_spec + instance environment_refs + runtime_env.
+	// Represents the merged environment values (instance environment_refs <
+	// runtime_env) filtered to the keys declared in Agent.spec.env — the agent
+	// env map is a declaration whitelist, not a value source.
 	// Keys are sorted alphabetically for consistent ordering and deterministic comparison.
 	// Examples: ["API_KEY", "DATABASE_URL", "LOG_LEVEL"]
 	EnvironmentKeys []string `protobuf:"bytes,1,rep,name=environment_keys,json=environmentKeys,proto3" json:"environment_keys,omitempty"`

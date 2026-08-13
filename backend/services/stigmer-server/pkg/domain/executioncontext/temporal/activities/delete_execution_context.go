@@ -14,9 +14,10 @@ import (
 // a completed execution (agent or workflow).
 //
 // The ExecutionContext is an ephemeral resource containing the fully-merged
-// environment (agent defaults + environment_refs + runtime_env), including
-// secrets. It must be cleaned up when the execution finishes to prevent
-// sensitive data from persisting beyond the execution lifetime.
+// environment (environment_refs values overridden by runtime_env, filtered to
+// the blueprint's declared env keys), including secrets. It must be cleaned up
+// when the execution finishes to prevent sensitive data from persisting
+// beyond the execution lifetime.
 //
 // This is a local activity (runs in-process on the workflow worker) shared by
 // both AgentExecution and WorkflowExecution workflows.
