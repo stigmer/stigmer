@@ -22,6 +22,7 @@ public final class McpServerInput {
     private final ApiResourceVisibility visibility;
     private final String description;
     private final String iconUrl;
+    private final java.util.List<String> tags;
     private final StdioServerConfigInput stdio;
     private final HttpServerConfigInput http;
     private final java.util.List<String> defaultEnabledTools;
@@ -39,6 +40,7 @@ public final class McpServerInput {
         this.visibility = builder.visibility;
         this.description = builder.description;
         this.iconUrl = builder.iconUrl;
+        this.tags = builder.tags;
         this.stdio = builder.stdio;
         this.http = builder.http;
         this.defaultEnabledTools = builder.defaultEnabledTools;
@@ -56,6 +58,9 @@ public final class McpServerInput {
         }
         if (this.iconUrl != null) {
             spec.setIconUrl(this.iconUrl);
+        }
+        if (this.tags != null && !this.tags.isEmpty()) {
+            spec.addAllTags(this.tags);
         }
         if (this.stdio != null) {
             spec.setStdio(this.stdio.toProto());
@@ -113,6 +118,7 @@ public final class McpServerInput {
         private ApiResourceVisibility visibility;
         private String description;
         private String iconUrl;
+        private java.util.List<String> tags;
         private StdioServerConfigInput stdio;
         private HttpServerConfigInput http;
         private java.util.List<String> defaultEnabledTools;
@@ -131,6 +137,7 @@ public final class McpServerInput {
         public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder iconUrl(String iconUrl) { this.iconUrl = iconUrl; return this; }
+        public Builder tags(java.util.List<String> tags) { this.tags = tags; return this; }
         public Builder stdio(StdioServerConfigInput stdio) { this.stdio = stdio; return this; }
         public Builder http(HttpServerConfigInput http) { this.http = http; return this; }
         public Builder defaultEnabledTools(java.util.List<String> defaultEnabledTools) { this.defaultEnabledTools = defaultEnabledTools; return this; }
