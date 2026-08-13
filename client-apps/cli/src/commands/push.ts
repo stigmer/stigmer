@@ -19,6 +19,7 @@ interface PushFlags {
   gitUrl?: string;
   gitRef?: string;
   subdir?: string;
+  archive?: string;
   ignore?: string[];
   include?: string[];
   gitignore?: boolean; // false when --no-gitignore is passed (commander negation)
@@ -37,6 +38,7 @@ export function registerPush(program: Command): void {
     .option("--git-url <url>", "push from a remote git repository URL")
     .option("--git-ref <ref>", "git reference (tag, branch, or commit SHA) for remote push")
     .option("--subdir <dir>", "subdirectory within the git repository containing the artifact")
+    .option("--archive <file>", "push a pre-packaged ZIP archive as-is (version hash = the file's SHA-256)")
     .option("--ignore <pattern>", "additional pattern to ignore (repeatable)", collect, [])
     .option("--include <pattern>", "pattern to force-include (repeatable)", collect, [])
     .option("--no-gitignore", "don't respect .gitignore patterns")
@@ -72,6 +74,11 @@ async function runPush(type: string, path: string | undefined, options: PushFlag
   const tag = options.tag ?? "latest";
   const message = options.message ?? "";
 
+  if (options.archive !== undefined && options.archive !== "") {
+    await pushArchive(client.stigmer, skill, { org, tag, message, path, options });
+    return;
+  }
+
   if (options.gitUrl !== undefined && options.gitUrl !== "") {
     await pushRemote(client.stigmer, skill, { org, tag, message, ignoreOptions, decisionSink, options });
     return;
@@ -93,6 +100,73 @@ async function runPush(type: string, path: string | undefined, options: PushFlag
 
   const result = await skill.pushSkill(client.stigmer, directory, org, tag, message, ignoreOptions, decisionSink);
   process.stdout.write(renderResult(result, skill));
+}
+
+interface ArchiveContext {
+  org: string;
+  tag: string;
+  message: string;
+  path: string | undefined;
+  options: PushFlags;
+}
+
+/**
+ * Push a pre-packaged skill archive (`--archive`). The bytes are uploaded
+ * as-is, so source-mode and filtering flags have nothing to act on — passing
+ * one alongside --archive is a contradiction we fail loudly rather than
+ * silently ignore.
+ */
+async function pushArchive(
+  client: import("@stigmer/sdk").Stigmer,
+  skill: typeof import("../resources/skill.js"),
+  ctx: ArchiveContext,
+): Promise<void> {
+  const conflicts: string[] = [];
+  if (ctx.path !== undefined && ctx.path !== "") conflicts.push("[path]");
+  if (ctx.options.gitUrl !== undefined && ctx.options.gitUrl !== "") conflicts.push("--git-url");
+  if (ctx.options.gitRef !== undefined && ctx.options.gitRef !== "") conflicts.push("--git-ref");
+  if (ctx.options.subdir !== undefined && ctx.options.subdir !== "") conflicts.push("--subdir");
+  if ((ctx.options.ignore ?? []).length > 0) conflicts.push("--ignore");
+  if ((ctx.options.include ?? []).length > 0) conflicts.push("--include");
+  if (ctx.options.gitignore === false) conflicts.push("--no-gitignore");
+  if (conflicts.length > 0) {
+    throw new UsageError(
+      `--archive pushes a pre-packaged ZIP as-is and cannot be combined with: ${conflicts.join(", ")}\n\n` +
+        "Packaging already happened when the archive was built.",
+    );
+  }
+
+  const archivePath = ctx.options.archive ?? "";
+  if (ctx.options.dryRun === true) {
+    process.stdout.write(renderArchiveDryRun(archivePath, skill.readSkillArchive(archivePath), skill));
+    return;
+  }
+
+  const result = await skill.pushSkillFromArchive(client, archivePath, ctx.org, ctx.tag, ctx.message);
+  process.stdout.write(renderResult(result, skill));
+}
+
+function renderArchiveDryRun(
+  archivePath: string,
+  archive: import("../resources/skill.js").SkillArchive,
+  skill: typeof import("../resources/skill.js"),
+): string {
+  const lines = [
+    "",
+    `Dry run - validating skill archive: ${archivePath}`,
+    "",
+    `Skill name:   ${archive.meta.name}`,
+    `Files:        ${archive.fileCount}`,
+    `Content size: ${skill.formatBytes(archive.totalSize)}`,
+    `Upload size:  ${skill.formatBytes(archive.bytes.length)}`,
+    "",
+    "The archive bytes are uploaded as-is: the registered version hash is the",
+    "SHA-256 of this file, so it matches any checksum you published for it.",
+    "",
+    "Run without --dry-run to push the skill artifact.",
+    "",
+  ];
+  return `${lines.join("\n")}\n`;
 }
 
 interface RemoteContext {

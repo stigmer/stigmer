@@ -36,18 +36,19 @@ stigmer push skill --dry-run
 
 ## Options
 
-| Flag              | Type     | Default  | Description                                                    |
-| ----------------- | -------- | -------- | -------------------------------------------------------------- |
-| `--dry-run`       | `bool`   |          | validate without pushing                                       |
-| `--git-ref`       | `string` |          | git reference (tag, branch, or commit SHA) for remote push     |
-| `--git-url`       | `string` |          | push from a remote git repository URL                          |
-| `--ignore`        | `string` |          | additional pattern to ignore (repeatable)                      |
-| `--include`       | `string` |          | pattern to force-include (repeatable)                          |
-| `--message`, `-m` | `string` |          | version message describing what changed                        |
-| `--no-gitignore`  | `bool`   |          | don't respect .gitignore patterns                              |
-| `--subdir`        | `string` |          | subdirectory within the git repository containing the artifact |
-| `--tag`           | `string` | `latest` | version tag for the artifact                                   |
-| `--verbose`       | `bool`   |          | show detailed output including ignore decisions                |
+| Flag              | Type     | Default  | Description                                                               |
+| ----------------- | -------- | -------- | ------------------------------------------------------------------------- |
+| `--archive`       | `string` |          | push a pre-packaged ZIP archive as-is (version hash = the file's SHA-256) |
+| `--dry-run`       | `bool`   |          | validate without pushing                                                  |
+| `--git-ref`       | `string` |          | git reference (tag, branch, or commit SHA) for remote push                |
+| `--git-url`       | `string` |          | push from a remote git repository URL                                     |
+| `--ignore`        | `string` |          | additional pattern to ignore (repeatable)                                 |
+| `--include`       | `string` |          | pattern to force-include (repeatable)                                     |
+| `--message`, `-m` | `string` |          | version message describing what changed                                   |
+| `--no-gitignore`  | `bool`   |          | don't respect .gitignore patterns                                         |
+| `--subdir`        | `string` |          | subdirectory within the git repository containing the artifact            |
+| `--tag`           | `string` | `latest` | version tag for the artifact                                              |
+| `--verbose`       | `bool`   |          | show detailed output including ignore decisions                           |
 
 ### Source modes
 
@@ -73,6 +74,29 @@ stigmer push skill --git-url https://github.com/acme/skills --subdir api-validat
 # Push a specific version
 stigmer push skill --git-url https://github.com/acme/skills --git-ref v2.0.0
 ```
+
+**Archive push**: Push a ZIP you already built, byte-for-byte. The registered
+version hash is the SHA-256 of the file itself, so it matches any checksum your
+release pipeline published for the artifact. The archive must contain `SKILL.md`
+at its root; packaging flags (`--ignore`, `--include`, `--no-gitignore`) don't
+apply since packaging already happened.
+
+```bash
+# Push a pre-packaged skill archive as-is
+stigmer push skill --archive dist/my-skill.zip --tag v1.2.3 -m "release v1.2.3"
+
+# Validate the archive without pushing
+stigmer push skill --archive dist/my-skill.zip --dry-run
+```
+
+### Version identity
+
+A skill version is identified by the SHA-256 of its uploaded ZIP, and the CLI
+packages directories deterministically (sorted entries, fixed timestamps):
+pushing unchanged content produces the same bytes — and therefore the same
+version — no matter when or where the push runs. A CI job that pushes on every
+merge only registers a new version when the skill's content actually changed;
+unchanged pushes report `Status: unchanged`.
 
 ### File filtering
 
