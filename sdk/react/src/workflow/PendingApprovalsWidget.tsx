@@ -4,6 +4,7 @@ import { memo } from "react";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 
 export interface PendingApprovalsWidgetProps {
@@ -65,7 +66,7 @@ export const PendingApprovalsWidget = memo(function PendingApprovalsWidget({
           No approvals pending
         </p>
       ) : (
-        <ul className="stg:space-y-2" role="list">
+        <ul className={cn(UNSTYLED_LIST, "stg:space-y-2")} role="list">
           {approvals.map((approval) => {
             const requestedAt = approval.requestedAt
               ? timestampDate(approval.requestedAt)

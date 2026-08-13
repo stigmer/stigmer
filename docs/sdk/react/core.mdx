@@ -243,6 +243,18 @@ against flexed sizes under flex-item parents (a `flex-1` content
 column makes it balloon even in a content-sized page), so only
 the host — which knows its layout — can apply it safely.
 
+**Hosts without a global CSS reset.** SDK components carry their
+own per-element resets (lists, fieldsets, form controls) and the
+markdown surfaces declare their margins explicitly, so they render
+correctly with no Tailwind-preflight-style reset in the host page
+(#695). Two deliberate boundaries remain the host's: font-family
+inherits from the host (an embedded widget adopting host typography
+is correct — set `--stgm-font-sans` to override), and the host's
+OWN content inside the provider keeps its user-agent styling — the
+SDK never resets elements it did not render. If your reset-less
+page composes its own `<p>`/`<h*>` content between SDK components,
+their user-agent margins are yours to manage.
+
 Two stable selector hooks are part of the public contract:
 `data-stgm-root` marks the in-tree container (and only it);
 `data-stgm-portal` marks the portal container appended to

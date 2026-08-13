@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 
 /** Props for {@link StepIndicator}. */
 export interface StepIndicatorProps {
@@ -37,7 +38,7 @@ export function StepIndicator({
       aria-label="Wizard progress"
       className={cn("stg:flex stg:flex-col stg:gap-1", className)}
     >
-      <ol className="stg:flex stg:flex-col stg:gap-1" role="list">
+      <ol className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:gap-1")} role="list">
         {steps.map((step, index) => {
           const state = getStepState(index, currentStepIndex);
           const isClickable = state === "completed" && onStepClick != null;

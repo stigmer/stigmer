@@ -4,6 +4,7 @@ import { memo, useCallback, useId, useRef } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { MessageSquare, TriangleAlert, User } from "lucide-react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import {
@@ -193,11 +194,7 @@ export function ConversationListPane({
             {/* One context-only provider arms every row's attention
                 tooltip (the WorkspaceSidebar recents-list precedent). */}
             <TooltipProvider>
-              {/* The SDK's own list reset (the MemberKeysPanel
-                  convention): hosts without a global preflight would
-                  otherwise render inbox rows with UA bullets and
-                  indent. */}
-              <ul className="stg:m-0 stg:list-none stg:space-y-0.5 stg:p-0">
+              <ul className={cn(UNSTYLED_LIST, "stg:space-y-0.5")}>
                 {conversations.map((conversation) => (
                   <ConversationRow
                     key={`${conversation.agentChannelId}:${conversation.conversationKey}`}

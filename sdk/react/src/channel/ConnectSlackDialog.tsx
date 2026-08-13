@@ -3,6 +3,7 @@
 import { useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { getErrorReason, type ResourceRef } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
@@ -527,7 +528,7 @@ function FlowProgress({
 
   return (
     <div className="stg:space-y-3" aria-live="polite">
-      <ul className="stg:space-y-2">
+      <ul className={cn(UNSTYLED_LIST, "stg:space-y-2")}>
         {FLOW_STEPS.map((step, i) => {
           const isActive = i === activeIndex;
           const isDone = activeIndex > i;

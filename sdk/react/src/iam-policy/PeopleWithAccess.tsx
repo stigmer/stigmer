@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { PrincipalAccess } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
 import { useShareFlow, type ShareFlowResource } from "./useShareFlow.js";
 import { GrantAccessForm } from "./GrantAccessForm.js";
@@ -83,7 +84,7 @@ export function PeopleWithAccess({
         )}
 
         {!isLoading && accessList.length > 0 && (
-          <ul className="stg:space-y-1 stg:mt-2" aria-label="People with access">
+          <ul className={cn(UNSTYLED_LIST, "stg:space-y-1 stg:mt-2")} aria-label="People with access">
             {accessList.map((entry) => (
               <AccessEntry
                 key={entry.principal?.id ?? "unknown"}

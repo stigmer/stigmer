@@ -2,6 +2,7 @@
 
 import { useCallback, useId } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_FIELDSET } from "../../internal/element-resets.js";
 import { generateSlug } from "../../internal/slug.js";
 import type { McpServerWizardData, KeyValueEntry } from "./types.js";
 
@@ -179,7 +180,7 @@ export function IdentityTransportStep({
           />
         </div>
 
-        <fieldset className="stg:space-y-1.5">
+        <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-1.5")}>
           <legend className="stg:text-sm stg:font-medium stg:text-foreground">
             Visibility
           </legend>
@@ -204,7 +205,7 @@ export function IdentityTransportStep({
 
       {/* data-scroll-target: guided tours/demos scroll the transport config
           (the step's decision point) into view within the wizard's scroll area. */}
-      <fieldset className="stg:space-y-3" data-scroll-target="mcp-transport">
+      <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-3")} data-scroll-target="mcp-transport">
         <legend className="stg:text-sm stg:font-medium stg:text-foreground">
           Transport <span className="stg:text-destructive">*</span>
         </legend>

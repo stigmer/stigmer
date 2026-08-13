@@ -2,6 +2,7 @@
 
 import { useCallback, useId, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { useCreateApiKey } from "./useCreateApiKey.js";
@@ -122,7 +123,7 @@ export function CreateApiKeyForm({
         </div>
 
         {/* Expiry */}
-        <fieldset className="stg:space-y-1.5">
+        <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-1.5")}>
           <legend className="stg:text-xs stg:font-medium stg:text-foreground">
             Expiration
           </legend>

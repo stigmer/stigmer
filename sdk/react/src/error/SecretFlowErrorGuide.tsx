@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { StigmerError, getUserMessage } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 
 /** Props for {@link SecretFlowErrorGuide}. */
 export interface SecretFlowErrorGuideProps {
@@ -113,7 +114,7 @@ export function SecretFlowErrorGuide({
                 <p className="stg:text-xs stg:text-amber-700 stg:dark:text-amber-300">
                   <span className="stg:font-medium">{server}</span> requires:
                 </p>
-                <ul className="stg:mt-0.5 stg:space-y-0.5">
+                <ul className={cn(UNSTYLED_LIST, "stg:mt-0.5 stg:space-y-0.5")}>
                   {vars.map((v) => (
                     <li
                       key={v}
@@ -131,7 +132,7 @@ export function SecretFlowErrorGuide({
             <p className="stg:text-xs stg:text-amber-700/90 stg:dark:text-amber-300/90">
               You can provide these values in two ways:
             </p>
-            <ul className="stg:mt-1 stg:space-y-0.5 stg:text-xs stg:text-amber-700/80 stg:dark:text-amber-300/80">
+            <ul className={cn(UNSTYLED_LIST, "stg:mt-1 stg:space-y-0.5 stg:text-xs stg:text-amber-700/80 stg:dark:text-amber-300/80")}>
               <li className="stg:flex stg:items-start stg:gap-1.5">
                 <span className="stg:mt-px stg:shrink-0">•</span>
                 <span>

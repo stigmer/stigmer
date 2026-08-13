@@ -1,6 +1,7 @@
 "use client";
 
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import { useSessionWriteBacks } from "../useSessionWriteBacks.js";
 import { WriteBackCard } from "../../execution/WriteBackCard.js";
 
@@ -48,7 +49,7 @@ export function ChangesTab({
     // Dense row groups matching the Artifacts facet's list — gap separates
     // entries only in multi-repo sessions (single-entry lists stay seamless).
     return (
-      <ul role="list" className="stg:flex stg:flex-col stg:gap-3">
+      <ul role="list" className={`${UNSTYLED_LIST} stg:flex stg:flex-col stg:gap-3`}>
         {writeBacks.map((entry) => (
           <li key={entry.writeBack.workspaceEntryName}>
             <WriteBackCard writeBack={entry.writeBack} />

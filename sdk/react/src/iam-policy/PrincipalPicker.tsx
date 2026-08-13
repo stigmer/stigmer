@@ -3,6 +3,7 @@
 import { useCallback, useId, useMemo, useRef, useState } from "react";
 import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
 import { useResourceAccess } from "./useResourceAccess.js";
 import { ProviderBadge, providerLabel } from "./ProviderBadge.js";
@@ -238,6 +239,7 @@ export function PrincipalPicker({
             role="listbox"
             aria-label="Organization members"
             className={cn(
+              UNSTYLED_LIST,
               "stg:absolute stg:z-10 stg:mt-1 stg:max-h-56 stg:w-full stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-popover stg:py-1 stg:shadow-md",
             )}
           >

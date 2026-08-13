@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import type { DashboardFailedRun } from "./types.js";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 
@@ -54,7 +55,7 @@ export const DashboardFailedRuns = memo(function DashboardFailedRuns({
           No recent failures
         </p>
       ) : (
-        <ul className="stg:space-y-1.5" role="list">
+        <ul className={cn(UNSTYLED_LIST, "stg:space-y-1.5")} role="list">
           {failedRuns.map((run) => (
             <li
               key={run.id}

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import {
   ScheduleRunOrigin,
@@ -277,7 +278,7 @@ export function ScheduleRunsCompactList({
     return <EmptyRuns />;
   }
   return (
-    <ul className="stg:divide-y stg:divide-border">
+    <ul className={cn(UNSTYLED_LIST, "stg:divide-y stg:divide-border")}>
       {runs.map((run, i) => (
         <CompactRunRow
           key={runKey(run, i)}

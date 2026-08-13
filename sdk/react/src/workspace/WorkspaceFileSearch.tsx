@@ -10,6 +10,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 import type { WorkspaceFileLister } from "./WorkspaceFileLister.js";
 import type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";
@@ -210,7 +211,7 @@ export function WorkspaceFileSearch({
               id={listboxId}
               role="listbox"
               aria-label="Search results"
-              className="stg:py-0.5"
+              className={cn(UNSTYLED_LIST, "stg:py-0.5")}
             >
               {renderRows({
                 groups,
