@@ -90,9 +90,16 @@ type sdkResourceConfig struct {
 }
 
 // metaFieldNames are fields that always come from ApiResourceMetadata.
-// Spec fields with these names are skipped to avoid struct field conflicts.
+// Spec fields with these names are skipped to avoid struct field conflicts
+// with the metadata-derived input header (Name/Slug/Org/Labels/Visibility).
+//
+// "Tags" is deliberately NOT in this list: no generator emits a
+// metadata-level tags input field, so there is nothing to conflict with —
+// and McpServer has a real spec-level `tags` field (marketplace
+// categorization, set by the seedpack) that the exclusion used to swallow,
+// making it impossible to carry through SDK read-modify-write updates.
 var metaFieldNames = map[string]bool{
-	"Name": true, "Org": true, "Tags": true, "Visibility": true, "Labels": true,
+	"Name": true, "Org": true, "Visibility": true, "Labels": true,
 }
 
 // resourceGenInfo tracks generated type names per resource for client.go/types.go generation.

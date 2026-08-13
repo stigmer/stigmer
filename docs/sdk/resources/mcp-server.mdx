@@ -272,6 +272,7 @@ const mcpServer = await stigmer.mcpServer.apply({
   labels: {},
   description: "...",
   iconUrl: "...",
+  tags: [],
   stdio: {},
   http: {},
   defaultEnabledTools: [],
@@ -292,6 +293,7 @@ mcpServer, err := client.McpServer.Apply(ctx, &stigmer.McpServerInput{
   Labels:              map[string]string{},
   Description:         "...",
   IconUrl:             "...",
+  Tags:                []string{},
   Stdio:               &stigmer.StdioServerConfigInput{},
   Http:                &stigmer.HttpServerConfigInput{},
   DefaultEnabledTools: []string{},
@@ -312,6 +314,7 @@ mcp_server = client.mcp_servers.apply(McpServerInput(
     labels={},
     description="...",
     icon_url="...",
+    tags=[],
     stdio=None,
     http=None,
     default_enabled_tools=[],
@@ -332,6 +335,7 @@ McpServer mcpServer = client.mcpServers().apply(McpServerInput.builder()
     .labels(Map.of())
     .description("...")
     .iconUrl("...")
+    .tags(List.of())
     .stdio(null)
     .http(null)
     .defaultEnabledTools(List.of())
@@ -365,6 +369,7 @@ const mcpServer = await stigmer.mcpServer.create({
   labels: {},
   description: "...",
   iconUrl: "...",
+  tags: [],
   stdio: {},
   http: {},
   defaultEnabledTools: [],
@@ -385,6 +390,7 @@ mcpServer, err := client.McpServer.Create(ctx, &stigmer.McpServerInput{
   Labels:              map[string]string{},
   Description:         "...",
   IconUrl:             "...",
+  Tags:                []string{},
   Stdio:               &stigmer.StdioServerConfigInput{},
   Http:                &stigmer.HttpServerConfigInput{},
   DefaultEnabledTools: []string{},
@@ -405,6 +411,7 @@ mcp_server = client.mcp_servers.create(McpServerInput(
     labels={},
     description="...",
     icon_url="...",
+    tags=[],
     stdio=None,
     http=None,
     default_enabled_tools=[],
@@ -425,6 +432,7 @@ McpServer mcpServer = client.mcpServers().create(McpServerInput.builder()
     .labels(Map.of())
     .description("...")
     .iconUrl("...")
+    .tags(List.of())
     .stdio(null)
     .http(null)
     .defaultEnabledTools(List.of())
@@ -456,6 +464,7 @@ const mcpServer = await stigmer.mcpServer.update({
   labels: {},
   description: "...",
   iconUrl: "...",
+  tags: [],
   stdio: {},
   http: {},
   defaultEnabledTools: [],
@@ -476,6 +485,7 @@ mcpServer, err := client.McpServer.Update(ctx, &stigmer.McpServerInput{
   Labels:              map[string]string{},
   Description:         "...",
   IconUrl:             "...",
+  Tags:                []string{},
   Stdio:               &stigmer.StdioServerConfigInput{},
   Http:                &stigmer.HttpServerConfigInput{},
   DefaultEnabledTools: []string{},
@@ -496,6 +506,7 @@ mcp_server = client.mcp_servers.update(McpServerInput(
     labels={},
     description="...",
     icon_url="...",
+    tags=[],
     stdio=None,
     http=None,
     default_enabled_tools=[],
@@ -516,6 +527,7 @@ McpServer mcpServer = client.mcpServers().update(McpServerInput.builder()
     .labels(Map.of())
     .description("...")
     .iconUrl("...")
+    .tags(List.of())
     .stdio(null)
     .http(null)
     .defaultEnabledTools(List.of())
@@ -935,6 +947,7 @@ Input for creating or updating a MCP Server.
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     description: { type: "string", description: "Human-readable description for marketplace display and documentation." },
     iconUrl: { type: "string", description: "Icon URL for UI display in marketplace and agent configuration screens." },
+    tags: { type: "string[]", description: "Categorization tags for discoverability in the marketplace." },
     stdio: { type: "StdioServerConfigInput", description: "stdio-based server (subprocess with stdin/stdout communication).", typeDescriptionLink: "#stdioserverconfiginput" },
     http: { type: "HttpServerConfigInput", description: "HTTP-based server (HTTP + Server-Sent Events communication).", typeDescriptionLink: "#httpserverconfiginput" },
     defaultEnabledTools: { type: "string[]", description: "Default tools to enable from this MCP server." },

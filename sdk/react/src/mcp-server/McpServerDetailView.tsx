@@ -710,7 +710,7 @@ export function McpServerDetailView({
       </Section>
 
       {(editable || (spec && spec.tags.length > 0)) && (
-        <TagsSection tags={spec?.tags ?? []} editable={editable} isSaving={isUpdating} saveMcpField={saveMcpField} />
+        <TagsSection tags={spec?.tags ?? []} editable={editable} />
       )}
     </ResourceDetailShell>
     {access.dialog}
@@ -1836,34 +1836,13 @@ function EnvSection({
 function TagsSection({
   tags,
   editable,
-  isSaving,
-  saveMcpField,
 }: {
   readonly tags: readonly string[];
   readonly editable?: boolean;
-  readonly isSaving?: boolean;
-  readonly saveMcpField?: <K extends keyof import("@stigmer/sdk").McpServerInput>(
-    field: K,
-    value: import("@stigmer/sdk").McpServerInput[K],
-  ) => Promise<boolean>;
 }) {
-  const tagRows: KeyValueRow[] = useMemo(
-    () => tags.map((t) => ({ key: t, value: "" })),
-    [tags],
-  );
-
-  const handleTagsSave = useCallback(
-    async (rows: KeyValueRow[]) => {
-      if (!saveMcpField) return false;
-      // Tags are stored as string[] on the spec but not directly on McpServerInput.
-      // For now, save them through the full input by modifying the spec.
-      // Tags don't have a direct field on McpServerInput, so we handle this at
-      // a higher level if needed. For now, show read-only in edit mode.
-      return false;
-    },
-    [saveMcpField],
-  );
-
+  // Display-only by design: tags are curated marketplace categorization,
+  // not per-connection state. (McpServerInput does carry `tags`, so an
+  // editing affordance is unblocked if the product ever wants one.)
   return (
     <Section title="Tags" count={tags.length}>
       <div className="stg:flex stg:flex-wrap stg:gap-1.5 stg:p-3">

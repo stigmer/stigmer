@@ -36,6 +36,7 @@ export function mcpServerToInput(server: McpServer): McpServerInput {
       ? spec.pinnedToolApprovals.map((p) => ({
           toolName: p.toolName || undefined,
           message: p.message || undefined,
+          fromDestructiveHint: p.fromDestructiveHint || undefined,
         }))
       : undefined;
 
@@ -48,6 +49,7 @@ export function mcpServerToInput(server: McpServer): McpServerInput {
         tokenLifetimeHint: spec.auth.tokenLifetimeHint || undefined,
         scopeHints: spec.auth.scopeHints.length > 0 ? [...spec.auth.scopeHints] : undefined,
         discoveryUrl: spec.auth.discoveryUrl || undefined,
+        oauthOnly: spec.auth.oauthOnly || undefined,
       }
     : undefined;
 
@@ -60,6 +62,7 @@ export function mcpServerToInput(server: McpServer): McpServerInput {
       : undefined,
     description: spec?.description || undefined,
     iconUrl: spec?.iconUrl || undefined,
+    tags: spec?.tags?.length ? [...spec.tags] : undefined,
     defaultEnabledTools: spec?.defaultEnabledTools?.length
       ? [...spec.defaultEnabledTools]
       : undefined,

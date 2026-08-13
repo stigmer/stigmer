@@ -152,6 +152,7 @@ type McpServerInput struct {
 	Visibility          apiresource.ApiResourceVisibility
 	Description         string
 	IconUrl             string
+	Tags                []string
 	Stdio               *StdioServerConfigInput
 	Http                *HttpServerConfigInput
 	DefaultEnabledTools []string
@@ -209,6 +210,7 @@ func (i *McpServerInput) toProto() (*mcpserverv1.McpServer, error) {
 	}
 	resource.Spec.Description = i.Description
 	resource.Spec.IconUrl = i.IconUrl
+	resource.Spec.Tags = i.Tags
 	if i.Stdio != nil {
 		m := &mcpserverv1.StdioServerConfig{}
 		m.Command = i.Stdio.Command
@@ -293,6 +295,7 @@ func McpServerInputFromProto(p *mcpserverv1.McpServer) *McpServerInput {
 	if s := p.GetSpec(); s != nil {
 		input.Description = s.GetDescription()
 		input.IconUrl = s.GetIconUrl()
+		input.Tags = s.GetTags()
 		input.DefaultEnabledTools = s.GetDefaultEnabledTools()
 		if len(s.GetEnv()) > 0 {
 			input.Env = make(map[string]*EnvVarDeclarationInput, len(s.GetEnv()))

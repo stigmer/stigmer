@@ -158,6 +158,7 @@ class McpServerInput:
     visibility: int = 0
     description: str = ""
     icon_url: str = ""
+    tags: list[str] = field(default_factory=list)
     stdio: StdioServerConfigInput | None = None
     http: HttpServerConfigInput | None = None
     default_enabled_tools: list[str] = field(default_factory=list)
@@ -174,6 +175,8 @@ class McpServerInput:
             repository_url=self.repository_url,
             github_stars=self.github_stars,
         )
+        if self.tags:
+            spec.tags.extend(self.tags)
         if self.stdio is not None:
             spec.stdio.CopyFrom(self.stdio._to_proto())
         if self.http is not None:

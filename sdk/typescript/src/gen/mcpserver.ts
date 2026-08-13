@@ -153,6 +153,7 @@ export interface McpServerInput {
   visibility?: ApiResourceVisibility;
   description?: string;
   iconUrl?: string;
+  tags?: string[];
   stdio?: StdioServerConfigInput;
   http?: HttpServerConfigInput;
   defaultEnabledTools?: string[];
@@ -256,6 +257,7 @@ export function buildMcpServerProto(input: McpServerInput): McpServer {
   const spec = Object.assign(create(McpServerSpecSchema), stripUndefined({
     description: input.description,
     iconUrl: input.iconUrl,
+    tags: input.tags,
     defaultEnabledTools: input.defaultEnabledTools,
     env,
     pinnedToolApprovals,
