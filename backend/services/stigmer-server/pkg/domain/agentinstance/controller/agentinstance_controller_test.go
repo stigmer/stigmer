@@ -2,20 +2,119 @@ package agentinstance
 
 import (
 	"context"
+	"net"
 	"testing"
 
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
+	agentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/test/bufconn"
 )
 
 // contextWithAgentInstanceKind creates a context with the agent instance resource kind injected
 // This simulates what the apiresource interceptor does in production
 func contextWithAgentInstanceKind() context.Context {
 	return context.WithValue(context.Background(), apiresourceinterceptor.ApiResourceKindKey, apiresourcekind.ApiResourceKind_agent_instance)
+}
+
+// contextWithAgentKind creates a context with the agent resource kind injected
+// Used for the in-process Agent service
+func contextWithAgentKind() context.Context {
+	return context.WithValue(context.Background(), apiresourceinterceptor.ApiResourceKindKey, apiresourcekind.ApiResourceKind_agent)
+}
+
+// setupInProcessServers creates both gRPC servers with proper cross-dependencies
+// This handles the circular dependency between Agent and AgentInstance services:
+// - Agent needs AgentInstance client (to create default instances)
+// - AgentInstance needs Agent client (to validate parent agents)
+func setupInProcessServers(t *testing.T, store store.Store) (*agent.Client, *agentinstance.Client, func()) {
+	// STEP 1: Create listeners for both servers
+	agentListener := bufconn.Listen(1024 * 1024)
+	agentInstanceListener := bufconn.Listen(1024 * 1024)
+
+	// STEP 2: Create client connections BEFORE starting servers
+	// This allows us to create clients before controllers need them
+	agentConn, err := grpc.DialContext(context.Background(), "",
+		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+			return agentListener.Dial()
+		}),
+		grpc.WithInsecure(),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create agent client connection: %v", err)
+	}
+
+	agentInstanceConn, err := grpc.DialContext(context.Background(), "",
+		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+			return agentInstanceListener.Dial()
+		}),
+		grpc.WithInsecure(),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create agent instance client connection: %v", err)
+	}
+
+	// STEP 3: Create clients from connections
+	agentClient := agent.NewClient(agentConn)
+	agentInstanceClient := agentinstance.NewClient(agentInstanceConn)
+
+	// STEP 4: Create controllers with proper cross-dependencies
+	agentController := agentcontroller.NewAgentController(store, agentInstanceClient)
+	agentInstanceController := NewAgentInstanceController(store, agentClient)
+
+	// STEP 5: Create and start gRPC servers with controllers
+	agentServer := grpc.NewServer(
+		grpc.UnaryInterceptor(func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+			ctx = contextWithAgentKind()
+			return handler(ctx, req)
+		}),
+	)
+	agentv1.RegisterAgentCommandControllerServer(agentServer, agentController)
+	agentv1.RegisterAgentQueryControllerServer(agentServer, agentController)
+
+	agentInstanceServer := grpc.NewServer(
+		grpc.UnaryInterceptor(func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+			ctx = contextWithAgentInstanceKind()
+			return handler(ctx, req)
+		}),
+	)
+	agentinstancev1.RegisterAgentInstanceCommandControllerServer(agentInstanceServer, agentInstanceController)
+	agentinstancev1.RegisterAgentInstanceQueryControllerServer(agentInstanceServer, agentInstanceController)
+
+	// STEP 6: Start servers in background
+	go func() {
+		if err := agentServer.Serve(agentListener); err != nil {
+			t.Logf("Agent server exited with error: %v", err)
+		}
+	}()
+
+	go func() {
+		if err := agentInstanceServer.Serve(agentInstanceListener); err != nil {
+			t.Logf("AgentInstance server exited with error: %v", err)
+		}
+	}()
+
+	// STEP 7: Return clients and cleanup function
+	cleanup := func() {
+		agentConn.Close()
+		agentInstanceConn.Close()
+		agentServer.Stop()
+		agentInstanceServer.Stop()
+		agentListener.Close()
+		agentInstanceListener.Close()
+	}
+
+	return agentClient, agentInstanceClient, cleanup
 }
 
 // setupTestController creates a test controller with necessary dependencies
@@ -26,7 +125,14 @@ func setupTestController(t *testing.T) (*AgentInstanceController, store.Store) {
 		t.Fatalf("failed to create store: %v", err)
 	}
 
-	controller := NewAgentInstanceController(store)
+	// Setup both gRPC servers with proper cross-dependencies
+	// This handles the circular dependency between Agent and AgentInstance
+	agentClient, _, cleanup := setupInProcessServers(t, store)
+	t.Cleanup(cleanup)
+
+	// Note: The ACTUAL controllers used by the gRPC servers are created inside
+	// setupInProcessServers. This controller is for direct method calls in tests.
+	controller := NewAgentInstanceController(store, agentClient)
 
 	return controller, store
 }
@@ -36,6 +142,8 @@ func TestAgentInstanceController_Create(t *testing.T) {
 	defer store.Close()
 
 	t.Run("successful creation with agent_id", func(t *testing.T) {
+		saveParentAgent(t, store, "test-agent-id", "test-org", "")
+
 		instance := &agentinstancev1.AgentInstance{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "AgentInstance",
@@ -105,6 +213,60 @@ func TestAgentInstanceController_Create(t *testing.T) {
 		}
 	})
 
+	t.Run("error - non-existent agent_id", func(t *testing.T) {
+		// An unknown parent must be rejected instead of persisting a
+		// dangling instance (oss#645) — cloud's LoadParentAgent posture.
+		instance := &agentinstancev1.AgentInstance{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "AgentInstance",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: "Dangling Instance",
+				Org:  "test-org",
+			},
+			Spec: &agentinstancev1.AgentInstanceSpec{
+				AgentId:     "non-existent-agent-id",
+				Description: "Test description",
+			},
+		}
+
+		_, err := controller.Create(contextWithAgentInstanceKind(), instance)
+		if err == nil {
+			t.Fatal("Expected error when agent does not exist")
+		}
+		if st, ok := status.FromError(err); !ok || st.Code() != codes.NotFound {
+			t.Errorf("Expected NotFound for unknown agent_id, got %v", err)
+		}
+	})
+
+	t.Run("cross-org creation is allowed (marketplace case)", func(t *testing.T) {
+		// One agent legitimately has instances in several orgs (an org
+		// publishes an agent, a consumer org instantiates it). Unlike
+		// WorkflowInstance there is deliberately no same-org rule — cloud
+		// governs this with FGA authorization, which OSS excludes.
+		saveParentAgent(t, store, "marketplace-agent-id", "publisher-org", "")
+
+		instance := &agentinstancev1.AgentInstance{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "AgentInstance",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: "Consumer Org Instance Of Published Agent",
+				Org:  "consumer-org",
+			},
+			Spec: &agentinstancev1.AgentInstanceSpec{
+				AgentId:     "marketplace-agent-id",
+				Description: "Cross-org instance description",
+			},
+		}
+
+		created, err := controller.Create(contextWithAgentInstanceKind(), instance)
+		if err != nil {
+			t.Fatalf("Create failed for cross-org instance: %v", err)
+		}
+		if created.Metadata.Org != "consumer-org" {
+			t.Errorf("Expected org 'consumer-org', got '%s'", created.Metadata.Org)
+		}
+	})
+
 	t.Run("missing metadata", func(t *testing.T) {
 		instance := &agentinstancev1.AgentInstance{
 			ApiVersion: "agentic.stigmer.ai/v1",
@@ -145,6 +307,8 @@ func TestAgentInstanceController_Get(t *testing.T) {
 	defer store.Close()
 
 	t.Run("successful get", func(t *testing.T) {
+		saveParentAgent(t, store, "test-agent-id", "test-org", "")
+
 		// Create instance first
 		instance := &agentinstancev1.AgentInstance{
 			ApiVersion: "agentic.stigmer.ai/v1",
@@ -203,6 +367,8 @@ func TestAgentInstanceController_Update(t *testing.T) {
 	defer store.Close()
 
 	t.Run("successful update", func(t *testing.T) {
+		saveParentAgent(t, store, "test-agent-id", "test-org", "")
+
 		// Create instance first
 		instance := &agentinstancev1.AgentInstance{
 			ApiVersion: "agentic.stigmer.ai/v1",
@@ -271,6 +437,8 @@ func TestAgentInstanceController_Delete(t *testing.T) {
 	defer store.Close()
 
 	t.Run("successful deletion", func(t *testing.T) {
+		saveParentAgent(t, store, "test-agent-id", "test-org", "")
+
 		// Create instance first
 		instance := &agentinstancev1.AgentInstance{
 			ApiVersion: "agentic.stigmer.ai/v1",
@@ -322,6 +490,8 @@ func TestAgentInstanceController_Delete(t *testing.T) {
 	})
 
 	t.Run("verify deleted instance returns correct data", func(t *testing.T) {
+		saveParentAgent(t, store, "verify-agent-id", "test-org", "")
+
 		// Create instance with specific data
 		instance := &agentinstancev1.AgentInstance{
 			ApiVersion: "agentic.stigmer.ai/v1",
@@ -365,6 +535,11 @@ func TestAgentInstanceController_Delete(t *testing.T) {
 func TestAgentInstanceController_GetByAgent(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
+
+	// Parents live in home-org; the cross-org instance below is the
+	// marketplace case (create deliberately has no same-org rule).
+	saveParentAgent(t, store, "agt-scoped", "home-org", "")
+	saveParentAgent(t, store, "agt-other", "home-org", "")
 
 	newInstance := func(name, org, agentId string) *agentinstancev1.AgentInstance {
 		return &agentinstancev1.AgentInstance{
@@ -451,6 +626,8 @@ func TestAgentInstanceController_UpdateVisibility(t *testing.T) {
 	defer store.Close()
 
 	t.Run("successful visibility update preserves spec", func(t *testing.T) {
+		saveParentAgent(t, store, "vis-agent-id", "test-org", "")
+
 		// Create a private instance first.
 		instance := &agentinstancev1.AgentInstance{
 			ApiVersion: "agentic.stigmer.ai/v1",
