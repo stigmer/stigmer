@@ -15,6 +15,7 @@ import type {
   Edge,
   OnNodesChange,
   OnEdgesChange,
+  OnNodeDrag,
   OnConnect,
   IsValidConnection,
 } from "@xyflow/react";
@@ -29,6 +30,8 @@ interface WorkflowCanvasInnerProps {
   edges: Edge[];
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
+  onNodeDragStart: OnNodeDrag;
+  onNodeDragStop: OnNodeDrag;
   onNodeClick: (event: React.MouseEvent, node: Node) => void;
   onEdgeClick: (event: React.MouseEvent, edge: Edge) => void;
   onPaneClick: () => void;
@@ -72,6 +75,8 @@ export function WorkflowCanvasInner({
   edges,
   onNodesChange,
   onEdgesChange,
+  onNodeDragStart,
+  onNodeDragStop,
   onNodeClick,
   onEdgeClick,
   onPaneClick,
@@ -113,6 +118,8 @@ export function WorkflowCanvasInner({
       edges={edges}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
+      onNodeDragStart={onNodeDragStart}
+      onNodeDragStop={onNodeDragStop}
       onNodeClick={onNodeClick}
       onEdgeClick={onEdgeClick}
       onPaneClick={onPaneClick}

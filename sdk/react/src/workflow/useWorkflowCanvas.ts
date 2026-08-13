@@ -7,6 +7,7 @@ import type {
   Edge,
   OnNodesChange,
   OnEdgesChange,
+  OnNodeDrag,
   Connection,
   IsValidConnection,
 } from "@xyflow/react";
@@ -90,6 +91,10 @@ export interface UseWorkflowCanvasReturn {
   readonly edges: Edge[];
   readonly onNodesChange: OnNodesChange;
   readonly onEdgesChange: OnEdgesChange;
+  /** Marks the model snapshot an in-flight drag started from. */
+  readonly onNodeDragStart: OnNodeDrag;
+  /** Records a completed node drag into the command history (oss#602). */
+  readonly onNodeDragStop: OnNodeDrag;
   readonly onConnect: (connection: Connection) => void;
   readonly isValidConnection: IsValidConnection;
   readonly onDrop: (event: React.DragEvent) => void;
@@ -250,6 +255,63 @@ export function useWorkflowCanvas(
       onNodesChangeRaw(changes);
     },
     [onNodesChangeRaw],
+  );
+
+  // During a drag, React Flow streams position changes into RF state only
+  // (via onNodesChange above); the model still holds the pre-drag
+  // positions. At drag stop, the completed gesture is recorded as ONE
+  // MoveNodesCommand — the auto-layout precedent — so drags survive
+  // later syncFromModel calls and are undoable (oss#602).
+  //
+  // The ref detects mid-drag model mutations: the keyboard undo listener
+  // and the host's YAML prop are both reachable while the mouse is down,
+  // and either one rebuilds the canvas from a model this drag never saw —
+  // recording the drag on top of that would fight the mutation.
+  const dragStartModelRef = useRef<WorkflowGraphModel | null>(null);
+
+  const onNodeDragStart: OnNodeDrag = useCallback(() => {
+    dragStartModelRef.current = history.currentModel;
+  }, [history.currentModel]);
+
+  const onNodeDragStop: OnNodeDrag = useCallback(
+    (_event, _node, draggedNodes) => {
+      const model = history.currentModel;
+      const startModel = dragStartModelRef.current;
+      dragStartModelRef.current = null;
+      if (!startModel || model !== startModel) return;
+
+      const oldPositions: { id: string; x: number; y: number }[] = [];
+      const newPositions: { id: string; x: number; y: number }[] = [];
+      for (const dragged of draggedNodes) {
+        const modelNode = model.nodes.find((n) => n.id === dragged.id);
+        if (!modelNode) continue;
+        oldPositions.push({
+          id: modelNode.id,
+          x: modelNode.position.x,
+          y: modelNode.position.y,
+        });
+        newPositions.push({
+          id: dragged.id,
+          x: dragged.position.x,
+          y: dragged.position.y,
+        });
+      }
+
+      const hasChanges = newPositions.some((np, i) => {
+        const op = oldPositions[i];
+        return Math.abs(op.x - np.x) > 0.5 || Math.abs(op.y - np.y) > 0.5;
+      });
+      if (!hasChanges) return;
+
+      // Record-only dispatch — deliberately NOT the syncing dispatch().
+      // React Flow already renders the dragged positions, so here the
+      // model catches up to the canvas (everywhere else the model leads
+      // and syncFromModel makes the canvas follow). Rebuilding the node
+      // array would be a visual no-op that wipes React Flow's `selected`
+      // flags at the end of every drag, breaking consecutive group drags.
+      history.dispatch(new MoveNodesCommand(oldPositions, newPositions));
+    },
+    [history.currentModel, history.dispatch],
   );
 
   const onEdgesChange: OnEdgesChange = useCallback(
@@ -1117,6 +1179,8 @@ export function useWorkflowCanvas(
       edges,
       onNodesChange,
       onEdgesChange,
+      onNodeDragStart,
+      onNodeDragStop,
       onConnect,
       isValidConnection,
       onDrop,
@@ -1174,7 +1238,8 @@ export function useWorkflowCanvas(
       getSelectedNodeIds,
     }),
     [
-      nodes, edges, onNodesChange, onEdgesChange, onConnect,
+      nodes, edges, onNodesChange, onEdgesChange, onNodeDragStart,
+      onNodeDragStop, onConnect,
       isValidConnection, onDrop, onDragOver, onNodesDelete, onEdgesDelete,
       selection, selectNode, selectEdge, clearSelection, autoLayout,
       undo, redo, history.canUndo, history.canRedo, isDirty, graph, error,
