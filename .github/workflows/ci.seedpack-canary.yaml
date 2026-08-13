@@ -103,7 +103,7 @@ jobs:
       # TestCanary_NoAuth_Fetch_Connects spawns `uvx mcp-server-fetch`;
       # ubuntu-24.04 runners do not ship uv (actions/runner-images#10533).
       - name: Setup uv
-        uses: astral-sh/setup-uv@v9
+        uses: astral-sh/setup-uv@v10.0.0
 
       - name: Install npm workspace dependencies
         run: npm ci
