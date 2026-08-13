@@ -5,9 +5,11 @@ package mcpserver
 // actually work. oauth_only endpoints reject static tokens, so the refusal
 // must steer those users to BYOA, never to manual token entry.
 //
-// This is the primary UX for the blocked state on OSS: the server does not
-// enrich status.oauth_status, so no client-side notice pre-empts the click —
-// the user sees exactly this message.
+// This refusal is the enforcement boundary for the blocked state. Since
+// stigmer/stigmer#523 the read pipelines also enrich status.oauth_status
+// (see enrich_oauth_status.go), so the SDK's blocked notice normally
+// pre-empts the click — this message remains the backstop for clients that
+// initiate anyway (stale reads, non-SDK callers).
 
 import (
 	"context"
