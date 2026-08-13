@@ -74,6 +74,12 @@ export interface GuestAuthConfig {
    * page. The server validates it against the share's
    * `allowed_origins` at mint (an empty list admits any origin) and
    * refuses with `"permission-denied"` when the origin is not allowed.
+   *
+   * For direct embeds the hosted server also cross-checks this value
+   * against the request's browser-enforced `Origin` header, which is
+   * authoritative: pass your page's own `window.location.origin` (or
+   * leave it unset — the header is used either way). Any other value
+   * is refused at mint.
    */
   readonly embedOrigin?: string;
 

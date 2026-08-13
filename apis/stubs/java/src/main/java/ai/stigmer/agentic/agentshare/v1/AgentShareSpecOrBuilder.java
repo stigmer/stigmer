@@ -176,8 +176,14 @@ public interface AgentShareSpecOrBuilder extends
    * (SharedSessionBlueprintAccess) on every session/execution create — the
    * same gate that re-checks enabled, so revocation latency is identical
    * (immediate). Unframed hosted-page visitors report no origin and are
-   * exempt by construction. Exact origins only — loosening to wildcards
-   * later is a non-breaking change, tightening would not be.
+   * exempt by construction. Since stigmer-cloud#341 both gates cross-check
+   * the self-report against the request's browser-enforced Origin header
+   * (SharingRequestOriginPolicy): for direct SDK embeds the header is the
+   * authoritative origin — a lying or omitted embed_origin no longer
+   * bypasses this list — while requests from Stigmer's own hosted page
+   * keep the widget's browser-authentic self-report as the embedder
+   * signal. Exact origins only — loosening to wildcards later is a
+   * non-breaking change, tightening would not be.
    * </pre>
    *
    * <code>repeated string allowed_origins = 4 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
@@ -201,8 +207,14 @@ public interface AgentShareSpecOrBuilder extends
    * (SharedSessionBlueprintAccess) on every session/execution create — the
    * same gate that re-checks enabled, so revocation latency is identical
    * (immediate). Unframed hosted-page visitors report no origin and are
-   * exempt by construction. Exact origins only — loosening to wildcards
-   * later is a non-breaking change, tightening would not be.
+   * exempt by construction. Since stigmer-cloud#341 both gates cross-check
+   * the self-report against the request's browser-enforced Origin header
+   * (SharingRequestOriginPolicy): for direct SDK embeds the header is the
+   * authoritative origin — a lying or omitted embed_origin no longer
+   * bypasses this list — while requests from Stigmer's own hosted page
+   * keep the widget's browser-authentic self-report as the embedder
+   * signal. Exact origins only — loosening to wildcards later is a
+   * non-breaking change, tightening would not be.
    * </pre>
    *
    * <code>repeated string allowed_origins = 4 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
@@ -225,8 +237,14 @@ public interface AgentShareSpecOrBuilder extends
    * (SharedSessionBlueprintAccess) on every session/execution create — the
    * same gate that re-checks enabled, so revocation latency is identical
    * (immediate). Unframed hosted-page visitors report no origin and are
-   * exempt by construction. Exact origins only — loosening to wildcards
-   * later is a non-breaking change, tightening would not be.
+   * exempt by construction. Since stigmer-cloud#341 both gates cross-check
+   * the self-report against the request's browser-enforced Origin header
+   * (SharingRequestOriginPolicy): for direct SDK embeds the header is the
+   * authoritative origin — a lying or omitted embed_origin no longer
+   * bypasses this list — while requests from Stigmer's own hosted page
+   * keep the widget's browser-authentic self-report as the embedder
+   * signal. Exact origins only — loosening to wildcards later is a
+   * non-breaking change, tightening would not be.
    * </pre>
    *
    * <code>repeated string allowed_origins = 4 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
@@ -250,8 +268,14 @@ public interface AgentShareSpecOrBuilder extends
    * (SharedSessionBlueprintAccess) on every session/execution create — the
    * same gate that re-checks enabled, so revocation latency is identical
    * (immediate). Unframed hosted-page visitors report no origin and are
-   * exempt by construction. Exact origins only — loosening to wildcards
-   * later is a non-breaking change, tightening would not be.
+   * exempt by construction. Since stigmer-cloud#341 both gates cross-check
+   * the self-report against the request's browser-enforced Origin header
+   * (SharingRequestOriginPolicy): for direct SDK embeds the header is the
+   * authoritative origin — a lying or omitted embed_origin no longer
+   * bypasses this list — while requests from Stigmer's own hosted page
+   * keep the widget's browser-authentic self-report as the embedder
+   * signal. Exact origins only — loosening to wildcards later is a
+   * non-breaking change, tightening would not be.
    * </pre>
    *
    * <code>repeated string allowed_origins = 4 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
