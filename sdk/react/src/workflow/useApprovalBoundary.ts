@@ -29,7 +29,7 @@ export interface ApprovalBoundaryCrossing {
  * the decision surface (the panel's Inspect Approval tab) is never hidden
  * while the run is blocked.
  *
- * Same diffing shape as {@link useExecutionAnnouncements} (prev-map ref,
+ * Same diffing shape as `useExecutionAnnouncements` (prev-map ref,
  * diff on each map commit). A task first observed already in
  * `waiting_approval` counts as entered — with rAF-coalesced commits the
  * running→waiting transition can collapse into the task's first appearance.
