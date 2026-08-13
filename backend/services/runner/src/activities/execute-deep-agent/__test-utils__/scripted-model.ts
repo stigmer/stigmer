@@ -50,11 +50,20 @@ export type ScriptSelector = (boundToolNames: string[]) => ScriptStep;
  */
 export class ScriptedModel extends BaseChatModel {
   toolNames: string[] = [];
+  /**
+   * The tool objects from the most recent `bindTools` call, exactly as the
+   * agent bound them (post-middleware). Lets tests assert on the bound
+   * SCHEMAS — e.g. the tool-intent middleware's bind-time shell clone — not
+   * just the names. The array is shared across the clones `bindTools`
+   * returns, so the instance the test holds always sees the latest bind.
+   */
+  readonly boundTools: unknown[];
   private readonly select: ScriptSelector;
 
-  constructor(select: ScriptSelector) {
+  constructor(select: ScriptSelector, boundTools: unknown[] = []) {
     super({});
     this.select = select;
+    this.boundTools = boundTools;
   }
 
   _llmType(): string {
@@ -62,8 +71,10 @@ export class ScriptedModel extends BaseChatModel {
   }
 
   bindTools(tools: unknown[]): this {
-    const next = new ScriptedModel(this.select);
+    const next = new ScriptedModel(this.select, this.boundTools);
     next.toolNames = (tools as Array<{ name?: string }>).map((t) => t?.name ?? "");
+    this.boundTools.length = 0;
+    this.boundTools.push(...tools);
     return next as unknown as this;
   }
 
