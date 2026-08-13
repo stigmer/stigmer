@@ -14,6 +14,7 @@ import {
   useCopyResource,
   useConfirmAction,
   useDeleteResource,
+  useDeleteWorkflowInstance,
   useExportResource,
   useElkLayoutEngine,
   ConfirmDialog,
@@ -22,6 +23,7 @@ import {
   type DetailAction,
   type AdditionalTab,
 } from "@stigmer/react";
+import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
 
@@ -57,11 +59,21 @@ export function WorkflowDetailPageInner({
   const viewerOrg = useActiveOrgSlug();
   // Scoped to the active org so the run dialog's instance picker offers
   // the same rows as the Instances tab (falls back to the workflow's org
-  // when no org context is active).
-  const { instances } = useWorkflowInstances(workflow?.metadata?.id, viewerOrg || org);
+  // when no org context is active). This is a separate fetch from the
+  // Instances tab's own list, so instance create/delete must refetch it
+  // explicitly (alongside the instancesRefreshKey bump) or the picker
+  // drifts stale.
+  const { instances, refetch: refetchInstances } = useWorkflowInstances(
+    workflow?.metadata?.id,
+    viewerOrg || org,
+  );
+  const { deleteInstance } = useDeleteWorkflowInstance();
   const [showRunDialog, setShowRunDialog] = useState(false);
   const [showCreateInstanceDialog, setShowCreateInstanceDialog] = useState(false);
   const [instancesRefreshKey, setInstancesRefreshKey] = useState(0);
+  // Instance targeted by a row-level "Run" — preselects the run dialog's
+  // picker. null means the header Run button (server-resolved default).
+  const [runInstanceId, setRunInstanceId] = useState<string | null>(null);
   const { copyYaml, copyJson, downloadYaml } = useExportResource({
     kind: "Workflow",
     resource: workflow,
@@ -96,10 +108,49 @@ export function WorkflowDetailPageInner({
         ? {
             id: "run",
             label: "Run",
-            onAction: () => setShowRunDialog(true),
+            onAction: () => {
+              setRunInstanceId(null);
+              setShowRunDialog(true);
+            },
           }
         : undefined,
     [workflow],
+  );
+
+  const handleInstanceRun = useCallback((instance: WorkflowInstance) => {
+    setRunInstanceId(instance.metadata?.id ?? null);
+    setShowRunDialog(true);
+  }, []);
+
+  const handleInstanceDelete = useCallback(
+    async (instance: WorkflowInstance) => {
+      const name =
+        instance.metadata?.name || instance.metadata?.slug || "this instance";
+      // Honest copy: instance deletion does NOT cascade to executions on
+      // either edition — they stay visible on the workflow's Executions tab
+      // (spec.workflow_id is denormalized onto every execution at create).
+      const confirmed = await confirm({
+        title: `Delete ${name}?`,
+        description:
+          "This permanently removes the instance and its environment bindings. " +
+          "Executions already run against it are preserved in the workflow's execution history. " +
+          "This action cannot be undone.",
+        confirmLabel: "Delete",
+        variant: "destructive",
+      });
+      if (!confirmed) return;
+      const id = instance.metadata?.id;
+      if (!id) return;
+      try {
+        await deleteInstance(id);
+        toast.success("Instance deleted");
+        setInstancesRefreshKey((k) => k + 1);
+        refetchInstances();
+      } catch {
+        toast.error("Failed to delete instance");
+      }
+    },
+    [confirm, deleteInstance, refetchInstances],
   );
 
   const handleSaveSuccess = useCallback(() => {
@@ -239,6 +290,8 @@ export function WorkflowDetailPageInner({
           onTabChange={setActiveTab}
           onExecutionClick={(id) => navigateToExecution(id)}
           onCreateInstanceClick={() => setShowCreateInstanceDialog(true)}
+          onInstanceRunClick={handleInstanceRun}
+          onInstanceDeleteClick={handleInstanceDelete}
           onOpenInEditor={handleOpenInEditor}
           onViewLatestRun={handleViewLatestRun}
           instancesRefreshKey={instancesRefreshKey}
@@ -257,6 +310,7 @@ export function WorkflowDetailPageInner({
           workflow={workflow}
           instances={instances}
           defaultInstanceId={workflow.status?.defaultInstanceId}
+          initialInstanceId={runInstanceId}
           onSuccess={handleRunSuccess}
           onError={handleRunError}
         />
@@ -270,6 +324,7 @@ export function WorkflowDetailPageInner({
           onCreated={() => {
             toast.success("Instance created");
             setInstancesRefreshKey((k) => k + 1);
+            refetchInstances();
           }}
         />
       )}
