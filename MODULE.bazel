@@ -23,6 +23,24 @@ go_sdk.download(
 # Read Go deps from go.work (includes root + CLI + SDK modules)
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_work = "//:go.work")
+
+# protocompile vendors google/protobuf/compiler/plugin.proto (as embedded
+# data for its std-import feature). Without this override, gazelle sees that
+# .proto and synthesizes a go_proto_library whose importpath —
+# google.golang.org/protobuf/types/pluginpb, from the proto's go_package —
+# duplicates the real protobuf-go package, and any binary linking both (e.g.
+# via jhump/protoreflect) fails with a "multiple copies of package" link
+# error (oss#604). "gazelle:proto disable" stops gazelle generating
+# proto-derived Go rules inside that module; nothing consumes them.
+# This mirrors gazelle's own default override (bazel-gazelle PR #2278,
+# shipped in v0.48.0) — delete it once gazelle here is bumped past 0.47.0.
+go_deps.gazelle_override(
+    directives = [
+        "gazelle:proto disable",
+    ],
+    path = "github.com/bufbuild/protocompile",
+)
+
 use_repo(
     go_deps,
     "build_buf_gen_go_bufbuild_protovalidate_protocolbuffers_go",  # keep: Required for protovalidate protobuf types
