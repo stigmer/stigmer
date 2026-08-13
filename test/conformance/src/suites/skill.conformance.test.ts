@@ -56,10 +56,17 @@ interface PushOptions {
   // addresses the same resource. Only the first push in a sequence defers
   // cleanup; later pushes pass track=false to avoid re-registering the same id.
   track?: boolean;
+  // Push by reference to a staged upload (#675) instead of inline bytes;
+  // pass artifact as an empty Uint8Array (the two sources are exclusive).
+  viaRef?: string;
 }
 
 async function pushSkill(org: string, artifact: Uint8Array, opts: PushOptions = {}) {
-  const skill = await clients.skillCommand.push({ org, artifact, tag: opts.tag, message: opts.message });
+  const skill = await clients.skillCommand.push(
+    opts.viaRef !== undefined
+      ? { org, artifactUploadRef: opts.viaRef, tag: opts.tag, message: opts.message }
+      : { org, artifact, tag: opts.tag, message: opts.message },
+  );
   if (opts.track ?? true) {
     fixtures.defer(() => clients.skillCommand.delete({ value: skill.metadata!.id }));
   }
@@ -650,6 +657,123 @@ describe("Skill conformance — pushFromExecutionArtifact (input validation)", (
         }),
       Code.InvalidArgument,
       "pushFromExecutionArtifact storage_key prefix guard",
+    );
+  });
+});
+
+describe("Skill conformance — artifact transfer lane (#675)", () => {
+  // The lane exists so skills above the 10MB gRPC message cap (up to the
+  // 100MB skill limit) can be pushed and mounted: bytes ride HTTP via
+  // capability URLs, references ride gRPC. Where a target has not
+  // implemented the lane (cloud until its R2 sibling lands), the RPCs must
+  // answer Unimplemented — that exact code is what clients key their
+  // fallback to the unary lane on, so it is pinned as a contract.
+
+  it("push rejects a request with neither inline bytes nor an upload ref", async () => {
+    const { org } = await target.provisionTenancy();
+    await expectGrpcCode(
+      () => clients.skillCommand.push({ org }),
+      Code.InvalidArgument,
+      "push with no artifact source",
+    );
+  });
+
+  it("push rejects a request carrying both artifact sources", async () => {
+    const { org } = await target.provisionTenancy();
+    await expectGrpcCode(
+      () => clients.skillCommand.push({ org, artifact: makeSkillArtifact({ name: uniqueName("skill") }), artifactUploadRef: "sau_x" }),
+      Code.InvalidArgument,
+      "push with both artifact sources",
+    );
+  });
+
+  it("mint → HTTP PUT → push-by-ref round-trips bytes and identity exactly like an inline push", async (ctx) => {
+    if (!target.capabilities.skillArtifactTransferLane) return ctx.skip();
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("skill");
+    const artifact = makeSkillArtifact({ name, description: "transfer-lane skill" });
+
+    const minted = await clients.skillCommand.createArtifactUploadUrl({
+      org,
+      sizeBytes: BigInt(artifact.length),
+    });
+    expect(minted.url, "mint returns an http(s) URL").toMatch(/^https?:\/\//);
+    expect(minted.artifactUploadRef, "mint returns the ref push consumes").not.toBe("");
+
+    const put = await fetch(minted.url, {
+      method: "PUT",
+      body: Buffer.from(artifact),
+      headers: { "content-type": "application/zip" },
+    });
+    expect(put.status, "staging PUT succeeds").toBe(204);
+
+    const pushed = await pushSkill(org, new Uint8Array(0), { viaRef: minted.artifactUploadRef });
+
+    // Identity derives from the artifact exactly as for an inline push, and
+    // content addressing must not care how the bytes traveled: what getArtifact
+    // returns is byte-identical to what was staged.
+    expect(pushed.metadata?.name).toBe(name);
+    expect(pushed.status?.versionHash).toMatch(/^[a-f0-9]{64}$/);
+    const stored = await clients.skillQuery.getArtifact({ artifactStorageKey: pushed.status!.artifactStorageKey });
+    expect(stored.artifact, "stored bytes equal the staged bytes").toEqual(artifact);
+  });
+
+  it("an upload ref is single-use — replaying it after a push is rejected", async (ctx) => {
+    if (!target.capabilities.skillArtifactTransferLane) return ctx.skip();
+    const { org } = await target.provisionTenancy();
+    const artifact = makeSkillArtifact({ name: uniqueName("skill") });
+
+    const minted = await clients.skillCommand.createArtifactUploadUrl({ org, sizeBytes: BigInt(artifact.length) });
+    await fetch(minted.url, { method: "PUT", body: Buffer.from(artifact), headers: { "content-type": "application/zip" } });
+    await pushSkill(org, new Uint8Array(0), { viaRef: minted.artifactUploadRef });
+
+    await expectGrpcCode(
+      () => clients.skillCommand.push({ org, artifactUploadRef: minted.artifactUploadRef }),
+      Code.InvalidArgument,
+      "replayed upload ref",
+    );
+  });
+
+  it("mint refuses an over-limit declaration BEFORE any bytes move, naming the limit", async (ctx) => {
+    if (!target.capabilities.skillArtifactTransferLane) return ctx.skip();
+    const { org } = await target.provisionTenancy();
+    await expectGrpcCode(
+      () => clients.skillCommand.createArtifactUploadUrl({ org, sizeBytes: BigInt(101 * 1024 * 1024) }),
+      Code.InvalidArgument,
+      "over-limit upload declaration",
+    );
+  });
+
+  it("getArtifactDownloadUrl serves the exact stored bytes over HTTP", async (ctx) => {
+    if (!target.capabilities.skillArtifactTransferLane) return ctx.skip();
+    const { org } = await target.provisionTenancy();
+    const artifact = makeSkillArtifact({ name: uniqueName("skill") });
+    const pushed = await pushSkill(org, artifact);
+
+    const minted = await clients.skillQuery.getArtifactDownloadUrl({
+      artifactStorageKey: pushed.status!.artifactStorageKey,
+    });
+    expect(minted.url).toMatch(/^https?:\/\//);
+    expect(minted.sizeBytes, "mint reports the stored size").toBe(BigInt(artifact.length));
+
+    const resp = await fetch(minted.url);
+    expect(resp.status).toBe(200);
+    const got = new Uint8Array(await resp.arrayBuffer());
+    expect(got, "HTTP bytes equal the pushed artifact").toEqual(artifact);
+  });
+
+  it("answers Unimplemented where the lane is absent — the code clients key their unary fallback on", async (ctx) => {
+    if (target.capabilities.skillArtifactTransferLane) return ctx.skip();
+    const { org } = await target.provisionTenancy();
+    await expectGrpcCode(
+      () => clients.skillCommand.createArtifactUploadUrl({ org, sizeBytes: 1024n }),
+      Code.Unimplemented,
+      "mint on a lane-less target",
+    );
+    await expectGrpcCode(
+      () => clients.skillQuery.getArtifactDownloadUrl({ artifactStorageKey: "skills/x.zip" }),
+      Code.Unimplemented,
+      "download-url mint on a lane-less target",
     );
   });
 });

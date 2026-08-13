@@ -46,6 +46,37 @@ public final class SkillCommandControllerGrpc {
     return getPushMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest,
+      ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl> getCreateArtifactUploadUrlMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "createArtifactUploadUrl",
+      requestType = ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest.class,
+      responseType = ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest,
+      ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl> getCreateArtifactUploadUrlMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest, ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl> getCreateArtifactUploadUrlMethod;
+    if ((getCreateArtifactUploadUrlMethod = SkillCommandControllerGrpc.getCreateArtifactUploadUrlMethod) == null) {
+      synchronized (SkillCommandControllerGrpc.class) {
+        if ((getCreateArtifactUploadUrlMethod = SkillCommandControllerGrpc.getCreateArtifactUploadUrlMethod) == null) {
+          SkillCommandControllerGrpc.getCreateArtifactUploadUrlMethod = getCreateArtifactUploadUrlMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest, ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "createArtifactUploadUrl"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl.getDefaultInstance()))
+              .setSchemaDescriptor(new SkillCommandControllerMethodDescriptorSupplier("createArtifactUploadUrl"))
+              .build();
+        }
+      }
+    }
+    return getCreateArtifactUploadUrlMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest,
       ai.stigmer.agentic.skill.v1.Skill> getPushFromExecutionArtifactMethod;
 
@@ -231,6 +262,25 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
+     * Mint a short-lived, single-use upload URL for staging a skill artifact
+     * that exceeds the gRPC message-size cap (10MB). Flow:
+     * 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
+     * 2. HTTP PUT the ZIP bytes to url
+     * 3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,
+     *    validation, and versioning as an inline push
+     * The server refuses over-limit size_bytes here, before any bytes move.
+     * &#64;internal
+     * Authorization matches push() — the URL is a capability to stage bytes,
+     * so minting one requires the same permission as consuming it.
+     * </pre>
+     */
+    default void createArtifactUploadUrl(ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateArtifactUploadUrlMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Push a skill from an execution artifact already in storage.
      * Use this when an agent execution has already produced a skill artifact
      * and you want to publish it without downloading and re-uploading the ZIP.
@@ -336,6 +386,26 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
+     * Mint a short-lived, single-use upload URL for staging a skill artifact
+     * that exceeds the gRPC message-size cap (10MB). Flow:
+     * 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
+     * 2. HTTP PUT the ZIP bytes to url
+     * 3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,
+     *    validation, and versioning as an inline push
+     * The server refuses over-limit size_bytes here, before any bytes move.
+     * &#64;internal
+     * Authorization matches push() — the URL is a capability to stage bytes,
+     * so minting one requires the same permission as consuming it.
+     * </pre>
+     */
+    public void createArtifactUploadUrl(ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCreateArtifactUploadUrlMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Push a skill from an execution artifact already in storage.
      * Use this when an agent execution has already produced a skill artifact
      * and you want to publish it without downloading and re-uploading the ZIP.
@@ -429,6 +499,25 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
+     * Mint a short-lived, single-use upload URL for staging a skill artifact
+     * that exceeds the gRPC message-size cap (10MB). Flow:
+     * 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
+     * 2. HTTP PUT the ZIP bytes to url
+     * 3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,
+     *    validation, and versioning as an inline push
+     * The server refuses over-limit size_bytes here, before any bytes move.
+     * &#64;internal
+     * Authorization matches push() — the URL is a capability to stage bytes,
+     * so minting one requires the same permission as consuming it.
+     * </pre>
+     */
+    public ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl createArtifactUploadUrl(ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getCreateArtifactUploadUrlMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Push a skill from an execution artifact already in storage.
      * Use this when an agent execution has already produced a skill artifact
      * and you want to publish it without downloading and re-uploading the ZIP.
@@ -515,6 +604,25 @@ public final class SkillCommandControllerGrpc {
     public ai.stigmer.agentic.skill.v1.Skill push(ai.stigmer.agentic.skill.v1.PushSkillRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getPushMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Mint a short-lived, single-use upload URL for staging a skill artifact
+     * that exceeds the gRPC message-size cap (10MB). Flow:
+     * 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
+     * 2. HTTP PUT the ZIP bytes to url
+     * 3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,
+     *    validation, and versioning as an inline push
+     * The server refuses over-limit size_bytes here, before any bytes move.
+     * &#64;internal
+     * Authorization matches push() — the URL is a capability to stage bytes,
+     * so minting one requires the same permission as consuming it.
+     * </pre>
+     */
+    public ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl createArtifactUploadUrl(ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCreateArtifactUploadUrlMethod(), getCallOptions(), request);
     }
 
     /**
@@ -610,6 +718,26 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
+     * Mint a short-lived, single-use upload URL for staging a skill artifact
+     * that exceeds the gRPC message-size cap (10MB). Flow:
+     * 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
+     * 2. HTTP PUT the ZIP bytes to url
+     * 3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,
+     *    validation, and versioning as an inline push
+     * The server refuses over-limit size_bytes here, before any bytes move.
+     * &#64;internal
+     * Authorization matches push() — the URL is a capability to stage bytes,
+     * so minting one requires the same permission as consuming it.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl> createArtifactUploadUrl(
+        ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCreateArtifactUploadUrlMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Push a skill from an execution artifact already in storage.
      * Use this when an agent execution has already produced a skill artifact
      * and you want to publish it without downloading and re-uploading the ZIP.
@@ -659,9 +787,10 @@ public final class SkillCommandControllerGrpc {
   }
 
   private static final int METHODID_PUSH = 0;
-  private static final int METHODID_PUSH_FROM_EXECUTION_ARTIFACT = 1;
-  private static final int METHODID_UPDATE_VISIBILITY = 2;
-  private static final int METHODID_DELETE = 3;
+  private static final int METHODID_CREATE_ARTIFACT_UPLOAD_URL = 1;
+  private static final int METHODID_PUSH_FROM_EXECUTION_ARTIFACT = 2;
+  private static final int METHODID_UPDATE_VISIBILITY = 3;
+  private static final int METHODID_DELETE = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -683,6 +812,10 @@ public final class SkillCommandControllerGrpc {
         case METHODID_PUSH:
           serviceImpl.push((ai.stigmer.agentic.skill.v1.PushSkillRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.Skill>) responseObserver);
+          break;
+        case METHODID_CREATE_ARTIFACT_UPLOAD_URL:
+          serviceImpl.createArtifactUploadUrl((ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl>) responseObserver);
           break;
         case METHODID_PUSH_FROM_EXECUTION_ARTIFACT:
           serviceImpl.pushFromExecutionArtifact((ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest) request,
@@ -721,6 +854,13 @@ public final class SkillCommandControllerGrpc {
               ai.stigmer.agentic.skill.v1.PushSkillRequest,
               ai.stigmer.agentic.skill.v1.Skill>(
                 service, METHODID_PUSH)))
+        .addMethod(
+          getCreateArtifactUploadUrlMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest,
+              ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl>(
+                service, METHODID_CREATE_ARTIFACT_UPLOAD_URL)))
         .addMethod(
           getPushFromExecutionArtifactMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -791,6 +931,7 @@ public final class SkillCommandControllerGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new SkillCommandControllerFileDescriptorSupplier())
               .addMethod(getPushMethod())
+              .addMethod(getCreateArtifactUploadUrlMethod())
               .addMethod(getPushFromExecutionArtifactMethod())
               .addMethod(getUpdateVisibilityMethod())
               .addMethod(getDeleteMethod())

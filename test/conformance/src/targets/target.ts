@@ -28,6 +28,14 @@ export interface CapabilityFlags {
   // Unimplemented) — version tags are instead set at apply time via
   // metadata.version.tag and resolved through getByReference.
   versionTagging: boolean;
+  // The skill artifact transfer lane (stigmer#675): createArtifactUploadUrl /
+  // push-by-reference / getArtifactDownloadUrl move artifact bytes over HTTP
+  // so skills above the 10MB gRPC message cap (up to the 100MB skill limit)
+  // can be pushed and mounted. True for local OSS since stigmer#675; false
+  // for cloud until its sibling implements the same contract over R2
+  // pre-signed URLs — where false, the suite pins that the RPCs answer
+  // Unimplemented (the fallback contract clients rely on).
+  skillArtifactTransferLane: boolean;
   // NOTE: there is deliberately no ExecutionContext secret-redaction
   // capability. The EC surface is edition-CONVERGED since stigmer#535 (the
   // stigmer#405 spawned EC-at-rest port): both editions encrypt EC values at

@@ -125,6 +125,18 @@ The `SKILL.md` body should reference these files so the Agent knows they exist.
 The Agent loads them as needed rather than all at once — this keeps the context
 window efficient.
 
+### Size limits
+
+A Skill's packaged artifact (the ZIP the CLI or SDK uploads) can be up to **100
+MB compressed** (500 MB uncompressed) and contain up to **10,000 files**.
+`SKILL.md` itself is capped at 1 MB.
+
+You don't need to think about how the artifact travels: pushes and downloads
+over ~10 MB automatically move through an HTTP transfer lane instead of the gRPC
+message channel, and the CLI and SDKs handle the switch transparently. If your
+server sits behind a proxy or serves remote clients, see the
+`SKILL_TRANSFER_BASE_URL` setting on the server.
+
 ## Attaching Skills to Agents
 
 Skills connect to [Agents](/docs/concepts/agents) through `skill_refs` in the

@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { PushSkillFromExecutionArtifactRequest, PushSkillRequest, SkillId } from "./io_pbjs";
+import { CreateSkillArtifactUploadUrlRequest, PushSkillFromExecutionArtifactRequest, PushSkillRequest, SkillArtifactUploadUrl, SkillId } from "./io_pbjs";
 import { Skill } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
@@ -41,6 +41,29 @@ export const SkillCommandController = {
       name: "push",
       I: PushSkillRequest,
       O: Skill,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Mint a short-lived, single-use upload URL for staging a skill artifact
+     * that exceeds the gRPC message-size cap (10MB). Flow:
+     *
+     * 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
+     * 2. HTTP PUT the ZIP bytes to url
+     * 3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,
+     *    validation, and versioning as an inline push
+     *
+     * The server refuses over-limit size_bytes here, before any bytes move.
+     *
+     * @internal
+     * Authorization matches push() — the URL is a capability to stage bytes,
+     * so minting one requires the same permission as consuming it.
+     *
+     * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.createArtifactUploadUrl
+     */
+    createArtifactUploadUrl: {
+      name: "createArtifactUploadUrl",
+      I: CreateSkillArtifactUploadUrlRequest,
+      O: SkillArtifactUploadUrl,
       kind: MethodKind.Unary,
     },
     /**

@@ -11,7 +11,13 @@ import (
 
 // Security limits for ZIP files
 const (
-	maxZipSize          = 100 * 1024 * 1024 // 100MB compressed
+	// MaxZipSize is the compressed-artifact ceiling. Exported because it is
+	// the platform's skill size limit, not just an extraction guard: the
+	// transfer lane (createArtifactUploadUrl) enforces it before any bytes
+	// move, and clients quote it in fail-loud size errors (#675).
+	MaxZipSize = 100 * 1024 * 1024 // 100MB compressed
+
+	maxZipSize          = MaxZipSize
 	maxUncompressedSize = 500 * 1024 * 1024 // 500MB uncompressed
 	maxCompressionRatio = 100               // Max 100:1 compression ratio
 	maxFiles            = 10000             // Max number of files in ZIP

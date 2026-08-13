@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	SkillCommandController_Push_FullMethodName                      = "/ai.stigmer.agentic.skill.v1.SkillCommandController/push"
+	SkillCommandController_CreateArtifactUploadUrl_FullMethodName   = "/ai.stigmer.agentic.skill.v1.SkillCommandController/createArtifactUploadUrl"
 	SkillCommandController_PushFromExecutionArtifact_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillCommandController/pushFromExecutionArtifact"
 	SkillCommandController_UpdateVisibility_FullMethodName          = "/ai.stigmer.agentic.skill.v1.SkillCommandController/updateVisibility"
 	SkillCommandController_Delete_FullMethodName                    = "/ai.stigmer.agentic.skill.v1.SkillCommandController/delete"
@@ -50,6 +51,20 @@ type SkillCommandControllerClient interface {
 	// 6. Update skill spec and status
 	// 7. Archive the previous version (if updating)
 	Push(ctx context.Context, in *PushSkillRequest, opts ...grpc.CallOption) (*Skill, error)
+	// Mint a short-lived, single-use upload URL for staging a skill artifact
+	// that exceeds the gRPC message-size cap (10MB). Flow:
+	//
+	//  1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
+	//  2. HTTP PUT the ZIP bytes to url
+	//  3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,
+	//     validation, and versioning as an inline push
+	//
+	// The server refuses over-limit size_bytes here, before any bytes move.
+	//
+	// @internal
+	// Authorization matches push() — the URL is a capability to stage bytes,
+	// so minting one requires the same permission as consuming it.
+	CreateArtifactUploadUrl(ctx context.Context, in *CreateSkillArtifactUploadUrlRequest, opts ...grpc.CallOption) (*SkillArtifactUploadUrl, error)
 	// Push a skill from an execution artifact already in storage.
 	// Use this when an agent execution has already produced a skill artifact
 	// and you want to publish it without downloading and re-uploading the ZIP.
@@ -90,6 +105,16 @@ func (c *skillCommandControllerClient) Push(ctx context.Context, in *PushSkillRe
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Skill)
 	err := c.cc.Invoke(ctx, SkillCommandController_Push_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *skillCommandControllerClient) CreateArtifactUploadUrl(ctx context.Context, in *CreateSkillArtifactUploadUrlRequest, opts ...grpc.CallOption) (*SkillArtifactUploadUrl, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SkillArtifactUploadUrl)
+	err := c.cc.Invoke(ctx, SkillCommandController_CreateArtifactUploadUrl_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -150,6 +175,20 @@ type SkillCommandControllerServer interface {
 	// 6. Update skill spec and status
 	// 7. Archive the previous version (if updating)
 	Push(context.Context, *PushSkillRequest) (*Skill, error)
+	// Mint a short-lived, single-use upload URL for staging a skill artifact
+	// that exceeds the gRPC message-size cap (10MB). Flow:
+	//
+	//  1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
+	//  2. HTTP PUT the ZIP bytes to url
+	//  3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,
+	//     validation, and versioning as an inline push
+	//
+	// The server refuses over-limit size_bytes here, before any bytes move.
+	//
+	// @internal
+	// Authorization matches push() — the URL is a capability to stage bytes,
+	// so minting one requires the same permission as consuming it.
+	CreateArtifactUploadUrl(context.Context, *CreateSkillArtifactUploadUrlRequest) (*SkillArtifactUploadUrl, error)
 	// Push a skill from an execution artifact already in storage.
 	// Use this when an agent execution has already produced a skill artifact
 	// and you want to publish it without downloading and re-uploading the ZIP.
@@ -187,6 +226,9 @@ type UnimplementedSkillCommandControllerServer struct{}
 
 func (UnimplementedSkillCommandControllerServer) Push(context.Context, *PushSkillRequest) (*Skill, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Push not implemented")
+}
+func (UnimplementedSkillCommandControllerServer) CreateArtifactUploadUrl(context.Context, *CreateSkillArtifactUploadUrlRequest) (*SkillArtifactUploadUrl, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateArtifactUploadUrl not implemented")
 }
 func (UnimplementedSkillCommandControllerServer) PushFromExecutionArtifact(context.Context, *PushSkillFromExecutionArtifactRequest) (*Skill, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PushFromExecutionArtifact not implemented")
@@ -231,6 +273,24 @@ func _SkillCommandController_Push_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SkillCommandControllerServer).Push(ctx, req.(*PushSkillRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SkillCommandController_CreateArtifactUploadUrl_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateSkillArtifactUploadUrlRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SkillCommandControllerServer).CreateArtifactUploadUrl(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SkillCommandController_CreateArtifactUploadUrl_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SkillCommandControllerServer).CreateArtifactUploadUrl(ctx, req.(*CreateSkillArtifactUploadUrlRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -299,6 +359,10 @@ var SkillCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "push",
 			Handler:    _SkillCommandController_Push_Handler,
+		},
+		{
+			MethodName: "createArtifactUploadUrl",
+			Handler:    _SkillCommandController_CreateArtifactUploadUrl_Handler,
 		},
 		{
 			MethodName: "pushFromExecutionArtifact",

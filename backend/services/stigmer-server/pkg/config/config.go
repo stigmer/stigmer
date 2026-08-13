@@ -48,6 +48,14 @@ type Config struct {
 	// Default: GRPCPort + 1 (7235).
 	ArtifactHTTPPort int
 
+	// SkillTransferBaseURL is the externally-reachable base of the skill
+	// artifact transfer lane (#675) — the URL prefix minted into
+	// createArtifactUploadUrl / getArtifactDownloadUrl responses. The lane
+	// itself is served on the main gRPC port's HTTP handler, so the default
+	// points there; operators serving remote clients override it via
+	// SKILL_TRANSFER_BASE_URL (the ARTIFACT_LOCAL_SERVE_URL idiom).
+	SkillTransferBaseURL string
+
 	// GitHub OAuth configuration for workspace repo selection.
 	// Override via STIGMER_GITHUB_CLIENT_ID / STIGMER_GITHUB_CLIENT_SECRET.
 	// When empty, the GitHub workspace source is disabled in the UI.
@@ -84,6 +92,9 @@ func LoadConfig() (*Config, error) {
 
 		// Artifact HTTP server port (for local artifact downloads)
 		ArtifactHTTPPort: artifactHTTPPort,
+
+		// Skill artifact transfer lane (served on the main port's HTTP handler)
+		SkillTransferBaseURL: getEnvString("SKILL_TRANSFER_BASE_URL", fmt.Sprintf("http://localhost:%d", grpcPort)),
 
 		// GitHub OAuth configuration
 		GitHubOAuthClientID:     getEnvString("STIGMER_GITHUB_CLIENT_ID", defaultGitHubOAuthClientID),

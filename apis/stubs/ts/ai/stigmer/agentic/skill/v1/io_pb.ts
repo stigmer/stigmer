@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/skill/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_skill_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MSIgCgdTa2lsbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEixgEKEFB1c2hTa2lsbFJlcXVlc3QSEwoDb3JnGAEgASgJQga6SAPIAQESGAoIYXJ0aWZhY3QYAiABKAxCBrpIA8gBARIoCgN0YWcYAyABKAlCG7pIGHIWMhReJHxeW2EtekEtWjAtOS5fLV0rJBJCCg5naXRfcHJvdmVuYW5jZRgEIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5HaXRQcm92ZW5hbmNlEg8KB21lc3NhZ2UYBiABKAlKBAgFEAYiowEKJVB1c2hTa2lsbEZyb21FeGVjdXRpb25BcnRpZmFjdFJlcXVlc3QSEwoDb3JnGAEgASgJQga6SAPIAQESHQoMZXhlY3V0aW9uX2lkGAIgASgJQge6SARyAhABEhwKC3N0b3JhZ2Vfa2V5GAMgASgJQge6SARyAhABEigKA3RhZxgEIAEoCUIbukgYchYyFF4kfF5bYS16QS1aMC05Ll8tXSskIjoKEkdldEFydGlmYWN0UmVxdWVzdBIkChRhcnRpZmFjdF9zdG9yYWdlX2tleRgBIAEoCUIGukgDyAEBIicKE0dldEFydGlmYWN0UmVzcG9uc2USEAoIYXJ0aWZhY3QYASABKAwiagoWTGlzdFNraWxsVmVyc2lvbnNJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIUCgRzbHVnGAIgASgJQga6SAPIAQESEgoKcGFnZV90b2tlbhgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUitgIKEVNraWxsVmVyc2lvbkVudHJ5EhQKDHZlcnNpb25faGFzaBgBIAEoCRItCglwdXNoZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEkgKCXB1c2hlZF9ieRgDIAEoCzI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0QWN0b3ISCwoDdGFnGAQgASgJEhIKCmlzX2N1cnJlbnQYBSABKAgSQgoOZ2l0X3Byb3ZlbmFuY2UYBiABKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuR2l0UHJvdmVuYW5jZRIPCgdtZXNzYWdlGAcgASgJEhwKFGFydGlmYWN0X3N0b3JhZ2Vfa2V5GAggASgJIosBChlMaXN0U2tpbGxWZXJzaW9uc1Jlc3BvbnNlEkAKCHZlcnNpb25zGAEgAygLMi4uYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsVmVyc2lvbkVudHJ5EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCRITCgt0b3RhbF9jb3VudBgDIAEoBWIGcHJvdG8z", [file_ai_stigmer_agentic_skill_v1_status, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MSIgCgdTa2lsbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEilAMKEFB1c2hTa2lsbFJlcXVlc3QSEwoDb3JnGAEgASgJQga6SAPIAQESEAoIYXJ0aWZhY3QYAiABKAwSKAoDdGFnGAMgASgJQhu6SBhyFjIUXiR8XlthLXpBLVowLTkuXy1dKyQSQgoOZ2l0X3Byb3ZlbmFuY2UYBCABKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuR2l0UHJvdmVuYW5jZRIPCgdtZXNzYWdlGAYgASgJEhsKE2FydGlmYWN0X3VwbG9hZF9yZWYYByABKAk6tgG6SLIBGq8BCiJwdXNoX3NraWxsX3JlcXVlc3QuYXJ0aWZhY3Rfc291cmNlEklleGFjdGx5IG9uZSBvZiBhcnRpZmFjdCAoaW5saW5lIGJ5dGVzKSBvciBhcnRpZmFjdF91cGxvYWRfcmVmIG11c3QgYmUgc2V0Gj4odGhpcy5hcnRpZmFjdC5zaXplKCkgPiAwKSAhPSAodGhpcy5hcnRpZmFjdF91cGxvYWRfcmVmICE9ICcnKUoECAUQBiJXCiNDcmVhdGVTa2lsbEFydGlmYWN0VXBsb2FkVXJsUmVxdWVzdBITCgNvcmcYASABKAlCBrpIA8gBARIbCgpzaXplX2J5dGVzGAIgASgDQge6SAQiAiAAIlcKFlNraWxsQXJ0aWZhY3RVcGxvYWRVcmwSCwoDdXJsGAEgASgJEhsKE2FydGlmYWN0X3VwbG9hZF9yZWYYAiABKAkSEwoLdHRsX3NlY29uZHMYAyABKAUiUAoYU2tpbGxBcnRpZmFjdERvd25sb2FkVXJsEgsKA3VybBgBIAEoCRITCgt0dGxfc2Vjb25kcxgCIAEoBRISCgpzaXplX2J5dGVzGAMgASgDIqMBCiVQdXNoU2tpbGxGcm9tRXhlY3V0aW9uQXJ0aWZhY3RSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEh0KDGV4ZWN1dGlvbl9pZBgCIAEoCUIHukgEcgIQARIcCgtzdG9yYWdlX2tleRgDIAEoCUIHukgEcgIQARIoCgN0YWcYBCABKAlCG7pIGHIWMhReJHxeW2EtekEtWjAtOS5fLV0rJCI6ChJHZXRBcnRpZmFjdFJlcXVlc3QSJAoUYXJ0aWZhY3Rfc3RvcmFnZV9rZXkYASABKAlCBrpIA8gBASInChNHZXRBcnRpZmFjdFJlc3BvbnNlEhAKCGFydGlmYWN0GAEgASgMImoKFkxpc3RTa2lsbFZlcnNpb25zSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESFAoEc2x1ZxgCIAEoCUIGukgDyAEBEhIKCnBhZ2VfdG9rZW4YAyABKAkSEQoJcGFnZV9zaXplGAQgASgFIrYCChFTa2lsbFZlcnNpb25FbnRyeRIUCgx2ZXJzaW9uX2hhc2gYASABKAkSLQoJcHVzaGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBJICglwdXNoZWRfYnkYAyABKAsyNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdEFjdG9yEgsKA3RhZxgEIAEoCRISCgppc19jdXJyZW50GAUgASgIEkIKDmdpdF9wcm92ZW5hbmNlGAYgASgLMiouYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLkdpdFByb3ZlbmFuY2USDwoHbWVzc2FnZRgHIAEoCRIcChRhcnRpZmFjdF9zdG9yYWdlX2tleRgIIAEoCSKLAQoZTGlzdFNraWxsVmVyc2lvbnNSZXNwb25zZRJACgh2ZXJzaW9ucxgBIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbFZlcnNpb25FbnRyeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkSEwoLdG90YWxfY291bnQYAyABKAViBnByb3RvMw", [file_ai_stigmer_agentic_skill_v1_status, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * SkillId wraps a skill identifier.
@@ -43,6 +43,14 @@ export const SkillIdSchema: GenMessage<SkillId> = /*@__PURE__*/
  * Creates a skill if it does not exist, or creates a new version of an
  * existing skill.
  *
+ * The artifact travels one of two ways (exactly one must be set):
+ * - artifact: inline ZIP bytes. Simple one-round-trip push, but bounded by
+ *   the gRPC transport's message-size cap (10MB) — well below the 100MB
+ *   skill limit.
+ * - artifact_upload_ref: reference to bytes already staged via
+ *   createArtifactUploadUrl() + HTTP PUT. Required for artifacts above the
+ *   transport cap; works for any size up to the skill limit.
+ *
  * @internal
  * The skill name and description are extracted by the backend from the SKILL.md
  * YAML frontmatter within the artifact. The CLI validates the format but does not
@@ -66,6 +74,8 @@ export type PushSkillRequest = Message<"ai.stigmer.agentic.skill.v1.PushSkillReq
    *   - description: Human-readable description (optional but recommended)
    * - Tool executables/scripts (optional)
    * - Additional files referenced in SKILL.md
+   *
+   * Mutually exclusive with artifact_upload_ref (see the message comment).
    *
    * @generated from field: bytes artifact = 2;
    */
@@ -104,6 +114,17 @@ export type PushSkillRequest = Message<"ai.stigmer.agentic.skill.v1.PushSkillReq
    * @generated from field: string message = 6;
    */
   message: string;
+
+  /**
+   * Reference to an artifact staged via createArtifactUploadUrl().
+   * Set this instead of artifact when the ZIP exceeds the gRPC message-size
+   * cap. The reference is single-use and expires with its upload URL.
+   *
+   * Mutually exclusive with artifact (see the message comment).
+   *
+   * @generated from field: string artifact_upload_ref = 7;
+   */
+  artifactUploadRef: string;
 };
 
 /**
@@ -112,6 +133,137 @@ export type PushSkillRequest = Message<"ai.stigmer.agentic.skill.v1.PushSkillReq
  */
 export const PushSkillRequestSchema: GenMessage<PushSkillRequest> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_skill_v1_io, 1);
+
+/**
+ * CreateSkillArtifactUploadUrlRequest asks the server to mint a staging
+ * slot for a skill artifact that is too large to travel inline in
+ * PushSkillRequest.artifact (the gRPC message cap is 10MB; skills may be
+ * up to 100MB).
+ *
+ * @generated from message ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest
+ */
+export type CreateSkillArtifactUploadUrlRequest = Message<"ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest"> & {
+  /**
+   * Organization that will own the skill (authorization scope — the caller
+   * needs the same can_create_skill permission that push requires).
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * Declared size of the artifact ZIP in bytes.
+   *
+   * Lets the server refuse over-limit artifacts BEFORE any bytes move —
+   * the fail-loud-at-authoring contract from #675. The upload endpoint
+   * additionally enforces the declared size against the actual bytes.
+   *
+   * @generated from field: int64 size_bytes = 2;
+   */
+  sizeBytes: bigint;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest.
+ * Use `create(CreateSkillArtifactUploadUrlRequestSchema)` to create a new message.
+ */
+export const CreateSkillArtifactUploadUrlRequestSchema: GenMessage<CreateSkillArtifactUploadUrlRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 2);
+
+/**
+ * SkillArtifactUploadUrl is a short-lived, single-use capability for
+ * staging a skill artifact over HTTP.
+ *
+ * @internal
+ * The upload strategy differs by edition (mirrors ArtifactDownloadUrl):
+ * - Cloud: pre-signed R2/S3 PUT URL with short TTL
+ * - OSS: capability URL on the server's own HTTP lane (the unguessable
+ *   token in the path is the credential, exactly like a presigned URL)
+ *
+ * This pattern avoids streaming large blobs through the gRPC control plane.
+ *
+ * @generated from message ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl
+ */
+export type SkillArtifactUploadUrl = Message<"ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl"> & {
+  /**
+   * URL to PUT the artifact ZIP bytes to. Content-Type: application/zip.
+   *
+   * @generated from field: string url = 1;
+   */
+  url: string;
+
+  /**
+   * Opaque reference to pass as PushSkillRequest.artifact_upload_ref after
+   * the PUT succeeds. Single-use; invalid after the push consumes it or
+   * the TTL lapses.
+   *
+   * @generated from field: string artifact_upload_ref = 2;
+   */
+  artifactUploadRef: string;
+
+  /**
+   * Time-to-live for the upload URL in seconds. After this duration the
+   * URL and the reference expire and a new one must be requested.
+   *
+   * @generated from field: int32 ttl_seconds = 3;
+   */
+  ttlSeconds: number;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl.
+ * Use `create(SkillArtifactUploadUrlSchema)` to create a new message.
+ */
+export const SkillArtifactUploadUrlSchema: GenMessage<SkillArtifactUploadUrl> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 3);
+
+/**
+ * SkillArtifactDownloadUrl provides a URL for downloading a skill
+ * artifact over HTTP.
+ *
+ * @internal
+ * The download strategy differs by edition (mirrors ArtifactDownloadUrl):
+ * - Cloud: pre-signed R2/S3 URL with short TTL (e.g., 15 minutes)
+ * - OSS: capability URL on the server's own HTTP lane; the content-hash
+ *   storage key in the path is the capability (the same trust model as
+ *   getArtifact, which deliberately skips authorization)
+ *
+ * This pattern avoids streaming large blobs through the gRPC control
+ * plane — the transport cap stays at 10MB while skills may be 100MB.
+ *
+ * @generated from message ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl
+ */
+export type SkillArtifactDownloadUrl = Message<"ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl"> & {
+  /**
+   * URL to download the artifact ZIP via HTTP GET.
+   *
+   * @generated from field: string url = 1;
+   */
+  url: string;
+
+  /**
+   * Time-to-live for the download URL in seconds.
+   * Typically 900 (15 minutes) for Cloud, 0 (no expiry) for OSS.
+   *
+   * @generated from field: int32 ttl_seconds = 2;
+   */
+  ttlSeconds: number;
+
+  /**
+   * Size of the artifact ZIP in bytes. Lets clients pre-allocate or
+   * sanity-check before fetching.
+   *
+   * @generated from field: int64 size_bytes = 3;
+   */
+  sizeBytes: bigint;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl.
+ * Use `create(SkillArtifactDownloadUrlSchema)` to create a new message.
+ */
+export const SkillArtifactDownloadUrlSchema: GenMessage<SkillArtifactDownloadUrl> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 4);
 
 /**
  * PushSkillFromExecutionArtifactRequest publishes a skill from an execution
@@ -176,7 +328,7 @@ export type PushSkillFromExecutionArtifactRequest = Message<"ai.stigmer.agentic.
  * Use `create(PushSkillFromExecutionArtifactRequestSchema)` to create a new message.
  */
 export const PushSkillFromExecutionArtifactRequestSchema: GenMessage<PushSkillFromExecutionArtifactRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 2);
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 5);
 
 /**
  * GetArtifactRequest requests download of a skill artifact by storage key.
@@ -200,7 +352,7 @@ export type GetArtifactRequest = Message<"ai.stigmer.agentic.skill.v1.GetArtifac
  * Use `create(GetArtifactRequestSchema)` to create a new message.
  */
 export const GetArtifactRequestSchema: GenMessage<GetArtifactRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 3);
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 6);
 
 /**
  * GetArtifactResponse contains the skill artifact content.
@@ -222,7 +374,7 @@ export type GetArtifactResponse = Message<"ai.stigmer.agentic.skill.v1.GetArtifa
  * Use `create(GetArtifactResponseSchema)` to create a new message.
  */
 export const GetArtifactResponseSchema: GenMessage<GetArtifactResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 4);
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 7);
 
 /**
  * ListSkillVersionsInput requests the version history for a skill.
@@ -270,7 +422,7 @@ export type ListSkillVersionsInput = Message<"ai.stigmer.agentic.skill.v1.ListSk
  * Use `create(ListSkillVersionsInputSchema)` to create a new message.
  */
 export const ListSkillVersionsInputSchema: GenMessage<ListSkillVersionsInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 5);
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 8);
 
 /**
  * SkillVersionEntry represents a single historical version of a skill.
@@ -346,7 +498,7 @@ export type SkillVersionEntry = Message<"ai.stigmer.agentic.skill.v1.SkillVersio
  * Use `create(SkillVersionEntrySchema)` to create a new message.
  */
 export const SkillVersionEntrySchema: GenMessage<SkillVersionEntry> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 6);
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 9);
 
 /**
  * ListSkillVersionsResponse contains a page of skill version history.
@@ -381,5 +533,5 @@ export type ListSkillVersionsResponse = Message<"ai.stigmer.agentic.skill.v1.Lis
  * Use `create(ListSkillVersionsResponseSchema)` to create a new message.
  */
 export const ListSkillVersionsResponseSchema: GenMessage<ListSkillVersionsResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 7);
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 10);
 

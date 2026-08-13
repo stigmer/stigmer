@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetArtifactRequest, GetArtifactResponse, ListSkillVersionsInput, ListSkillVersionsResponse, SkillId } from "./io_pbjs";
+import { GetArtifactRequest, GetArtifactResponse, ListSkillVersionsInput, ListSkillVersionsResponse, SkillArtifactDownloadUrl, SkillId } from "./io_pbjs";
 import { Skill } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -62,6 +62,27 @@ export const SkillQueryController = {
       name: "getArtifact",
       I: GetArtifactRequest,
       O: GetArtifactResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Mint a URL for downloading a skill artifact over HTTP.
+     *
+     * Preferred over getArtifact for anything that might exceed the gRPC
+     * message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
+     * limit is deliverable. Callers should try this first and fall back to
+     * getArtifact against servers that predate it (UNIMPLEMENTED).
+     *
+     * @internal
+     * Authorization is skipped for the same reason as getArtifact: the
+     * content-hash storage key acts as the capability token. Cloud returns a
+     * pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
+     *
+     * @generated from rpc ai.stigmer.agentic.skill.v1.SkillQueryController.getArtifactDownloadUrl
+     */
+    getArtifactDownloadUrl: {
+      name: "getArtifactDownloadUrl",
+      I: GetArtifactRequest,
+      O: SkillArtifactDownloadUrl,
       kind: MethodKind.Unary,
     },
     /**
