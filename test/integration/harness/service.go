@@ -396,10 +396,12 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		fmt.Sprintf("AGENT_EXECUTION_ARTIFACT_R2_ENDPOINT=%s", r2Endpoint(cfg)),
 		fmt.Sprintf("AGENT_EXECUTION_ARTIFACT_R2_ACCESS_KEY_ID=%s", r2AccessKey(cfg)),
 		fmt.Sprintf("AGENT_EXECUTION_ARTIFACT_R2_SECRET_ACCESS_KEY=%s", r2SecretKey(cfg)),
-		// MinIO can't resolve a bucket subdomain, so the presigner must use
+		// MinIO can't resolve a bucket subdomain, so the presigners must use
 		// path-style addressing or presigned uploads fail with SignatureDoesNotMatch.
-		// Production R2 keeps the virtual-host default (flag is false there).
+		// Production R2 keeps the virtual-host default (flags are false there).
 		"AGENT_EXECUTION_ARTIFACT_R2_PATH_STYLE_ACCESS_ENABLED=true",
+		// Same for the skill artifact presigner (the transfer lane, stigmer-cloud#438).
+		"SKILL_ARTIFACT_R2_PATH_STYLE_ACCESS_ENABLED=true",
 
 		// Claim check R2 config
 		"CLAIMCHECK_R2_BUCKET=test-claimcheck-bucket",

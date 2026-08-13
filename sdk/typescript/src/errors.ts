@@ -11,6 +11,7 @@ export {
   isUnauthenticated,
   isPermissionDenied,
   isRetryable,
+  isUnimplemented,
 } from "./gen/errors.js";
 
 /**

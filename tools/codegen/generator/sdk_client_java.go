@@ -422,6 +422,14 @@ func generateJavaErrors(outputDir string) error {
 
     public boolean isRetryable() { return code == ErrorCode.INTERNAL || code == ErrorCode.UNAVAILABLE; }
 
+    /**
+     * The server does not implement the called RPC — the code clients key
+     * capability fallbacks on (e.g. the skill artifact transfer lane's
+     * unary fallback, stigmer#675/#701). Checks the raw grpc code:
+     * UNIMPLEMENTED deliberately has no ErrorCode mapping.
+     */
+    public boolean isUnimplemented() { return grpcCode == Status.Code.UNIMPLEMENTED; }
+
     public static StigmerException wrap(StatusRuntimeException e) {
         ErrorCode code = ErrorCode.fromGrpcCode(e.getStatus().getCode());
         String msg = e.getStatus().getDescription();
@@ -1074,7 +1082,14 @@ func generateJavaClientClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, h
 	var body bytes.Buffer
 
 	fmt.Fprintf(&body, "/** Provides operations on %s resources. */\n", schema.Resource)
-	fmt.Fprintf(&body, "public final class %s {\n", cfg.clientName)
+	if _, extensible := javaExtensibleClients[cfg.clientName]; extensible {
+		// Non-final with a protected constructor: the handwritten layer
+		// subclasses this client (see javaExtensibleClients) and the
+		// GeneratedClient factory hook swaps the subclass in.
+		fmt.Fprintf(&body, "public class %s {\n", cfg.clientName)
+	} else {
+		fmt.Fprintf(&body, "public final class %s {\n", cfg.clientName)
+	}
 
 	for _, svc := range schema.Services {
 		stubType := svc.Name + "Grpc." + svc.Name + "BlockingStub"
@@ -1089,7 +1104,11 @@ func generateJavaClientClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, h
 	}
 	body.WriteString("\n")
 
-	fmt.Fprintf(&body, "    %s(Channel channel) {\n", cfg.clientName)
+	ctorVisibility := ""
+	if _, extensible := javaExtensibleClients[cfg.clientName]; extensible {
+		ctorVisibility = "protected "
+	}
+	fmt.Fprintf(&body, "    %s%s(Channel channel) {\n", ctorVisibility, cfg.clientName)
 	for _, svc := range schema.Services {
 		fmt.Fprintf(&body, "        this.%s = %sGrpc.newBlockingStub(channel);\n", svc.Role, svc.Name)
 		if svcNeedsBidi[svc.Role] {
@@ -1870,6 +1889,17 @@ func emitJavaNestedToProtoField(buf *bytes.Buffer, f *FieldSchema, typeMap map[s
 // Aggregate Client (GeneratedClient.java)
 // =========================================================================
 
+// javaExtensibleClients names the resource clients whose exported behavior is
+// customized by a handwritten subclass in the sdk root package. For these the
+// generator emits (a) a non-final class with a protected constructor and
+// (b) a protected factory method on GeneratedClient that the handwritten
+// StigmerClient overrides to return the subclass — Java's equivalent of the
+// Go SDK's handwritten SkillClient shadow and the TS Stigmer field shadow
+// (the handwritten-wraps-generated layering, never the reverse).
+var javaExtensibleClients = map[string]string{
+	"SkillClient": "push routing over the artifact transfer lane (stigmer#675/#701)",
+}
+
 func generateJavaClientFile(outputDir string, resources []resourceGenInfo) error {
 	imports := newJavaImportSet()
 	imports.add("io.grpc.Channel")
@@ -1887,9 +1917,30 @@ func generateJavaClientFile(outputDir string, resources []resourceGenInfo) error
 	body.WriteString("    public GeneratedClient(Channel channel) {\n")
 	for _, r := range resources {
 		fieldName := tsClientFieldName(r.resource)
-		fmt.Fprintf(&body, "        this.%s = new %s(channel);\n", fieldName, r.clientName)
+		if _, extensible := javaExtensibleClients[r.clientName]; extensible {
+			fmt.Fprintf(&body, "        this.%s = new%s(channel);\n", fieldName, r.clientName)
+		} else {
+			fmt.Fprintf(&body, "        this.%s = new %s(channel);\n", fieldName, r.clientName)
+		}
 	}
 	body.WriteString("    }\n")
+
+	for _, r := range resources {
+		reason, extensible := javaExtensibleClients[r.clientName]
+		if !extensible {
+			continue
+		}
+		body.WriteString("\n")
+		fmt.Fprintf(&body, "    /**\n")
+		fmt.Fprintf(&body, "     * Factory hook for the %s field (%s).\n", tsClientFieldName(r.resource), reason)
+		fmt.Fprintf(&body, "     * Overrides run during this class's constructor, so they must build\n")
+		fmt.Fprintf(&body, "     * the client from the channel argument alone — never from subclass\n")
+		fmt.Fprintf(&body, "     * instance state, which is not initialized yet.\n")
+		fmt.Fprintf(&body, "     */\n")
+		fmt.Fprintf(&body, "    protected %s new%s(Channel channel) {\n", r.clientName, r.clientName)
+		fmt.Fprintf(&body, "        return new %s(channel);\n", r.clientName)
+		fmt.Fprintf(&body, "    }\n")
+	}
 	body.WriteString("}\n")
 
 	return writeJavaFile(outputDir, "GeneratedClient.java", javaGenPackage, imports, body.Bytes())

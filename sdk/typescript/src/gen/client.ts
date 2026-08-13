@@ -136,4 +136,4 @@ export { type WorkflowExecutionInput } from "./workflowexecution.js";
 export { WorkflowInstanceClient } from "./workflowinstance.js";
 export { type WorkflowInstanceInput } from "./workflowinstance.js";
 export { type ListParams, type ListResult, type DeleteResourceInput, type ResourceRef, type EnvSpecInput, type EnvVarInput, type Page } from "./types.js";
-export { StigmerError, type ErrorCode, isNotFound, isUnauthenticated, isPermissionDenied, isRetryable } from "./errors.js";
+export { StigmerError, type ErrorCode, isNotFound, isUnauthenticated, isPermissionDenied, isRetryable, isUnimplemented } from "./errors.js";

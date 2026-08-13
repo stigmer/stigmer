@@ -6,6 +6,7 @@ import { GitHubClient } from "./github.js";
 import { ManifestClient } from "./manifest/index.js";
 import { PlatformClient } from "./platform.js";
 import { SearchClient } from "./search.js";
+import { RoutedSkillClient } from "./skill.js";
 import { createStigmerTransport } from "./transport.js";
 import {
   validateConfig,
@@ -82,6 +83,12 @@ export class Stigmer extends GeneratedClient {
   readonly search: SearchClient;
   readonly github: GitHubClient;
   readonly manifest: ManifestClient;
+  /**
+   * Skill operations, with `push` routed by artifact size over the transfer
+   * lane (stigmer#675) — shadows the inherited generated client so
+   * `stigmer.skill.push` simply works for any valid skill size.
+   */
+  override readonly skill: RoutedSkillClient;
 
   private readonly _tokenProvider: TokenProvider;
 
@@ -105,6 +112,7 @@ export class Stigmer extends GeneratedClient {
     this.search = new SearchClient(transport);
     this.github = new GitHubClient(transport);
     this.manifest = new ManifestClient(transport);
+    this.skill = new RoutedSkillClient(transport, config.fetch);
 
     if (this.defaultExecutionTarget != null) {
       this._applyExecutionTargetDefaults();

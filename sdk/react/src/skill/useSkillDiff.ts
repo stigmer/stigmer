@@ -21,7 +21,13 @@ export interface UseSkillDiffReturn {
   readonly error: Error | null;
 }
 
-/** Maximum artifact size (10 MB) to prevent excessive memory usage. */
+/**
+ * Maximum COMBINED unpacked text of both artifacts (10 MB) — a browser
+ * memory guard on holding and diffing two extracted file trees, NOT a
+ * transport limit. The transfer lane (stigmer#675) removed the download
+ * cap, so arbitrarily large valid skills can be *fetched*; what stays
+ * bounded is what this hook is willing to diff in tab memory.
+ */
 const MAX_ARTIFACT_BYTES = 10 * 1024 * 1024;
 
 // ---------------------------------------------------------------------------

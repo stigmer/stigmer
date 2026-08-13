@@ -74,3 +74,13 @@ export function isPermissionDenied(err: unknown): boolean {
 export function isRetryable(err: unknown): boolean {
   return err instanceof StigmerError && (err.code === "internal" || err.code === "unavailable");
 }
+
+/**
+ * The server does not implement the called RPC — the code clients key
+ * capability fallbacks on (e.g. the skill artifact transfer lane's unary
+ * fallback, stigmer#675/#701). Checks the raw connect code: Unimplemented
+ * deliberately has no ErrorCode mapping, so it surfaces as "unknown".
+ */
+export function isUnimplemented(err: unknown): boolean {
+  return err instanceof StigmerError && err.connectCode === Code.Unimplemented;
+}
