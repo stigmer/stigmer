@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useId, useRef, type ReactNode } from "react";
+import { useCallback, useId, type ReactNode } from "react";
 import { ExternalLink, LayoutTemplate, X } from "lucide-react";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../internal/DialogShell.js";
 import { getUserMessage } from "@stigmer/sdk";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import type { ChannelTemplate } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
@@ -89,40 +90,20 @@ export function ChannelTemplatesDialog({
   onEditYaml,
   modal = true,
 }: ChannelTemplatesDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
   const handleClose = useCallback(() => {
-    dialogRef.current?.close();
     onOpenChange(false);
   }, [onOpenChange]);
 
-  // Sync native dialog open state (matches the SDK dialog convention).
-  const prevOpenRef = useRef(false);
-  if (modal && open !== prevOpenRef.current) {
-    prevOpenRef.current = open;
-    if (open) {
-      requestAnimationFrame(() => {
-        if (dialogRef.current && !dialogRef.current.open) {
-          dialogRef.current.showModal();
-        }
-      });
-    } else if (dialogRef.current?.open) {
-      dialogRef.current.close();
-    }
-  }
-
   return (
-    <dialog
-      ref={dialogRef}
-      open={modal ? undefined : open}
-      onClose={handleClose}
-      className={cn(
-        // Wider than the conversations dialog on purpose: template
-        // bodies are the content, and a narrow column shreds them.
-        "stg:w-full stg:max-w-2xl stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
-        modal ? "stg:fixed stg:inset-0 stg:m-auto stg:backdrop:bg-backdrop" : "stg:relative",
-      )}
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      modal={modal}
+      // Wider than the conversations dialog on purpose: template
+      // bodies are the content, and a narrow column shreds them.
+      width="2xl"
       aria-labelledby={titleId}
     >
       {/* Body mounts only while open so each opening fetches fresh —
@@ -135,7 +116,7 @@ export function ChannelTemplatesDialog({
           onClose={handleClose}
         />
       )}
-    </dialog>
+    </DialogShell>
   );
 }
 
