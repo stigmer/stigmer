@@ -93,8 +93,24 @@ jobs:
           path: test/e2e/playwright-report/
           retention-days: 30
 
-      - name: Notify on failure
-        if: failure() && github.event_name != 'workflow_dispatch'
-        run: |
-          echo "::error::E2E smoke tests failed against ${{ inputs.base_url || 'https://app.stigmer.ai' }}"
-          echo "This indicates a deployment regression. Check the Playwright report for details."
+  # Post-deploy (workflow_run) and cron runs are both unattended — a red run
+  # notifies nobody unless it announces itself (#477). Manual dispatches are
+  # attended, so they never notify. Shared file-or-comment mechanics live in
+  # notify-failure.yaml; a skipped e2e-smoke (triggering deploy failed) does
+  # not count as failure() and files nothing.
+  notify-failure:
+    name: File E2E Failure Issue
+    needs: e2e-smoke
+    if: failure() && github.event_name != 'workflow_dispatch'
+    permissions:
+      issues: write
+    uses: ./.github/workflows/notify-failure.yaml
+    with:
+      label: ci-e2e-failure
+      title: "ci.e2e: E2E smoke against the deployed console is failing"
+      body-context: >-
+        This lane runs Playwright smoke tests against the deployed web console
+        (after each deploy and on a weekday cron). A failure here usually means
+        a deployment regression: a broken API contract, a missing environment
+        variable, or a build issue that only manifests in production — start
+        with the uploaded Playwright report.

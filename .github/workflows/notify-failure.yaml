@@ -1,0 +1,80 @@
+# =============================================================================
+# Notify on Unattended Failure (reusable)
+# =============================================================================
+# Unattended runs (cron schedules, post-deploy workflow_run chains) block no PR,
+# so a red run notifies nobody — ci.integration-canary once sat red for 30+
+# days before anyone noticed (#323). PR #476 shipped the fix shape for that one
+# lane; this reusable workflow is the single definition every unattended lane
+# consumes (#477), so the copies cannot drift.
+#
+# Semantics — one open issue per breakage window, per lane:
+#   - `label` is the dedupe key. If an open issue carries it, the failure adds
+#     a comment there; otherwise a fresh issue is filed with `title` and
+#     `body-context`. Closing the issue arms the next window.
+#   - Each lane owns a distinct label so breakage windows stay per-lane even
+#     when one root cause reds several lanes at once.
+#
+# Caller contract (see ci.integration-canary.yaml for the canonical example):
+#   notify-failure:
+#     needs: [<every job in the workflow>]
+#     if: failure() && github.event_name == 'schedule'   # unattended only —
+#     permissions:                                       # dispatches are watched
+#       issues: write
+#     uses: ./.github/workflows/notify-failure.yaml
+#     with: { label: ..., title: ..., body-context: ... }
+#
+# The job runs in the caller's run context: github.workflow / run_id resolve to
+# the failing run, and GITHUB_TOKEN flows from the caller job's permissions.
+# Inputs are freeform strings, so they reach the script via env — never inline
+# ${{ }} interpolation inside run (script-injection hardening).
+# =============================================================================
+
+name: notify-failure
+
+on:
+  workflow_call:
+    inputs:
+      label:
+        description: >-
+          Per-lane issue label (must already exist in the repo — gh issue
+          create fails on unknown labels). The dedupe key: one open issue with
+          this label tracks the current breakage window.
+        required: true
+        type: string
+      title:
+        description: Title for a newly filed failure issue.
+        required: true
+        type: string
+      body-context:
+        description: >-
+          Lane-specific paragraph for the issue body explaining what a failure
+          here usually means and where to start looking.
+        required: true
+        type: string
+
+jobs:
+  notify:
+    name: File Failure Issue
+    runs-on: ubuntu-latest
+    steps:
+      - name: File or update the failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          WORKFLOW: ${{ github.workflow }}
+          LABEL: ${{ inputs.label }}
+          TITLE: ${{ inputs.title }}
+          BODY_CONTEXT: ${{ inputs.body-context }}
+        run: |
+          existing=$(gh issue list --repo "$REPO" \
+            --label "$LABEL" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$REPO" \
+              --body "$WORKFLOW failed again: $RUN_URL"
+          else
+            gh issue create --repo "$REPO" \
+              --label "$LABEL" \
+              --title "$TITLE" \
+              --body "$(printf 'An unattended run of %s failed: %s\n\n%s\n\nThis issue is filed automatically by the notify-failure job; later failures add comments here instead of new issues. Close it once the lane is green again.' "$WORKFLOW" "$RUN_URL" "$BODY_CONTEXT")"
+          fi

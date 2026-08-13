@@ -1,9 +1,15 @@
-name: CI / Seedpack Canary Tests
+# Live-tests marketplace MCP servers: transport reachability plus canary calls
+# with real vendor credentials fetched from Planton at run time.
+
+name: ci.seedpack-canary
 
 on:
   schedule:
     - cron: '0 2 * * 1-5'  # Weekdays at 2am UTC
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   seedpack-canary:
@@ -36,3 +42,21 @@ jobs:
         run: make test-seedpack-canary
         env:
           STIGMER_MCP_CANARY: "true"
+
+  # Scheduled runs are unattended; manual dispatches are watched (#477).
+  # Shared file-or-comment mechanics live in notify-failure.yaml.
+  notify-failure:
+    name: File Seedpack Canary Failure Issue
+    needs: seedpack-canary
+    if: failure() && github.event_name == 'schedule'
+    permissions:
+      issues: write
+    uses: ./.github/workflows/notify-failure.yaml
+    with:
+      label: ci-seedpack-canary-failure
+      title: "ci.seedpack-canary: seedpack MCP canary is failing"
+      body-context: >-
+        This lane live-tests marketplace MCP servers (transport reachability
+        plus canary calls with real credentials fetched from Planton). A
+        failure here usually means a vendor API change, an expired canary
+        credential, or a seedpack manifest that no longer matches the vendor.

@@ -160,3 +160,22 @@ jobs:
           name: Stress Test Report
           path: test/integration/.test-output-stress/junit.xml
           reporter: java-junit
+
+  # Scheduled runs are unattended and this lane blocks no merges, so a red
+  # week is invisible without an announcement (#477). Shared file-or-comment
+  # mechanics live in notify-failure.yaml.
+  notify-failure:
+    name: File Stress Failure Issue
+    needs: [build-service-jar, stress-tests]
+    if: failure() && github.event_name == 'schedule'
+    permissions:
+      issues: write
+    uses: ./.github/workflows/notify-failure.yaml
+    with:
+      label: ci-integration-stress-failure
+      title: "ci.integration-stress: weekly stress/flake-detection run is failing"
+      body-context: >-
+        This lane is advisory flake detection: it reruns the offline
+        integration suite three times with quarantine skip disabled. A failure
+        means timing-dependent flakes (or still-flaky quarantined tests) were
+        found — it never blocks merges, but it should not sit red unexamined.

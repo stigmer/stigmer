@@ -317,3 +317,22 @@ jobs:
           name: ${{ matrix.report }}
           path: ${{ matrix.output }}/junit.xml
           reporter: java-junit
+
+  # PR and push failures are attended surfaces; the weekly cron is not (#477).
+  # failure() is true if any matrix leg failed. Shared file-or-comment
+  # mechanics live in notify-failure.yaml.
+  notify-failure:
+    name: File Offline-Suite Failure Issue
+    needs: [build-service-jar, integration-tests]
+    if: failure() && github.event_name == 'schedule'
+    permissions:
+      issues: write
+    uses: ./.github/workflows/notify-failure.yaml
+    with:
+      label: ci-integration-offline-failure
+      title: "ci.integration-offline: weekly offline integration run is failing"
+      body-context: >-
+        The weekly cron runs all five offline suites against stigmer-cloud@main.
+        PR and push runs of this lane are attended, so this issue tracks cron
+        failures only — often cloud-side drift landing between OSS merges (see
+        the cross-repo coupling contract in the workflow header).
