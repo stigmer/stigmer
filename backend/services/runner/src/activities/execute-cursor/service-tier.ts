@@ -20,19 +20,17 @@
  * rides the same proxy fetch-interceptor as every other SDK call, so it
  * works identically in proxy and direct modes.
  *
- * UNSPECIFIED resolves to STANDARD here and ONLY here — every upstream
- * layer preserves the caller's raw enum so "user chose standard" stays
- * distinguishable from "platform default" all the way to the ledger.
+ * The harness-neutral halves — the tier enum semantics, and the single
+ * UNSPECIFIED→STANDARD resolution point — live in
+ * `shared/service-tier.ts` since #361 extended tiers to the native
+ * harness; this module keeps only the Cursor-catalog translation.
  */
 
 import { Cursor } from "@cursor/sdk";
 import type { ModelListItem, ModelParameterValue } from "@cursor/sdk";
 import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
-/**
- * The effective tier after platform-default resolution: never UNSPECIFIED.
- */
-export type EffectiveServiceTier = ServiceTier.STANDARD | ServiceTier.FAST;
+import { serviceTierLabel, type EffectiveServiceTier } from "../../shared/service-tier.js";
 
 /**
  * Catalog ids that mean "Cursor picks the model" (Auto). Auto's single
@@ -70,28 +68,6 @@ let inflightCatalogFetch: { readonly apiKey: string; readonly promise: Promise<r
 export function resetCatalogCacheForTests(): void {
   catalogCache = null;
   inflightCatalogFetch = null;
-}
-
-/**
- * Resolve the configured tier to its effective value. The single place in
- * the platform where UNSPECIFIED becomes STANDARD.
- */
-export function resolveEffectiveServiceTier(
-  configured: ServiceTier | undefined,
-): EffectiveServiceTier {
-  return configured === ServiceTier.FAST ? ServiceTier.FAST : ServiceTier.STANDARD;
-}
-
-/** Human-readable tier label for logs and error messages. */
-export function serviceTierLabel(tier: ServiceTier): string {
-  switch (tier) {
-    case ServiceTier.FAST:
-      return "fast";
-    case ServiceTier.STANDARD:
-      return "standard";
-    default:
-      return "unspecified";
-  }
 }
 
 async function listCatalogModels(apiKey: string): Promise<readonly ModelListItem[]> {

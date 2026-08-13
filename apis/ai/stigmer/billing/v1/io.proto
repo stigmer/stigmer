@@ -128,6 +128,17 @@ message RecordLlmCallUsageInput {
   // proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
   // caller.
   ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17;
+
+  // Provider-reported service tier that actually served this call
+  // (native harness, stigmer/stigmer#361): Anthropic reports it in the
+  // response usage ("standard" | "priority" | "batch"), OpenAI at the
+  // response top level ("default" | "flex" | "priority"). Reported
+  // verbatim by the proxy from the SSE stream — the wire truth billing
+  // reconciles against the execution's REQUESTED tier (the
+  // service_tier.mismatch counter). Empty when the provider reported
+  // none, and for cursor-harness calls, whose billed variant arrives
+  // through the cursor path's pricing-variant resolution instead.
+  string served_service_tier = 18;
 }
 
 // RecordLlmCallUsageResponse returns the cost result so callers can

@@ -19,10 +19,10 @@ vi.mock("@cursor/sdk", () => ({
 }));
 
 import {
-  resolveEffectiveServiceTier,
   resolveServiceTierParams,
   resetCatalogCacheForTests,
 } from "../service-tier.js";
+import { resolveEffectiveServiceTier } from "../../../shared/service-tier.js";
 
 const CATALOG = [
   {

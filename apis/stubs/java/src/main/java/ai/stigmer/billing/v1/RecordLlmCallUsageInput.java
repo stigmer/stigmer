@@ -48,6 +48,7 @@ private static final long serialVersionUID = 0L;
     cursorAccountId_ = "";
     cursorKeyId_ = "";
     cursorKeySource_ = 0;
+    servedServiceTier_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -716,6 +717,69 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.agentic.agentexecution.v1.CursorKeySource.UNRECOGNIZED : result;
   }
 
+  public static final int SERVED_SERVICE_TIER_FIELD_NUMBER = 18;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object servedServiceTier_ = "";
+  /**
+   * <pre>
+   * Provider-reported service tier that actually served this call
+   * (native harness, stigmer/stigmer#361): Anthropic reports it in the
+   * response usage ("standard" | "priority" | "batch"), OpenAI at the
+   * response top level ("default" | "flex" | "priority"). Reported
+   * verbatim by the proxy from the SSE stream — the wire truth billing
+   * reconciles against the execution's REQUESTED tier (the
+   * service_tier.mismatch counter). Empty when the provider reported
+   * none, and for cursor-harness calls, whose billed variant arrives
+   * through the cursor path's pricing-variant resolution instead.
+   * </pre>
+   *
+   * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>
+   * @return The servedServiceTier.
+   */
+  @java.lang.Override
+  public java.lang.String getServedServiceTier() {
+    java.lang.Object ref = servedServiceTier_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      servedServiceTier_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Provider-reported service tier that actually served this call
+   * (native harness, stigmer/stigmer#361): Anthropic reports it in the
+   * response usage ("standard" | "priority" | "batch"), OpenAI at the
+   * response top level ("default" | "flex" | "priority"). Reported
+   * verbatim by the proxy from the SSE stream — the wire truth billing
+   * reconciles against the execution's REQUESTED tier (the
+   * service_tier.mismatch counter). Empty when the provider reported
+   * none, and for cursor-harness calls, whose billed variant arrives
+   * through the cursor path's pricing-variant resolution instead.
+   * </pre>
+   *
+   * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>
+   * @return The bytes for servedServiceTier.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getServedServiceTierBytes() {
+    java.lang.Object ref = servedServiceTier_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      servedServiceTier_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -780,6 +844,9 @@ private static final long serialVersionUID = 0L;
     }
     if (cursorKeySource_ != ai.stigmer.agentic.agentexecution.v1.CursorKeySource.CURSOR_KEY_SOURCE_UNSPECIFIED.getNumber()) {
       output.writeEnum(17, cursorKeySource_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(servedServiceTier_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 18, servedServiceTier_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -848,6 +915,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(17, cursorKeySource_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(servedServiceTier_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(18, servedServiceTier_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -901,6 +971,8 @@ private static final long serialVersionUID = 0L;
     if (!getCursorKeyId()
         .equals(other.getCursorKeyId())) return false;
     if (cursorKeySource_ != other.cursorKeySource_) return false;
+    if (!getServedServiceTier()
+        .equals(other.getServedServiceTier())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -951,6 +1023,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getCursorKeyId().hashCode();
     hash = (37 * hash) + CURSOR_KEY_SOURCE_FIELD_NUMBER;
     hash = (53 * hash) + cursorKeySource_;
+    hash = (37 * hash) + SERVED_SERVICE_TIER_FIELD_NUMBER;
+    hash = (53 * hash) + getServedServiceTier().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1122,6 +1196,7 @@ private static final long serialVersionUID = 0L;
       cursorAccountId_ = "";
       cursorKeyId_ = "";
       cursorKeySource_ = 0;
+      servedServiceTier_ = "";
       return this;
     }
 
@@ -1213,6 +1288,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00010000) != 0)) {
         result.cursorKeySource_ = cursorKeySource_;
       }
+      if (((from_bitField0_ & 0x00020000) != 0)) {
+        result.servedServiceTier_ = servedServiceTier_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1298,6 +1376,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.cursorKeySource_ != 0) {
         setCursorKeySourceValue(other.getCursorKeySourceValue());
+      }
+      if (!other.getServedServiceTier().isEmpty()) {
+        servedServiceTier_ = other.servedServiceTier_;
+        bitField0_ |= 0x00020000;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1414,6 +1497,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00010000;
               break;
             } // case 136
+            case 146: {
+              servedServiceTier_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00020000;
+              break;
+            } // case 146
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2947,6 +3035,138 @@ private static final long serialVersionUID = 0L;
     public Builder clearCursorKeySource() {
       bitField0_ = (bitField0_ & ~0x00010000);
       cursorKeySource_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object servedServiceTier_ = "";
+    /**
+     * <pre>
+     * Provider-reported service tier that actually served this call
+     * (native harness, stigmer/stigmer#361): Anthropic reports it in the
+     * response usage ("standard" | "priority" | "batch"), OpenAI at the
+     * response top level ("default" | "flex" | "priority"). Reported
+     * verbatim by the proxy from the SSE stream — the wire truth billing
+     * reconciles against the execution's REQUESTED tier (the
+     * service_tier.mismatch counter). Empty when the provider reported
+     * none, and for cursor-harness calls, whose billed variant arrives
+     * through the cursor path's pricing-variant resolution instead.
+     * </pre>
+     *
+     * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>
+     * @return The servedServiceTier.
+     */
+    public java.lang.String getServedServiceTier() {
+      java.lang.Object ref = servedServiceTier_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        servedServiceTier_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Provider-reported service tier that actually served this call
+     * (native harness, stigmer/stigmer#361): Anthropic reports it in the
+     * response usage ("standard" | "priority" | "batch"), OpenAI at the
+     * response top level ("default" | "flex" | "priority"). Reported
+     * verbatim by the proxy from the SSE stream — the wire truth billing
+     * reconciles against the execution's REQUESTED tier (the
+     * service_tier.mismatch counter). Empty when the provider reported
+     * none, and for cursor-harness calls, whose billed variant arrives
+     * through the cursor path's pricing-variant resolution instead.
+     * </pre>
+     *
+     * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>
+     * @return The bytes for servedServiceTier.
+     */
+    public com.google.protobuf.ByteString
+        getServedServiceTierBytes() {
+      java.lang.Object ref = servedServiceTier_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        servedServiceTier_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Provider-reported service tier that actually served this call
+     * (native harness, stigmer/stigmer#361): Anthropic reports it in the
+     * response usage ("standard" | "priority" | "batch"), OpenAI at the
+     * response top level ("default" | "flex" | "priority"). Reported
+     * verbatim by the proxy from the SSE stream — the wire truth billing
+     * reconciles against the execution's REQUESTED tier (the
+     * service_tier.mismatch counter). Empty when the provider reported
+     * none, and for cursor-harness calls, whose billed variant arrives
+     * through the cursor path's pricing-variant resolution instead.
+     * </pre>
+     *
+     * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>
+     * @param value The servedServiceTier to set.
+     * @return This builder for chaining.
+     */
+    public Builder setServedServiceTier(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      servedServiceTier_ = value;
+      bitField0_ |= 0x00020000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Provider-reported service tier that actually served this call
+     * (native harness, stigmer/stigmer#361): Anthropic reports it in the
+     * response usage ("standard" | "priority" | "batch"), OpenAI at the
+     * response top level ("default" | "flex" | "priority"). Reported
+     * verbatim by the proxy from the SSE stream — the wire truth billing
+     * reconciles against the execution's REQUESTED tier (the
+     * service_tier.mismatch counter). Empty when the provider reported
+     * none, and for cursor-harness calls, whose billed variant arrives
+     * through the cursor path's pricing-variant resolution instead.
+     * </pre>
+     *
+     * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearServedServiceTier() {
+      servedServiceTier_ = getDefaultInstance().getServedServiceTier();
+      bitField0_ = (bitField0_ & ~0x00020000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Provider-reported service tier that actually served this call
+     * (native harness, stigmer/stigmer#361): Anthropic reports it in the
+     * response usage ("standard" | "priority" | "batch"), OpenAI at the
+     * response top level ("default" | "flex" | "priority"). Reported
+     * verbatim by the proxy from the SSE stream — the wire truth billing
+     * reconciles against the execution's REQUESTED tier (the
+     * service_tier.mismatch counter). Empty when the provider reported
+     * none, and for cursor-harness calls, whose billed variant arrives
+     * through the cursor path's pricing-variant resolution instead.
+     * </pre>
+     *
+     * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>
+     * @param value The bytes for servedServiceTier to set.
+     * @return This builder for chaining.
+     */
+    public Builder setServedServiceTierBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      servedServiceTier_ = value;
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }
