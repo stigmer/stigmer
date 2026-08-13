@@ -1,7 +1,8 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../../internal/DialogShell.js";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { useWorkflowExecutionList } from "../useWorkflowExecutionList.js";
 import { WorkflowExecutionPhaseBadge } from "../WorkflowExecutionPhaseBadge.js";
@@ -48,7 +49,6 @@ export const ExecutionComparisonPicker = memo(function ExecutionComparisonPicker
   onConfirm,
   onClose,
 }: ExecutionComparisonPickerProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const { executions, isLoading } = useWorkflowExecutionList({
@@ -83,24 +83,6 @@ export const ExecutionComparisonPicker = memo(function ExecutionComparisonPicker
   }, [open, candidates, selectedId, basePhase]);
 
   useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open) {
-      if (!dialog.open) dialog.showModal();
-    } else {
-      if (dialog.open) dialog.close();
-    }
-  }, [open]);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    const handleClose = () => onClose();
-    dialog.addEventListener("close", handleClose);
-    return () => dialog.removeEventListener("close", handleClose);
-  }, [onClose]);
-
-  useEffect(() => {
     if (!open) setSelectedId(null);
   }, [open]);
 
@@ -108,21 +90,22 @@ export const ExecutionComparisonPicker = memo(function ExecutionComparisonPicker
     if (selectedId) onConfirm(selectedId);
   }, [selectedId, onConfirm]);
 
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent<HTMLDialogElement>) => {
-      if (e.target === dialogRef.current) onClose();
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) onClose();
     },
     [onClose],
   );
 
   return (
-    <dialog
-      ref={dialogRef}
-      className={cn(
-        "stgm stg:m-auto stg:max-h-[70vh] stg:w-full stg:max-w-md stg:rounded-lg stg:border stg:border-[var(--stgm-border,#e5e5e5)] stg:bg-[var(--stgm-background,#fff)] stg:p-0 stg:shadow-xl",
-        "stg:backdrop:bg-backdrop",
-      )}
-      onClick={handleBackdropClick}
+    <DialogShell
+      open={open}
+      onOpenChange={handleOpenChange}
+      width="md"
+      dismissOnBackdrop
+      // `stgm` re-establishes the theme scope (rendered from the workflow
+      // canvas); the var-fallback styling predates the token utilities.
+      className="stgm stg:max-h-[70vh] stg:bg-[var(--stgm-background,#fff)] stg:border-[var(--stgm-border,#e5e5e5)]"
       aria-label="Select execution to compare"
     >
       <div className="stg:flex stg:flex-col">
@@ -217,7 +200,7 @@ export const ExecutionComparisonPicker = memo(function ExecutionComparisonPicker
           </button>
         </div>
       </div>
-    </dialog>
+    </DialogShell>
   );
 });
 

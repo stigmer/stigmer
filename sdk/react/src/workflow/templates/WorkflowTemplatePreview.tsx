@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../../internal/DialogShell.js";
 import { parse as parseYaml } from "yaml";
 import {
   ReactFlowProvider,
@@ -42,25 +43,12 @@ export function WorkflowTemplatePreview({
   onClose,
   onSelect,
 }: WorkflowTemplatePreviewProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) {
-      dialog.showModal();
-    } else if (!open && dialog.open) {
-      dialog.close();
-    }
-  }, [open]);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    const handleClose = () => onClose();
-    dialog.addEventListener("close", handleClose);
-    return () => dialog.removeEventListener("close", handleClose);
-  }, [onClose]);
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) onClose();
+    },
+    [onClose],
+  );
 
   const handleSelect = useCallback(() => {
     if (template) onSelect(template);
@@ -72,19 +60,21 @@ export function WorkflowTemplatePreview({
   );
 
   if (!template || !meta) {
-    return <dialog ref={dialogRef} className="stg:hidden" />;
+    return null;
   }
 
   const categoryLabel =
     TEMPLATE_CATEGORY_LABELS[template.category] ?? template.category;
 
   return (
-    <dialog
-      ref={dialogRef}
-      className={cn(
-        "stgm stg:m-auto stg:max-h-[85vh] stg:w-full stg:max-w-3xl stg:rounded-lg stg:border stg:border-border stg:bg-background stg:p-0 stg:shadow-lg",
-        "stg:backdrop:bg-backdrop",
-      )}
+    <DialogShell
+      open={open}
+      onOpenChange={handleOpenChange}
+      width="3xl"
+      // `stgm` re-establishes the theme scope (rendered from the template
+      // browser canvas); background surface is deliberate for the graph.
+      className="stgm stg:max-h-[85vh] stg:bg-background"
+      aria-label={`Preview ${template.name}`}
     >
       <div className="stg:flex stg:flex-col">
         {/* Header */}
@@ -193,7 +183,7 @@ export function WorkflowTemplatePreview({
           </button>
         </div>
       </div>
-    </dialog>
+    </DialogShell>
   );
 }
 
