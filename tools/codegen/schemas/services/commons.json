@@ -64,7 +64,7 @@
               "visibility_platform"
             ]
           },
-          "description": "Visibility controls who can access this resource.\n - PRIVATE: Only members of the owning organization can access.\n - PUBLIC: Anyone can access (read). Write access still requires org membership.\n Default: config-driven per kind — blueprint kinds (marked\n defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.",
+          "description": "Visibility controls who can access this resource.\n - PRIVATE: Only members of the owning organization can access.\n - PUBLIC: Anyone can access (read). Write access still requires org membership.\n Default: config-driven per kind — blueprint kinds (marked\n defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.\n\n Mutation contract: visibility is set at create and changed ONLY through\n the kind's UpdateVisibility RPC, where the visibility guards live\n (per-kind level support, default-instance rejection). A plain Update\n preserves the stored value — a request-carried level is ignored, never\n applied. Declarative clients that want a manifest's visibility to land\n on update must follow up with UpdateVisibility (the CLI and MCP apply\n surfaces do this automatically).",
           "required": false
         },
         {
