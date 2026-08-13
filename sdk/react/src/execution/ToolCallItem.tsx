@@ -15,15 +15,15 @@ import {
   ThreadCardShell,
   ThreadCardHeader,
   ThreadCardBody,
+  type ThreadCardVariant,
   SpinnerIcon,
   ClockIcon,
-  CheckCircleIcon,
   XCircleIcon,
   DotIcon,
   SlashCircleIcon,
 } from "../internal/thread-card/index.js";
 import { TerminalTail } from "./TerminalSession.js";
-import { ToolCallDetail, formatDuration } from "./ToolCallDetail.js";
+import { ToolCallDetail, formatHeaderDuration } from "./ToolCallDetail.js";
 import { SubAgentSection } from "./SubAgentSection.js";
 import { ApprovalCardBody } from "./ApprovalCard.js";
 import { useApproval } from "./ApprovalContext.js";
@@ -94,6 +94,13 @@ export interface ToolCallItemProps {
  * content-overflow reveal — never govern the same body, which is what removes
  * the old "expand, then Show more" double control.
  *
+ * Orthogonal to the layout modes is the **chrome tier** (the density axis,
+ * stigmer#274): metadata-only categories (read / list / search / think)
+ * render as quiet unboxed lines — no card frame — while content-bearing
+ * categories keep their cards. A quiet row escalates to a card while gated
+ * or failed; its disclosed body renders under a light left rail instead of a
+ * border. See {@link ToolChrome}.
+ *
  * Shows category-aware labels (e.g., "Shell", "Read", "Edit") with
  * the primary argument as a subtitle, a category-specific icon, and
  * an inline approval decision badge when applicable.
@@ -118,11 +125,17 @@ export const ToolCallItem = memo(function ToolCallItem({
   useRenderTracer("ToolCallItem", { status: toolCall.status, id: toolCall.id });
 
   const status = mapToolCallStatus(toolCall);
+  // Success is the silent default: a completed row renders NO status icon —
+  // a green check on every settled row teaches the eye to ignore status
+  // entirely, so state is shown only when it says something (running, gated,
+  // failed, interrupted). Failure shouts; success is quiet (stigmer#274).
   const StatusIcon = STATUS_ICON[status];
-  const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
+  // Header chips only when the duration carries information (>= 1s); the
+  // sub-second chips were noise pinned to the least interesting rows.
+  const duration = formatHeaderDuration(toolCall.startedAt, toolCall.completedAt);
   const isSubAgent = subAgentExecution != null;
 
-  const { category, label, primaryArg, result, resultSummary, disclosure } =
+  const { category, label, primaryArg, result, resultSummary, disclosure, chrome } =
     useToolPresentation(toolCall);
   const CategoryIcon = CATEGORY_ICON[category];
 
@@ -189,6 +202,24 @@ export const ToolCallItem = memo(function ToolCallItem({
   const gateAccent =
     approval != null ? (category === "delete" ? "destructive" : "warning") : null;
 
+  // The chrome tier (the density axis, stigmer#274): metadata-only rows
+  // (read / list / search / think) render as quiet unboxed lines — no card
+  // frame — so the conversation reads as prose with quiet evidence attached.
+  // A row escalates to a card while it carries something a bare line cannot:
+  // a pending gate (the decision surface, including its accent) or a failure
+  // (error output is content). Running deliberately does NOT escalate — a
+  // quiet row's in-flight state rides its label and status glyph, not a
+  // frame. Nested rows (inside an expanded fold chip) stay divider rows:
+  // their container owns the frame.
+  const rowFailed =
+    toolCall.status === ToolCallStatus.TOOL_CALL_FAILED ||
+    result.type === "error";
+  const variant: ThreadCardVariant = !bordered
+    ? "row"
+    : chrome === "quiet" && !isSubAgent && approval == null && !rowFailed
+      ? "quiet"
+      : "card";
+
   // Completed/skipped Read items are non-expandable — the clickable
   // path in the row is the complete information. Failed reads remain
   // expandable to show the error.
@@ -229,12 +260,14 @@ export const ToolCallItem = memo(function ToolCallItem({
         </span>
       )}
 
-      <span
-        className={cn("stg:shrink-0", STATUS_COLOR[status])}
-        aria-hidden="true"
-      >
-        <StatusIcon />
-      </span>
+      {StatusIcon && (
+        <span
+          className={cn("stg:shrink-0", STATUS_COLOR[status])}
+          aria-hidden="true"
+        >
+          <StatusIcon />
+        </span>
+      )}
 
       {duration && (
         <span className="stg:shrink-0 stg:tabular-nums stg:text-muted-foreground">
@@ -247,7 +280,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   if (isNonExpandableRead) {
     return (
       <ThreadCardShell
-        bordered={bordered}
+        variant={variant}
         accent={gateAccent}
         cursorTarget="tool-call-row"
         className={className}
@@ -381,14 +414,16 @@ export const ToolCallItem = memo(function ToolCallItem({
     const showBody = approval != null || result.type !== "empty";
     return (
       <ThreadCardShell
-        bordered={bordered}
+        variant={variant}
         accent={gateAccent}
         cursorTarget="tool-call-row"
         className={className}
       >
         <ThreadCardHeader>{headerInner}</ThreadCardHeader>
         {showBody && (
-          <ThreadCardBody cursorTarget="tool-preview">{body}</ThreadCardBody>
+          <ThreadCardBody cursorTarget="tool-preview" rail={variant === "quiet"}>
+            {body}
+          </ThreadCardBody>
         )}
       </ThreadCardShell>
     );
@@ -402,7 +437,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   if (tailSession) {
     return (
       <ThreadCardShell
-        bordered={bordered}
+        variant={variant}
         accent={gateAccent}
         cursorTarget="tool-call-row"
         className={className}
@@ -433,7 +468,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   // header with Enter/Space keyboard parity and the chevron.
   return (
     <ThreadCardShell
-      bordered={bordered}
+      variant={variant}
       accent={gateAccent}
       cursorTarget="tool-call-row"
       className={className}
@@ -442,7 +477,9 @@ export const ToolCallItem = memo(function ToolCallItem({
         {headerInner}
       </ThreadCardHeader>
 
-      {expanded && <ThreadCardBody>{body}</ThreadCardBody>}
+      {expanded && (
+        <ThreadCardBody rail={variant === "quiet"}>{body}</ThreadCardBody>
+      )}
     </ThreadCardShell>
   );
 });
@@ -664,11 +701,14 @@ function McpPlugIcon() {
 // Status icons — the shared thread-card glyph set (T05)
 // ---------------------------------------------------------------------------
 
-const STATUS_ICON: Record<ItemStatus, () => React.JSX.Element> = {
+// `completed` is deliberately iconless — success is the silent default, so
+// the states that remain visible (spinner, clock, cross, slash) all carry
+// real signal (stigmer#274).
+const STATUS_ICON: Record<ItemStatus, (() => React.JSX.Element) | null> = {
   running: SpinnerIcon,
   waiting: ClockIcon,
   failed: XCircleIcon,
-  completed: CheckCircleIcon,
+  completed: null,
   pending: DotIcon,
   interrupted: SlashCircleIcon,
 };

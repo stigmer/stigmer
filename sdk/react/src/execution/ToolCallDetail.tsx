@@ -347,3 +347,22 @@ export function formatDuration(
   const seconds = Math.round((ms % 60_000) / 1000);
   return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
 }
+
+/**
+ * {@link formatDuration} for header duration chips: returns `null` below one
+ * second. A duration chip earns its place only when it carries information —
+ * a `4ms` chip on a directory listing draws the eye to the least interesting
+ * row in the thread (stigmer#274), so sub-second work renders no chip at all.
+ * `formatDuration` itself stays exact — it is public API with consumers that
+ * want the precise value.
+ */
+export function formatHeaderDuration(
+  startedAt: string,
+  completedAt: string,
+): string | null {
+  const formatted = formatDuration(startedAt, completedAt);
+  // Exactly the sub-second arm of formatDuration ("123ms"); every other arm
+  // is >= 1s by construction.
+  if (formatted === null || formatted.endsWith("ms")) return null;
+  return formatted;
+}

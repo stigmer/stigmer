@@ -37,6 +37,8 @@ function makeToolCall(opts: {
   mcpServerSlug?: string;
   status?: ToolCallStatus;
   fileChangeSetId?: string;
+  startedAt?: string;
+  completedAt?: string;
 }): ToolCall {
   return create(ToolCallSchema, {
     id: opts.id ?? opts.name,
@@ -46,6 +48,8 @@ function makeToolCall(opts: {
     mcpServerSlug: opts.mcpServerSlug ?? "",
     status: opts.status ?? ToolCallStatus.TOOL_CALL_COMPLETED,
     fileChangeSetId: opts.fileChangeSetId ?? "",
+    startedAt: opts.startedAt ?? "",
+    completedAt: opts.completedAt ?? "",
   });
 }
 
@@ -570,6 +574,172 @@ describe("ToolCallItem disclosure", () => {
     row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
     expect(row.className).not.toContain("stg:rounded-lg");
     expect(row.className).toContain("stg:border-b");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Density tier — quiet unboxed lines for metadata-only rows (stigmer#274)
+// ---------------------------------------------------------------------------
+
+function rowRoot(container: HTMLElement): HTMLElement {
+  return container.querySelector('[data-cursor-target="tool-call-row"]')!;
+}
+function isQuietLine(container: HTMLElement): boolean {
+  const cls = rowRoot(container).className;
+  return !cls.includes("stg:rounded-lg") && !cls.includes("stg:border-b");
+}
+
+describe("ToolCallItem density tier", () => {
+  it("renders metadata-only rows as quiet unboxed lines (read / list / search / think)", () => {
+    const cases: ToolCall[] = [
+      makeToolCall({ name: "Read", args: { path: "/a.ts" } }),
+      makeToolCall({ name: "ls", args: { path: "/src" } }),
+      makeToolCall({ name: "Grep", args: { pattern: "foo" }, result: "2 matches" }),
+      makeToolCall({ name: "think", args: { thought: "considering options" } }),
+    ];
+    for (const tc of cases) {
+      const { container, unmount } = render(<ToolCallItem toolCall={tc} />);
+      expect(isQuietLine(container), `${tc.name} should be a quiet line`).toBe(true);
+      unmount();
+    }
+  });
+
+  it("keeps content-bearing rows as cards (shell / edit)", () => {
+    const cases: ToolCall[] = [
+      makeToolCall({ name: "Shell", args: { command: "echo hi" }, result: "hi" }),
+      makeToolCall({
+        name: "StrReplace",
+        args: { path: "/a.ts", old_string: "a", new_string: "b" },
+      }),
+    ];
+    for (const tc of cases) {
+      const { container, unmount } = render(<ToolCallItem toolCall={tc} />);
+      expect(rowRoot(container).className, `${tc.name} should stay a card`).toContain(
+        "stg:border-border-prominent",
+      );
+      unmount();
+    }
+  });
+
+  it("escalates a quiet row to a card when it fails — error output is content", () => {
+    const failed = makeToolCall({
+      name: "Read",
+      args: { path: "/a.ts" },
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      result: '{"status":"error","message":"permission denied"}',
+    });
+    const { container } = render(<ToolCallItem toolCall={failed} />);
+    expect(rowRoot(container).className).toContain("stg:border-border-prominent");
+  });
+
+  it("escalates a quiet row to a card while gated — a decision surface is never frameless", () => {
+    const gated = makeToolCall({
+      id: "tc-read-gated",
+      name: "Read",
+      args: { path: "/secret" },
+      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+    });
+    const approval: PendingApproval = create(PendingApprovalSchema, {
+      toolCallId: "tc-read-gated",
+      toolName: "Read",
+      argsPreview: '{"path":"/secret"}',
+    });
+    const ctx: ApprovalContextValue = {
+      approvalsByToolCallId: new Map([["tc-read-gated", approval]]),
+      onSubmit: () => {},
+      submittingIds: new Set(),
+      errorsByToolCallId: new Map(),
+    };
+    const { container } = render(
+      <ApprovalContext.Provider value={ctx}>
+        <ToolCallItem toolCall={gated} />
+      </ApprovalContext.Provider>,
+    );
+    const cls = rowRoot(container).className;
+    expect(cls).toContain("stg:border-border-prominent");
+    expect(cls).toContain("stg:border-l-warning");
+  });
+
+  it("stays a quiet line while running — the in-flight state rides the label, not a frame", () => {
+    const running = makeToolCall({
+      name: "Read",
+      args: { path: "/a.ts" },
+      status: ToolCallStatus.TOOL_CALL_RUNNING,
+    });
+    const { container } = render(<ToolCallItem toolCall={running} />);
+    expect(isQuietLine(container)).toBe(true);
+    expect(container.querySelector(".stg\\:animate-spin")).not.toBeNull();
+  });
+
+  it("contains a quiet row's disclosed body under a left rail instead of a border", () => {
+    // Grep is a summary category with a real result body: expanding the quiet
+    // line must bound the body with the rail (the ThinkingMessage precedent),
+    // never leave it bleeding into the thread.
+    const tc = makeToolCall({
+      name: "Grep",
+      args: { pattern: "foo" },
+      result: "src/a.ts:1: foo",
+    });
+    const { container } = render(<ToolCallItem toolCall={tc} />);
+    fireEvent.click(rowHeaderToggle(container)!);
+    expect(container.querySelector(".stg\\:border-l-2")).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Status vocabulary — success is silent, everything visible carries signal
+// ---------------------------------------------------------------------------
+
+describe("ToolCallItem status vocabulary", () => {
+  it("renders no status icon on a completed row — success is the silent default", () => {
+    const { container } = render(
+      <ToolCallItem
+        toolCall={makeToolCall({ name: "Shell", args: { command: "echo hi" }, result: "hi" })}
+      />,
+    );
+    expect(container.querySelector(".stg\\:text-success")).toBeNull();
+  });
+
+  it("keeps the failed icon — failure shouts", () => {
+    const { container } = render(
+      <ToolCallItem
+        toolCall={makeToolCall({
+          name: "Shell",
+          args: { command: "false" },
+          status: ToolCallStatus.TOOL_CALL_FAILED,
+        })}
+      />,
+    );
+    expect(container.querySelector(".stg\\:text-destructive")).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Duration chips — shown only when they carry information (>= 1s)
+// ---------------------------------------------------------------------------
+
+describe("ToolCallItem duration chip", () => {
+  it("suppresses a sub-second duration — the chip would be noise", () => {
+    const tc = makeToolCall({
+      name: "Read",
+      args: { path: "/a.ts" },
+      startedAt: "2026-08-13T10:00:00.000Z",
+      completedAt: "2026-08-13T10:00:00.400Z",
+    });
+    render(<ToolCallItem toolCall={tc} />);
+    expect(screen.queryByText("400ms")).toBeNull();
+  });
+
+  it("shows a duration of a second or more — it carries information", () => {
+    const tc = makeToolCall({
+      name: "Shell",
+      args: { command: "sleep 2" },
+      result: "",
+      startedAt: "2026-08-13T10:00:00.000Z",
+      completedAt: "2026-08-13T10:00:02.500Z",
+    });
+    render(<ToolCallItem toolCall={tc} />);
+    expect(screen.getByText("2.5s")).toBeTruthy();
   });
 });
 

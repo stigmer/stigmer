@@ -14,7 +14,8 @@ import { ChevronIcon } from "./glyphs.js";
  * Three pieces, composed via children (slots-as-children, never a
  * mega-prop card — each thread's composition stays explicit):
  *
- * - {@link ThreadCardShell} — the chrome: bordered card vs divider row,
+ * - {@link ThreadCardShell} — the chrome tier: bordered card, nested divider
+ *   row, or quiet unboxed line ({@link ThreadCardVariant}), plus the
  *   pending-gate accent.
  * - {@link ThreadCardHeader} — the one-line header region with a
  *   primary gesture: `expand` (summary rows, `aria-expanded`, appends
@@ -41,15 +42,25 @@ import { ChevronIcon } from "./glyphs.js";
 // Shell — the card chrome
 // ---------------------------------------------------------------------------
 
+/**
+ * The chrome tier of a thread row (the density axis at the shell level):
+ *
+ * - `"card"` — a self-contained bordered card (the default).
+ * - `"row"` — a divider-separated row for rows nested inside a container
+ *   that already provides the frame (e.g. an expanded `ToolRunGroup` fold),
+ *   avoiding a card-in-a-card.
+ * - `"quiet"` — no chrome at all: an unboxed line for metadata-only rows
+ *   whose header IS the complete information (reads, listings, thoughts).
+ *   The gate accent is deliberately not drawn in this tier — a row carrying
+ *   an accent must be escalated to `"card"` by the caller, never rendered
+ *   as an accented bare line.
+ */
+export type ThreadCardVariant = "card" | "row" | "quiet";
+
 /** Props for {@link ThreadCardShell}. */
 export interface ThreadCardShellProps {
-  /**
-   * Whether the row renders as its own self-contained card (a thin rounded
-   * border). Set to `false` when nested inside a container that already
-   * provides the border — e.g. the folded `ToolRunGroup` chip — where the
-   * row degrades to a divider-separated row to avoid a card-in-a-card.
-   */
-  readonly bordered?: boolean;
+  /** The chrome tier — see {@link ThreadCardVariant}. Defaults to `"card"`. */
+  readonly variant?: ThreadCardVariant;
   /**
    * A restrained left accent for a row awaiting a human decision —
    * `"warning"` for ordinary gates, `"destructive"` for delete gates.
@@ -64,25 +75,31 @@ export interface ThreadCardShellProps {
   readonly children: ReactNode;
 }
 
+const VARIANT_CHROME: Record<Exclude<ThreadCardVariant, "card">, string> = {
+  row: "stg:border-b stg:border-border-muted stg:last:border-b-0",
+  quiet: "",
+};
+
 /** The thread card's outer chrome. See the module doc for the full contract. */
 export function ThreadCardShell({
-  bordered = true,
+  variant = "card",
   accent = null,
   cursorTarget,
   className,
   ref,
   children,
 }: ThreadCardShellProps) {
-  const chrome = bordered
-    ? cn(
-        // border-prominent (not border): a transparent card needs a line the
-        // eye actually catches — the default border token is white at 14%
-        // opacity, which vanishes on the dark thread surface.
-        "stg:rounded-lg stg:border stg:border-border-prominent stg:overflow-hidden",
-        accent === "warning" && "stg:border-l-2 stg:border-l-warning",
-        accent === "destructive" && "stg:border-l-2 stg:border-l-destructive",
-      )
-    : "stg:border-b stg:border-border-muted stg:last:border-b-0";
+  const chrome =
+    variant === "card"
+      ? cn(
+          // border-prominent (not border): a transparent card needs a line the
+          // eye actually catches — the default border token is white at 14%
+          // opacity, which vanishes on the dark thread surface.
+          "stg:rounded-lg stg:border stg:border-border-prominent stg:overflow-hidden",
+          accent === "warning" && "stg:border-l-2 stg:border-l-warning",
+          accent === "destructive" && "stg:border-l-2 stg:border-l-destructive",
+        )
+      : VARIANT_CHROME[variant];
 
   return (
     <div ref={ref} data-cursor-target={cursorTarget} className={cn(chrome, className)}>
@@ -176,13 +193,28 @@ export interface ThreadCardBodyProps {
   readonly id?: string;
   /** Rendered as `data-cursor-target` for e2e targeting. */
   readonly cursorTarget?: string;
+  /**
+   * Body containment for a `"quiet"` shell: with no card border around it, a
+   * disclosed body needs its own boundary — a light left rail (the
+   * `ThinkingMessage` expanded-state precedent) instead of the card's padding
+   * box. Ignored for card/row shells, whose frame already bounds the body.
+   */
+  readonly rail?: boolean;
   readonly children: ReactNode;
 }
 
 /** The thread card's body padding contract. */
-export function ThreadCardBody({ id, cursorTarget, children }: ThreadCardBodyProps) {
+export function ThreadCardBody({ id, cursorTarget, rail = false, children }: ThreadCardBodyProps) {
   return (
-    <div id={id} data-cursor-target={cursorTarget} className="stg:px-2.5 stg:pb-2.5 stg:pt-1">
+    <div
+      id={id}
+      data-cursor-target={cursorTarget}
+      className={
+        rail
+          ? "stg:ml-1.5 stg:border-l-2 stg:border-border-muted stg:py-1 stg:pl-3 stg:pr-2.5"
+          : "stg:px-2.5 stg:pb-2.5 stg:pt-1"
+      }
+    >
       {children}
     </div>
   );

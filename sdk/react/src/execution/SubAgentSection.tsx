@@ -12,7 +12,7 @@ import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
 import { useElapsedSince, formatElapsed } from "../internal/useElapsedSince.js";
 import { cn } from "@stigmer/theme";
-import { formatDuration } from "./ToolCallDetail.js";
+import { formatHeaderDuration } from "./ToolCallDetail.js";
 import { MessageEntry } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { ApprovalContext } from "./ApprovalContext.js";
@@ -81,7 +81,10 @@ export const SubAgentSection = memo(function SubAgentSection({
 }: SubAgentSectionProps) {
   useRenderTracer("SubAgentSection", { status: sub.status, name: sub.name });
 
-  const duration = formatDuration(sub.startedAt, sub.completedAt);
+  // Header chip threshold (>= 1s) shared with ToolCallItem — a sub-second
+  // sub-agent is noise by the same rule, and the two row kinds must speak
+  // one duration vocabulary.
+  const duration = formatHeaderDuration(sub.startedAt, sub.completedAt);
   const statusInfo = SUB_AGENT_STATUS_MAP[sub.status];
   const StatusIcon = statusInfo.icon;
   const isFailed = sub.status === SubAgentStatus.SUB_AGENT_FAILED;

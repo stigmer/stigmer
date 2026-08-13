@@ -90,9 +90,12 @@ describe("ToolRunGroup", () => {
     );
     expect(container.querySelector(".stg\\:animate-spin")).toBeNull();
     expect(chipExpanded(container)).toBe(false);
-    // The aggregate resolves to the terminal branch (completed chip in
-    // text-success), not the non-terminal pending fallback (muted dot).
-    expect(container.querySelector(".stg\\:text-success")).not.toBeNull();
+    // The aggregate resolves to the terminal branch — which is silent
+    // (completed renders NO status icon, stigmer#274) — not the non-terminal
+    // pending fallback, which renders its muted dot as a third header svg
+    // beside the category icon and chevron.
+    const headerSvgs = container.querySelectorAll("button svg");
+    expect(headerSvgs.length).toBe(2);
     expect(screen.getByText("Read 2 files")).toBeTruthy();
   });
 
@@ -121,7 +124,7 @@ describe("ToolRunGroup", () => {
     expect(screen.getByLabelText("Approve")).toBeTruthy();
   });
 
-  it("is a bordered card whose expanded children are borderless divider rows", () => {
+  it("is a quiet unboxed line whose expanded children sit under a left rail as divider rows", () => {
     const { container } = render(
       <ToolRunGroup
         category="read"
@@ -129,21 +132,50 @@ describe("ToolRunGroup", () => {
       />,
     );
 
+    // Quiet chrome (stigmer#274): the fold is metadata-only by construction,
+    // so the chip must never render as a bordered card shouting over the
+    // conversation. Class presence only — actual rendering is guarded by the
+    // layer-invariant + e2e computed-style tests (happy-dom does not resolve
+    // `@layer`).
     const chip = container.querySelector('[data-cursor-target="tool-run-group"]')!;
-    expect(chip.className).toContain("stg:rounded-lg");
-    // Class presence only — actual rendering is guarded by the layer-invariant +
-    // e2e computed-style tests (happy-dom does not resolve `@layer`).
-    expect(chip.className).toContain("stg:border-border-prominent");
+    expect(chip.className).not.toContain("stg:rounded-lg");
+    expect(chip.className).not.toContain("stg:border-border-prominent");
 
     fireEvent.click(screen.getByText("Read 2 files"));
 
-    // The chip is the card; its child rows are dividers, never nested cards.
+    // With no card frame, the rail container owns the boundary; child rows
+    // are dividers, never nested cards.
+    expect(container.querySelector(".stg\\:border-l-2")).not.toBeNull();
     const rows = container.querySelectorAll('[data-cursor-target="tool-call-row"]');
     expect(rows.length).toBe(2);
     for (const row of rows) {
       expect(row.className).not.toContain("stg:rounded-lg");
       expect(row.className).toContain("stg:border-b");
     }
+  });
+
+  it("renders no status icon once the run settles successfully — success is silent", () => {
+    const { container } = render(
+      <ToolRunGroup
+        category="read"
+        toolCalls={[makeRead("r1", "/a.ts"), makeRead("r2", "/b.ts")]}
+      />,
+    );
+    // Header svgs: the category icon and the chevron — no green check.
+    expect(container.querySelectorAll("button svg").length).toBe(2);
+  });
+
+  it("keeps the failed icon when a folded call failed — failure shouts", () => {
+    const { container } = render(
+      <ToolRunGroup
+        category="read"
+        toolCalls={[
+          makeRead("r1", "/a.ts"),
+          makeRead("r2", "/b.ts", ToolCallStatus.TOOL_CALL_FAILED),
+        ]}
+      />,
+    );
+    expect(container.querySelector(".stg\\:text-destructive")).not.toBeNull();
   });
 
   it("honours a custom label formatter", () => {

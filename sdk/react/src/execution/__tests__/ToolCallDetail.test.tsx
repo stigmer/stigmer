@@ -28,7 +28,9 @@ vi.mock("../useFileChangeContent", () => ({
   useFileChangeContent: () => mockContent,
 }));
 
-const { ToolCallDetail } = await import("../ToolCallDetail");
+const { ToolCallDetail, formatDuration, formatHeaderDuration } = await import(
+  "../ToolCallDetail"
+);
 const { FileReviewContext } = await import("../FileReviewContext");
 
 beforeEach(() => {
@@ -377,5 +379,35 @@ describe("ToolCallDetail — write body", () => {
     expect(container.textContent).not.toContain("captured-after");
     // ...still inside the shared pixel clamp (unchanged behavior).
     expect(container.querySelector(CLAMP)).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Duration formatting — the exact helper vs the >= 1s header-chip variant
+// ---------------------------------------------------------------------------
+
+describe("formatHeaderDuration", () => {
+  const T0 = "2026-08-13T10:00:00.000Z";
+  const at = (ms: number) => new Date(Date.parse(T0) + ms).toISOString();
+
+  it("suppresses sub-second durations that formatDuration would render", () => {
+    // The exact helper keeps its public contract...
+    expect(formatDuration(T0, at(400))).toBe("400ms");
+    // ...while the header-chip variant treats the same span as noise.
+    expect(formatHeaderDuration(T0, at(400))).toBeNull();
+  });
+
+  it("passes through everything from one second up, exactly as formatDuration renders it", () => {
+    const cases = [1000, 2500, 61_000, 180_000];
+    for (const ms of cases) {
+      expect(formatHeaderDuration(T0, at(ms))).toBe(formatDuration(T0, at(ms)));
+      expect(formatHeaderDuration(T0, at(ms))).not.toBeNull();
+    }
+  });
+
+  it("stays null for missing or invalid timestamps, like the exact helper", () => {
+    expect(formatHeaderDuration("", at(400))).toBeNull();
+    expect(formatHeaderDuration(T0, "")).toBeNull();
+    expect(formatHeaderDuration("not-a-date", at(2000))).toBeNull();
   });
 });
