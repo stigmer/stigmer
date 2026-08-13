@@ -32,6 +32,11 @@ import type { WorkerActivities } from "./worker.js";
 import { resolveWorkflowSource, OTEL_WORKFLOW_INTERCEPTOR_MODULE } from "./workflow-source.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
 import { assertLlmBackendsPreflight } from "./preflight.js";
+import {
+  captureRunnerSecrets,
+  getRunnerSecret,
+  setRunnerSecret,
+} from "./shared/runner-credential-store.js";
 import { createRunnerTokenCoordinator } from "./runner-token-coordinator.js";
 // Per-task-queue in-flight activity tracking lives in ./in-flight.ts so the
 // activity interceptor (no manager-closure handle) and unit tests can reach it.
@@ -214,6 +219,12 @@ export async function createStigmerRunnerManager(
 ): Promise<StigmerRunnerManager> {
   validateManagerOptions(options);
 
+  // Take custody of runner secrets BEFORE anything else can read them from
+  // env — and before any agent code could spawn with them (#508). Runs here
+  // (not only in main.ts) because this factory is a public library boot door:
+  // in-process embedders like the desktop never execute main.ts.
+  captureRunnerSecrets();
+
   const { registerStigmerDeepagentsProfiles } = await import(
     "./activities/execute-deep-agent/deepagents-profiles.js"
   );
@@ -365,7 +376,7 @@ export async function createStigmerRunnerManager(
   if (
     !bootstrap.payloadEncryption &&
     bootstrap.runnerAccessToken &&
-    !process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY
+    !getRunnerSecret("STIGMER_PAYLOAD_ENCRYPTION_KEY")
   ) {
     console.warn(
       "[runner-manager] Server minted a runner token but returned no payload " +
@@ -592,12 +603,11 @@ export async function createStigmerRunnerManager(
       // proxy credential follows it: only when no token has been minted (so the
       // pre-mint lockstep is preserved), never once the runner owns a minted
       // token. See runner-token-coordinator.ts and the staleness changelogs.
+      // The credential store is the second leg of the pair (it replaced the
+      // process.env.STIGMER_TOKEN write, #508): per-call readers like
+      // call-llm and the registry headers resolve the current token there.
       tokenRef.current = token;
-      if (token) {
-        process.env.STIGMER_TOKEN = token;
-      } else {
-        delete process.env.STIGMER_TOKEN;
-      }
+      setRunnerSecret("STIGMER_TOKEN", token);
       tokenCoordinator.onControlPlaneTokenChanged(token);
       console.log("[runner-manager] Auth token updated");
     },

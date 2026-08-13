@@ -53,6 +53,7 @@ export const DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS = 120_000;
 // three construction sites — mirrors DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS).
 export { DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./shared/workspace/workspace-lock.js";
 import { DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./shared/workspace/workspace-lock.js";
+import { getRunnerSecret } from "./shared/runner-credential-store.js";
 
 export interface Config {
   readonly taskQueue: string;
@@ -158,9 +159,13 @@ export function loadConfig(): Config {
       : requireEnv("STIGMER_BACKEND_ENDPOINT"),
   );
 
-  const stigmerToken = (mode === "cloud" || proxyActive)
-    ? requireEnv("STIGMER_TOKEN")
-    : (process.env.STIGMER_TOKEN ?? null);
+  // Secrets resolve through the credential store, not process.env — the
+  // boot capture has already moved them out of the environment (#508).
+  const stigmerTokenValue = getRunnerSecret("STIGMER_TOKEN");
+  if ((mode === "cloud" || proxyActive) && !stigmerTokenValue) {
+    throw new Error("Required environment variable STIGMER_TOKEN is not set");
+  }
+  const stigmerToken = stigmerTokenValue ?? null;
 
   const mcpBridgeEndpoint = process.env.STIGMER_MCP_BRIDGE_ENDPOINT ?? null;
 
@@ -170,8 +175,8 @@ export function loadConfig(): Config {
   // the SDK's authorization header (Cursor access token) passes through to
   // api2.cursor.sh unchanged.
   const cursorApiKey = proxyActive
-    ? (process.env.CURSOR_API_KEY ?? stigmerToken ?? "proxy-managed")
-    : (process.env.CURSOR_API_KEY ?? "");
+    ? (getRunnerSecret("CURSOR_API_KEY") ?? stigmerToken ?? "proxy-managed")
+    : (getRunnerSecret("CURSOR_API_KEY") ?? "");
 
   const workspaceRootDir = resolveWorkspaceRootDir();
 
