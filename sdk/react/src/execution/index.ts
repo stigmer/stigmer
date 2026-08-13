@@ -204,6 +204,9 @@ export type {
   ThreadContentColumn,
 } from "./MessageThread.js";
 
+export { ExecutionErrorNotice } from "./ExecutionErrorNotice.js";
+export type { ExecutionErrorNoticeProps } from "./ExecutionErrorNotice.js";
+
 export { ThreadSkeleton } from "./ThreadSkeleton.js";
 export type { ThreadSkeletonProps } from "./ThreadSkeleton.js";
 
