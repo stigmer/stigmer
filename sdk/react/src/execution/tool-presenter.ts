@@ -19,6 +19,7 @@ import type { ToolResultView } from "@stigmer/sdk";
 import {
   resolveToolCategoryFromCall,
   extractPrimaryArg,
+  extractShellIntent,
   defaultChromeForCategory,
   defaultDisclosureForCategory,
   isRunGroupableCategory,
@@ -124,6 +125,21 @@ export interface ToolPresentation {
   readonly category: ToolCategory;
   /** Display label, e.g. "Edit", "Shell". */
   readonly label: string;
+  /**
+   * The model-authored intent phrase for a SHELL call (stigmer#276), or null
+   * when absent (legacy executions, skipped optional arg, non-shell kinds).
+   * Raw extraction — precedence against overrides is resolved in
+   * {@link ToolPresentation.title}.
+   */
+  readonly intent: string | null;
+  /**
+   * The row title: a registered presenter's `label` override wins (a host's
+   * explicit wording is never displaced by model output), then the
+   * model-authored {@link intent}, then the category {@link label}. Renderers
+   * that title a row use this; {@link label} stays the short kind label for
+   * chips and badges.
+   */
+  readonly title: string;
   /** Primary argument (path, command, pattern...), or null. */
   readonly primaryArg: string | null;
   /** Normalized result view for rendering with {@link ResultView}. */
@@ -166,7 +182,10 @@ export function useToolPresentation(toolCall: ToolCall): ToolPresentation {
     const result = normalizeToolResult(toolCall);
     const override = registry.get(kind);
 
-    const label = override?.label?.(toolCall) ?? categoryInfo.label;
+    const overrideLabel = override?.label?.(toolCall);
+    const label = overrideLabel ?? categoryInfo.label;
+    const intent = extractShellIntent(toolCall);
+    const title = overrideLabel ?? intent ?? categoryInfo.label;
     const resultSummary =
       override?.summary?.(toolCall, result) ?? summarizeResultView(result);
     const disclosure =
@@ -183,6 +202,8 @@ export function useToolPresentation(toolCall: ToolCall): ToolPresentation {
       kind,
       category: categoryInfo.category,
       label,
+      intent,
+      title,
       primaryArg: extractPrimaryArg(toolCall),
       result,
       resultSummary,

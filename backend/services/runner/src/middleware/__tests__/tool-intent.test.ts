@@ -12,7 +12,9 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
+import { join, resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
@@ -245,5 +247,20 @@ describe("sub-agent stack wiring", () => {
   it("includes the tool-intent middleware in every sub-agent stack", () => {
     const stack = buildSubAgentMiddleware({});
     expect(stack.map((m) => m.name)).toContain("StigmerToolIntentMiddleware");
+  });
+});
+
+describe("wire-contract fixture", () => {
+  it("INTENT_ARG matches the cross-surface fixture key the SDK reads", () => {
+    // The reader side (sdk/react intent-title tests) asserts against the
+    // same file, so the writer and readers cannot drift apart silently.
+    const here = dirname(fileURLToPath(import.meta.url));
+    const fixture = JSON.parse(
+      readFileSync(
+        resolve(here, "../../../../../../test/fixtures/tool-view/intent-title.json"),
+        "utf8",
+      ),
+    ) as { argField: string };
+    expect(INTENT_ARG).toBe(fixture.argField);
   });
 });

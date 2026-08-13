@@ -12,6 +12,7 @@ import {
 import {
   resolveToolCategoryFromKind,
   extractPrimaryArgFromPreview,
+  extractShellIntentFromPreview,
   extractWriteContentFromPreview,
   isFileCategory,
   type ToolCategory,
@@ -160,6 +161,26 @@ export function ApprovalCardHeader({
     ],
   );
 
+  // A shell gate whose call carries a model-authored intent phrase titles
+  // the header with it (stigmer#276) — supplementary context only: the
+  // command stays foregrounded in the body's terminal preview, which remains
+  // the content the user is approving.
+  const intent = useMemo(
+    () =>
+      extractShellIntentFromPreview(
+        pendingApproval.toolName,
+        pendingApproval.argsPreview,
+        pendingApproval.mcpServerSlug,
+        pendingApproval.toolKind,
+      ),
+    [
+      pendingApproval.toolName,
+      pendingApproval.argsPreview,
+      pendingApproval.mcpServerSlug,
+      pendingApproval.toolKind,
+    ],
+  );
+
   return (
     <div
       className={cn(
@@ -173,7 +194,7 @@ export function ApprovalCardHeader({
 
       <span className="stg:min-w-0 stg:flex-1 stg:flex stg:items-center stg:gap-1.5 stg:overflow-hidden">
         <span className="stg:shrink-0 stg:font-medium stg:text-foreground">
-          {categoryInfo.label}
+          {intent ?? categoryInfo.label}
         </span>
         {primaryArg &&
           categoryInfo.category !== "shell" &&
@@ -186,7 +207,7 @@ export function ApprovalCardHeader({
             />
           ) : (
             // Shell is the exception: its command is shown in the body's
-            // terminal session, so the header stays minimal (icon + label).
+            // terminal session, so the header stays minimal (icon + title).
             <span className="stg:min-w-0 stg:truncate stg:font-mono stg:text-muted-foreground">
               {primaryArg}
             </span>

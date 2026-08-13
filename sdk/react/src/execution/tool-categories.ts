@@ -497,6 +497,71 @@ export function extractIntentFromPreview(
   }
 }
 
+/**
+ * The tool-call argument that carries a model-authored intent phrase for
+ * SHELL tools (stigmer#276) — a short human description of what the command
+ * does and why, rendered as the row title with the command as secondary text.
+ *
+ * Two writers populate it, converged on one wire key by design: the native
+ * harness's tool-intent middleware (`backend/services/runner/src/middleware/
+ * tool-intent.ts`, `INTENT_ARG`) extends the shell tool's bind-time schema
+ * with it, and the Cursor harness's built-in Shell tool carries it natively.
+ * The shared, machine-checked contract is
+ * `test/fixtures/tool-view/intent-title.json` — keep all three in lockstep.
+ */
+export const SHELL_INTENT_ARG_FIELD = "description";
+
+/**
+ * The intent-title extraction core: SHELL-kind-scoped on purpose, because
+ * `description` means other things on other tools (a task tool's description
+ * is the sub-agent subject, never a row title). Blank and non-string values
+ * degrade to null — the caller falls back to the category label.
+ */
+function extractIntentFromArgs(kind: ToolKind, args: JsonObject | undefined): string | null {
+  if (kind !== ToolKind.SHELL || !args) return null;
+  const value = args[SHELL_INTENT_ARG_FIELD];
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+/**
+ * Extracts the model-authored intent phrase from a SHELL tool call, or null
+ * when absent (legacy executions, models that skipped the optional arg, and
+ * every non-shell kind). See {@link SHELL_INTENT_ARG_FIELD}.
+ */
+export function extractShellIntent(toolCall: ToolCall): string | null {
+  return extractIntentFromArgs(resolveToolKind(toolCall), toolCall.args);
+}
+
+/**
+ * Preview-string twin of {@link extractShellIntent} for surfaces that carry a
+ * `PendingApproval` (JSON `argsPreview`) instead of a full {@link ToolCall} —
+ * mirrors {@link extractPrimaryArgFromPreview}'s kind resolution.
+ */
+export function extractShellIntentFromPreview(
+  toolName: string,
+  argsPreview: string,
+  mcpServerSlug?: string,
+  toolKind?: ToolKind,
+): string | null {
+  if (!argsPreview) return null;
+
+  const kind =
+    toolKind !== undefined && toolKind !== ToolKind.UNSPECIFIED
+      ? toolKind
+      : resolveToolKindByName(toolName, mcpServerSlug);
+  if (kind !== ToolKind.SHELL) return null;
+
+  try {
+    const parsed = JSON.parse(argsPreview);
+    if (typeof parsed !== "object" || parsed === null) return null;
+    return extractIntentFromArgs(kind, parsed as JsonObject);
+  } catch {
+    return null;
+  }
+}
+
 const WRITE_CONTENT_FIELDS = [
   "contents",
   "content",
