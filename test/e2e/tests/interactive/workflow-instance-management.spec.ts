@@ -106,7 +106,7 @@ test.describe("Workflow Instance Management", () => {
     }
   });
 
-  test("Delete instance shows cascade warning", async ({
+  test("Delete instance shows confirmation with honest copy", async ({
     page,
     testWorkflow,
   }) => {
@@ -117,15 +117,19 @@ test.describe("Workflow Instance Management", () => {
     await instancesTab.click();
 
     // Row actions live in a per-row overflow (kebab) menu. If a row exists,
-    // open its menu and choose Delete to surface the cascade warning.
+    // open its menu and choose Delete to surface the confirmation dialog.
     const rowMenu = page.getByRole("button", { name: /^Actions for/ }).first();
     if (await rowMenu.isVisible()) {
       await rowMenu.click();
       await page.getByRole("menuitem", { name: "Delete" }).click();
 
-      // Should show cascade warning
+      // Instance deletion does NOT cascade to executions (issue #582 owner
+      // ruling): the confirmation says so instead of claiming history is
+      // destroyed.
       await expect(
-        page.getByText("permanently delete this instance and all its execution history"),
+        page.getByText(
+          "permanently removes the instance and its environment bindings",
+        ),
       ).toBeVisible();
     }
   });
