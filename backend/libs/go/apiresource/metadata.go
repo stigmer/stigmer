@@ -2,6 +2,8 @@ package apiresource
 
 import (
 	"fmt"
+	"strings"
+	"sync"
 
 	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -11,6 +13,14 @@ import (
 
 // GetKindEnum returns the ApiResourceKind enum value for a given proto message.
 // It extracts the kind from the message's "kind" field and maps it to the enum.
+//
+// Resolution goes through the kind_meta.name each enum value declares in the
+// proto — the only source that knows a kind's true word boundaries — rather
+// than re-deriving the enum name from PascalCase, which cannot recover
+// "oauth_app" from "OAuthApp" (stigmer/stigmer#545). Matching is canonical
+// (case-insensitive, underscores ignored); this mirrors Cloud's
+// ApiResourceKindExtractor.extract so both editions resolve the same kind
+// strings from the same proto metadata.
 //
 // Example:
 //
@@ -33,15 +43,50 @@ func GetKindEnum(msg proto.Message) (apiresourcekind.ApiResourceKind, error) {
 		return apiresourcekind.ApiResourceKind_api_resource_kind_unknown, fmt.Errorf("kind field is empty")
 	}
 
-	// Map the kind string to enum value
-	// The enum value names are snake_case versions of the kind names
-	// e.g., "Agent" -> "agent", "AgentInstance" -> "agent_instance"
-	enumValue, ok := apiresourcekind.ApiResourceKind_value[toSnakeCase(kindValue)]
+	kind, ok := kindsByCanonicalName()[canonicalKindName(kindValue)]
 	if !ok {
 		return apiresourcekind.ApiResourceKind_api_resource_kind_unknown, fmt.Errorf("unknown kind: %s", kindValue)
 	}
 
-	return apiresourcekind.ApiResourceKind(enumValue), nil
+	return kind, nil
+}
+
+// canonicalKindName normalizes a kind name so different spellings compare
+// equal: "OAuthApp", "oauth_app" and "OAUTHAPP" all canonicalize to
+// "oauthapp". Twin of the canonical() helper in Cloud's
+// ApiResourceKindExtractor — the two must stay in sync so both editions
+// accept and reject the same spellings.
+func canonicalKindName(s string) string {
+	return strings.ReplaceAll(strings.ToLower(s), "_", "")
+}
+
+var (
+	kindsByCanonicalNameOnce sync.Once
+	kindsByCanonicalNameMap  map[string]apiresourcekind.ApiResourceKind
+)
+
+// kindsByCanonicalName lazily builds the canonical kind_meta.name → enum
+// lookup by walking the ApiResourceKind enum values through proto reflection.
+// Values without kind_meta (only the unknown zero value) are skipped. The
+// proto is the single source of truth, so a newly added kind is resolvable
+// with no code change here; TestGetKindEnumResolvesEveryDeclaredKind pins
+// that property.
+func kindsByCanonicalName() map[string]apiresourcekind.ApiResourceKind {
+	kindsByCanonicalNameOnce.Do(func() {
+		values := apiresourcekind.ApiResourceKind(0).Descriptor().Values()
+		m := make(map[string]apiresourcekind.ApiResourceKind, values.Len())
+		for i := 0; i < values.Len(); i++ {
+			valueDesc := values.Get(i)
+			opts := valueDesc.Options()
+			if opts == nil || !proto.HasExtension(opts, apiresourcekind.E_KindMeta) {
+				continue
+			}
+			meta := proto.GetExtension(opts, apiresourcekind.E_KindMeta).(*apiresourcekind.ApiResourceKindMeta)
+			m[canonicalKindName(meta.GetName())] = apiresourcekind.ApiResourceKind(valueDesc.Number())
+		}
+		kindsByCanonicalNameMap = m
+	})
+	return kindsByCanonicalNameMap
 }
 
 // GetKindMeta returns the ApiResourceKindMeta for a given ApiResourceKind enum value.
@@ -196,32 +241,4 @@ func SupportedVisibilityLevels(kind apiresourcekind.ApiResourceKind) (string, er
 		levels += ", " + apiresourcepb.ApiResourceVisibility_visibility_platform.String()
 	}
 	return levels, nil
-}
-
-// toSnakeCase converts a PascalCase string to snake_case.
-// This is used to map kind names (e.g., "Agent", "AgentInstance") to enum value names.
-//
-// Examples:
-//   - "Agent" -> "agent"
-//   - "AgentInstance" -> "agent_instance"
-//   - "WorkflowExecution" -> "workflow_execution"
-func toSnakeCase(s string) string {
-	if s == "" {
-		return s
-	}
-
-	var result []rune
-	for i, r := range s {
-		// If uppercase and not the first character, add underscore before it
-		if i > 0 && r >= 'A' && r <= 'Z' {
-			result = append(result, '_')
-		}
-		// Convert to lowercase
-		if r >= 'A' && r <= 'Z' {
-			result = append(result, r+32) // Convert to lowercase
-		} else {
-			result = append(result, r)
-		}
-	}
-	return string(result)
 }
