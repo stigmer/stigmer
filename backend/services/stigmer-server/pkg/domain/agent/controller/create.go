@@ -28,6 +28,8 @@ const (
 // 3. CheckDuplicate - Verify no duplicate exists
 // 4. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event), default visibility
 // 5. NormalizeReferences - Resolve empty org in cross-references (skill_refs, mcp_server_usages, etc.)
+// 5b. ValidateReferences - Referenced resources must exist
+// 5c. ValidateEnabledTools - enabled_tools must name discovered tools (skips unconnected servers)
 // 6. MergeMcpServerEnvSpecs - Merge env_spec entries from referenced MCP servers into agent
 // 7. Persist - Save agent to repository
 // 8. CreateDefaultInstance - Create default agent instance
@@ -62,6 +64,7 @@ func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agen
 		AddStep(steps.NewBuildNewStateStep[*agentv1.Agent]()).                                   // 4. Build new state
 		AddStep(steps.NewNormalizeReferencesStep[*agentv1.Agent]()).                             // 5. Normalize cross-references
 		AddStep(steps.NewValidateReferencesStep[*agentv1.Agent](c.store)).                       // 5b. Validate referenced resources exist
+		AddStep(newValidateEnabledToolsStep(c.store)).                                           // 5c. Validate enabled_tools against discovered capabilities
 		AddStep(newMergeMcpServerEnvSpecsStep(c.store)).                                         // 6. Merge MCP server env_specs
 		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).                                  // 7. Persist agent
 		AddStep(newCreateDefaultInstanceStep(c.agentInstanceClient)).                            // 6. Create default instance

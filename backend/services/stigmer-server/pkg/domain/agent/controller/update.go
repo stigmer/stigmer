@@ -17,6 +17,8 @@ import (
 // 3. LoadExisting - Load existing agent from repository by ID
 // 4. BuildUpdateState - Merge spec, preserve IDs, update timestamps, clear computed fields
 // 5. NormalizeReferences - Resolve empty org in cross-references (skill_refs, mcp_server_usages, etc.)
+// 5b. ValidateReferences - Referenced resources must exist
+// 5c. ValidateEnabledTools - enabled_tools must name discovered tools (skips unconnected servers)
 // 6. MergeMcpServerEnvSpecs - Merge env_spec entries from referenced MCP servers into agent
 // 7. Persist - Save updated agent to repository
 //
@@ -47,6 +49,7 @@ func (c *AgentController) buildUpdatePipeline() *pipeline.Pipeline[*agentv1.Agen
 		AddStep(steps.NewBuildUpdateStateStep[*agentv1.Agent]()).                                // 4. Build updated state
 		AddStep(steps.NewNormalizeReferencesStep[*agentv1.Agent]()).                             // 5. Normalize cross-references
 		AddStep(steps.NewValidateReferencesStep[*agentv1.Agent](c.store)).                       // 5b. Validate referenced resources exist
+		AddStep(newValidateEnabledToolsStep(c.store)).                                           // 5c. Validate enabled_tools against discovered capabilities
 		AddStep(newMergeMcpServerEnvSpecsStep(c.store)).                                         // 6. Merge MCP server env_specs
 		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).                                  // 7. Persist agent
 		AddStep(steps.NewIndexSearchStep[*agentv1.Agent](c.store, &extractor.AgentExtractor{})). // 6. Update search index

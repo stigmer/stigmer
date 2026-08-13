@@ -7,7 +7,7 @@ How McpServers report their tools and resource templates, the three sources of d
 Discovered capabilities are a **point-in-time snapshot** of the tools and resource templates an MCP server reports via its `tools/list` and `resources/templates/list` protocol methods. They are stored in `status.discovered_capabilities` and serve two critical purposes:
 
 1. **Verification** — confirms the server is functional and what it actually provides, not just what its YAML spec declares.
-2. **Authoring support** — gives you the exact tool names needed to populate `default_enabled_tools`, `default_tool_approvals`, and agent `enabled_tools` / `tool_approval_overrides`. Tool names must match exactly (case-sensitive) or policies will be silently ignored.
+2. **Authoring support** — gives you the exact tool names needed to populate `default_enabled_tools`, `default_tool_approvals`, and agent `enabled_tools` / `tool_approval_overrides`. Tool names must match exactly (case-sensitive): unknown names in `enabled_tools` / `default_enabled_tools` are rejected at apply time once the server has discovered capabilities, while approval-policy names (`default_tool_approvals`, `tool_approval_overrides`) are silently ignored.
 
 Discovered capabilities are **not live** — they do not update automatically when the MCP server changes. Discovery is an explicit action.
 
@@ -30,7 +30,7 @@ Defined in `ai/stigmer/agentic/mcpserver/v1/status.proto`.
 > **CRITICAL — Tools vs Resource Templates**: `discovered_capabilities` contains two separate lists that serve fundamentally different purposes:
 >
 > - **`tools`** — callable actions (e.g., `search_code`, `create_pr`). These are the **only** names valid for use in `default_enabled_tools`, agent `enabled_tools`, and `tool_approval_overrides`.
-> - **`resource_templates`** — read-only data endpoints accessed by URI (e.g., `cloud-resource-schema://{kind}`). These are **not** callable tools. Resource template names must **never** appear in `enabled_tools` or `default_enabled_tools` — doing so causes a fatal runtime error.
+> - **`resource_templates`** — read-only data endpoints accessed by URI (e.g., `cloud-resource-schema://{kind}`). These are **not** callable tools. Resource template names must **never** appear in `enabled_tools` or `default_enabled_tools` — once the server has discovered capabilities, apply rejects them with a targeted error; before the first discovery, the runner warns and ignores them at execution.
 
 ```yaml
 status:
@@ -149,7 +149,7 @@ stigmer get mcp-server github --output yaml
 
 The `discovered_capabilities.tools[*].name` values are the **authoritative source** for tool names. Copy them exactly when writing.
 
-> **Warning**: Only names from `discovered_capabilities.tools` are valid for `enabled_tools` and `default_enabled_tools`. Names from `discovered_capabilities.resource_templates` must **never** be used in these fields — resource templates are data endpoints, not callable tools. Including a resource template name in `enabled_tools` causes a fatal runtime error (`Tool not found in cache`).
+> **Warning**: Only names from `discovered_capabilities.tools` are valid for `enabled_tools` and `default_enabled_tools`. Names from `discovered_capabilities.resource_templates` must **never** be used in these fields — resource templates are data endpoints, not callable tools. Once the server has discovered capabilities, apply rejects a resource-template name (or any unknown name) with `INVALID_ARGUMENT`; before the first discovery, the runner warns and ignores such entries at execution.
 
 **`spec.default_enabled_tools`:**
 ```yaml

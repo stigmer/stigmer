@@ -30,8 +30,8 @@ Run through this list before applying an Agent YAML with `stigmer apply -f`.
 ### MCP Server Usages
 
 - [ ] MCP server slugs are unique within `mcp_server_usages` (no duplicate references)
-- [ ] `enabled_tools` contain tool names that actually exist on the referenced MCP server
-- [ ] `enabled_tools` contain **only** names from `discovered_capabilities.tools` — never from `discovered_capabilities.resource_templates` (resource templates are data endpoints, not callable tools)
+- [ ] `enabled_tools` contain tool names that actually exist on the referenced MCP server — **server-enforced at apply time**: once the referenced server has discovered capabilities, apply rejects unknown names with `INVALID_ARGUMENT` listing the valid tools; before the server's first connect, the check is skipped and the runner warns-and-ignores unknown names at execution instead
+- [ ] `enabled_tools` contain **only** names from `discovered_capabilities.tools` — never from `discovered_capabilities.resource_templates` (resource templates are data endpoints, not callable tools; also server-enforced at apply time, with a targeted error)
 - [ ] `tool_approval_overrides` use exact, case-sensitive tool names matching the MCP server's `tools/list`
 
 ### Sub-Agents
@@ -150,13 +150,13 @@ mcp_server_usages:
 
 ### Putting MCP resource templates in `enabled_tools`
 
-MCP servers expose two types of capabilities: **tools** (callable actions) and **resource templates** (read-only data endpoints). Only tool names belong in `enabled_tools`. Resource template names (from `discovered_capabilities.resource_templates`) must never be included — they cause a fatal runtime error (`Tool not found in cache`).
+MCP servers expose two types of capabilities: **tools** (callable actions) and **resource templates** (read-only data endpoints). Only tool names belong in `enabled_tools`. Resource template names (from `discovered_capabilities.resource_templates`) must never be included — once the server has been connected, apply rejects them with a targeted `INVALID_ARGUMENT` error; if the manifest slips through before the first connect, the runner warns and ignores the entry at execution (the run proceeds without it).
 
 ```yaml
 # Wrong — cloud_resource_schema is a resource template, not a tool
 enabled_tools:
   - search_code
-  - cloud_resource_schema   # FATAL: this is a resource template
+  - cloud_resource_schema   # rejected at apply time (or ignored at runtime pre-connect)
 
 # Correct — only tool names from discovered_capabilities.tools
 enabled_tools:
@@ -168,7 +168,7 @@ When inspecting `stigmer get mcp-server <slug> -oyaml`, check `status.discovered
 
 ### Guessing resource references
 
-Never write `slug: github` without verifying the MCP server exists. References to nonexistent resources will fail at runtime.
+Never write `slug: github` without verifying the MCP server exists. References to nonexistent resources are rejected at apply time.
 
 ```bash
 # Verify before referencing

@@ -16,6 +16,7 @@ import { create } from "@bufbuild/protobuf";
 import { type ConnectRouter, createClient } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
+import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -34,8 +35,12 @@ const openSessions = new Set<ServerHttp2Session>();
 
 let appliedProject: Project | undefined;
 
+// Ordered log of backend calls, for the discovery-before-dependents contract.
+let events: string[] = [];
+
 beforeEach(() => {
   appliedProject = undefined;
+  events = [];
 });
 
 function makeProject(dir: string): void {
@@ -53,7 +58,22 @@ function makeProject(dir: string): void {
 
 beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
-    router.service(AgentCommandController, { apply: (req) => req });
+    router.service(AgentCommandController, {
+      apply: (req) => {
+        events.push("agent.apply");
+        return req;
+      },
+    });
+    router.service(McpServerCommandController, {
+      apply: (req) => {
+        events.push("mcpserver.apply");
+        return req;
+      },
+      connect: () => {
+        events.push("mcpserver.connect");
+        return {};
+      },
+    });
     router.service(SkillCommandController, {
       push: (req) =>
         create(SkillSchema, {
@@ -119,6 +139,64 @@ describe("applyDeclarative", () => {
 
       // Org is injected into the project metadata when the YAML omitted it.
       expect(appliedProject?.metadata?.org).toBe("acme");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("discovers MCP capabilities before applying dependent resources", async () => {
+    // Pins the ordering contract behind apply-time enabled_tools validation
+    // (stigmer/stigmer#402): the server rejects agent enabled_tools against
+    // STORED capabilities, so discovery must refresh them between the MCP
+    // server applies and the applies that depend on them. Regressing to
+    // discovery-at-the-end resurrects the stale-capabilities race (a seedpack
+    // upgrade adding a tool + enabling it in an agent would fail bootstrap).
+    const dir = mkdtempSync(join(tmpdir(), "decl-it-order-"));
+    try {
+      writeFileSync(
+        join(dir, "stigmer.yaml"),
+        ["kind: Project", "metadata:", "  name: Ordered", "  slug: ordered", "spec:", "  description: d", ""].join("\n"),
+      );
+      // Named so a naive filename sort would apply the agent first — the
+      // reconciler must order by dependency, not by scan order.
+      writeFileSync(
+        join(dir, "a-agent.yaml"),
+        [
+          "kind: Agent",
+          "metadata:",
+          "  name: Consumer",
+          "  slug: consumer",
+          "spec:",
+          "  description: c",
+          "",
+        ].join("\n"),
+      );
+      writeFileSync(
+        join(dir, "z-server.yaml"),
+        [
+          "kind: McpServer",
+          "metadata:",
+          "  name: Tools",
+          "  slug: tools",
+          "spec:",
+          "  description: t",
+          "  stdio:",
+          "    command: npx",
+          "",
+        ].join("\n"),
+      );
+
+      const detect = detectTrack(dir);
+      const result = await applyDeclarative(detect, {
+        controller: controllerFn,
+        stigmer,
+        org: "acme",
+        info: () => {},
+        warn: () => {},
+      });
+
+      expect(result.status).toBe("success");
+      expect(events).toEqual(["mcpserver.apply", "mcpserver.connect", "agent.apply"]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
