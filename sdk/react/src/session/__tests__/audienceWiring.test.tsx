@@ -441,3 +441,79 @@ describe("SessionViewer — audience wiring", () => {
     expect(alert.textContent).toContain("token mint failed");
   });
 });
+
+describe("owner-pinned runConfig wiring (#664)", () => {
+  const PIN = { modelName: "pinned-model", serviceTier: "fast" } as const;
+
+  it("SessionViewer forwards runConfig to the flow and hides the model picker (no dead controls)", () => {
+    render(
+      <SessionViewer sessionId="ses_1" org="acme" audience="endUser" runConfig={PIN} />,
+    );
+
+    expect(mockUseSessionPageFlow).toHaveBeenCalledWith(
+      expect.objectContaining({ runConfig: PIN }),
+    );
+    expect(lastComposerProps().showModelSelector).toBe(false);
+  });
+
+  it("SessionViewer keeps the picker for endUser without a pin (the #167 curation contract)", () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" audience="endUser" />);
+
+    expect(lastComposerProps().showModelSelector).toBe(true);
+  });
+
+  it("SessionViewer honors showModelSelector={false} alone — hidden picker, no pin", () => {
+    render(
+      <SessionViewer sessionId="ses_1" org="acme" showModelSelector={false} />,
+    );
+
+    expect(mockUseSessionPageFlow).toHaveBeenCalledWith(
+      expect.objectContaining({ runConfig: undefined }),
+    );
+    expect(lastComposerProps().showModelSelector).toBe(false);
+  });
+
+  it("SessionViewer: a tier-only pin (no model) keeps the picker — nothing pins the model", () => {
+    // The flow hook itself rejects this shape at render (fail-fast, covered
+    // by its own suite); the wiring contract here is only that picker
+    // visibility keys on the MODEL pin, never on the tier.
+    render(
+      <SessionViewer
+        sessionId="ses_1"
+        org="acme"
+        runConfig={{ serviceTier: "standard" }}
+      />,
+    );
+
+    expect(lastComposerProps().showModelSelector).toBe(true);
+  });
+
+  it("NewSessionViewer forwards runConfig to the flow and hides the model picker (DD-016 parity)", () => {
+    render(
+      <NewSessionViewer
+        org="acme"
+        onSessionCreated={vi.fn()}
+        audience="endUser"
+        initialAgentRef={AGENT_REF}
+        runConfig={PIN}
+      />,
+    );
+
+    expect(mockUseNewSessionFlow).toHaveBeenCalledWith(
+      expect.objectContaining({ runConfig: PIN }),
+    );
+    expect(lastComposerProps().showModelSelector).toBe(false);
+  });
+
+  it("NewSessionViewer honors showModelSelector={false} alone (DD-016 parity)", () => {
+    render(
+      <NewSessionViewer
+        org="acme"
+        onSessionCreated={vi.fn()}
+        showModelSelector={false}
+      />,
+    );
+
+    expect(lastComposerProps().showModelSelector).toBe(false);
+  });
+});
