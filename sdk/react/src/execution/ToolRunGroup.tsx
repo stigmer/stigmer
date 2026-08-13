@@ -88,11 +88,12 @@ export const ToolRunGroup = memo(function ToolRunGroup({
       role="group"
       aria-label={label}
       data-cursor-target="tool-run-group"
-      className={cn(
-        "stg:rounded-lg stg:border stg:border-border-prominent stg:overflow-hidden",
-        className,
-      )}
+      className={className}
     >
+      {/* Quiet chrome (stigmer#274): the folded run is metadata-only by
+          construction (its categories are the quiet set), so the chip renders
+          as an unboxed line — same tier as the lone read/list/search rows it
+          folds — never a bordered card shouting over the conversation. */}
       <button
         type="button"
         aria-expanded={expanded}
@@ -100,7 +101,6 @@ export const ToolRunGroup = memo(function ToolRunGroup({
         className={cn(
           "stg:flex stg:w-full stg:cursor-pointer stg:items-center stg:gap-2 stg:px-2.5 stg:py-1.5 stg:text-left stg:text-xs stg:text-muted-foreground stg:transition-colors",
           "stg:hover:bg-muted-subtle",
-          // ring-inset so the card's overflow-hidden does not clip the focus ring.
           "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
         )}
       >
@@ -110,16 +110,19 @@ export const ToolRunGroup = memo(function ToolRunGroup({
         <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:font-medium stg:text-foreground">
           {label}
         </span>
-        <span className={cn("stg:shrink-0", STATUS_COLOR[status])} aria-hidden="true">
-          <StatusIcon />
-        </span>
+        {StatusIcon && (
+          <span className={cn("stg:shrink-0", STATUS_COLOR[status])} aria-hidden="true">
+            <StatusIcon />
+          </span>
+        )}
         <ChevronIcon expanded={expanded} />
       </button>
 
       {expanded && (
-        <div className="stg:border-t stg:border-border-muted">
-          {/* The chip is already the card; its children render as
-              divider-separated rows (bordered={false}) to avoid a card-in-a-card. */}
+        // With no card frame, the disclosed rows sit under a light left rail
+        // (the quiet-tier body containment, mirroring ThreadCardBody's rail)
+        // as divider-separated rows — their container owns the frame.
+        <div className="stg:ml-1.5 stg:border-l-2 stg:border-border-muted stg:pl-2">
           {toolCalls.map((tc) => (
             <ToolCallItem key={tc.id || tc.name} toolCall={tc} bordered={false} />
           ))}
@@ -229,11 +232,13 @@ const STATUS_COLOR: Record<AggregateStatus, string> = {
   pending: "stg:text-muted-foreground",
 };
 
-const STATUS_ICON: Record<AggregateStatus, () => React.JSX.Element> = {
+// `completed` is deliberately iconless — success is the silent default,
+// matching the tool rows' own status vocabulary (stigmer#274).
+const STATUS_ICON: Record<AggregateStatus, (() => React.JSX.Element) | null> = {
   running: SpinnerIcon,
   waiting: ClockIcon,
   failed: XCircleIcon,
-  completed: CheckCircleIcon,
+  completed: null,
   pending: DotIcon,
 };
 
@@ -246,15 +251,6 @@ function ClockIcon() {
     <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="6" cy="6" r="4.5" />
       <path d="M6 3.5V6L7.5 7.5" />
-    </svg>
-  );
-}
-
-function CheckCircleIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="6" cy="6" r="4.5" />
-      <path d="M4 6L5.5 7.5L8 4.5" />
     </svg>
   );
 }

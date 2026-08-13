@@ -56,6 +56,49 @@ export type ToolCategory =
 export type ToolDisclosure = "summary" | "preview" | "tail";
 
 /**
+ * How much *chrome* a tool row carries in the thread — the density axis,
+ * orthogonal to {@link ToolDisclosure} (how much of the result to show).
+ *
+ * - `"card"` — a self-contained bordered card. For content-bearing rows
+ *   (shell, edit, fetch, MCP), where the body is real evidence worth a frame.
+ * - `"quiet"` — an unboxed single text line, no border, no card. For
+ *   metadata-only rows (read / list / search / think) whose label + argument
+ *   already tell the whole story: a 4 ms directory listing must not shout as
+ *   loudly as a 3-minute shell run (Cursor's chat is the reference UX — prose
+ *   with quiet evidence attached, not a stack of equally-loud widgets).
+ *
+ * This is the *settled default*. A row escalates to `"card"` regardless of
+ * category while it carries something the quiet line cannot: a pending
+ * approval gate (a decision surface) or a failure (error output is content).
+ * That escalation is owned by the component layer and is deliberately not
+ * override-able — a gate must never render without its frame.
+ */
+export type ToolChrome = "card" | "quiet";
+
+/**
+ * Categories whose settled summary row IS the complete information, rendered
+ * as quiet unboxed lines by default. Mirrors {@link RUN_GROUPABLE_CATEGORIES}
+ * plus `think` (a thought's row reads like narration, not evidence) — the
+ * same low-signal set, on the chrome axis instead of the folding axis.
+ */
+const QUIET_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
+  "read",
+  "list",
+  "search",
+  "think",
+]);
+
+/**
+ * Returns the default {@link ToolChrome} for a presentation category.
+ * Consumers can override per {@link ToolKind} via {@link registerToolPresenter}
+ * (`chrome: () => "card"` to restore the boxed look for a kind), exactly like
+ * the disclosure axis.
+ */
+export function defaultChromeForCategory(category: ToolCategory): ToolChrome {
+  return QUIET_CATEGORIES.has(category) ? "quiet" : "card";
+}
+
+/**
  * Categories whose result is foregrounded as a persistent bounded preview by
  * default — those for which the compact one-liner cannot convey what happened,
  * so the output itself carries the meaning. All other categories default to

@@ -2,6 +2,7 @@ export {
   ThreadCardShell,
   ThreadCardHeader,
   ThreadCardBody,
+  type ThreadCardVariant,
   type ThreadCardShellProps,
   type ThreadCardHeaderProps,
   type ThreadCardHeaderGesture,

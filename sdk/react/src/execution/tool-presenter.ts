@@ -19,10 +19,11 @@ import type { ToolResultView } from "@stigmer/sdk";
 import {
   resolveToolCategoryFromCall,
   extractPrimaryArg,
+  defaultChromeForCategory,
   defaultDisclosureForCategory,
   isRunGroupableCategory,
 } from "./tool-categories.js";
-import type { ToolCategory, ToolDisclosure } from "./tool-categories.js";
+import type { ToolCategory, ToolChrome, ToolDisclosure } from "./tool-categories.js";
 import { summarizeResultView } from "./ResultView.js";
 
 /** Optional per-kind overrides for label, summary, disclosure, and run-grouping. */
@@ -37,6 +38,15 @@ export interface ToolPresenter {
    * (`() => "preview"`) without forking the components.
    */
   readonly disclosure?: (toolCall: ToolCall, result: ToolResultView) => ToolDisclosure;
+  /**
+   * Overrides the default chrome tier — quiet unboxed line vs bordered card
+   * (see {@link ToolChrome}). Use to restore the boxed look for a kind
+   * (`() => "card"`) or to quiet a chatty custom tool (`() => "quiet"`).
+   * A pending approval gate or a failure always escalates the row to a card
+   * regardless of this override — a decision surface and error output must
+   * never render frameless.
+   */
+  readonly chrome?: (toolCall: ToolCall, result: ToolResultView) => ToolChrome;
   /**
    * Overrides whether consecutive same-kind calls fold into one collapsible
    * "Read 5 files" chip. Use to fold a chatty custom tool (`() => true`) or to
@@ -128,6 +138,13 @@ export interface ToolPresentation {
    */
   readonly disclosure: ToolDisclosure;
   /**
+   * Default chrome tier for this tool — `"quiet"` renders an unboxed line,
+   * `"card"` a bordered card (see {@link ToolChrome}). A pending gate or a
+   * failure escalates to `"card"` in the component layer; this is the
+   * *settled* default.
+   */
+  readonly chrome: ToolChrome;
+  /**
    * Whether consecutive same-kind calls fold into one collapsible chip — the
    * run-grouping axis, orthogonal to {@link disclosure}. See
    * {@link isRunGroupableCategory}.
@@ -155,6 +172,9 @@ export function useToolPresentation(toolCall: ToolCall): ToolPresentation {
     const disclosure =
       override?.disclosure?.(toolCall, result) ??
       defaultDisclosureForCategory(categoryInfo.category);
+    const chrome =
+      override?.chrome?.(toolCall, result) ??
+      defaultChromeForCategory(categoryInfo.category);
     const runGroupable =
       override?.runGroupable?.(toolCall) ??
       isRunGroupableCategory(categoryInfo.category);
@@ -167,6 +187,7 @@ export function useToolPresentation(toolCall: ToolCall): ToolPresentation {
       result,
       resultSummary,
       disclosure,
+      chrome,
       runGroupable,
     };
   }, [toolCall]);

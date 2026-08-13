@@ -155,6 +155,28 @@ describe("useToolPresentation", () => {
     });
   });
 
+  describe("chrome", () => {
+    it("quiets metadata-only categories and keeps content-bearing ones as cards", () => {
+      const quiet = makeToolCall({ name: "Read", args: { path: "/x" } });
+      const card = makeToolCall({ name: "Shell", args: { command: "ls" }, result: "files" });
+      expect(renderHook(() => useToolPresentation(quiet)).result.current.chrome).toBe("quiet");
+      expect(renderHook(() => useToolPresentation(card)).result.current.chrome).toBe("card");
+    });
+
+    it("lets a registered presenter restore the boxed look for a kind", () => {
+      const dispose = registerToolPresenter(ToolKind.FILE_READ, {
+        chrome: () => "card",
+      });
+      try {
+        const tc = makeToolCall({ name: "Read", args: { path: "/x" } });
+        const { result } = renderHook(() => useToolPresentation(tc));
+        expect(result.current.chrome).toBe("card");
+      } finally {
+        dispose();
+      }
+    });
+  });
+
   describe("runGroupable", () => {
     it("folds read-only repetitive categories", () => {
       for (const name of ["Read", "Grep", "Glob"]) {
