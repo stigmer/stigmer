@@ -32,6 +32,7 @@ import type { ExecutionErrorNoticeProps } from "../ExecutionErrorNotice";
 import type { TodoCardProps } from "../TodoCard";
 import type { TodoRowProps } from "../TodoList";
 import type { SetupProgressProps } from "../SetupProgress";
+import type { LivenessStatusLineProps } from "../LivenessStatusLine";
 import type { PlanCompletionCardProps } from "../PlanCompletionCard";
 import type { PlanArtifactCardProps } from "../PlanArtifactCard";
 import type { PlanStreamingCardProps } from "../PlanStreamingCard";
@@ -315,6 +316,28 @@ describe("MessageThread slots", () => {
     );
 
     expect(screen.getByTestId("custom-setup").textContent).toBe("waiting");
+  });
+
+  it("renders the LivenessStatusLine slot while the execution is live between events", () => {
+    const CustomLiveness = ({ label }: LivenessStatusLineProps) => (
+      <div data-testid="custom-liveness">{label ?? "custom-live"}</div>
+    );
+
+    const exec = makeExecution({
+      id: "e-live",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      aiContent: "thinking about it",
+    });
+
+    render(
+      <MessageThread
+        executions={[]}
+        activeStreamExecution={exec}
+        slots={{ LivenessStatusLine: CustomLiveness }}
+      />,
+    );
+
+    expect(screen.getByTestId("custom-liveness").textContent).toBe("custom-live");
   });
 
   it("renders the PlanCompletionCard slot for an artifact-less completed Plan turn", () => {

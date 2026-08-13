@@ -125,6 +125,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   useRenderTracer("ToolCallItem", { status: toolCall.status, id: toolCall.id });
 
   const status = mapToolCallStatus(toolCall);
+  const isRunning = status === "running";
   // Success is the silent default: a completed row renders NO status icon —
   // a green check on every settled row teaches the eye to ignore status
   // entirely, so state is shown only when it says something (running, gated,
@@ -366,7 +367,15 @@ export const ToolCallItem = memo(function ToolCallItem({
       </span>
 
       <span className="stg:min-w-0 stg:flex-1 stg:flex stg:items-baseline stg:gap-1.5 stg:overflow-hidden">
-        <span className="stg:shrink-0 stg:font-medium stg:text-foreground">
+        {/* While the call runs, the label carries the ambient-liveness sweep
+            (stigmer#277) — the shimmer class owns `color`, so it replaces
+            (never joins) the static color utility. */}
+        <span
+          className={cn(
+            "stg:shrink-0 stg:font-medium",
+            isRunning ? "stgm-shimmer-label" : "stg:text-foreground",
+          )}
+        >
           {displayLabel}
         </span>
         {subtitleIsFilePath && primaryArg ? (

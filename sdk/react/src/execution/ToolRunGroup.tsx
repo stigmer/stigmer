@@ -60,8 +60,9 @@ export const ToolRunGroup = memo(function ToolRunGroup({
   useRenderTracer("ToolRunGroup", { category, count: toolCalls.length });
 
   const status = deriveAggregateStatus(toolCalls);
+  const isShimmering = status === "running";
   const isActive =
-    status === "running" || status === "waiting" || status === "pending";
+    isShimmering || status === "waiting" || status === "pending";
 
   // A gate raised inside a folded run must be reachable without a click. Reads
   // are ungated by default, but a presenter override (or future policy) could
@@ -107,7 +108,15 @@ export const ToolRunGroup = memo(function ToolRunGroup({
         <span className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
           <Icon />
         </span>
-        <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:font-medium stg:text-foreground">
+        {/* A running fold carries the ambient-liveness sweep on its label
+            (stigmer#277); the shimmer class owns `color`, so it replaces the
+            static color utility rather than fighting it. */}
+        <span
+          className={cn(
+            "stg:min-w-0 stg:flex-1 stg:truncate stg:font-medium",
+            isShimmering ? "stgm-shimmer-label" : "stg:text-foreground",
+          )}
+        >
           {label}
         </span>
         {StatusIcon && (

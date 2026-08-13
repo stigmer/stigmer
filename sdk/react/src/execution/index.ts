@@ -127,6 +127,9 @@ export type { InteractionModeBadgeProps } from "./InteractionModeBadge.js";
 export { SetupProgress } from "./SetupProgress.js";
 export type { SetupProgressProps } from "./SetupProgress.js";
 
+export { LivenessStatusLine } from "./LivenessStatusLine.js";
+export type { LivenessStatusLineProps } from "./LivenessStatusLine.js";
+
 export { ToolCallGroup } from "./ToolCallGroup.js";
 export type { ToolCallGroupProps } from "./ToolCallGroup.js";
 
