@@ -15,7 +15,6 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption"
-	"google.golang.org/protobuf/proto"
 )
 
 // InitiateOAuthConnect starts the OAuth authorization flow for an MCP server.
@@ -247,24 +246,10 @@ func (c *McpServerController) initiateVendorOAuth(
 ) (*initiateResult, error) {
 	ref := mcpServer.GetSpec().GetAuth().GetOauthAppRef()
 
-	oauthApps, err := c.store.ListResources(ctx, apiresourcekind.ApiResourceKind_oauth_app)
+	oauthApp, err := resolveOAuthAppByRef(ctx, c.store, ref)
 	if err != nil {
 		return nil, grpclib.InternalError(err, "failed to list oauth apps")
 	}
-
-	var oauthApp *oauthappv1.OAuthApp
-	for _, data := range oauthApps {
-		app := &oauthappv1.OAuthApp{}
-		if err := proto.Unmarshal(data, app); err != nil {
-			continue
-		}
-		if app.GetMetadata().GetSlug() == ref.GetSlug() &&
-			(ref.GetOrg() == "" || app.GetMetadata().GetOrg() == ref.GetOrg()) {
-			oauthApp = app
-			break
-		}
-	}
-
 	if oauthApp == nil {
 		return nil, grpclib.NotFoundError("oauth_app", ref.GetSlug())
 	}

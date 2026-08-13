@@ -15,6 +15,8 @@ import (
 // Pipeline Steps:
 //  1. ValidateProto - Validate input ApiResourceReference
 //  2. LoadByReference - Load MCP server by slug (with optional org filtering)
+//  3. EnrichOAuthStatus - Populate response-only status.oauth_status from the
+//     referenced OAuthApp (cloud parity, stigmer/stigmer#523)
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 //   - Authorize step (no multi-tenant auth in OSS)
@@ -50,7 +52,8 @@ func (c *McpServerController) GetByReference(ctx context.Context, ref *apiresour
 // by the apiresource interceptor and injected into request context.
 func (c *McpServerController) buildGetByReferencePipeline() *pipeline.Pipeline[*apiresource.ApiResourceReference] {
 	return pipeline.NewPipeline[*apiresource.ApiResourceReference]("mcpserver-get-by-reference").
-		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceReference]()). // 1. Validate input
-		AddStep(steps.NewLoadByReferenceStep[*mcpserverv1.McpServer](c.store)).   // 2. Load by slug
+		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceReference]()).      // 1. Validate input
+		AddStep(steps.NewLoadByReferenceStep[*mcpserverv1.McpServer](c.store)).        // 2. Load by slug
+		AddStep(newEnrichOAuthStatusStep[*apiresource.ApiResourceReference](c.store)). // 3. Enrich oauth_status
 		Build()
 }

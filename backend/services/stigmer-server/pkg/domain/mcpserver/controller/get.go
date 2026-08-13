@@ -14,6 +14,8 @@ import (
 // Pipeline Steps:
 //  1. ValidateProto - Validate input ApiResourceId (ensures value is not empty)
 //  2. LoadTarget - Load MCP server from repository by ID, returns NotFound if missing
+//  3. EnrichOAuthStatus - Populate response-only status.oauth_status from the
+//     referenced OAuthApp (cloud parity, stigmer/stigmer#523)
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 //   - Authorize step (no multi-tenant auth in OSS)
@@ -43,5 +45,6 @@ func (c *McpServerController) buildGetPipeline() *pipeline.Pipeline[*apiresource
 	return pipeline.NewPipeline[*apiresource.ApiResourceId]("mcpserver-get").
 		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceId]()).                             // 1. Validate input
 		AddStep(steps.NewLoadTargetStep[*apiresource.ApiResourceId, *mcpserverv1.McpServer](c.store)). // 2. Load by ID
+		AddStep(newEnrichOAuthStatusStep[*apiresource.ApiResourceId](c.store)).                        // 3. Enrich oauth_status
 		Build()
 }
