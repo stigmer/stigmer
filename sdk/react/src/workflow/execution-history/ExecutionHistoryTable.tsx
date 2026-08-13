@@ -12,6 +12,7 @@ import {
 } from "./derive-execution-row.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../internal/tooltip.js";
 import { TruncatedText } from "../../internal/truncated-text.js";
+import { formatRelativeTime } from "../../activity/format-relative-time.js";
 
 // ---------------------------------------------------------------------------
 // Column definitions
@@ -435,29 +436,4 @@ function LoadingSkeleton({
       </table>
     </div>
   );
-}
-
-// ---------------------------------------------------------------------------
-// Relative time formatter
-// ---------------------------------------------------------------------------
-
-function formatRelativeTime(date: Date): string {
-  const now = Date.now();
-  const diff = now - date.getTime();
-
-  if (diff < 0) return date.toLocaleString();
-  if (diff < 60_000) return "just now";
-  if (diff < 3_600_000) {
-    const mins = Math.floor(diff / 60_000);
-    return `${mins}m ago`;
-  }
-  if (diff < 86_400_000) {
-    const hours = Math.floor(diff / 3_600_000);
-    return `${hours}h ago`;
-  }
-  if (diff < 604_800_000) {
-    const days = Math.floor(diff / 86_400_000);
-    return `${days}d ago`;
-  }
-  return date.toLocaleDateString();
 }

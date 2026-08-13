@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js"
 import { useApiKeyList } from "./useApiKeyList.js";
 import { useDeleteApiKey } from "./useDeleteApiKey.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { formatRelativeTime } from "../activity/format-relative-time.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -296,27 +297,6 @@ function formatShortDate(date: Date): string {
     day: "numeric",
     year: "numeric",
   });
-}
-
-function formatRelativeTime(date: Date, now?: Date): string {
-  const ref = now?.getTime() ?? Date.now();
-  const diffMs = ref - date.getTime();
-
-  if (diffMs < 0) return "Just now";
-
-  const seconds = Math.floor(diffMs / 1000);
-  if (seconds < 60) return "Just now";
-
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-
-  return formatShortDate(date);
 }
 
 // ---------------------------------------------------------------------------

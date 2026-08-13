@@ -3,6 +3,7 @@
 import { cn } from "@stigmer/theme";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import type { VersionTimelineEntryProps } from "./types.js";
+import { formatRelativeTime } from "../activity/format-relative-time.js";
 
 /**
  * A single row in a version timeline.
@@ -204,27 +205,6 @@ function GitProvenanceRow({
 // ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
-
-function formatRelativeTime(date: Date): string {
-  const now = Date.now();
-  const diffMs = now - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHr = Math.floor(diffMin / 60);
-  const diffDays = Math.floor(diffHr / 24);
-
-  if (diffSec < 60) return "just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHr < 24) return `${diffHr}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
-
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
-  });
-}
 
 function normalizeGitUrl(url: string): string | null {
   if (!url) return null;

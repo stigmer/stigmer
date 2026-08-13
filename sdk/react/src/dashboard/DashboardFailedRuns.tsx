@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
 import type { DashboardFailedRun } from "./types.js";
+import { formatRelativeTime } from "../activity/format-relative-time.js";
 
 export interface DashboardFailedRunsProps {
   readonly failedRuns: readonly DashboardFailedRun[];
@@ -10,17 +11,6 @@ export interface DashboardFailedRunsProps {
   /** Called when the user clicks "View" on a failed run. */
   readonly onViewClick?: (id: string, type: DashboardFailedRun["type"]) => void;
   readonly className?: string;
-}
-
-function timeAgo(date: Date): string {
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
 }
 
 /**
@@ -89,7 +79,7 @@ export const DashboardFailedRuns = memo(function DashboardFailedRuns({
                 )}
               </div>
               <span className="stg:shrink-0 stg:text-muted-foreground">
-                {timeAgo(run.failedAt)}
+                {formatRelativeTime(run.failedAt)}
               </span>
               {onViewClick && (
                 <button

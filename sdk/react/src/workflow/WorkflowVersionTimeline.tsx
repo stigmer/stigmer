@@ -6,6 +6,7 @@ import { useWorkflowVersions } from "./useWorkflowVersions.js";
 import { WorkflowVersionBadge } from "./WorkflowVersionBadge.js";
 import type { VersionEntry } from "../version-history/types.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { formatRelativeTime } from "../activity/format-relative-time.js";
 
 /** Props for {@link WorkflowVersionTimeline}. */
 export interface WorkflowVersionTimelineProps {
@@ -248,31 +249,6 @@ function EmptyState({ className }: { readonly className?: string }) {
       </p>
     </div>
   );
-}
-
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
-function formatRelativeTime(date: Date): string {
-  const now = Date.now();
-  const diffMs = now - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHr = Math.floor(diffMin / 60);
-  const diffDays = Math.floor(diffHr / 24);
-
-  if (diffSec < 60) return "just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHr < 24) return `${diffHr}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
-
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
-  });
 }
 
 // ---------------------------------------------------------------------------
