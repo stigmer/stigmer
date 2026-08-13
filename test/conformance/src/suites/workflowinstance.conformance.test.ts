@@ -420,9 +420,8 @@ describe("WorkflowInstance conformance — negative paths", () => {
 
   it("rejects an unknown workflow_id (contract: NotFound from parent load)", async () => {
     // The parent template must exist: create runs LoadParentWorkflow before
-    // persisting. (AgentInstance diverges here — OSS skips the parent load
-    // while cloud rejects; stigmer#645 holds that ruling, so the agent-side
-    // suite deliberately leaves this unasserted.)
+    // persisting. (AgentInstance converged on the same posture with
+    // stigmer#645 — its suite pins the agent-side twin.)
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>

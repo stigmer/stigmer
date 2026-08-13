@@ -12,11 +12,15 @@
 // and spec-first negative paths (environment_refs kind is CEL-pinned to
 // environment).
 //
+// Parent-load on create is pinned (stigmer#645, ruled and fixed): unknown
+// spec.agent_id -> NotFound in BOTH editions. Cross-org creation is
+// deliberately NOT pinned: it is legitimate for agent instances (the
+// marketplace case — an org publishes an agent, a consumer org instantiates
+// it) but cloud gates it behind FGA can_create_instance while OSS, with no
+// authorization layer, allows it — a real edition divergence, unlike
+// WorkflowInstance's same-org rule which both editions enforce.
+//
 // Deliberately NOT asserted, with rulings pending:
-//   - unknown spec.agent_id on create: the editions DIVERGE — cloud loads the
-//     parent agent (NotFound), OSS has no parent-load step and accepts the
-//     dangling reference (while its own WorkflowInstance create validates).
-//     stigmer#645 holds that ruling; pin the behavior here once it lands.
 //   - spec.agent_id immutability on update: the proto docs claim it, but
 //     NEITHER edition enforces it (generic full-spec-replacement update) —
 //     stigmer#646 holds the ruling. Only genuinely mutable fields are updated.
@@ -398,10 +402,6 @@ describe("AgentInstance conformance — negative paths", () => {
   });
 
   it("rejects an empty agent_id (InvalidArgument, protovalidate min_len)", async () => {
-    // Only the FIELD constraint is pinned. Whether a non-empty but unknown
-    // agent_id is rejected is a live edition divergence (cloud: NotFound
-    // from LoadParentAgent; OSS: accepted, no parent load) — stigmer#645
-    // holds that ruling; pin the parent-load behavior once it lands.
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>
@@ -413,6 +413,22 @@ describe("AgentInstance conformance — negative paths", () => {
         }),
       Code.InvalidArgument,
       "create with empty agent_id",
+    );
+  });
+
+  it("rejects an unknown agent_id (contract: NotFound from parent load)", async () => {
+    // The parent template must exist: create runs LoadParentAgent before
+    // persisting (stigmer#645) — converging on cloud and on the sibling
+    // WorkflowInstance pipeline. Cross-org creation stays unpinned: see the
+    // suite header (marketplace case, FGA-gated in cloud only).
+    const { org } = await target.provisionTenancy();
+    await expectGrpcCode(
+      () =>
+        clients.agentInstanceCommand.create(
+          makeAgentInstance({ org, name: uniqueName("agi"), agentId: "agt_doesnotexist" }),
+        ),
+      Code.NotFound,
+      "create with unknown agent_id",
     );
   });
 
