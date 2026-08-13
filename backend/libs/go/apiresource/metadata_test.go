@@ -6,6 +6,7 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestGetKindEnum(t *testing.T) {
@@ -21,6 +22,28 @@ func TestGetKindEnum(t *testing.T) {
 				Kind: "Agent",
 			},
 			expected: apiresourcekind.ApiResourceKind_agent,
+			wantErr:  false,
+		},
+		{
+			// The oss#545 repro: OAuthApp is the only kind whose PascalCase
+			// name has consecutive capitals — no character-class split can
+			// recover "oauth_app" because "OAuth" being one word is recorded
+			// only in the proto's kind_meta.
+			name: "kind with consecutive capitals (OAuthApp)",
+			msg: &agentv1.Agent{
+				Kind: "OAuthApp",
+			},
+			expected: apiresourcekind.ApiResourceKind_oauth_app,
+			wantErr:  false,
+		},
+		{
+			// Cloud's ApiResourceKindExtractor.extract accepts snake_case
+			// spellings; both editions must resolve the same inputs.
+			name: "snake_case spelling resolves (cloud parity)",
+			msg: &agentv1.Agent{
+				Kind: "oauth_app",
+			},
+			expected: apiresourcekind.ApiResourceKind_oauth_app,
 			wantErr:  false,
 		},
 		{
@@ -259,26 +282,61 @@ func TestSupportedVisibilityLevels(t *testing.T) {
 	}
 }
 
-func TestToSnakeCase(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{"Agent", "agent"},
-		{"AgentInstance", "agent_instance"},
-		{"WorkflowExecution", "workflow_execution"},
-		{"IAMPolicy", "i_a_m_policy"},
-		{"", ""},
-		{"a", "a"},
-		{"AB", "a_b"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			got := toSnakeCase(tt.input)
-			if got != tt.expected {
-				t.Errorf("toSnakeCase(%q) = %q, want %q", tt.input, got, tt.expected)
+// TestGetKindEnumResolvesEveryDeclaredKind pins the structural guarantee that
+// motivated the kind_meta lookup (stigmer/stigmer#545): every kind the proto
+// declares resolves through GetKindEnum, by construction. A future kind with
+// unusual capitalization cannot regress silently — this test picks it up from
+// the proto with no code change.
+func TestGetKindEnumResolvesEveryDeclaredKind(t *testing.T) {
+	values := apiresourcekind.ApiResourceKind(0).Descriptor().Values()
+	checked := 0
+	for i := 0; i < values.Len(); i++ {
+		valueDesc := values.Get(i)
+		opts := valueDesc.Options()
+		if opts == nil || !proto.HasExtension(opts, apiresourcekind.E_KindMeta) {
+			// Only the unknown zero value carries no kind_meta.
+			if valueDesc.Number() != 0 {
+				t.Errorf("enum value %s (%d) has no kind_meta — every real kind must declare one", valueDesc.Name(), valueDesc.Number())
 			}
-		})
+			continue
+		}
+		meta := proto.GetExtension(opts, apiresourcekind.E_KindMeta).(*apiresourcekind.ApiResourceKindMeta)
+		want := apiresourcekind.ApiResourceKind(valueDesc.Number())
+
+		got, err := GetKindEnum(&agentv1.Agent{Kind: meta.GetName()})
+		if err != nil {
+			t.Errorf("GetKindEnum(kind=%q) failed for declared kind %s: %v", meta.GetName(), valueDesc.Name(), err)
+			continue
+		}
+		if got != want {
+			t.Errorf("GetKindEnum(kind=%q) = %v, want %v", meta.GetName(), got, want)
+		}
+		checked++
+	}
+	if checked == 0 {
+		t.Fatal("no enum values carried kind_meta — the reflection walk is broken")
+	}
+}
+
+// TestKindMetaNamesAreCanonicallyUnique pins the lookup's correctness
+// precondition: no two kinds may share a canonical name. This guards the
+// cross-edition contract, not just this package — Cloud's
+// ApiResourceKindExtractor compares with the same canonicalization, so a
+// collision would make kind resolution ambiguous on both editions.
+func TestKindMetaNamesAreCanonicallyUnique(t *testing.T) {
+	values := apiresourcekind.ApiResourceKind(0).Descriptor().Values()
+	seen := make(map[string]string)
+	for i := 0; i < values.Len(); i++ {
+		valueDesc := values.Get(i)
+		opts := valueDesc.Options()
+		if opts == nil || !proto.HasExtension(opts, apiresourcekind.E_KindMeta) {
+			continue
+		}
+		meta := proto.GetExtension(opts, apiresourcekind.E_KindMeta).(*apiresourcekind.ApiResourceKindMeta)
+		key := canonicalKindName(meta.GetName())
+		if prior, dup := seen[key]; dup {
+			t.Errorf("kinds %q and %q canonicalize to the same name %q — kind resolution is ambiguous in both editions", prior, meta.GetName(), key)
+		}
+		seen[key] = meta.GetName()
 	}
 }
