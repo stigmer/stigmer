@@ -40,9 +40,10 @@ function useConfirmAction(): UseConfirmActionReturn
 
 Clipboard helper for resource detail pages.
 
-Wraps `navigator.clipboard.writeText` with toast feedback so every
-copy action is confirmed visually (Nielsen heuristic #1 — visibility
-of system status). Falls back to a hidden textarea for older browsers.
+Wraps the shared copy behavior (`useCopyFeedback`) with toast feedback so
+every copy action is confirmed visually (Nielsen heuristic #1 — visibility
+of system status). A rejected write (insecure context, denied permission)
+toasts an error instead of claiming a copy that didn't happen.
 
 **Signature**
 
