@@ -103,7 +103,7 @@
           "messageType": "ToolApprovalPolicy"
         }
       },
-      "description": "Manual tool approval overrides set by the MCP server owner.",
+      "description": "Tools pinned by the MCP server owner to always require approval.",
       "required": false
     },
     {

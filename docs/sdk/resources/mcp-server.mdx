@@ -939,7 +939,7 @@ Input for creating or updating a MCP Server.
     http: { type: "HttpServerConfigInput", description: "HTTP-based server (HTTP + Server-Sent Events communication).", typeDescriptionLink: "#httpserverconfiginput" },
     defaultEnabledTools: { type: "string[]", description: "Default tools to enable from this MCP server." },
     env: { type: "Record<string, EnvVarDeclarationInput>", description: "Environment variable declarations for this MCP server.", typeDescriptionLink: "#envvardeclarationinput" },
-    pinnedToolApprovals: { type: "ToolApprovalPolicyInput[]", description: "Manual tool approval overrides set by the MCP server owner.", typeDescriptionLink: "#toolapprovalpolicyinput" },
+    pinnedToolApprovals: { type: "ToolApprovalPolicyInput[]", description: "Tools pinned by the MCP server owner to always require approval.", typeDescriptionLink: "#toolapprovalpolicyinput" },
     repositoryUrl: { type: "string", description: "URL of the upstream source repository for this MCP server." },
     githubStars: { type: "number", description: "GitHub star count at the time of curation." },
     auth: { type: "McpServerAuthInput", description: "OAuth authentication configuration for automated credential acquisition.", typeDescriptionLink: "#mcpserverauthinput" },
