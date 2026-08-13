@@ -77,6 +77,7 @@ Every resource type has a typed client accessible as a method on `StigmerClient`
 | `workflowExecutions()`   | WorkflowExecution  |
 | `workflowInstances()`    | WorkflowInstance   |
 | `search()`               | Cross-resource search |
+| `billing()`              | Credit balance, ledger, and Stripe billing |
 
 ## Common Operations
 
@@ -137,6 +138,29 @@ try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
 }
 ```
 
+## Billing
+
+Credit balance queries, ledger history, and manual credit adjustments for an
+organization. Commands require the `can_manage_billing` permission on the org:
+
+```java
+import ai.stigmer.sdk.BillingClient;
+import ai.stigmer.billing.v1.CreditBalance;
+import ai.stigmer.billing.v1.CreditLedgerEntry;
+
+try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
+    CreditBalance balance = client.billing().getCreditBalance(orgId);
+
+    CreditLedgerEntry entry = client.billing().adjustCredits(
+        BillingClient.AdjustCreditsParams.builder()
+            .orgId(orgId)
+            .amountMicros(25_000_000L) // +$25.00
+            .reason("initial tenant funding")
+            .idempotencyKey("fund-" + orgId)
+            .build());
+}
+```
+
 ## Error Handling
 
 All SDK operations throw `StigmerException` (unchecked) with structured error codes:
@@ -188,4 +212,4 @@ cd sdk/java
 make codegen
 ```
 
-Handwritten code lives outside `gen/`: `StigmerClient.java`, `SearchClient.java`, and `internal/transport/`.
+Handwritten code lives outside `gen/`: `StigmerClient.java`, `BillingClient.java`, `SearchClient.java`, `GitHubClient.java`, and `internal/transport/`.

@@ -78,6 +78,7 @@ class StigmerClientTest {
             assertNotNull(client.workflow);
             assertNotNull(client.workflowExecution);
             assertNotNull(client.workflowInstance);
+            assertNotNull(client.billing());
             assertNotNull(client.search());
             assertNotNull(client.github());
         }
