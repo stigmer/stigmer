@@ -9,13 +9,22 @@
 # workflow built sdk/go, so `make check-go` was red on every developer
 # machine while CI stayed green.
 #
-# Two gates, one job:
+# Three gates, one job (issue #264 closed the hygiene gaps):
 #   - freshness — regenerates the SDK client code (Stage 2, schemas are
 #     committed) and fails if the committed copy differs, so stale or
 #     hand-edited generated code fails here rather than silently drifting
 #     from the generator.
-#   - build + vet + test — compiles the whole module, so any codegen output
+#   - build + vet + test — compiles the whole module and runs its tests
+#     under -race (the root `make test` convention), so any codegen output
 #     that cannot compile fails pre-merge instead of at release time.
+#   - hygiene — gofmt -s and `go mod tidy -diff`, neither of which any other
+#     CI lane checks; without them formatting and go.mod drift land silently
+#     and turn up as noise in unrelated PRs.
+#
+# go.work/go.work.sum are trigger paths because sdk/go is a go.work member:
+# the checkout runs these commands in workspace mode, so a workspace change
+# (module set, Go version, the genproto replace) changes this module's build
+# without touching sdk/go/** (the ci.conformance lanes model the same).
 # =============================================================================
 
 name: ci.go-sdk
@@ -26,6 +35,8 @@ on:
       - "apis/**"
       - "sdk/go/**"
       - "tools/codegen/**"
+      - "go.work"
+      - "go.work.sum"
       - ".github/workflows/ci.go-sdk.yaml"
   push:
     branches: [main]
@@ -33,6 +44,8 @@ on:
       - "apis/**"
       - "sdk/go/**"
       - "tools/codegen/**"
+      - "go.work"
+      - "go.work.sum"
       - ".github/workflows/ci.go-sdk.yaml"
   workflow_dispatch: {}
 
@@ -51,10 +64,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # go-version-file keeps this lane on the workspace's toolchain when
+      # go.work bumps, instead of silently testing on a stale pinned version.
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version-file: go.work
           cache-dependency-path: |
             sdk/go/go.sum
             tools/go.sum
@@ -67,12 +82,27 @@ jobs:
       - name: Verify committed generated code is fresh
         run: git diff --exit-code sdk/go/internal/gen
 
+      # gofmt -s (the `make lint` formatter) and tidy -diff are check-only:
+      # they fail with the offending files/diff instead of mutating the tree.
+      - name: Check formatting and go.mod tidiness
+        working-directory: sdk/go
+        run: |
+          untidy=$(gofmt -s -l .)
+          if [ -n "$untidy" ]; then
+            echo "gofmt -s would reformat:" >&2
+            echo "$untidy" >&2
+            exit 1
+          fi
+          go mod tidy -diff
+
+      # -race and -timeout 30s match the root `make test` invocation, so this
+      # lane cannot pass code that the local gate rejects.
       - name: Build, vet, and test
         working-directory: sdk/go
         run: |
           go build ./...
           go vet ./...
-          go test ./... -count=1
+          go test -race -timeout 30s ./... -count=1
 
       # ./codegen/... (not just ./codegen/generator/...) so the proto2schema
       # extraction tests run too — the @internal strip (oss#327) lives there
