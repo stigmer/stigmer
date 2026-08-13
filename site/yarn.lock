@@ -2629,10 +2629,10 @@ __metadata:
 
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=82073c&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=85c50f&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:2.12.0"
-  checksum: 10c0/166c789fe625cbe116905833aaad4d2882a6d1873a97b6173043fc98c52a9c424b3c0321b71492b0112ee5eb37ce8a3e82069bf49eafa33a0ebe02c24deb4cb3
+  checksum: 10c0/5b4f5d620e29cb83f1018724056c9332b806fa49b1e6578b6790202059bce1637ef3fef1e2de7aa429e3ecf5cfd409a89ee48a1528eb6d0604cfb670871a0cae
   languageName: node
   linkType: hard
 
@@ -2712,7 +2712,7 @@ __metadata:
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=358ecc&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=8437ac&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2724,7 +2724,7 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/757d3eb012bd7e77e0800b46a8286d74c9bf58545d955e82a2a47e774b6d597129fbeb5c98f7ffd1ceb0ff8646f42abd09150ebe222a48d00ce82f6663fbdf5b
+  checksum: 10c0/c7a05c61884bf44d0df3bc10ae80c43db49b7fb9699eafee2cc69d5376f80eef2f5453f930f2808329aa40c96c39327f6282d00632b7a64e61693247aa38daa5
   languageName: node
   linkType: hard
 
