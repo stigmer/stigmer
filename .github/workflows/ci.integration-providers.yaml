@@ -5,8 +5,8 @@
 # Cursor. These are MANUAL-ONLY (workflow_dispatch).
 #
 # Tests exercise:
-#   - llm_call: direct LLM API calls via workflow-runner (cheap, ~$0.001/test)
-#   - agent_call: full pipeline through Java + Python agent-runner (~$0.01/test)
+#   - llm_call: direct LLM API calls through the unified Node runner (cheap, ~$0.001/test)
+#   - agent_call: full pipeline through the Java service + unified Node runner (~$0.01/test)
 #   - session-routing Tier 3: full E2E via Cursor SDK
 #
 # Cost: under $0.10 per full run with claude-sonnet-4-6.
@@ -96,27 +96,30 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      # The runner setup mirrors ci.integration-offline.yaml: the harness
+      # prefers the pre-built dist/main.js (raw .ts proto stubs break the
+      # Temporal webpack bundler) and every test in the provider set
+      # (TestWorkflow*/TestAgentExecution) runs through the unified runner.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          python-version: "3.12"
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build proto stubs
+        run: npm run build -w @stigmer/protos
+
+      - name: Install and build unified runner
+        working-directory: backend/services/runner
+        run: npm ci && npm run build
 
       - name: Install Temporal CLI
         uses: temporalio/setup-temporal@v0
 
       - name: Install gotestsum
         run: go install gotest.tools/gotestsum@v1.12.1
-
-      - name: Install agent-runner dependencies
-        working-directory: backend/services/agent-runner
-        run: |
-          python -m venv .venv
-          .venv/bin/pip install -e ".[dev]"
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: ".nvmrc"
 
       - name: Run provider integration tests
         env:

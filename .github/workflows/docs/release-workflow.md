@@ -60,7 +60,6 @@ git push origin main
 
 **Use this to:**
 - Test if your code compiles on all platforms
-- Verify agent-runner source embeds correctly
 - Check binary sizes
 - Download and manually test binaries before releasing
 
@@ -140,13 +139,15 @@ Git tag:
 
 GitHub Release assets:
 - `stigmer-v1.0.0-darwin-arm64.tar.gz`
-- `stigmer-v1.0.0-darwin-amd64.tar.gz`
-- `stigmer-v1.0.0-linux-amd64.tar.gz`
+- `stigmer-server-v1.0.0-darwin-amd64.tar.gz`
+- `stigmer-server-v1.0.0-linux-amd64.tar.gz`
 - Checksums (`.sha256` files)
 
-Homebrew formula:
-- Updated `Formula/stigmer.rb` with new version and checksums
-- Installs all three binaries (`stigmer`, `stigmer-server`, `stigmer-workflow-runner`)
+Distribution:
+- The `stigmer` CLI ships as the `@stigmer/cli` npm package; it downloads the
+  matching standalone `stigmer-server` asset on demand
+- The Homebrew tap (`stigmer/tap/stigmer`) is deliberately NOT bumped by this
+  workflow (see the note in `release.cli.yaml`)
 
 ## Version Numbering Strategy
 
@@ -178,8 +179,8 @@ Mark as pre-release in GitHub Actions or manually edit the release.
 1. **Test locally first**
    ```bash
    make build
-   ./bin/stigmer --version
-   ls -lh bin/stigmer bin/stigmer-server bin/stigmer-workflow-runner
+   ls -lh bin/stigmer-server
+   # The CLI ships as the @stigmer/cli npm package — no local bin/stigmer
    ```
 
 2. **Push to main and verify test build**
@@ -196,10 +197,10 @@ Mark as pre-release in GitHub Actions or manually edit the release.
 
 ### Release Checklist
 
-- [ ] All three binaries compile locally (`make build`)
+- [ ] The server binary compiles locally (`make build`)
 - [ ] Tests pass
 - [ ] Test build succeeded on all platforms
-- [ ] Downloaded and verified test binaries work (CLI, server, workflow-runner)
+- [ ] Downloaded and verified test binaries work (CLI via npm, server)
 - [ ] Decided on version number (e.g., `1.0.1`)
 - [ ] Ready to create git tag and release
 
@@ -321,11 +322,11 @@ git push origin main
 
 The workflow follows a **build → verify → tag → release** pattern:
 
-1. ✅ **Build first** - Compile three binaries (`stigmer`, `stigmer-server`,
-   `stigmer-workflow-runner`) on all platforms
+1. ✅ **Build first** - Compile the `stigmer-server` binary on all platforms
+   (the CLI ships separately as the `@stigmer/cli` npm package)
 2. ✅ **Verify** - All builds must succeed  
 3. ✅ **Tag** - Create git tag only after success
-4. ✅ **Release** - Publish tarballs (containing all three binaries) to GitHub
+4. ✅ **Release** - Publish the `stigmer-server` tarballs to GitHub
 
 This ensures:
 - Clean git history (no failed release tags)
