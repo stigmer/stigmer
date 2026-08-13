@@ -63,11 +63,10 @@ public interface OAuthStatusOrBuilder extends
 
   /**
    * <pre>
-   * Where the effective OAuth app was resolved from for the caller's org.
-   * Computed from the resolution chain:
-   * 1. OAuthAppOverride for (resource_id, resource_kind, org_id) → ORG_OVERRIDE
-   * 2. McpServerAuth.oauth_app_ref → PLATFORM
-   * 3. Neither exists → NONE
+   * NEVER POPULATED (see the message comment): the caller's active org is
+   * client-side context, so no backend can evaluate the resolution chain at
+   * read time. The shared SDK derives this value client-side from the
+   * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
@@ -76,11 +75,10 @@ public interface OAuthStatusOrBuilder extends
   int getEffectiveOauthSourceValue();
   /**
    * <pre>
-   * Where the effective OAuth app was resolved from for the caller's org.
-   * Computed from the resolution chain:
-   * 1. OAuthAppOverride for (resource_id, resource_kind, org_id) → ORG_OVERRIDE
-   * 2. McpServerAuth.oauth_app_ref → PLATFORM
-   * 3. Neither exists → NONE
+   * NEVER POPULATED (see the message comment): the caller's active org is
+   * client-side context, so no backend can evaluate the resolution chain at
+   * read time. The shared SDK derives this value client-side from the
+   * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
@@ -90,8 +88,8 @@ public interface OAuthStatusOrBuilder extends
 
   /**
    * <pre>
-   * System-generated ID (metadata.id) of the OAuthApp that the resolution
-   * chain selected. Empty when effective_oauth_source is NONE.
+   * NEVER POPULATED (see the message comment). The override's OAuthApp ID
+   * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
    * </pre>
    *
    * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>
@@ -100,8 +98,8 @@ public interface OAuthStatusOrBuilder extends
   java.lang.String getEffectiveOauthAppId();
   /**
    * <pre>
-   * System-generated ID (metadata.id) of the OAuthApp that the resolution
-   * chain selected. Empty when effective_oauth_source is NONE.
+   * NEVER POPULATED (see the message comment). The override's OAuthApp ID
+   * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
    * </pre>
    *
    * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>

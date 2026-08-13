@@ -1082,7 +1082,7 @@
     },
     {
       "name": "OAuthAppSource",
-      "description": "OAuthAppSource identifies where the effective OAuth app for an MCP server\n was resolved from. Populated at query time by the backend enricher to tell\n the frontend which credential source is active for the current org context.\n\n Used in OAuthStatus.effective_oauth_source (read-only, not persisted).",
+      "description": "OAuthAppSource identifies where the effective OAuth app for an MCP server\n was resolved from.\n\n The resolution chain is the same one the OAuth connect flow evaluates:\n   1. OAuthAppOverride for (resource_id, resource_kind, org_id) → ORG_OVERRIDE\n   2. McpServerAuth.oauth_app_ref → PLATFORM\n   3. Neither exists → NONE\n\n Resolved CLIENT-SIDE by the shared SDK from the getOrgOAuthApp RPC: the\n resolution is per (server, caller's active org), and the caller's active\n org is client-side context the read RPCs never carry, so no backend can\n compute it at enrichment time (see OAuthStatus fields 3-4).",
       "protoType": "ai.stigmer.agentic.mcpserver.v1.OAuthAppSource",
       "values": [
         {
@@ -1168,7 +1168,7 @@
           "kind": "message",
           "messageType": "OAuthStatus"
         },
-        "description": "OAuth-related enrichment state, populated at query time by the backend.\n Contains vendor approval status (resolved from the referenced OAuthApp)\n and BYOA resolution chain results (which OAuthApp is effective for the\n caller's org context). None of these fields are persisted.",
+        "description": "OAuth-related enrichment state, populated at query time by the backend.\n Carries the vendor approval status resolved from the referenced OAuthApp\n (fields 1-2; fields 3-4 are never populated — see OAuthStatus).\n None of these fields are persisted.",
         "required": false
       },
       {
@@ -1500,7 +1500,7 @@
               "OAUTH_APP_SOURCE_NONE"
             ]
           },
-          "description": "Where the effective OAuth app was resolved from for the caller's org.\n Computed from the resolution chain:\n   1. OAuthAppOverride for (resource_id, resource_kind, org_id) → ORG_OVERRIDE\n   2. McpServerAuth.oauth_app_ref → PLATFORM\n   3. Neither exists → NONE",
+          "description": "NEVER POPULATED (see the message comment): the caller's active org is\n client-side context, so no backend can evaluate the resolution chain at\n read time. The shared SDK derives this value client-side from the\n getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).",
           "required": false
         },
         {
@@ -1510,7 +1510,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "System-generated ID (metadata.id) of the OAuthApp that the resolution\n chain selected. Empty when effective_oauth_source is NONE.",
+          "description": "NEVER POPULATED (see the message comment). The override's OAuthApp ID\n is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).",
           "required": false
         }
       ]

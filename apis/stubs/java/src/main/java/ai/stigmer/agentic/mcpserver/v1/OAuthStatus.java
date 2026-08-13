@@ -10,17 +10,24 @@ package ai.stigmer.agentic.mcpserver.v1;
  * OAuthStatus holds system-derived OAuth enrichment state for an MCP server.
  *
  * &#64;internal
- * All fields are read-only, populated by the backend enricher at query time.
- * None are persisted on the McpServer document — they are computed fresh on
- * every get/getByReference response.
+ * All fields are read-only and never persisted on the McpServer document.
  *
- * Two categories of enrichment:
- * 1. Vendor approval (fields 1-2): Resolved from the referenced OAuthApp
- * resource. Tells the frontend whether the sign-in button should be
- * enabled and provides a BYOA documentation link when approval is pending.
- * 2. BYOA resolution (fields 3-4): Computed from the OAuth app resolution
- * chain. Tells the frontend which credential source is active for the
- * caller's org context and its OAuthApp ID.
+ * Two categories, with different production stories:
+ * 1. Vendor approval (fields 1-2): populated by the backend enricher on
+ * every get/getByReference response, resolved from the referenced
+ * OAuthApp. Tells the frontend whether the platform sign-in flow is
+ * gated and provides a BYOA documentation link when approval is pending.
+ * 2. BYOA resolution (fields 3-4): NEVER POPULATED, by any edition. The
+ * resolution is per (server, caller's active org), and the caller's
+ * active org is client-side context the read RPCs never carry — get has
+ * no org, and getByReference's org is the server's OWNING org (the
+ * lookup key), which differs from the caller's org when browsing another
+ * org's public server. Resolving against the owning org would misreport
+ * exactly the cross-org marketplace flow BYOA exists for. The shared SDK
+ * instead derives the signal client-side from the getOrgOAuthApp RPC,
+ * keyed on the same org the connect flow uses. The fields are retained
+ * for wire compatibility and as the home of this contract note; a future
+ * server-side active-org mechanism could legitimately populate them.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.OAuthStatus}
@@ -158,11 +165,10 @@ private static final long serialVersionUID = 0L;
   private int effectiveOauthSource_ = 0;
   /**
    * <pre>
-   * Where the effective OAuth app was resolved from for the caller's org.
-   * Computed from the resolution chain:
-   * 1. OAuthAppOverride for (resource_id, resource_kind, org_id) → ORG_OVERRIDE
-   * 2. McpServerAuth.oauth_app_ref → PLATFORM
-   * 3. Neither exists → NONE
+   * NEVER POPULATED (see the message comment): the caller's active org is
+   * client-side context, so no backend can evaluate the resolution chain at
+   * read time. The shared SDK derives this value client-side from the
+   * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
@@ -173,11 +179,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Where the effective OAuth app was resolved from for the caller's org.
-   * Computed from the resolution chain:
-   * 1. OAuthAppOverride for (resource_id, resource_kind, org_id) → ORG_OVERRIDE
-   * 2. McpServerAuth.oauth_app_ref → PLATFORM
-   * 3. Neither exists → NONE
+   * NEVER POPULATED (see the message comment): the caller's active org is
+   * client-side context, so no backend can evaluate the resolution chain at
+   * read time. The shared SDK derives this value client-side from the
+   * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
@@ -193,8 +198,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object effectiveOauthAppId_ = "";
   /**
    * <pre>
-   * System-generated ID (metadata.id) of the OAuthApp that the resolution
-   * chain selected. Empty when effective_oauth_source is NONE.
+   * NEVER POPULATED (see the message comment). The override's OAuthApp ID
+   * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
    * </pre>
    *
    * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>
@@ -215,8 +220,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * System-generated ID (metadata.id) of the OAuthApp that the resolution
-   * chain selected. Empty when effective_oauth_source is NONE.
+   * NEVER POPULATED (see the message comment). The override's OAuthApp ID
+   * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
    * </pre>
    *
    * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>
@@ -428,17 +433,24 @@ private static final long serialVersionUID = 0L;
    * OAuthStatus holds system-derived OAuth enrichment state for an MCP server.
    *
    * &#64;internal
-   * All fields are read-only, populated by the backend enricher at query time.
-   * None are persisted on the McpServer document — they are computed fresh on
-   * every get/getByReference response.
+   * All fields are read-only and never persisted on the McpServer document.
    *
-   * Two categories of enrichment:
-   * 1. Vendor approval (fields 1-2): Resolved from the referenced OAuthApp
-   * resource. Tells the frontend whether the sign-in button should be
-   * enabled and provides a BYOA documentation link when approval is pending.
-   * 2. BYOA resolution (fields 3-4): Computed from the OAuth app resolution
-   * chain. Tells the frontend which credential source is active for the
-   * caller's org context and its OAuthApp ID.
+   * Two categories, with different production stories:
+   * 1. Vendor approval (fields 1-2): populated by the backend enricher on
+   * every get/getByReference response, resolved from the referenced
+   * OAuthApp. Tells the frontend whether the platform sign-in flow is
+   * gated and provides a BYOA documentation link when approval is pending.
+   * 2. BYOA resolution (fields 3-4): NEVER POPULATED, by any edition. The
+   * resolution is per (server, caller's active org), and the caller's
+   * active org is client-side context the read RPCs never carry — get has
+   * no org, and getByReference's org is the server's OWNING org (the
+   * lookup key), which differs from the caller's org when browsing another
+   * org's public server. Resolving against the owning org would misreport
+   * exactly the cross-org marketplace flow BYOA exists for. The shared SDK
+   * instead derives the signal client-side from the getOrgOAuthApp RPC,
+   * keyed on the same org the connect flow uses. The fields are retained
+   * for wire compatibility and as the home of this contract note; a future
+   * server-side active-org mechanism could legitimately populate them.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.OAuthStatus}
@@ -813,11 +825,10 @@ private static final long serialVersionUID = 0L;
     private int effectiveOauthSource_ = 0;
     /**
      * <pre>
-     * Where the effective OAuth app was resolved from for the caller's org.
-     * Computed from the resolution chain:
-     * 1. OAuthAppOverride for (resource_id, resource_kind, org_id) → ORG_OVERRIDE
-     * 2. McpServerAuth.oauth_app_ref → PLATFORM
-     * 3. Neither exists → NONE
+     * NEVER POPULATED (see the message comment): the caller's active org is
+     * client-side context, so no backend can evaluate the resolution chain at
+     * read time. The shared SDK derives this value client-side from the
+     * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
@@ -828,11 +839,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Where the effective OAuth app was resolved from for the caller's org.
-     * Computed from the resolution chain:
-     * 1. OAuthAppOverride for (resource_id, resource_kind, org_id) → ORG_OVERRIDE
-     * 2. McpServerAuth.oauth_app_ref → PLATFORM
-     * 3. Neither exists → NONE
+     * NEVER POPULATED (see the message comment): the caller's active org is
+     * client-side context, so no backend can evaluate the resolution chain at
+     * read time. The shared SDK derives this value client-side from the
+     * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
@@ -848,11 +858,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Where the effective OAuth app was resolved from for the caller's org.
-     * Computed from the resolution chain:
-     * 1. OAuthAppOverride for (resource_id, resource_kind, org_id) → ORG_OVERRIDE
-     * 2. McpServerAuth.oauth_app_ref → PLATFORM
-     * 3. Neither exists → NONE
+     * NEVER POPULATED (see the message comment): the caller's active org is
+     * client-side context, so no backend can evaluate the resolution chain at
+     * read time. The shared SDK derives this value client-side from the
+     * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
@@ -865,11 +874,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Where the effective OAuth app was resolved from for the caller's org.
-     * Computed from the resolution chain:
-     * 1. OAuthAppOverride for (resource_id, resource_kind, org_id) → ORG_OVERRIDE
-     * 2. McpServerAuth.oauth_app_ref → PLATFORM
-     * 3. Neither exists → NONE
+     * NEVER POPULATED (see the message comment): the caller's active org is
+     * client-side context, so no backend can evaluate the resolution chain at
+     * read time. The shared SDK derives this value client-side from the
+     * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
@@ -885,11 +893,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Where the effective OAuth app was resolved from for the caller's org.
-     * Computed from the resolution chain:
-     * 1. OAuthAppOverride for (resource_id, resource_kind, org_id) → ORG_OVERRIDE
-     * 2. McpServerAuth.oauth_app_ref → PLATFORM
-     * 3. Neither exists → NONE
+     * NEVER POPULATED (see the message comment): the caller's active org is
+     * client-side context, so no backend can evaluate the resolution chain at
+     * read time. The shared SDK derives this value client-side from the
+     * getOrgOAuthApp RPC (useMcpServerCredentials.effectiveOAuthSource).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthAppSource effective_oauth_source = 3 [json_name = "effectiveOauthSource"];</code>
@@ -905,8 +912,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object effectiveOauthAppId_ = "";
     /**
      * <pre>
-     * System-generated ID (metadata.id) of the OAuthApp that the resolution
-     * chain selected. Empty when effective_oauth_source is NONE.
+     * NEVER POPULATED (see the message comment). The override's OAuthApp ID
+     * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
      * </pre>
      *
      * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>
@@ -926,8 +933,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-generated ID (metadata.id) of the OAuthApp that the resolution
-     * chain selected. Empty when effective_oauth_source is NONE.
+     * NEVER POPULATED (see the message comment). The override's OAuthApp ID
+     * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
      * </pre>
      *
      * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>
@@ -948,8 +955,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-generated ID (metadata.id) of the OAuthApp that the resolution
-     * chain selected. Empty when effective_oauth_source is NONE.
+     * NEVER POPULATED (see the message comment). The override's OAuthApp ID
+     * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
      * </pre>
      *
      * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>
@@ -966,8 +973,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-generated ID (metadata.id) of the OAuthApp that the resolution
-     * chain selected. Empty when effective_oauth_source is NONE.
+     * NEVER POPULATED (see the message comment). The override's OAuthApp ID
+     * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
      * </pre>
      *
      * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>
@@ -981,8 +988,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-generated ID (metadata.id) of the OAuthApp that the resolution
-     * chain selected. Empty when effective_oauth_source is NONE.
+     * NEVER POPULATED (see the message comment). The override's OAuthApp ID
+     * is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).
      * </pre>
      *
      * <code>string effective_oauth_app_id = 4 [json_name = "effectiveOauthAppId"];</code>
