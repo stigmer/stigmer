@@ -33,30 +33,6 @@ func TestExtractDomainFromProtoType(t *testing.T) {
 	}
 }
 
-func TestExtractSubdomainFromProtoFile(t *testing.T) {
-	tests := []struct {
-		input string
-		want  string
-	}{
-		{"apis/ai/stigmer/agentic/agent/v1/spec.proto", "agent"},
-		{"apis/ai/stigmer/agentic/skill/v1/spec.proto", "skill"},
-		{"apis/ai/stigmer/iam/apikey/v1/spec.proto", "apikey"},
-		{"apis/ai/stigmer/tenancy/organization/v1/spec.proto", "organization"},
-		{"apis/ai/stigmer/commons/apiresource/io.proto", ""},
-		{"short/path.proto", ""},
-		{"", ""},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.input, func(t *testing.T) {
-			got := extractSubdomainFromProtoFile(tc.input)
-			if got != tc.want {
-				t.Errorf("extractSubdomainFromProtoFile(%q) = %q, want %q", tc.input, got, tc.want)
-			}
-		})
-	}
-}
-
 func TestProtoTypeToGoImportPath(t *testing.T) {
 	tests := []struct {
 		input  string
@@ -65,12 +41,12 @@ func TestProtoTypeToGoImportPath(t *testing.T) {
 	}{
 		{
 			"ai.stigmer.agentic.agent.v1.McpServerUsage",
-			sdkProtoPrefix,
+			sdkProtoImportPrefix,
 			"github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1",
 		},
 		{
 			"ai.stigmer.commons.apiresource.ApiResourceReference",
-			sdkProtoPrefix,
+			sdkProtoImportPrefix,
 			"github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource",
 		},
 		{
@@ -78,9 +54,9 @@ func TestProtoTypeToGoImportPath(t *testing.T) {
 			mcpProtoPrefix,
 			"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/session/v1",
 		},
-		{"foo.bar.Baz", sdkProtoPrefix, ""},
-		{"too.short", sdkProtoPrefix, ""},
-		{"x", sdkProtoPrefix, ""},
+		{"foo.bar.Baz", sdkProtoImportPrefix, ""},
+		{"too.short", sdkProtoImportPrefix, ""},
+		{"x", sdkProtoImportPrefix, ""},
 	}
 
 	for _, tc := range tests {
@@ -117,53 +93,6 @@ func TestProtoTypeToPackageAlias(t *testing.T) {
 	}
 }
 
-func TestTitleCase(t *testing.T) {
-	tests := []struct {
-		input string
-		want  string
-	}{
-		{"HTTP_CALL", "HttpCall"},
-		{"AGENT_EXECUTION", "AgentExecution"},
-		{"SINGLE", "Single"},
-		{"", ""},
-		{"a_b_c", "ABC"},
-		{"FORK_JOIN_ALL", "ForkJoinAll"},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.input, func(t *testing.T) {
-			got := titleCase(tc.input)
-			if got != tc.want {
-				t.Errorf("titleCase(%q) = %q, want %q", tc.input, got, tc.want)
-			}
-		})
-	}
-}
-
-func TestToSnakeCase(t *testing.T) {
-	tests := []struct {
-		input string
-		want  string
-	}{
-		{"HttpCallConfig", "http_call_config"},
-		{"AgentSpec", "agent_spec"},
-		{"ID", "i_d"},
-		{"URLPath", "u_r_l_path"},
-		{"simple", "simple"},
-		{"", ""},
-		{"A", "a"},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.input, func(t *testing.T) {
-			got := toSnakeCase(tc.input)
-			if got != tc.want {
-				t.Errorf("toSnakeCase(%q) = %q, want %q", tc.input, got, tc.want)
-			}
-		})
-	}
-}
-
 func TestSanitizeDescription(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -184,275 +113,6 @@ func TestSanitizeDescription(t *testing.T) {
 			got := sanitizeDescription(tc.input)
 			if got != tc.want {
 				t.Errorf("sanitizeDescription(%q) = %q, want %q", tc.input, got, tc.want)
-			}
-		})
-	}
-}
-
-func TestMatchEnumValue(t *testing.T) {
-	enumValues := []string{"http_call", "agent_execution", "fork_join_all", "conditional"}
-
-	tests := []struct {
-		configKind string
-		want       string
-	}{
-		{"HTTP_CALL", "http_call"},
-		{"AGENT_EXECUTION", "agent_execution"},
-		{"FORK_JOIN_ALL", "fork_join_all"},
-		{"CONDITIONAL", "conditional"},
-		{"NONEXISTENT", ""},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.configKind, func(t *testing.T) {
-			got := matchEnumValue(tc.configKind, enumValues)
-			if got != tc.want {
-				t.Errorf("matchEnumValue(%q, ...) = %q, want %q", tc.configKind, got, tc.want)
-			}
-		})
-	}
-}
-
-func TestIsWordSubset(t *testing.T) {
-	tests := []struct {
-		name     string
-		subset   []string
-		superset []string
-		want     bool
-	}{
-		{"equal", []string{"A", "B"}, []string{"A", "B"}, true},
-		{"subset", []string{"A"}, []string{"A", "B"}, true},
-		{"not subset", []string{"C"}, []string{"A", "B"}, false},
-		{"empty subset", []string{}, []string{"A", "B"}, true},
-		{"empty both", []string{}, []string{}, true},
-		{"superset empty", []string{"A"}, []string{}, false},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := isWordSubset(tc.subset, tc.superset)
-			if got != tc.want {
-				t.Errorf("isWordSubset(%v, %v) = %v, want %v", tc.subset, tc.superset, got, tc.want)
-			}
-		})
-	}
-}
-
-func TestGenContextParamName(t *testing.T) {
-	ctx := newGenContext("test")
-	tests := []struct {
-		input string
-		want  string
-	}{
-		{"Name", "name"},
-		{"URL", "uRL"},
-		{"httpEndpoint", "httpEndpoint"},
-		{"", ""},
-		{"A", "a"},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.input, func(t *testing.T) {
-			got := ctx.paramName(tc.input)
-			if got != tc.want {
-				t.Errorf("paramName(%q) = %q, want %q", tc.input, got, tc.want)
-			}
-		})
-	}
-}
-
-func TestGenContextGoType(t *testing.T) {
-	ctx := newGenContext("gen")
-
-	tests := []struct {
-		name     string
-		typeSpec TypeSpec
-		want     string
-	}{
-		{"string", TypeSpec{Kind: "string"}, "string"},
-		{"int32", TypeSpec{Kind: "int32"}, "int32"},
-		{"int64", TypeSpec{Kind: "int64"}, "int64"},
-		{"bool", TypeSpec{Kind: "bool"}, "bool"},
-		{"float", TypeSpec{Kind: "float"}, "float32"},
-		{"double", TypeSpec{Kind: "double"}, "float64"},
-		{"bytes", TypeSpec{Kind: "bytes"}, "[]byte"},
-		{"struct", TypeSpec{Kind: "struct"}, "map[string]interface{}"},
-		{"array of strings", TypeSpec{Kind: "array", ElementType: &TypeSpec{Kind: "string"}}, "[]string"},
-		{"array of int32", TypeSpec{Kind: "array", ElementType: &TypeSpec{Kind: "int32"}}, "[]int32"},
-		{"map string->string", TypeSpec{
-			Kind:      "map",
-			KeyType:   &TypeSpec{Kind: "string"},
-			ValueType: &TypeSpec{Kind: "string"},
-		}, "map[string]string"},
-		{"map string->int32", TypeSpec{
-			Kind:      "map",
-			KeyType:   &TypeSpec{Kind: "string"},
-			ValueType: &TypeSpec{Kind: "int32"},
-		}, "map[string]int32"},
-		{"message local", TypeSpec{Kind: "message", MessageType: "FooBar"}, "*FooBar"},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := ctx.goType(tc.typeSpec)
-			if got != tc.want {
-				t.Errorf("goType(%v) = %q, want %q", tc.typeSpec.Kind, got, tc.want)
-			}
-		})
-	}
-}
-
-func TestGenContextGoTypeSharedTypes(t *testing.T) {
-	ctx := newGenContextWithSharedTypes("gen", []string{"HttpEndpoint"})
-
-	got := ctx.goType(TypeSpec{Kind: "message", MessageType: "HttpEndpoint"})
-	want := "*types.HttpEndpoint"
-	if got != want {
-		t.Errorf("goType(shared HttpEndpoint) = %q, want %q", got, want)
-	}
-
-	ctxTypes := newGenContext("types")
-	ctxTypes.sharedTypes["HttpEndpoint"] = struct{}{}
-	got = ctxTypes.goType(TypeSpec{Kind: "message", MessageType: "HttpEndpoint"})
-	want = "*HttpEndpoint"
-	if got != want {
-		t.Errorf("goType(shared HttpEndpoint in types pkg) = %q, want %q", got, want)
-	}
-}
-
-func TestGenContextGoTypeWellKnown(t *testing.T) {
-	ctx := newGenContext("gen")
-
-	tests := []struct {
-		messageType string
-		wantSuffix  string
-	}{
-		{"Timestamp", "*timestamppb.Timestamp"},
-		{"Duration", "*durationpb.Duration"},
-		{"Any", "*anypb.Any"},
-		{"Empty", "*emptypb.Empty"},
-		{"FieldMask", "*fieldmaskpb.FieldMask"},
-		{"Value", "*structpb.Value"},
-		{"ListValue", "*structpb.ListValue"},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.messageType, func(t *testing.T) {
-			got := ctx.goType(TypeSpec{Kind: "message", MessageType: tc.messageType})
-			if got != tc.wantSuffix {
-				t.Errorf("goType(well-known %s) = %q, want %q", tc.messageType, got, tc.wantSuffix)
-			}
-		})
-	}
-}
-
-func TestGenContextIsWellKnownProtoType(t *testing.T) {
-	ctx := newGenContext("gen")
-
-	wellKnown := []string{
-		"Timestamp", "Duration", "Any", "Empty", "FieldMask",
-		"Value", "ListValue", "NullValue",
-		"BoolValue", "Int32Value", "Int64Value", "UInt32Value", "UInt64Value",
-		"FloatValue", "DoubleValue", "StringValue", "BytesValue",
-	}
-	for _, name := range wellKnown {
-		if !ctx.isWellKnownProtoType(name) {
-			t.Errorf("isWellKnownProtoType(%q) = false, want true", name)
-		}
-	}
-
-	notWellKnown := []string{"FooBar", "Agent", "Skill", ""}
-	for _, name := range notWellKnown {
-		if ctx.isWellKnownProtoType(name) {
-			t.Errorf("isWellKnownProtoType(%q) = true, want false", name)
-		}
-	}
-}
-
-func TestGenContextSingularize(t *testing.T) {
-	ctx := newGenContext("gen")
-
-	tests := []struct {
-		input string
-		want  string
-	}{
-		{"Headers", "Header"},
-		{"Skills", "Skill"},
-		{"Environments", "Environment"},
-		{"Entries", "Entry"},
-		{"Addresses", "Address"},
-		{"Children", "Child"},
-		{"People", "Person"},
-		{"Men", "Man"},
-		{"Women", "Woman"},
-		{"Address", "Address"},
-		{"Bus", "Bu"},
-		{"Buss", "Buss"},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.input, func(t *testing.T) {
-			got := ctx.singularize(tc.input)
-			if got != tc.want {
-				t.Errorf("singularize(%q) = %q, want %q", tc.input, got, tc.want)
-			}
-		})
-	}
-}
-
-func TestGenContextPluralize(t *testing.T) {
-	ctx := newGenContext("gen")
-
-	tests := []struct {
-		input string
-		want  string
-	}{
-		{"Header", "Headers"},
-		{"Skill", "Skills"},
-		{"Entry", "Entries"},
-		{"Address", "Addresses"},
-		{"Child", "Children"},
-		{"Person", "People"},
-		{"Man", "Men"},
-		{"Woman", "Women"},
-		{"Key", "Keys"},
-		{"Fox", "Foxes"},
-		{"Batch", "Batches"},
-		{"Bush", "Bushes"},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.input, func(t *testing.T) {
-			got := ctx.pluralize(tc.input)
-			if got != tc.want {
-				t.Errorf("pluralize(%q) = %q, want %q", tc.input, got, tc.want)
-			}
-		})
-	}
-}
-
-func TestGenContextNeedsCoercion(t *testing.T) {
-	ctx := newGenContext("gen")
-
-	tests := []struct {
-		name string
-		spec *TypeSpec
-		want bool
-	}{
-		{"nil", nil, false},
-		{"string", &TypeSpec{Kind: "string"}, true},
-		{"int32", &TypeSpec{Kind: "int32"}, false},
-		{"bool", &TypeSpec{Kind: "bool"}, false},
-		{"message", &TypeSpec{Kind: "message"}, false},
-		{"map string->string", &TypeSpec{Kind: "map", ValueType: &TypeSpec{Kind: "string"}}, true},
-		{"map string->int32", &TypeSpec{Kind: "map", ValueType: &TypeSpec{Kind: "int32"}}, false},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := ctx.needsCoercion(tc.spec)
-			if got != tc.want {
-				t.Errorf("needsCoercion(%v) = %v, want %v", tc.name, got, tc.want)
 			}
 		})
 	}

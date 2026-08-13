@@ -1,0 +1,86 @@
+# =============================================================================
+# Codegen freshness gate: mcp-server/src/gen, sdk/typescript/src/gen,
+# sdk/python/src/stigmer/_gen
+# =============================================================================
+# The freshness counterpart of ci.go-sdk / ci.java-sdk for the three committed
+# codegen dirs that had no gate at all (oss#496): nothing regenerated them in
+# CI, so schema evolution could silently strand any of them — exactly how the
+# retired sdk/go/gen dir accumulated months of drift before it was deleted.
+#
+# One job, one gate per language surface:
+#   - regenerate all three dirs from the committed schemas (the generator is
+#     a pure function of tools/codegen/schemas) and fail on any diff, so a
+#     schema or generator change that lands without its regenerated output
+#     fails here rather than drifting.
+#   - Python runs codegen-verify (regen + ast.parse) because no other lane
+#     ever syntax-checks the committed Python output; TypeScript and
+#     mcp-server compile validity is already covered by ci.frontend's
+#     `npm run build:libs`, so their steps stay freshness-only.
+# =============================================================================
+
+name: ci.codegen
+
+on:
+  pull_request:
+    paths:
+      - "apis/**"
+      - "tools/codegen/**"
+      - "mcp-server/src/gen/**"
+      - "mcp-server/Makefile"
+      - "sdk/typescript/src/gen/**"
+      - "sdk/typescript/Makefile"
+      - "sdk/python/src/stigmer/_gen/**"
+      - "sdk/python/Makefile"
+      - ".github/workflows/ci.codegen.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "apis/**"
+      - "tools/codegen/**"
+      - "mcp-server/src/gen/**"
+      - "mcp-server/Makefile"
+      - "sdk/typescript/src/gen/**"
+      - "sdk/typescript/Makefile"
+      - "sdk/python/src/stigmer/_gen/**"
+      - "sdk/python/Makefile"
+      - ".github/workflows/ci.codegen.yaml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-codegen-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  codegen:
+    name: codegen freshness (mcp-server / ts / python)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: tools/go.sum
+
+      - name: Regenerate mcp-server apply-input modules
+        run: make -C mcp-server codegen
+
+      - name: Regenerate TypeScript SDK client code
+        run: make -C sdk/typescript codegen
+
+      # codegen-verify = regen + ast.parse over the output: the only syntax
+      # check the committed Python gen dir gets anywhere in CI.
+      - name: Regenerate and verify Python SDK client code
+        run: make -C sdk/python codegen-verify
+
+      - name: Verify committed generated code is fresh
+        run: |
+          git diff --exit-code \
+            mcp-server/src/gen \
+            sdk/typescript/src/gen \
+            sdk/python/src/stigmer/_gen

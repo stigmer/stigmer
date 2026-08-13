@@ -44,7 +44,6 @@ use_repo(
     "com_github_rs_zerolog",
     "com_github_stigmer_stigmer_apis_stubs_go",
     "com_github_stigmer_stigmer_backend_libs_go",
-    "com_github_stigmer_stigmer_sdk_go_v3",
     "com_github_stigmer_stigmer_test_integration",
     "com_github_stretchr_testify",
     "com_github_testcontainers_testcontainers_go",

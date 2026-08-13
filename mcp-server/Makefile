@@ -12,7 +12,6 @@ codegen-apply: ## Generate apply-tool zod schemas + toProto bridges from proto s
 	@rm -rf src/gen
 	@mkdir -p src/gen
 	@cd .. && go run ./tools/codegen/generator/ \
-		--comprehensive \
 		--schema-dir tools/codegen/schemas \
 		--output-dir mcp-server/src/gen \
 		--target mcp-ts

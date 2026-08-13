@@ -1,108 +1,96 @@
-# Stigmer Code Generation Tools
+# Stigmer Code Generation Toolchain
 
-Automated code generation for the Stigmer Go SDK, inspired by Pulumi.
+A two-stage pipeline that turns the proto API definitions into client-facing
+artifacts for every SDK language, the MCP servers, the docs site, and the
+server's task registry:
 
-**Result**: Adding a new workflow task type takes **5 minutes** instead of 30-60 minutes.
+1. **`proto2schema`** — extracts JSON schemas from `.proto` files (messages,
+   field types, doc comments, `buf.validate` required flags). The schemas are
+   **committed** under `tools/codegen/schemas/` and are the single input every
+   generator target consumes. Proto comment sections below a line that is
+   exactly `@internal` are stripped here — this is the one owner of that
+   convention (see `TestNoInternalSectionsLeak`).
+2. **`generator`** — emits code/docs from the committed schemas, dispatched
+   by `--target`.
 
----
+## Generator targets
 
-## Overview
+| `--target` | Output | Wired via |
+|---|---|---|
+| `sdk-client` | `sdk/go/internal/gen` (Go SDK resource clients) | `make -C sdk/go codegen-clients` |
+| `sdk-client-ts` | `sdk/typescript/src/gen` | `make -C sdk/typescript codegen` |
+| `sdk-client-python` | `sdk/python/src/stigmer/_gen` | `make -C sdk/python codegen` |
+| `sdk-client-java` | `sdk/java/src/main/java/ai/stigmer/sdk/gen` | `make -C sdk/java codegen` |
+| `mcp-ts` | `mcp-server/src/gen` (apply-input modules) | `make -C mcp-server codegen` |
+| `sdk-docs` | `docs/sdk/resources/*.mdx` | `make gen-proto-sdk-docs` |
+| `task-docs` | `docs/guides/workflows/task-types/*.mdx` | `make gen-task-docs` |
+| `task-registry` | `task-kind-registry.json` + JSON Schemas (synced into the server embed) | `make gen-task-registry` |
+| `docs-yaml-check` | none — pass/fail validation of docs YAML blocks | `make check-docs-yaml` |
 
-This directory contains a two-stage code generation pipeline:
+Every generated directory above is committed, and every one is freshness-gated
+in CI (regenerate + `git diff --exit-code`): the Go and Java SDK dirs in their
+own lanes (`ci.go-sdk.yaml`, `ci.java-sdk.yaml`), the TypeScript / Python /
+mcp-server dirs in `ci.codegen.yaml`, and the docs/registry outputs in
+`ci.docs.yaml`. Hand-edits and stale regenerations fail CI instead of
+drifting.
 
-1. **Proto Parser** (`proto2schema`) - Automatically generates JSON schemas from `.proto` files
-2. **Code Generator** (`generator`) - Generates type-safe Go code from JSON schemas
-
-Together, they eliminate manual proto-to-Go conversion logic and reduce development time dramatically.
-
----
-
-## Quick Start
-
-### Full Pipeline: Proto → Schema → Go Code
+## Quick start
 
 ```bash
-# Stage 1: Generate schemas from proto files
-go run tools/codegen/proto2schema/main.go \
-  --proto-dir apis/ai/stigmer/agentic/workflow/v1/tasks \
-  --output-dir tools/codegen/schemas/tasks \
-  --include-dir apis
+# Stage 1 (rarely needed by hand — schemas are committed):
+make -C sdk/go codegen-schemas
 
-# Stage 2: Generate Go code from schemas
-go run tools/codegen/generator/main.go \
+# Stage 2, e.g. regenerate the TypeScript SDK client code:
+make -C sdk/typescript codegen
+
+# Or invoke the generator directly from the repo root:
+go run ./tools/codegen/generator \
   --schema-dir tools/codegen/schemas \
-  --output-dir sdk/go/workflow/gen \
-  --package gen
-
-# Verify compilation
-cd sdk/go/workflow && go build .
+  --output-dir sdk/typescript/src/gen \
+  --target sdk-client-ts
 ```
 
----
+Generator flags:
 
-## Dependency Management
+- `--schema-dir` — schema root (default `tools/codegen/schemas`)
+- `--output-dir` — output directory (required for all generating targets)
+- `--target` — one of the targets above (required)
+- `--meta-dir` — sidecar YAML metadata dir (`task-registry`, `task-docs`)
+- `--apis-dir` — proto root (`sdk-docs`, `task-docs`)
+- `--docs-dir` — docs root (`docs-yaml-check` only)
 
-**How proto dependencies (like `buf/validate`) are handled:**
+## Dependency management (proto2schema)
 
-1. **Dependencies declared in `apis/buf.yaml`**:
-   ```yaml
-   deps:
-     - buf.build/bufbuild/protovalidate
-   ```
+Proto dependencies (like `buf/validate`) come from buf:
 
-2. **Version-locked in `apis/buf.lock`**:
-   - Ensures reproducible builds
-   - Updated via `cd apis && buf dep update`
+1. Declared in `apis/buf.yaml`, version-locked in `apis/buf.lock`.
+2. `make protos` (or any buf command) populates `~/.cache/buf/v3/modules/`;
+   proto2schema finds and uses that cache automatically (`--use-buf-cache`,
+   default true).
+3. If imports fail to resolve, run `make protos` once, or refresh with
+   `cd apis && buf dep update`.
 
-3. **Buf CLI manages the cache**:
-   - When you run `make protos` (or any buf command), buf downloads dependencies to `~/.cache/buf/v3/modules/`
-   - The proto2schema tool automatically finds and uses this cache
+## Directory structure
 
-4. **No manual dependency management needed**:
-   - ✅ No stub files to maintain
-   - ✅ No version drift
-   - ✅ Automatic updates when buf.lock changes
-   - ✅ Integrates with existing `make protos` workflow
-
-**TL;DR:** Just run `make protos` once, and all dependencies are handled automatically by buf!
-
----
-
-## Tools
-
-### 1. Proto Parser (`proto2schema/main.go`)
-
-**Status**: ✅ Production-ready (Option B complete)
-
-Automatically generates JSON schemas from Protocol Buffer definitions.
-
-#### What It Does
-
-- Parses `.proto` files using `jhump/protoreflect`
-- Extracts message definitions, field types, and documentation
-- Recursively collects nested type dependencies
-- Generates JSON schemas compatible with the code generator
-- Handles primitives, maps, arrays, messages, and `google.protobuf.Struct`
-
-#### Usage
-
-```bash
-go run tools/codegen/proto2schema/main.go \
-  --proto-dir <path-to-protos> \
-  --output-dir <output-path> \
-  [--include-dir <import-path>] \
-  [--stub-dir <stub-path>]
+```
+tools/codegen/
+├── proto2schema/        # Stage 1: proto → JSON schemas
+├── generator/           # Stage 2: schemas → code/docs (one file per target:
+│                        #   main.go (loading + dispatch), sdk_client*.go,
+│                        #   mcp_ts.go + mcp_model.go, sdk_docs.go,
+│                        #   task_registry.go, task_docs.go, docs_yaml_*.go)
+├── schemas/
+│   ├── tasks/           # workflow task configs (+ tasks/types/ shared types)
+│   ├── agentic/         # per-resource spec schemas (+ <resource>/types/)
+│   ├── iam/
+│   ├── tenancy/
+│   └── services/        # service/RPC schemas (sdk-docs)
+└── output/              # task-registry staging (synced into the server embed)
 ```
 
-**Flags**:
-- `--proto-dir`: Directory containing `.proto` files to parse (required)
-- `--output-dir`: Output directory for JSON schemas (required)
-- `--include-dir`: Directory containing proto imports (default: `apis`)
-- `--use-buf-cache`: Use buf's module cache for dependencies (default: `true`)
+## Schema format
 
-#### Example Output
-
-From `apis/ai/stigmer/agentic/workflow/v1/tasks/set.proto`:
+Task/resource config schema:
 
 ```json
 {
@@ -116,11 +104,7 @@ From `apis/ai/stigmer/agentic/workflow/v1/tasks/set.proto`:
       "name": "Variables",
       "jsonName": "variables",
       "protoField": "variables",
-      "type": {
-        "kind": "map",
-        "keyType": {"kind": "string"},
-        "valueType": {"kind": "string"}
-      },
+      "type": {"kind": "map", "keyType": {"kind": "string"}, "valueType": {"kind": "string"}},
       "description": "Variables to set in workflow state.",
       "required": false
     }
@@ -128,554 +112,25 @@ From `apis/ai/stigmer/agentic/workflow/v1/tasks/set.proto`:
 }
 ```
 
-#### What It Extracts
-
-✅ **Core Functionality**:
-- Message definitions and field structures
-- All primitive types (string, int32, int64, bool, float, double, bytes)
-- Map fields with correct key/value types
-- Array/repeated fields
-- Nested message type references
-- `google.protobuf.Struct` as `map[string]interface{}`
-- Leading comments and documentation
-- JSON field names
-
-✅ **Nested Type Handling**:
-- Recursively extracts dependencies (3+ levels deep)
-- Generates shared type schemas to `types/` subdirectory
-- Avoids duplicates and infinite recursion
-- Properly handles cross-file type references
-
-⚠️ **Known Limitations**:
-- `buf.validate` extension parsing is partial (required fields work, numeric/string constraints unreliable)
-- Not critical - validation can be added manually if needed
-
-#### Performance
-
-- Parses 13 proto files in ~2 seconds
-- Full pipeline (proto → schema → code) in ~5 seconds
-
----
-
-### 2. Code Generator (`generator/main.go`)
-
-**Status**: ✅ Production-ready (Phase 2 complete)
-
-Generates type-safe Go code from JSON schemas.
-
-#### What It Generates
-
-- **Config Structs**: Type-safe structs with proper JSON tags
-- **ToProto Methods**: Converts Go structs to `google.protobuf.Struct`
-- **FromProto Methods**: Converts `google.protobuf.Struct` to Go structs
-- **Interface Markers**: `isTaskConfig()` methods for type safety
-- **Helper Utilities**: Shared functions like `isEmpty()`
-
-**Note**: Builder functions (like `SetTask()`, `HttpCallTask()`) are **NOT** generated. They belong in the ergonomic API layer (`workflow.go` and `*_options.go`), not generated code, because they reference manual SDK types like `*Task`.
-
-#### Usage
-
-```bash
-go run tools/codegen/generator/main.go \
-  --schema-dir <schema-directory> \
-  --output-dir <output-directory> \
-  --package <package-name>
-```
-
-**Flags**:
-- `--schema-dir`: Directory containing JSON schemas (required)
-- `--output-dir`: Output directory for generated Go code (required)
-- `--package`: Go package name for generated code (required)
-
-#### Example Output
-
-From `schemas/tasks/set.json`:
-
-```go
-// Code generated by stigmer-codegen. DO NOT EDIT.
-
-package gen
-
-import "google.golang.org/protobuf/types/known/structpb"
-
-// SET tasks assign variables in workflow state.
-type SetTaskConfig struct {
-    // Variables to set in workflow state.
-    Variables map[string]string `json:"variables,omitempty"`
-}
-
-// isTaskConfig marks SetTaskConfig as a TaskConfig implementation.
-func (c *SetTaskConfig) isTaskConfig() {}
-
-// ToProto converts SetTaskConfig to google.protobuf.Struct for proto marshaling.
-func (c *SetTaskConfig) ToProto() (*structpb.Struct, error) {
-    data := make(map[string]interface{})
-    if !isEmpty(c.Variables) {
-        data["variables"] = c.Variables
-    }
-    return structpb.NewStruct(data)
-}
-
-// FromProto converts google.protobuf.Struct to SetTaskConfig.
-func (c *SetTaskConfig) FromProto(s *structpb.Struct) error {
-    fields := s.GetFields()
-    if val, ok := fields["variables"]; ok {
-        c.Variables = make(map[string]string)
-        for k, v := range val.GetStructValue().GetFields() {
-            c.Variables[k] = v.GetStringValue()
-        }
-    }
-    return nil
-}
-```
-
-#### Generated Files
-
-For 13 workflow task types:
-
-```
-sdk/go/workflow/gen/
-├── helpers.go              # Utility functions (isEmpty, etc.)
-├── types.go                # Shared types (HttpEndpoint, AgentExecutionConfig, etc.)
-├── set_task.go             # SET task config + methods
-├── httpcall_task.go        # HTTP_CALL task config + methods
-├── grpccall_task.go        # GRPC_CALL task config + methods
-├── agentcall_task.go       # AGENT_CALL task config + methods
-├── switch_task.go          # SWITCH task config + methods
-├── for_task.go             # FOR task config + methods
-├── fork_task.go            # FORK task config + methods
-├── try_task.go             # TRY task config + methods
-├── listen_task.go          # LISTEN task config + methods
-├── wait_task.go            # WAIT task config + methods
-├── callactivity_task.go    # CALL_ACTIVITY task config + methods
-├── raise_task.go           # RAISE task config + methods
-└── run_task.go             # RUN task config + methods
-```
-
----
-
-## Directory Structure
-
-```
-tools/codegen/
-├── proto2schema/
-│   ├── main.go              # Proto parser (~585 lines)
-│   └── BUILD.bazel
-├── generator/
-│   ├── main.go              # Code generator (~735 lines)
-│   └── BUILD.bazel
-├── schemas/
-│   ├── tasks/               # 13 task config schemas
-│   │   ├── set.json
-│   │   ├── http_call.json
-│   │   ├── grpc_call.json
-│   │   ├── agent_call.json
-│   │   ├── switch.json
-│   │   ├── for.json
-│   │   ├── fork.json
-│   │   ├── try.json
-│   │   ├── listen.json
-│   │   ├── wait.json
-│   │   ├── call_activity.json
-│   │   ├── raise.json
-│   │   └── run.json
-│   └── types/               # Shared type schemas (auto-generated)
-│       ├── httpendpoint.json
-│       ├── agentexecutionconfig.json
-│       ├── signalspec.json
-│       └── ... (10 total)
-├── README.md                # This file
-└── go.mod                   # Go module for tools
-```
-
----
-
-## Workflows
-
-### Adding a New Task Type (From Scratch)
-
-**Time**: ~5 minutes (vs 30-60 minutes manual)
-
-**Steps**:
-
-1. **Write Proto Definition** (`apis/ai/stigmer/agentic/workflow/v1/tasks/my_task.proto`):
-   ```protobuf
-   message MyTaskConfig {
-     string field1 = 1 [(buf.validate.field).string.min_len = 1];
-     int32 field2 = 2;
-   }
-   ```
-
-2. **Generate Schema**:
-   ```bash
-   go run tools/codegen/proto2schema/main.go \
-     --proto-dir apis/ai/stigmer/agentic/workflow/v1/tasks \
-     --output-dir tools/codegen/schemas/tasks
-   ```
-
-3. **Generate Go Code**:
-   ```bash
-   go run tools/codegen/generator/main.go \
-     --schema-dir tools/codegen/schemas \
-     --output-dir sdk/go/workflow/gen \
-     --package gen
-   ```
-
-4. **Add TaskKind Constant** (`sdk/go/workflow/task.go`):
-   ```go
-   const (
-       // ... existing kinds ...
-       TaskKindMyTask TaskKind = "MY_TASK"
-   )
-   ```
-
-5. **Add Ergonomic API** (optional, `sdk/go/workflow/mytask_options.go`):
-   ```go
-   func (w *Workflow) MyTask(name string, opts ...MyTaskOption) *Task {
-       config := &gen.MyTaskConfig{}
-       for _, opt := range opts {
-           opt(config)
-       }
-       // ... create task ...
-   }
-   ```
-
-6. **Verify**:
-   ```bash
-   cd sdk/go/workflow && go build .
-   ```
-
----
-
-### Updating an Existing Task (Proto Changes)
-
-**Time**: ~2 minutes
-
-1. **Modify Proto File** (add/remove/change fields)
-
-2. **Regenerate Schema**:
-   ```bash
-   go run tools/codegen/proto2schema/main.go \
-     --proto-dir apis/ai/stigmer/agentic/workflow/v1/tasks \
-     --output-dir tools/codegen/schemas/tasks
-   ```
-
-3. **Regenerate Go Code**:
-   ```bash
-   go run tools/codegen/generator/main.go \
-     --schema-dir tools/codegen/schemas \
-     --output-dir sdk/go/workflow/gen \
-     --package gen
-   ```
-
-4. **Update Options Functions** (if adding new fields to ergonomic API)
-
-5. **Verify**:
-   ```bash
-   cd sdk/go/workflow && go build .
-   ```
-
----
-
-## Schema Format Reference
-
-### Task Config Schema
-
-```json
-{
-  "name": "TaskNameConfig",
-  "kind": "TASK_NAME",
-  "description": "Task description...",
-  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.TaskNameConfig",
-  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/task_name.proto",
-  "fields": [
-    {
-      "name": "FieldName",
-      "jsonName": "fieldName",
-      "protoField": "field_name",
-      "type": { "kind": "string" },
-      "description": "Field description",
-      "required": true,
-      "validation": {
-        "required": true,
-        "minLength": 1,
-        "maxLength": 100
-      }
-    }
-  ]
-}
-```
-
-### Type Specifications
-
-**Primitives**:
-```json
-{"kind": "string"}
-{"kind": "int32"}
-{"kind": "int64"}
-{"kind": "bool"}
-{"kind": "float"}
-{"kind": "double"}
-{"kind": "bytes"}
-```
-
-**Maps**:
-```json
-{
-  "kind": "map",
-  "keyType": {"kind": "string"},
-  "valueType": {"kind": "string"}
-}
-```
-
-**Arrays**:
-```json
-{
-  "kind": "array",
-  "elementType": {"kind": "string"}
-}
-```
-
-**Nested Messages**:
-```json
-{
-  "kind": "message",
-  "messageType": "HttpEndpoint"
-}
-```
-
-**google.protobuf.Struct**:
-```json
-{"kind": "struct"}
-```
-
-### Validation Rules
-
-```json
-{
-  "validation": {
-    "required": true,
-    "minLength": 1,
-    "maxLength": 100,
-    "pattern": "^[a-z]+$",
-    "min": 0,
-    "max": 100,
-    "minItems": 1,
-    "maxItems": 10,
-    "enum": ["VALUE1", "VALUE2"]
-  }
-}
-```
-
----
-
-## Troubleshooting
-
-### Proto Parser Issues
-
-**Error: "failed to parse proto files"**
-- Verify `--proto-dir` points to valid directory with `.proto` files
-- Check that `--include-dir` contains proto imports
-- Ensure proto syntax is valid (`protoc --lint`)
-
-**Error: "import not found"**
-- Ensure `make protos` has been run at least once (this populates buf's cache)
-- The tool automatically uses buf's module cache at `~/.cache/buf/v3/modules/`
-- Dependencies are defined in `apis/buf.yaml` and locked via `apis/buf.lock`
-- If issues persist, run `cd apis && buf dep update` to refresh dependencies
-
-**Missing validation rules in schemas**
-- This is expected - `buf.validate` extension parsing is partial
-- Manually add validation rules to generated schemas if needed
-- Or skip validation - code will still work
-
-### Code Generator Issues
-
-**Generated code doesn't compile**
-- Verify schema JSON is valid (`jq . schema.json`)
-- Check that all required fields are present in schema
-- Ensure type specifications are correct
-- Verify nested message types exist
-
-**Import errors in generated code**
-- Generator auto-manages imports
-- If issues occur, regenerate from scratch
-- Check that type names match exactly
-
-**Type mapping issues**
-- Verify `type.kind` in schema matches one of: string, int32, int64, bool, float, double, bytes, map, array, message, struct
-- For maps, ensure `keyType` and `valueType` are present
-- For arrays, ensure `elementType` is present
-- For messages, ensure `messageType` matches struct name
-
-### Integration Issues
-
-**Builder functions reference undefined types**
-- Builder functions are no longer generated
-- They belong in manual API layer (`workflow.go`, `*_options.go`)
-- Generated code only includes structs, ToProto, FromProto, and isTaskConfig
-
-**TaskKind constant not found**
-- Add constant to `sdk/go/workflow/task.go`:
-  ```go
-  const TaskKindYourTask TaskKind = "YOUR_TASK"
-  ```
-
----
-
-## Architecture
-
-### Design Principles
-
-1. **Generated code = Foundation**: Structs, conversion methods, interface markers
-2. **Manual code = Ergonomics**: Workflow builder API, functional options, validation
-3. **Schema as Source of Truth**: JSON schemas bridge proto and Go
-4. **Automation over Manual**: Proto → Schema → Code (no manual conversion logic)
-
-### Layer Separation
-
-```
-┌─────────────────────────────────────────────┐
-│  Manual API Layer (Ergonomics)              │
-│  - workflow.go (Workflow type, builder)     │
-│  - *_options.go (functional options)        │
-│  - validation.go (validation logic)         │
-└─────────────────────────────────────────────┘
-                    ↓ uses
-┌─────────────────────────────────────────────┐
-│  Generated Code (Foundation)                │
-│  - *_task.go (config structs)               │
-│  - types.go (shared types)                  │
-│  - ToProto/FromProto methods                │
-│  - isTaskConfig() markers                   │
-└─────────────────────────────────────────────┘
-                    ↓ generated from
-┌─────────────────────────────────────────────┐
-│  JSON Schemas (Source of Truth)             │
-│  - schemas/tasks/*.json                     │
-│  - schemas/types/*.json                     │
-└─────────────────────────────────────────────┘
-                    ↓ generated from
-┌─────────────────────────────────────────────┐
-│  Proto Definitions (API Contract)           │
-│  - apis/.../tasks/*.proto                   │
-└─────────────────────────────────────────────┘
-```
-
-### Why Two Stages?
-
-**Stage 1 (Proto → Schema)** allows:
-- Manual schema editing (if needed)
-- Schema validation
-- Version control of schemas separate from protos
-- Optional: skip proto step, write schemas directly
-
-**Stage 2 (Schema → Code)** allows:
-- Multiple languages from same schema (future: Python, TypeScript)
-- Customizable code generation templates
-- Stable schema format even if proto changes
-
----
+Type kinds: `string`, `int32`, `uint32`, `int64`, `bool`, `float`, `double`,
+`bytes`, `map` (`keyType`/`valueType`), `array` (`elementType`), `message`
+(`messageType`), `struct`, `timestamp`; enums carry `enumType`/`enumValues`.
 
 ## Development
 
-### Testing the Full Pipeline
-
 ```bash
-# Clean slate
-rm -rf tools/codegen/schemas/tasks/*.json
-rm -rf sdk/go/workflow/gen/*.go
-
-# Stage 1: Proto → Schema
-go run tools/codegen/proto2schema/main.go \
-  --proto-dir apis/ai/stigmer/agentic/workflow/v1/tasks \
-  --output-dir tools/codegen/schemas/tasks \
-  --include-dir apis
-
-# Verify schemas created
-ls -la tools/codegen/schemas/tasks/
-
-# Stage 2: Schema → Go Code
-go run tools/codegen/generator/main.go \
-  --schema-dir tools/codegen/schemas \
-  --output-dir sdk/go/workflow/gen \
-  --package gen
-
-# Verify Go files created
-ls -la sdk/go/workflow/gen/
-
-# Test compilation
-cd sdk/go/workflow && go build .
+# The toolchain's own tests (includes the @internal leak gate and the
+# docs YAML gate) — also run by ci.go-sdk.yaml:
+cd tools && go test ./codegen/...
 ```
 
-### Modifying the Generator
+Never commit compiled binaries of these tools (they are gitignored); both are
+always run via `go run`.
 
-Both tools are self-contained single-file programs:
-- `proto2schema/main.go`: ~585 lines
-- `generator/main.go`: ~735 lines
+## History
 
-No external code generation frameworks required.
-
-**Key functions to modify**:
-
-**Proto Parser**:
-- `extractFieldSchema()`: Field extraction logic
-- `extractTypeSpec()`: Type mapping (proto → schema)
-- `extractValidation()`: Validation rule extraction
-- `collectNestedTypes()`: Dependency resolution
-
-**Code Generator**:
-- `genConfigStruct()`: Struct generation
-- `genToProtoMethod()`: ToProto method generation
-- `genFromProtoMethod()`: FromProto method generation
-- `goType()`: Type mapping (schema → Go)
-
-### Running Tests
-
-```bash
-# Proto parser
-cd tools/codegen/proto2schema
-go build .
-
-# Code generator
-cd tools/codegen/generator
-go build .
-
-# Full SDK
-cd sdk/go/workflow
-go test ./...
-```
-
----
-
-## References
-
-**Documentation**:
-- [Architecture Doc](../../docs/architecture/sdk-code-generation.md)
-- [ADR](../../docs/adr/20260118-181912-sdk-code-generators.md)
-- [Project Folder](../../_projects/2026-01/20260122.01.sdk-code-generators-go/)
-
-**Inspiration**:
-- [Pulumi Codegen](https://github.com/pulumi/pulumi/tree/master/pkg/codegen)
-- [protoreflect](https://github.com/jhump/protoreflect)
-- [buf.validate](https://buf.build/bufbuild/protovalidate)
-
----
-
-## Status
-
-✅ **Production-Ready**: Option B (proto parser) complete!
-
-**Current State**:
-- ✅ Proto parser working (13 tasks + 10 shared types)
-- ✅ Code generator working (clean, compilable Go code)
-- ✅ Full pipeline: proto → schema → code operational
-- ✅ All 13 workflow task types generated and compiling
-- ✅ Builder functions removed from generated code (belong in manual API)
-- ✅ Comprehensive documentation
-
-**Time Saved**: 25-55 minutes per new task type!
-
----
-
-**Last Updated**: 2026-01-22 (Option B Complete)
+The generator originally had a single hardcoded target that emitted Go task
+structs and per-resource Args packages into `sdk/go/gen`. That surface was
+never consumed and drifted for months; oss#496 deleted the target and its
+outputs. The current generator is dispatch-only: every target is explicit,
+every output is gated.

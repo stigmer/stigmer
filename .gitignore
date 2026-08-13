@@ -166,3 +166,10 @@ _investigations/
 _projects/
 _roles/
 .cursor/plans/
+
+# Compiled codegen toolchain binaries (built ad hoc via `go build` in tools/;
+# the tools are always run via `go run ./tools/codegen/...` — never commit them)
+/tools/generator
+/tools/proto2schema
+/tools/codegen/generator/generator
+/tools/codegen/proto2schema/proto2schema

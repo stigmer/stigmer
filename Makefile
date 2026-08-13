@@ -138,18 +138,18 @@ protos: ## Generate protocol buffer stubs and SDK client code
 gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-cli-docs gen-task-docs gen-task-registry ## Generate all SDK reference docs
 
 gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
-	go run ./tools/codegen/generator --comprehensive --target=sdk-docs \
+	go run ./tools/codegen/generator --target=sdk-docs \
 		--schema-dir tools/codegen/schemas --output-dir docs/sdk/resources --apis-dir apis
 
 gen-task-docs: ## Generate per-task reference docs from schemas
-	go run ./tools/codegen/generator --comprehensive --target=task-docs \
+	go run ./tools/codegen/generator --target=task-docs \
 		--schema-dir tools/codegen/schemas --output-dir docs/guides/workflows/task-types \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta --apis-dir apis
 	@$(PRETTIER_GUARD)
 	$(PRETTIER) --write --prose-wrap always docs/guides/workflows/task-types/*.mdx
 
 gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync into the backend embed
-	go run ./tools/codegen/generator --comprehensive --target=task-registry \
+	go run ./tools/codegen/generator --target=task-registry \
 		--schema-dir tools/codegen/schemas --output-dir tools/codegen/output \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta
 	# Remove only this generator's own artifacts — registry/data/ also hosts
@@ -181,7 +181,7 @@ sync-model-registry: ## Refresh the bundled model-registry.json snapshot from th
 	@echo "✓ model-registry.json snapshot refreshed from $(MODEL_REGISTRY_UPSTREAM)"
 
 gen-task-registry-check: ## Verify the task kind registry is up to date and synced (CI)
-	@go run ./tools/codegen/generator --comprehensive --target=task-registry \
+	@go run ./tools/codegen/generator --target=task-registry \
 		--schema-dir tools/codegen/schemas --output-dir tools/codegen/output \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta && \
 	if ! diff -q tools/codegen/output/task-kind-registry.json \
@@ -212,7 +212,7 @@ gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sd
 
 gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
-	go run ./tools/codegen/generator --comprehensive --target=sdk-docs \
+	go run ./tools/codegen/generator --target=sdk-docs \
 		--schema-dir tools/codegen/schemas --output-dir "$$tmpdir" --apis-dir apis && \
 	rc=0; \
 	for f in "$$tmpdir"/*; do \
@@ -229,7 +229,7 @@ gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 gen-task-docs-check: ## Verify task docs are up to date (CI)
 	@$(PRETTIER_GUARD)
 	@tmpdir=$$(mktemp -d) && \
-	go run ./tools/codegen/generator --comprehensive --target=task-docs \
+	go run ./tools/codegen/generator --target=task-docs \
 		--schema-dir tools/codegen/schemas --output-dir "$$tmpdir" \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta --apis-dir apis && \
 	$(PRETTIER) --write --prose-wrap always --config .prettierrc --ignore-path /dev/null "$$tmpdir"/*.mdx > /dev/null 2>&1; \
@@ -825,7 +825,7 @@ format-docs-check: ## Check documentation formatting (CI, no writes)
 	@$(PRETTIER) --check --prose-wrap always $(DOCS_SOURCES)
 
 check-docs-yaml: ## Validate every docs YAML block against the proto contracts (CI)
-	@go run ./tools/codegen/generator --comprehensive --target=docs-yaml-check --docs-dir docs
+	@go run ./tools/codegen/generator --target=docs-yaml-check --docs-dir docs
 
 check-docs-inventory: ## Verify every docs page is classified in docs/_inventory/classification.yaml (CI)
 	$(MAKE) -C site check-docs-inventory
