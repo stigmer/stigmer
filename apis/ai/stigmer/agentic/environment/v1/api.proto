@@ -10,7 +10,6 @@ import "buf/validate/validate.proto";
 // Environment stores configuration and secrets as key-value pairs for runtime use by agents and workflow instances.
 //
 // @internal
-// Uses Graphton configuration for state management.
 message Environment {
   // API version for this resource type.
   string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];

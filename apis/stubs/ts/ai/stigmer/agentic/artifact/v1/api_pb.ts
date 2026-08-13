@@ -50,7 +50,7 @@ export const file_ai_stigmer_agentic_artifact_v1_api: GenFile = /*@__PURE__*/
  * Follows the standard Stigmer resource pattern:
  * api_version + kind + metadata + spec + status.
  *
- * Artifacts are created by the workflow-runner or agent-runner when task
+ * Artifacts are created by the runner when task
  * outputs exceed the auto-promotion threshold or when the workflow author
  * explicitly declares an artifact (Phase 1).
  *

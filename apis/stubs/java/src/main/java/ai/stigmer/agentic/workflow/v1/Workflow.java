@@ -10,7 +10,6 @@ package ai.stigmer.agentic.workflow.v1;
  * Workflow defines a multi-step task orchestration with sequential, parallel, and conditional execution.
  *
  * &#64;internal
- * Uses Graphton configuration for state management.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.Workflow}
@@ -485,7 +484,6 @@ private static final long serialVersionUID = 0L;
    * Workflow defines a multi-step task orchestration with sequential, parallel, and conditional execution.
    *
    * &#64;internal
-   * Uses Graphton configuration for state management.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.Workflow}

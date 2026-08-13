@@ -529,12 +529,13 @@ public final class McpServerCommandControllerGrpc {
      * &#64;internal
      * Typical flows:
      * - Web console: user clicks Connect, backend resolves env vars from the
-     *   user's personal environment, starts a Temporal workflow on the agent-runner.
+     *   user's personal environment, starts a Temporal workflow on the runner
+     *   (stigmer-runner).
      * - CLI: `stigmer discover mcp-server &lt;name&gt;` calls connect with runtime_env
      *   populated from local env vars, delegating discovery to the backend.
-     * - Graphton backfill: agent-runner calls connect on first execution when
+     * - Runner backfill: the runner calls connect on first use when
      *   status.discovered_capabilities is empty, passing runtime_env from the
-     *   execution context.
+     *   execution context (shared/connect-backfill.ts).
      * Errors:
      * - FAILED_PRECONDITION: Required credentials missing from personal environment
      * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
@@ -817,12 +818,13 @@ public final class McpServerCommandControllerGrpc {
      * &#64;internal
      * Typical flows:
      * - Web console: user clicks Connect, backend resolves env vars from the
-     *   user's personal environment, starts a Temporal workflow on the agent-runner.
+     *   user's personal environment, starts a Temporal workflow on the runner
+     *   (stigmer-runner).
      * - CLI: `stigmer discover mcp-server &lt;name&gt;` calls connect with runtime_env
      *   populated from local env vars, delegating discovery to the backend.
-     * - Graphton backfill: agent-runner calls connect on first execution when
+     * - Runner backfill: the runner calls connect on first use when
      *   status.discovered_capabilities is empty, passing runtime_env from the
-     *   execution context.
+     *   execution context (shared/connect-backfill.ts).
      * Errors:
      * - FAILED_PRECONDITION: Required credentials missing from personal environment
      * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
@@ -1085,12 +1087,13 @@ public final class McpServerCommandControllerGrpc {
      * &#64;internal
      * Typical flows:
      * - Web console: user clicks Connect, backend resolves env vars from the
-     *   user's personal environment, starts a Temporal workflow on the agent-runner.
+     *   user's personal environment, starts a Temporal workflow on the runner
+     *   (stigmer-runner).
      * - CLI: `stigmer discover mcp-server &lt;name&gt;` calls connect with runtime_env
      *   populated from local env vars, delegating discovery to the backend.
-     * - Graphton backfill: agent-runner calls connect on first execution when
+     * - Runner backfill: the runner calls connect on first use when
      *   status.discovered_capabilities is empty, passing runtime_env from the
-     *   execution context.
+     *   execution context (shared/connect-backfill.ts).
      * Errors:
      * - FAILED_PRECONDITION: Required credentials missing from personal environment
      * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
@@ -1347,12 +1350,13 @@ public final class McpServerCommandControllerGrpc {
      * &#64;internal
      * Typical flows:
      * - Web console: user clicks Connect, backend resolves env vars from the
-     *   user's personal environment, starts a Temporal workflow on the agent-runner.
+     *   user's personal environment, starts a Temporal workflow on the runner
+     *   (stigmer-runner).
      * - CLI: `stigmer discover mcp-server &lt;name&gt;` calls connect with runtime_env
      *   populated from local env vars, delegating discovery to the backend.
-     * - Graphton backfill: agent-runner calls connect on first execution when
+     * - Runner backfill: the runner calls connect on first use when
      *   status.discovered_capabilities is empty, passing runtime_env from the
-     *   execution context.
+     *   execution context (shared/connect-backfill.ts).
      * Errors:
      * - FAILED_PRECONDITION: Required credentials missing from personal environment
      * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
@@ -1614,12 +1618,13 @@ public final class McpServerCommandControllerGrpc {
      * &#64;internal
      * Typical flows:
      * - Web console: user clicks Connect, backend resolves env vars from the
-     *   user's personal environment, starts a Temporal workflow on the agent-runner.
+     *   user's personal environment, starts a Temporal workflow on the runner
+     *   (stigmer-runner).
      * - CLI: `stigmer discover mcp-server &lt;name&gt;` calls connect with runtime_env
      *   populated from local env vars, delegating discovery to the backend.
-     * - Graphton backfill: agent-runner calls connect on first execution when
+     * - Runner backfill: the runner calls connect on first use when
      *   status.discovered_capabilities is empty, passing runtime_env from the
-     *   execution context.
+     *   execution context (shared/connect-backfill.ts).
      * Errors:
      * - FAILED_PRECONDITION: Required credentials missing from personal environment
      * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout

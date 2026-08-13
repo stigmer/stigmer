@@ -857,7 +857,7 @@ private static final long serialVersionUID = 0L;
    * Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
    *
    * &#64;internal
-   * Updated by the workflow-runner alongside each status update. Reflects the
+   * Updated by the runner alongside each status update. Reflects the
    * budget tracker's accumulated cost at the time of the last status write.
    * Used by getExecutionSummary for fast aggregation without scanning events.
    *
@@ -4497,7 +4497,7 @@ private static final long serialVersionUID = 0L;
      * Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
      *
      * &#64;internal
-     * Updated by the workflow-runner alongside each status update. Reflects the
+     * Updated by the runner alongside each status update. Reflects the
      * budget tracker's accumulated cost at the time of the last status write.
      * Used by getExecutionSummary for fast aggregation without scanning events.
      *
@@ -4519,7 +4519,7 @@ private static final long serialVersionUID = 0L;
      * Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
      *
      * &#64;internal
-     * Updated by the workflow-runner alongside each status update. Reflects the
+     * Updated by the runner alongside each status update. Reflects the
      * budget tracker's accumulated cost at the time of the last status write.
      * Used by getExecutionSummary for fast aggregation without scanning events.
      *
@@ -4545,7 +4545,7 @@ private static final long serialVersionUID = 0L;
      * Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
      *
      * &#64;internal
-     * Updated by the workflow-runner alongside each status update. Reflects the
+     * Updated by the runner alongside each status update. Reflects the
      * budget tracker's accumulated cost at the time of the last status write.
      * Used by getExecutionSummary for fast aggregation without scanning events.
      *

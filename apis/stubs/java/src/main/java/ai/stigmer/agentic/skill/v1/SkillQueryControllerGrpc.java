@@ -237,7 +237,7 @@ public final class SkillQueryControllerGrpc {
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
      * &#64;internal
-     * Used by the agent-runner to download and extract skill artifacts into the
+     * Used by the runner to download and extract skill artifacts into the
      * sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
      * storage key itself acts as a capability token.
      * </pre>
@@ -331,7 +331,7 @@ public final class SkillQueryControllerGrpc {
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
      * &#64;internal
-     * Used by the agent-runner to download and extract skill artifacts into the
+     * Used by the runner to download and extract skill artifacts into the
      * sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
      * storage key itself acts as a capability token.
      * </pre>
@@ -411,7 +411,7 @@ public final class SkillQueryControllerGrpc {
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
      * &#64;internal
-     * Used by the agent-runner to download and extract skill artifacts into the
+     * Used by the runner to download and extract skill artifacts into the
      * sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
      * storage key itself acts as a capability token.
      * </pre>
@@ -489,7 +489,7 @@ public final class SkillQueryControllerGrpc {
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
      * &#64;internal
-     * Used by the agent-runner to download and extract skill artifacts into the
+     * Used by the runner to download and extract skill artifacts into the
      * sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
      * storage key itself acts as a capability token.
      * </pre>
@@ -569,7 +569,7 @@ public final class SkillQueryControllerGrpc {
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
      * &#64;internal
-     * Used by the agent-runner to download and extract skill artifacts into the
+     * Used by the runner to download and extract skill artifacts into the
      * sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
      * storage key itself acts as a capability token.
      * </pre>

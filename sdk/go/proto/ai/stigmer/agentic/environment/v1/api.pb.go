@@ -26,7 +26,6 @@ const (
 // Environment stores configuration and secrets as key-value pairs for runtime use by agents and workflow instances.
 //
 // @internal
-// Uses Graphton configuration for state management.
 type Environment struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

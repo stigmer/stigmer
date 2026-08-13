@@ -19,7 +19,7 @@ Defined by `DiscoverySource` in `ai/stigmer/agentic/mcpserver/v1/status.proto`.
 |---|---|---|
 | `seedpack` | Built-in servers with known, stable tool sets | Populated automatically during platform bootstrap for first-party servers (e.g., `stigmer-mcp-server`). No action required. |
 | `cli` | Developer-initiated discovery | Run `stigmer discover mcp-server <slug>` locally. The CLI connects to the server, queries its tools, and pushes the results to the platform. |
-| `agent_runner` | Runtime cache refresh (future) | Reserved for future agent-runner-initiated discovery during execution. Not yet implemented. |
+| `agent_runner` | Runtime cache refresh (future) | Reserved for future runner-initiated discovery during execution (the enum value name predates the unified runner). Not yet implemented. |
 
 For most McpServers, discovery is done via the CLI.
 

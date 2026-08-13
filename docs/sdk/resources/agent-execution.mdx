@@ -1869,7 +1869,7 @@ AgentExecutionStatus contains all execution results and state.
     contextInfo: { type: "ContextInfo", description: "Context window utilization and summarization tracking.", typeDescriptionLink: "#contextinfo" },
     artifacts: { type: "ExecutionArtifact[]", description: "Files/directories published by the agent for download.", typeDescriptionLink: "#executionartifact" },
     workspaceWriteBacks: { type: "WorkspaceWriteBack[]", description: "Git write-back outcomes for workspace entries that had changes.", typeDescriptionLink: "#workspacewriteback" },
-    setupProgress: { type: "SetupProgress", description: "Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.", typeDescriptionLink: "#setupprogress" },
+    setupProgress: { type: "SetupProgress", description: "Real-time setup progress reported by the runner during EXECUTION_PENDING.", typeDescriptionLink: "#setupprogress" },
     streamingUsage: { type: "StreamingUsageSummary", description: "Streaming usage summary, updated progressively during execution.", typeDescriptionLink: "#streamingusagesummary" },
     structuredOutput: { type: "object", description: "Structured output extracted from the agent's final response." },
     fileChangeSets: { type: "FileChangeSet[]", description: "Server-computed projection of file change sets awaiting or completing review for this execution.", typeDescriptionLink: "#filechangeset" },

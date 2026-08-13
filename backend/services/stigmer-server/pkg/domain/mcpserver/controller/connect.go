@@ -127,7 +127,7 @@ type toolApprovalResult struct {
 }
 
 // Connect triggers server-side MCP discovery and tool approval classification
-// via a Temporal workflow on the agent-runner.
+// via a Temporal workflow on the runner.
 //
 // Lifecycle:
 //  1. Resolve environment variables (from runtime_env or personal environment)

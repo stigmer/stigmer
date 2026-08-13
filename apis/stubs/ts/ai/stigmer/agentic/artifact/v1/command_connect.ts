@@ -14,7 +14,7 @@ import { ApiResourceId } from "../../../commons/apiresource/io_pbjs";
  * @internal
  * Follows the Command-Query Separation (CQS) pattern.
  *
- * These RPCs are system-level — used by the workflow-runner and agent-runner
+ * These RPCs are system-level — used by the runner (stigmer-runner)
  * to persist task outputs. They are NOT exposed to end users or the SDK.
  *
  * Artifact creation flow:

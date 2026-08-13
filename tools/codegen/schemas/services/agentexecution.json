@@ -2813,7 +2813,7 @@
           "kind": "message",
           "messageType": "SetupProgress"
         },
-        "description": "Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.\n Populated progressively as the worker completes setup steps (sandbox init,\n workspace provisioning, skill loading, MCP server connection, etc.).\n Only meaningful while phase == EXECUTION_PENDING. Cleared by the server\n when phase transitions away from PENDING.",
+        "description": "Real-time setup progress reported by the runner during EXECUTION_PENDING.\n Populated progressively as the worker completes setup steps (sandbox init,\n workspace provisioning, skill loading, MCP server connection, etc.).\n Only meaningful while phase == EXECUTION_PENDING. Cleared by the server\n when phase transitions away from PENDING.",
         "required": false
       },
       {
@@ -5645,7 +5645,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Sanitized preview of tool arguments for UI display.\n Sensitive values (passwords, tokens, keys) are redacted.\n Populated at tool call creation time by the agent-runner.\n Used by the server-side ComputePendingApprovals projection\n and by CLI/UI for inline argument visibility.\n\n Example: '{\"repository\": \"acme/repo\", \"force\": true}'",
+          "description": "Sanitized preview of tool arguments for UI display.\n Sensitive values (passwords, tokens, keys) are redacted.\n Populated at tool call creation time by the runner.\n Used by the server-side ComputePendingApprovals projection\n and by CLI/UI for inline argument visibility.\n\n Example: '{\"repository\": \"acme/repo\", \"force\": true}'",
           "required": false
         },
         {

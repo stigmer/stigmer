@@ -16,7 +16,7 @@ export interface UseMcpServerConnectReturn {
    * and classify tool approval policies via a lightweight LLM call.
    *
    * Calls the `connect` RPC which starts a Temporal workflow on the
-   * agent-runner. The RPC blocks until the workflow completes
+   * runner. The RPC blocks until the workflow completes
    * (typically 5-15 seconds, ~30s timeout).
    *
    * Platform system env vars (`STIGMER_SERVER_ADDRESS`,

@@ -10,7 +10,6 @@ package ai.stigmer.agentic.agent.v1;
  * Agent defines an AI assistant's identity, tools, skills, and delegation model.
  *
  * &#64;internal
- * Uses Graphton configuration for state management.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.Agent}
@@ -485,7 +484,6 @@ private static final long serialVersionUID = 0L;
    * Agent defines an AI assistant's identity, tools, skills, and delegation model.
    *
    * &#64;internal
-   * Uses Graphton configuration for state management.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.Agent}

@@ -86,7 +86,7 @@
           "HARNESS_CURSOR"
         ]
       },
-      "description": "Execution harness for the agent invocation.\n\n Determines which execution engine processes the agent call:\n - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)\n - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)\n\n The workflow-runner creates a Session with this harness before creating\n the AgentExecution. The harness is a session-level concern — it determines\n tool availability, state management, model access, and billing tier.\n\n When unspecified, defaults to HARNESS_NATIVE (the workflow\n surface's platform default).\n\n YAML Example:\n   - code_review:\n       call: agent\n       with:\n         agent: \"code-reviewer\"\n         harness: cursor\n         message: \"Review this PR\"",
+      "description": "Execution harness for the agent invocation.\n\n Determines which execution engine processes the agent call:\n - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)\n - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)\n\n The runner creates a Session with this harness before creating\n the AgentExecution. The harness is a session-level concern — it determines\n tool availability, state management, model access, and billing tier.\n\n When unspecified, defaults to HARNESS_NATIVE (the workflow\n surface's platform default).\n\n YAML Example:\n   - code_review:\n       call: agent\n       with:\n         agent: \"code-reviewer\"\n         harness: cursor\n         message: \"Review this PR\"",
       "required": false
     },
     {

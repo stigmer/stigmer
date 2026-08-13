@@ -10,9 +10,9 @@ Stigmer Server is the main API server for the open-source Stigmer agentic framew
 
 ```
 ┌─────────────────────────────────────────┐
-│           Stigmer CLI                   │
+│    Stigmer CLI (@stigmer/cli, TS)       │
 └────────────────┬────────────────────────┘
-                 │ In-process gRPC
+                 │ gRPC (local port)
                  ↓
 ┌─────────────────────────────────────────┐
 │         Stigmer Server                  │
@@ -35,8 +35,8 @@ Stigmer Server is the main API server for the open-source Stigmer agentic framew
 ## Features
 
 - **gRPC API Controllers** - Command and Query controllers for all resource types
-- **SQLite Storage** - Generic resource table with JSON documents
-- **In-Process gRPC** - Zero network overhead for local CLI usage
+- **SQLite Storage** - Generic resource table with serialized proto documents
+- **Local-First** - Supervised by the TypeScript `stigmer` CLI as a daemon on a local gRPC port
 - **Protobuf Validation** - Request validation using proto constraints
 - **Zero Schema Migrations** - Add new resource types without database changes
 

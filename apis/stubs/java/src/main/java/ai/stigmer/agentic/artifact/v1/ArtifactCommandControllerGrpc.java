@@ -7,7 +7,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * ArtifactCommandController handles write operations for Artifact resources.
  * &#64;internal
  * Follows the Command-Query Separation (CQS) pattern.
- * These RPCs are system-level — used by the workflow-runner and agent-runner
+ * These RPCs are system-level — used by the runner (stigmer-runner)
  * to persist task outputs. They are NOT exposed to end users or the SDK.
  * Artifact creation flow:
  * 1. Runner detects output exceeding auto-promotion threshold (256KB)
@@ -153,7 +153,7 @@ public final class ArtifactCommandControllerGrpc {
    * ArtifactCommandController handles write operations for Artifact resources.
    * &#64;internal
    * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are system-level — used by the workflow-runner and agent-runner
+   * These RPCs are system-level — used by the runner (stigmer-runner)
    * to persist task outputs. They are NOT exposed to end users or the SDK.
    * Artifact creation flow:
    * 1. Runner detects output exceeding auto-promotion threshold (256KB)
@@ -220,7 +220,7 @@ public final class ArtifactCommandControllerGrpc {
    * ArtifactCommandController handles write operations for Artifact resources.
    * &#64;internal
    * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are system-level — used by the workflow-runner and agent-runner
+   * These RPCs are system-level — used by the runner (stigmer-runner)
    * to persist task outputs. They are NOT exposed to end users or the SDK.
    * Artifact creation flow:
    * 1. Runner detects output exceeding auto-promotion threshold (256KB)
@@ -246,7 +246,7 @@ public final class ArtifactCommandControllerGrpc {
    * ArtifactCommandController handles write operations for Artifact resources.
    * &#64;internal
    * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are system-level — used by the workflow-runner and agent-runner
+   * These RPCs are system-level — used by the runner (stigmer-runner)
    * to persist task outputs. They are NOT exposed to end users or the SDK.
    * Artifact creation flow:
    * 1. Runner detects output exceeding auto-promotion threshold (256KB)
@@ -326,7 +326,7 @@ public final class ArtifactCommandControllerGrpc {
    * ArtifactCommandController handles write operations for Artifact resources.
    * &#64;internal
    * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are system-level — used by the workflow-runner and agent-runner
+   * These RPCs are system-level — used by the runner (stigmer-runner)
    * to persist task outputs. They are NOT exposed to end users or the SDK.
    * Artifact creation flow:
    * 1. Runner detects output exceeding auto-promotion threshold (256KB)
@@ -404,7 +404,7 @@ public final class ArtifactCommandControllerGrpc {
    * ArtifactCommandController handles write operations for Artifact resources.
    * &#64;internal
    * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are system-level — used by the workflow-runner and agent-runner
+   * These RPCs are system-level — used by the runner (stigmer-runner)
    * to persist task outputs. They are NOT exposed to end users or the SDK.
    * Artifact creation flow:
    * 1. Runner detects output exceeding auto-promotion threshold (256KB)
@@ -482,7 +482,7 @@ public final class ArtifactCommandControllerGrpc {
    * ArtifactCommandController handles write operations for Artifact resources.
    * &#64;internal
    * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are system-level — used by the workflow-runner and agent-runner
+   * These RPCs are system-level — used by the runner (stigmer-runner)
    * to persist task outputs. They are NOT exposed to end users or the SDK.
    * Artifact creation flow:
    * 1. Runner detects output exceeding auto-promotion threshold (256KB)

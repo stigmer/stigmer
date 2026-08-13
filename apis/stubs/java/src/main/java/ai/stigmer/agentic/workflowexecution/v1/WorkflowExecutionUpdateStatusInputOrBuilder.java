@@ -80,7 +80,7 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
    * Append-only: events are added to the persistent event log, never replaced.
    * This contrasts with status.tasks which uses full-replace protocol.
    *
-   * The workflow-runner appends events atomically with each status update,
+   * The runner appends events atomically with each status update,
    * ensuring the event log stays consistent with the status snapshot.
    * Events must have monotonically increasing sequence_numbers — the handler
    * rejects batches where any event's sequence_number is &lt;= the current
@@ -104,7 +104,7 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
    * Append-only: events are added to the persistent event log, never replaced.
    * This contrasts with status.tasks which uses full-replace protocol.
    *
-   * The workflow-runner appends events atomically with each status update,
+   * The runner appends events atomically with each status update,
    * ensuring the event log stays consistent with the status snapshot.
    * Events must have monotonically increasing sequence_numbers — the handler
    * rejects batches where any event's sequence_number is &lt;= the current
@@ -127,7 +127,7 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
    * Append-only: events are added to the persistent event log, never replaced.
    * This contrasts with status.tasks which uses full-replace protocol.
    *
-   * The workflow-runner appends events atomically with each status update,
+   * The runner appends events atomically with each status update,
    * ensuring the event log stays consistent with the status snapshot.
    * Events must have monotonically increasing sequence_numbers — the handler
    * rejects batches where any event's sequence_number is &lt;= the current
@@ -150,7 +150,7 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
    * Append-only: events are added to the persistent event log, never replaced.
    * This contrasts with status.tasks which uses full-replace protocol.
    *
-   * The workflow-runner appends events atomically with each status update,
+   * The runner appends events atomically with each status update,
    * ensuring the event log stays consistent with the status snapshot.
    * Events must have monotonically increasing sequence_numbers — the handler
    * rejects batches where any event's sequence_number is &lt;= the current
@@ -174,7 +174,7 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
    * Append-only: events are added to the persistent event log, never replaced.
    * This contrasts with status.tasks which uses full-replace protocol.
    *
-   * The workflow-runner appends events atomically with each status update,
+   * The runner appends events atomically with each status update,
    * ensuring the event log stays consistent with the status snapshot.
    * Events must have monotonically increasing sequence_numbers — the handler
    * rejects batches where any event's sequence_number is &lt;= the current

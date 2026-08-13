@@ -70,7 +70,7 @@ func (c *McpServerController) Apply(ctx context.Context, mcpServer *mcpserverv1.
 
 	// Fire-and-forget best-effort connect after successful apply.
 	// Triggers server-side discovery and tool approval classification via
-	// the agent-runner Temporal workflow. Uses context.Background()
+	// the runner's Temporal workflow. Uses context.Background()
 	// internally since the originating gRPC ctx will be cancelled once
 	// Apply returns.
 	go c.StartBestEffortConnect(result)

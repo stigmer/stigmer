@@ -387,7 +387,7 @@ export type WorkflowExecutionStatus = Message<"ai.stigmer.agentic.workflowexecut
    * Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
    *
    * @internal
-   * Updated by the workflow-runner alongside each status update. Reflects the
+   * Updated by the runner alongside each status update. Reflects the
    * budget tracker's accumulated cost at the time of the last status write.
    * Used by getExecutionSummary for fast aggregation without scanning events.
    *
@@ -506,7 +506,7 @@ export type WorkflowPendingApproval = Message<"ai.stigmer.agentic.workflowexecut
    * ID of the child agent execution to forward the approval decision to.
    *
    * @internal
-   * Set by the workflow-runner when surfacing child agent approvals
+   * Set by the runner when surfacing child agent approvals
    * at the workflow level. WorkflowExecution.SubmitApproval uses this
    * to route the decision to the correct AgentExecution.SubmitApproval RPC.
    *
@@ -764,7 +764,7 @@ export type WorkflowTask = Message<"ai.stigmer.agentic.workflowexecution.v1.Work
    * @internal
    * Non-zero for cost-incurring task kinds (llm_call, agent_call).
    * Zero for non-LLM tasks (transform, validate, emit_event, etc.).
-   * Set by the workflow-runner when the task completes.
+   * Set by the runner when the task completes.
    *
    * @since Cost Data Pipeline
    *
@@ -807,7 +807,7 @@ export type WorkflowTask = Message<"ai.stigmer.agentic.workflowexecution.v1.Work
    * generic review.
    *
    * @internal
-   * Written by the workflow-runner's task status accumulator on the
+   * Written by the runner's task status accumulator on the
    * waiting_approval transition and retained after the gate resolves
    * (the record of what kind of review was performed). The user-input
    * length constraint (max 63 chars) is enforced at the source field,

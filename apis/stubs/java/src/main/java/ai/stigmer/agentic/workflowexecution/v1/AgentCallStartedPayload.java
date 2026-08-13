@@ -10,7 +10,7 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * Payload for agent_call_started events.
  *
  * &#64;internal
- * Emitted when the workflow-runner creates a child AgentExecution for an
+ * Emitted when the runner creates a child AgentExecution for an
  * agent_call task. The child_execution_id enables the UI to open a
  * drill-down stream into the agent's execution.
  *
@@ -388,7 +388,7 @@ private static final long serialVersionUID = 0L;
    * Payload for agent_call_started events.
    *
    * &#64;internal
-   * Emitted when the workflow-runner creates a child AgentExecution for an
+   * Emitted when the runner creates a child AgentExecution for an
    * agent_call task. The child_execution_id enables the UI to open a
    * drill-down stream into the agent's execution.
    *

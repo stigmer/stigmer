@@ -14,7 +14,7 @@ import (
 //
 // The configured base path IS the artifact root: a key K is stored at
 // <basePath>/<K>, with no implicit "artifacts" segment. This makes the base
-// path the exact directory the agent-runner reads via LOCAL_ARTIFACT_PATH, so
+// path the exact directory the runner reads via LOCAL_ARTIFACT_PATH, so
 // the server and the runner share one store by construction (#285).
 type LocalStorage struct {
 	basePath string

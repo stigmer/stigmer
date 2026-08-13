@@ -23,7 +23,6 @@ export const file_ai_stigmer_agentic_agent_v1_api: GenFile = /*@__PURE__*/
  * Agent defines an AI assistant's identity, tools, skills, and delegation model.
  *
  * @internal
- * Uses Graphton configuration for state management.
  *
  * @generated from message ai.stigmer.agentic.agent.v1.Agent
  */

@@ -42,7 +42,7 @@ public interface WorkflowPendingApprovalOrBuilder extends
    * ID of the child agent execution to forward the approval decision to.
    *
    * &#64;internal
-   * Set by the workflow-runner when surfacing child agent approvals
+   * Set by the runner when surfacing child agent approvals
    * at the workflow level. WorkflowExecution.SubmitApproval uses this
    * to route the decision to the correct AgentExecution.SubmitApproval RPC.
    *
@@ -58,7 +58,7 @@ public interface WorkflowPendingApprovalOrBuilder extends
    * ID of the child agent execution to forward the approval decision to.
    *
    * &#64;internal
-   * Set by the workflow-runner when surfacing child agent approvals
+   * Set by the runner when surfacing child agent approvals
    * at the workflow level. WorkflowExecution.SubmitApproval uses this
    * to route the decision to the correct AgentExecution.SubmitApproval RPC.
    *

@@ -26,7 +26,6 @@ const (
 // AgentInstance defines a configured deployment of an Agent template.
 //
 // @internal
-// Uses Graphton configuration for state management.
 type AgentInstance struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

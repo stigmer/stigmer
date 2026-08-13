@@ -23,7 +23,6 @@ export const file_ai_stigmer_agentic_environment_v1_api: GenFile = /*@__PURE__*/
  * Environment stores configuration and secrets as key-value pairs for runtime use by agents and workflow instances.
  *
  * @internal
- * Uses Graphton configuration for state management.
  *
  * @generated from message ai.stigmer.agentic.environment.v1.Environment
  */

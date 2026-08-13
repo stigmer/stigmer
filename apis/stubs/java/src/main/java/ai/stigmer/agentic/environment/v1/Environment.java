@@ -10,7 +10,6 @@ package ai.stigmer.agentic.environment.v1;
  * Environment stores configuration and secrets as key-value pairs for runtime use by agents and workflow instances.
  *
  * &#64;internal
- * Uses Graphton configuration for state management.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.environment.v1.Environment}
@@ -494,7 +493,6 @@ private static final long serialVersionUID = 0L;
    * Environment stores configuration and secrets as key-value pairs for runtime use by agents and workflow instances.
    *
    * &#64;internal
-   * Uses Graphton configuration for state management.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.environment.v1.Environment}

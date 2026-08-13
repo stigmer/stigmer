@@ -184,7 +184,7 @@ type WorkflowExecutionCommandControllerClient interface {
 	// Update execution status during workflow execution.
 	//
 	// @internal
-	// System-level RPC used by workflow-runner to send progressive status updates
+	// System-level RPC used by the runner to send progressive status updates
 	// (messages, task states, phase, etc.). Optimized for frequent status updates
 	// and merges status fields with existing state.
 	//
@@ -1171,7 +1171,7 @@ type WorkflowExecutionCommandControllerServer interface {
 	// Update execution status during workflow execution.
 	//
 	// @internal
-	// System-level RPC used by workflow-runner to send progressive status updates
+	// System-level RPC used by the runner to send progressive status updates
 	// (messages, task states, phase, etc.). Optimized for frequent status updates
 	// and merges status fields with existing state.
 	//

@@ -202,7 +202,7 @@ export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
    * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
    * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
    *
-   * The workflow-runner creates a Session with this harness before creating
+   * The runner creates a Session with this harness before creating
    * the AgentExecution. The harness is a session-level concern — it determines
    * tool availability, state management, model access, and billing tier.
    *
