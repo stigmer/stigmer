@@ -1,13 +1,13 @@
 // Unit tests for the skill packaging layer: SKILL.md frontmatter parsing, the
 // ignore-filtered zip walk, dry-run analysis, and byte/hash formatting.
 
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { Stigmer } from "@stigmer/sdk";
-import { unzipSync } from "fflate";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { unzipSync, zipSync } from "fflate";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { classify, ExitCode } from "../errors/index.js";
 import {
   analyzeDryRun,
@@ -17,6 +17,8 @@ import {
   parseSkillMetadata,
   parseVisibility,
   pushSkill,
+  pushSkillFromArchive,
+  readSkillArchive,
   shortHash,
 } from "./skill.js";
 
@@ -113,12 +115,17 @@ describe("parseVisibility", () => {
 
 // A minimal fake of the SDK surface pushSkill touches: skill.push + skill.updateVisibility.
 function fakeClient(pushMeta: { id?: string; visibility?: ApiResourceVisibility }) {
-  const calls = { push: 0, updateVisibility: [] as Array<{ resourceId: string; visibility: ApiResourceVisibility }> };
+  const calls = {
+    push: 0,
+    pushedArtifacts: [] as Uint8Array[],
+    updateVisibility: [] as Array<{ resourceId: string; visibility: ApiResourceVisibility }>,
+  };
   const skillMessage = { metadata: { ...pushMeta } };
   const client = {
     skill: {
-      async push() {
+      async push(request?: { artifact?: Uint8Array }) {
         calls.push++;
+        if (request?.artifact !== undefined) calls.pushedArtifacts.push(request.artifact);
         return skillMessage;
       },
       async updateVisibility(input: { resourceId: string; visibility: ApiResourceVisibility }) {
@@ -196,6 +203,113 @@ describe("createSkillZip", () => {
     writeFileSync(join(dir, ".env"), "SECRET=1\n");
     const { bytes } = createSkillZip(dir, { respectGitignore: true, extraIgnore: [], extraInclude: [".env"] });
     expect(Object.keys(unzipSync(bytes))).toContain(".env");
+  });
+});
+
+describe("createSkillZip determinism", () => {
+  // Version identity is the server-side SHA-256 of the zip bytes, so identical
+  // content must produce identical bytes no matter when or where it was
+  // checked out (stigmer/stigmer#671). Distinct source mtimes model the fresh
+  // CI checkout; distinct wall-clock runs are inherent to running twice.
+  it("produces byte-identical zips for identical content across mtimes and wall-clock time", () => {
+    const otherDir = mkdtempSync(join(tmpdir(), "skill-test-b-"));
+    vi.useFakeTimers();
+    try {
+      for (const d of [dir, otherDir]) {
+        writeFileSync(join(d, "SKILL.md"), SKILL_MD);
+        mkdirSync(join(d, "references"));
+        writeFileSync(join(d, "references", "guide.md"), "# Guide\n");
+      }
+      // Backdate one copy: same content, different filesystem timestamps
+      // (models a fresh CI checkout).
+      const past = new Date("2020-06-15T12:00:00Z");
+      utimesSync(join(otherDir, "SKILL.md"), past, past);
+      utimesSync(join(otherDir, "references", "guide.md"), past, past);
+
+      // Advance the clock between runs: without a pinned mtime, fflate stamps
+      // zip-creation time into every entry (DOS 2-second granularity), so two
+      // pushes minutes apart would differ even from the same directory.
+      vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+      const a = createSkillZip(dir, NO_IGNORE).bytes;
+      vi.setSystemTime(new Date("2026-01-01T00:05:00Z"));
+      const b = createSkillZip(otherDir, NO_IGNORE).bytes;
+      expect(Buffer.from(a).equals(Buffer.from(b))).toBe(true);
+    } finally {
+      vi.useRealTimers();
+      rmSync(otherDir, { recursive: true, force: true });
+    }
+  });
+
+  it("changes bytes when content changes", () => {
+    writeFileSync(join(dir, "SKILL.md"), SKILL_MD);
+    const before = createSkillZip(dir, NO_IGNORE).bytes;
+    writeFileSync(join(dir, "extra.md"), "new content\n");
+    const after = createSkillZip(dir, NO_IGNORE).bytes;
+    expect(Buffer.from(before).equals(Buffer.from(after))).toBe(false);
+  });
+});
+
+describe("readSkillArchive", () => {
+  function writeArchive(files: Record<string, string>): string {
+    const zipped = zipSync(
+      Object.fromEntries(Object.entries(files).map(([p, c]) => [p, new TextEncoder().encode(c)])),
+    );
+    const archivePath = join(dir, "skill.zip");
+    writeFileSync(archivePath, zipped);
+    return archivePath;
+  }
+
+  it("accepts an archive with a root SKILL.md and reports entry stats", () => {
+    const archivePath = writeArchive({
+      "SKILL.md": SKILL_MD,
+      "references/guide.md": "# Guide\n",
+    });
+    const archive = readSkillArchive(archivePath);
+    expect(archive.meta.name).toBe("my-skill");
+    expect(archive.fileCount).toBe(2);
+    expect(archive.totalSize).toBeGreaterThan(0);
+  });
+
+  it("rejects an archive whose SKILL.md is only nested (root-only contract, DD-018)", () => {
+    const archivePath = writeArchive({ "my-skill/SKILL.md": SKILL_MD });
+    expect(() => readSkillArchive(archivePath)).toThrow(/root of/);
+  });
+
+  it("rejects a file that is not a ZIP archive", () => {
+    const archivePath = join(dir, "not-a-zip.zip");
+    writeFileSync(archivePath, "plain text");
+    expect(() => readSkillArchive(archivePath)).toThrow(/not a valid ZIP/);
+  });
+
+  it("rejects a missing file with a usage error", () => {
+    const err = (() => {
+      try {
+        readSkillArchive(join(dir, "absent.zip"));
+      } catch (e) {
+        return e;
+      }
+    })();
+    expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
+  });
+});
+
+describe("pushSkillFromArchive", () => {
+  it("uploads the archive bytes untouched (checksum parity) and applies declared visibility", async () => {
+    const zipped = zipSync({
+      "SKILL.md": new TextEncoder().encode("---\nname: my-skill\nvisibility: public\n---\n# S\n"),
+    });
+    const archivePath = join(dir, "skill.zip");
+    writeFileSync(archivePath, zipped);
+    const { client, calls } = fakeClient({ id: "skill-123", visibility: ApiResourceVisibility.visibility_private });
+
+    const result = await pushSkillFromArchive(client, archivePath, "stigmer", "", "release v1.2.3");
+
+    expect(calls.push).toBe(1);
+    expect(Buffer.from(calls.pushedArtifacts[0]).equals(Buffer.from(zipped))).toBe(true);
+    expect(calls.updateVisibility).toEqual([
+      { resourceId: "skill-123", visibility: ApiResourceVisibility.visibility_public },
+    ]);
+    expect(result.skillName).toBe("my-skill");
   });
 });
 

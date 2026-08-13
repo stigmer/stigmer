@@ -14,13 +14,24 @@ import { GitProvenanceSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
-import { zipSync } from "fflate";
+import { strFromU8, unzipSync, zipSync } from "fflate";
 import { parse as parseYaml } from "yaml";
 import { UsageError } from "../errors/index.js";
 import { getGitBranchName, getGitCommit, getGitRemoteUrl, getGitRepoRoot } from "./git.js";
 import { createMatcher, REASON_TEXT, type Reason } from "./ignore/index.js";
 
 export const SKILL_FILE = "SKILL.md";
+
+// A skill version's identity is the server-side SHA-256 of the uploaded zip
+// bytes, so packaging must be a pure function of content — otherwise
+// re-pushing unchanged content registers a new version and the server's
+// unchanged-content no-op never fires (stigmer/stigmer#671). fflate stamps
+// zip-creation time into every entry when no mtime is given; pinning the DOS
+// epoch (the earliest representable zip timestamp) removes the only
+// byte-level variance. Local-field Date construction is deliberate: DOS
+// timestamps store wall-clock fields, so this encodes identically in every
+// timezone.
+const DETERMINISTIC_ZIP_MTIME = new Date(1980, 0, 1);
 // Kebab-case, optionally scoped with dot-separated namespaces (e.g.
 // "platform.planton-architecture"). Every segment must be alphanumeric, so no
 // leading/trailing/consecutive separators. The derived slug renders dots as hyphens.
@@ -102,7 +113,16 @@ export function parseSkillMetadata(dir: string): SkillMetadata {
   } catch (err) {
     throw new Error(`failed to read ${SKILL_FILE}: ${(err as Error).message}`);
   }
+  return parseSkillMetadataContent(content);
+}
 
+/**
+ * Parse SKILL.md content directly — the shared core behind the directory
+ * path (`parseSkillMetadata`) and the pre-packaged archive path
+ * (`pushSkillFromArchive`), where the content comes out of a zip entry
+ * rather than the filesystem.
+ */
+export function parseSkillMetadataContent(content: string): SkillMetadata {
   const frontmatter = extractFrontmatter(content);
   const parsed = (parseYaml(frontmatter) ?? {}) as Record<string, unknown>;
   const name = typeof parsed.name === "string" ? parsed.name : "";
@@ -233,7 +253,7 @@ export function createSkillZip(
   };
   walk(dir, "");
 
-  const bytes = zipSync(files, { level: 6 });
+  const bytes = zipSync(files, { level: 6, mtime: DETERMINISTIC_ZIP_MTIME });
   return { bytes, stats };
 }
 
@@ -371,6 +391,92 @@ export async function pushSkillFromClone(
   const response = await client.skill.push(request);
   const applied = await applyDeclaredVisibility(client, response, visibility);
   return toResult(applied, name, params.message, stats.totalSize, visibility);
+}
+
+/** A validated pre-packaged skill archive (`--archive`), ready to upload. */
+export interface SkillArchive {
+  /** The archive file's exact bytes — uploaded untouched. */
+  readonly bytes: Uint8Array;
+  /** Metadata parsed from the archive's root SKILL.md. */
+  readonly meta: SkillMetadata;
+  /** Number of file entries (directory markers excluded). */
+  readonly fileCount: number;
+  /** Total uncompressed size of all file entries, in bytes. */
+  readonly totalSize: number;
+}
+
+/**
+ * Read and validate a pre-packaged skill archive.
+ *
+ * Client-side validation is deliberately minimal — root SKILL.md present and
+ * frontmatter parses (the same contract the console's upload preview checks);
+ * the server remains the authoritative validator. The unzip filter inflates
+ * ONLY SKILL.md: entry metadata is enough for the count/size summary, and
+ * validation must not pay for decompressing a large artifact.
+ */
+export function readSkillArchive(archivePath: string): SkillArchive {
+  let raw: Buffer;
+  try {
+    raw = readFileSync(archivePath);
+  } catch (err) {
+    throw new UsageError(`failed to read archive ${archivePath}: ${(err as Error).message}`);
+  }
+  const bytes = new Uint8Array(raw);
+
+  let fileCount = 0;
+  let totalSize = 0;
+  let unzipped: Record<string, Uint8Array>;
+  try {
+    unzipped = unzipSync(bytes, {
+      filter: (info) => {
+        if (!info.name.endsWith("/")) {
+          fileCount++;
+          totalSize += info.originalSize;
+        }
+        return info.name === SKILL_FILE;
+      },
+    });
+  } catch (err) {
+    throw new UsageError(`${archivePath} is not a valid ZIP archive: ${(err as Error).message}`);
+  }
+
+  const skillMd = unzipped[SKILL_FILE];
+  if (skillMd === undefined) {
+    throw new UsageError(
+      `${SKILL_FILE} not found at the root of ${archivePath}\n\n` +
+        `A skill archive must contain ${SKILL_FILE} at its root (not inside a directory) defining the skill interface`,
+    );
+  }
+
+  return { bytes, meta: parseSkillMetadataContent(strFromU8(skillMd)), fileCount, totalSize };
+}
+
+/**
+ * Push a pre-packaged skill archive as-is (`--archive`).
+ *
+ * The bytes are uploaded untouched, so the engine's version hash is the
+ * SHA-256 of the file on disk — release pipelines that publish checksums get
+ * engine version identities that match them (stigmer/stigmer#671). Git
+ * provenance is deliberately omitted: the archive was built elsewhere, so the
+ * local checkout says nothing about the artifact's origin.
+ */
+export async function pushSkillFromArchive(
+  client: Stigmer,
+  archivePath: string,
+  org: string,
+  tag: string,
+  message: string,
+): Promise<PushResult> {
+  const archive = readSkillArchive(archivePath);
+  const request = create(PushSkillRequestSchema, {
+    org,
+    artifact: archive.bytes,
+    tag: tag === "" ? "latest" : tag,
+    message,
+  });
+  const response = await client.skill.push(request);
+  const applied = await applyDeclaredVisibility(client, response, archive.meta.visibility);
+  return toResult(applied, archive.meta.name, message, archive.totalSize, archive.meta.visibility);
 }
 
 /**
