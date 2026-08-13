@@ -100,6 +100,52 @@ export interface ModelInfo {
    * not a selectable option.
    */
   readonly serviceTiers: readonly string[];
+  /**
+   * Tri-state vision capability from the registry's `capabilities` block
+   * (stigmer/stigmer#386). The registry serializes `capabilities` only for
+   * models whose capabilities were actually assessed, so:
+   *
+   * - `true` — images sent with a turn reach the model
+   * - `false` — explicitly assessed as blind; warn at selection/send time
+   * - `undefined` — never assessed; **stay silent, never treat as false**
+   *
+   * Mirrors the runner's `parseVisionCapability` convention
+   * (backend/services/runner/src/shared/model-registry.ts) — both sides
+   * parse the same document and must agree on what absence means.
+   */
+  readonly visionCapability?: boolean;
+}
+
+/**
+ * Document-level vision byte budget advertised by the registry
+ * (stigmer/stigmer#365) — the runner's inline-image delivery caps, exposed
+ * so clients can warn *before* an upload the runner would degrade to
+ * "not viewable inline". Field names match the runner's `VisionBudget`
+ * options verbatim (backend/services/runner/src/shared/attachment-vision.ts).
+ *
+ * ADVERTISED == ENFORCED: the serving side (cloud
+ * `ModelRegistryDocumentCodec`) and the runner pin the same literal values
+ * in their test suites. Treat an absent block as unassessed — no warnings —
+ * exactly like the per-model `capabilities` tri-state.
+ */
+export interface VisionLimits {
+  /** Per-image raw byte cap for inline vision delivery. */
+  readonly maxImageBytes: number;
+  /** Per-turn total byte cap across all inline images. */
+  readonly maxTotalBytes: number;
+  /** Per-turn inline image count cap. */
+  readonly maxImages: number;
+}
+
+/**
+ * Parsed model-registry document: the per-model list plus document-level
+ * platform metadata. `visionLimits` is `undefined` when the served document
+ * predates the `limits` block (older servers) — consumers must stay silent
+ * rather than assume a budget.
+ */
+export interface ModelRegistryDocument {
+  readonly models: readonly ModelInfo[];
+  readonly visionLimits?: VisionLimits;
 }
 
 /**
@@ -166,7 +212,44 @@ interface RegistryJsonEntry {
   };
   /** Variant-key → variant pricing block; only the key set matters here. */
   pricingVariants?: Record<string, unknown>;
+  /** Capability flags; present only for capability-assessed models. */
+  capabilities?: unknown;
   $comment?: string;
+}
+
+/**
+ * Extract `capabilities.vision` preserving the tri-state: a missing or
+ * malformed `capabilities` block stays `undefined` (never coerced to
+ * false). Byte-for-byte the runner's convention — see
+ * `parseVisionCapability` in the runner's `shared/model-registry.ts`.
+ */
+function parseVisionCapability(capabilities: unknown): boolean | undefined {
+  if (!capabilities || typeof capabilities !== "object") return undefined;
+  const vision = (capabilities as Record<string, unknown>).vision;
+  return typeof vision === "boolean" ? vision : undefined;
+}
+
+/**
+ * Parse the document-level `limits.vision` block. Returns `undefined` for
+ * documents that predate the block or carry a malformed one — absence
+ * means "unassessed", and a partial block must not masquerade as a budget
+ * (warning against a garbled cap is worse than staying silent).
+ */
+function parseVisionLimits(data: Record<string, unknown>): VisionLimits | undefined {
+  const limits = data.limits;
+  if (!limits || typeof limits !== "object") return undefined;
+  const vision = (limits as Record<string, unknown>).vision;
+  if (!vision || typeof vision !== "object") return undefined;
+
+  const { maxImageBytes, maxTotalBytes, maxImages } = vision as Record<string, unknown>;
+  if (
+    typeof maxImageBytes !== "number" || maxImageBytes <= 0 ||
+    typeof maxTotalBytes !== "number" || maxTotalBytes <= 0 ||
+    typeof maxImages !== "number" || maxImages <= 0
+  ) {
+    return undefined;
+  }
+  return { maxImageBytes, maxTotalBytes, maxImages };
 }
 
 const VALID_COST_TIERS = new Set(["economy", "standard", "premium"]);
@@ -184,49 +267,76 @@ function isModelEntry(entry: RegistryJsonEntry): entry is Required<Pick<Registry
 }
 
 /**
- * Parse raw registry JSON (from the API or a static file) into `ModelInfo[]`.
+ * Parse a raw registry document (from the API or a static file) into the
+ * per-model list plus document-level metadata.
  *
- * Expects the shape `{ models: RegistryJsonEntry[] }`. Filters out comment
- * entries and invalid rows, then maps to the `ModelInfo` interface.
+ * Expects the shape `{ models: RegistryJsonEntry[], limits?: {...} }`.
+ * Filters out comment entries and invalid rows. Unknown top-level fields
+ * are ignored (the document contract is additive).
  */
-export function parseRegistryJson(data: unknown): ModelInfo[] {
-  if (!data || typeof data !== "object") return [];
-  const models = (data as Record<string, unknown>).models;
-  if (!Array.isArray(models)) return [];
+export function parseRegistryDocument(data: unknown): ModelRegistryDocument {
+  if (!data || typeof data !== "object") return { models: [] };
+  const root = data as Record<string, unknown>;
+  const models = root.models;
+  if (!Array.isArray(models)) return { models: [] };
 
-  return (models as RegistryJsonEntry[])
+  const parsed = (models as RegistryJsonEntry[])
     .filter(isModelEntry)
-    .map((m) => ({
-      modelId: m.id,
-      provider: m.provider as Provider,
-      displayName: m.displayName,
-      shortDescription: m.shortDescription ?? "",
-      speedTier: (VALID_SPEED_TIERS.has(m.speedTier ?? "") ? m.speedTier : "fast") as SpeedTier,
-      costTier: m.costTier as CostTier,
-      harness: m.harness as HarnessOption,
-      featured: m.featured ?? false,
-      serviceTiers:
-        m.pricingVariants && typeof m.pricingVariants === "object"
-          ? Object.keys(m.pricingVariants).sort()
-          : [],
-    }));
+    .map((m) => {
+      const visionCapability = parseVisionCapability(m.capabilities);
+      return {
+        modelId: m.id,
+        provider: m.provider as Provider,
+        displayName: m.displayName,
+        shortDescription: m.shortDescription ?? "",
+        speedTier: (VALID_SPEED_TIERS.has(m.speedTier ?? "") ? m.speedTier : "fast") as SpeedTier,
+        costTier: m.costTier as CostTier,
+        harness: m.harness as HarnessOption,
+        featured: m.featured ?? false,
+        serviceTiers:
+          m.pricingVariants && typeof m.pricingVariants === "object"
+            ? Object.keys(m.pricingVariants).sort()
+            : [],
+        // Conditional spread keeps unassessed models free of the key
+        // (tri-state absence, not an explicit undefined).
+        ...(visionCapability !== undefined ? { visionCapability } : {}),
+      };
+    });
+
+  const visionLimits = parseVisionLimits(root);
+  return {
+    models: parsed,
+    ...(visionLimits !== undefined ? { visionLimits } : {}),
+  };
 }
 
 /**
- * Fetch the model registry from the authenticated API endpoint.
+ * Parse raw registry JSON into `ModelInfo[]`.
+ *
+ * Thin compatibility wrapper over {@link parseRegistryDocument} — prefer
+ * the document parser when the caller also needs document-level metadata
+ * such as {@link VisionLimits}.
+ */
+export function parseRegistryJson(data: unknown): ModelInfo[] {
+  return [...parseRegistryDocument(data).models];
+}
+
+/**
+ * Fetch the model-registry document from the authenticated API endpoint.
  *
  * @param apiUrl - Base URL of the Stigmer Cloud API (e.g. `https://api.stigmer.ai`)
  * @param token - Bearer token for authentication (from `client.getAuthCredential()`)
  * @param customFetch - Optional custom `fetch` implementation. Required in
  *   Tauri where the global `fetch` is restricted by webview CSP/CORS policies.
  *   When omitted, the global `fetch` is used.
- * @returns Parsed `ModelInfo[]`.
+ * @returns Parsed {@link ModelRegistryDocument} — models plus document-level
+ *   metadata like {@link VisionLimits}.
  */
-export async function fetchModelRegistry(
+export async function fetchModelRegistryDocument(
   apiUrl: string,
   token: string | null,
   customFetch?: typeof globalThis.fetch,
-): Promise<ModelInfo[]> {
+): Promise<ModelRegistryDocument> {
   const doFetch = customFetch ?? globalThis.fetch;
   const headers: Record<string, string> = {};
   if (token) {
@@ -235,7 +345,25 @@ export async function fetchModelRegistry(
   const res = await doFetch(`${apiUrl}/v1/proxy/model-registry`, { headers });
   if (!res.ok) throw new Error(`Model registry fetch failed: ${res.status}`);
   const data: unknown = await res.json();
-  return parseRegistryJson(data);
+  return parseRegistryDocument(data);
+}
+
+/**
+ * Fetch the model registry from the authenticated API endpoint.
+ *
+ * Thin compatibility wrapper over {@link fetchModelRegistryDocument} —
+ * prefer the document fetch when the caller also needs document-level
+ * metadata such as {@link VisionLimits}.
+ *
+ * @returns Parsed `ModelInfo[]`.
+ */
+export async function fetchModelRegistry(
+  apiUrl: string,
+  token: string | null,
+  customFetch?: typeof globalThis.fetch,
+): Promise<ModelInfo[]> {
+  const document = await fetchModelRegistryDocument(apiUrl, token, customFetch);
+  return [...document.models];
 }
 
 /**

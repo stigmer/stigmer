@@ -22,6 +22,18 @@ export type { ClipboardFilesSource } from "./clipboard.js";
 
 export { prepareImageForVision } from "./prepare-image.js";
 export {
+  assessVisionPreflight,
+  visionPreflightMessage,
+} from "./vision-preflight.js";
+export type {
+  AssessVisionPreflightOptions,
+  VisionPreflight,
+  VisionPreflightAttachment,
+  VisionPreflightMessageOptions,
+  VisionPreflightReason,
+  VisionPreflightWarning,
+} from "./vision-preflight.js";
+export {
   MAX_VISION_LONG_EDGE_PX,
   MAX_VISION_PIXELS,
   exceedsVisionResolution,

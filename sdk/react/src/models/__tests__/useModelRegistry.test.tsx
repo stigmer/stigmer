@@ -7,6 +7,7 @@ import {
   DEFAULT_CURSOR_MODEL_ID,
   DISABLED_PROVIDERS,
   modelKey,
+  parseRegistryDocument,
   parseRegistryJson,
 } from "../registry";
 import { ModelRegistryContext } from "../ModelRegistryContext";
@@ -105,6 +106,101 @@ function createWrapper(models: readonly ModelInfo[] = TEST_MODELS) {
     );
   };
 }
+
+describe("parseRegistryDocument vision data (#365, #386)", () => {
+  const entry = (overrides: Record<string, unknown>) => ({
+    id: "m",
+    displayName: "M",
+    provider: "anthropic",
+    harness: "native",
+    costTier: "standard",
+    pricing: { inputPricePerMillion: 1, outputPricePerMillion: 2, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0 },
+    ...overrides,
+  });
+
+  it("parses explicit vision:false into visionCapability", () => {
+    const doc = parseRegistryDocument({
+      models: [entry({ capabilities: { toolUse: true, vision: false, streaming: true, thinking: false, adaptiveThinking: false } })],
+    });
+    expect(doc.models[0].visionCapability).toBe(false);
+  });
+
+  it("parses explicit vision:true into visionCapability", () => {
+    const doc = parseRegistryDocument({
+      models: [entry({ capabilities: { toolUse: true, vision: true, streaming: true, thinking: true, adaptiveThinking: false } })],
+    });
+    expect(doc.models[0].visionCapability).toBe(true);
+  });
+
+  it("keeps an unassessed model free of the visionCapability key (tri-state, never coerced to false)", () => {
+    const doc = parseRegistryDocument({ models: [entry({})] });
+    expect(doc.models[0].visionCapability).toBeUndefined();
+    expect("visionCapability" in doc.models[0]).toBe(false);
+  });
+
+  it("treats a malformed capabilities block as unassessed", () => {
+    const doc = parseRegistryDocument({
+      models: [entry({ capabilities: "broken" }), entry({ id: "m2", capabilities: { vision: "yes" } })],
+    });
+    expect(doc.models[0].visionCapability).toBeUndefined();
+    expect(doc.models[1].visionCapability).toBeUndefined();
+  });
+
+  it("parses the document-level limits.vision block", () => {
+    const doc = parseRegistryDocument({
+      limits: { vision: { maxImageBytes: 3145728, maxTotalBytes: 4194304, maxImages: 10 } },
+      models: [entry({})],
+    });
+    expect(doc.visionLimits).toEqual({
+      maxImageBytes: 3145728,
+      maxTotalBytes: 4194304,
+      maxImages: 10,
+    });
+  });
+
+  it("leaves visionLimits undefined for documents predating the limits block", () => {
+    const doc = parseRegistryDocument({ models: [entry({})] });
+    expect(doc.visionLimits).toBeUndefined();
+  });
+
+  it.each([
+    ["missing field", { vision: { maxImageBytes: 1, maxTotalBytes: 2 } }],
+    ["non-numeric field", { vision: { maxImageBytes: "3MB", maxTotalBytes: 2, maxImages: 1 } }],
+    ["zero cap", { vision: { maxImageBytes: 0, maxTotalBytes: 2, maxImages: 1 } }],
+    ["negative cap", { vision: { maxImageBytes: 1, maxTotalBytes: -2, maxImages: 1 } }],
+    ["vision not an object", { vision: 42 }],
+  ])("rejects a garbled limits block (%s) rather than half-parsing it", (_name, limits) => {
+    const doc = parseRegistryDocument({ limits, models: [entry({})] });
+    expect(doc.visionLimits).toBeUndefined();
+  });
+
+  it("keeps parseRegistryJson byte-compatible (models only, same rows)", () => {
+    const raw = {
+      limits: { vision: { maxImageBytes: 1, maxTotalBytes: 2, maxImages: 3 } },
+      models: [entry({})],
+    };
+    expect(parseRegistryJson(raw)).toEqual([...parseRegistryDocument(raw).models]);
+  });
+});
+
+describe("useModelRegistry visionLimits pass-through (#365)", () => {
+  it("exposes visionLimits from context", () => {
+    const limits = { maxImageBytes: 3145728, maxTotalBytes: 4194304, maxImages: 10 };
+    const state: ModelRegistryState = {
+      models: TEST_MODELS, visionLimits: limits, isLoading: false, error: null, refetch: noopRefetch,
+    };
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ModelRegistryContext.Provider value={state}>{children}</ModelRegistryContext.Provider>
+    );
+    const { result } = renderHook(() => useModelRegistry(), { wrapper });
+    expect(result.current.visionLimits).toEqual(limits);
+  });
+
+  it("stays undefined when the context has no limits (older server)", () => {
+    const { result } = renderHook(() => useModelRegistry(), { wrapper: createWrapper() });
+    expect(result.current.visionLimits).toBeUndefined();
+  });
+});
 
 describe("parseRegistryJson service tiers (#357)", () => {
   it("surfaces pricingVariants keys as serviceTiers", () => {

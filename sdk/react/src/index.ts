@@ -40,7 +40,9 @@ export {
   modelKey,
   parseModelKey,
   fetchModelRegistry,
+  fetchModelRegistryDocument,
   parseRegistryJson,
+  parseRegistryDocument,
   useModelRegistry,
   ModelRegistryContext,
   ModelSelector,
@@ -52,6 +54,7 @@ export {
 } from "./models/index.js";
 export type {
   ModelInfo,
+  ModelRegistryDocument,
   ModelRegistryState,
   ParsedModelKey,
   Provider,
@@ -61,6 +64,7 @@ export type {
   ModelSelectorProps,
   HarnessSelectorProps,
   HarnessOption,
+  VisionLimits,
 } from "./models/index.js";
 
 // Workspace — behavior hooks and styled components
@@ -472,13 +476,14 @@ export type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agent
 export { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 // Attachment — file upload behavior hook, styled chip list, clipboard paste,
-// and vision-resolution image preparation
+// vision-resolution image preparation, and vision preflight warnings
 export {
   useAttachments,
   AttachmentChipList,
   MAX_ATTACHMENT_BYTES,
   MAX_VISION_LONG_EDGE_PX,
   MAX_VISION_PIXELS,
+  assessVisionPreflight,
   detectContentType,
   exceedsVisionResolution,
   extractClipboardFiles,
@@ -487,15 +492,22 @@ export {
   prepareImageForVision,
   uniquifyFilename,
   validateAttachmentSize,
+  visionPreflightMessage,
 } from "./attachment/index.js";
 export type {
   AttachmentPhase,
   AttachmentEntry,
+  AssessVisionPreflightOptions,
   ClipboardFilesSource,
   UseAttachmentsOptions,
   UseAttachmentsReturn,
   AttachmentChipListProps,
   VisionFitSize,
+  VisionPreflight,
+  VisionPreflightAttachment,
+  VisionPreflightMessageOptions,
+  VisionPreflightReason,
+  VisionPreflightWarning,
 } from "./attachment/index.js";
 
 // File Reference — workspace file-reference behavior hook and styled chip list

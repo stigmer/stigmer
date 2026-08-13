@@ -10,6 +10,11 @@ import type { HarnessOption } from "../models/harness.js";
 import type { ServiceTierOption } from "../models/service-tier.js";
 import type { InteractionModeOption } from "./InteractionModePicker.js";
 import { parseModelKey } from "../models/registry.js";
+import { useModelRegistry } from "../models/useModelRegistry.js";
+import {
+  assessVisionPreflight,
+  visionPreflightMessage,
+} from "../attachment/vision-preflight.js";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor.js";
 import { AgentPicker } from "../agent/AgentPicker.js";
 import { AgentEnvForm, type AgentEnvFormSubmitOptions } from "../agent/AgentEnvForm.js";
@@ -753,6 +758,52 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       ? { onValidationError: onAttachmentValidationError }
       : undefined,
   );
+
+  // -------------------------------------------------------------------------
+  // Vision preflight (stigmer/stigmer#365, #386) — predicts which attached
+  // images the runner will degrade to "not viewable inline" (per-image /
+  // per-turn byte budget from the registry document) or that the selected
+  // model is explicitly blind. Non-blocking by design: the files still
+  // upload and mount fine, they just won't reach the model as pixels — so
+  // this warns, it never gates the send.
+  // -------------------------------------------------------------------------
+
+  const {
+    getByKey: registryGetByKey,
+    getModel: registryGetModel,
+    defaultModel: registryDefaultModel,
+    visionLimits,
+  } = useModelRegistry();
+  const visionNotice = useMemo(() => {
+    if (!enableAttachments || attachments.entries.length === 0) return null;
+    // modelId may be a compound "harness/id" key (unified picker) or a
+    // plain id — resolve through the unambiguous compound lookup first,
+    // mirroring the submit path's parseModelKey handling.
+    const selectedModel = modelId
+      ? (registryGetByKey(modelId) ?? registryGetModel(modelId))
+      : registryDefaultModel;
+    const preflight = assessVisionPreflight(
+      attachments.entries.map((e) => ({
+        name: e.file.name,
+        sizeBytes: e.file.size,
+        contentType: e.contentType,
+      })),
+      { model: selectedModel, limits: visionLimits },
+    );
+    return visionPreflightMessage(preflight, {
+      limits: visionLimits,
+      modelDisplayName: selectedModel?.displayName,
+    });
+  }, [
+    enableAttachments,
+    attachments.entries,
+    modelId,
+    registryGetByKey,
+    registryGetModel,
+    registryDefaultModel,
+    visionLimits,
+  ]);
+
   const fileRefs = useFileReferences();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -1633,6 +1684,25 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           >
             <ChipSpinner />
             <span>Waiting for attachments to finish uploading…</span>
+          </div>
+        )}
+
+        {/* Zone 2.65: Vision preflight warning (stigmer/stigmer#365, #386) —
+            derives from the attached entries, so it appears the moment an
+            image over the advertised budget lands (paste/drop/pick) or the
+            selected model is explicitly blind, and disappears when the
+            offending attachment is removed or the model changes. Warning
+            styling (not muted): unlike the upload wait, this is a problem
+            the user can fix BEFORE spending the turn. Non-blocking — the
+            files still upload and mount; they just won't reach the model
+            as pixels. */}
+        {visionNotice && (
+          <div
+            role="status"
+            className="stg:mx-3 stg:mb-2 stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-warning/10 stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-warning"
+          >
+            <AlertTriangleIcon />
+            <span>{visionNotice}</span>
           </div>
         )}
 

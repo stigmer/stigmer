@@ -24,7 +24,7 @@ import { ColorModeContext, useSystemColorMode } from "./color-mode.js";
 import { PortalContainerContext } from "./portal-container.js";
 import { ModelRegistryContext } from "./models/ModelRegistryContext.js";
 import type { ModelRegistryState } from "./models/ModelRegistryContext.js";
-import { fetchModelRegistry } from "./models/registry.js";
+import { fetchModelRegistryDocument } from "./models/registry.js";
 import { TaskKindRegistryContext } from "./workflow/TaskKindRegistryContext.js";
 import type { TaskKindRegistryState } from "./workflow/TaskKindRegistryContext.js";
 import type { TaskKindDescriptor } from "./workflow/types.js";
@@ -347,6 +347,7 @@ function useModelRegistryFetch(client: Stigmer): ModelRegistryState {
   const [version, setVersion] = useState(0);
   const [state, setState] = useState<Omit<ModelRegistryState, "refetch">>({
     models: [],
+    visionLimits: undefined,
     isLoading: true,
     error: null,
   });
@@ -370,7 +371,7 @@ function useModelRegistryFetch(client: Stigmer): ModelRegistryState {
       }
     }
 
-    return fetchModelRegistry(c.baseUrl, token, c.fetch);
+    return fetchModelRegistryDocument(c.baseUrl, token, c.fetch);
   }, []);
 
   useEffect(() => {
@@ -385,9 +386,14 @@ function useModelRegistryFetch(client: Stigmer): ModelRegistryState {
       setState((prev) => (prev.isLoading ? prev : { ...prev, isLoading: true }));
 
       try {
-        const models = await doFetch(signal);
-        if (!signal.aborted && models) {
-          setState({ models, isLoading: false, error: null });
+        const document = await doFetch(signal);
+        if (!signal.aborted && document) {
+          setState({
+            models: document.models,
+            visionLimits: document.visionLimits,
+            isLoading: false,
+            error: null,
+          });
           fetchAttemptRef.current = 0;
         }
       } catch (err: unknown) {

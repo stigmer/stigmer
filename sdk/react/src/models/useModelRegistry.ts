@@ -9,6 +9,7 @@ import {
   modelKey,
   type ModelInfo,
   type Provider,
+  type VisionLimits,
 } from "./registry.js";
 import type { HarnessOption } from "./harness.js";
 import { useModelRegistryContext } from "./ModelRegistryContext.js";
@@ -51,6 +52,12 @@ export interface UseModelRegistryReturn {
    * Always unambiguous, even in unified mode.
    */
   readonly getByKey: (key: string) => ModelInfo | undefined;
+  /**
+   * Document-level vision byte budget advertised by the registry
+   * (stigmer/stigmer#365). `undefined` while loading or when the server
+   * predates the `limits` block — treat as unassessed and stay silent.
+   */
+  readonly visionLimits: VisionLimits | undefined;
   /** `true` while the model registry is being fetched from the API. */
   readonly isLoading: boolean;
   /** Non-null if the API fetch failed. Models will be empty in this case. */
@@ -87,7 +94,7 @@ export interface UseModelRegistryReturn {
  */
 export function useModelRegistry(options?: UseModelRegistryOptions): UseModelRegistryReturn {
   const harness = options?.harness;
-  const { models: allModels, isLoading, error, refetch } = useModelRegistryContext();
+  const { models: allModels, visionLimits, isLoading, error, refetch } = useModelRegistryContext();
 
   return useMemo(() => {
     const isUnified = harness === undefined;
@@ -143,9 +150,10 @@ export function useModelRegistry(options?: UseModelRegistryOptions): UseModelReg
       providers,
       featured: featuredModels,
       getByKey: (key: string) => byCompoundKey.get(key),
+      visionLimits,
       isLoading,
       error,
       refetch,
     };
-  }, [harness, allModels, isLoading, error, refetch]);
+  }, [harness, allModels, visionLimits, isLoading, error, refetch]);
 }

@@ -32,6 +32,15 @@
 
 // ---------------------------------------------------------------------------
 // Budget constants (owner decision, 2026-08-09; project T04)
+//
+// ADVERTISED == ENFORCED (stigmer/stigmer#365): the model registry document
+// advertises these values in its `limits.vision` block (rendered by the
+// cloud's ModelRegistryDocumentCodec, mirrored verbatim by the OSS server)
+// so clients can warn BEFORE an upload this budget would degrade. Both sides
+// pin the literal values in tests — attachment-vision.test.ts here, the
+// codec test there — so changing either side alone fails its own suite.
+// Update both together; deploy the runner first if the budget ever shrinks
+// (never advertise more than the runner accepts).
 // ---------------------------------------------------------------------------
 
 /**
