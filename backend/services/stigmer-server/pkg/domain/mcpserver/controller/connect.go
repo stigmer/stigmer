@@ -15,16 +15,15 @@ import (
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	oauthappv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/oauthapp/v1"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/oauthapp/refresolution"
 	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -856,6 +855,12 @@ func (c *McpServerController) refreshOAuthTokenIfNeeded(
 
 // loadOAuthAppClientSecret loads and decrypts the client_secret from the
 // referenced OAuthApp for vendor OAuth token refresh.
+//
+// Resolution goes through refresolution.Resolve — the same lookup the
+// initiate path used when the grant was minted — so the refresh always runs
+// against the credentials the user actually signed in with. This path
+// previously carried its own slug-only scan that ignored the ref's org and
+// could load a same-slug app from a different org (stigmer/stigmer#584).
 func (c *McpServerController) loadOAuthAppClientSecret(
 	ctx context.Context,
 	mcpServer *mcpserverv1.McpServer,
@@ -865,26 +870,19 @@ func (c *McpServerController) loadOAuthAppClientSecret(
 		return "", nil
 	}
 
-	oauthApps, err := c.store.ListResources(ctx, apiresourcekind.ApiResourceKind_oauth_app)
+	app, err := refresolution.Resolve(ctx, c.store, ref)
 	if err != nil {
 		return "", fmt.Errorf("failed to list oauth apps: %w", err)
 	}
-
-	for _, data := range oauthApps {
-		app := &oauthappv1.OAuthApp{}
-		if err := proto.Unmarshal(data, app); err != nil {
-			continue
-		}
-		if app.GetMetadata().GetSlug() == ref.GetSlug() {
-			secret := app.GetSpec().GetClientSecret()
-			if c.encryptionService != nil && c.encryptionService.IsEncrypted(secret) {
-				return c.encryptionService.Decrypt(secret)
-			}
-			return secret, nil
-		}
+	if app == nil {
+		return "", fmt.Errorf("OAuthApp '%s' not found", ref.GetSlug())
 	}
 
-	return "", fmt.Errorf("OAuthApp '%s' not found", ref.GetSlug())
+	secret := app.GetSpec().GetClientSecret()
+	if c.encryptionService != nil && c.encryptionService.IsEncrypted(secret) {
+		return c.encryptionService.Decrypt(secret)
+	}
+	return secret, nil
 }
 
 // StartBestEffortConnect runs the connect workflow for a freshly applied MCP

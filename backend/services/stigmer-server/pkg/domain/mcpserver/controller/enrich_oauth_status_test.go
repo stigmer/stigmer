@@ -227,7 +227,7 @@ func TestEnrichmentIsResponseOnly(t *testing.T) {
 }
 
 // TestInitiateAndEnrichmentResolveSameApp pins that the enricher and the
-// initiate path share one OAuthApp resolution (resolveOAuthAppByRef): a ref
+// initiate path share one OAuthApp resolution (refresolution.Resolve): a ref
 // carrying an org must resolve to that org's app for both.
 func TestInitiateAndEnrichmentResolveSameApp(t *testing.T) {
 	controller, s := setupTestController(t)
@@ -276,6 +276,33 @@ func TestInitiateAndEnrichmentResolveSameApp(t *testing.T) {
 		true,
 		oauthappv1.VendorApprovalStatus_VENDOR_APPROVAL_STATUS_PENDING,
 		"",
+	)
+}
+
+// TestEnrichmentResolvesThroughUniqueSlugFallback pins the stigmer/stigmer#584
+// self-hosted journey at the read surface: a ref pinned to another org (the
+// seedpack pins the hosted platform's `org: stigmer`) still enriches from the
+// deployment's own app when it is the unique slug match.
+func TestEnrichmentResolvesThroughUniqueSlugFallback(t *testing.T) {
+	controller, s := setupTestController(t)
+	// saveEnrichmentOAuthApp stores the app under org "test-org".
+	saveEnrichmentOAuthApp(t, s, oauthappv1.VendorApprovalStatus_VENDOR_APPROVAL_STATUS_PENDING, enrichTestDocsURL)
+	saved := saveEnrichmentMcpServer(t, s, &mcpserverv1.McpServerAuth{
+		OauthAppRef: &apiresource.ApiResourceReference{
+			Slug: enrichTestOAuthAppSlug,
+			Org:  "stigmer",
+		},
+		TargetEnvVar: "VENDOR_TOKEN",
+	})
+
+	got, err := controller.Get(contextWithMcpServerKind(), &apiresource.ApiResourceId{Value: saved.GetMetadata().GetId()})
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+	assertOAuthStatus(t, got,
+		true,
+		oauthappv1.VendorApprovalStatus_VENDOR_APPROVAL_STATUS_PENDING,
+		enrichTestDocsURL,
 	)
 }
 

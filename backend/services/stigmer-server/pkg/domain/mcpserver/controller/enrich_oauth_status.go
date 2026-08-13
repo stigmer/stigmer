@@ -7,6 +7,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/oauthapp/refresolution"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -61,7 +62,7 @@ func (s *enrichOAuthStatusStep[T]) Execute(ctx *pipeline.RequestContext[T]) erro
 		return nil
 	}
 
-	oauthApp, err := resolveOAuthAppByRef(ctx.Context(), s.store, ref)
+	oauthApp, err := refresolution.Resolve(ctx.Context(), s.store, ref)
 	if err != nil {
 		log.Warn().Err(err).
 			Str("mcp_server_id", mcpServer.GetMetadata().GetId()).
