@@ -6,6 +6,7 @@ import {
   GetOrCreateBillingAccountInputSchema,
   GetBillingAccountInputSchema,
   GetCreditBalanceInputSchema,
+  AdjustCreditsInputSchema,
   GetCreditLedgerInputSchema,
   CreateCreditCheckoutSessionInputSchema,
   CreateBillingPortalSessionInputSchema,
@@ -25,6 +26,7 @@ import {
   type ModelPricingGovernanceResponse,
   type ModelPricingBaselinesResponse,
 } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
+import type { CreditLedgerEntry } from "@stigmer/protos/ai/stigmer/billing/v1/credit_pb";
 import type { ModelPricingOverride } from "@stigmer/protos/ai/stigmer/billing/v1/pricing_override_pb";
 import type { ModelPricingBaseline } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import type { BillingAccount, CreditBalance } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
@@ -56,12 +58,27 @@ export interface SetAutoRechargeConfigParams {
   readonly monthlyCapMicros: bigint;
 }
 
+/** Parameters for a manual credit adjustment. */
+export interface AdjustCreditsParams {
+  readonly orgId: string;
+  /** Positive to add credits, negative to remove. */
+  readonly amountMicros: bigint;
+  /** Human-readable reason recorded on the ledger entry (audit trail). */
+  readonly reason: string;
+  /** Client-supplied deduplication key to prevent double-processing. */
+  readonly idempotencyKey: string;
+}
+
 /** Parameters for querying the credit ledger. */
 export interface GetCreditLedgerParams {
   readonly orgId: string;
   /** Pagination: `{ num, size }` where `num` is the 0-based page number. */
   readonly page?: { readonly num: number; readonly size: number };
   readonly typeFilter?: LedgerEntryType[];
+  /** Filter to entries on or after this timestamp. */
+  readonly startTime?: Date;
+  /** Filter to entries on or before this timestamp. */
+  readonly endTime?: Date;
   /**
    * Server-resolved ledger slice. When set to `LedgerView.statement`, the
    * server returns only customer-facing money-movement entry types and
@@ -182,6 +199,29 @@ export class BillingClient {
     }
   }
 
+  /**
+   * Manually adjust an organization's credit balance.
+   *
+   * Positive `amountMicros` adds credits (e.g. funding a tenant org),
+   * negative removes them. The adjustment is recorded as a ledger entry
+   * with the supplied reason; the idempotency key deduplicates retries.
+   * Requires `can_manage_billing` on the org.
+   */
+  async adjustCredits(params: AdjustCreditsParams): Promise<CreditLedgerEntry> {
+    try {
+      return await this.command.adjustCredits(
+        create(AdjustCreditsInputSchema, {
+          orgId: params.orgId,
+          amountMicros: params.amountMicros,
+          reason: params.reason,
+          idempotencyKey: params.idempotencyKey,
+        }),
+      );
+    } catch (e) {
+      throw wrapError(e);
+    }
+  }
+
   /** Retrieve paginated credit ledger entries with optional filters. */
   async getCreditLedger(params: GetCreditLedgerParams): Promise<CreditLedgerResponse> {
     try {
@@ -195,6 +235,8 @@ export class BillingClient {
             }),
           }),
           ...(params.typeFilter?.length && { typeFilter: params.typeFilter }),
+          ...(params.startTime && { startTime: timestampFromDate(params.startTime) }),
+          ...(params.endTime && { endTime: timestampFromDate(params.endTime) }),
           ...(params.view !== undefined && { view: params.view }),
         }),
       );

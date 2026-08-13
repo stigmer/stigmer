@@ -9,6 +9,18 @@ Usage::
         print(agent.metadata.name)
 """
 
+from ._billing import (
+    AdjustCreditsParams,
+    BillingClient,
+    CreateBillingPortalSessionParams,
+    CreateCheckoutSessionParams,
+    DecideModelPricingOverrideParams,
+    GetBillingUsageReportParams,
+    GetCreditLedgerParams,
+    RetireModelPricingBaselineParams,
+    SetAutoRechargeConfigParams,
+    UpsertModelPricingBaselineParams,
+)
 from ._client import StigmerClient
 from ._runner_adapter import RunnerAdapter
 from ._github import (
@@ -111,6 +123,17 @@ __all__ = [
     "StigmerClient",
     # Runner adapter
     "RunnerAdapter",
+    # Billing
+    "AdjustCreditsParams",
+    "BillingClient",
+    "CreateBillingPortalSessionParams",
+    "CreateCheckoutSessionParams",
+    "DecideModelPricingOverrideParams",
+    "GetBillingUsageReportParams",
+    "GetCreditLedgerParams",
+    "RetireModelPricingBaselineParams",
+    "SetAutoRechargeConfigParams",
+    "UpsertModelPricingBaselineParams",
     # GitHub
     "ExchangeOAuthCodeParams",
     "GetOAuthAuthorizeUrlParams",

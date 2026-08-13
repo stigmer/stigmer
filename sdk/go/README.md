@@ -65,6 +65,23 @@ The client provides sub-clients for each resource type:
 | `client.Session`        | Session         | Get, Create, Update, Apply, Delete, List, ListByAgentInstance |
 | `client.AgentExecution` | AgentExecution  | Get, Create, Subscribe, List, ListBySession, Cancel, Pause, Resume, Terminate, Recover, SubmitApproval, UploadAttachment, GetArtifactDownloadUrl |
 | `client.Search`         | Cross-resource  | Query |
+| `client.Billing`        | Billing         | GetOrCreateBillingAccount, GetBillingAccount, GetCreditBalance, AdjustCredits, GetCreditLedger, GetBillingUsageReport, CreateCreditCheckoutSession, CreateBillingPortalSession, SetAutoRechargeConfig, GetCustomerModelPricing + operator pricing methods |
+
+## Billing
+
+Credit balance queries, ledger history, and manual credit adjustments for an
+organization. Commands require the `can_manage_billing` permission on the org:
+
+```go
+balance, err := client.Billing.GetCreditBalance(ctx, orgID)
+
+entry, err := client.Billing.AdjustCredits(ctx, &stigmer.AdjustCreditsParams{
+    OrgID:          orgID,
+    AmountMicros:   25_000_000, // +$25.00
+    Reason:         "initial tenant funding",
+    IdempotencyKey: "fund-" + orgID,
+})
+```
 
 ## Configuration
 
