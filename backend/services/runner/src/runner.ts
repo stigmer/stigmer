@@ -327,6 +327,12 @@ export async function createStigmerRunner(
       emitRunnerBootTiming({ task_queue: config.taskQueue, mode: config.mode });
       await worker.run();
       console.log("Worker stopped");
+      // The worker has drained — release any parked session agent so its
+      // executor lease disposes with the process (#215).
+      const { closeAllCachedAgents } = await import(
+        "./activities/execute-cursor/agent-session-cache.js"
+      );
+      closeAllCachedAgents();
     },
     shutdown() {
       tokenRenewal?.stop();

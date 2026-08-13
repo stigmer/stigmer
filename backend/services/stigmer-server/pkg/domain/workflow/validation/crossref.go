@@ -321,6 +321,34 @@ func ValidateTaskConfigRequiredFields(spec *workflowv1.WorkflowSpec) []string {
 				errors = append(errors, fmt.Sprintf("task '%s' (activity_call): required field 'activity' is missing or empty", task.Name))
 			}
 
+		case workflowv1.WorkflowTaskKind_llm_call:
+			// model/prompt carry (buf.validate.field).required in the proto but
+			// Layer 1 cannot see inside the task_config Struct; without this
+			// case the first failure was the runner throwing at execution time
+			// (#685). Keep the strings in lockstep with the cloud Java validator.
+			if model := getStringField(fields, "model"); model == "" {
+				errors = append(errors, fmt.Sprintf("task '%s' (llm_call): required field 'model' is missing or empty", task.Name))
+			}
+			if prompt := getStringField(fields, "prompt"); prompt == "" {
+				errors = append(errors, fmt.Sprintf("task '%s' (llm_call): required field 'prompt' is missing or empty", task.Name))
+			}
+
+		case workflowv1.WorkflowTaskKind_raise_error:
+			// Only 'error' is required: the DSL converter derives the problem-
+			// details type/status/title from it, while 'message' feeds the
+			// optional detail field (#685 ruling — message is optional by
+			// contract; its proto required flag was relaxed to match).
+			if errName := getStringField(fields, "error"); errName == "" {
+				errors = append(errors, fmt.Sprintf("task '%s' (raise_error): required field 'error' is missing or empty", task.Name))
+			}
+
+		case workflowv1.WorkflowTaskKind_human_input:
+			// A prompt-less pause renders an empty approval card to the
+			// reviewer — degraded silently, so refuse at write time (#685).
+			if prompt := getStringField(fields, "prompt"); prompt == "" {
+				errors = append(errors, fmt.Sprintf("task '%s' (human_input): required field 'prompt' is missing or empty", task.Name))
+			}
+
 		case workflowv1.WorkflowTaskKind_agent_call:
 			// RunConfig's buf.validate gte-0 rules cannot run at Layer 1
 			// (task_config is an opaque Struct there), so the bounds are
