@@ -25,6 +25,7 @@ import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { uniqueName } from "../support/naming";
+import { makeWorkflowInstance } from "../support/workflowinstances";
 import { WORKFLOW_API_VERSION, WORKFLOW_KIND, makeWorkflow, makeWorkflowSpec } from "../support/workflows";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -229,6 +230,55 @@ describe("Workflow instance conformance — default-instance visibility guard", 
       "Default instances do not have their own visibility - access always follows " +
         "the parent blueprint. Change the blueprint's visibility instead.",
     );
+  });
+});
+
+describe("Workflow conformance — delete cascades instances (stigmer#592)", () => {
+  it("delete removes the default and user instances, freeing the workflow slug and the org-wide instance slug", async () => {
+    // The cascade ruling: instances are configuration OF the workflow and go
+    // with it (default AND user-created), unlike executions which survive as
+    // historical record (the #582 ruling). Without the cascade, the orphaned
+    // "<slug>-default" poisons a same-slug recreate, and a user instance's
+    // org-scoped slug stays occupied forever with no UI left to delete it.
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("cascade");
+
+    const created = await clients.workflowCommand.create(makeWorkflow({ org, name }));
+    const workflowId = created.metadata!.id;
+    const defaultInstanceId = created.status?.defaultInstanceId;
+    expect(defaultInstanceId, "create provisions a default instance").toMatch(/^win_[0-9a-z]+$/);
+
+    const instanceName = uniqueName("cfg");
+    const userInstance = await clients.workflowInstanceCommand.create(
+      makeWorkflowInstance({ org, name: instanceName, workflowId }),
+    );
+
+    await clients.workflowCommand.delete({ value: workflowId });
+
+    await expectGrpcCode(
+      () => clients.workflowInstanceQuery.get({ value: defaultInstanceId! }),
+      Code.NotFound,
+      "default instance after cascade",
+    );
+    await expectGrpcCode(
+      () => clients.workflowInstanceQuery.get({ value: userInstance.metadata!.id }),
+      Code.NotFound,
+      "user instance after cascade",
+    );
+
+    // The workflow slug is free again: recreate converges instead of
+    // colliding with the orphaned default instance (the DD-010 poison).
+    const recreated = await createWorkflow(org, name);
+    expect(recreated.metadata?.slug).toBe(created.metadata?.slug);
+    expect(recreated.metadata?.id).not.toBe(workflowId);
+
+    // The user instance's org-scoped slug is free again (the #582 live
+    // repro: a fresh workflow's instance was rejected as a duplicate).
+    const reused = await clients.workflowInstanceCommand.create(
+      makeWorkflowInstance({ org, name: instanceName, workflowId: recreated.metadata!.id }),
+    );
+    fixtures.defer(() => clients.workflowInstanceCommand.delete({ value: reused.metadata!.id }));
+    expect(reused.metadata?.slug).toBe(userInstance.metadata?.slug);
   });
 });
 

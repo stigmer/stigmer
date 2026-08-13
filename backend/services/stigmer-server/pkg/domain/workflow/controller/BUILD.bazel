@@ -6,6 +6,7 @@ go_library(
         "apply.go",
         "create.go",
         "delete.go",
+        "delete_cascade.go",
         "get_version.go",
         "list_versions.go",
         "populate_serverless_validation_step.go",
@@ -23,6 +24,7 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless",
+        "//apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1:workflowinstance",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/grpc",
@@ -44,6 +46,7 @@ go_library(
 go_test(
     name = "controller_test",
     srcs = [
+        "delete_cascade_test.go",
         "tag_version_test.go",
         "validate_spec_step_test.go",
         "validate_spec_test.go",
@@ -54,6 +57,7 @@ go_test(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless",
+        "//apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1:workflowexecution",
         "//apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1:workflowinstance",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
@@ -71,6 +75,7 @@ go_test(
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
         "@org_golang_google_grpc//test/bufconn",
+        "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//types/known/structpb",
     ],
 )

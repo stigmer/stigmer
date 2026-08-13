@@ -71,7 +71,9 @@ export default function WorkflowListPage() {
       const confirmed = await confirm({
         title: `Delete ${item.name || item.slug}?`,
         description:
-          "This action cannot be undone. The workflow and its configuration will be permanently removed.",
+          "This permanently removes the workflow and all of its instances. " +
+          "Past executions are preserved in the execution history. " +
+          "This action cannot be undone.",
         confirmLabel: "Delete",
         variant: "destructive",
       });
