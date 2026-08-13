@@ -1,0 +1,179 @@
+# =============================================================================
+# TypeScript SDK typecheck gate: sdk/typescript + mcp-server + sdk/react +
+# sdk/ink + client-apps/cli (issue #632)
+# =============================================================================
+# The TS counterpart of ci.go-sdk (issue #264 / PR #613), created after the
+# #607/#628 incident: a fresh checkout showed 477 tsc errors in sdk/typescript
+# because an upstream @bufbuild/protobuf publish split the workspace into two
+# protobuf-es copies whose branded types don't unify — and NO lane could see
+# it. vitest doesn't typecheck (395 tests passed green against the broken
+# types), and while ci.frontend's build:libs does run tsc, it installs with
+# `npm ci` against the tracked package-lock.json, whose pinned resolution can
+# never reproduce the drift. The breakage only exists on installs that
+# RE-RESOLVE caret ranges — the integrator fresh-clone path.
+#
+# Two jobs, two failure classes:
+#   - typecheck (locked) — npm ci + tsc --noEmit on each package's build
+#     config PLUS each package's own `typecheck` script (tsconfig.json, which
+#     includes test files — mcp-server/ink/cli test files were previously
+#     typechecked by NO lane; only sdk/react and sdk/typescript got this via
+#     make verify-web). Deterministic: catches ordinary type errors including
+#     ones vitest happily executes past.
+#   - typecheck-clean-room (fresh resolution) — corepack yarn install with NO
+#     lockfile (the root yarn.lock is deliberately gitignored), re-resolving
+#     every caret range exactly like an integrator's fresh clone, honoring the
+#     root `resolutions` pins (PR #628's @bufbuild/protobuf; the zod pin this
+#     lane's own dry run forced: @modelcontextprotocol/sdk had drifted
+#     1.27→1.30 and pulled a nested zod v4 whose type inference OOMs tsc on
+#     mcp-server and cli — live on main for every fresh clone until pinned).
+#     This is the only job in the fleet that can catch this class before it
+#     ships. It is inherently non-hermetic — an unrelated upstream publish can
+#     redden a PR. That is the point of the gate; if it proves too flaky in
+#     practice, demote THIS JOB ONLY to a scheduled canary (the
+#     ci.integration-canary precedent) and keep the locked job on PRs.
+#
+# @stigmer/protos is built first in both jobs: it is the one workspace package
+# that exports ./dist (everything else exports src in dev), so nothing
+# typechecks without its build output. Its dist is never committed — every CI
+# job that needs it builds it fresh from the committed generated sources.
+# =============================================================================
+
+name: ci.ts-sdk
+
+on:
+  pull_request:
+    paths:
+      - "apis/stubs/ts/**"
+      - "sdk/typescript/**"
+      - "mcp-server/**"
+      - "sdk/react/**"
+      - "sdk/ink/**"
+      # sdk/react consumes @stigmer/theme workspace source; a theme change can
+      # break react's typecheck without touching sdk/react/**.
+      - "sdk/theme/**"
+      - "client-apps/cli/**"
+      - "package.json"
+      - "package-lock.json"
+      # The clean-room job's install semantics live here (nodeLinker,
+      # packageExtensions) — editing it must re-run this workflow.
+      - ".yarnrc.yml"
+      - ".github/workflows/ci.ts-sdk.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "apis/stubs/ts/**"
+      - "sdk/typescript/**"
+      - "mcp-server/**"
+      - "sdk/react/**"
+      - "sdk/ink/**"
+      - "sdk/theme/**"
+      - "client-apps/cli/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".yarnrc.yml"
+      - ".github/workflows/ci.ts-sdk.yaml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-ts-sdk-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Make installs resilient to transient registry drops (ECONNRESET) — the same
+# npm_config_* retry knobs ci.frontend uses.
+env:
+  npm_config_fetch_retries: "5"
+  npm_config_fetch_retry_factor: "2"
+  npm_config_fetch_retry_mintimeout: "20000"
+  npm_config_fetch_retry_maxtimeout: "120000"
+
+jobs:
+  typecheck:
+    name: typecheck (locked resolution)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies (npm ci, tracked lockfile)
+        run: npm ci
+
+      - name: Build @stigmer/protos dist
+        run: npm run build -w @stigmer/protos
+
+      # Both configs per package: tsconfig.build.json is what ships (and what
+      # the #628 incident surfaced through); the `typecheck` script covers
+      # tsconfig.json, which is the only config that includes the test files.
+      - name: Typecheck sdk/typescript
+        run: |
+          npx tsc -p sdk/typescript/tsconfig.build.json --noEmit
+          npm run typecheck -w @stigmer/sdk
+
+      - name: Typecheck mcp-server
+        run: |
+          npx tsc -p mcp-server/tsconfig.build.json --noEmit
+          npm run typecheck -w @stigmer/mcp-server
+
+      - name: Typecheck sdk/react
+        run: |
+          npx tsc -p sdk/react/tsconfig.build.json --noEmit
+          npm run typecheck -w @stigmer/react
+
+      - name: Typecheck sdk/ink
+        run: |
+          npx tsc -p sdk/ink/tsconfig.build.json --noEmit
+          npm run typecheck -w @stigmer/ink
+
+      - name: Typecheck client-apps/cli
+        run: |
+          npx tsc -p client-apps/cli/tsconfig.build.json --noEmit
+          npm run typecheck -w @stigmer/cli
+
+  typecheck-clean-room:
+    name: typecheck (clean-room resolution)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      # Yarn 3.8.7 via the root packageManager field. There is deliberately no
+      # committed root yarn.lock (npm rewrites it with machine paths — see
+      # .gitignore), so this install RE-RESOLVES every caret range from the
+      # live registry: the exact path that exposed the 477-error split. The
+      # root `resolutions` block pins the known-toxic drifts (@bufbuild/
+      # protobuf from PR #628; zod from this lane's dry run); anything else
+      # that drifts into un-unifiable or pathological types fails HERE, before
+      # an integrator's fresh clone finds it.
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies (yarn, fresh resolution)
+        run: yarn install
+
+      - name: Build @stigmer/protos dist
+        run: yarn workspace @stigmer/protos run build
+
+      # Build configs only: the resolution-split class this job exists for
+      # surfaces in the shipping surface. Test-file typechecking is the locked
+      # job's business — including it here would add @types-drift flake
+      # without adding signal for this failure class.
+      - name: Typecheck the five consumer packages
+        run: |
+          npx tsc -p sdk/typescript/tsconfig.build.json --noEmit
+          npx tsc -p mcp-server/tsconfig.build.json --noEmit
+          npx tsc -p sdk/react/tsconfig.build.json --noEmit
+          npx tsc -p sdk/ink/tsconfig.build.json --noEmit
+          npx tsc -p client-apps/cli/tsconfig.build.json --noEmit
