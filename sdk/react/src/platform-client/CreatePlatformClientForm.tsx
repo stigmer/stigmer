@@ -2,6 +2,7 @@
 
 import { type FormEvent, type KeyboardEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { PlatformClientCreateResponse } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
@@ -167,7 +168,7 @@ export function CreatePlatformClientForm({
       />
 
       {/* Expiry */}
-      <fieldset className="stg:space-y-2" disabled={isCreating}>
+      <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2")} disabled={isCreating}>
         <legend className="stg:text-xs stg:font-medium stg:text-foreground">
           Expiry
         </legend>
@@ -202,7 +203,7 @@ export function CreatePlatformClientForm({
       </fieldset>
 
       {/* JIT provisioning */}
-      <fieldset className="stg:space-y-2.5" disabled={isCreating}>
+      <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2.5")} disabled={isCreating}>
         <hr className="stg:border-border-muted" />
         <legend className="stg:text-xs stg:font-medium stg:text-foreground">
           JIT provisioning
@@ -263,7 +264,7 @@ export function CreatePlatformClientForm({
       </fieldset>
 
       {/* Allowed origins */}
-      <fieldset className="stg:space-y-2" disabled={isCreating}>
+      <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2")} disabled={isCreating}>
         <hr className="stg:border-border-muted" />
         <legend className="stg:text-xs stg:font-medium stg:text-foreground">
           Allowed origins

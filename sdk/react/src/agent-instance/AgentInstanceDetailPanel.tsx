@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -233,7 +234,7 @@ export function AgentInstanceDetailPanel({
               {(spec?.environmentRefs?.length ?? 0) === 0 ? (
                 <p className="stg:text-xs stg:text-muted-foreground">No environments bound.</p>
               ) : (
-                <ol className="stg:space-y-1">
+                <ol className={cn(UNSTYLED_LIST, "stg:space-y-1")}>
                   {spec!.environmentRefs.map((ref, idx) => (
                     <li key={`${ref.slug}-${idx}`} className="stg:flex stg:items-center stg:gap-2 stg:text-sm">
                       <span className="stg:text-xs stg:text-muted-foreground stg:w-4 stg:text-right">{idx + 1}.</span>

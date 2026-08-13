@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_FIELDSET } from "../../../internal/element-resets.js";
 import {
   Tooltip,
   TooltipContent,
@@ -283,7 +284,7 @@ function ForkBranches({
   return (
     <div className="stg:flex stg:flex-col stg:gap-3 stg:px-3 stg:py-3">
       {/* Join policy */}
-      <fieldset>
+      <fieldset className={UNSTYLED_FIELDSET}>
         <legend className="stg:text-xs stg:font-semibold stg:text-[var(--stgm-foreground,#1a1a2e)] stg:mb-1.5">
           Join policy
         </legend>

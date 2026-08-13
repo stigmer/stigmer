@@ -4,6 +4,7 @@ import { useMemo, type ComponentType } from "react";
 import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
 import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 
 /** Props for {@link TodoList}. */
 export interface TodoListProps {
@@ -69,7 +70,7 @@ export function TodoList({
   return (
     <ul
       role="list"
-      className={cn("stg:flex stg:flex-col stg:gap-1", className)}
+      className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:gap-1", className)}
       aria-label="Tasks"
     >
       {sortedTodos.map((item) => (

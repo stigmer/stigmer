@@ -2,6 +2,7 @@
 
 import { type FormEvent, type KeyboardEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
@@ -302,7 +303,7 @@ export function PlatformClientDetailPanel({
           </div>
 
           {/* Expiry */}
-          <fieldset className="stg:space-y-2" disabled={isUpdating}>
+          <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2")} disabled={isUpdating}>
             <legend className="stg:text-xs stg:font-medium stg:text-foreground">
               Expiry
             </legend>
@@ -337,7 +338,7 @@ export function PlatformClientDetailPanel({
           </fieldset>
 
           {/* JIT provisioning */}
-          <fieldset className="stg:space-y-2.5" disabled={isUpdating}>
+          <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2.5")} disabled={isUpdating}>
             <hr className="stg:border-border-muted" />
             <legend className="stg:text-xs stg:font-medium stg:text-foreground">
               JIT provisioning
@@ -393,7 +394,7 @@ export function PlatformClientDetailPanel({
           </fieldset>
 
           {/* Allowed origins */}
-          <fieldset className="stg:space-y-2" disabled={isUpdating}>
+          <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2")} disabled={isUpdating}>
             <hr className="stg:border-border-muted" />
             <legend className="stg:text-xs stg:font-medium stg:text-foreground">
               Allowed origins

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components.js";
 import { buildFileTree, FileTreeNode } from "../internal/file-tree/index.js";
 import { useSkillArtifact } from "./useSkillArtifact.js";
@@ -132,7 +133,7 @@ export function SkillFileBrowser({
           className="stg:border-b stg:border-border stg:md:border-b-0 stg:md:border-r stg:overflow-y-auto"
           aria-label="Skill package file tree"
         >
-          <ul className="stg:py-1" role="tree">
+          <ul className={cn(UNSTYLED_LIST, "stg:py-1")} role="tree">
             {treeNodes.map((node) => (
               <FileTreeNode
                 key={node.path}

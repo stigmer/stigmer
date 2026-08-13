@@ -11,6 +11,7 @@ import { RetireConfirm } from "./RetireConfirm.js";
 import { ModelGovernanceDetail } from "./ModelGovernanceDetail.js";
 import { OperatorAccessNotice } from "./OperatorAccessNotice.js";
 import { GovernanceBadge, PendingOverrideCard, RateCell } from "./governance-primitives.js";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { INPUT_CLASSES } from "../internal/form-primitives.js";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { ZERO } from "./pricing-format.js";
@@ -328,7 +329,7 @@ function ModelsTab({
               : "The catalog is empty — has the baseline seed migration run?"}
           </p>
         ) : (
-          <ul role="list" aria-label="Models" className="stg:m-0 stg:list-none stg:p-0">
+          <ul role="list" aria-label="Models" className={UNSTYLED_LIST}>
             {view.models.map((row) => (
               <ModelRow key={row.key} row={row} onOpen={() => view.openDetail(row.key)} />
             ))}

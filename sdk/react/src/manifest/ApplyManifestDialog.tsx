@@ -3,6 +3,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef } from "react";
 import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { toast } from "../feedback/toast.js";
 import { RedactedSecretsNotice } from "./RedactedSecretsNotice.js";
 import {
@@ -189,7 +190,7 @@ export function ApplyManifestDialog({
 
         {/* Per-document preview */}
         {manifest.entries && manifest.entries.length > 0 && (
-          <ul className="stg:flex stg:max-h-48 stg:flex-col stg:gap-2 stg:overflow-y-auto" aria-label="Resources to apply">
+          <ul className={cn(UNSTYLED_LIST, "stg:flex stg:max-h-48 stg:flex-col stg:gap-2 stg:overflow-y-auto")} aria-label="Resources to apply">
             {manifest.entries.map((entry, index) => (
               <PreviewRow key={`${entry.document.handler.yamlKind}/${entry.document.org}/${entry.document.slug}/${index}`} entry={entry} />
             ))}

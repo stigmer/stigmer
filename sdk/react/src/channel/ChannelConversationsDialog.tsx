@@ -5,6 +5,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { MessageSquare, User, X } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -153,7 +154,7 @@ function ChannelConversationsDialogBody({
             description="When someone messages this channel, the sessions serving them appear here."
           />
         ) : (
-          <ul className="stg:space-y-1">
+          <ul className={cn(UNSTYLED_LIST, "stg:space-y-1")}>
             {sessions.map((session) => (
               <ConversationRow
                 key={session.metadata?.id}

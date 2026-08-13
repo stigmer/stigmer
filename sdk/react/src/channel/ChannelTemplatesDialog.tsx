@@ -4,6 +4,7 @@ import { useCallback, useId, type ReactNode } from "react";
 import { ExternalLink, LayoutTemplate, X } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import type { ChannelTemplate } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
@@ -297,7 +298,7 @@ function ChannelTemplatesList({
         </p>
         <WhatsAppManagerLink label="Manage in WhatsApp Manager" />
       </div>
-      <ul className="stg:space-y-2">
+      <ul className={cn(UNSTYLED_LIST, "stg:space-y-2")}>
         {templates.map((template) => (
           <TemplateRow
             key={`${template.name}\u0000${template.language}`}

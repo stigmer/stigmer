@@ -3,6 +3,7 @@
 import { useCallback, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import {
   MAX_ALLOWED_ORIGINS,
   StigmerError,
@@ -1316,7 +1317,7 @@ function OriginsEditor({
       </p>
 
       {draft.allowedOrigins.length > 0 && (
-        <ul className="stg:mt-2 stg:flex stg:flex-col stg:divide-y stg:divide-border stg:rounded-md stg:border stg:border-border">
+        <ul className={cn(UNSTYLED_LIST, "stg:mt-2 stg:flex stg:flex-col stg:divide-y stg:divide-border stg:rounded-md stg:border stg:border-border")}>
           {draft.allowedOrigins.map((origin) => (
             <li
               key={origin}

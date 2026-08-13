@@ -2,6 +2,7 @@
 
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { useSessionWriteBacks } from "../session/useSessionWriteBacks.js";
 import { WriteBackCard } from "./WriteBackCard.js";
 
@@ -71,7 +72,7 @@ export function WriteBacksWidget({
         </span>
       </div>
 
-      <ul role="list" className="stg:flex stg:flex-col stg:gap-3">
+      <ul role="list" className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:gap-3")}>
         {writeBacks.map((entry) => (
           <li key={entry.writeBack.workspaceEntryName}>
             <WriteBackCard writeBack={entry.writeBack} />

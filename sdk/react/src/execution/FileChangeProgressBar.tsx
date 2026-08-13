@@ -3,6 +3,7 @@
 import { memo, useState } from "react";
 import type { FileChangeProgress } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { FileKindBadge, FileLineStats } from "./FileReviewAtoms.js";
 import { FilePathLink } from "./FilePathLink.js";
 
@@ -91,7 +92,7 @@ export const FileChangeProgressBar = memo(function FileChangeProgressBar({
         <FileLineStats linesAdded={linesAdded} linesRemoved={linesRemoved} />
       </div>
       {expanded && (
-        <ul className="stg:mt-2 stg:max-h-[30vh] stg:space-y-1 stg:overflow-y-auto">
+        <ul className={cn(UNSTYLED_LIST, "stg:mt-2 stg:max-h-[30vh] stg:space-y-1 stg:overflow-y-auto")}>
           {entries.map((entry) => {
             const path = entry.pathAfter || entry.pathBefore;
             return (

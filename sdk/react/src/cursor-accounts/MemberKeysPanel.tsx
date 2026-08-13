@@ -5,6 +5,7 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { CursorAccountView } from "@stigmer/protos/ai/stigmer/platform/cursoraccount/v1/io_pb";
 import { Button } from "../button/index.js";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { INPUT_CLASSES } from "../internal/form-primitives.js";
 import { toError } from "../internal/toError.js";
 import type { CursorAccountCoverage } from "./cursor-account-coverage.js";
@@ -259,7 +260,7 @@ export function MemberKeysPanel({
             <ul
               role="list"
               aria-label="Import results"
-              className="stg:m-0 stg:list-none stg:space-y-0.5 stg:p-0 stg:text-[11px]"
+              className={cn(UNSTYLED_LIST, "stg:space-y-0.5 stg:text-[11px]")}
             >
               {importResults.map((result) => (
                 <li
