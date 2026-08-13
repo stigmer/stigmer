@@ -53,6 +53,14 @@ function authoritativeReport(billableMicros: bigint): GetSessionUsageReportOutpu
       primaryProvider: "cursor",
     },
     modelBreakdown: [],
+    executions: [
+      {
+        executionId: "exe_1",
+        primaryModel: "claude-sonnet-4-6",
+        billableCostMicros: billableMicros,
+        isEstimated: false,
+      },
+    ],
     isEstimated: false,
   } as unknown as GetSessionUsageReportOutput;
 }
@@ -71,6 +79,7 @@ function emptyReport(): GetSessionUsageReportOutput {
       primaryProvider: "",
     },
     modelBreakdown: [],
+    executions: [],
     isEstimated: true,
   } as unknown as GetSessionUsageReportOutput;
 }
@@ -122,6 +131,16 @@ describe("useSessionUsage", () => {
     // 60_000 micros = $0.06 billable, replacing the $0.05 estimate.
     expect(result.current.totalCostUsd).toBeCloseTo(0.06);
     expect(result.current.llmCallCount).toBe(2);
+    // The #362 provenance rows ride the same report: billing-RESOLVED
+    // model per execution, never the runner's requested echo.
+    expect(result.current.executionBreakdown).toEqual([
+      {
+        executionId: "exe_1",
+        resolvedModel: "claude-sonnet-4-6",
+        billableCostUsd: 0.06,
+        isEstimated: false,
+      },
+    ]);
   });
 
   it("polls the usage report while an execution is in progress", async () => {

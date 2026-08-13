@@ -10,6 +10,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	scheduletemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/schedule/temporal"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -89,6 +90,9 @@ func (s *resolveScheduleDefaultsStep) Execute(ctx *pipeline.RequestContext[*sche
 	if err := validateScheduleWorkspace(spec); err != nil {
 		return err
 	}
+	if err := validateScheduleModelPinning(spec); err != nil {
+		return err
+	}
 
 	// Empty ref org means same-org; make it absolute before the invariant
 	// compares orgs.
@@ -138,6 +142,20 @@ func validateScheduleWorkspace(spec *schedulev1.ScheduleSpec) error {
 				i,
 			)
 		}
+	}
+	return nil
+}
+
+// validateScheduleModelPinning enforces the unattended model-pinning rule
+// (stigmer/stigmer#362) at write time. The rule itself — why the Cursor
+// harness requires a pinned model, why native is exempt, and the
+// edition-honest default-harness divergence — is stated once in
+// scheduletemporal.ScheduleModelPinningRefusal, which the run starter
+// also evaluates as the launch backstop for rows written before the rule
+// existed.
+func validateScheduleModelPinning(spec *schedulev1.ScheduleSpec) error {
+	if reason := scheduletemporal.ScheduleModelPinningRefusal(spec); reason != "" {
+		return grpclib.InvalidArgumentError("%s", reason)
 	}
 	return nil
 }
@@ -222,8 +240,11 @@ func (s *validateScheduleUpdateStep) Execute(ctx *pipeline.RequestContext[*sched
 		return err
 	}
 	// Update replaces the spec wholesale (no defaults resolver), so the
-	// workspace constraint must hold here too.
+	// workspace and model-pinning constraints must hold here too.
 	if err := validateScheduleWorkspace(spec); err != nil {
+		return err
+	}
+	if err := validateScheduleModelPinning(spec); err != nil {
 		return err
 	}
 

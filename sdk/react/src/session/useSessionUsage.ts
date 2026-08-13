@@ -41,6 +41,25 @@ export interface ModelCostEntry {
   readonly callCount: number;
 }
 
+/**
+ * Per-execution model provenance from billing records (stigmer/stigmer#362).
+ */
+export interface ExecutionUsageEntry {
+  /** Execution identifier (`metadata.id`). */
+  readonly executionId: string;
+  /**
+   * Billing-resolved primary model — what the provider actually served.
+   * For a Cursor Auto execution this is the after-the-fact answer to
+   * "which model did Auto pick", which the requested model (empty by
+   * definition there) can never give.
+   */
+  readonly resolvedModel: string;
+  /** Billable cost in USD for this execution. */
+  readonly billableCostUsd: number;
+  /** `true` while this execution's records are still provisional. */
+  readonly isEstimated: boolean;
+}
+
 /** Return value of {@link useSessionUsage}. */
 export interface UseSessionUsageReturn {
   /** Aggregate estimated cost in USD across all models. */
@@ -59,6 +78,13 @@ export interface UseSessionUsageReturn {
   readonly llmCallCount: number;
   /** Per-model cost and token breakdown. */
   readonly modelBreakdown: readonly ModelCostEntry[];
+  /**
+   * Per-execution resolved model + cost, chronological, from billing
+   * records (#362). Empty until the first authoritative record lands —
+   * the streaming fallback deliberately contributes none, because the
+   * runner only knows what it REQUESTED, never what the provider served.
+   */
+  readonly executionBreakdown: readonly ExecutionUsageEntry[];
   /** Model with the highest usage in this session. */
   readonly primaryModel: string;
   /** Provider of the primary model. */
@@ -82,6 +108,7 @@ const EMPTY: UseSessionUsageReturn = {
   cacheCreationTokens: 0,
   llmCallCount: 0,
   modelBreakdown: [],
+  executionBreakdown: [],
   primaryModel: "",
   primaryProvider: "",
   hasUsage: false,
@@ -122,6 +149,12 @@ function mapReport(report: GetSessionUsageReportOutput): UseSessionUsageReturn {
     cacheCreationTokens: Number(agg.cacheCreationInputTokens),
     llmCallCount,
     modelBreakdown: report.modelBreakdown.map(mapModelUsage),
+    executionBreakdown: report.executions.map((e) => ({
+      executionId: e.executionId,
+      resolvedModel: e.primaryModel,
+      billableCostUsd: microsToUsd(e.billableCostMicros),
+      isEstimated: e.isEstimated,
+    })),
     primaryModel: agg.primaryModel,
     primaryProvider: agg.primaryProvider,
     hasUsage: llmCallCount > 0 || totalTokens > 0 || billableCost > 0,
@@ -169,6 +202,10 @@ function aggregateStreamingUsage(
     cacheReadTokens,
     cacheCreationTokens,
     llmCallCount: turnCount,
+    // No executionBreakdown here on purpose: the runner only knows the
+    // REQUESTED model; resolved-model rows exist only once billing
+    // records land (#362).
+    executionBreakdown: [],
     modelBreakdown: model
       ? [
           {

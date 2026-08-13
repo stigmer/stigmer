@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "artifact.go",
         "config.go",
+        "modelpinning.go",
         "reconcile.go",
         "runledger.go",
         "runstarter.go",
