@@ -1904,6 +1904,36 @@ platform builders composing custom tool UIs.
 ```
 
 
+### TerminalTail
+
+The collapsed teaser of a settled terminal session: the `$ command` prompt
+line plus a dimmed tail of the last few output lines — enough to see at a
+glance that the command ran and what it printed last, without the full
+output competing with the conversation.
+
+The reduced contrast is deliberate and load-bearing: the tail is *context*,
+not content, so it renders one contrast step below the reading text
+(`muted-foreground`), while the command — the user-relevant intent — keeps
+full contrast. stderr is not colored here for the same reason; the full
+session (one disclosure away) restores the destructive treatment.
+
+Rendered by the tool-call row's `"tail"` disclosure state (see
+[`ToolCallItem`](#toolcallitem)); the row's header chevron is the expand control, so
+this component is presentation-only.
+
+**Props** — `TerminalTailProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    command: { type: "string", description: "The command that was run, shown as the `$ <command>` prompt line." },
+    exitCode: { type: "number", description: "Process exit code. A non-zero code renders a trailing `exit N` badge." },
+    stderr: { type: "string", description: "Standard error." },
+    stdout: { type: "string", description: "Standard output." },
+  }}
+/>
+
+
 ### ThreadSkeleton
 
 Pulse-animated skeleton that mimics the shape of a conversation
@@ -2470,9 +2500,10 @@ Resolved output of `UseCreateAgentExecutionReturn.create`.
 ### defaultDisclosureForCategory
 
 Returns the default inline [`ToolDisclosure`](#tooldisclosure) for a presentation
-category. This is the headless policy behind the thread's "keep a live
-preview for shell/MCP/unknown, keep generic tools compact" behaviour;
-consumers can override per `ToolKind` via [`registerToolPresenter`](#registertoolpresenter).
+category. This is the headless policy behind the thread's "collapse settled
+shell to a dimmed tail, keep a live preview for MCP/unknown, keep generic
+tools compact" behaviour; consumers can override per `ToolKind` via
+[`registerToolPresenter`](#registertoolpresenter).
 
 ```tsx
 function defaultDisclosureForCategory(category: ToolCategory): ToolDisclosure
@@ -3916,18 +3947,25 @@ Props for [`ToolCallGroup`](#toolcallgroup).
 
 Renders a single tool call as a row in the tool call group.
 
-Three rendering modes, set by one rule — **does the body carry content the
-one-line row cannot?**
+Four rendering modes, set by one rule — **does the body carry content the
+one-line row cannot, and does it stay content once the call settles?**
 
 - **Non-expandable** (completed/skipped Read): a static `<div>` row with a
   clickable [`FilePathLink`](#filepathlink). The path IS the complete information.
-- **Preview** (content-bearing: shell / edit / write / fetch / web-search /
+- **Preview** (content-bearing: edit / write / fetch / web-search /
   unknown / mcp): a plain (non-button) header above an **always-visible**
   [`ToolCallDetail`](#toolcalldetail) body — Cursor-style "previews aren't collapsible".
   There is no header chevron; each content block self-bounds with its own
-  *   single in-place reveal (`RevealToggle`), so a long diff or output
-  never floods the thread. The body is suppressed only for an `empty` result
-  (e.g. a no-output shell), which stays a clean one-line row.
+  single in-place reveal (`RevealToggle`), so a long diff or output
+  never floods the thread. The body is suppressed only for an `empty` result,
+  which stays a clean one-line row.
+- **Tail** (shell): live like preview — the full terminal session streams in
+  view while the command runs or awaits its gate — but a *successful* settle
+  collapses the row to a [`TerminalTail`](#terminaltail) teaser (the `$ command` line
+  plus a dimmed tail of the last output lines) behind the header chevron.
+  A settled failure stays open: error output is content, not context. A
+  result that isn't a terminal session (e.g. an offloaded `outputRef`)
+  falls back to the preview layout — never hide evidence we cannot condense.
 - **Summary / sub-agent** (read / list / search / delete / think, and
   sub-agent delegations): a chevron-gated `div[role=button]` header that
   discloses a body hidden by default — [`ToolCallDetail`](#toolcalldetail), a
@@ -3977,9 +4015,17 @@ How much of a settled tool call to reveal inline by default in the thread.
   `Search … 2 matches`). The full detail is one click away.
 - `"preview"` — the row renders its result body **always** (no card chevron),
   because the one-liner cannot convey what happened so the content itself IS
-  the information (a shell command's output, an MCP result such as a
-  screenshot, a fetched page, a web-search answer, or an unrecognised tool's
-  output). The body's own in-place reveal expands it beyond the height budget.
+  the information (an MCP result such as a screenshot, a fetched page, a
+  web-search answer, or an unrecognised tool's output). The body's own
+  in-place reveal expands it beyond the height budget.
+- `"tail"` — live like `"preview"`, settled like a teaser: while the tool
+  runs (or awaits approval) the full body streams in view; once it settles
+  successfully the row collapses to a dimmed tail of its last output lines —
+  at-a-glance evidence that it ran and what it printed last — expanding on
+  demand via the header chevron. A settled *failure* stays open: error
+  output is content, not context. Shell is the canonical tail category — a
+  working session's compile/validate loops would otherwise dominate the
+  transcript at full contrast (Cursor's chat is the reference UX).
 
 This is the *disclosure* axis (how much of a result to show); it is
 orthogonal to `isRunGroupableCategory` (whether consecutive same-kind

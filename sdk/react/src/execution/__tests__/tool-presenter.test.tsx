@@ -78,8 +78,9 @@ describe("useToolPresentation", () => {
 
   describe("disclosure", () => {
     it("keeps known compact tools as summary", () => {
-      // Shell/edit/write are intentionally excluded — they are `preview`
-      // categories (output / diff is the information), asserted separately below.
+      // Shell/edit/write are intentionally excluded — shell is the `tail`
+      // category and edit/write are `preview` categories (output / diff is
+      // the information), asserted separately below.
       for (const name of ["Read", "Grep", "Glob"]) {
         const tc = makeToolCall({ name, args: { path: "/x", command: "ls", pattern: "p" } });
         const { result } = renderHook(() => useToolPresentation(tc));
@@ -98,11 +99,25 @@ describe("useToolPresentation", () => {
       }
     });
 
-    it("keeps a shell tool's output as a persistent preview", () => {
+    it("gives shell the tail disclosure (live preview, dimmed-tail settle)", () => {
       const tc = makeToolCall({ name: "Shell", args: { command: "ls" }, result: "files" });
       const { result } = renderHook(() => useToolPresentation(tc));
       expect(result.current.category).toBe("shell");
-      expect(result.current.disclosure).toBe("preview");
+      expect(result.current.disclosure).toBe("tail");
+    });
+
+    it("lets a host restore the always-expanded shell preview via the registry", () => {
+      // The one-line opt-out for hosts that prefer the pre-tail behaviour.
+      const dispose = registerToolPresenter(ToolKind.SHELL, {
+        disclosure: () => "preview",
+      });
+      try {
+        const tc = makeToolCall({ name: "Shell", args: { command: "ls" }, result: "files" });
+        const { result } = renderHook(() => useToolPresentation(tc));
+        expect(result.current.disclosure).toBe("preview");
+      } finally {
+        dispose();
+      }
     });
 
     it("foregrounds MCP tools as preview", () => {
