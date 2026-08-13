@@ -2,32 +2,32 @@
 # Documentation CI
 # =============================================================================
 # Quality gates for documentation changes: prose linting, formatting, site
-# build verification, SDK docs freshness, and link checking. Runs on every PR
-# and push to main that touches docs, the site, protos, or codegen tooling.
+# build verification, SDK docs freshness, and link checking.
+#
+# `Lint & Build` is a required status check on main, and required checks with
+# workflow-level `paths` filters need a way to report on the PRs the filter
+# skips. This workflow used to solve that with a no-op twin
+# (ci.docs-noop.yaml, `paths-ignore` mirroring the `paths` list) — a design
+# with a hole this repo shipped through: the two filters only partition PRs
+# that fall entirely on one side. A MIXED PR (docs + non-docs files) triggered
+# BOTH workflows, and because branch protection matches checks by name, the
+# twin's unconditionally green `Lint & Build` satisfied the requirement even
+# when the real one failed. PR #662 merged exactly that way and turned main
+# red for every docs-adjacent PR (issue #688).
+#
+# The twin is gone. This workflow now runs on EVERY pull request; the cheap
+# `changes` job diffs the PR against its base and each gate job skips itself
+# when no docs-adjacent path changed. A job skipped by its `if` condition
+# still reports a conclusion, which satisfies required status checks — one
+# check name, one workflow, no partition to get wrong.
 # =============================================================================
 
 name: ci.docs
 
-# `Lint & Build` is a required status check on main. ci.docs-noop.yaml reports
-# a passing twin on the PRs these path filters skip — its `paths-ignore` list
-# must mirror this `paths` list entry for entry; change both in one commit.
 on:
+  # No `paths` filter here — the required check must report on every PR, and
+  # the docs-adjacent path decision lives in the `changes` job below.
   pull_request:
-    paths:
-      - "docs/**"
-      - "site/**"
-      - "apis/**"
-      - "tools/codegen/**"
-      - "client-apps/cli/**"
-      - "sdk/ink/**"
-      - "sdk/react/**"
-      # The docs site embeds the Ask AI panel through @stigmer/embed's
-      # workspace source, so embed changes can break the site build/tests.
-      - "sdk/embed/**"
-      - ".vale.ini"
-      - ".prettierrc"
-      - ".lychee.toml"
-      - "vale/**"
   push:
     branches: [main]
     paths:
@@ -45,6 +45,7 @@ on:
       - ".prettierrc"
       - ".lychee.toml"
       - "vale/**"
+      - ".github/workflows/ci.docs.yaml"
   workflow_dispatch:
 
 concurrency:
@@ -61,9 +62,51 @@ env:
   npm_config_fetch_retry_maxtimeout: "120000"
 
 jobs:
+  # Decides whether this PR touches docs-adjacent paths. Keep the list below
+  # in lockstep with the push-trigger `paths` list above — both live in this
+  # one file precisely so a change can't update one and miss the other.
+  changes:
+    name: Detect docs-adjacent changes
+    runs-on: ubuntu-latest
+    outputs:
+      docs: ${{ steps.filter.outputs.docs }}
+    steps:
+      - name: Checkout (merge commit + its parents)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      # On a pull_request event HEAD is the merge commit GitHub builds from
+      # the PR onto the CURRENT base, so `git diff HEAD^1 HEAD` is exactly
+      # the file set this PR would land — no stale event SHAs, no extra API
+      # calls. Non-PR events (push already path-filtered above; manual
+      # dispatch means someone wants the run) always gate in.
+      - name: Diff changed paths against the docs-adjacent list
+        id: filter
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "docs=true" >> "$GITHUB_OUTPUT"
+            echo "Non-PR event — docs gates run."
+            exit 0
+          fi
+          changed=$(git diff --name-only HEAD^1 HEAD)
+          echo "Changed files:"
+          echo "$changed"
+          pattern='^(docs/|site/|apis/|tools/codegen/|client-apps/cli/|sdk/ink/|sdk/react/|sdk/embed/|vale/|\.vale\.ini$|\.prettierrc$|\.lychee\.toml$|\.github/workflows/ci\.docs\.yaml$)'
+          if echo "$changed" | grep -qE "$pattern"; then
+            echo "docs=true" >> "$GITHUB_OUTPUT"
+            echo "Docs-adjacent paths changed — docs gates run."
+          else
+            echo "docs=false" >> "$GITHUB_OUTPUT"
+            echo "No docs-adjacent paths changed — docs gates skip (reported as skipped, which satisfies the required check)."
+          fi
+
   lint-and-build:
     name: Lint & Build
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -117,6 +160,8 @@ jobs:
   sdk-docs-freshness:
     name: SDK Docs Freshness
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
     # The self-heal step pushes regenerated docs back to main; every other
     # step only reads the repo.
     permissions:
@@ -220,6 +265,8 @@ jobs:
   links:
     name: Links (Lychee)
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
     # Non-blocking: external links are inherently flaky in CI due to rate
     # limiting, transient failures, and geo-blocks. Exclusions for known
     # vendor dashboard URLs live in .lychee.toml.
