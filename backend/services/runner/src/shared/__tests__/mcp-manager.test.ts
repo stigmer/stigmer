@@ -66,7 +66,7 @@ describe("toMcpClientConfig", () => {
     });
   });
 
-  it("maps HTTP servers to streamable_http transport", () => {
+  it("maps HTTP servers to streamable_http transport with reconnect enabled", () => {
     const servers = [
       makeServer({
         slug: "github",
@@ -80,10 +80,14 @@ describe("toMcpClientConfig", () => {
       transport: "http",
       url: "https://api.github.com/mcp",
       headers: { Authorization: "Bearer tok" },
+      // oss#316: severed remote connections (e.g. the hosted bridge
+      // restarting mid-execution) re-initialize instead of stranding the
+      // agent on a dead session.
+      reconnect: { enabled: true, maxAttempts: 3, delayMs: 1_000 },
     });
   });
 
-  it("maps SSE servers to streamable_http transport", () => {
+  it("maps SSE servers to streamable_http transport with reconnect enabled", () => {
     const servers = [
       makeServer({
         slug: "sse-server",
@@ -96,6 +100,7 @@ describe("toMcpClientConfig", () => {
       transport: "http",
       url: "https://sse.example.com/mcp",
       headers: undefined,
+      reconnect: { enabled: true, maxAttempts: 3, delayMs: 1_000 },
     });
   });
 
