@@ -218,6 +218,47 @@ func TestDefaultVisibilityFor(t *testing.T) {
 	}
 }
 
+func TestSupportedVisibilityLevels(t *testing.T) {
+	tests := []struct {
+		name     string
+		kind     apiresourcekind.ApiResourceKind
+		expected string
+	}{
+		{
+			name:     "blueprint supports every level",
+			kind:     apiresourcekind.ApiResourceKind_agent,
+			expected: "visibility_private, visibility_org, visibility_public, visibility_platform",
+		},
+		{
+			name:     "instance supports org and public, never platform",
+			kind:     apiresourcekind.ApiResourceKind_agent_instance,
+			expected: "visibility_private, visibility_org, visibility_public",
+		},
+		{
+			name:     "environment caps out at org",
+			kind:     apiresourcekind.ApiResourceKind_environment,
+			expected: "visibility_private, visibility_org",
+		},
+		{
+			name:     "kind with no visibility config is private-only",
+			kind:     apiresourcekind.ApiResourceKind_session,
+			expected: "visibility_private",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := SupportedVisibilityLevels(tt.kind)
+			if err != nil {
+				t.Fatalf("SupportedVisibilityLevels(%v) unexpected error: %v", tt.kind, err)
+			}
+			if got != tt.expected {
+				t.Errorf("SupportedVisibilityLevels(%v) = %q, want %q", tt.kind, got, tt.expected)
+			}
+		})
+	}
+}
+
 func TestToSnakeCase(t *testing.T) {
 	tests := []struct {
 		input    string

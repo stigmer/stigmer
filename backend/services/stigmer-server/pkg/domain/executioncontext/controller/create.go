@@ -57,6 +57,7 @@ func (c *ExecutionContextController) buildCreatePipeline() *pipeline.Pipeline[*e
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*executioncontextv1.ExecutionContext]("execution-context-create").
 		AddStep(steps.NewValidateProtoStep[*executioncontextv1.ExecutionContext]()).                                              // 1. Validate field constraints
+		AddStep(steps.NewValidateVisibilityStep[*executioncontextv1.ExecutionContext]()).                                         // Reject unsupported visibility levels (fail fast)
 		AddStep(newRejectCiphertextShapedStep()).                                                                                 // 2. Refuse forged ciphertext input
 		AddStep(steps.NewResolveSlugStep[*executioncontextv1.ExecutionContext]()).                                                // 3. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*executioncontextv1.ExecutionContext](c.store)).                                      // 4. Check duplicate

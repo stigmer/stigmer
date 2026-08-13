@@ -8,7 +8,6 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
@@ -56,7 +55,8 @@ func (c *EnvironmentController) buildUpdateVisibilityPipeline() *pipeline.Pipeli
 	return pipeline.NewPipeline[*apiresourcepb.UpdateVisibilityInput]("environment-update-visibility").
 		AddStep(steps.NewValidateProtoStep[*apiresourcepb.UpdateVisibilityInput]()).
 		AddStep(c.newLoadEnvironmentForVisibilityUpdateStep()).
-		AddStep(c.newValidateEnvironmentVisibilityUpdateStep()).
+		AddStep(steps.NewValidateVisibilityUpdateStep()). // Reject unsupported levels (after load: NOT_FOUND wins, as in Cloud)
+		AddStep(c.newValidateEnvironmentShareRestrictionStep()).
 		AddStep(c.newSetEnvironmentVisibilityStep()).
 		AddStep(c.newPersistEnvironmentForVisibilityUpdateStep()).
 		AddStep(c.newIndexEnvironmentAfterVisibilityUpdateStep()).
@@ -89,37 +89,30 @@ func (s *loadEnvironmentForVisibilityUpdateStep) Execute(ctx *pipeline.RequestCo
 	return nil
 }
 
-// validateEnvironmentVisibilityUpdateStep rejects unsupported levels and
-// share-restricted environments before any state changes.
-type validateEnvironmentVisibilityUpdateStep struct{}
+// validateEnvironmentShareRestrictionStep rejects org sharing on personal
+// and OAuth-managed environments before any state changes. Level support is
+// validated by the shared ValidateVisibilityUpdateStep composed just before
+// this one (environments cap out at org — secret values must never be
+// resolvable across the org boundary; that ceiling lives in the kind's
+// proto VisibilityConfig, not here). Mirrors Cloud's split: shared level
+// validation + a separate environment-only ValidateShareRestriction step.
+type validateEnvironmentShareRestrictionStep struct{}
 
-func (c *EnvironmentController) newValidateEnvironmentVisibilityUpdateStep() *validateEnvironmentVisibilityUpdateStep {
-	return &validateEnvironmentVisibilityUpdateStep{}
+func (c *EnvironmentController) newValidateEnvironmentShareRestrictionStep() *validateEnvironmentShareRestrictionStep {
+	return &validateEnvironmentShareRestrictionStep{}
 }
 
-func (s *validateEnvironmentVisibilityUpdateStep) Name() string {
-	return "ValidateEnvironmentVisibilityUpdate"
+func (s *validateEnvironmentShareRestrictionStep) Name() string {
+	return "ValidateEnvironmentShareRestriction"
 }
 
-func (s *validateEnvironmentVisibilityUpdateStep) Execute(ctx *pipeline.RequestContext[*apiresourcepb.UpdateVisibilityInput]) error {
+func (s *validateEnvironmentShareRestrictionStep) Execute(ctx *pipeline.RequestContext[*apiresourcepb.UpdateVisibilityInput]) error {
 	input := ctx.Input()
 	env := ctx.Get(updateVisibilityEnvironmentKey).(*environmentv1.Environment)
 
-	requested := input.GetVisibility()
-
-	supported, err := apiresource.SupportsVisibility(apiresourcekind.ApiResourceKind_environment, requested)
-	if err != nil {
-		return grpclib.InternalError(err, "failed to resolve environment visibility config")
-	}
-	if !supported {
-		return grpclib.InvalidArgumentError(
-			"visibility level %s is not supported for environments - secret values never leave the org boundary (supported: private, org)",
-			requested.String())
-	}
-
 	// Only gate the transitions that widen access. Restoring a
 	// share-restricted environment to private must always be possible.
-	if requested == apiresourcepb.ApiResourceVisibility_visibility_org {
+	if input.GetVisibility() == apiresourcepb.ApiResourceVisibility_visibility_org {
 		if reason := envsteps.ShareRestrictionReason(env.GetMetadata()); reason != "" {
 			return grpclib.FailedPreconditionError("%s", reason)
 		}

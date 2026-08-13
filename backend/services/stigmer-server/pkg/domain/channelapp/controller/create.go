@@ -47,6 +47,7 @@ func (c *ChannelAppController) buildCreatePipeline() *pipeline.Pipeline[*channel
 	return pipeline.NewPipeline[*channelappv1.ChannelApp]("channelapp-create").
 		AddStep(steps.NewResolveSlugStep[*channelappv1.ChannelApp]()).
 		AddStep(steps.NewValidateProtoStep[*channelappv1.ChannelApp]()).
+		AddStep(steps.NewValidateVisibilityStep[*channelappv1.ChannelApp]()). // Reject unsupported visibility levels (fail fast)
 		AddStep(steps.NewCheckDuplicateStep[*channelappv1.ChannelApp](c.store)).
 		AddStep(NewEncryptChannelAppSecretsForCreateStep(c.secretService)).
 		AddStep(steps.NewBuildNewStateStep[*channelappv1.ChannelApp]()).

@@ -40,6 +40,7 @@ func (c *SkillController) buildUpdateVisibilityPipeline() *pipeline.Pipeline[*ap
 	return pipeline.NewPipeline[*apiresourcepb.UpdateVisibilityInput]("skill-update-visibility").
 		AddStep(steps.NewValidateProtoStep[*apiresourcepb.UpdateVisibilityInput]()).
 		AddStep(c.newLoadSkillForVisibilityUpdateStep()).
+		AddStep(steps.NewValidateVisibilityUpdateStep()). // Reject unsupported levels (after load: NOT_FOUND wins, as in Cloud)
 		AddStep(c.newSetVisibilityStep()).
 		AddStep(c.newPersistSkillForVisibilityUpdateStep()).
 		AddStep(c.newIndexSkillAfterVisibilityUpdateStep()).

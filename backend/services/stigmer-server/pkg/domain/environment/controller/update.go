@@ -50,6 +50,7 @@ func (c *EnvironmentController) buildUpdatePipeline() *pipeline.Pipeline[*enviro
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*environmentv1.Environment]("environment-update").
 		AddStep(steps.NewValidateProtoStep[*environmentv1.Environment]()).                                         // 1. Validate field constraints
+		AddStep(steps.NewValidateVisibilityStep[*environmentv1.Environment]()).                                    // Reject unsupported visibility levels (plain updates keep a request-carried level; Cloud guards this kind here too)
 		AddStep(steps.NewResolveSlugStep[*environmentv1.Environment]()).                                           // 2. Resolve slug
 		AddStep(steps.NewLoadExistingStep[*environmentv1.Environment](c.store)).                                   // 3. Load existing environment
 		AddStep(steps.NewBuildUpdateStateStep[*environmentv1.Environment]()).                                      // 4. Build updated state

@@ -194,6 +194,53 @@ describe("Environment conformance — CRUD & identity", () => {
   });
 });
 
+describe("Environment conformance — visibility level validation", () => {
+  // Environments cap out at org visibility (kind VisibilityConfig:
+  // supports_org only) — secret values must never be resolvable across the
+  // org boundary. Both editions enforce the matrix at BOTH write boundaries
+  // from the same proto config (cloud: ValidateVisibilityStep /
+  // ValidateVisibilityUpdateStep; OSS: the shared Go steps, stigmer#489),
+  // emitting the same INVALID_ARGUMENT message.
+  it("create rejects an unsupported visibility level (public, InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    const request = makeEnvironment({ org, name: uniqueName("env") });
+    request.metadata!.visibility = ApiResourceVisibility.visibility_public;
+
+    const err = await expectGrpcCode(
+      () => clients.environmentCommand.create(request),
+      Code.InvalidArgument,
+      "create environment with public visibility",
+    );
+    // Exact-message pin: the rejection text is part of the cross-edition
+    // contract (both editions build it from the kind's proto config).
+    expect(err.message, "both editions emit the same rejection text").toContain(
+      "environment resources cannot be set to visibility_public. " +
+        "Supported visibility levels: visibility_private, visibility_org.",
+    );
+  });
+
+  it("updateVisibility rejects an unsupported level (platform, InvalidArgument) and leaves the stored level untouched", async () => {
+    const { org } = await target.provisionTenancy();
+    const created = await createEnvironment(org, uniqueName("env"));
+
+    const err = await expectGrpcCode(
+      () =>
+        clients.environmentCommand.updateVisibility({
+          resourceId: created.metadata!.id,
+          visibility: ApiResourceVisibility.visibility_platform,
+        }),
+      Code.InvalidArgument,
+      "update environment visibility to platform",
+    );
+    expect(err.message).toContain("cannot be set to visibility_platform");
+
+    const stored = await clients.environmentQuery.get({ value: created.metadata!.id });
+    expect(stored.metadata?.visibility, "the rejected update must not change the stored level").toBe(
+      ApiResourceVisibility.visibility_private,
+    );
+  });
+});
+
 describe("Environment conformance — secrets", () => {
   it("read RPCs redact the secret value in both editions; is_secret is always preserved", async () => {
     // Edition-converged since stigmer#405: OSS encrypts at rest and redacts

@@ -53,6 +53,7 @@ func (c *ProjectController) Create(ctx context.Context, project *projectv1.Proje
 func (c *ProjectController) buildCreatePipeline() *pipeline.Pipeline[*projectv1.Project] {
 	return pipeline.NewPipeline[*projectv1.Project]("project-create").
 		AddStep(steps.NewValidateProtoStep[*projectv1.Project]()).                                     // 1. Validate field constraints
+		AddStep(steps.NewValidateVisibilityStep[*projectv1.Project]()).                                // Reject unsupported visibility levels (fail fast)
 		AddStep(steps.NewResolveSlugStep[*projectv1.Project]()).                                       // 2. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*projectv1.Project](c.store)).                             // 3. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*projectv1.Project]()).                                     // 4. Build new state

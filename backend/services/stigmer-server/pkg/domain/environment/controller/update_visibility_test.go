@@ -112,7 +112,10 @@ func TestEnvironmentController_UpdateVisibility_RejectsPublicAndPlatform(t *test
 		require.True(t, ok)
 		assert.Equal(t, codes.InvalidArgument, st.Code(),
 			"level %s should be INVALID_ARGUMENT, got %s: %s", level, st.Code(), st.Message())
-		assert.Contains(t, st.Message(), "not supported for environments")
+		// Cloud-format message from the shared ValidateVisibilityUpdateStep —
+		// both editions emit the same text for the same rejection.
+		assert.Contains(t, st.Message(), "environment resources cannot be set to")
+		assert.Contains(t, st.Message(), "visibility_private, visibility_org")
 	}
 
 	// The rejected attempts must not have changed the stored visibility.

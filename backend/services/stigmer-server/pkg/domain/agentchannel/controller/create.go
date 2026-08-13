@@ -46,6 +46,7 @@ func (c *AgentChannelController) Create(ctx context.Context, channel *agentchann
 func (c *AgentChannelController) buildCreatePipeline() *pipeline.Pipeline[*agentchannelv1.AgentChannel] {
 	return pipeline.NewPipeline[*agentchannelv1.AgentChannel]("agent-channel-create").
 		AddStep(steps.NewValidateProtoStep[*agentchannelv1.AgentChannel]()).
+		AddStep(steps.NewValidateVisibilityStep[*agentchannelv1.AgentChannel]()). // Reject unsupported visibility levels (fail fast)
 		AddStep(&resolveChannelDefaultsStep{store: c.store}).
 		AddStep(steps.NewResolveSlugStep[*agentchannelv1.AgentChannel]()).
 		AddStep(steps.NewCheckDuplicateStep[*agentchannelv1.AgentChannel](c.store)).

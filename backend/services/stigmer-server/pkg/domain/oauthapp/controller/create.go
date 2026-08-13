@@ -54,6 +54,7 @@ func (c *OAuthAppController) buildCreatePipeline() *pipeline.Pipeline[*oauthappv
 	return pipeline.NewPipeline[*oauthappv1.OAuthApp]("oauthapp-create").
 		AddStep(steps.NewResolveSlugStep[*oauthappv1.OAuthApp]()).                // 1. Resolve slug
 		AddStep(steps.NewValidateProtoStep[*oauthappv1.OAuthApp]()).              // 2. Validate field constraints
+		AddStep(steps.NewValidateVisibilityStep[*oauthappv1.OAuthApp]()).         // Reject unsupported visibility levels (fail fast)
 		AddStep(steps.NewCheckDuplicateStep[*oauthappv1.OAuthApp](c.store)).      // 3. Check duplicate
 		AddStep(oauthsteps.NewEncryptClientSecretForCreateStep(c.secretService)). // 4. Encrypt client_secret
 		AddStep(steps.NewBuildNewStateStep[*oauthappv1.OAuthApp]()).              // 5. Build new state

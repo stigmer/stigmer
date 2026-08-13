@@ -46,7 +46,7 @@ const autoCreatedSessionSubject = "Auto-created session"
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
 //  1. ValidateFieldConstraints - Validate proto field constraints using buf validate
-//  1b. ValidateServiceTier - Fail closed: service_tier vs the model registry (#357)
+//     1b. ValidateServiceTier - Fail closed: service_tier vs the model registry (#357)
 //  2. ResolveDefaultAgent - If no session_id or agent_id, resolve platform default agent
 //  3. EnsureSessionOrAgentResolved - Post-condition guard: a session or agent
 //     reference must be resolved by this point (see step doc for why this is an
@@ -86,6 +86,7 @@ func (c *AgentExecutionController) Create(ctx context.Context, execution *agente
 func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*agentexecutionv1.AgentExecution] {
 	return pipeline.NewPipeline[*agentexecutionv1.AgentExecution]("agent-execution-create").
 		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).                                            // 1. Validate field constraints
+		AddStep(steps.NewValidateVisibilityStep[*agentexecutionv1.AgentExecution]()).                                       // Reject unsupported visibility levels (fail fast)
 		AddStep(newValidateServiceTierStep()).                                                                              // 1b. Fail closed: service_tier validated against the registry before any side effect (#357)
 		AddStep(newResolveDefaultAgentStep(c.store)).                                                                       // 2. Resolve platform default agent if needed
 		AddStep(newEnsureSessionOrAgentResolvedStep()).                                                                     // 3. Guard: session or agent reference resolved

@@ -48,6 +48,7 @@ func (c *AgentShareController) Create(ctx context.Context, share *agentsharev1.A
 func (c *AgentShareController) buildCreatePipeline() *pipeline.Pipeline[*agentsharev1.AgentShare] {
 	return pipeline.NewPipeline[*agentsharev1.AgentShare]("agent-share-create").
 		AddStep(steps.NewValidateProtoStep[*agentsharev1.AgentShare]()).
+		AddStep(steps.NewValidateVisibilityStep[*agentsharev1.AgentShare]()). // Reject unsupported visibility levels (fail fast)
 		AddStep(&resolveShareDefaultsStep{store: c.store}).
 		AddStep(steps.NewResolveSlugStep[*agentsharev1.AgentShare]()).
 		AddStep(steps.NewCheckDuplicateStep[*agentsharev1.AgentShare](c.store)).

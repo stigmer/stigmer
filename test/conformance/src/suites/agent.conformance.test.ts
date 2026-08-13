@@ -309,6 +309,78 @@ describe("Agent conformance — platform default resolution", () => {
   });
 });
 
+describe("Agent instance conformance — visibility level validation", () => {
+  // Instances support org and public but never platform (tenant isolation —
+  // the kind's VisibilityConfig deliberately omits supports_platform). Both
+  // editions reject the level at create and updateVisibility from the same
+  // proto config (cloud: ValidateVisibilityStep / ValidateVisibilityUpdateStep;
+  // OSS: the shared Go steps, stigmer#489), emitting the same message.
+  //
+  // The pins use a STANDALONE instance, not the agent's auto-created default:
+  // default instances are system-managed and the cloud edition rejects ANY
+  // visibility update on them (FailedPrecondition) before the level check is
+  // reached, so only a standalone instance exercises the level contract on
+  // both editions.
+  const AGENT_INSTANCE_API_VERSION = "agentic.stigmer.ai/v1";
+  const AGENT_INSTANCE_KIND = "AgentInstance";
+
+  it("create rejects platform visibility (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgent(org, uniqueName("agent"));
+
+    const err = await expectGrpcCode(
+      () =>
+        clients.agentInstanceCommand.create({
+          apiVersion: AGENT_INSTANCE_API_VERSION,
+          kind: AGENT_INSTANCE_KIND,
+          metadata: {
+            name: uniqueName("instance"),
+            org,
+            visibility: ApiResourceVisibility.visibility_platform,
+          },
+          spec: { agentId: agent.metadata!.id, description: "conformance fixture" },
+        }),
+      Code.InvalidArgument,
+      "create agent instance with platform visibility",
+    );
+    // Exact-message pin: the rejection text is part of the cross-edition
+    // contract (both editions build it from the kind's proto config).
+    expect(err.message, "both editions emit the same rejection text").toContain(
+      "agent_instance resources cannot be set to visibility_platform. " +
+        "Supported visibility levels: visibility_private, visibility_org, visibility_public.",
+    );
+  });
+
+  it("updateVisibility rejects platform (InvalidArgument) and leaves the stored level untouched", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgent(org, uniqueName("agent"));
+
+    const instance = await clients.agentInstanceCommand.create({
+      apiVersion: AGENT_INSTANCE_API_VERSION,
+      kind: AGENT_INSTANCE_KIND,
+      metadata: { name: uniqueName("instance"), org },
+      spec: { agentId: agent.metadata!.id, description: "conformance fixture" },
+    });
+    fixtures.defer(() => clients.agentInstanceCommand.delete({ value: instance.metadata!.id }));
+
+    const err = await expectGrpcCode(
+      () =>
+        clients.agentInstanceCommand.updateVisibility({
+          resourceId: instance.metadata!.id,
+          visibility: ApiResourceVisibility.visibility_platform,
+        }),
+      Code.InvalidArgument,
+      "update agent instance visibility to platform",
+    );
+    expect(err.message).toContain("cannot be set to visibility_platform");
+
+    const stored = await clients.agentInstanceQuery.get({ value: instance.metadata!.id });
+    expect(stored.metadata?.visibility, "the rejected update must not change the stored level").toBe(
+      ApiResourceVisibility.visibility_private,
+    );
+  });
+});
+
 describe("Agent conformance — McpServer references", () => {
   it("accepts an agent referencing an existing McpServer and normalizes the reference org", async () => {
     const { org } = await target.provisionTenancy();

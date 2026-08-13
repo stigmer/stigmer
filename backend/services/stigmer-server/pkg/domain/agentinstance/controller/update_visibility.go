@@ -40,6 +40,7 @@ func (c *AgentInstanceController) buildUpdateVisibilityPipeline() *pipeline.Pipe
 	return pipeline.NewPipeline[*apiresourcepb.UpdateVisibilityInput]("agent-instance-update-visibility").
 		AddStep(steps.NewValidateProtoStep[*apiresourcepb.UpdateVisibilityInput]()).
 		AddStep(c.newLoadInstanceForVisibilityUpdateStep()).
+		AddStep(steps.NewValidateVisibilityUpdateStep()). // Reject unsupported levels (after load: NOT_FOUND wins, as in Cloud)
 		AddStep(c.newSetInstanceVisibilityStep()).
 		AddStep(c.newPersistInstanceForVisibilityUpdateStep()).
 		AddStep(c.newIndexInstanceAfterVisibilityUpdateStep()).

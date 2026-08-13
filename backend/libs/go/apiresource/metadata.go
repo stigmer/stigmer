@@ -170,6 +170,34 @@ func SupportsVisibility(kind apiresourcekind.ApiResourceKind, visibility apireso
 	}
 }
 
+// SupportedVisibilityLevels returns a human-readable, comma-joined list of
+// the visibility levels a kind supports, always starting with
+// visibility_private (every kind supports private). Derived from the same
+// proto VisibilityConfig SupportsVisibility reads, so the list can never
+// drift from the predicate.
+//
+// This mirrors Cloud's ValidateVisibilityStep.describeSupportedLevels; both
+// editions use it to build the same INVALID_ARGUMENT message when rejecting
+// an unsupported level, keeping the cross-edition error contract identical.
+func SupportedVisibilityLevels(kind apiresourcekind.ApiResourceKind) (string, error) {
+	meta, err := GetKindMeta(kind)
+	if err != nil {
+		return "", err
+	}
+	cfg := meta.GetAuthorization().GetVisibility()
+	levels := apiresourcepb.ApiResourceVisibility_visibility_private.String()
+	if cfg.GetSupportsOrg() {
+		levels += ", " + apiresourcepb.ApiResourceVisibility_visibility_org.String()
+	}
+	if cfg.GetSupportsPublic() {
+		levels += ", " + apiresourcepb.ApiResourceVisibility_visibility_public.String()
+	}
+	if cfg.GetSupportsPlatform() {
+		levels += ", " + apiresourcepb.ApiResourceVisibility_visibility_platform.String()
+	}
+	return levels, nil
+}
+
 // toSnakeCase converts a PascalCase string to snake_case.
 // This is used to map kind names (e.g., "Agent", "AgentInstance") to enum value names.
 //
