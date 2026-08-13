@@ -25,14 +25,18 @@
  *   Shell tool already carries a model-authored `description` — both
  *   harnesses converge on one wire key and the SDK reads a single field.
  *
- * The clone is bind-time-only: it never parses args and never executes (its
- * delegate exists for structural honesty, not for a live code path). Schema
+ * The swapped-in declaration is a `StructuredToolParams` object — langchain's
+ * first-class shape for a non-executable, bind-time-only tool definition
+ * ("the most minimal interface … to be passed to a LLM for tool calling").
+ * A same-name RUNNABLE replacement is rejected by the agent's wrapModelCall
+ * validation (it would threaten ToolNode execution identity); a params
+ * object is exactly the declaration-without-execution the validation exists
+ * to protect, and the graph keeps executing the untouched original. Schema
  * extension happens at the JSON-schema level via @langchain/core's interop
  * serializer — the runner's zod (v3) must never construct fields inside the
  * library's zod (v4) schema object.
  */
 
-import { tool } from "@langchain/core/tools";
 import { toJsonSchema } from "@langchain/core/utils/json_schema";
 import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { classifyTool } from "../shared/tool-kind.js";
@@ -60,7 +64,6 @@ interface StructuredToolLike {
   readonly name: string;
   readonly description: string;
   readonly schema: unknown;
-  invoke(input: unknown, config?: unknown): Promise<unknown>;
 }
 
 function isStructuredToolLike(candidate: unknown): candidate is StructuredToolLike {
@@ -69,8 +72,7 @@ function isStructuredToolLike(candidate: unknown): candidate is StructuredToolLi
   return (
     typeof t.name === "string" &&
     typeof t.description === "string" &&
-    "schema" in t &&
-    typeof t.invoke === "function"
+    "schema" in t
   );
 }
 
@@ -89,10 +91,11 @@ function isJsonObjectSchema(schema: unknown): schema is JsonObjectSchema {
 }
 
 /**
- * Returns a bind-time clone of `original` whose schema carries the optional
- * intent argument, or `original` itself when the tool is not a shell tool,
- * is not schema-extendable, or already defines an argument with that name
- * (a real argument must never be shadowed by presentation metadata).
+ * Returns a bind-time `StructuredToolParams` declaration for `original`
+ * whose schema carries the optional intent argument, or `original` itself
+ * when the tool is not a shell tool, is not schema-extendable, or already
+ * defines an argument with that name (a real argument must never be
+ * shadowed by presentation metadata).
  *
  * Unexpected schemas pass through unchanged on purpose: a missing intent
  * title degrades to today's rendering, while a mangled schema would break
@@ -113,26 +116,23 @@ function maybeExtendShellTool(original: unknown): unknown {
   const properties = jsonSchema.properties ?? {};
   if (INTENT_ARG in properties) return original;
 
-  const extendedSchema = {
-    ...jsonSchema,
-    properties: {
-      ...properties,
-      [INTENT_ARG]: { type: "string", description: INTENT_ARG_PROMPT },
+  // A plain frozen declaration, deliberately NOT an executable tool: the
+  // graph's ToolNode executes the ORIGINAL registered tool (it is built from
+  // the registered tools, not from the model request), and the agent's
+  // wrapModelCall validation only forbids swapping same-name EXECUTABLE
+  // instances. `isStructuredToolParams` recognizes this shape, so every
+  // provider's bindTools converts it exactly like a structured tool.
+  return Object.freeze({
+    name: original.name,
+    description: original.description,
+    schema: {
+      ...jsonSchema,
+      properties: {
+        ...properties,
+        [INTENT_ARG]: { type: "string", description: INTENT_ARG_PROMPT },
+      },
     },
-  };
-
-  // The graph's ToolNode executes the ORIGINAL tool (it is constructed from
-  // the registered tools, not from the model request), so this delegate is
-  // unreachable in the agent loop — it delegates anyway so the clone stays a
-  // correct tool for any caller that does invoke it.
-  return tool(
-    async (input: unknown, config?: unknown) => original.invoke(input, config),
-    {
-      name: original.name,
-      description: original.description,
-      schema: extendedSchema,
-    },
-  );
+  });
 }
 
 /**

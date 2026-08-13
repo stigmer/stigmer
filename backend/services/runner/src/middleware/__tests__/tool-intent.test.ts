@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
+import { convertToOpenAITool } from "@langchain/core/utils/function_calling";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import { MemorySaver } from "@langchain/langgraph";
 import { createDeepAgent } from "deepagents";
@@ -125,7 +126,7 @@ describe("ToolIntentMiddleware (unit)", () => {
   });
 
   it("passes through tools whose schema is not an object schema", async () => {
-    const odd = { name: "bash", description: "odd", schema: 42, invoke: async () => "x" };
+    const odd = { name: "bash", description: "odd", schema: 42 };
     const bound = await runWrap(createToolIntentMiddleware(), [odd]);
     expect(bound[0]).toBe(odd);
   });
@@ -138,15 +139,36 @@ describe("ToolIntentMiddleware (unit)", () => {
     expect(first[0]).toBe(second[0]);
   });
 
-  it("clone delegates execution to the original tool", async () => {
-    const executed: string[] = [];
-    const shell = makeShellTool(executed);
+  it("emits a non-executable declaration that provider converters accept", async () => {
+    const shell = makeShellTool([]);
     const bound = await runWrap(createToolIntentMiddleware(), [shell]);
-    const clone = bound[0] as { invoke(input: unknown): Promise<unknown> };
+    const declaration = bound[0] as Record<string, unknown>;
 
-    const result = await clone.invoke({ command: "echo hi", [INTENT_ARG]: "Say hi" });
-    expect(result).toBe("ok");
-    expect(executed).toEqual(["echo hi"]);
+    // Deliberately NOT an executable tool — the agent's validation forbids
+    // swapping same-name executable instances, and execution belongs to the
+    // registered original. StructuredToolParams is the sanctioned shape.
+    expect(declaration.invoke).toBeUndefined();
+
+    // The shape every provider's bindTools converts like a structured tool.
+    const openAiTool = convertToOpenAITool(declaration as never) as {
+      function: { name: string; parameters: { properties: Record<string, unknown> } };
+    };
+    expect(openAiTool.function.name).toBe("execute");
+    expect(openAiTool.function.parameters.properties[INTENT_ARG]).toEqual({
+      type: "string",
+      description: INTENT_ARG_PROMPT,
+    });
+    expect(openAiTool.function.parameters.properties.command).toBeDefined();
+  });
+
+  it("is idempotent: an already-extended declaration passes through", async () => {
+    const mw = createToolIntentMiddleware();
+    const shell = makeShellTool([]);
+    const [firstPass] = await runWrap(mw, [shell]);
+    // A second middleware instance (e.g. a sub-agent stack composed over the
+    // same request) must not re-wrap the extended declaration.
+    const [secondPass] = await runWrap(createToolIntentMiddleware(), [firstPass]);
+    expect(secondPass).toBe(firstPass);
   });
 });
 
@@ -206,8 +228,10 @@ describe("ToolIntentMiddleware (real deepagents graph)", () => {
 
     // (3) The intent arg survived verbatim in the message history — the
     // exact bytes the status builder persists onto ToolCall.args.
-    const state = await agent.getState(config);
-    const messages = (state.values as { messages: Array<{ tool_calls?: Array<{ name: string; args: Record<string, unknown> }> }> }).messages;
+    const state = (await agent.getState(config)) as unknown as {
+      values: { messages: Array<{ tool_calls?: Array<{ name: string; args: Record<string, unknown> }> }> };
+    };
+    const messages = state.values.messages;
     const toolCall = messages
       .flatMap((m) => m.tool_calls ?? [])
       .find((tc) => tc.name === "execute");
