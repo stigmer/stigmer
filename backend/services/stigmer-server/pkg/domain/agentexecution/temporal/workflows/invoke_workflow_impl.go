@@ -28,9 +28,9 @@ import (
 // - CURSOR: executeCursorFlow (ReadHarnessStateId -> ExecuteCursor)
 //
 // Queue routing: The activity task queue is stored in workflow memo at creation
-// time. In global mode this is "agent_execution_runner"; in per-session mode
-// it is "session:{session_id}". The unified runner registers all activities on
-// a single queue, so Temporal routes by activity name within that queue.
+// time. In global mode this is "stigmer_runner"; in per-session mode it is
+// "session:{session_id}". The unified runner registers all activities on a
+// single queue, so Temporal routes by activity name within that queue.
 //
 // Both flows share the same HITL approval loop (approvalGateResolved signal)
 // and pause/resume pattern (CancellationScope).
@@ -213,7 +213,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentFlow(ctx workflow.Con
 	// Get activity task queue from workflow memo
 	activityTaskQueue := w.getActivityTaskQueue(ctx)
 
-	// Step 1: Ensure thread exists (Python activity)
+	// Step 1: Ensure thread exists (runner activity)
 	logger.Info("Step 1: Ensuring thread", "session_id", sessionID, "agent_id", agentID)
 
 	ensureThreadActivity := activities.NewEnsureThreadActivityStub(ctx, activityTaskQueue)
@@ -224,7 +224,12 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentFlow(ctx workflow.Con
 
 	logger.Info("Thread ensured", "thread_id", threadID)
 
-	// Step 1.5: Generate session subject (fire-and-forget, non-blocking)
+	// Step 1.5: Generate session subject (fire-and-forget, non-blocking).
+	// KNOWN-DEAD in OSS (issue #665): no OSS worker registers this activity —
+	// the retired Python agent-runner owned it and the TS runner never picked
+	// it up — so this dispatch fails quietly and the sentinel subject survives.
+	// Kept until #665 picks an arm (implement in the runner / move server-side
+	// / delete); the activity NAME must stay byte-identical if implemented.
 	workflow.Go(ctx, func(ctx workflow.Context) {
 		subjectActivity := activities.NewGenerateSessionSubjectActivityStub(ctx, activityTaskQueue)
 		if err := subjectActivity.GenerateSessionSubject(executionID); err != nil {
@@ -520,9 +525,10 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlow(ctx workflow.Contex
 
 	activityTaskQueue := w.getActivityTaskQueue(ctx)
 
-	// Generate session subject (fire-and-forget, non-blocking).
-	// The Cursor SDK does not expose a generated conversation title for local
-	// agents, so we use the same LLM-based title generation as the deep agent flow.
+	// Generate session subject (fire-and-forget, non-blocking). The Cursor SDK
+	// does not expose a generated conversation title for local agents, so this
+	// mirrors the deep-agent flow's dispatch — including its KNOWN-DEAD status
+	// in OSS (issue #665; see the note on the deep-agent flow's Step 1.5).
 	workflow.Go(ctx, func(ctx workflow.Context) {
 		subjectActivity := activities.NewGenerateSessionSubjectActivityStub(ctx, activityTaskQueue)
 		if err := subjectActivity.GenerateSessionSubject(executionID); err != nil {
@@ -864,7 +870,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) readHarnessStateId(ctx workflow.Conte
 // - Worker startup failure (SCHEDULE_TO_START timeout with no heartbeat)
 // - Activity execution timeout (START_TO_CLOSE timeout)
 // - Activity heartbeat timeout (worker died mid-execution)
-// - Activity failure (application error from Python)
+// - Activity failure (application error from the runner)
 func (w *InvokeAgentExecutionWorkflowImpl) wrapActivityError(activityName string, err error) error {
 	// Check error type to provide helpful context
 	errorMsg := err.Error()
@@ -877,16 +883,16 @@ func (w *InvokeAgentExecutionWorkflowImpl) wrapActivityError(activityName string
 			return fmt.Errorf(
 				"activity '%s' failed: No worker available to execute activity. "+
 					"This usually means:\n"+
-					"1. agent-runner service is not running\n"+
-					"2. agent-runner failed to start (check agent-runner logs for startup errors like import failures)\n"+
-					"3. agent-runner is not connected to Temporal\n"+
+					"1. the Stigmer runner is not running\n"+
+					"2. the runner failed to start (check runner logs for startup errors)\n"+
+					"3. the runner is not connected to Temporal\n"+
 					"Original error: %w",
 				activityName, err,
 			)
 		case enums.TIMEOUT_TYPE_HEARTBEAT:
 			return fmt.Errorf(
 				"activity '%s' failed: Activity stopped sending heartbeat (worker may have crashed). "+
-					"Check agent-runner logs for errors. "+
+					"Check runner logs for errors. "+
 					"Original error: %w",
 				activityName, err,
 			)
@@ -894,25 +900,25 @@ func (w *InvokeAgentExecutionWorkflowImpl) wrapActivityError(activityName string
 			return fmt.Errorf(
 				"activity '%s' failed: Activity execution timed out. "+
 					"The activity started but did not complete within the timeout period. "+
-					"Check agent-runner logs for details. "+
+					"Check runner logs for details. "+
 					"Original error: %w",
 				activityName, err,
 			)
 		default:
 			return fmt.Errorf(
 				"activity '%s' failed with timeout (type: %s). "+
-					"Check agent-runner logs for details. "+
+					"Check runner logs for details. "+
 					"Original error: %w",
 				activityName, timeoutErr.TimeoutType().String(), err,
 			)
 		}
 	}
 
-	// Application error: Activity failed with an error from Python
+	// Application error: the activity failed with an error from the runner
 	if temporal.IsApplicationError(err) {
 		return fmt.Errorf(
 			"activity '%s' failed with application error: %w. "+
-				"Check agent-runner logs for detailed error information.",
+				"Check runner logs for detailed error information.",
 			activityName, err,
 		)
 	}
@@ -920,16 +926,16 @@ func (w *InvokeAgentExecutionWorkflowImpl) wrapActivityError(activityName string
 	// Generic error (includes retryable errors, canceled errors, etc.)
 	return fmt.Errorf(
 		"activity '%s' failed: %s. "+
-			"Check agent-runner logs for details. "+
+			"Check runner logs for details. "+
 			"Original error: %w",
 		activityName, errorMsg, err,
 	)
 }
 
-// getActivityTaskQueue retrieves the activity task queue from workflow memo.
-// This allows configurable task queues for polyglot setup.
+// getActivityTaskQueue retrieves the activity task queue from workflow memo,
+// where workflow_creator.go pinned the dispatch-resolved queue at creation.
 //
-// Returns: Activity task queue name (defaults to "agent_execution_runner")
+// Returns: Activity task queue name (defaults to "stigmer_runner")
 func (w *InvokeAgentExecutionWorkflowImpl) getActivityTaskQueue(ctx workflow.Context) string {
 	info := workflow.GetInfo(ctx)
 
@@ -1065,13 +1071,13 @@ func (w *InvokeAgentExecutionWorkflowImpl) updateStatusOnCancellation(ctx workfl
 	logger.Info("Updated execution status to CANCELLED", "execution_id", executionID)
 }
 
-// persistFinalStatus persists a status returned by the Python activity as a fallback.
+// persistFinalStatus persists a status returned by the runner activity as a fallback.
 //
-// This is a defense-in-depth mechanism for cases where the Python gRPC update_status
-// call failed but the activity itself completed successfully (returning the failed
-// status as a return value). The UpdateExecutionStatus activity merges the status
-// into the existing record, so calling this when Python already persisted is safe
-// (the merge is idempotent for identical data).
+// This is a defense-in-depth mechanism for cases where the runner's gRPC
+// update_status call failed but the activity itself completed successfully
+// (returning the failed status as a return value). The UpdateExecutionStatus
+// activity merges the status into the existing record, so calling this when the
+// runner already persisted is safe (the merge is idempotent for identical data).
 func (w *InvokeAgentExecutionWorkflowImpl) persistFinalStatus(ctx workflow.Context, executionID string, status *agentexecutionv1.AgentExecutionStatus) error {
 	logger := workflow.GetLogger(ctx)
 

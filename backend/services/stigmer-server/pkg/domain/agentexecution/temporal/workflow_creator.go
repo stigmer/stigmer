@@ -14,10 +14,11 @@ import (
 // InvokeAgentExecutionWorkflowCreator creates and starts Temporal workflows for agent execution invocation.
 // Called by AgentExecutionCreateHandler after persisting execution to SQLite.
 //
-// Polyglot Configuration:
-// - stigmer: Go workflows on agent_execution_stigmer (stigmer-server)
-// - runner: Python activities on agent_execution_runner (agent-runner)
-// - Activity queue passed via memo for workflow to use when calling activities
+// Queue Configuration:
+//   - stigmer: Go workflows on agent_execution_stigmer (stigmer-server)
+//   - runner: TS unified-runner activities on the queue dispatch resolved
+//     (stigmer_runner in global mode, session:{id}/wfexec:{id} otherwise)
+//   - Activity queue passed via memo for workflow to use when calling activities
 type InvokeAgentExecutionWorkflowCreator struct {
 	workflowClient client.Client
 	config         *Config
@@ -32,7 +33,7 @@ func NewInvokeAgentExecutionWorkflowCreator(workflowClient client.Client, config
 }
 
 // Create creates and starts a workflow for the given execution input, routing
-// Python activities to the queue resolved by dispatch.
+// runner activities to the queue resolved by dispatch.
 //
 // The input is a slim struct containing only the orchestration coordinates the
 // workflow needs (execution ID, session ID, agent ID, callback token). Secrets
@@ -95,7 +96,7 @@ func (c *InvokeAgentExecutionWorkflowCreator) Create(input *workflows.InvokeAgen
 //
 // This is sent by SubmitApproval when either:
 //   - All pending tool calls have received decisions (gate fully cleared)
-//   - A REJECT action was submitted (immediate resume, Python auto-skips remaining)
+//   - A REJECT action was submitted (immediate resume, the runner auto-skips remaining)
 //
 // The workflow waits for exactly one of these signals per approval cycle.
 func (c *InvokeAgentExecutionWorkflowCreator) SignalApprovalGateResolved(executionID string) error {

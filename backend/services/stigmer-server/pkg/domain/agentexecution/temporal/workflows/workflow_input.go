@@ -23,7 +23,7 @@ type InvokeAgentExecutionWorkflowInput struct {
 	InvokerIdentityAccountID string `json:"invoker_identity_account_id,omitempty"`
 	// Harness is the session's execution harness as a proto enum numeric value.
 	// 0=HARNESS_UNSPECIFIED (treated as NATIVE), 1=HARNESS_NATIVE, 2=HARNESS_CURSOR.
-	// Determines which activity type the workflow dispatches (ExecuteGraphton vs ExecuteCursor).
+	// Determines which activity type the workflow dispatches (ExecuteDeepAgent vs ExecuteCursor).
 	Harness int32 `json:"harness,omitempty"`
 	// ExecutionTarget is the resolved execution target as a proto enum numeric value.
 	// 0=UNSPECIFIED, 1=LOCAL, 2=CLOUD.

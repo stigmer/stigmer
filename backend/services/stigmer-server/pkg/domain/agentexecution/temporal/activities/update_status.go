@@ -6,9 +6,9 @@ import (
 
 // UpdateExecutionStatusActivity is the interface for updating agent execution status.
 //
-// This activity provides the persistence layer for status updates from the agent-runner worker.
+// This activity provides the persistence layer for status updates from the runner worker.
 // By using a dedicated persistence activity, we maintain clean separation:
-// - Agent-runner worker: Business logic (agent execution, event processing)
+// - Runner worker (TS unified runner): Business logic (agent execution, event processing)
 // - Persistence activity (this): Database operations (SQLite, events)
 //
 // Design principle: Status is system-managed, updated via activities (not RPCs).

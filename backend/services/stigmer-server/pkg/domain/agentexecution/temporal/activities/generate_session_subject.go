@@ -10,7 +10,13 @@ import (
 // GenerateSessionSubjectActivity is the interface for generating a human-readable
 // session subject from the user's first message and agent context.
 //
-// This activity is implemented in Python (agent-runner) and:
+// KNOWN-DEAD IN OSS (issue #665): the retired Python agent-runner implemented
+// this activity, and no OSS worker registers it today — the TS unified runner
+// never picked it up, so the workflow's fire-and-forget dispatch fails quietly
+// and auto-created sessions keep the sentinel subject. The cloud edition's
+// Java worker registers its own implementation, which is why the contract is
+// kept intact here (#665 decides: implement in the runner, move server-side,
+// or delete the dispatch). Intended behavior:
 // 1. Hydrates the execution via gRPC to get session_id, agent_id, user_message
 // 2. Checks the session subject is still the auto-created sentinel
 // 3. Fetches the agent name and description for LLM context
@@ -33,7 +39,8 @@ type GenerateSessionSubjectActivity interface {
 }
 
 // GenerateSessionSubjectActivityName is the activity name used for registration.
-// This MUST match the Python @activity.defn(name=...) exactly for polyglot to work.
+// This is a WIRE IDENTIFIER: whichever worker implements it (#665) must
+// register exactly this name for in-flight workflow compatibility.
 const GenerateSessionSubjectActivityName = "GenerateSessionSubject"
 
 // NewGenerateSessionSubjectActivityStub creates an activity stub for calling
@@ -41,7 +48,7 @@ const GenerateSessionSubjectActivityName = "GenerateSessionSubject"
 // a single attempt with a 60 s deadline, matching the Java workflow's policy.
 func NewGenerateSessionSubjectActivityStub(ctx workflow.Context, taskQueue string) GenerateSessionSubjectActivity {
 	options := workflow.ActivityOptions{
-		TaskQueue:              taskQueue, // Route to Python worker (from memo)
+		TaskQueue:              taskQueue, // Route to the runner queue (from memo)
 		StartToCloseTimeout:    60 * time.Second,
 		ScheduleToStartTimeout: 30 * time.Second,
 		RetryPolicy: &temporal.RetryPolicy{

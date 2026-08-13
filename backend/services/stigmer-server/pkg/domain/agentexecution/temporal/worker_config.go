@@ -14,51 +14,63 @@ import (
 
 // WorkerConfig configures and creates Temporal workers for agent execution.
 //
-// Polyglot Workflow Architecture:
+// Architecture:
 // ================================
-// Go Workflow Queue: "agent_execution_stigmer" (stigmer-server owns Go workflows)
-// Python Activity Queue: "agent_execution_runner" (agent-runner owns Python activities)
+// Go Orchestrator Queue: "agent_execution_stigmer" (stigmer-server owns Go workflows)
+// TS Runner Queue: "stigmer_runner" (the unified runner owns agent activities;
+// session/sandbox routing modes use dynamic "session:{id}" / "wfexec:{id}"
+// queues instead — see dispatch.go)
 //
 // Go Worker (this):
-// - Registers: InvokeAgentExecutionWorkflow (orchestration only)
-// - Registers: UpdateExecutionStatusActivity (for failure recovery, as LOCAL activity)
-// - Registers: ReadHarnessStateIdActivity (Cursor harness harness_state_id, LOCAL activity)
-// - Does NOT register: ExecuteGraphton, EnsureThread (those are Python activities)
-// - Does NOT register: ExecuteCursor (TypeScript cursor-runner activity)
+//   - Registers: InvokeAgentExecutionWorkflow (orchestration only)
+//   - Registers: CompleteExternalActivity (async activity completion, token handshake)
+//   - Registers: UpdateExecutionStatusActivity (named; regular activity for the
+//     failure/cancellation paths AND local activity for persistFinalStatus)
+//   - Registers (local-only): LoadAgentExecution, DeleteExecutionContext,
+//     ReadHarnessStateId
+//   - Does NOT register: EnsureThread, ExecuteDeepAgent, ExecuteCursor (those
+//     live in the TypeScript unified runner)
 //
-// Python Worker (agent-runner):
-// - Registers: ExecuteGraphton, EnsureThread, CleanupSandbox (activities only)
-// - Does NOT register: workflows (Go handles orchestration)
+// TS Unified Runner (backend/services/runner — one worker, both harnesses):
+//   - Registers: EnsureThread, ExecuteDeepAgent, ExecuteCursor (plus the
+//     workflow-engine activities and its own workflows; see the runner's
+//     src/runner.ts activity factory)
+//   - Does NOT register: this domain's workflows (Go owns orchestration)
 //
-// How Polyglot Works:
+// How Routing Works:
 // ===================
-// 1. Go worker polls "agent_execution_stigmer" for workflow tasks
-// 2. Python worker polls "agent_execution_runner" for activity tasks
-// 3. Go workflows call activities with explicit task queue routing
-// 4. Temporal routes activity tasks to correct worker based on task queue
+//  1. Go worker polls "agent_execution_stigmer" for workflow tasks
+//  2. The TS runner polls the runner queue for activity tasks
+//  3. The workflow reads its activity queue from the workflow MEMO (pinned at
+//     creation by workflow_creator.go; resolution rules in dispatch.go)
+//  4. Temporal routes each activity task to the worker polling that queue
 //
-// CRITICAL Rules for Polyglot Success:
+// CRITICAL Rules:
 // =====================================
 // ✅ CORRECT: Each worker registers ONLY what it implements
-// ✅ CORRECT: Go = workflows + Go-specific activities
-// ✅ CORRECT: Python = Python activities only
-// ✅ CORRECT: Activity calls must specify target task queue
+// ✅ CORRECT: Go = workflows + Go-side activities
+// ✅ CORRECT: TS runner = agent activities only (no workflows of this domain)
+// ✅ CORRECT: Activity calls must specify the target task queue
 //
-// ❌ WRONG: Go registers Python activities → Load balancing breaks
-// ❌ WRONG: Python registers workflows → Workflow dispatch confusion
+// ❌ WRONG: Go registers runner activities → Load balancing breaks
+// ❌ WRONG: The runner registers this domain's workflows → dispatch confusion
 // ❌ WRONG: Missing task queue in activity calls → Wrong worker receives task
 //
 // Why This Works:
 // ===============
 // Each worker polls a dedicated queue, ensuring deterministic routing:
-// - Workflow task for "InvokeAgentExecutionWorkflow" → Goes to Go (only worker on stigmer queue)
-// - Activity task for "ExecuteGraphton" → Goes to Python (only worker on the runner base queue)
-// - Activity task for "ExecuteCursor" → Goes to TypeScript (only worker on {baseQueue}:cursor)
-// - Activity task for "UpdateExecutionStatusActivity" → Goes to Go (local activity, in-process)
+// - Workflow task for "InvokeAgentExecutionWorkflow" → Go (only worker on the stigmer queue)
+// - Activity task for "ExecuteDeepAgent" / "ExecuteCursor" / "EnsureThread" → TS runner
+// - Activity task for "UpdateExecutionStatusActivity" → Go (registered here, both modes)
 //
 // Environment Variables:
 // - TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE (Go workflows, default: agent_execution_stigmer)
-// - TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE (Python activities, default: agent_execution_runner)
+// - TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE (runner activities, default: stigmer_runner)
+//
+// NOTE: the retired Python agent-runner used to own ExecuteGraphton /
+// CleanupSandbox on an "agent_execution_runner" queue. Neither the activities
+// nor that queue name exist in live code anymore — the env var NAME above is
+// the only surviving wire artifact of that era and must stay byte-identical.
 type WorkerConfig struct {
 	config                    *Config
 	store                     store.Store
@@ -89,14 +101,15 @@ func NewWorkerConfig(
 // Task Queue: "agent_execution_stigmer" (stigmer-server owns Go workflows)
 //
 // Registered Components:
-// - Workflows: InvokeAgentExecutionWorkflow (Go)
-// - Activities: UpdateExecutionStatusActivity (Go - failure/cancellation recovery, regular activity on stigmer queue)
-// - Activities: CompleteExternalActivity (Go - for async activity completion pattern)
+//   - Workflows: InvokeAgentExecutionWorkflow (Go)
+//   - Activities: CompleteExternalActivity (Go — async activity completion pattern)
+//   - Activities: UpdateExecutionStatusActivity (Go — failure/cancellation recovery,
+//     regular activity on the stigmer queue; also invoked as a local activity)
+//   - Local-only activities: LoadAgentExecution, DeleteExecutionContext,
+//     ReadHarnessStateId (in-process, no task-queue routing)
 //
-// NOT Registered (handled by agent-runner on "agent_execution_runner" queue):
-// - ExecuteGraphton (Python)
-// - EnsureThread (Python)
-// - CleanupSandbox (Python)
+// NOT Registered (handled by the TS unified runner on the runner queue):
+// - EnsureThread, ExecuteDeepAgent, ExecuteCursor
 func (wc *WorkerConfig) CreateWorker(temporalClient client.Client) worker.Worker {
 	// Create worker on agent_execution_stigmer queue for Go workflows
 	w := worker.New(temporalClient, wc.config.StigmerQueue, worker.Options{})
@@ -114,11 +127,11 @@ func (wc *WorkerConfig) CreateWorker(temporalClient client.Client) worker.Worker
 
 	log.Info().
 		Str("queue", wc.config.StigmerQueue).
-		Msg("✅ [POLYGLOT] Registered InvokeAgentExecutionWorkflow (Go)")
+		Msg("✅ [TEMPORAL] Registered InvokeAgentExecutionWorkflow (Go)")
 
 	log.Info().
 		Str("queue", wc.config.RunnerQueue).
-		Msg("✅ [POLYGLOT] Python activities (ExecuteGraphton, EnsureThread, CleanupSandbox) on Python worker")
+		Msg("✅ [TEMPORAL] Runner activities (EnsureThread, ExecuteDeepAgent, ExecuteCursor) served by the TS unified runner")
 
 	// Initialize CompleteExternalActivity with Temporal client
 	// This enables the async activity completion pattern (token handshake)
@@ -153,11 +166,11 @@ func (wc *WorkerConfig) CreateWorker(temporalClient client.Client) worker.Worker
 	w.RegisterActivity(wc.deleteECActivityImpl.DeleteExecutionContext)
 	w.RegisterActivity(wc.readHarnessStateIdImpl.ReadHarnessStateId)
 
-	log.Info().Msg("✅ [POLYGLOT] Registered UpdateExecutionStatusActivity (regular + local, named)")
-	log.Info().Msg("✅ [POLYGLOT] Registered LoadAgentExecutionActivity as LOCAL activity (in-process)")
-	log.Info().Msg("✅ [POLYGLOT] Registered DeleteExecutionContextActivity as LOCAL activity (in-process)")
-	log.Info().Msg("✅ [POLYGLOT] Registered ReadHarnessStateIdActivity as LOCAL activity (Cursor harness harness_state_id)")
-	log.Info().Msg("✅ [POLYGLOT] Temporal will route: workflow tasks → Go, Python activity tasks → Python")
+	log.Info().Msg("✅ [TEMPORAL] Registered UpdateExecutionStatusActivity (regular + local, named)")
+	log.Info().Msg("✅ [TEMPORAL] Registered LoadAgentExecutionActivity as LOCAL activity (in-process)")
+	log.Info().Msg("✅ [TEMPORAL] Registered DeleteExecutionContextActivity as LOCAL activity (in-process)")
+	log.Info().Msg("✅ [TEMPORAL] Registered ReadHarnessStateIdActivity as LOCAL activity (Cursor harness harness_state_id)")
+	log.Info().Msg("✅ [TEMPORAL] Routing: workflow tasks → Go, agent activity tasks → TS unified runner")
 
 	return w
 }

@@ -14,7 +14,7 @@
  * import { createStigmerRunner } from '@stigmer/runner';
  *
  * const runner = await createStigmerRunner({
- *   taskQueue: 'agent_execution_runner',
+ *   taskQueue: 'stigmer_runner',
  *   temporalAddress: 'localhost:7233',
  *   stigmerEndpoint: 'http://localhost:7234',
  * });
