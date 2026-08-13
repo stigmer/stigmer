@@ -26,9 +26,10 @@ import (
 //
 //	make capture-replay-histories
 //
-// The exported histories are gold masters: they are committed to the repo at
-// backend/services/workflow-runner/test/replay/testdata/replay-histories/
-// and replayed on every PR that touches the workflow-runner code.
+// The exported histories are candidate gold masters for replay determinism
+// tests. Since the Go workflow-runner retired there is no committed home for
+// them — they land in REPLAY_HISTORY_OUTPUT_DIR (default: the capture output
+// dir) until a replay suite for the unified runner adopts them.
 func TestCaptureReplayHistories(t *testing.T) {
 	if os.Getenv("CAPTURE_REPLAY_HISTORIES") == "" {
 		t.Skip("set CAPTURE_REPLAY_HISTORIES=1 to run (or use: make capture-replay-histories)")

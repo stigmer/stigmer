@@ -842,11 +842,13 @@ harness via the `@cursor/sdk`.
 
 #### Workflow Runner
 
-The Go Temporal worker that executes Workflow tasks.
+Retired term. Workflow tasks are executed by the unified TypeScript runner
+(see Agent Runner) — there is no separate workflow worker.
 
-- **Capitalize**: Yes.
-- **Context rule**: Architecture docs only. Same as Agent Runner---embedded in
-  `stigmer server`.
+- **Capitalize**: Yes (when quoting historical docs).
+- **Context rule**: Do not use in new writing. Any doc describing a "Go
+  Temporal worker that executes Workflow tasks" is describing the retired
+  service — point it at the Agent Runner entry instead.
 
 ---
 

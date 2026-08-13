@@ -219,7 +219,7 @@ Good candidates for `references/`:
 
 ### The `scripts/` Directory
 
-Use `scripts/` for executable files that the agent runs as tools. The agent-runner extracts skill artifacts into `/bin/skills/<version_hash>/` in the execution sandbox. Scripts in this directory become available at that path.
+Use `scripts/` for executable files that the agent runs as tools. The runner extracts skill artifacts into `/bin/skills/<version_hash>/` in the execution sandbox. Scripts in this directory become available at that path.
 
 Reference scripts in your `SKILL.md` body with their execution path:
 

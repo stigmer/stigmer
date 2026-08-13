@@ -175,7 +175,6 @@ Resource definitions are portable across both modes. The CLI talks to the same g
 ### Prerequisites
 
 - Go 1.25+
-- Python 3.11+ with [Poetry](https://python-poetry.org/)
 - Node.js 22+
 - Git, Make
 

@@ -131,12 +131,12 @@ Both success and failure paths must call completion. If the agent fails, call th
 
 ## `callback_token` in Status
 
-The token is also stored in `AgentExecutionStatus.callback_token` for reference by the agent-runner:
+The token is also stored in `AgentExecutionStatus.callback_token` for reference by the runner:
 
 | Location | Purpose |
 |---|---|
 | `spec.callback_token` | Set by the caller when creating the execution |
-| `status.callback_token` | Copied by the system into status for the agent-runner to read during completion |
+| `status.callback_token` | Copied by the system into status for the runner to read during completion |
 
 The status field is system-managed. Never set it directly.
 

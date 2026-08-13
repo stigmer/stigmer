@@ -267,8 +267,8 @@ Not applicable for open-source local deployment. Stigmer Server runs as a local 
 
 ## Related Services
 
-- **agent-runner** - Python Temporal worker for agent execution
-- **workflow-runner** - Go Temporal worker for workflow execution
+- **runner** (`backend/services/runner`) - Unified TypeScript Temporal worker
+  that executes agent sessions and workflow tasks
 
 ## Related Documentation
 
@@ -279,5 +279,5 @@ Not applicable for open-source local deployment. Stigmer Server runs as a local 
 
 ---
 
-**Last Updated**: January 19, 2026  
+**Last Updated**: August 13, 2026  
 **Maintained By**: Stigmer Engineering Team

@@ -12,8 +12,7 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 
 **Prerequisites**:
 - Go 1.25 or later
-- Python 3.11 or later
-- Node.js 22 or later (for web console)
+- Node.js 22 or later (web console + unified runner)
 - `buf` CLI tool
 
 **Clone and build**:
@@ -21,7 +20,7 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 ```bash
 git clone https://github.com/stigmer/stigmer.git
 cd stigmer
-make setup     # Install Go/Python dependencies
+make setup     # Install Go dependencies and git hooks
 npm install    # Install Node.js dependencies (web console + proto stubs)
 make local     # Build the local stigmer-server (the CLI runs from @stigmer/cli)
 make test      # Run tests
@@ -43,11 +42,10 @@ npm start -w @stigmer/cli -- up
 stigmer/
 ├── apis/                          # Protobuf definitions and generated stubs
 ├── backend/
-│   ├── libs/                      # Shared libraries (Go, Python)
+│   ├── libs/                      # Shared libraries (Go)
 │   └── services/
 │       ├── stigmer-server/        # Main gRPC server
-│       ├── workflow-runner/       # Temporal workflow runner
-│       └── agent-runner/          # Python agent execution engine
+│       └── runner/                # Unified TypeScript runner (agent sessions + workflow tasks)
 ├── client-apps/
 │   ├── cli/                       # Go CLI (stigmer command)
 │   └── web/                       # Next.js web console
@@ -77,7 +75,7 @@ Protocol Buffer definitions are in `apis/`. After modifying protos:
 make protos
 ```
 
-This generates Go and Python code from `.proto` files.
+This generates Go, Java, Python, and TypeScript stubs from `.proto` files.
 
 ## How to Contribute
 
@@ -180,12 +178,11 @@ func (b *Backend) CreateExecution(ctx context.Context, req *pb.CreateExecutionRe
 }
 ```
 
-### Python
+### Python (applies to `sdk/python`)
 
 **Follow PEP 8**:
 - Type hints for function signatures
 - Docstrings for classes and functions
-- `black` for formatting (enforced by CI)
 
 **Example**:
 

@@ -428,8 +428,12 @@ test-sdk: check-runner-node ensure-service-jar ## Run SDK acceptance smoke tests
 		--packages ./... \
 		-- -tags integration -timeout 300s -count=1 $(call quarantine_skip_args) -run 'TestSDKAcceptance' -v
 
-REPLAY_HISTORY_OUTPUT_DIR ?= ../../backend/services/workflow-runner/test/replay/testdata/replay-histories
+# Captured histories land locally by default. The old default pointed at
+# backend/services/workflow-runner/test/replay/testdata/ — a directory that
+# left with the retired Go workflow-runner; no committed gold-master location
+# exists today. Override REPLAY_HISTORY_OUTPUT_DIR to export elsewhere.
 REPLAY_CAPTURE_OUTPUT_DIR ?= .test-output-replay-capture
+REPLAY_HISTORY_OUTPUT_DIR ?= $(REPLAY_CAPTURE_OUTPUT_DIR)/replay-histories
 
 .PHONY: capture-replay-histories
 capture-replay-histories: check-runner-node ensure-service-jar ## Capture Temporal event histories for replay determinism tests
