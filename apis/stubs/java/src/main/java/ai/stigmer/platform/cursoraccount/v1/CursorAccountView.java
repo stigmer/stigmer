@@ -34,7 +34,6 @@ private static final long serialVersionUID = 0L;
   }
   private CursorAccountView() {
     keyViews_ = java.util.Collections.emptyList();
-    membersWithoutKeys_ = java.util.Collections.emptyList();
     membersWithoutKeysViews_ = java.util.Collections.emptyList();
   }
 
@@ -182,82 +181,6 @@ private static final long serialVersionUID = 0L;
     return keyViews_.get(index);
   }
 
-  public static final int MEMBERS_WITHOUT_KEYS_FIELD_NUMBER = 4;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.platform.cursoraccount.v1.CursorTeamMember> membersWithoutKeys_;
-  /**
-   * <pre>
-   * Deprecated: superseded by members_without_keys_views, which carries
-   * the same roster entries with their spend joined server-side. Still
-   * populated (protos are published; older clients may read it); current
-   * clients must read the views field.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-   */
-  @java.lang.Override
-  @java.lang.Deprecated public java.util.List<ai.stigmer.platform.cursoraccount.v1.CursorTeamMember> getMembersWithoutKeysList() {
-    return membersWithoutKeys_;
-  }
-  /**
-   * <pre>
-   * Deprecated: superseded by members_without_keys_views, which carries
-   * the same roster entries with their spend joined server-side. Still
-   * populated (protos are published; older clients may read it); current
-   * clients must read the views field.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-   */
-  @java.lang.Override
-  @java.lang.Deprecated public java.util.List<? extends ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberOrBuilder> 
-      getMembersWithoutKeysOrBuilderList() {
-    return membersWithoutKeys_;
-  }
-  /**
-   * <pre>
-   * Deprecated: superseded by members_without_keys_views, which carries
-   * the same roster entries with their spend joined server-side. Still
-   * populated (protos are published; older clients may read it); current
-   * clients must read the views field.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-   */
-  @java.lang.Override
-  @java.lang.Deprecated public int getMembersWithoutKeysCount() {
-    return membersWithoutKeys_.size();
-  }
-  /**
-   * <pre>
-   * Deprecated: superseded by members_without_keys_views, which carries
-   * the same roster entries with their spend joined server-side. Still
-   * populated (protos are published; older clients may read it); current
-   * clients must read the views field.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-   */
-  @java.lang.Override
-  @java.lang.Deprecated public ai.stigmer.platform.cursoraccount.v1.CursorTeamMember getMembersWithoutKeys(int index) {
-    return membersWithoutKeys_.get(index);
-  }
-  /**
-   * <pre>
-   * Deprecated: superseded by members_without_keys_views, which carries
-   * the same roster entries with their spend joined server-side. Still
-   * populated (protos are published; older clients may read it); current
-   * clients must read the views field.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-   */
-  @java.lang.Override
-  @java.lang.Deprecated public ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberOrBuilder getMembersWithoutKeysOrBuilder(
-      int index) {
-    return membersWithoutKeys_.get(index);
-  }
-
   public static final int MEMBERS_WITHOUT_KEYS_VIEWS_FIELD_NUMBER = 5;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView> membersWithoutKeysViews_;
@@ -352,9 +275,6 @@ private static final long serialVersionUID = 0L;
     for (int i = 0; i < keyViews_.size(); i++) {
       output.writeMessage(3, keyViews_.get(i));
     }
-    for (int i = 0; i < membersWithoutKeys_.size(); i++) {
-      output.writeMessage(4, membersWithoutKeys_.get(i));
-    }
     for (int i = 0; i < membersWithoutKeysViews_.size(); i++) {
       output.writeMessage(5, membersWithoutKeysViews_.get(i));
     }
@@ -381,15 +301,6 @@ private static final long serialVersionUID = 0L;
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
               .computeMessageSizeNoTag(keyViews_.get(i));
-          }
-          size += 1 * count;
-        }
-
-        {
-          final int count = membersWithoutKeys_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(membersWithoutKeys_.get(i));
           }
           size += 1 * count;
         }
@@ -429,8 +340,6 @@ private static final long serialVersionUID = 0L;
     }
     if (!getKeyViewsList()
         .equals(other.getKeyViewsList())) return false;
-    if (!getMembersWithoutKeysList()
-        .equals(other.getMembersWithoutKeysList())) return false;
     if (!getMembersWithoutKeysViewsList()
         .equals(other.getMembersWithoutKeysViewsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -455,10 +364,6 @@ private static final long serialVersionUID = 0L;
     if (getKeyViewsCount() > 0) {
       hash = (37 * hash) + KEY_VIEWS_FIELD_NUMBER;
       hash = (53 * hash) + getKeyViewsList().hashCode();
-    }
-    if (getMembersWithoutKeysCount() > 0) {
-      hash = (37 * hash) + MEMBERS_WITHOUT_KEYS_FIELD_NUMBER;
-      hash = (53 * hash) + getMembersWithoutKeysList().hashCode();
     }
     if (getMembersWithoutKeysViewsCount() > 0) {
       hash = (37 * hash) + MEMBERS_WITHOUT_KEYS_VIEWS_FIELD_NUMBER;
@@ -602,7 +507,6 @@ private static final long serialVersionUID = 0L;
         internalGetAccountFieldBuilder();
         internalGetSnapshotFieldBuilder();
         internalGetKeyViewsFieldBuilder();
-        internalGetMembersWithoutKeysFieldBuilder();
         internalGetMembersWithoutKeysViewsFieldBuilder();
       }
     }
@@ -627,20 +531,13 @@ private static final long serialVersionUID = 0L;
         keyViewsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000004);
-      if (membersWithoutKeysBuilder_ == null) {
-        membersWithoutKeys_ = java.util.Collections.emptyList();
-      } else {
-        membersWithoutKeys_ = null;
-        membersWithoutKeysBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000008);
       if (membersWithoutKeysViewsBuilder_ == null) {
         membersWithoutKeysViews_ = java.util.Collections.emptyList();
       } else {
         membersWithoutKeysViews_ = null;
         membersWithoutKeysViewsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       return this;
     }
 
@@ -683,19 +580,10 @@ private static final long serialVersionUID = 0L;
       } else {
         result.keyViews_ = keyViewsBuilder_.build();
       }
-      if (membersWithoutKeysBuilder_ == null) {
-        if (((bitField0_ & 0x00000008) != 0)) {
-          membersWithoutKeys_ = java.util.Collections.unmodifiableList(membersWithoutKeys_);
-          bitField0_ = (bitField0_ & ~0x00000008);
-        }
-        result.membersWithoutKeys_ = membersWithoutKeys_;
-      } else {
-        result.membersWithoutKeys_ = membersWithoutKeysBuilder_.build();
-      }
       if (membersWithoutKeysViewsBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0)) {
+        if (((bitField0_ & 0x00000008) != 0)) {
           membersWithoutKeysViews_ = java.util.Collections.unmodifiableList(membersWithoutKeysViews_);
-          bitField0_ = (bitField0_ & ~0x00000010);
+          bitField0_ = (bitField0_ & ~0x00000008);
         }
         result.membersWithoutKeysViews_ = membersWithoutKeysViews_;
       } else {
@@ -765,37 +653,11 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
-      if (membersWithoutKeysBuilder_ == null) {
-        if (!other.membersWithoutKeys_.isEmpty()) {
-          if (membersWithoutKeys_.isEmpty()) {
-            membersWithoutKeys_ = other.membersWithoutKeys_;
-            bitField0_ = (bitField0_ & ~0x00000008);
-          } else {
-            ensureMembersWithoutKeysIsMutable();
-            membersWithoutKeys_.addAll(other.membersWithoutKeys_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.membersWithoutKeys_.isEmpty()) {
-          if (membersWithoutKeysBuilder_.isEmpty()) {
-            membersWithoutKeysBuilder_.dispose();
-            membersWithoutKeysBuilder_ = null;
-            membersWithoutKeys_ = other.membersWithoutKeys_;
-            bitField0_ = (bitField0_ & ~0x00000008);
-            membersWithoutKeysBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetMembersWithoutKeysFieldBuilder() : null;
-          } else {
-            membersWithoutKeysBuilder_.addAllMessages(other.membersWithoutKeys_);
-          }
-        }
-      }
       if (membersWithoutKeysViewsBuilder_ == null) {
         if (!other.membersWithoutKeysViews_.isEmpty()) {
           if (membersWithoutKeysViews_.isEmpty()) {
             membersWithoutKeysViews_ = other.membersWithoutKeysViews_;
-            bitField0_ = (bitField0_ & ~0x00000010);
+            bitField0_ = (bitField0_ & ~0x00000008);
           } else {
             ensureMembersWithoutKeysViewsIsMutable();
             membersWithoutKeysViews_.addAll(other.membersWithoutKeysViews_);
@@ -808,7 +670,7 @@ private static final long serialVersionUID = 0L;
             membersWithoutKeysViewsBuilder_.dispose();
             membersWithoutKeysViewsBuilder_ = null;
             membersWithoutKeysViews_ = other.membersWithoutKeysViews_;
-            bitField0_ = (bitField0_ & ~0x00000010);
+            bitField0_ = (bitField0_ & ~0x00000008);
             membersWithoutKeysViewsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetMembersWithoutKeysViewsFieldBuilder() : null;
@@ -870,19 +732,6 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 26
-            case 34: {
-              ai.stigmer.platform.cursoraccount.v1.CursorTeamMember m =
-                  input.readMessage(
-                      ai.stigmer.platform.cursoraccount.v1.CursorTeamMember.parser(),
-                      extensionRegistry);
-              if (membersWithoutKeysBuilder_ == null) {
-                ensureMembersWithoutKeysIsMutable();
-                membersWithoutKeys_.add(m);
-              } else {
-                membersWithoutKeysBuilder_.addMessage(m);
-              }
-              break;
-            } // case 34
             case 42: {
               ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView m =
                   input.readMessage(
@@ -1503,378 +1352,12 @@ private static final long serialVersionUID = 0L;
       return keyViewsBuilder_;
     }
 
-    private java.util.List<ai.stigmer.platform.cursoraccount.v1.CursorTeamMember> membersWithoutKeys_ =
-      java.util.Collections.emptyList();
-    private void ensureMembersWithoutKeysIsMutable() {
-      if (!((bitField0_ & 0x00000008) != 0)) {
-        membersWithoutKeys_ = new java.util.ArrayList<ai.stigmer.platform.cursoraccount.v1.CursorTeamMember>(membersWithoutKeys_);
-        bitField0_ |= 0x00000008;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.platform.cursoraccount.v1.CursorTeamMember, ai.stigmer.platform.cursoraccount.v1.CursorTeamMember.Builder, ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberOrBuilder> membersWithoutKeysBuilder_;
-
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public java.util.List<ai.stigmer.platform.cursoraccount.v1.CursorTeamMember> getMembersWithoutKeysList() {
-      if (membersWithoutKeysBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(membersWithoutKeys_);
-      } else {
-        return membersWithoutKeysBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public int getMembersWithoutKeysCount() {
-      if (membersWithoutKeysBuilder_ == null) {
-        return membersWithoutKeys_.size();
-      } else {
-        return membersWithoutKeysBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public ai.stigmer.platform.cursoraccount.v1.CursorTeamMember getMembersWithoutKeys(int index) {
-      if (membersWithoutKeysBuilder_ == null) {
-        return membersWithoutKeys_.get(index);
-      } else {
-        return membersWithoutKeysBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public Builder setMembersWithoutKeys(
-        int index, ai.stigmer.platform.cursoraccount.v1.CursorTeamMember value) {
-      if (membersWithoutKeysBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureMembersWithoutKeysIsMutable();
-        membersWithoutKeys_.set(index, value);
-        onChanged();
-      } else {
-        membersWithoutKeysBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public Builder setMembersWithoutKeys(
-        int index, ai.stigmer.platform.cursoraccount.v1.CursorTeamMember.Builder builderForValue) {
-      if (membersWithoutKeysBuilder_ == null) {
-        ensureMembersWithoutKeysIsMutable();
-        membersWithoutKeys_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        membersWithoutKeysBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public Builder addMembersWithoutKeys(ai.stigmer.platform.cursoraccount.v1.CursorTeamMember value) {
-      if (membersWithoutKeysBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureMembersWithoutKeysIsMutable();
-        membersWithoutKeys_.add(value);
-        onChanged();
-      } else {
-        membersWithoutKeysBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public Builder addMembersWithoutKeys(
-        int index, ai.stigmer.platform.cursoraccount.v1.CursorTeamMember value) {
-      if (membersWithoutKeysBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureMembersWithoutKeysIsMutable();
-        membersWithoutKeys_.add(index, value);
-        onChanged();
-      } else {
-        membersWithoutKeysBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public Builder addMembersWithoutKeys(
-        ai.stigmer.platform.cursoraccount.v1.CursorTeamMember.Builder builderForValue) {
-      if (membersWithoutKeysBuilder_ == null) {
-        ensureMembersWithoutKeysIsMutable();
-        membersWithoutKeys_.add(builderForValue.build());
-        onChanged();
-      } else {
-        membersWithoutKeysBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public Builder addMembersWithoutKeys(
-        int index, ai.stigmer.platform.cursoraccount.v1.CursorTeamMember.Builder builderForValue) {
-      if (membersWithoutKeysBuilder_ == null) {
-        ensureMembersWithoutKeysIsMutable();
-        membersWithoutKeys_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        membersWithoutKeysBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public Builder addAllMembersWithoutKeys(
-        java.lang.Iterable<? extends ai.stigmer.platform.cursoraccount.v1.CursorTeamMember> values) {
-      if (membersWithoutKeysBuilder_ == null) {
-        ensureMembersWithoutKeysIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, membersWithoutKeys_);
-        onChanged();
-      } else {
-        membersWithoutKeysBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public Builder clearMembersWithoutKeys() {
-      if (membersWithoutKeysBuilder_ == null) {
-        membersWithoutKeys_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000008);
-        onChanged();
-      } else {
-        membersWithoutKeysBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public Builder removeMembersWithoutKeys(int index) {
-      if (membersWithoutKeysBuilder_ == null) {
-        ensureMembersWithoutKeysIsMutable();
-        membersWithoutKeys_.remove(index);
-        onChanged();
-      } else {
-        membersWithoutKeysBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public ai.stigmer.platform.cursoraccount.v1.CursorTeamMember.Builder getMembersWithoutKeysBuilder(
-        int index) {
-      return internalGetMembersWithoutKeysFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberOrBuilder getMembersWithoutKeysOrBuilder(
-        int index) {
-      if (membersWithoutKeysBuilder_ == null) {
-        return membersWithoutKeys_.get(index);  } else {
-        return membersWithoutKeysBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public java.util.List<? extends ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberOrBuilder> 
-         getMembersWithoutKeysOrBuilderList() {
-      if (membersWithoutKeysBuilder_ != null) {
-        return membersWithoutKeysBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(membersWithoutKeys_);
-      }
-    }
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public ai.stigmer.platform.cursoraccount.v1.CursorTeamMember.Builder addMembersWithoutKeysBuilder() {
-      return internalGetMembersWithoutKeysFieldBuilder().addBuilder(
-          ai.stigmer.platform.cursoraccount.v1.CursorTeamMember.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public ai.stigmer.platform.cursoraccount.v1.CursorTeamMember.Builder addMembersWithoutKeysBuilder(
-        int index) {
-      return internalGetMembersWithoutKeysFieldBuilder().addBuilder(
-          index, ai.stigmer.platform.cursoraccount.v1.CursorTeamMember.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Deprecated: superseded by members_without_keys_views, which carries
-     * the same roster entries with their spend joined server-side. Still
-     * populated (protos are published; older clients may read it); current
-     * clients must read the views field.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
-     */
-    @java.lang.Deprecated public java.util.List<ai.stigmer.platform.cursoraccount.v1.CursorTeamMember.Builder> 
-         getMembersWithoutKeysBuilderList() {
-      return internalGetMembersWithoutKeysFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.platform.cursoraccount.v1.CursorTeamMember, ai.stigmer.platform.cursoraccount.v1.CursorTeamMember.Builder, ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberOrBuilder> 
-        internalGetMembersWithoutKeysFieldBuilder() {
-      if (membersWithoutKeysBuilder_ == null) {
-        membersWithoutKeysBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.platform.cursoraccount.v1.CursorTeamMember, ai.stigmer.platform.cursoraccount.v1.CursorTeamMember.Builder, ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberOrBuilder>(
-                membersWithoutKeys_,
-                ((bitField0_ & 0x00000008) != 0),
-                getParentForChildren(),
-                isClean());
-        membersWithoutKeys_ = null;
-      }
-      return membersWithoutKeysBuilder_;
-    }
-
     private java.util.List<ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView> membersWithoutKeysViews_ =
       java.util.Collections.emptyList();
     private void ensureMembersWithoutKeysViewsIsMutable() {
-      if (!((bitField0_ & 0x00000010) != 0)) {
+      if (!((bitField0_ & 0x00000008) != 0)) {
         membersWithoutKeysViews_ = new java.util.ArrayList<ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView>(membersWithoutKeysViews_);
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000008;
        }
     }
 
@@ -2090,7 +1573,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearMembersWithoutKeysViews() {
       if (membersWithoutKeysViewsBuilder_ == null) {
         membersWithoutKeysViews_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000010);
+        bitField0_ = (bitField0_ & ~0x00000008);
         onChanged();
       } else {
         membersWithoutKeysViewsBuilder_.clear();
@@ -2209,7 +1692,7 @@ private static final long serialVersionUID = 0L;
         membersWithoutKeysViewsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView, ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView.Builder, ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberViewOrBuilder>(
                 membersWithoutKeysViews_,
-                ((bitField0_ & 0x00000010) != 0),
+                ((bitField0_ & 0x00000008) != 0),
                 getParentForChildren(),
                 isClean());
         membersWithoutKeysViews_ = null;

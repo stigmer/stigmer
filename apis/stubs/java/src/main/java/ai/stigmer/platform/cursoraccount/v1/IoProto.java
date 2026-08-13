@@ -144,29 +144,27 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "mberKeyStateR\005state\022M\n\005spend\030\003 \001(\01327.ai." +
       "stigmer.platform.cursoraccount.v1.Cursor" +
       "MemberSpendR\005spend\022.\n\023usage_guard_trippe" +
-      "d\030\004 \001(\010R\021usageGuardTripped\"\376\003\n\021CursorAcc" +
+      "d\030\004 \001(\010R\021usageGuardTripped\"\254\003\n\021CursorAcc" +
       "ountView\022M\n\007account\030\001 \001(\01323.ai.stigmer.p" +
       "latform.cursoraccount.v1.CursorAccountR\007" +
       "account\022[\n\010snapshot\030\002 \001(\0132?.ai.stigmer.p" +
       "latform.cursoraccount.v1.CursorAccountSy" +
       "ncSnapshotR\010snapshot\022V\n\tkey_views\030\003 \003(\0132" +
       "9.ai.stigmer.platform.cursoraccount.v1.C" +
-      "ursorMemberKeyViewR\010keyViews\022l\n\024members_" +
-      "without_keys\030\004 \003(\01326.ai.stigmer.platform" +
-      ".cursoraccount.v1.CursorTeamMemberB\002\030\001R\022" +
-      "membersWithoutKeys\022w\n\032members_without_ke" +
-      "ys_views\030\005 \003(\0132:.ai.stigmer.platform.cur" +
-      "soraccount.v1.CursorTeamMemberViewR\027memb" +
-      "ersWithoutKeysViews*\222\001\n\024CursorMemberKeyS" +
-      "tate\022\'\n#cursor_member_key_state_unspecif" +
-      "ied\020\000\022\025\n\021member_key_active\020\001\022\034\n\030member_k" +
-      "ey_owner_removed\020\002\022\034\n\030member_key_owner_u" +
-      "nknown\020\003B\276\001B\007IoProtoP\001\242\002\004ASPC\252\002$Ai.Stigm" +
-      "er.Platform.Cursoraccount.V1\312\002$Ai\\Stigme" +
-      "r\\Platform\\Cursoraccount\\V1\342\0020Ai\\Stigmer" +
-      "\\Platform\\Cursoraccount\\V1\\GPBMetadata\352\002" +
-      "(Ai::Stigmer::Platform::Cursoraccount::V" +
-      "1b\006proto3"
+      "ursorMemberKeyViewR\010keyViews\022w\n\032members_" +
+      "without_keys_views\030\005 \003(\0132:.ai.stigmer.pl" +
+      "atform.cursoraccount.v1.CursorTeamMember" +
+      "ViewR\027membersWithoutKeysViewsJ\004\010\004\020\005R\024mem" +
+      "bers_without_keys*\222\001\n\024CursorMemberKeySta" +
+      "te\022\'\n#cursor_member_key_state_unspecifie" +
+      "d\020\000\022\025\n\021member_key_active\020\001\022\034\n\030member_key" +
+      "_owner_removed\020\002\022\034\n\030member_key_owner_unk" +
+      "nown\020\003B\276\001B\007IoProtoP\001\242\002\004ASPC\252\002$Ai.Stigmer" +
+      ".Platform.Cursoraccount.V1\312\002$Ai\\Stigmer\\" +
+      "Platform\\Cursoraccount\\V1\342\0020Ai\\Stigmer\\P" +
+      "latform\\Cursoraccount\\V1\\GPBMetadata\352\002(A" +
+      "i::Stigmer::Platform::Cursoraccount::V1b" +
+      "\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -252,7 +250,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_platform_cursoraccount_v1_CursorAccountView_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_platform_cursoraccount_v1_CursorAccountView_descriptor,
-        new java.lang.String[] { "Account", "Snapshot", "KeyViews", "MembersWithoutKeys", "MembersWithoutKeysViews", });
+        new java.lang.String[] { "Account", "Snapshot", "KeyViews", "MembersWithoutKeysViews", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.platform.cursoraccount.v1.CursorAccountProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

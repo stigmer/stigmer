@@ -120,15 +120,13 @@ class CursorMemberKeyView(_message.Message):
     def __init__(self, key: _Optional[_Union[_cursor_account_pb2.CursorMemberKey, _Mapping]] = ..., state: _Optional[_Union[CursorMemberKeyState, str]] = ..., spend: _Optional[_Union[_cursor_account_pb2.CursorMemberSpend, _Mapping]] = ..., usage_guard_tripped: bool = ...) -> None: ...
 
 class CursorAccountView(_message.Message):
-    __slots__ = ("account", "snapshot", "key_views", "members_without_keys", "members_without_keys_views")
+    __slots__ = ("account", "snapshot", "key_views", "members_without_keys_views")
     ACCOUNT_FIELD_NUMBER: _ClassVar[int]
     SNAPSHOT_FIELD_NUMBER: _ClassVar[int]
     KEY_VIEWS_FIELD_NUMBER: _ClassVar[int]
-    MEMBERS_WITHOUT_KEYS_FIELD_NUMBER: _ClassVar[int]
     MEMBERS_WITHOUT_KEYS_VIEWS_FIELD_NUMBER: _ClassVar[int]
     account: _cursor_account_pb2.CursorAccount
     snapshot: _cursor_account_pb2.CursorAccountSyncSnapshot
     key_views: _containers.RepeatedCompositeFieldContainer[CursorMemberKeyView]
-    members_without_keys: _containers.RepeatedCompositeFieldContainer[_cursor_account_pb2.CursorTeamMember]
     members_without_keys_views: _containers.RepeatedCompositeFieldContainer[CursorTeamMemberView]
-    def __init__(self, account: _Optional[_Union[_cursor_account_pb2.CursorAccount, _Mapping]] = ..., snapshot: _Optional[_Union[_cursor_account_pb2.CursorAccountSyncSnapshot, _Mapping]] = ..., key_views: _Optional[_Iterable[_Union[CursorMemberKeyView, _Mapping]]] = ..., members_without_keys: _Optional[_Iterable[_Union[_cursor_account_pb2.CursorTeamMember, _Mapping]]] = ..., members_without_keys_views: _Optional[_Iterable[_Union[CursorTeamMemberView, _Mapping]]] = ...) -> None: ...
+    def __init__(self, account: _Optional[_Union[_cursor_account_pb2.CursorAccount, _Mapping]] = ..., snapshot: _Optional[_Union[_cursor_account_pb2.CursorAccountSyncSnapshot, _Mapping]] = ..., key_views: _Optional[_Iterable[_Union[CursorMemberKeyView, _Mapping]]] = ..., members_without_keys_views: _Optional[_Iterable[_Union[CursorTeamMemberView, _Mapping]]] = ...) -> None: ...
