@@ -129,6 +129,62 @@ func TestMcpConnect_PlaceholderResolution_HttpHeaders(t *testing.T) {
 	assert.NotEmpty(t, tools, "tools should be discovered after placeholder resolution")
 }
 
+// TestMcpConnect_SecretDelivery_HttpHeaders pins the is_secret delivery path
+// end to end (issue #579): an IsSecret runtime_env value is encrypted at
+// write into the connect ExecutionContext (#405), the server mints the
+// execution-scoped decrypt token onto the connect work item (#535), and the
+// discovery runner presents it to read the plaintext back. The vendor server
+// refuses anything but the exact secret, so this can only pass when
+// decryption delivered the real value — a redacted or placeholder-literal
+// header 401s and discovery fails. After #565 the canaries deliberately do
+// NOT set is_secret, which made this the only automated coverage of the
+// secret discovery path anywhere.
+func TestMcpConnect_SecretDelivery_HttpHeaders(t *testing.T) {
+	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+	harness.RequireNativePrereqs(t, testHarness)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+
+	const secret = "test-secret-token-9f8e7d"
+	httpServer := harness.StartHTTPMcpServerRequiringAuth(t, "Bearer "+secret)
+
+	name := "secret-delivery-" + uuid.New().String()[:8]
+	server := applyMcpServer(t, ctx, clients, &mcpserverv1.McpServer{
+		ApiVersion: mcpConnectTestAPIVersion,
+		Kind:       "McpServer",
+		Metadata:   &apiresource.ApiResourceMetadata{Name: name, Org: mcpConnectTestOrg},
+		Spec: &mcpserverv1.McpServerSpec{
+			Description: "Secret credential delivery test (HTTP headers)",
+			ServerType: &mcpserverv1.McpServerSpec_Http{
+				Http: &mcpserverv1.HttpServerConfig{
+					Url: httpServer.URL,
+					Headers: map[string]string{
+						"Authorization": "Bearer ${TOKEN}",
+					},
+				},
+			},
+			Env: map[string]*environmentv1.EnvVarDeclaration{
+				"TOKEN": {Description: "API token for auth (secret)"},
+			},
+		},
+	})
+
+	result, err := clients.McpServerCommand.Connect(ctx, &mcpserverv1.ConnectInput{
+		McpServerId: server.GetMetadata().GetId(),
+		Org:         mcpConnectTestOrg,
+		RuntimeEnv: map[string]*executionctxv1.ExecutionValue{
+			"TOKEN": {Value: secret, IsSecret: true},
+		},
+	})
+
+	require.NoError(t, err, "connect with an is_secret TOKEN must succeed — redacted delivery 401s at the vendor")
+	tools := result.GetStatus().GetDiscoveredCapabilities().GetTools()
+	assert.NotEmpty(t, tools, "tools should be discovered through the auth gate")
+}
+
 // TestMcpConnect_PlaceholderResolution_StdioArgs verifies that ${VAR}
 // placeholders in stdio args are resolved from runtime_env before the
 // subprocess is spawned.
