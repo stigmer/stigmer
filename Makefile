@@ -534,7 +534,7 @@ tidy: ## Run go mod tidy on all Go modules
        lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos \
        check-docs-inventory \
        test-web test-desktop test-runner-host test-e2e test-e2e-approval test-a11y check check-all \
-       check-prep check-go check-node check-site check-rust check-java
+       check-prep check-go check-node check-site check-rust check-java check-bazel
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
 	-npm run lint:fix -w @stigmer/react
@@ -728,7 +728,7 @@ OUTPUT_SYNC := $(shell test "$(MAKE_MAJOR)" -ge 4 2>/dev/null && echo -Otarget)
 
 check: ## Run full CI gate locally (parallelized)
 	$(MAKE) check-prep
-	$(MAKE) -j$(JOBS) $(OUTPUT_SYNC) check-go check-node check-site check-rust check-java
+	$(MAKE) -j$(JOBS) $(OUTPUT_SYNC) check-go check-node check-site check-rust check-java check-bazel
 	@echo ""
 	@echo "✓ check passed"
 
@@ -758,6 +758,16 @@ check-go: ## check bucket: Go vet/test/build + buf lint + binaries
 	done
 	@mkdir -p bin
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
+
+# Local twin of ci.bazel's required graph arm (oss#616). Build compiles and
+# links every target including test binaries (catches the #596/#604 class);
+# gazelle -mode=diff fails on stale BUILD files (the only detector for the
+# cloud#414 class — a target that was never generated cannot fail to build).
+# Tests deliberately NOT run here: check-go already runs them with -race.
+check-bazel: ## check bucket: bazel graph integrity — full-graph build + BUILD-file freshness
+	./bazelw build //...
+	@./bazelw run //:gazelle -- -mode=diff || \
+		(echo ""; echo "BUILD files are stale — fix: ./bazelw run //:gazelle, then commit."; exit 1)
 
 check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, desktop, runner, demos, e2e)
 	npm run typecheck -w @stigmer/sdk
