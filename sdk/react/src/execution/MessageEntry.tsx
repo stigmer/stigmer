@@ -429,7 +429,9 @@ function ThinkingMessage({
         )}
       >
         <ThinkingIcon isStreaming={isStreaming} />
-        <span className="stg:min-w-0 stg:truncate">
+        {/* Live reasoning carries the ambient-liveness sweep (stigmer#277) —
+            the words themselves signal activity, not just the icon. */}
+        <span className={cn("stg:min-w-0 stg:truncate", isStreaming && "stgm-shimmer-label")}>
           {isStreaming && !hasContent
             ? "Thinking..."
             : expanded

@@ -16,6 +16,8 @@ import {
   FileChangeSetStatus,
   InteractionMode,
   MessageType,
+  SubAgentStatus,
+  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { displayFileChangeSets } from "@stigmer/sdk";
@@ -27,6 +29,10 @@ import { ToolCallGroup } from "./ToolCallGroup.js";
 import { SubAgentSection } from "./SubAgentSection.js";
 import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge.js";
 import { SetupProgress, type SetupProgressProps } from "./SetupProgress.js";
+import {
+  LivenessStatusLine,
+  type LivenessStatusLineProps,
+} from "./LivenessStatusLine.js";
 import { ApprovalCard, type ApprovalCardProps } from "./ApprovalCard.js";
 import { ExecutionErrorNotice, type ExecutionErrorNoticeProps } from "./ExecutionErrorNotice.js";
 import { FileReviewCard } from "./FileReviewCard.js";
@@ -114,6 +120,13 @@ export interface MessageThreadSlots {
    * support) instead of the built-in Show more / Retry treatment.
    */
   readonly ExecutionErrorNotice?: ComponentType<ExecutionErrorNoticeProps>;
+  /**
+   * The ambient-liveness status line at the thread's tail while the active
+   * execution is live between visible events (stigmer#277). Override to
+   * supply a host-voiced label or richer treatment; the emission policy
+   * (when the line appears at all) stays with the thread.
+   */
+  readonly LivenessStatusLine?: ComponentType<LivenessStatusLineProps>;
 }
 
 /** Props for {@link MessageThread}. */
@@ -408,6 +421,16 @@ export type ThreadItem =
       readonly planTitle?: string;
       /** Length of the plan text streamed so far (drives the live size). */
       readonly planSize: number;
+    }
+  | {
+      /**
+       * The ambient-liveness status line at the thread's tail (stigmer#277):
+       * emitted while the active execution is IN_PROGRESS with no running
+       * tool call, no live sub-agent, and no pending approval — the quiet
+       * stretches where the screen would otherwise be completely still.
+       */
+      readonly kind: "liveness";
+      readonly key: string;
     };
 
 /**
@@ -432,6 +455,30 @@ function hasStartedResponding(execution: AgentExecution): boolean {
     if (m.type === MessageType.MESSAGE_THINKING && m.content.trim().length > 0) return true;
     return false;
   });
+}
+
+/**
+ * True while the active execution already shows a live signal of its own
+ * somewhere in the thread — a RUNNING tool call (its row's label carries the
+ * shimmer) or an in-flight sub-agent (its section carries a live indicator).
+ * Suppresses the bottom liveness line: one ambient signal at a time, riding
+ * the words closest to the actual activity.
+ */
+function hasVisiblyRunningActivity(execution: AgentExecution): boolean {
+  for (const sub of execution.status?.subAgentExecutions ?? []) {
+    if (
+      sub.status === SubAgentStatus.SUB_AGENT_IN_PROGRESS ||
+      sub.status === SubAgentStatus.SUB_AGENT_PENDING
+    ) {
+      return true;
+    }
+  }
+  for (const msg of execution.status?.messages ?? []) {
+    for (const tc of msg.toolCalls) {
+      if (tc.status === ToolCallStatus.TOOL_CALL_RUNNING) return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -1034,6 +1081,26 @@ export function buildThreadItems(
   // edit row, never appended at the thread tail. Pending decision bars are
   // not thread items at all: they live in the composer-docked FileReviewDock.
 
+  // The ambient-liveness line (stigmer#277): the thread's tail is never a
+  // dead frame while the agent is alive. Emitted only when
+  //  - the execution is IN_PROGRESS (phase-driven, DD-009 — WAITING/PAUSED
+  //    mean the agent is NOT working, and shimmering there would lie),
+  //  - it is past the pre-first-content window (setup-progress owns that),
+  //  - nothing else on screen carries its own live signal (a running tool
+  //    row or live sub-agent — one ambient signal at a time), and
+  //  - no approval is pending (the gate card is the louder, truthful state).
+  // Model-generation gaps between tool calls — the exact moments users doubt
+  // the agent — are precisely what remains.
+  if (
+    activeStreamExecution &&
+    hasStartedResponding(activeStreamExecution) &&
+    activeStreamExecution.status?.phase === ExecutionPhase.EXECUTION_IN_PROGRESS &&
+    (activeStreamExecution.status.pendingApprovals?.length ?? 0) === 0 &&
+    !hasVisiblyRunningActivity(activeStreamExecution)
+  ) {
+    items.push({ kind: "liveness", key: "liveness-status" });
+  }
+
   if (pendingUserMessage) {
     // A FAILED send never created an execution, so an existing execution with
     // identical text (e.g. two build attempts of the same plan — both
@@ -1531,6 +1598,10 @@ export function ThreadItemRenderer({
     }
     case "context-compacted":
       return <SummarizationCard event={item.event} />;
+    case "liveness": {
+      const Liveness = slots?.LivenessStatusLine ?? LivenessStatusLine;
+      return <Liveness />;
+    }
     case "todos": {
       const Todos = slots?.TodoCard ?? TodoCard;
       return <Todos todos={item.todos} className="stg:mx-4" TodoRow={slots?.TodoRow} />;
