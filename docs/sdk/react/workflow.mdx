@@ -865,6 +865,8 @@ function useWorkflowCanvas(yaml: string | null, options?: UseWorkflowCanvasOptio
     onDrop: { type: "(event: DragEvent) => void", description: "" },
     onEdgesChange: { type: "OnEdgesChange", description: "" },
     onEdgesDelete: { type: "(deleted: Edge[]) => void", description: "" },
+    onNodeDragStart: { type: "OnNodeDrag", description: "Marks the model snapshot an in-flight drag started from." },
+    onNodeDragStop: { type: "OnNodeDrag", description: "Records a completed node drag into the command history (oss#602)." },
     onNodesChange: { type: "OnNodesChange", description: "" },
     onNodesDelete: { type: "(deleted: Node[]) => void", description: "" },
     pasteAtCenter: { type: "() => void", description: "" },
