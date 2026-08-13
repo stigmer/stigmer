@@ -30,7 +30,9 @@ import { useApproval } from "./ApprovalContext.js";
 import { useFileReviewRowState } from "./FileReviewContext.js";
 import type { FileReviewRowState } from "./file-review-status.js";
 import { FilePathLink } from "./FilePathLink.js";
-import { isFileCategory, type ToolCategory } from "./tool-categories.js";
+// ToolChrome is type-only here so the doc link below resolves; the strict
+// tsdoc gate (tsdoc:check) guards it against removal.
+import { isFileCategory, type ToolCategory, type ToolChrome } from "./tool-categories.js";
 import { useToolPresentation } from "./tool-presenter.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
