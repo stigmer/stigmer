@@ -322,3 +322,116 @@ func TestValidateTaskConfigRequiredFields_AgentCallWorkspaceEntries(t *testing.T
 		}
 	})
 }
+
+func TestValidateTaskConfigRequiredFields_LlmCall(t *testing.T) {
+	makeSpec := func(config map[string]interface{}) *workflowv1.WorkflowSpec {
+		return &workflowv1.WorkflowSpec{
+			Tasks: []*workflowv1.WorkflowTask{
+				makeTask("classify", workflowv1.WorkflowTaskKind_llm_call, config),
+			},
+		}
+	}
+
+	t.Run("missing model is rejected", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"prompt": "Classify this ticket",
+		}))
+		want := "task 'classify' (llm_call): required field 'model' is missing or empty"
+		if len(errors) != 1 || errors[0] != want {
+			t.Errorf("expected [%q], got %v", want, errors)
+		}
+	})
+
+	t.Run("missing prompt is rejected", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"model": "gpt-4o",
+		}))
+		want := "task 'classify' (llm_call): required field 'prompt' is missing or empty"
+		if len(errors) != 1 || errors[0] != want {
+			t.Errorf("expected [%q], got %v", want, errors)
+		}
+	})
+
+	t.Run("empty strings are rejected like absence", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"model":  "",
+			"prompt": "",
+		}))
+		if len(errors) != 2 {
+			t.Errorf("expected 2 errors (model, prompt), got %v", errors)
+		}
+	})
+
+	t.Run("model and prompt present pass", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"model":  "gpt-4o",
+			"prompt": "Classify this ticket: ${ $context.ticket }",
+		}))
+		if len(errors) != 0 {
+			t.Errorf("expected no errors, got %v", errors)
+		}
+	})
+}
+
+func TestValidateTaskConfigRequiredFields_RaiseError(t *testing.T) {
+	makeSpec := func(config map[string]interface{}) *workflowv1.WorkflowSpec {
+		return &workflowv1.WorkflowSpec{
+			Tasks: []*workflowv1.WorkflowTask{
+				makeTask("fail_fast", workflowv1.WorkflowTaskKind_raise_error, config),
+			},
+		}
+	}
+
+	t.Run("missing error is rejected", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"message": "something broke",
+		}))
+		want := "task 'fail_fast' (raise_error): required field 'error' is missing or empty"
+		if len(errors) != 1 || errors[0] != want {
+			t.Errorf("expected [%q], got %v", want, errors)
+		}
+	})
+
+	// message is deliberately NOT required: the DSL converter emits it as the
+	// optional problem-details `detail` and the docs teach message-less raise
+	// (#685 ruling — the proto's required flag was the fiction, now relaxed).
+	t.Run("error without message passes", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"error": "ValidationError",
+		}))
+		if len(errors) != 0 {
+			t.Errorf("expected no errors, got %v", errors)
+		}
+	})
+}
+
+func TestValidateTaskConfigRequiredFields_HumanInput(t *testing.T) {
+	makeSpec := func(config map[string]interface{}) *workflowv1.WorkflowSpec {
+		return &workflowv1.WorkflowSpec{
+			Tasks: []*workflowv1.WorkflowTask{
+				makeTask("review", workflowv1.WorkflowTaskKind_human_input, config),
+			},
+		}
+	}
+
+	t.Run("missing prompt is rejected", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"outcomes": []interface{}{
+				map[string]interface{}{"name": "approve"},
+			},
+		}))
+		want := "task 'review' (human_input): required field 'prompt' is missing or empty"
+		if len(errors) != 1 || errors[0] != want {
+			t.Errorf("expected [%q], got %v", want, errors)
+		}
+	})
+
+	t.Run("prompt present passes", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"prompt": "Approve this escalation?",
+		}))
+		if len(errors) != 0 {
+			t.Errorf("expected no errors, got %v", errors)
+		}
+	})
+}

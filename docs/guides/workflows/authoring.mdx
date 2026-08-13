@@ -203,6 +203,7 @@ Iterate over a collection, executing a set of sub-tasks for each item:
       - name: process
         kind: llm_call
         task_config:
+          model: "gpt-4o-mini"
           prompt: "Process: ${ item }"
     max_parallelism: 5
     on_error: FOR_EACH_CONTINUE
@@ -230,12 +231,14 @@ Run independent branches simultaneously:
           - name: summarize
             kind: llm_call
             task_config:
+              model: "gpt-4o-mini"
               prompt: "Summarize: ${ $context.analysis.text }"
       - name: findings
         do:
           - name: extract
             kind: llm_call
             task_config:
+              model: "gpt-4o-mini"
               prompt: "Extract key findings from: ${ $context.analysis.text }"
     compete: false
   export:

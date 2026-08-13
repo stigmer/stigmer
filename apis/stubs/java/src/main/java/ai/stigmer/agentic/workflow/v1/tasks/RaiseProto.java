@@ -44,15 +44,15 @@ public final class RaiseProto extends com.google.protobuf.GeneratedFile {
       "aise.proto\022$ai.stigmer.agentic.workflow." +
       "v1.tasks\0322ai/stigmer/commons/apiresource" +
       "/field_options.proto\032\033buf/validate/valid" +
-      "ate.proto\"r\n\017RaiseTaskConfig\022$\n\005error\030\001 " +
-      "\001(\tB\016\272H\007r\002\020\001\310\001\001\330\205,\001R\005error\022(\n\007message\030\002 " +
-      "\001(\tB\016\272H\007r\002\020\001\310\001\001\330\205,\001R\007message:\017\352\213,\013raise_" +
-      "errorB\304\001B\nRaiseProtoP\001\242\002\006ASAWVT\252\002$Ai.Sti" +
-      "gmer.Agentic.Workflow.V1.Tasks\312\002$Ai\\Stig" +
-      "mer\\Agentic\\Workflow\\V1\\Tasks\342\0020Ai\\Stigm" +
-      "er\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata" +
-      "\352\002)Ai::Stigmer::Agentic::Workflow::V1::T" +
-      "asksb\006proto3"
+      "ate.proto\"h\n\017RaiseTaskConfig\022$\n\005error\030\001 " +
+      "\001(\tB\016\272H\007r\002\020\001\310\001\001\330\205,\001R\005error\022\036\n\007message\030\002 " +
+      "\001(\tB\004\330\205,\001R\007message:\017\352\213,\013raise_errorB\304\001B\n" +
+      "RaiseProtoP\001\242\002\006ASAWVT\252\002$Ai.Stigmer.Agent" +
+      "ic.Workflow.V1.Tasks\312\002$Ai\\Stigmer\\Agenti" +
+      "c\\Workflow\\V1\\Tasks\342\0020Ai\\Stigmer\\Agentic" +
+      "\\Workflow\\V1\\Tasks\\GPBMetadata\352\002)Ai::Sti" +
+      "gmer::Agentic::Workflow::V1::Tasksb\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
