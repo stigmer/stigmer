@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../internal/DialogShell.js";
 import { getErrorReason, type ResourceRef } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
@@ -89,8 +90,6 @@ export function ConnectSlackDialog({
   modal = true,
   channelAppsHref,
 }: ConnectSlackDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
   // Instance-scoped title id (oss#593): a reusable component must not
   // hardcode DOM ids — hosts legitimately mount this dialog more than once
   // per page (e.g. zone-cached detail pages), and duplicate ids break the
@@ -98,36 +97,15 @@ export function ConnectSlackDialog({
   const titleId = useId();
 
   const handleClose = useCallback(() => {
-    dialogRef.current?.close();
     onOpenChange(false);
   }, [onOpenChange]);
 
-  // Sync native dialog open state (matches the SDK dialog convention).
-  // Non-modal hosts pass `open` as a plain attribute instead — the dialog
-  // renders in-flow with no top layer to manage.
-  const prevOpenRef = useRef(false);
-  if (modal && open !== prevOpenRef.current) {
-    prevOpenRef.current = open;
-    if (open) {
-      requestAnimationFrame(() => {
-        if (dialogRef.current && !dialogRef.current.open) {
-          dialogRef.current.showModal();
-        }
-      });
-    } else if (dialogRef.current?.open) {
-      dialogRef.current.close();
-    }
-  }
-
   return (
-    <dialog
-      ref={dialogRef}
-      open={modal ? undefined : open}
-      onClose={handleClose}
-      className={cn(
-        "stg:w-full stg:max-w-md stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
-        modal ? "stg:fixed stg:inset-0 stg:m-auto stg:backdrop:bg-backdrop" : "stg:relative",
-      )}
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      modal={modal}
+      width="md"
       aria-labelledby={titleId}
     >
       {/* Body mounts only while open so its flow state resets per
@@ -142,7 +120,7 @@ export function ConnectSlackDialog({
           channelAppsHref={channelAppsHref}
         />
       )}
-    </dialog>
+    </DialogShell>
   );
 }
 

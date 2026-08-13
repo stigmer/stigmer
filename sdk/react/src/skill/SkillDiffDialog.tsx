@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../internal/DialogShell.js";
 import { useSkillDiff } from "./useSkillDiff.js";
 import { MultiFileDiffView } from "../version-history/MultiFileDiffView.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
@@ -57,31 +58,9 @@ export interface SkillDiffDialogProps {
  * ```
  */
 export function SkillDiffDialog({ state, onClose }: SkillDiffDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (state && !dialog.open) {
-      dialog.showModal();
-    } else if (!state && dialog.open) {
-      dialog.close();
-    }
-  }, [state]);
-
-  const handleDialogCancel = useCallback(
-    (e: React.SyntheticEvent) => {
-      e.preventDefault();
-      onClose();
-    },
-    [onClose],
-  );
-
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent<HTMLDialogElement>) => {
-      if (e.target === e.currentTarget) {
-        onClose();
-      }
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) onClose();
     },
     [onClose],
   );
@@ -94,15 +73,13 @@ export function SkillDiffDialog({ state, onClose }: SkillDiffDialogProps) {
   if (!state) return null;
 
   return (
-    <dialog
-      ref={dialogRef}
-      onCancel={handleDialogCancel}
-      onClick={handleBackdropClick}
-      className={cn(
-        "stg:fixed stg:inset-0 stg:z-50 stg:m-auto stg:h-[85vh] stg:w-full stg:max-w-4xl stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:p-0 stg:text-popover-foreground stg:shadow-lg",
-        "stg:backdrop:bg-backdrop",
-        "stg:open:animate-in stg:open:fade-in-0 stg:open:zoom-in-95",
-      )}
+    <DialogShell
+      open
+      onOpenChange={handleOpenChange}
+      width="4xl"
+      dismissOnBackdrop
+      className="stg:h-[85vh]"
+      aria-label="Skill version diff"
     >
       <div className="stg:flex stg:h-full stg:flex-col">
         {/* Header */}
@@ -142,7 +119,7 @@ export function SkillDiffDialog({ state, onClose }: SkillDiffDialogProps) {
           ) : null}
         </div>
       </div>
-    </dialog>
+    </DialogShell>
   );
 }
 

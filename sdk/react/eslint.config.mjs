@@ -17,6 +17,9 @@ export default defineConfig([
       // Error (not warn): the oss#373 sweep left zero violations, so the
       // fence can hold the line from day one.
       "stigmer/no-hardcoded-backdrop": "error",
+      // Same posture: the oss#653 sweep converged every <dialog> onto the
+      // DialogShell primitive, so this fence starts at zero violations.
+      "stigmer/no-handrolled-dialog": "error",
       "stigmer/no-literal-dom-ids": "error",
       "stigmer/no-token-opacity-modifiers": "warn",
       "stigmer/no-main-tokens-in-sidebar": "warn",

@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../internal/DialogShell.js";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowOverviewGraph } from "./WorkflowOverviewGraph.js";
 
@@ -38,23 +39,9 @@ export function WorkflowGraphFullscreenDialog({
   onClose,
   onOpenInEditor,
 }: WorkflowGraphFullscreenDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (open && !dialog.open) {
-      dialog.showModal();
-    } else if (!open && dialog.open) {
-      dialog.close();
-    }
-  }, [open]);
-
-  const handleCancel = useCallback(
-    (e: React.SyntheticEvent) => {
-      e.preventDefault();
-      onClose();
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) onClose();
     },
     [onClose],
   );
@@ -62,14 +49,15 @@ export function WorkflowGraphFullscreenDialog({
   const workflowName = workflow?.metadata?.name || "Task Flow";
 
   return (
-    <dialog
-      ref={dialogRef}
-      onCancel={handleCancel}
+    <DialogShell
+      open={open}
+      onOpenChange={handleOpenChange}
       aria-label={`${workflowName} — full view`}
-      className={cn(
-        "stg:fixed stg:inset-0 stg:z-50 stg:m-auto stg:h-[90vh] stg:w-[95vw] stg:rounded-lg stg:border stg:border-border stg:bg-background stg:p-0 stg:text-foreground stg:shadow-2xl stg:outline-none",
-        "stg:[&::backdrop]:bg-black/60",
-      )}
+      // Near-full-viewport outlier: free-form sizing and the background
+      // surface for the graph canvas. The previously hardcoded ::backdrop
+      // color (bg-black/60 — it predated and escaped the #652 fence via the
+      // arbitrary-variant spelling) now rides the shell's token backdrop.
+      className="stg:h-[90vh] stg:w-[95vw] stg:max-w-none stg:bg-background stg:text-foreground stg:outline-none"
     >
       {open && (
         <div className="stg:flex stg:h-full stg:flex-col">
@@ -101,7 +89,7 @@ export function WorkflowGraphFullscreenDialog({
           </div>
         </div>
       )}
-    </dialog>
+    </DialogShell>
   );
 }
 

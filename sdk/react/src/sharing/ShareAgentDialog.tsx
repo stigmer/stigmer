@@ -2,6 +2,7 @@
 
 import { useCallback, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../internal/DialogShell.js";
 import {
   MAX_ALLOWED_ORIGINS,
   StigmerError,
@@ -137,8 +138,6 @@ export function ShareAgentDialog({
   onSharingChanged,
   modal = true,
 }: ShareAgentDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
   // Instance-scoped title id (oss#593): a reusable component must not
   // hardcode DOM ids — hosts legitimately mount this dialog more than once
   // per page (e.g. zone-cached detail pages), and duplicate ids break the
@@ -146,36 +145,15 @@ export function ShareAgentDialog({
   const titleId = useId();
 
   const handleClose = useCallback(() => {
-    dialogRef.current?.close();
     onOpenChange(false);
   }, [onOpenChange]);
 
-  // Sync native dialog open state (matches the SDK dialog convention).
-  // Non-modal hosts pass `open` as a plain attribute instead — the dialog
-  // renders in-flow with no top layer to manage.
-  const prevOpenRef = useRef(false);
-  if (modal && open !== prevOpenRef.current) {
-    prevOpenRef.current = open;
-    if (open) {
-      requestAnimationFrame(() => {
-        if (dialogRef.current && !dialogRef.current.open) {
-          dialogRef.current.showModal();
-        }
-      });
-    } else if (dialogRef.current?.open) {
-      dialogRef.current.close();
-    }
-  }
-
   return (
-    <dialog
-      ref={dialogRef}
-      open={modal ? undefined : open}
-      onClose={handleClose}
-      className={cn(
-        "stg:w-full stg:max-w-lg stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
-        modal ? "stg:fixed stg:inset-0 stg:m-auto stg:backdrop:bg-backdrop" : "stg:relative",
-      )}
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      modal={modal}
+      width="lg"
       aria-labelledby={titleId}
     >
       {/* Body mounts only while open so its draft state resets per
@@ -191,7 +169,7 @@ export function ShareAgentDialog({
           titleId={titleId}
         />
       )}
-    </dialog>
+    </DialogShell>
   );
 }
 

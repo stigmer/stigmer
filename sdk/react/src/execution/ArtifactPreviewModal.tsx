@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../internal/DialogShell.js";
 import { useArtifactDownload } from "./useArtifactDownload.js";
 import { formatArtifactSize } from "./artifact-utils.js";
 import { ArtifactContentBody } from "./ArtifactContentBody.js";
@@ -253,37 +254,24 @@ export function ArtifactPreviewModal({
   onImplement,
   className,
 }: ArtifactPreviewModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (open && !dialog.open) {
-      dialog.showModal();
-    } else if (!open && dialog.open) {
-      dialog.close();
-    }
-  }, [open]);
-
-  const handleCancel = useCallback(
-    (e: React.SyntheticEvent) => {
-      e.preventDefault();
-      onClose();
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) onClose();
     },
     [onClose],
   );
 
   return (
-    <dialog
-      ref={dialogRef}
-      onCancel={handleCancel}
+    <DialogShell
+      open={open}
+      onOpenChange={handleOpenChange}
+      width="3xl"
       aria-label={`Preview ${artifact.name}`}
-      className={cn(
-        "stg:fixed stg:inset-0 stg:m-auto stg:w-full stg:max-w-3xl stg:rounded-lg stg:border stg:border-border stg:bg-background stg:p-0 stg:text-foreground stg:shadow-lg stg:outline-none",
-        "stg:[&::backdrop]:bg-black/50",
-        className,
-      )}
+      // Background surface is deliberate for content previews. The
+      // previously hardcoded ::backdrop color (bg-black/50 — it escaped the
+      // #652 fence via the arbitrary-variant spelling) now rides the
+      // shell's token backdrop.
+      className={cn("stg:bg-background stg:text-foreground stg:outline-none", className)}
     >
       {open && (
         <ArtifactPreviewContent
@@ -296,7 +284,7 @@ export function ArtifactPreviewModal({
           onImplement={onImplement}
         />
       )}
-    </dialog>
+    </DialogShell>
   );
 }
 

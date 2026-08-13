@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect } from "react";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../internal/DialogShell.js";
 import { useExplainWorkflowFlow, type ExplainPhase } from "./useExplainWorkflowFlow.js";
 import { MessageThread } from "../execution/MessageThread.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -36,8 +37,6 @@ export function WorkflowExplainDialog({
   org,
   currentYaml,
 }: WorkflowExplainDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
   const flow = useExplainWorkflowFlow({
     org,
     currentYaml,
@@ -46,35 +45,13 @@ export function WorkflowExplainDialog({
     },
   });
 
-  // Show/hide dialog
+  // Each opening starts a fresh explanation.
   useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) {
+    if (open) {
       flow.reset();
-      dialog.showModal();
       flow.explain();
-    } else if (!open && dialog.open) {
-      dialog.close();
     }
   }, [open, flow.reset, flow.explain]);
-
-  const handleDialogCancel = useCallback(
-    (e: React.SyntheticEvent) => {
-      e.preventDefault();
-      onOpenChange(false);
-    },
-    [onOpenChange],
-  );
-
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent<HTMLDialogElement>) => {
-      if (e.target === dialogRef.current) {
-        onOpenChange(false);
-      }
-    },
-    [onOpenChange],
-  );
 
   const { copy, copied } = useCopyFeedback();
   const handleCopy = useCallback(() => {
@@ -84,15 +61,12 @@ export function WorkflowExplainDialog({
   }, [copy, flow.explanation]);
 
   return (
-    <dialog
-      ref={dialogRef}
-      onCancel={handleDialogCancel}
-      onClick={handleBackdropClick}
-      className={cn(
-        "stg:fixed stg:inset-0 stg:z-50 stg:m-auto stg:w-full stg:max-w-2xl stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:p-0 stg:text-popover-foreground stg:shadow-lg",
-        "stg:backdrop:bg-backdrop",
-        "stg:open:animate-in stg:open:fade-in-0 stg:open:zoom-in-95",
-      )}
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      width="2xl"
+      dismissOnBackdrop
+      aria-label="Workflow Explanation"
     >
       <div className="stg:flex stg:flex-col">
         {/* Header */}
@@ -206,7 +180,7 @@ export function WorkflowExplainDialog({
           </div>
         </div>
       </div>
-    </dialog>
+    </DialogShell>
   );
 }
 

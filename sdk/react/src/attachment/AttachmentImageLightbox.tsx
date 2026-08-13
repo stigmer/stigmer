@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../internal/DialogShell.js";
 
 /** Props for {@link AttachmentImageLightbox}. */
 export interface AttachmentImageLightboxProps {
@@ -48,47 +49,23 @@ export function AttachmentImageLightbox({
   onClose,
   className,
 }: AttachmentImageLightboxProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (open && !dialog.open) {
-      dialog.showModal();
-    } else if (!open && dialog.open) {
-      dialog.close();
-    }
-  }, [open]);
-
-  // Escape arrives as the native `cancel` event; intercept it so the
-  // caller's `open` prop stays the single source of truth for visibility.
-  const handleCancel = useCallback(
-    (e: React.SyntheticEvent) => {
-      e.preventDefault();
-      onClose();
-    },
-    [onClose],
-  );
-
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent<HTMLDialogElement>) => {
-      if (e.target === dialogRef.current) {
-        onClose();
-      }
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) onClose();
     },
     [onClose],
   );
 
   return (
-    <dialog
-      ref={dialogRef}
-      onCancel={handleCancel}
-      onClick={handleBackdropClick}
+    <DialogShell
+      open={open}
+      onOpenChange={handleOpenChange}
+      dismissOnBackdrop
       aria-label={`Preview ${filename}`}
+      // Lightbox outlier: viewport-relative sizing (not a width preset) and
+      // the background surface for image content.
       className={cn(
-        "stg:fixed stg:inset-0 stg:m-auto stg:max-h-[85vh] stg:max-w-[85vw] stg:rounded-lg stg:border stg:border-border stg:bg-background stg:p-0 stg:text-foreground stg:shadow-lg stg:outline-none",
-        "stg:backdrop:bg-backdrop",
+        "stg:w-auto stg:max-h-[85vh] stg:max-w-[85vw] stg:bg-background stg:text-foreground stg:outline-none",
         className,
       )}
     >
@@ -127,7 +104,7 @@ export function AttachmentImageLightbox({
           </div>
         </div>
       )}
-    </dialog>
+    </DialogShell>
   );
 }
 
