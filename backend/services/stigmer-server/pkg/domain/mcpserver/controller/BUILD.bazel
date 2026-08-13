@@ -61,6 +61,7 @@ go_test(
         "mcpserver_controller_test.go",
         "oauth_connect_secrets_test.go",
         "oauth_preflight_test.go",
+        "org_oauth_app_unimplemented_test.go",
     ],
     embed = [":controller"],
     deps = [

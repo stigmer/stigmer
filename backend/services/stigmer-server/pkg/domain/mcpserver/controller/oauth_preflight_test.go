@@ -128,9 +128,9 @@ func TestInitiateDCR_PreflightBlocked(t *testing.T) {
 
 	msg := status.Convert(err).Message()
 	for _, want := range []string{
-		"canva-like",         // names the provider
-		"HTTP 400",           // names the observed refusal
-		"127.0.0.1",          // names this deployment's callback host (from the harness redirect URI)
+		"canva-like",              // names the provider
+		"HTTP 400",                // names the observed refusal
+		"127.0.0.1",               // names this deployment's callback host (from the harness redirect URI)
 		"redirect-host allowlist", // names the actionable cause
 	} {
 		if !strings.Contains(msg, want) {

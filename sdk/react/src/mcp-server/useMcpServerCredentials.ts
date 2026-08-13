@@ -11,6 +11,7 @@ import { diffEnv } from "../environment/diffEnv.js";
 import { SYSTEM_ENV_VAR_KEYS } from "../environment/systemEnvVars.js";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm.js";
 import { useOAuthGrantStatus } from "./useOAuthGrantStatus.js";
+import { useOrgOAuthApp } from "./useOrgOAuthApp.js";
 
 /**
  * Credential acquisition mode for an MCP server.
@@ -145,8 +146,15 @@ export interface UseMcpServerCredentialsReturn {
   readonly isOrgOAuthApp: boolean;
   /**
    * `true` when the BYOA option is relevant for this server: the server
-   * uses vendor OAuth (`authMode === "oauth"` with an `oauth_app_ref`)
-   * and no org override is currently active.
+   * uses vendor OAuth (`authMode === "oauth"` with an `oauth_app_ref`),
+   * no org override is currently active, AND the backend supports the
+   * org-override surface at all.
+   *
+   * The last condition is an edition capability, confirmed by probing
+   * `getOrgOAuthApp` (see {@link useOrgOAuthApp}): the surface is
+   * hosted-only, so on OSS deployments — where the submit could only
+   * answer UNIMPLEMENTED — this stays `false` and no BYOA affordance
+   * renders (stigmer/stigmer#558).
    *
    * When `true`, the UI should offer "Use your own OAuth app" as either
    * a primary action (when vendor approval is blocked) or a secondary
@@ -287,8 +295,23 @@ export function useMcpServerCredentials(
   const isOrgOAuthApp =
     effectiveOAuthSource === OAuthAppSource.OAUTH_APP_SOURCE_ORG_OVERRIDE;
   const hasOAuthAppRef = Boolean(auth?.oauthAppRef?.slug);
+
+  // Capability probe for the hosted-only org-override surface — fetches
+  // only for the exact population that could render a BYOA affordance.
+  // Mutation state on this instance is unused; the probe shares its fetch
+  // with any sibling useOrgOAuthApp instance through the fetch cache.
+  const orgOverrideProbe = useOrgOAuthApp(
+    authMode === "oauth" && hasOAuthAppRef
+      ? (mcpServer?.metadata?.id ?? null)
+      : null,
+    authMode === "oauth" && hasOAuthAppRef ? org : null,
+  );
+
   const canBringOwnApp =
-    authMode === "oauth" && hasOAuthAppRef && !isOrgOAuthApp;
+    authMode === "oauth" &&
+    hasOAuthAppRef &&
+    !isOrgOAuthApp &&
+    orgOverrideProbe.isSupported;
 
   const grantStatus = useOAuthGrantStatus(
     authMode === "oauth" ? (mcpServer?.metadata?.id ?? null) : null,

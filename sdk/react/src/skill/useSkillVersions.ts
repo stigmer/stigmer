@@ -3,17 +3,14 @@
 import { useCallback, useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { StigmerError } from "@stigmer/sdk";
 import {
   ListSkillVersionsInputSchema,
   type SkillVersionEntry as ProtoSkillVersionEntry,
 } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { useStigmer } from "../hooks.js";
+import { isUnimplemented } from "../internal/isUnimplemented.js";
 import { useFetch } from "../internal/useFetch.js";
 import type { VersionEntry } from "../version-history/types.js";
-
-// gRPC/Connect Code.Unimplemented = 12
-const CODE_UNIMPLEMENTED = 12;
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -156,10 +153,3 @@ function mapProtoToVersionEntry(proto: ProtoSkillVersionEntry): VersionEntry {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Error detection
-// ---------------------------------------------------------------------------
-
-function isUnimplemented(err: unknown): boolean {
-  return err instanceof StigmerError && err.connectCode === CODE_UNIMPLEMENTED;
-}

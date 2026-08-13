@@ -8,11 +8,26 @@ import {
   DeleteOrgOAuthAppInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { useStigmer } from "../hooks.js";
+import { isUnimplemented } from "../internal/isUnimplemented.js";
 import { toError } from "../internal/toError.js";
 import { useFetch } from "../internal/useFetch.js";
 
 /** Return value of {@link useOrgOAuthApp}. */
 export interface UseOrgOAuthAppReturn {
+  /**
+   * Whether the backend supports the org-OAuth-app override surface at all.
+   *
+   * The surface is hosted-only by design: the OSS server answers
+   * UNIMPLEMENTED for all three org-override RPCs because its flat
+   * OAuthApp store has no override binding (stigmer/stigmer#558 — the
+   * self-hosted equivalent is applying an OAuthApp resource and
+   * referencing it from `spec.auth.oauth_app_ref`). The fetch doubles
+   * as the capability probe: `isSupported` is `false` until the first
+   * successful response confirms the surface exists, so BYOA
+   * affordances gated on it never flash on deployments where the
+   * submit could only fail.
+   */
+  readonly isSupported: boolean;
   /** Whether an org-level BYOA override exists for this resource + org. */
   readonly hasOverride: boolean;
   /** System-generated ID of the override's OAuthApp, or `null` when absent. */
@@ -72,12 +87,25 @@ export interface UseOrgOAuthAppReturn {
 }
 
 interface OrgOAuthAppData {
+  isSupported: boolean;
   hasOverride: boolean;
   oauthAppId: string | null;
   clientId: string | null;
 }
 
 const IDLE_DATA: OrgOAuthAppData = {
+  isSupported: false,
+  hasOverride: false,
+  oauthAppId: null,
+  clientId: null,
+};
+
+/**
+ * The UNIMPLEMENTED answer resolved into data rather than an error:
+ * the backend is healthy, it just doesn't have this edition capability.
+ */
+const UNSUPPORTED_DATA: OrgOAuthAppData = {
+  isSupported: false,
   hasOverride: false,
   oauthAppId: null,
   clientId: null,
@@ -110,6 +138,14 @@ const IDLE: UseOrgOAuthAppReturn = {
  * mutations bound to the hook's resource + org context, eliminating
  * parameter repetition at call sites.
  *
+ * **Edition awareness**: the fetch doubles as a capability probe. The
+ * org-override surface is hosted-only; the OSS server answers
+ * UNIMPLEMENTED for it, which this hook resolves into
+ * `isSupported: false` with no error. Gate every BYOA affordance on
+ * `isSupported` (as {@link useMcpServerCredentials} does for
+ * `canBringOwnApp`) — the mutations can only fail where the probe
+ * reports the surface absent.
+ *
  * Pass `null` for either parameter to skip fetching (stable no-op).
  *
  * @example
@@ -136,18 +172,28 @@ export function useOrgOAuthApp(
   const { data, isLoading, isRefetching, error, refetch } = useFetch<OrgOAuthAppData>(
     resourceId && org
       ? async () => {
-          const result = await stigmer.mcpServer.getOrgOAuthApp(
-            create(GetOrgOAuthAppInputSchema, { resourceId, org }),
-          );
-          return {
-            hasOverride: result.hasOverride,
-            oauthAppId: result.oauthAppId || null,
-            clientId: result.clientId || null,
-          };
+          try {
+            const result = await stigmer.mcpServer.getOrgOAuthApp(
+              create(GetOrgOAuthAppInputSchema, { resourceId, org }),
+            );
+            return {
+              isSupported: true,
+              hasOverride: result.hasOverride,
+              oauthAppId: result.oauthAppId || null,
+              clientId: result.clientId || null,
+            };
+          } catch (err) {
+            if (isUnimplemented(err)) return UNSUPPORTED_DATA;
+            throw err;
+          }
         }
       : null,
     [resourceId, org, stigmer],
     IDLE_DATA,
+    // Cross-mount cache: the credentials hook composes this fetch as its
+    // capability probe, so a detail page mounts two instances — the cache
+    // lets the second render from the first's result.
+    { cacheKey: `org-oauth-app:${org}:${resourceId}` },
   );
 
   const [isSetting, setIsSetting] = useState(false);

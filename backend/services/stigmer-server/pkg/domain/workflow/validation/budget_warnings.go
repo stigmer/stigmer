@@ -67,9 +67,9 @@ func CheckBudgetWarnings(budget *workflowv1.WorkflowBudget, tasks []*workflowv1.
 		// (USD, double) and is converted here. Each entry carries its own
 		// field label so the warning names the field the author actually set.
 		type perTaskEntry struct {
-			name        string
-			costMicros  int64
-			fieldLabel  string
+			name       string
+			costMicros int64
+			fieldLabel string
 		}
 		var perTaskEntries []perTaskEntry
 

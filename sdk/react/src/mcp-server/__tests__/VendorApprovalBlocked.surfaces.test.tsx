@@ -5,7 +5,10 @@ import { create } from "@bufbuild/protobuf";
 import { createRouterTransport } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/sdk";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
-import { GetOAuthGrantStatusOutputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import {
+  GetOAuthGrantStatusOutputSchema,
+  GetOrgOAuthAppOutputSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import {
   McpServerSpecSchema,
   McpServerAuthSchema,
@@ -96,6 +99,15 @@ function noGrant() {
   return create(GetOAuthGrantStatusOutputSchema, { connected: false });
 }
 
+// BYOA affordances render only where the org-override surface exists —
+// canBringOwnApp is gated on a getOrgOAuthApp capability probe
+// (stigmer/stigmer#558), so the BYOA arms of these tests must register the
+// RPC to simulate the hosted edition. The OSS arm (probe UNIMPLEMENTED →
+// affordances hidden) is pinned in byoaEditionDegradation.test.tsx.
+function noOverride() {
+  return create(GetOrgOAuthAppOutputSchema, { hasOverride: false });
+}
+
 function renderWithTransport(
   ui: ReactNode,
   register: Parameters<typeof createRouterTransport>[0] = () => {},
@@ -128,6 +140,7 @@ describe("McpServerConnectDialog — oauth_only + vendor-blocked", () => {
         router.service(McpServerQueryController, {
           getByReference: () => server,
           getOAuthGrantStatus: noGrant,
+          getOrgOAuthApp: noOverride,
         });
       },
     );
@@ -231,6 +244,7 @@ describe("McpServerDetailView — oauth_only + vendor-blocked", () => {
       (router) => {
         router.service(McpServerQueryController, {
           getOAuthGrantStatus: noGrant,
+          getOrgOAuthApp: noOverride,
         });
       },
     );

@@ -74,6 +74,18 @@ type McpServerQueryControllerClient interface {
 	// exposing secrets. The frontend uses this to show which credential
 	// source is active and to offer override management options to org admins.
 	//
+	// Edition scoping: hosted-only, together with setOrgOAuthApp and
+	// deleteOrgOAuthApp — the three org-OAuth-app RPCs are ONE capability.
+	// The OSS server answers UNIMPLEMENTED for all of them by design: its
+	// flat OAuthApp store has no override binding, its OAuth resolution has
+	// no override level to consult, and BYOA's clone-from-platform-template
+	// model has no template to clone (self-hosted users apply their own
+	// OAuthApp and reference it from spec.auth.oauth_app_ref — a strictly
+	// more powerful path). Clients probe the capability through THIS RPC:
+	// an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
+	// SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
+	// surface without the other two and the client-side gate.
+	//
 	// @internal
 	// Authorization: Requires can_view permission on the mcp_server resource.
 	// Any user who can view the MCP server can check whether their org has
@@ -176,6 +188,18 @@ type McpServerQueryControllerServer interface {
 	// Returns override metadata (existence, OAuthApp ID, client_id) without
 	// exposing secrets. The frontend uses this to show which credential
 	// source is active and to offer override management options to org admins.
+	//
+	// Edition scoping: hosted-only, together with setOrgOAuthApp and
+	// deleteOrgOAuthApp — the three org-OAuth-app RPCs are ONE capability.
+	// The OSS server answers UNIMPLEMENTED for all of them by design: its
+	// flat OAuthApp store has no override binding, its OAuth resolution has
+	// no override level to consult, and BYOA's clone-from-platform-template
+	// model has no template to clone (self-hosted users apply their own
+	// OAuthApp and reference it from spec.auth.oauth_app_ref — a strictly
+	// more powerful path). Clients probe the capability through THIS RPC:
+	// an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
+	// SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
+	// surface without the other two and the client-side gate.
 	//
 	// @internal
 	// Authorization: Requires can_view permission on the mcp_server resource.

@@ -41,6 +41,17 @@ BYOA applies only to MCP servers that use **vendor OAuth** — servers with an
 `auth.oauth_app_ref` in their definition. Servers that use MCP Authorization
 (automatic discovery via DCR) or plain Environment variables are not affected.
 
+<Callout type="info">
+  **Self-hosted deployments.** BYOA overrides are a hosted-platform capability:
+  they exist to let an Organization override an OAuth app that the platform
+  operator controls. On a self-hosted deployment there is no separate platform
+  operator — you own every OAuth app directly, which is strictly more powerful
+  than an override. Create an OAuth app with your own credentials (see [Manage
+  OAuth apps from Settings](#manage-oauth-apps-from-settings)) and reference it
+  from the server definition's `auth.oauth_app_ref`. The BYOA affordances
+  described below do not appear on self-hosted deployments.
+</Callout>
+
 ## Set up your own OAuth app
 
 1. **Register an app with the vendor.** Go to the vendor's developer portal (for
