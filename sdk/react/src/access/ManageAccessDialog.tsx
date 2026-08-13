@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, type ReactNode } from "react";
+import { useCallback, useId, useRef, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { hasGrantableRoles } from "@stigmer/sdk";
 import { PeopleWithAccess } from "../iam-policy/PeopleWithAccess.js";
@@ -78,6 +78,12 @@ export function ManageAccessDialog({
 }: ManageAccessDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
+  // Instance-scoped title id (oss#593): a reusable component must not
+  // hardcode DOM ids — hosts legitimately mount this dialog more than once
+  // per page (e.g. zone-cached detail pages), and duplicate ids break the
+  // aria-labelledby association for every copy after the first.
+  const titleId = useId();
+
   const handleClose = useCallback(() => {
     dialogRef.current?.close();
     onOpenChange(false);
@@ -108,7 +114,7 @@ export function ManageAccessDialog({
         "stg:fixed stg:inset-0 stg:m-auto stg:w-full stg:max-w-md stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
         "stg:backdrop:bg-black/50",
       )}
-      aria-labelledby="manage-access-title"
+      aria-labelledby={titleId}
     >
       {/* Body mounts only while open so the access-list fetch is lazy. */}
       {open && (
@@ -117,7 +123,7 @@ export function ManageAccessDialog({
           <div className="stg:flex stg:items-start stg:justify-between stg:border-b stg:border-border stg:px-6 stg:py-4">
             <div className="stg:min-w-0">
               <h2
-                id="manage-access-title"
+                id={titleId}
                 className="stg:text-base stg:font-semibold stg:text-foreground"
               >
                 Manage access
