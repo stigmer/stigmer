@@ -30,22 +30,29 @@ func Slug(workflowSlug string) string {
 }
 
 // BuildRequest builds the WorkflowInstance proto for a default-instance
-// creation request. Callers hand it to the workflowinstance downstream
-// client (Create/Apply AsSystem), which owns persistence and validation.
-func BuildRequest(workflowID, workflowSlug, orgID string) *workflowinstancev1.WorkflowInstance {
+// creation request from the parent workflow's metadata. Callers hand it to
+// the workflowinstance downstream client (Create/Apply AsSystem), which owns
+// persistence and validation.
+//
+// Takes the metadata rather than loose strings for the same reason as the
+// agentinstance twin: the instance is named from the workflow's SLUG (the
+// identity Slug() reconstructs for fallback lookups), never the free-form
+// display name — reading it at this single source makes the wrong-field
+// mistake unwritable (stigmer/stigmer#355).
+func BuildRequest(workflow *apiresourcepb.ApiResourceMetadata) *workflowinstancev1.WorkflowInstance {
 	return &workflowinstancev1.WorkflowInstance{
 		ApiVersion: apiVersion,
 		Kind:       kind,
 		Metadata: &apiresourcepb.ApiResourceMetadata{
-			Name: Slug(workflowSlug),
-			Org:  orgID,
+			Name: Slug(workflow.GetSlug()),
+			Org:  workflow.GetOrg(),
 			Labels: map[string]string{
 				apiresource.DefaultInstanceLabel: apiresource.ReservedLabelTrue,
 				apiresource.SystemManagedLabel:   apiresource.ReservedLabelTrue,
 			},
 		},
 		Spec: &workflowinstancev1.WorkflowInstanceSpec{
-			WorkflowId:  workflowID,
+			WorkflowId:  workflow.GetId(),
 			Description: description,
 		},
 	}

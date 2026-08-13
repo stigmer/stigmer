@@ -53,22 +53,34 @@ func Slug(agentSlug string) string {
 }
 
 // BuildRequest builds the AgentInstance proto for a default-instance
-// creation request. Callers hand it to the agentinstance downstream client
-// (Create/Apply AsSystem), which owns persistence and validation.
-func BuildRequest(agentID, agentSlug, orgID string) *agentinstancev1.AgentInstance {
+// creation request from the parent agent's metadata. Callers hand it to the
+// agentinstance downstream client (Create/Apply AsSystem), which owns
+// persistence and validation.
+//
+// Taking the metadata rather than loose strings is deliberate: the instance
+// is named from the agent's SLUG — the kebab-case identity whose
+// "<slug>-default" shape the delete cascade's fallback lookup reconstructs
+// via Slug() — never from the free-form display name. Every historical call
+// site passed metadata.name for the slug parameter, which held together only
+// while GenerateSlug(name + "-default") happened to re-derive
+// slug + "-default" (stigmer/stigmer#355); reading the slug at this single
+// source makes the wrong-field mistake unwritable. All callers see a
+// populated slug: create pipelines run after ResolveSlugStep, and the
+// self-heal paths load an already-persisted parent.
+func BuildRequest(agent *apiresourcepb.ApiResourceMetadata) *agentinstancev1.AgentInstance {
 	return &agentinstancev1.AgentInstance{
 		ApiVersion: apiVersion,
 		Kind:       kind,
 		Metadata: &apiresourcepb.ApiResourceMetadata{
-			Name: Slug(agentSlug),
-			Org:  orgID,
+			Name: Slug(agent.GetSlug()),
+			Org:  agent.GetOrg(),
 			Labels: map[string]string{
 				apiresource.DefaultInstanceLabel: apiresource.ReservedLabelTrue,
 				apiresource.SystemManagedLabel:   apiresource.ReservedLabelTrue,
 			},
 		},
 		Spec: &agentinstancev1.AgentInstanceSpec{
-			AgentId:     agentID,
+			AgentId:     agent.GetId(),
 			Description: description,
 		},
 	}

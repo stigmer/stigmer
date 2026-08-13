@@ -107,16 +107,14 @@ func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv
 
 	agent := ctx.NewState()
 	agentID := agent.GetMetadata().GetId()
-	agentSlug := agent.GetMetadata().GetName()
-	agentOrg := agent.GetMetadata().GetOrg()
 
 	log.Info().
 		Str("agent_id", agentID).
-		Str("name", agentSlug).
-		Str("org", agentOrg).
+		Str("slug", agent.GetMetadata().GetSlug()).
+		Str("org", agent.GetMetadata().GetOrg()).
 		Msg("Creating default instance for agent")
 
-	instanceRequest := defaultinstance.BuildRequest(agentID, agentSlug, agentOrg)
+	instanceRequest := defaultinstance.BuildRequest(agent.GetMetadata())
 
 	// Use Apply (not Create) for idempotency. Agent delete now cascades the
 	// default instance, so this normally routes to CREATE; the UPDATE route

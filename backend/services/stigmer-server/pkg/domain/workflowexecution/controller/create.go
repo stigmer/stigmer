@@ -216,8 +216,7 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 
 	// 3. Default instance ID not set - check if instance exists by slug
 	// This handles the case where instance was created but workflow status update failed
-	workflowSlug := workflow.GetMetadata().GetName()
-	defaultInstanceSlug := defaultinstance.Slug(workflowSlug)
+	defaultInstanceSlug := defaultinstance.Slug(workflow.GetMetadata().GetSlug())
 
 	log.Debug().
 		Str("workflow_id", workflowID).
@@ -279,8 +278,7 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 		Str("workflow_id", workflowID).
 		Msg("Default instance not found, creating new one")
 
-	instanceRequest := defaultinstance.BuildRequest(
-		workflowID, workflowSlug, workflow.GetMetadata().GetOrg())
+	instanceRequest := defaultinstance.BuildRequest(workflow.GetMetadata())
 
 	// 6. Create instance via downstream gRPC (system context)
 	createdInstance, err := s.workflowInstanceClient.CreateAsSystem(ctx.Context(), instanceRequest)
