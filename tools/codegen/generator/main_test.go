@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -466,9 +468,27 @@ func TestTsProtoFileToSuffix(t *testing.T) {
 	}
 }
 
+// TestTsResolveEnumImport pins the resolver's one branching decision: an enum
+// imports from enum_pb when its package ships a dedicated enum.proto, and
+// falls back to spec_pb otherwise. The resolver's check is a pure existence
+// probe against the apis tree, so the fixture fakes exactly that — a package
+// directory with an enum.proto and packages without one — instead of reading
+// the live repo tree (which the Bazel sandbox does not stage). That the REAL
+// workflow package keeps WorkflowTaskKind in enum.proto is guarded end to end
+// by the committed sdk/typescript/src/gen output, which imports enum_pb and
+// typechecks in check-node.
 func TestTsResolveEnumImport(t *testing.T) {
+	apisRoot := t.TempDir()
+	enumProto := filepath.Join(apisRoot, "ai", "stigmer", "agentic", "workflow", "v1", "enum.proto")
+	if err := os.MkdirAll(filepath.Dir(enumProto), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(enumProto, []byte("// existence is all the resolver probes\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
 	saved := tsApisDir
-	tsApisDir = "../../../apis"
+	tsApisDir = apisRoot
 	defer func() { tsApisDir = saved }()
 
 	tests := []struct {
@@ -477,16 +497,19 @@ func TestTsResolveEnumImport(t *testing.T) {
 		wantName string
 	}{
 		{
+			// The package with a dedicated enum.proto → enum_pb.
 			"ai.stigmer.agentic.workflow.v1.WorkflowTaskKind",
 			"@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb",
 			"WorkflowTaskKind",
 		},
 		{
+			// No enum.proto → the spec_pb fallback (non-versioned package shape).
 			"ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
 			"@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/spec_pb",
 			"ApiResourceKind",
 		},
 		{
+			// No enum.proto → the spec_pb fallback (versioned package shape).
 			"ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus",
 			"@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb",
 			"VendorApprovalStatus",
