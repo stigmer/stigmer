@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import {
   ReactFlow,
   Controls,
@@ -92,6 +92,11 @@ export function WorkflowCanvasInner({
   onSelectionContextMenu,
   nodeErrors,
 }: WorkflowCanvasInnerProps) {
+  // Instance-scoped React Flow id (oss#593): React Flow derives its internal
+  // DOM ids (aria descriptions, SVG marker/pattern defs) from this id, so two
+  // mounted graphs without explicit ids collide.
+  const flowId = useId();
+
   const enrichedNodes = useMemo(() => {
     if (!nodeErrors || nodeErrors.size === 0) return nodes;
     return nodes.map((node) => {
@@ -114,6 +119,7 @@ export function WorkflowCanvasInner({
 
   return (
     <ReactFlow
+      id={flowId}
       nodes={enrichedNodes}
       edges={edges}
       onNodesChange={onNodesChange}

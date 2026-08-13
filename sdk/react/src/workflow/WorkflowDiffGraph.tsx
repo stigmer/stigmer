@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useId, useMemo, useRef } from "react";
 import {
   ReactFlow,
   Controls,
@@ -73,6 +73,11 @@ function WorkflowDiffGraphInner({
   onTaskClick,
   className,
 }: WorkflowDiffGraphProps) {
+  // Instance-scoped React Flow id (oss#593): React Flow derives its internal
+  // DOM ids (aria descriptions, SVG marker/pattern defs) from this id, so two
+  // mounted graphs without explicit ids collide.
+  const flowId = useId();
+
   const {
     nodes,
     edges,
@@ -146,6 +151,7 @@ function WorkflowDiffGraphInner({
           </div>
         )}
         <ReactFlow
+          id={flowId}
           nodes={nodesWithSelection}
           edges={edges}
           nodeTypes={nodeTypes}

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   Controls,
@@ -96,6 +96,13 @@ function WorkflowOverviewGraphInner({
   nodesDraggable: draggable = false,
   className,
 }: WorkflowOverviewGraphProps) {
+  // Instance-scoped React Flow id (oss#593): React Flow derives its internal
+  // DOM ids (aria descriptions, SVG marker/pattern defs) from this id, so two
+  // mounted graphs without explicit ids collide — e.g. the zone-cached detail
+  // page renders a hidden copy whose defs hijack the visible copy's url(#…)
+  // and aria-describedby references.
+  const flowId = useId();
+
   const {
     nodes: baseNodes,
     nodesWithSelection,
@@ -216,6 +223,7 @@ function WorkflowOverviewGraphInner({
     <WorkflowGraphModeProvider mode="overview">
       <div ref={containerRef} className={cn("stg:relative stg:h-full stg:w-full", className)}>
         <ReactFlow
+          id={flowId}
           nodes={displayNodes}
           edges={edges}
           onNodesChange={draggable ? handleNodesChange : undefined}
