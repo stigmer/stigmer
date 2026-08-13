@@ -11,6 +11,7 @@ import {
   useBreadcrumbOverride,
   type DetailAction,
 } from "@stigmer/react";
+import { useRouteDetailYieldsToOverlay } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 
 interface SkillDetailPageInnerProps {
@@ -101,10 +102,12 @@ export function SkillDetailPageInner({ org, slug }: SkillDetailPageInnerProps) {
 }
 
 export function SkillDetailPage() {
+  // The zone overlay owns detail rendering while it is active (oss#621).
+  const yieldsToOverlay = useRouteDetailYieldsToOverlay();
   const org = useStaticRouteParam("org", 2);
   const slug = useStaticRouteParam("slug");
 
-  if (!org || !slug) return null;
+  if (yieldsToOverlay || !org || !slug) return null;
 
   return <SkillDetailPageInner org={org} slug={slug} />;
 }

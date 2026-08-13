@@ -21,7 +21,10 @@ import {
   type DetailAction,
 } from "@stigmer/react";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
-import { useLibraryNavigation } from "@/domain/library/library-navigation";
+import {
+  useLibraryNavigation,
+  useRouteDetailYieldsToOverlay,
+} from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 import { getAgentSessionUrl } from "@/domain/session/draft-session";
 import { getAppBaseUrl } from "@/config/env";
@@ -284,10 +287,12 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
 }
 
 export function AgentDetailPage() {
+  // The zone overlay owns detail rendering while it is active (oss#621).
+  const yieldsToOverlay = useRouteDetailYieldsToOverlay();
   const org = useStaticRouteParam("org", 2);
   const slug = useStaticRouteParam("slug");
 
-  if (!org || !slug) return null;
+  if (yieldsToOverlay || !org || !slug) return null;
 
   return <AgentDetailPageInner org={org} slug={slug} />;
 }
