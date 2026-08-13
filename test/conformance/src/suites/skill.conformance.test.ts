@@ -123,6 +123,25 @@ describe("Skill conformance — push & identity", () => {
     expect(pushed.status?.versionHash, "version hash is computed over the raw bytes").toMatch(/^[a-f0-9]{64}$/);
   });
 
+  it("resolves the root SKILL.md when a stray nested one also exists (#452)", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("skill");
+
+    // Root-only is the contract: a nested SKILL.md (e.g. vendored from another
+    // skill) must neither shadow the root file nor trip the nested-only
+    // rejection. The frontmatter name proves which file won.
+    const pushed = await pushSkill(
+      org,
+      zipFiles({
+        "SKILL.md": `---\nname: ${name}\n---\n# root skill`,
+        "vendor/SKILL.md": "---\nname: vendored-skill\n---\n# vendored",
+      }),
+    );
+
+    expect(pushed.metadata?.name, "identity must derive from the ROOT SKILL.md").toBe(name);
+    expect(pushed.metadata?.slug).toBe(name);
+  });
+
   it("isolates skills with the same name across orgs", async () => {
     const a = await target.provisionTenancy();
     const b = await target.provisionTenancy();
@@ -183,6 +202,27 @@ describe("Skill conformance — push validation negatives", () => {
       () => clients.skillCommand.push({ org, artifact: zipFiles({ "README.md": "# not a skill file" }) }),
       Code.InvalidArgument,
       "push zip missing SKILL.md",
+    );
+  });
+
+  it("rejects a SKILL.md nested under a directory (InvalidArgument, #452)", async () => {
+    const { org } = await target.provisionTenancy();
+    // "Zipped the folder instead of its contents" — the most common archiving
+    // mistake. The cloud edition used to accept this shape while OSS rejected
+    // it (#452); acceptance was the bug: runners extract entry paths verbatim,
+    // so a nested skill's references/ and scripts/ never resolve at runtime.
+    // Both editions must reject it at push, where the mistake is fixable.
+    await expectGrpcCode(
+      () =>
+        clients.skillCommand.push({
+          org,
+          artifact: zipFiles({
+            "my-skill/SKILL.md": "---\nname: nested-skill\n---\n# body",
+            "my-skill/references/api.md": "# api notes",
+          }),
+        }),
+      Code.InvalidArgument,
+      "push zip with nested-only SKILL.md",
     );
   });
 
