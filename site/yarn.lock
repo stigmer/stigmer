@@ -2712,7 +2712,7 @@ __metadata:
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=8efde4&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=358ecc&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2724,7 +2724,7 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/a93b21c2e738b1c8d7fb774c556fb68424a639d2df9fd95216c988305d0b958b23917ba9de330dfa3ee8fb29a62b01e7326fbbc9f5efae0b7859482449def756
+  checksum: 10c0/757d3eb012bd7e77e0800b46a8286d74c9bf58545d955e82a2a47e774b6d597129fbeb5c98f7ffd1ceb0ff8646f42abd09150ebe222a48d00ce82f6663fbdf5b
   languageName: node
   linkType: hard
 
