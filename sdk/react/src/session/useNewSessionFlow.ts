@@ -15,6 +15,7 @@ import { withTimeout } from "../internal/withTimeout.js";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution.js";
 import type { ExecutionTargetOption } from "./execution-target.js";
 import { useExecutionTarget } from "../execution-target-context.js";
+import { useApprovalDefaults } from "../approval-defaults-context.js";
 import { useRunnerAdapter } from "../runner-adapter.js";
 import { resolveExecutionRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience } from "./audience.js";
@@ -260,6 +261,13 @@ export function useNewSessionFlow(
   const contextTarget = useExecutionTarget();
   const executionTarget = options.executionTarget ?? contextTarget;
   const adapter = useRunnerAdapter();
+  // Host approval default (#302): pre-arm auto_approve_all on the bootstrap
+  // create when the provider says so. Guests never inherit it — a share-link
+  // visitor is not the operator the host's trust judgment covers (the
+  // GUEST_HARNESS fixed-platform-policy reasoning).
+  const approvalDefaults = useApprovalDefaults();
+  const autoApproveAll =
+    (!isGuest && approvalDefaults?.autoApproveAll) || undefined;
 
   const [harness, setHarnessRaw] = useState<HarnessOption>(() => {
     // Guests get the fixed platform policy (see GUEST_HARNESS) and never
@@ -391,6 +399,7 @@ export function useNewSessionFlow(
           interactionMode: context?.interactionMode,
           serviceTier: context?.serviceTier,
           workspaceFileRefs: context?.workspaceFileRefs,
+          autoApproveAll,
         };
 
         // Resolve which agent the bootstrapped session runs against: an
@@ -477,6 +486,7 @@ export function useNewSessionFlow(
       isGuest,
       harness,
       executionTarget,
+      autoApproveAll,
       adapter,
       getRuntimeEnv,
       validModelId,

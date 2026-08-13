@@ -1,5 +1,6 @@
 // Provider and context
 export { StigmerProvider, type StigmerProviderProps } from "./provider.js";
+export { type ApprovalDefaults } from "./approval-defaults-context.js";
 export { StigmerContext } from "./context.js";
 
 // Runner adapter

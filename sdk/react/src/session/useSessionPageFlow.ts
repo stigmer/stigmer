@@ -6,6 +6,7 @@ import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 import type { AgentResolution } from "../agent/index.js";
 import { useDefaultAgent } from "../agent/index.js";
 import { useStigmer } from "../hooks.js";
+import { useApprovalDefaults } from "../approval-defaults-context.js";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
 import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables.js";
 import type { SessionComposerSubmitContext, InteractionModeOption } from "../composer/index.js";
@@ -130,10 +131,13 @@ export interface UseSessionPageFlowReturn {
   /**
    * Session-scoped "auto-approve tool calls" preference.
    *
-   * `false` by default. Flipped to `true` when the user chooses
-   * "Approve & don't ask again" at an approval gate (see {@link submitApproval}),
-   * and carried into every subsequent follow-up via {@link handleSubmit}. Held in
-   * memory only — reset on reload / new session, never persisted server-side.
+   * `false` by default; a host can pre-arm it app-wide via
+   * `StigmerProvider`'s `approvalDefaults` (#302, guests excluded). Flipped
+   * to `true` when the user chooses "Approve & don't ask again" at an
+   * approval gate (see {@link submitApproval}), and carried into every
+   * subsequent follow-up via {@link handleSubmit}. Held in memory only —
+   * reset on reload / new session back to the host default, never persisted
+   * server-side.
    */
   readonly autoApproveAll: boolean;
   /**
@@ -294,9 +298,17 @@ export function useSessionPageFlow(
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
   const initialSyncDone = useRef(false);
 
-  // Session-scoped auto-approve, set at the approval gate (not pre-armed in the
-  // composer). Lives only in memory for the life of this page — reset on reload.
-  const [autoApproveAll, setAutoApproveAll] = useState(false);
+  // Session-scoped auto-approve. Armed either at the approval gate ("Approve &
+  // don't ask again") or from the host's provider-level approvalDefaults
+  // (#302) — an app-level trust judgment, so it seeds the INITIAL state only;
+  // the user's in-session "Turn off" always wins from then on. Guests never
+  // inherit the host default (a share-link visitor is not the operator the
+  // host's trust judgment covers). Lives only in memory for the life of this
+  // page — reset on reload re-applies the host default, never a user choice.
+  const approvalDefaults = useApprovalDefaults();
+  const [autoApproveAll, setAutoApproveAll] = useState(
+    () => !isGuest && (approvalDefaults?.autoApproveAll ?? false),
+  );
 
   const submitApproval = useCallback<UseSessionConversationReturn["submitApproval"]>(
     async (toolCallId, action, comment) => {

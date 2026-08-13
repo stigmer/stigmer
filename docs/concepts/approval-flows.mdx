@@ -115,6 +115,14 @@ specific conversation. At the execution level, `auto_approve_all` is a bypass
 flag that skips all approvals — useful for automated processes where a human has
 already authorized the operation.
 
+Embedding products can also set the _default_ for their interactive Sessions:
+`StigmerProvider`'s `approvalDefaults` prop pre-arms the session-scoped
+automatic approval preference app-wide — an appropriate product decision when
+the host has already judged its whole surface trusted (for example, a desktop
+app operating on the user's own files). The user keeps the last word through the
+always-visible `Auto-approving tool calls` notice and its `Turn off` control,
+and guest Sessions never inherit the host default.
+
 ## The approval lifecycle
 
 When a tool call triggers an approval:

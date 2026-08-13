@@ -1290,7 +1290,10 @@ function SessionStarting() {
  * Low-weight, always-visible indicator shown while the session-scoped
  * auto-approve preference is active. The "Turn off" control reverts the
  * preference in one click — the safety affordance for "Approve & don't ask
- * again". Nothing about approvals appears until the user opts in at a gate.
+ * again". Visible from the first render when the host pre-armed the
+ * preference via `StigmerProvider`'s `approvalDefaults` (#302); otherwise
+ * nothing about approvals appears until the user opts in at a gate. Either
+ * way the user keeps the last word.
  */
 function AutoApproveIndicator({ onTurnOff }: { onTurnOff: () => void }) {
   return (
