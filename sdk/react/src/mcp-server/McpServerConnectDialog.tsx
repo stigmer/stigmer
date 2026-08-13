@@ -124,7 +124,7 @@ export function McpServerConnectDialog({
       onClick={handleBackdropClick}
       className={cn(
         "stg:m-auto stg:max-h-[85vh] stg:w-full stg:max-w-md stg:overflow-visible stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-0 stg:text-foreground stg:shadow-lg",
-        "stg:backdrop:bg-black/50",
+        "stg:backdrop:bg-backdrop",
         className,
       )}
     >

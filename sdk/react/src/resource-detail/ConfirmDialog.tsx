@@ -81,7 +81,7 @@ export function ConfirmDialog({
       onCancel={handleDialogCancel}
       className={cn(
         "stg:fixed stg:inset-0 stg:z-50 stg:m-auto stg:w-full stg:max-w-sm stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:p-0 stg:text-popover-foreground stg:shadow-lg",
-        "stg:backdrop:bg-black/50",
+        "stg:backdrop:bg-backdrop",
         "stg:open:animate-in stg:open:fade-in-0 stg:open:zoom-in-95",
       )}
     >

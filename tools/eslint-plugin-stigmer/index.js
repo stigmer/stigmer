@@ -1,5 +1,6 @@
 "use strict";
 
+const noHardcodedBackdrop = require("./rules/no-hardcoded-backdrop");
 const noMainTokensInSidebar = require("./rules/no-main-tokens-in-sidebar");
 const noNativeTitle = require("./rules/no-native-title");
 const noTokenOpacityModifiers = require("./rules/no-token-opacity-modifiers");
@@ -11,6 +12,7 @@ const plugin = {
     version: "0.0.0",
   },
   rules: {
+    "no-hardcoded-backdrop": noHardcodedBackdrop,
     "no-main-tokens-in-sidebar": noMainTokensInSidebar,
     "no-native-title": noNativeTitle,
     "no-token-opacity-modifiers": noTokenOpacityModifiers,

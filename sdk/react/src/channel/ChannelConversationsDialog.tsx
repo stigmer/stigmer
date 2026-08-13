@@ -97,7 +97,7 @@ export function ChannelConversationsDialog({
       onClose={handleClose}
       className={cn(
         "stg:w-full stg:max-w-lg stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
-        modal ? "stg:fixed stg:inset-0 stg:m-auto stg:backdrop:bg-black/50" : "stg:relative",
+        modal ? "stg:fixed stg:inset-0 stg:m-auto stg:backdrop:bg-backdrop" : "stg:relative",
       )}
       aria-labelledby="channel-conversations-title"
     >

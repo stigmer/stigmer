@@ -14,6 +14,9 @@ export default defineConfig([
     rules: {
       "stigmer/sdk-import-boundaries": "error",
       "stigmer/no-native-title": "error",
+      // Error (not warn): the oss#373 sweep left zero violations, so the
+      // fence can hold the line from day one.
+      "stigmer/no-hardcoded-backdrop": "error",
       "stigmer/no-token-opacity-modifiers": "warn",
       "stigmer/no-main-tokens-in-sidebar": "warn",
     },

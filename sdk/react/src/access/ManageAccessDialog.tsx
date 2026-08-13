@@ -112,7 +112,7 @@ export function ManageAccessDialog({
       onClose={handleClose}
       className={cn(
         "stg:fixed stg:inset-0 stg:m-auto stg:w-full stg:max-w-md stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
-        "stg:backdrop:bg-black/50",
+        "stg:backdrop:bg-backdrop",
       )}
       aria-labelledby={titleId}
     >
