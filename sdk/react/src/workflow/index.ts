@@ -177,6 +177,7 @@ export {
 export {
   WorkflowExecutionViewer,
   type WorkflowExecutionViewerProps,
+  type WorkflowExecutionPanelMode,
 } from "./WorkflowExecutionViewer.js";
 
 export {

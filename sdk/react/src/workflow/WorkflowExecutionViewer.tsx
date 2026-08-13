@@ -85,12 +85,64 @@ function readStoredCenterView(): CenterView {
   return "thread";
 }
 
+/**
+ * Whether {@link WorkflowExecutionViewer} offers the execution panel surface.
+ *
+ * - `"auto"` (default) — the panel and its toggle chip are available.
+ * - `"none"` — the panel and chip are absent entirely, and Diagnose is
+ *   withheld with them (the diagnosis conversation renders inside the
+ *   panel, so without one the affordance would be a dead end). For hosts
+ *   whose surrounding surface already renders artifacts/changes/usage.
+ *
+ * The workflow twin of the session organisms' `SessionPanelMode` — a
+ * deliberately separate union, like the panel controllers themselves, so
+ * each organism's vocabulary can grow domain-specific modes. A union (not
+ * a boolean) so a future mode — e.g. a host-rendered panel fed by the
+ * SDK's controller — extends the vocabulary instead of breaking it.
+ */
+export type WorkflowExecutionPanelMode = "auto" | "none";
+
 /** Props for {@link WorkflowExecutionViewer}. */
 export interface WorkflowExecutionViewerProps {
   /** ID of the workflow execution to display. */
   readonly executionId: string;
   /** Organization slug — needed for AI diagnosis authorization. */
   readonly org?: string;
+  /**
+   * Whether the viewer offers the execution panel at all. `"none"` removes
+   * the panel AND its toggle chip and withholds the Diagnose action (its
+   * conversation renders inside the panel) — for hosts whose surrounding
+   * surface already presents the execution's artifacts and usage.
+   *
+   * @default "auto"
+   */
+  readonly panel?: WorkflowExecutionPanelMode;
+  /**
+   * Initial open state of the execution panel in uncontrolled mode — a
+   * docking host that wants the artifacts rail visible from the first paint
+   * passes `true`. Ignored when
+   * {@link WorkflowExecutionViewerProps.panelOpen} is provided.
+   *
+   * @default false
+   */
+  readonly defaultPanelOpen?: boolean;
+  /**
+   * Controlled open state of the execution panel. When provided, the host
+   * owns the panel: the chip toggle, Diagnose, and artifact/file-change
+   * opens surface through
+   * {@link WorkflowExecutionViewerProps.onPanelOpenChange} instead of
+   * flipping state, and the panel follows this value. Leave `undefined`
+   * for the self-managing default.
+   */
+  readonly panelOpen?: boolean;
+  /**
+   * Called on every panel open/close transition, in BOTH modes — pass it
+   * alone (uncontrolled) to simply observe the panel, e.g. widening a
+   * docked pane when Diagnose expands it and reclaiming the room on close.
+   * See {@link UseWorkflowExecutionPanelOptions.onOpenChange} for the exact
+   * request-vs-transition semantics in each mode.
+   */
+  readonly onPanelOpenChange?: (open: boolean) => void;
   /**
    * Callback when the user clicks a link to a child agent execution.
    * Receives the AgentExecution ID. The host application is responsible
@@ -150,6 +202,10 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   onNavigateToWorkflowEditor,
   headerActions,
   nodesDraggable,
+  panel: panelMode = "auto",
+  defaultPanelOpen,
+  panelOpen,
+  onPanelOpenChange,
   className,
 }: WorkflowExecutionViewerProps) {
   const {
@@ -306,11 +362,24 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
     ],
   );
 
+  // The one flag every panel affordance keys on: the host opted out
+  // (`panel="none"`). Everything the panel touches — the chip, the split's
+  // secondary pane, and Diagnose (whose conversation renders inside the
+  // panel) — gates on this, so the affordances can never drift apart.
+  const panelEnabled = panelMode !== "none";
+
   // The execution-level workspace panel (facets + virtual document
   // tabs). The controller lives at the owner level — the editors-store
   // SUBSCRIPTION stays inside ExecutionWorkspacePanel so tab churn re-renders
   // only the panel subtree, never the streaming graph (DD-009/DD-010).
-  const panel = useWorkflowExecutionPanel();
+  const panel = useWorkflowExecutionPanel({
+    // With the panel disabled the controller is pinned controlled-closed
+    // and unobserved — airtight inertness, not just hidden UI: no intent
+    // can flip state or reach the host's callback.
+    open: panelEnabled ? panelOpen : false,
+    defaultOpen: defaultPanelOpen,
+    onOpenChange: panelEnabled ? onPanelOpenChange : undefined,
+  });
 
   const [showComparePicker, setShowComparePicker] = useState(false);
   const [compareTargetId, setCompareTargetId] = useState<string | null>(null);
@@ -467,8 +536,11 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         actions={actions}
         // Diagnose opens (or focuses) the singleton diagnosis document tab —
         // the tab itself is the "diagnosis is active" state, so there is no
-        // owner-level isDiagnosing boolean to keep in sync (SSOT).
-        onDiagnose={org ? panel.openDiagnosis : undefined}
+        // owner-level isDiagnosing boolean to keep in sync (SSOT). A viewer
+        // without a panel (panel="none") withholds the action: the
+        // conversation renders inside the panel, so offering it would be a
+        // dead end.
+        onDiagnose={org && panelEnabled ? panel.openDiagnosis : undefined}
         onCompare={handleOpenComparePicker}
         headerActions={
           <>
@@ -477,12 +549,15 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
                 Usage facet gives the panel data-independent content (its
                 empty state is honest even before any usage accrues). The
                 badge stays the artifact count: artifacts are countable
-                collateral, usage is a continuous quantity. */}
-            <PanelChip
-              isOpen={panel.isOpen}
-              onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
-              badgeCount={artifacts.length}
-            />
+                collateral, usage is a continuous quantity. A viewer without
+                a panel (panel="none") has no toggle: it is simply absent. */}
+            {panelEnabled && (
+              <PanelChip
+                isOpen={panel.isOpen}
+                onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
+                badgeCount={artifacts.length}
+              />
+            )}
           </>
         }
       />
@@ -613,8 +688,10 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         secondary={
           // Content unmounts while collapsed (matching the session panel
           // region); the editors store lives on the controller, so open tabs
-          // survive a collapse/expand cycle.
-          panel.isOpen ? (
+          // survive a collapse/expand cycle. The panelEnabled guard is
+          // belt-and-braces beside the pinned-closed controller: with
+          // panel="none", isOpen can never be true.
+          panel.isOpen && panelEnabled ? (
             <ExecutionWorkspacePanel
               panel={panel}
               executionId={executionId}

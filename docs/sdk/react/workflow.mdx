@@ -3661,7 +3661,10 @@ Options for [`useWorkflowExecutionPanel`](#useworkflowexecutionpanel).
 
 <TypeTable
   type={{
+    defaultOpen: { type: "boolean", description: "Initial open state in uncontrolled mode. Ignored when UseWorkflowExecutionPanelOptions.open is provided." },
     defaultView: { type: "string", description: "The panel's home view. Defaults to `\"artifacts\"` — the one facet this panel carries today (there is no workspace file source yet, so no built-in Explorer to land on)." },
+    onOpenChange: { type: "(open: boolean) => void", description: "Called on every effective open/close transition — in BOTH modes, matching `useSessionPanel`'s convention (and departing from `useDetailTabs`'s DD-T05A-001 for the same principled reason): this panel opens ITSELF (`openDiagnosis`, `openArtifact`, `openFileChange`, `openFile` all expand a collapsed panel), and an embedding host that must react to those moments — widen a dock, make room for a diagnosis conversation — has no other seam. Passing only this callback observes the panel without controlling it.  In controlled mode this fires once per open/close REQUEST (the host may decline by not updating `open` — a later identical request re-fires); in uncontrolled mode it fires once per actual transition." },
+    open: { type: "boolean", description: "Controlled open state. When provided, the host owns whether the panel is expanded: internal open intents (the chip toggle, Diagnose, an artifact/file-change/file open) no longer flip state themselves — they surface through UseWorkflowExecutionPanelOptions.onOpenChange and the panel follows this value. Leave `undefined` for the self-managing default. The same seam `useSessionPanel` carries (#651); kept domain-local, like the controllers themselves." },
   }}
 />
 
@@ -4029,7 +4032,7 @@ families and view semantics are domain-specific.
     closeEditor: { type: "(entryId: string, path: string) => void", description: "Close an editor tab. The panel stays open when the group empties.", required: true },
     closePanel: { type: "() => void", description: "Collapse the panel to the chip, preserving editors and view.", required: true },
     editorsStore: { type: "WorkspaceEditorsStore", description: "The open-editor group store; subscribe with `useWorkspaceEditors`.", required: true },
-    isOpen: { type: "boolean", description: "Whether the panel is expanded or collapsed to the chip.", required: true },
+    isOpen: { type: "boolean", description: "Whether the panel is expanded or collapsed to the chip. In controlled mode (UseWorkflowExecutionPanelOptions.open) this mirrors the host's value.", required: true },
     openArtifact: { type: "(artifact: Artifact) => void", description: "Open (or focus) an artifact as an editor-pane document tab and expand the panel. Uses the PREVIEW slot — casual artifact browsing reuses one tab (single-click) and double-clicking pins it, matching the session panel's artifact-tab semantics.", required: true },
     openDiagnosis: { type: "() => void", description: "Open (or focus) the AI-diagnosis conversation as a pinned editor-pane document tab and expand the panel — the singleton analog of the session's `openPlanDocument`. Idempotent: the tab (not an owner-level boolean) is the single source of truth for \"diagnosis is active\", so re-invoking Diagnose focuses the existing conversation.", required: true },
     openFile: { type: "(entryId: string, path: string, options?: OpenFileOptions) => void", description: "Open a file as a preview tab and expand the panel. Unused until a workspace-source slice wires a lister, but part of the controller's stable surface so the viewer's editor wiring never changes shape.", required: true },
@@ -4042,6 +4045,23 @@ families and view semantics are domain-specific.
     view: { type: "string", description: "The active rail view id (an injected facet — `\"artifacts\"` today).", required: true },
   }}
 />
+
+
+### WorkflowExecutionPanelMode
+
+Whether [`WorkflowExecutionViewer`](#workflowexecutionviewer) offers the execution panel surface.
+
+- `"auto"` (default) — the panel and its toggle chip are available.
+- `"none"` — the panel and chip are absent entirely, and Diagnose is
+  withheld with them (the diagnosis conversation renders inside the
+  panel, so without one the affordance would be a dead end). For hosts
+  whose surrounding surface already renders artifacts/changes/usage.
+
+The workflow twin of the session organisms' `SessionPanelMode` — a
+deliberately separate union, like the panel controllers themselves, so
+each organism's vocabulary can grow domain-specific modes. A union (not
+a boolean) so a future mode — e.g. a host-rendered panel fed by the
+SDK's controller — extends the vocabulary instead of breaking it.
 
 
 ### WorkflowExecutionPhaseBadge
@@ -4102,12 +4122,16 @@ Props for [`WorkflowExecutionViewer`](#workflowexecutionviewer).
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    defaultPanelOpen: { type: "boolean", description: "Initial open state of the execution panel in uncontrolled mode — a docking host that wants the artifacts rail visible from the first paint passes `true`. Ignored when WorkflowExecutionViewerProps.panelOpen is provided." },
     executionId: { type: "string", description: "ID of the workflow execution to display.", required: true },
     headerActions: { type: "ReactNode", description: "Host-supplied action elements rendered in the header action group (e.g. a Share control). Routing/auth-agnostic per DD-004." },
     nodesDraggable: { type: "boolean", description: "Whether task nodes in the execution graph can be dragged to rearrange the layout for presentations. Drag positions are ephemeral and not persisted." },
     onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Callback when the user clicks a link to a child agent execution. Receives the AgentExecution ID. The host application is responsible for navigation — this keeps the component routing-agnostic (DD-004)." },
     onNavigateToWorkflowEditor: { type: "(yaml: string, workflowSlug: string) => void", description: "Callback when the user clicks \"Apply Fix\" in the repair card. Receives the suggested YAML and the workflow slug. The host application handles navigation to the workflow editor (DD-004)." },
+    onPanelOpenChange: { type: "(open: boolean) => void", description: "Called on every panel open/close transition, in BOTH modes — pass it alone (uncontrolled) to simply observe the panel, e.g. widening a docked pane when Diagnose expands it and reclaiming the room on close. See UseWorkflowExecutionPanelOptions.onOpenChange for the exact request-vs-transition semantics in each mode." },
     org: { type: "string", description: "Organization slug — needed for AI diagnosis authorization." },
+    panel: { type: "WorkflowExecutionPanelMode", description: "Whether the viewer offers the execution panel at all. `\"none\"` removes the panel AND its toggle chip and withholds the Diagnose action (its conversation renders inside the panel) — for hosts whose surrounding surface already presents the execution's artifacts and usage.", typeDescriptionLink: "#workflowexecutionpanelmode" },
+    panelOpen: { type: "boolean", description: "Controlled open state of the execution panel. When provided, the host owns the panel: the chip toggle, Diagnose, and artifact/file-change opens surface through WorkflowExecutionViewerProps.onPanelOpenChange instead of flipping state, and the panel follows this value. Leave `undefined` for the self-managing default." },
   }}
 />
 

@@ -3,7 +3,7 @@
 // State + actions for the workflow execution viewer's WorkspaceSurface panel.
 // Domain: workflow (the lean analog of session/useSessionPanel).
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
@@ -50,7 +50,11 @@ export function workflowArtifactTabPath(artifact: Artifact): string {
 export interface WorkflowExecutionPanelController {
   /** The open-editor group store; subscribe with `useWorkspaceEditors`. */
   readonly editorsStore: WorkspaceEditorsStore;
-  /** Whether the panel is expanded or collapsed to the chip. */
+  /**
+   * Whether the panel is expanded or collapsed to the chip. In controlled
+   * mode ({@link UseWorkflowExecutionPanelOptions.open}) this mirrors the
+   * host's value.
+   */
   readonly isOpen: boolean;
   /** The active rail view id (an injected facet — `"artifacts"` today). */
   readonly view: string;
@@ -119,6 +123,38 @@ export interface UseWorkflowExecutionPanelOptions {
    * @default "artifacts"
    */
   readonly defaultView?: string;
+  /**
+   * Controlled open state. When provided, the host owns whether the panel is
+   * expanded: internal open intents (the chip toggle, Diagnose, an
+   * artifact/file-change/file open) no longer flip state themselves — they
+   * surface through {@link UseWorkflowExecutionPanelOptions.onOpenChange}
+   * and the panel follows this value. Leave `undefined` for the
+   * self-managing default. The same seam `useSessionPanel` carries (#651);
+   * kept domain-local, like the controllers themselves.
+   */
+  readonly open?: boolean;
+  /**
+   * Initial open state in uncontrolled mode. Ignored when
+   * {@link UseWorkflowExecutionPanelOptions.open} is provided.
+   *
+   * @default false
+   */
+  readonly defaultOpen?: boolean;
+  /**
+   * Called on every effective open/close transition — in BOTH modes,
+   * matching `useSessionPanel`'s convention (and departing from
+   * `useDetailTabs`'s DD-T05A-001 for the same principled reason): this
+   * panel opens ITSELF (`openDiagnosis`, `openArtifact`, `openFileChange`,
+   * `openFile` all expand a collapsed panel), and an embedding host that
+   * must react to those moments — widen a dock, make room for a diagnosis
+   * conversation — has no other seam. Passing only this callback observes
+   * the panel without controlling it.
+   *
+   * In controlled mode this fires once per open/close REQUEST (the host may
+   * decline by not updating `open` — a later identical request re-fires); in
+   * uncontrolled mode it fires once per actual transition.
+   */
+  readonly onOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -126,13 +162,59 @@ export interface UseWorkflowExecutionPanelOptions {
  */
 export function useWorkflowExecutionPanel({
   defaultView = "artifacts",
+  open,
+  defaultOpen = false,
+  onOpenChange,
 }: UseWorkflowExecutionPanelOptions = {}): WorkflowExecutionPanelController {
   const editorsStore = useWorkspaceEditorsStoreRef();
-  const [isOpen, setIsOpen] = useState(false);
+
+  // Uncontrolled-by-default / controlled-when-`open`-is-provided (React's own
+  // value/defaultValue convention — presence of the value prop decides, so an
+  // observe-only host can pass just `onOpenChange`). Same shape as
+  // `useSessionPanel`; re-transcribed rather than extracted because the
+  // controllers are deliberately not shared (see the interface doc above).
+  const isControlled = open !== undefined;
+  const [internalIsOpen, setInternalIsOpen] = useState(defaultOpen);
+  const isOpen = isControlled ? open : internalIsOpen;
+
+  // Latest-ref idiom: the host's callback and the mode/value mirrors live in
+  // refs so `requestOpenChange` — and every action callback built on it —
+  // stays referentially stable regardless of how the host authored
+  // `onOpenChange` (DD-010: an inline lambda must not churn the memoized
+  // controller and re-render the panel subtree).
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
+  const isControlledRef = useRef(isControlled);
+  isControlledRef.current = isControlled;
+  const isOpenRef = useRef(isOpen);
+  isOpenRef.current = isOpen;
+
+  // The single seam every open/close intent routes through — the chip
+  // toggle, Diagnose, artifact/file-change/file opens, and the surface's
+  // collapse affordance. Uncontrolled: apply + notify (the ref is updated
+  // eagerly so two same-tick intents produce one notification). Controlled:
+  // notify only — the host owns the state, and the panel follows the `open`
+  // prop; the ref is NOT updated, so a declined request stays re-fireable.
+  const requestOpenChange = useCallback((next: boolean) => {
+    if (isOpenRef.current === next) return;
+    if (!isControlledRef.current) {
+      isOpenRef.current = next;
+      setInternalIsOpen(next);
+    }
+    onOpenChangeRef.current?.(next);
+  }, []);
+
   const [view, setViewState] = useState(defaultView);
 
-  const openPanel = useCallback(() => setIsOpen(true), []);
-  const closePanel = useCallback(() => setIsOpen(false), []);
+  const openPanel = useCallback(
+    () => requestOpenChange(true),
+    [requestOpenChange],
+  );
+
+  const closePanel = useCallback(
+    () => requestOpenChange(false),
+    [requestOpenChange],
+  );
 
   const setView = useCallback((viewId: string) => setViewState(viewId), []);
 
@@ -141,15 +223,15 @@ export function useWorkflowExecutionPanel({
       DIAGNOSIS_DOCUMENT_ENTRY_ID,
       DIAGNOSIS_DOCUMENT_PATH,
     );
-    setIsOpen(true);
-  }, [editorsStore]);
+    requestOpenChange(true);
+  }, [editorsStore, requestOpenChange]);
 
   const openFile = useCallback(
     (entryId: string, path: string, options?: OpenFileOptions) => {
       editorsStore.openPreview(entryId, path, options);
-      setIsOpen(true);
+      requestOpenChange(true);
     },
-    [editorsStore],
+    [editorsStore, requestOpenChange],
   );
 
   const openArtifact = useCallback(
@@ -158,9 +240,9 @@ export function useWorkflowExecutionPanel({
         ARTIFACT_DOCUMENT_ENTRY_ID,
         workflowArtifactTabPath(artifact),
       );
-      setIsOpen(true);
+      requestOpenChange(true);
     },
-    [editorsStore],
+    [editorsStore, requestOpenChange],
   );
 
   const pinArtifact = useCallback(
@@ -179,9 +261,9 @@ export function useWorkflowExecutionPanel({
         FILE_CHANGE_DOCUMENT_ENTRY_ID,
         fileChangeTabPath(change),
       );
-      setIsOpen(true);
+      requestOpenChange(true);
     },
-    [editorsStore],
+    [editorsStore, requestOpenChange],
   );
 
   const pinFileChange = useCallback(
