@@ -819,13 +819,12 @@ is derived from the model after each mutation.
 **Signature**
 
 ```tsx
-function useWorkflowCanvas(yaml: string | null, containerRef: RefObject<HTMLDivElement | null>, options?: UseWorkflowCanvasOptions): UseWorkflowCanvasReturn
+function useWorkflowCanvas(yaml: string | null, options?: UseWorkflowCanvasOptions): UseWorkflowCanvasReturn
 ```
 
 <TypeTable
   type={{
     yaml: { type: "string | null", description: "The workflow YAML to initialize from. Changes trigger re-parse.", required: true },
-    containerRef: { type: "RefObject<HTMLDivElement | null>", description: "Ref to the canvas container for keyboard shortcut scoping.", required: true },
     options: { type: "UseWorkflowCanvasOptions", description: "Optional configuration including a custom layout engine." },
   }}
 />
