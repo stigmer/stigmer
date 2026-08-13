@@ -79,8 +79,13 @@ jobs:
       - name: Generate SDK client code
         run: make -C sdk/go codegen-clients
 
+      # The generator also owns two files at the sdk root (types.go,
+      # from_proto.go) — they are in the diff scope because a hand-edit to
+      # types.go outside it was silently clobbered by a later regeneration,
+      # re-adding an alias that collided with a hand-written wrapper and
+      # breaking the build one step later with a confusing error (#716).
       - name: Verify committed generated code is fresh
-        run: git diff --exit-code sdk/go/internal/gen
+        run: git diff --exit-code sdk/go/internal/gen sdk/go/types.go sdk/go/from_proto.go
 
       # gofmt -s (the `make lint` formatter) and tidy -diff are check-only:
       # they fail with the offending files/diff instead of mutating the tree.
