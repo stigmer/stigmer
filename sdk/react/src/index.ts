@@ -1889,6 +1889,7 @@ export type {
   WorkflowTaskListProps,
   WorkflowDetailViewProps,
   WorkflowExecutionViewerProps,
+  WorkflowExecutionPanelMode,
   WorkflowExecutionHeaderProps,
   WorkflowExecutionPanelController,
   UseWorkflowExecutionPanelOptions,
