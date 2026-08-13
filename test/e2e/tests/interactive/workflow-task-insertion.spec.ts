@@ -3,6 +3,7 @@ import { assertNoErrorBoundary } from "../../helpers/navigation";
 import {
   navigateToVisualEditor,
   getCanvasNode,
+  getEditorCanvas,
 } from "../../helpers/workflow-canvas";
 
 test.describe("Workflow task insertion (T08)", () => {
@@ -23,8 +24,9 @@ test.describe("Workflow task insertion (T08)", () => {
     );
     await expect(edgePlusButton.first()).toBeAttached({ timeout: 10_000 });
 
-    // Hover to reveal the plus button
-    const firstEdge = page.locator(".react-flow__edge").first();
+    // Hover to reveal the plus button (scoped: the Overview tabpanel
+    // mounts a second canvas whose edges must not be matched)
+    const firstEdge = getEditorCanvas(page).locator(".react-flow__edge").first();
     await firstEdge.hover();
 
     // Click the plus button
@@ -205,17 +207,19 @@ test.describe("Workflow task insertion (T08)", () => {
     );
     await assertNoErrorBoundary(page);
 
-    // Count edges before insertion
-    const edgesBefore = await page.locator(".react-flow__edge").count();
+    // Count edges before insertion (scoped: the Overview tabpanel mounts
+    // a second canvas whose edges would inflate a page-wide count)
+    const canvas = getEditorCanvas(page);
+    const edgesBefore = await canvas.locator(".react-flow__edge").count();
 
     // Find the last task node (connected to __end__)
-    const endNode = page.locator('[data-id="__end__"]');
+    const endNode = canvas.locator('[data-id="__end__"]');
     await expect(endNode).toBeAttached({ timeout: 10_000 });
 
     // Find a node connected to end by selecting it and using toolbar add
     // After inserting, the new node should be between the source and __end__
     // Verify edge count increased (splice creates 2 new edges, removes 1)
-    const nodeBeforeEnd = page
+    const nodeBeforeEnd = canvas
       .locator("[data-task-kind]")
       .last();
     await nodeBeforeEnd.click();
@@ -235,7 +239,7 @@ test.describe("Workflow task insertion (T08)", () => {
         await firstOption.click();
 
         // Verify new node was created
-        const edgesAfter = await page.locator(".react-flow__edge").count();
+        const edgesAfter = await canvas.locator(".react-flow__edge").count();
         expect(edgesAfter).toBeGreaterThanOrEqual(edgesBefore);
       }
     }

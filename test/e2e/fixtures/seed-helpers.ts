@@ -121,9 +121,12 @@ export async function createTestWorkflow(
   const name = opts?.name ?? `e2e-wf-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const org = opts?.org ?? DEFAULT_ORG;
 
+  // Task names must match WorkflowTask.name's proto constraint
+  // (^[a-zA-Z_][a-zA-Z0-9_]*$) — snake_case, never hyphenated like the
+  // resource names above. The server rejects the whole apply otherwise.
   const tasks = opts?.tasks ?? [
-    { name: "step-one", variables: { greeting: "hello-from-e2e" } },
-    { name: "step-two", variables: { farewell: "goodbye-from-e2e" } },
+    { name: "step_one", variables: { greeting: "hello-from-e2e" } },
+    { name: "step_two", variables: { farewell: "goodbye-from-e2e" } },
   ];
 
   const workflow = await client.workflow.apply({
@@ -187,14 +190,16 @@ export async function createTestWaitWorkflow(
       name,
       version: "1.0.0",
     },
+    // Task names: snake_case per WorkflowTask.name's proto constraint
+    // (see createTestWorkflow above).
     tasks: [
       {
-        name: "blocking-wait",
+        name: "blocking_wait",
         kind: WorkflowTaskKind.wait,
         taskConfig: { duration: { seconds: waitSeconds } },
       },
       {
-        name: "final-step",
+        name: "final_step",
         kind: WorkflowTaskKind.set_vars,
         taskConfig: { variables: { completed: "true" } },
         export: { as: "${ . }" },

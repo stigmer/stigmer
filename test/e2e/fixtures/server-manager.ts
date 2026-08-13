@@ -86,6 +86,21 @@ async function waitForPort(
   );
 }
 
+/**
+ * Keeps a child's piped stdout/stderr flowing when nothing consumes them.
+ *
+ * A `stdio: "pipe"` stream with no reader backpressures once the OS pipe
+ * buffer (~64KB) fills, and the child then blocks mid-write — the Go
+ * server wedged exactly this way partway into every suite run, hanging
+ * all subsequent RPCs (#501; it logs every request, far outpacing the
+ * buffer). `resume()` switches the streams to flowing mode and discards
+ * the data; diag mode's file tees also drain, so this stays a no-op there.
+ */
+function drainStdio(proc: ChildProcess): void {
+  proc.stdout?.resume();
+  proc.stderr?.resume();
+}
+
 function waitForOutput(
   proc: ChildProcess,
   pattern: RegExp,
@@ -192,6 +207,7 @@ export async function startBackendStack(opts: {
   if (!temporal.pid) {
     throw new Error("Failed to spawn Temporal dev server. Is `temporal` CLI on PATH?");
   }
+  drainStdio(temporal);
 
   await waitForPort(temporalPort, "127.0.0.1", 15_000, 250);
   console.log(`[e2e] Temporal ready (pid: ${temporal.pid})`);
@@ -231,6 +247,7 @@ export async function startBackendStack(opts: {
     temporal.kill();
     throw new Error(`Failed to spawn stigmer-server at ${serverBin}. Build with: make build`);
   }
+  drainStdio(server);
 
   await waitForPort(apiPort, "127.0.0.1", 30_000, 500);
   console.log(`[e2e] stigmer-server ready (pid: ${server.pid})`);

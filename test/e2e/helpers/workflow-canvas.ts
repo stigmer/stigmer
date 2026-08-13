@@ -1,6 +1,21 @@
 import type { Page, Locator } from "@playwright/test";
 
 /**
+ * Returns a locator for the visual editor's React Flow canvas.
+ *
+ * The workflow detail page mounts TWO React Flow canvases — a read-only
+ * one in the Overview tabpanel and the editable one in the Editor
+ * tabpanel — so a bare `.react-flow` locator is a strict-mode violation.
+ * All canvas helpers must resolve inside this scope, otherwise they can
+ * silently match the Overview canvas.
+ */
+export function getEditorCanvas(page: Page): Locator {
+  return page
+    .getByRole("tabpanel", { name: "Editor" })
+    .locator(".react-flow");
+}
+
+/**
  * Navigates to a workflow's visual editor canvas.
  *
  * 1. Goes to the workflow detail page
@@ -26,7 +41,7 @@ export async function navigateToVisualEditor(
     await visualTab.click();
   }
 
-  await page.locator(".react-flow").waitFor({ timeout: 15_000 });
+  await getEditorCanvas(page).waitFor({ timeout: 15_000 });
 }
 
 /**
@@ -36,14 +51,14 @@ export async function navigateToVisualEditor(
  * `"{DisplayName} node {taskName}, {shape} shape"`.
  */
 export function getCanvasNode(page: Page, taskName: string): Locator {
-  return page.locator(`[aria-label*="node ${taskName}"]`);
+  return getEditorCanvas(page).locator(`[aria-label*="node ${taskName}"]`);
 }
 
 /**
  * Returns a locator for a canvas node by its `data-task-kind` attribute.
  */
 export function getCanvasNodeByKind(page: Page, kindString: string): Locator {
-  return page.locator(`[data-task-kind="${kindString}"]`);
+  return getEditorCanvas(page).locator(`[data-task-kind="${kindString}"]`);
 }
 
 /**
