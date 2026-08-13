@@ -705,7 +705,11 @@ describe("Skill conformance — artifact transfer lane (#675)", () => {
       body: Buffer.from(artifact),
       headers: { "content-type": "application/zip" },
     });
-    expect(put.status, "staging PUT succeeds").toBe(204);
+    // Any 2xx — the contract every lane client enforces (Go's putArtifact,
+    // the SDK routed clients). The OSS lane answers 204; presigned R2/S3/
+    // MinIO PUTs answer 200, so pinning one exact status would make the pin
+    // unsatisfiable by one edition.
+    expect(put.ok, `staging PUT succeeds (HTTP ${put.status})`).toBe(true);
 
     const pushed = await pushSkill(org, new Uint8Array(0), { viaRef: minted.artifactUploadRef });
 

@@ -12,6 +12,7 @@ from ._gen._client import GeneratedClient
 from ._github import GitHubClient
 from ._runner_adapter import RunnerAdapter
 from ._search import SearchClient
+from ._skill import RoutedSkillClient
 from ._transport import DEFAULT_TARGET, create_channel
 
 ExecutionTargetOption = Literal["local", "cloud"]
@@ -56,6 +57,7 @@ class StigmerClient(GeneratedClient):
     search: SearchClient
     github: GitHubClient
     billing: BillingClient
+    skills: RoutedSkillClient
     default_execution_target: int
     runner_adapter: RunnerAdapter | None
 
@@ -97,6 +99,10 @@ class StigmerClient(GeneratedClient):
         self.search = SearchClient(self._channel)
         self.github = GitHubClient(self._channel)
         self.billing = BillingClient(self._channel)
+        # Shadow the inherited generated client with the size-routing wrapper
+        # (stigmer#675): `client.skills.push` simply works for any valid
+        # skill size — large artifacts ride the HTTP transfer lane.
+        self.skills = RoutedSkillClient(self._channel)
 
     def close(self) -> None:
         """Release the underlying gRPC channel."""

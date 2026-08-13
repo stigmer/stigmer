@@ -27,6 +27,14 @@ public final class StigmerException extends RuntimeException {
 
     public boolean isRetryable() { return code == ErrorCode.INTERNAL || code == ErrorCode.UNAVAILABLE; }
 
+    /**
+     * The server does not implement the called RPC — the code clients key
+     * capability fallbacks on (e.g. the skill artifact transfer lane's
+     * unary fallback, stigmer#675/#701). Checks the raw grpc code:
+     * UNIMPLEMENTED deliberately has no ErrorCode mapping.
+     */
+    public boolean isUnimplemented() { return grpcCode == Status.Code.UNIMPLEMENTED; }
+
     public static StigmerException wrap(StatusRuntimeException e) {
         ErrorCode code = ErrorCode.fromGrpcCode(e.getStatus().getCode());
         String msg = e.getStatus().getDescription();

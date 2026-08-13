@@ -54,10 +54,20 @@ public class GeneratedClient {
         this.project = new ProjectClient(channel);
         this.schedule = new ScheduleClient(channel);
         this.session = new SessionClient(channel);
-        this.skill = new SkillClient(channel);
+        this.skill = newSkillClient(channel);
         this.workflow = new WorkflowClient(channel);
         this.workflowExecution = new WorkflowExecutionClient(channel);
         this.workflowInstance = new WorkflowInstanceClient(channel);
+    }
+
+    /**
+     * Factory hook for the skill field (push routing over the artifact transfer lane (stigmer#675/#701)).
+     * Overrides run during this class's constructor, so they must build
+     * the client from the channel argument alone — never from subclass
+     * instance state, which is not initialized yet.
+     */
+    protected SkillClient newSkillClient(Channel channel) {
+        return new SkillClient(channel);
     }
 }
 

@@ -39,9 +39,10 @@ export class CloudTarget implements TargetProfile {
     externalOrgLookup: true,
     organizationEnumeration: false,
     versionTagging: true,
-    // Cloud's transfer-lane sibling (R2 pre-signed URLs) has not landed;
-    // clients fall back to the 10MB-capped unary artifact RPCs there.
-    skillArtifactTransferLane: false,
+    // Cloud carries the transfer lane over pre-signed R2 URLs
+    // (stigmer-cloud#438) — the full mint → PUT → push-by-ref →
+    // download-URL pin block runs against this target.
+    skillArtifactTransferLane: true,
     workflowChildApprovalForwarding: true,
     // The hermetic cloud env boots Temporal and the Java service runs the
     // schedule clock (T04 slice 2) — triggers fire for real.

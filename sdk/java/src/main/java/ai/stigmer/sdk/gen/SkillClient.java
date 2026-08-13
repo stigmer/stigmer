@@ -25,12 +25,12 @@ import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
 /** Provides operations on skill resources. */
-public final class SkillClient {
+public class SkillClient {
     private final SkillCommandControllerGrpc.SkillCommandControllerBlockingStub command;
     private final SkillQueryControllerGrpc.SkillQueryControllerBlockingStub query;
     private final SearchServiceGrpc.SearchServiceBlockingStub search;
 
-    SkillClient(Channel channel) {
+    protected SkillClient(Channel channel) {
         this.command = SkillCommandControllerGrpc.newBlockingStub(channel);
         this.query = SkillQueryControllerGrpc.newBlockingStub(channel);
         this.search = SearchServiceGrpc.newBlockingStub(channel);

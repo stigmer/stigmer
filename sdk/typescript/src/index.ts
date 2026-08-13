@@ -41,6 +41,7 @@ export {
   isUnauthenticated,
   isPermissionDenied,
   isRetryable,
+  isUnimplemented,
   type ErrorCategory,
   isConnectError,
   classifyError,
@@ -290,6 +291,7 @@ export {
 } from "./execution/file-review-fold.js";
 export { toDisplayFileChange } from "./execution/to-display-file-change.js";
 export { SkillClient, type SkillInput } from "./gen/skill.js";
+export { RoutedSkillClient, MAX_INLINE_ARTIFACT_BYTES } from "./skill.js";
 export {
   WorkflowClient,
   type WorkflowInput,
