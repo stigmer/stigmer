@@ -26,10 +26,7 @@ type PlatformClientClient = gen.PlatformClientClient
 type ProjectClient = gen.ProjectClient
 type ScheduleClient = gen.ScheduleClient
 type SessionClient = gen.SessionClient
-
-// SkillClient is NOT aliased here: the handwritten wrapper in skill.go
-// (push routing over the artifact transfer lane, #675) takes the name so
-// client.Skill and the exported type agree.
+type SkillClient = gen.SkillClient
 type WorkflowClient = gen.WorkflowClient
 type WorkflowExecutionClient = gen.WorkflowExecutionClient
 type WorkflowInstanceClient = gen.WorkflowInstanceClient

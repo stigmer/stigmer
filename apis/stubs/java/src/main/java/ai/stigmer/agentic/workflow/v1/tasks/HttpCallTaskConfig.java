@@ -312,8 +312,9 @@ java.lang.String defaultValue) {
    * <pre>
    * Request timeout in seconds. Max: 300 (5 minutes).
    * Optional — unset (0) leaves the request bounded by the runner's activity
-   * timeout. NOTE: an explicit value is accepted but not yet applied by the
-   * runner; the activity timeout governs either way.
+   * timeout. When set, the runner aborts the request at this budget and
+   * fails the task with HTTP_CALL_TIMEOUT (non-retryable — catchable with
+   * try/catch); the activity timeout widens to fit (#686).
    *
    * Unset (0) is valid: proto3 implicit presence makes an omitted field
    * indistinguishable from 0, so the range rule must not fire on it (#673).
@@ -1389,8 +1390,9 @@ java.lang.String defaultValue) {
      * <pre>
      * Request timeout in seconds. Max: 300 (5 minutes).
      * Optional — unset (0) leaves the request bounded by the runner's activity
-     * timeout. NOTE: an explicit value is accepted but not yet applied by the
-     * runner; the activity timeout governs either way.
+     * timeout. When set, the runner aborts the request at this budget and
+     * fails the task with HTTP_CALL_TIMEOUT (non-retryable — catchable with
+     * try/catch); the activity timeout widens to fit (#686).
      *
      * Unset (0) is valid: proto3 implicit presence makes an omitted field
      * indistinguishable from 0, so the range rule must not fire on it (#673).
@@ -1407,8 +1409,9 @@ java.lang.String defaultValue) {
      * <pre>
      * Request timeout in seconds. Max: 300 (5 minutes).
      * Optional — unset (0) leaves the request bounded by the runner's activity
-     * timeout. NOTE: an explicit value is accepted but not yet applied by the
-     * runner; the activity timeout governs either way.
+     * timeout. When set, the runner aborts the request at this budget and
+     * fails the task with HTTP_CALL_TIMEOUT (non-retryable — catchable with
+     * try/catch); the activity timeout widens to fit (#686).
      *
      * Unset (0) is valid: proto3 implicit presence makes an omitted field
      * indistinguishable from 0, so the range rule must not fire on it (#673).
@@ -1429,8 +1432,9 @@ java.lang.String defaultValue) {
      * <pre>
      * Request timeout in seconds. Max: 300 (5 minutes).
      * Optional — unset (0) leaves the request bounded by the runner's activity
-     * timeout. NOTE: an explicit value is accepted but not yet applied by the
-     * runner; the activity timeout governs either way.
+     * timeout. When set, the runner aborts the request at this budget and
+     * fails the task with HTTP_CALL_TIMEOUT (non-retryable — catchable with
+     * try/catch); the activity timeout widens to fit (#686).
      *
      * Unset (0) is valid: proto3 implicit presence makes an omitted field
      * indistinguishable from 0, so the range rule must not fire on it (#673).
