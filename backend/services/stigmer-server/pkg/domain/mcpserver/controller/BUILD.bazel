@@ -9,11 +9,13 @@ go_library(
         "create.go",
         "delete.go",
         "disconnect_oauth.go",
+        "enrich_oauth_status.go",
         "get.go",
         "get_by_reference.go",
         "get_oauth_grant_status.go",
         "initiate_oauth_connect.go",
         "mcpserver_controller.go",
+        "oauth_app_resolution.go",
         "update.go",
         "update_visibility.go",
     ],
@@ -54,6 +56,7 @@ go_test(
     name = "controller_test",
     srcs = [
         "connect_test.go",
+        "enrich_oauth_status_test.go",
         "initiate_vendor_refusal_test.go",
         "mcpserver_controller_test.go",
         "oauth_connect_secrets_test.go",
@@ -74,5 +77,6 @@ go_test(
         "@com_github_stretchr_testify//require",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//proto",
     ],
 )
