@@ -24,7 +24,7 @@ Stigmer monitors token usage during every AgentExecution and automatically summa
 
 **How it works:**
 
-1. After each LLM call, the agent-runner checks the current token count
+1. After each LLM call, the runner checks the current token count
 2. When the token count exceeds the **trigger threshold** (default: ~90% of the model's context window), summarization is triggered
 3. A lightweight economy model (e.g., `claude-haiku-4` for Anthropic, `gpt-4o-mini` for OpenAI) generates a summary of the older conversation history
 4. The older messages are replaced by the summary, reducing context to approximately the **target token count** (default: ~80% of the context window)

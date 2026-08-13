@@ -139,7 +139,7 @@ When a push updates a skill, the previous version is **archived**, not deleted. 
 - Not visible in `stigmer list skills` output
 - Not returned by `getByReference` when resolving `latest` or a tag name
 - Still accessible via their hash (e.g., `version: a1b2c3d4...`)
-- Still available for artifact download by the agent-runner
+- Still available for artifact download by the runner
 
 The archive is permanent — there is no way to delete archived versions via the CLI. This ensures agents that were configured with a specific hash always have access to their artifact.
 

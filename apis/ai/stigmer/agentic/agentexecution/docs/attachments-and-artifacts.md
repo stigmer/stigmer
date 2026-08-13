@@ -105,7 +105,7 @@ When you attach a directory, the CLI zips it and sets `extract: true`:
 stigmer run my-agent "Analyze this project" --attach ./my-project/
 ```
 
-The agent-runner extracts the ZIP at the mount path, making all files accessible under their original relative paths.
+The runner extracts the ZIP at the mount path, making all files accessible under their original relative paths.
 
 ---
 
