@@ -19,9 +19,10 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "../harness/mock-llm";
-import { anthropicText } from "../harness/mock-llm";
+import { anthropicText, MOCK_SESSION_TITLE } from "../harness/mock-llm";
 import { makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
+import { pollUntil } from "../support/execution-poll";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -78,8 +79,25 @@ describe("Execution harness smoke — agent text turn", () => {
     expect(final.status?.completedAt, "completed_at is set on completion").toBeTruthy();
 
     // The agent loop consumed exactly its one scripted turn — no extra LLM calls,
-    // none left unserved.
+    // none left unserved. Background titling calls are answered out-of-band by
+    // the mock (#715) and deliberately don't count here.
     expect(mock.remaining(), "the single queued turn was consumed").toBe(0);
     expect(mock.consumed(), "exactly one LLM turn was served").toBe(1);
+
+    // Session titling (#690) rides the same execution: the workflow fires a
+    // background LLM call that the mock answers out-of-band, and the activity
+    // writes the cleaned title over the server's auto-created sentinel. Polled
+    // because the titling branch is fire-and-forget and races the agent turn.
+    const sessionId = final.spec?.sessionId ?? "";
+    expect(sessionId, "a completed run carries its auto-created session id").not.toBe("");
+    await pollUntil(
+      () => clients.sessionQuery.get({ value: sessionId }),
+      (session) => session.spec?.subject === MOCK_SESSION_TITLE,
+      (last, ms) =>
+        `session ${sessionId} subject never became the mock title within ${ms}ms ` +
+        `(last: '${last?.spec?.subject ?? "(unfetched)"}')`,
+      { timeoutMs: 15_000 },
+    );
+    expect(mock.titleRequests(), "the titling call was served out-of-band").toBeGreaterThan(0);
   });
 });
