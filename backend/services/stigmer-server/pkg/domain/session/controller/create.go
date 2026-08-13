@@ -50,6 +50,7 @@ func (c *SessionController) buildCreatePipeline() *pipeline.Pipeline[*sessionv1.
 	return pipeline.NewPipeline[*sessionv1.Session]("session-create").
 		AddStep(newResolveDefaultAgentInstanceStep(c.store, c.agentClient, c.agentInstanceClient)).    // 1. Resolve default agent instance if needed
 		AddStep(steps.NewValidateProtoStep[*sessionv1.Session]()).                                     // 2. Validate field constraints
+		AddStep(steps.NewValidateVisibilityStep[*sessionv1.Session]()).                                // Reject unsupported visibility levels (fail fast)
 		AddStep(steps.NewResolveSlugStep[*sessionv1.Session]()).                                       // 3. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*sessionv1.Session](c.store)).                             // 4. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*sessionv1.Session]()).                                     // 5. Build new state

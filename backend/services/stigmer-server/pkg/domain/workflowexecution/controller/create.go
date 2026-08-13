@@ -70,6 +70,7 @@ func (c *WorkflowExecutionController) buildCreatePipeline() *pipeline.Pipeline[*
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*workflowexecutionv1.WorkflowExecution]("workflowexecution-create").
 		AddStep(steps.NewValidateProtoStep[*workflowexecutionv1.WorkflowExecution]()).                                               // 1. Validate field constraints
+		AddStep(steps.NewValidateVisibilityStep[*workflowexecutionv1.WorkflowExecution]()).                                          // Reject unsupported visibility levels (fail fast)
 		AddStep(steps.NewResolveSlugStep[*workflowexecutionv1.WorkflowExecution]()).                                                 // 2. Resolve slug
 		AddStep(newValidateWorkflowOrInstanceStep()).                                                                                // 3. Validate workflow_id OR workflow_instance_id
 		AddStep(c.newEnsureEngineAvailableStep()).                                                                                   // 4. Fail fast if the workflow engine is unavailable (before any side effect)

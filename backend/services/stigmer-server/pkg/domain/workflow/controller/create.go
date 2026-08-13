@@ -57,6 +57,7 @@ func (c *WorkflowController) buildCreatePipeline() *pipeline.Pipeline[*workflowv
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*workflowv1.Workflow]("workflow-create").
 		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()).                                      // 1. Validate field constraints (Layer 1)
+		AddStep(steps.NewValidateVisibilityStep[*workflowv1.Workflow]()).                                 // Reject unsupported visibility levels (fail fast)
 		AddStep(newValidateWorkflowSpecStep(c.validator)).                                                // 2. In-process validation (proto → CNCF YAML + structural checks)
 		AddStep(steps.NewResolveSlugStep[*workflowv1.Workflow]()).                                        // 3. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*workflowv1.Workflow](c.store)).                              // 4. Check duplicate

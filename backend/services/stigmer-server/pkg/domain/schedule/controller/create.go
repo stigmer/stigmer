@@ -50,6 +50,7 @@ func (c *ScheduleController) Create(ctx context.Context, schedule *schedulev1.Sc
 func (c *ScheduleController) buildCreatePipeline() *pipeline.Pipeline[*schedulev1.Schedule] {
 	return pipeline.NewPipeline[*schedulev1.Schedule]("schedule-create").
 		AddStep(steps.NewValidateProtoStep[*schedulev1.Schedule]()).
+		AddStep(steps.NewValidateVisibilityStep[*schedulev1.Schedule]()). // Reject unsupported visibility levels (fail fast)
 		AddStep(&resolveScheduleDefaultsStep{store: c.store}).
 		AddStep(steps.NewResolveSlugStep[*schedulev1.Schedule]()).
 		AddStep(steps.NewCheckDuplicateStep[*schedulev1.Schedule](c.store)).

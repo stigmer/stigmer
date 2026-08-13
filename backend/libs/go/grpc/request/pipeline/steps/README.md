@@ -52,6 +52,55 @@ message Agent {
 }
 ```
 
+### ValidateVisibilityStep
+
+Rejects visibility levels the resource kind does not support, derived from the
+kind's proto `VisibilityConfig` (`apiresource.SupportsVisibility`). PRIVATE and
+UNSPECIFIED always pass. The Go analog of Cloud's `ValidateVisibilityStep`,
+emitting the same INVALID_ARGUMENT message so both editions share one error
+contract.
+
+**Usage:**
+
+```go
+pipeline := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
+    AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).
+    AddStep(steps.NewValidateVisibilityStep[*agentv1.Agent]()). // directly after proto validation, as in Cloud
+    ...
+```
+
+**Where it is wired:** every create pipeline, plus the environment and
+agent_share plain-update pipelines (the two kinds Cloud also guards at plain
+update — plain updates keep a request-carried level). It reads the request's
+embedded metadata, so it only fits pipelines whose request IS the resource;
+UpdateVisibility pipelines use `ValidateVisibilityUpdateStep` instead.
+
+**Deliberate divergences from Cloud** (recorded in the step doc): no
+platform-anchor check (OSS has no IdentityProvider domain) and no wiring in
+skill push (Cloud's push handler doesn't validate either, and skills support
+every level — a check there would be dead code).
+
+### ValidateVisibilityUpdateStep
+
+The UpdateVisibility counterpart: validates `UpdateVisibilityInput.visibility`
+(the input carries no metadata, so the create-side step would be a silent
+no-op). Place it AFTER the handler's load step so an unknown resource_id
+returns NOT_FOUND before INVALID_ARGUMENT — Cloud's ordering.
+
+**Usage:**
+
+```go
+pipeline := pipeline.NewPipeline[*apiresourcepb.UpdateVisibilityInput]("agent-update-visibility").
+    AddStep(steps.NewValidateProtoStep[*apiresourcepb.UpdateVisibilityInput]()).
+    AddStep(c.newLoadAgentForVisibilityUpdateStep()).
+    AddStep(steps.NewValidateVisibilityUpdateStep()).
+    ...
+```
+
+**Deliberate divergence from Cloud** (recorded in the step doc): no
+default-instance guard — OSS default instances carry no marking to key it on;
+tracked as its own issue.
+
 ## Creating Custom Steps
 
 To create a new pipeline step:

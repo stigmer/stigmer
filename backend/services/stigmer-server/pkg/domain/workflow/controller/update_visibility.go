@@ -40,6 +40,7 @@ func (c *WorkflowController) buildUpdateVisibilityPipeline() *pipeline.Pipeline[
 	return pipeline.NewPipeline[*apiresourcepb.UpdateVisibilityInput]("workflow-update-visibility").
 		AddStep(steps.NewValidateProtoStep[*apiresourcepb.UpdateVisibilityInput]()).
 		AddStep(c.newLoadWorkflowForVisibilityUpdateStep()).
+		AddStep(steps.NewValidateVisibilityUpdateStep()). // Reject unsupported levels (after load: NOT_FOUND wins, as in Cloud)
 		AddStep(c.newSetWorkflowVisibilityStep()).
 		AddStep(c.newPersistWorkflowForVisibilityUpdateStep()).
 		AddStep(c.newIndexWorkflowAfterVisibilityUpdateStep()).

@@ -51,6 +51,7 @@ func (c *EnvironmentController) buildCreatePipeline() *pipeline.Pipeline[*enviro
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*environmentv1.Environment]("environment-create").
 		AddStep(steps.NewValidateProtoStep[*environmentv1.Environment]()).                                         // 1. Validate field constraints
+		AddStep(steps.NewValidateVisibilityStep[*environmentv1.Environment]()).                                    // Reject unsupported visibility levels (fail fast)
 		AddStep(steps.NewResolveSlugStep[*environmentv1.Environment]()).                                           // 2. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*environmentv1.Environment](c.store)).                                 // 3. Check duplicate
 		AddStep(domainSteps.NewEnforcePersonalUniquenessStep(c.store)).                                            // 4. At most one personal env per org

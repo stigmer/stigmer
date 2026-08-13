@@ -57,6 +57,7 @@ func (c *OrganizationController) buildCreatePipeline() *pipeline.Pipeline[*organ
 	return pipeline.NewPipeline[*organizationv1.Organization]("organization-create").
 		AddStep(steps.NewResolveSlugStep[*organizationv1.Organization]()).                                            // 1. Resolve slug
 		AddStep(steps.NewValidateProtoStep[*organizationv1.Organization]()).                                          // 2. Validate field constraints
+		AddStep(steps.NewValidateVisibilityStep[*organizationv1.Organization]()).                                     // Reject unsupported visibility levels (fail fast)
 		AddStep(newCheckOrgDuplicateStep(c.store)).                                                                   // 3. Check duplicate (global, by id)
 		AddStep(steps.NewBuildNewStateStep[*organizationv1.Organization]()).                                          // 4. Build new state (mints org_<ulid>)
 		AddStep(newCopySlugToIdStep()).                                                                               // 5. id == slug (override)

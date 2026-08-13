@@ -62,6 +62,7 @@ func (c *WorkflowInstanceController) buildCreatePipeline() *pipeline.Pipeline[*w
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*workflowinstancev1.WorkflowInstance]("workflow-instance-create").
 		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstance]()).                                              // 1. Validate field constraints
+		AddStep(steps.NewValidateVisibilityStep[*workflowinstancev1.WorkflowInstance]()).                                         // Reject unsupported visibility levels (fail fast)
 		AddStep(steps.NewResolveSlugStep[*workflowinstancev1.WorkflowInstance]()).                                                // 2. Resolve slug
 		AddStep(newLoadParentWorkflowStep(c.workflowClient)).                                                                     // 3. Load parent workflow
 		AddStep(newValidateSameOrgBusinessRuleStep()).                                                                            // 4. Validate same-org business rule

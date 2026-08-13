@@ -57,6 +57,7 @@ func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agen
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*agentv1.Agent]("agent-create").
 		AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).                                   // 1. Validate field constraints
+		AddStep(steps.NewValidateVisibilityStep[*agentv1.Agent]()).                              // Reject unsupported visibility levels (fail fast)
 		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).                                     // 2. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store)).                           // 3. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*agentv1.Agent]()).                                   // 4. Build new state

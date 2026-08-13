@@ -49,6 +49,7 @@ func (c *McpServerController) Create(ctx context.Context, mcpServer *mcpserverv1
 func (c *McpServerController) buildCreatePipeline() *pipeline.Pipeline[*mcpserverv1.McpServer] {
 	return pipeline.NewPipeline[*mcpserverv1.McpServer]("mcpserver-create").
 		AddStep(steps.NewValidateProtoStep[*mcpserverv1.McpServer]()).                                       // 1. Validate field constraints
+		AddStep(steps.NewValidateVisibilityStep[*mcpserverv1.McpServer]()).                                  // Reject unsupported visibility levels (fail fast)
 		AddStep(steps.NewResolveSlugStep[*mcpserverv1.McpServer]()).                                         // 2. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*mcpserverv1.McpServer](c.store)).                               // 3. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*mcpserverv1.McpServer]()).                                       // 4. Build new state
