@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
+import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
 
 /** Props for {@link ArtifactApplyButton}. */
 export interface ArtifactApplyButtonProps {
@@ -51,7 +52,7 @@ export function ArtifactApplyButton({
     >
       {isApplying ? (
         <span className="stg:inline-flex stg:items-center stg:gap-1.5">
-          <SpinnerIcon />
+          <SpinnerIcon size={12} className="stg:shrink-0" />
           Applying{"\u2026"}
         </span>
       ) : (
@@ -61,19 +62,3 @@ export function ArtifactApplyButton({
   );
 }
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      className="stg:shrink-0 stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />
-    </svg>
-  );
-}

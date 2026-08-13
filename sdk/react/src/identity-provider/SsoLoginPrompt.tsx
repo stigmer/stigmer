@@ -185,6 +185,7 @@ function resolvePhase(
 // ---------------------------------------------------------------------------
 
 import { forwardRef } from "react";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 interface OrgInputFormProps {
   readonly value: string;
@@ -244,7 +245,7 @@ function LoadingState({ org }: { org: string }) {
       aria-busy="true"
       aria-label={`Looking up SSO provider for ${org}`}
     >
-      <SpinnerIcon />
+      <SpinnerIcon size={20} className="stg:text-muted-foreground" />
       <p className="stg:text-sm stg:text-muted-foreground">
         Looking up <span className="stg:font-medium stg:text-foreground">{org}</span>&hellip;
       </p>
@@ -366,23 +367,6 @@ function ErrorState({
 // Icons
 // ---------------------------------------------------------------------------
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin stg:text-muted-foreground"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}
 
 function SsoShieldIcon() {
   return (

@@ -24,6 +24,7 @@ import { CadenceField } from "./CadenceField.js";
 import { TimeZoneField, browserTimeZone } from "./TimeZoneField.js";
 import { useCreateSchedule } from "./useCreateSchedule.js";
 import { cadenceToCron, validateCron, type CadencePreset } from "./cadence.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -467,7 +468,7 @@ export function ScheduleForm({
             "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
-          {isCreating && <SpinnerIcon />}
+          {isCreating && <SpinnerIcon size={14} />}
           Create schedule
         </button>
 
@@ -597,20 +598,3 @@ function ChevronIcon() {
   );
 }
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

@@ -13,6 +13,7 @@ import {
   type TaskDetailApprovalDecision,
   type TaskReviewerView,
 } from "./task-detail/task-approval.js";
+import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
 
 /** Props for {@link WorkflowTaskApprovalSummary}. */
 export interface WorkflowTaskApprovalSummaryProps {
@@ -101,7 +102,7 @@ export const WorkflowTaskApprovalSummary = memo(function WorkflowTaskApprovalSum
       {/* Decision header */}
       {isFinalizing ? (
         <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-muted-foreground">
-          <SpinnerIcon />
+          <SpinnerIcon size={12} />
           <span>Decision recorded — finalizing…</span>
         </div>
       ) : (
@@ -315,19 +316,3 @@ function ToneIcon({ tone }: { readonly tone: DecisionTone }) {
   );
 }
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />
-    </svg>
-  );
-}

@@ -8,6 +8,7 @@ import {
 } from "./useWorkflowArchitectFlow.js";
 import { MessageThread } from "../execution/MessageThread.js";
 import { WorkflowDiffGraph } from "./WorkflowDiffGraph.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link WorkflowArchitectDialog}. */
 export interface WorkflowArchitectDialogProps {
@@ -279,7 +280,7 @@ function StreamingPhase({
             Workflow Architect
           </h3>
           <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground">
-            <SpinnerIcon />
+            <SpinnerIcon size={14} />
             {flow.phase === "starting" ? "Starting…" : "Working…"}
           </span>
         </div>
@@ -436,7 +437,7 @@ function ResultPhase({
               "stg:disabled:pointer-events-none stg:disabled:opacity-40",
             )}
           >
-            {isApplying && <SpinnerIcon />}
+            {isApplying && <SpinnerIcon size={14} />}
             {isApplying ? "Creating…" : "Create Workflow"}
           </button>
         </div>
@@ -502,24 +503,3 @@ function ErrorPhase({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Shared components
-// ---------------------------------------------------------------------------
-
-function SpinnerIcon({ size = 14 }: { readonly size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

@@ -13,10 +13,31 @@ import { cn } from "@stigmer/theme";
  * @internal Not part of the public API.
  */
 
-/** Quarter-arc spinner for an in-flight item. */
-export function SpinnerIcon() {
+/**
+ * Quarter-arc spinner for an in-flight item. Deliberately finer than the
+ * SDK-wide `internal/SpinnerIcon` (1.5 stroke on a 12 grid vs 2 on 16) —
+ * the micro-row weight this vocabulary is built around. Card-adjacent
+ * surfaces that used to carry their own copies (tool-run groups, file
+ * review, decision buttons) size it up via `size` instead.
+ */
+export function SpinnerIcon({
+  size = 10,
+  className,
+}: {
+  readonly size?: number;
+  readonly className?: string;
+} = {}) {
   return (
-    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="stg:animate-spin">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      className={cn("stg:animate-spin", className)}
+      aria-hidden="true"
+    >
       <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />
     </svg>
   );

@@ -28,6 +28,7 @@ import {
   fileReviewability,
   type FileReviewability,
 } from "./file-review-status.js";
+import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
 
 /** A stable empty set so the default `submittingDecisionKeys` keeps a constant ref. */
 const NO_KEYS: ReadonlySet<string> = new Set();
@@ -1063,23 +1064,3 @@ function bulkLabels(
   return { approve: `${approveVerb} all`, reject: "Reject all" };
 }
 
-// ---------------------------------------------------------------------------
-// Inline SVG icon
-// ---------------------------------------------------------------------------
-
-function SpinnerIcon() {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />
-    </svg>
-  );
-}

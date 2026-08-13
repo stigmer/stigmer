@@ -18,9 +18,9 @@ import {
   PaperclipIcon,
   WorkspaceIcon,
   ArrowUpIcon,
-  SpinnerIcon,
   StopIcon,
 } from "./icons.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 export interface ComposerToolbarProps {
   readonly disabled: boolean;

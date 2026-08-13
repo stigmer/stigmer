@@ -14,6 +14,7 @@ import { useOrganization } from "./useOrganization.js";
 import { useUpdateOrganization } from "./useUpdateOrganization.js";
 import { useIdentityProviderList } from "../identity-provider/useIdentityProviderList.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -323,7 +324,7 @@ export function OrgProfilePanel({
             "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
-          {isUpdating && <SpinnerIcon />}
+          {isUpdating && <SpinnerIcon size={12} />}
           Save changes
         </button>
 
@@ -525,24 +526,3 @@ function LogoPreview({ url }: { url: string }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// SpinnerIcon
-// ---------------------------------------------------------------------------
-
-function SpinnerIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

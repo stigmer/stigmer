@@ -24,6 +24,7 @@ import { useCreateIamPolicy } from "./useCreateIamPolicy.js";
 import { useDeleteIamPolicy } from "./useDeleteIamPolicy.js";
 import { RoleSelector } from "./RoleSelector.js";
 import { ProviderBadge } from "./ProviderBadge.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -368,7 +369,7 @@ function RemoveConfirmation({
             "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
-          {isRevoking && <SpinnerIcon />}
+          {isRevoking && <SpinnerIcon size={12} />}
           Remove
         </button>
         <button
@@ -499,7 +500,7 @@ function ChangeRoleRow({
             "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
-          {isWorking && <SpinnerIcon />}
+          {isWorking && <SpinnerIcon size={12} />}
           {isWorking ? "Changing role…" : "Confirm"}
         </button>
         <button
@@ -562,20 +563,3 @@ function TrashIcon() {
   );
 }
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

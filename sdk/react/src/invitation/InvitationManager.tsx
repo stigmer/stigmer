@@ -17,6 +17,7 @@ import { useRevokeInvitation } from "./useRevokeInvitation.js";
 import { InvitationCreatedAlert } from "./InvitationCreatedAlert.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { RoleSelector } from "../iam-policy/RoleSelector.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -358,7 +359,7 @@ function CreateInvitationForm({
             "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
-          {isCreating && <SpinnerIcon />}
+          {isCreating && <SpinnerIcon size={12} />}
           Create invite link
         </button>
 
@@ -572,7 +573,7 @@ function RevokeConfirmation({
             "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
-          {isRevoking && <SpinnerIcon />}
+          {isRevoking && <SpinnerIcon size={12} />}
           Revoke
         </button>
         <button
@@ -836,20 +837,3 @@ function RevokeIcon() {
   );
 }
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

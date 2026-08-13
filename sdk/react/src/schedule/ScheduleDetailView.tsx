@@ -71,6 +71,7 @@ import { useResumeSchedule } from "./useResumeSchedule.js";
 import { useSetScheduleEnabled } from "./useSetScheduleEnabled.js";
 import { useTriggerSchedule } from "./useTriggerSchedule.js";
 import { useUpdateScheduleSpec } from "./useUpdateScheduleSpec.js";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link ScheduleDetailView}. */
 export interface ScheduleDetailViewProps {
@@ -1311,7 +1312,7 @@ function InlineEditActions({
             "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         >
-          {isSaving && <SpinnerIcon />}
+          {isSaving && <SpinnerIcon size={14} />}
           Save
         </button>
       </div>
@@ -1632,20 +1633,3 @@ function PencilIcon({ className }: { readonly className?: string }) {
   );
 }
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

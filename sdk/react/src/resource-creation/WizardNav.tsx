@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link WizardNav}. */
 export interface WizardNavProps {
@@ -98,7 +99,7 @@ export function WizardNav({
             "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
-          {isSubmitting && <SpinnerIcon />}
+          {isSubmitting && <SpinnerIcon size={14} />}
           {nextLabel}
           {!isSubmitting && <ArrowRightIcon className="stg:size-3.5" />}
         </button>
@@ -145,20 +146,3 @@ function ArrowRightIcon({ className }: { readonly className?: string }) {
   );
 }
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}

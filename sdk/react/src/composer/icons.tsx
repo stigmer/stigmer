@@ -54,24 +54,6 @@ export function ArrowUpIcon() {
   );
 }
 
-export function SpinnerIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="stg:animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}
-
 /**
  * Filled rounded square — the universal "stop" glyph. Sized to ~62% of the
  * viewBox so it reads as a confident, deliberate mark (not a stray dot) when
