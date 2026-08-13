@@ -524,6 +524,17 @@ export class StigmerClient {
     return this.sessionCommand.update(session);
   }
 
+  /**
+   * Race-safe, field-level subject write. The dedicated updateSubject RPC
+   * exists precisely so concurrent writers (title generation vs a user
+   * rename) cannot lose each other's updates the way full-resource
+   * {@link updateSession} round-trips can — always prefer it for subject
+   * changes.
+   */
+  async updateSessionSubject(sessionId: string, subject: string): Promise<Session> {
+    return this.sessionCommand.updateSubject({ id: sessionId, subject });
+  }
+
   async getAgent(agentId: string): Promise<Agent> {
     return this.agentQuery.get({ value: agentId });
   }
