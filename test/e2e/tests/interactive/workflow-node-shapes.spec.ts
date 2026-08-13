@@ -110,9 +110,13 @@ test.describe("Workflow node visual classes (T01)", () => {
     );
 
     const startNode = getEditorCanvas(page).locator(
-      '[data-task-kind="workflow_task_kind_unspecified"][data-visual-class="terminal-pill"]',
+      '[data-id="__start__"][data-visual-class="terminal-pill"]',
     );
     await expect(startNode.first()).toBeVisible({ timeout: 10_000 });
+
+    // data-task-kind means "real workflow task kind" — sentinels must not
+    // carry it (oss#581).
+    await expect(startNode.first()).not.toHaveAttribute("data-task-kind");
   });
 
   test("node ARIA labels include display name and task name", async ({

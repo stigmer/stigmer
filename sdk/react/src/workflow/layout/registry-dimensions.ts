@@ -1,6 +1,5 @@
 import { getVisualSpec } from "../task-type-visual-registry.js";
-import { taskKindToString } from "../workflow-graph-conversions.js";
-import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model.js";
+import { graphNodeKindString } from "../workflow-graph-conversions.js";
 import type { WorkflowGraphNode } from "../workflow-graph-model.js";
 import type { NodeDimensions } from "./types.js";
 
@@ -23,8 +22,6 @@ import type { NodeDimensions } from "./types.js";
  * wrapping in `useCallback` (DD-010).
  */
 export function registryNodeDimensions(node: WorkflowGraphNode): NodeDimensions {
-  const isSentinel = node.id === START_NODE_ID || node.id === END_NODE_ID;
-  const kindKey = isSentinel ? node.id : taskKindToString(node.kind);
-  const spec = getVisualSpec(kindKey);
+  const spec = getVisualSpec(graphNodeKindString(node));
   return { width: spec.defaultWidth, height: spec.defaultHeight + spec.captionHeight };
 }

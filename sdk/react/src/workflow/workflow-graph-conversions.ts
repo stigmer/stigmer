@@ -58,6 +58,22 @@ export function taskKindToString(kind: WorkflowTaskKind): string {
   return TASK_KIND_STRINGS.get(kind) ?? `unknown_${kind}`;
 }
 
+/**
+ * Canonical kind key for a graph node.
+ *
+ * Task nodes resolve to their `WorkflowTaskKind` enum name; the start/end
+ * sentinels resolve to their pseudo-kind (`__start__` / `__end__`), which
+ * doubles as their node id and their key in the visual registry. Sentinels
+ * carry enum value 0, which `taskKindToString` would render as its internal
+ * `unknown_*` fallback — routing them through here keeps that fallback out
+ * of every user-visible surface (oss#581).
+ */
+export function graphNodeKindString(node: WorkflowGraphNode): string {
+  return node.id === START_NODE_ID || node.id === END_NODE_ID
+    ? node.id
+    : taskKindToString(node.kind);
+}
+
 export function stringToTaskKind(str: string): WorkflowTaskKind {
   return STRING_TO_TASK_KIND.get(str) ?? WorkflowTaskKind.workflow_task_kind_unspecified;
 }
@@ -148,7 +164,6 @@ export function yamlToGraph(yaml: string): WorkflowGraphModel {
   for (const task of tasks) {
     const config = (task.task_config ?? task.taskConfig ?? {}) as JsonObject;
     const kindEnum = stringToTaskKind(task.kind);
-    const kindStr = kindEnum !== WorkflowTaskKind.workflow_task_kind_unspecified ? task.kind : task.kind;
 
     nodes.push({
       id: task.name,
@@ -469,6 +484,13 @@ export interface NodeExecutionState {
 export interface CanvasTaskNodeData extends Record<string, unknown> {
   taskName: string;
   kind: WorkflowTaskKind;
+  /**
+   * Canonical kind key (see {@link graphNodeKindString}): the
+   * `WorkflowTaskKind` enum name for task nodes, or the `__start__` /
+   * `__end__` pseudo-kind for sentinels — never `taskKindToString`'s
+   * internal `unknown_*` fallback. Rendered as the `data-task-kind` DOM
+   * attribute on task nodes only; sentinels omit that attribute.
+   */
   kindString: string;
   category: TopologyNodeCategory;
   visualClass: VisualClass;
@@ -511,8 +533,8 @@ export function toReactFlowElements(graph: WorkflowGraphModel): {
 } {
   const nodes: Node[] = graph.nodes.map((node) => {
     const isSentinel = node.id === START_NODE_ID || node.id === END_NODE_ID;
-    const kindString = taskKindToString(node.kind);
-    const visualSpec = getVisualSpec(isSentinel ? node.id : kindString);
+    const kindString = graphNodeKindString(node);
+    const visualSpec = getVisualSpec(kindString);
     return {
       id: node.id,
       type: CANVAS_TASK_NODE_TYPE,

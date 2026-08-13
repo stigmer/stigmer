@@ -106,8 +106,9 @@ test.describe("Workflow overview page", () => {
     const nodeVisible = await reactFlowNode.isVisible().catch(() => false);
     test.skip(!nodeVisible, "No graph nodes rendered");
 
-    // Find a non-sentinel node (sentinel nodes like Start/End are filtered)
-    const taskNode = page.locator('[data-task-kind]:not([data-task-kind="start"]):not([data-task-kind="end"])').first();
+    // Find a non-sentinel node — sentinels carry no data-task-kind (oss#581),
+    // so the bare attribute selector matches real task nodes only.
+    const taskNode = page.locator("[data-task-kind]").first();
     const taskVisible = await taskNode.isVisible().catch(() => false);
     test.skip(!taskVisible, "No task nodes rendered");
 
