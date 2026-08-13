@@ -1,5 +1,6 @@
 "use strict";
 
+const noHandrolledDialog = require("./rules/no-handrolled-dialog");
 const noHardcodedBackdrop = require("./rules/no-hardcoded-backdrop");
 const noLiteralDomIds = require("./rules/no-literal-dom-ids");
 const noMainTokensInSidebar = require("./rules/no-main-tokens-in-sidebar");
@@ -13,6 +14,7 @@ const plugin = {
     version: "0.0.0",
   },
   rules: {
+    "no-handrolled-dialog": noHandrolledDialog,
     "no-hardcoded-backdrop": noHardcodedBackdrop,
     "no-literal-dom-ids": noLiteralDomIds,
     "no-main-tokens-in-sidebar": noMainTokensInSidebar,

@@ -10,8 +10,36 @@ const { extractClassNames } = require("../src/class-extractor");
 // from preset theming (a light-mode host gets a black scrim where the theme
 // specifies a translucent near-white one).
 
-const BACKDROP_VARIANT = "backdrop";
+// Both spellings of the ::backdrop variant: the named Tailwind variant and
+// the arbitrary-selector form. The #652 sweep fenced only the named variant,
+// and two hardcoded scrims survived unseen as `[&::backdrop]:bg-black/50`
+// and `/60` until the #653 dialog-shell sweep found them.
+const BACKDROP_VARIANTS = new Set(["backdrop", "[&::backdrop]"]);
 const ALLOWED_UTILITY = "bg-backdrop";
+
+/**
+ * Split a class into its variant segments + utility, treating `:` inside
+ * square brackets as content, not a separator — `stg:[&::backdrop]:bg-x`
+ * yields ["stg", "[&::backdrop]", "bg-x"], where a naive split would shred
+ * the arbitrary selector on its own `::`.
+ */
+function splitSegments(cls) {
+  const segments = [];
+  let current = "";
+  let depth = 0;
+  for (const ch of cls) {
+    if (ch === "[") depth += 1;
+    else if (ch === "]") depth = Math.max(0, depth - 1);
+    if (ch === ":" && depth === 0) {
+      segments.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  segments.push(current);
+  return segments;
+}
 
 module.exports = {
   meta: {
@@ -42,13 +70,13 @@ module.exports = {
         const entries = extractClassNames(node);
 
         for (const { className: cls, node: reportNode } of entries) {
-          const parts = cls.split(":");
+          const parts = splitSegments(cls);
           if (parts.length < 2) continue;
 
           const utility = parts[parts.length - 1];
           const variants = parts.slice(0, -1);
 
-          if (!variants.includes(BACKDROP_VARIANT)) continue;
+          if (!variants.some((v) => BACKDROP_VARIANTS.has(v))) continue;
           if (!utility.startsWith("bg-")) continue;
           // Opacity modifiers on the token itself (bg-backdrop/50) are the
           // no-token-opacity-modifiers rule's report, not a hardcoded color.
