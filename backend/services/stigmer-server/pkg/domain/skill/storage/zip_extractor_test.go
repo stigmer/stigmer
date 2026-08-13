@@ -145,6 +145,40 @@ func TestExtractSkillMd_NoSkillMd(t *testing.T) {
 	assert.Contains(t, err.Error(), "SKILL.md not found")
 }
 
+// TestExtractSkillMd_NestedOnlySkillMd verifies that a SKILL.md nested under a
+// directory — the "zipped the folder instead of its contents" mistake — is
+// rejected with a hint that says how to repackage (stigmer#452). The runner
+// extracts entry paths verbatim, so accepting nested placement would produce a
+// skill whose supporting files never resolve at runtime.
+func TestExtractSkillMd_NestedOnlySkillMd(t *testing.T) {
+	skillContent := ValidSkillContent("nested-skill", "# Nested Skill")
+	zipData := CreateTestZipWithFiles(map[string][]byte{
+		"my-skill/SKILL.md":          []byte(skillContent),
+		"my-skill/references/api.md": []byte("# API notes"),
+	})
+
+	_, err := ExtractSkillMd(zipData)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "SKILL.md must be at the archive root",
+		"nested-only SKILL.md should get the repackaging hint, not the generic not-found")
+}
+
+// TestExtractSkillMd_RootSkillMdWinsOverNested verifies that a stray nested
+// SKILL.md (e.g. vendored from another skill) neither shadows the root file
+// nor triggers the nested-only rejection.
+func TestExtractSkillMd_RootSkillMdWinsOverNested(t *testing.T) {
+	rootContent := ValidSkillContent("root-skill", "# Root Skill")
+	zipData := CreateTestZipWithFiles(map[string][]byte{
+		"SKILL.md":        []byte(rootContent),
+		"vendor/SKILL.md": []byte(ValidSkillContent("vendored", "# Vendored")),
+	})
+
+	result, err := ExtractSkillMd(zipData)
+	require.NoError(t, err)
+	assert.Equal(t, rootContent, result.Content)
+	assert.Equal(t, "root-skill", result.Name)
+}
+
 // TestExtractSkillMd_EmptySkillMd verifies that ZIPs with empty SKILL.md
 // files are rejected.
 func TestExtractSkillMd_EmptySkillMd(t *testing.T) {

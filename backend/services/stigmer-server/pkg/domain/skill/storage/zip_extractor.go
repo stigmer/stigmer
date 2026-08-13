@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/google/safearchive/zip"
 )
@@ -100,11 +101,15 @@ func validateZipContent(reader *zip.Reader) error {
 
 	var totalUncompressedSize uint64
 	hasSkillMd := false
+	hasNestedSkillMd := false
 
 	for _, file := range reader.File {
-		// Check for SKILL.md
+		// SKILL.md must be at the archive root. Nested occurrences are tracked
+		// only to make the rejection actionable (see below).
 		if file.Name == "SKILL.md" {
 			hasSkillMd = true
+		} else if strings.HasSuffix(file.Name, "/SKILL.md") {
+			hasNestedSkillMd = true
 		}
 
 		// Validate filename characters (prevent null bytes, control characters)
@@ -131,8 +136,16 @@ func validateZipContent(reader *zip.Reader) error {
 		}
 	}
 
-	// Ensure SKILL.md exists
+	// Ensure SKILL.md exists at the archive root. A nested-only SKILL.md is
+	// the "zipped the folder instead of its contents" mistake: the runner
+	// extracts entry paths verbatim when materializing a skill, so accepting
+	// nested placement would land every supporting file one directory too
+	// deep and break the skill silently at runtime (stigmer#452). The hint
+	// teaches the fix; its text is byte-identical to the cloud edition's.
 	if !hasSkillMd {
+		if hasNestedSkillMd {
+			return fmt.Errorf("SKILL.md must be at the archive root — zip the skill folder's contents, not the folder itself")
+		}
 		return fmt.Errorf("SKILL.md not found in ZIP archive")
 	}
 

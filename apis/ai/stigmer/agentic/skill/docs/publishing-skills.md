@@ -6,6 +6,8 @@ How to push skill artifacts to the platform — from the CLI directly, from a re
 
 Publishing a skill means pushing a packaged artifact to the platform so agents can reference and use it. The platform stores the artifact, extracts the skill metadata from `SKILL.md`, computes a SHA-256 version hash, and records git provenance if available.
 
+The artifact ZIP must carry `SKILL.md` at the **archive root** — zip the skill folder's *contents*, not the folder itself. Both editions reject a nested `SKILL.md` (e.g. `my-skill/SKILL.md`) at push time, because the runner extracts entry paths verbatim when materializing the skill: a nested layout would place `references/` and `scripts/` files where the skill's own instructions can never find them. The CLI and SDK packaging paths below produce the correct layout automatically; this only matters when building artifact bytes yourself and calling `push` directly.
+
 There are three paths to publishing a skill:
 
 | Path | Use When |
