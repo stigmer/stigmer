@@ -530,6 +530,13 @@ export async function createStigmerRunnerManager(
       await removeManaged(
         sessions, sessionId, SESSION_QUEUE_PREFIX + sessionId, "session",
       );
+      // The session is done on this host — release its parked agent (and
+      // the executor + MCP subprocesses the lease pins) immediately rather
+      // than waiting out the idle TTL (#215).
+      const { evictSessionAgent } = await import(
+        "./activities/execute-cursor/agent-session-cache.js"
+      );
+      evictSessionAgent(sessionId);
     },
 
     activeSessions(): string[] {
@@ -629,6 +636,12 @@ export async function createStigmerRunnerManager(
       }
 
       await Promise.all(shutdownPromises);
+      // Workers are drained — release every parked session agent so their
+      // executor leases dispose (stdio MCP subprocesses die with them) (#215).
+      const { closeAllCachedAgents } = await import(
+        "./activities/execute-cursor/agent-session-cache.js"
+      );
+      closeAllCachedAgents();
       sessions.clear();
       workflowExecutions.clear();
       poolControl = null;

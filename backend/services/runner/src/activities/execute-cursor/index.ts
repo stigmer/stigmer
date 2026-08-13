@@ -41,6 +41,7 @@ import type { Config } from "../../config.js";
 import { StigmerClient } from "../../client/stigmer-client.js";
 import { describeExecutionError } from "../../shared/model-error.js";
 import { resolveAgentWithTransportRecovery } from "./session-lifecycle.js";
+import { cacheSessionAgent, computeAgentFingerprint, takeCachedAgent } from "./agent-session-cache.js";
 import type { AgentResolution, AgentResolutionReason, CreateAgentOptions, CreateCloudAgentOptions } from "./session-lifecycle.js";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
@@ -1052,21 +1053,52 @@ async function executeCursorInner(
     // is the largest user-visible setup segment; this split keeps its
     // historical meaning — the SDK call was already 98%+ of it).
     setupTiming.mark("prepare_agent");
-    let resolution: AgentResolution = await resolveAgentWithTransportRecovery({
-      harnessStateId: threadId,
-      createOptions,
-      mode: agentMode,
-      timeoutMs: config.agentResolveTimeoutMs,
-      buildTimeoutMessage: (finalAttempt) =>
-        `Cursor agent ${threadId ? "resume" : "create"} timed out after ${resolveTimeoutSeconds}s ` +
-        `(${config.proxyEndpoint ? `via proxy ${config.proxyEndpoint}` : "direct Cursor API connection"}). ` +
-        `The transport connection is likely dead. ` +
-        (finalAttempt
-          ? `An automatic retry on a fresh transport connection also timed out. ` +
-            `Retry the message later; if this persists, check proxy and network health.`
-          : `Resetting the transport and retrying automatically.`),
-      resetTransport: closeProxySessions,
-    });
+
+    // Phase 8a: Reuse the previous turn's agent when this session parked one
+    // (#215). A checkout hit skips Agent.resume() AND — the real win — keeps
+    // the SDK executor lease alive, so agent.send() below re-acquires the
+    // warm executor instead of re-spawning every stdio MCP server (the
+    // measured 2.2–3.2s `send_returned` tax). The fingerprint covers the
+    // full acquisition config, so any drift (rotated credential, edited MCP
+    // servers, model change) falls through to a fresh resolve.
+    const agentFingerprint = computeAgentFingerprint(
+      createOptions as unknown as Record<string, unknown>,
+    );
+    const parkedAgent = takeCachedAgent(sessionId, agentFingerprint, threadId ?? "");
+    let resolution: AgentResolution;
+    if (parkedAgent) {
+      console.log(
+        `ExecuteCursor reusing parked session agent: execution=${executionId}, ` +
+        `session=${sessionId}, agentId=${parkedAgent.agentId}`,
+      );
+      resolution = {
+        agent: parkedAgent as AgentResolution["agent"],
+        agentId: parkedAgent.agentId,
+        isNew: false,
+        resumed: true,
+        mode: agentMode,
+        // The parked handle IS the live conversation — every consumer of
+        // "resumed_successfully" (prompt selection, poisoned-handle
+        // recovery eligibility) wants exactly those semantics.
+        reason: "resumed_successfully",
+      };
+    } else {
+      resolution = await resolveAgentWithTransportRecovery({
+        harnessStateId: threadId,
+        createOptions,
+        mode: agentMode,
+        timeoutMs: config.agentResolveTimeoutMs,
+        buildTimeoutMessage: (finalAttempt) =>
+          `Cursor agent ${threadId ? "resume" : "create"} timed out after ${resolveTimeoutSeconds}s ` +
+          `(${config.proxyEndpoint ? `via proxy ${config.proxyEndpoint}` : "direct Cursor API connection"}). ` +
+          `The transport connection is likely dead. ` +
+          (finalAttempt
+            ? `An automatic retry on a fresh transport connection also timed out. ` +
+              `Retry the message later; if this persists, check proxy and network health.`
+            : `Resetting the transport and retrying automatically.`),
+        resetTransport: closeProxySessions,
+      });
+    }
 
     console.log(
       `ExecuteCursor agent resolved: execution=${executionId}, ` +
@@ -1462,7 +1494,9 @@ async function executeCursorInner(
           timestamp: utcTimestamp(),
         }));
         await persist(status);
-        try { resolution.agent.close(); } catch { /* best effort */ }
+        // Clean terminal: the conversation continues on the next message,
+        // so park the healthy agent for that turn (#215).
+        cacheSessionAgent(sessionId ?? "", resolution.agent, agentFingerprint);
         console.warn(
           `ExecuteCursor terminated (cost cap): execution=${executionId}, ` +
           `estimatedCostUsd=${estimated.toFixed(4)}, maxCostUsd=${maxCostUsd.toFixed(2)}`,
@@ -1527,7 +1561,8 @@ async function executeCursorInner(
           timestamp: utcTimestamp(),
         }));
         await persist(status);
-        try { resolution.agent.close(); } catch { /* best effort */ }
+        // Clean terminal — park for the session's next turn (#215).
+        cacheSessionAgent(sessionId ?? "", resolution.agent, agentFingerprint);
         console.log(`ExecuteCursor completed (platform stop): execution=${executionId}`);
         return { kind: "return" };
       }
@@ -1573,6 +1608,12 @@ async function executeCursorInner(
     const enterApprovalPause = async (boundary: TurnBoundaryResult) => {
       status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
       await persist(status);
+      // The approval-resume reinvocation is the cache's best case: park the
+      // agent so the resumed turn skips the full executor rebuild (#215).
+      // (This path previously dropped the handle without close() — the
+      // lease leaked; parking makes the lifetime explicit.) An absent
+      // sessionId falls back to "" — the cache closes the lease immediately.
+      cacheSessionAgent(sessionId ?? "", resolution.agent, agentFingerprint);
       console.log(
         `ExecuteCursor returning WAITING_FOR_APPROVAL: ${boundary.deniedToolCallCount} gated tool(s), ` +
         `${boundary.capturedChangeCount} file card(s) pending`,
@@ -2088,8 +2129,12 @@ async function executeCursorInner(
         (status.error ? `, error=${status.error}` : ""),
     );
 
-    // Release SDK executor lease to prevent cache buildup across workflow tasks
-    try { resolution.agent.close(); } catch { /* best effort */ }
+    // Park the agent (with its executor lease) for the session's next turn
+    // instead of closing it — the idle TTL / shutdown hooks in
+    // agent-session-cache own the eventual release, so cache buildup across
+    // sessions stays bounded while turns of ONE session stop paying the
+    // executor + MCP re-spawn tax (#215).
+    cacheSessionAgent(sessionId ?? "", resolution.agent, agentFingerprint);
 
     const slim = slimStatus(status) as Record<string, unknown>;
     if (finalText !== undefined) {
