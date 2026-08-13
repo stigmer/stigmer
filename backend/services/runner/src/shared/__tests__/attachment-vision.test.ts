@@ -291,6 +291,10 @@ describe("VisionBudget — size and count budgets", () => {
   });
 
   it("ships the production constants agreed in T04 (raw bytes)", () => {
+    // Also the ADVERTISED == ENFORCED drift alarm (stigmer/stigmer#365):
+    // the registry document advertises these exact values in its
+    // `limits.vision` block, pinned by the cloud codec's own test. If this
+    // fails, the budget changed on one side only — update both together.
     expect(MAX_VISION_IMAGE_BYTES).toBe(3 * 1024 * 1024);
     expect(MAX_VISION_TOTAL_BYTES).toBe(4 * 1024 * 1024);
     expect(MAX_VISION_IMAGES).toBe(10);

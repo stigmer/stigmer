@@ -1,11 +1,17 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { ModelInfo } from "./registry.js";
+import type { ModelInfo, VisionLimits } from "./registry.js";
 
 /** Internal state held by the model registry context provider. */
 export interface ModelRegistryState {
   readonly models: readonly ModelInfo[];
+  /**
+   * Document-level vision byte budget (stigmer/stigmer#365).
+   * `undefined` while loading or when the served document predates the
+   * `limits` block — consumers stay silent rather than assume a budget.
+   */
+  readonly visionLimits?: VisionLimits;
   readonly isLoading: boolean;
   readonly error: Error | null;
   /** Retry fetching the model registry. No-op while a fetch is in flight. */

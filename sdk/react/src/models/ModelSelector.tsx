@@ -629,6 +629,17 @@ function ModelRow({
       <div className="stg:flex stg:w-full stg:items-center stg:gap-2">
         <span className="stg:flex-1 stg:truncate stg:text-left stg:font-medium">{model.displayName}</span>
 
+        {/* Explicit vision:false only (stigmer/stigmer#386) — an unassessed
+            model (absent capabilities block) shows nothing, per the
+            registry's tri-state convention. Visible text, not a tooltip:
+            keyboard and touch users must see it before picking the model. */}
+        {model.visionCapability === false && (
+          <span className="stg:flex stg:shrink-0 stg:items-center stg:gap-0.5 stg:text-[0.6rem] stg:text-muted-foreground">
+            <NoImageInputIcon />
+            No image input
+          </span>
+        )}
+
         <span className="stg:shrink-0 stg:text-[0.6rem] stg:text-muted-foreground">
           {showSpeedBadge
             ? `${SPEED_TIER_LABEL[model.speedTier]} ${COST_TIER_LABEL[model.costTier]}`
@@ -679,6 +690,32 @@ function CheckIcon({ className }: { className?: string }) {
       strokeLinejoin="round"
     >
       <path d="M2 6L5 9L10 3" />
+    </svg>
+  );
+}
+
+/**
+ * "Image with a slash" glyph for models explicitly assessed as unable to
+ * see images. Decorative (`aria-hidden`) — the wrapping span carries the
+ * accessible text.
+ */
+function NoImageInputIcon() {
+  return (
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="1.5" y="2" width="9" height="8" rx="1.2" />
+      <path d="M1.5 8L4.2 5.6L6.4 7.6" />
+      <circle cx="7.6" cy="4.6" r="0.8" fill="currentColor" stroke="none" />
+      <path d="M1 1L11 11" />
     </svg>
   );
 }
