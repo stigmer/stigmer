@@ -1227,7 +1227,7 @@ Input for creating or updating a Workflow Execution.
     workflowId: { type: "string", description: "ID of the Workflow template to execute (alternative to workflow_instance_id)." },
     triggerMessage: { type: "string", description: "Input message or payload that triggers the workflow." },
     triggerMetadata: { type: "Record<string, string>", description: "Contextual metadata about what triggered this execution." },
-    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped environment variables and secrets that override instance defaults.", typeDescriptionLink: "#envvarinput" },
+    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped environment variables and secrets, available only to this execution.", typeDescriptionLink: "#envvarinput" },
     callbackToken: { type: "Uint8Array", description: "Opaque callback token for asynchronous completion by a parent orchestrator." },
     executionTarget: { type: "ExecutionTarget", description: "Where workflow activities are executed — shared runner pool or dedicated sandbox.", typeDescriptionLink: "#executiontarget" },
   }}

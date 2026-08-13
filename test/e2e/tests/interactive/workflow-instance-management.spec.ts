@@ -122,33 +122,29 @@ test.describe("Workflow Instance Management", () => {
     ).toBeAttached();
   });
 
-  test("Delete instance shows cascade warning", async ({
+  test("Delete instance shows confirmation with honest copy", async ({
     page,
     testWorkflow,
   }) => {
-    // The SDK's row kebab (Run/Delete + cascade confirm) exists, but
-    // neither client app wires onInstanceRunClick/onInstanceDeleteClick —
-    // the Actions column renders empty cells, so this promise is
-    // unreachable in the product today. The assertion below is ready;
-    // un-fixme when the wiring lands.
-    test.fixme(true, "instance row actions unwired in both client apps — stigmer/stigmer#582");
-
     await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
     await assertNoErrorBoundary(page);
 
     await openInstancesTab(page);
     await createInstance(page, "doomed-instance");
 
-    // Row actions live in a per-row overflow (kebab) menu.
+    // Row actions live in a per-row overflow (kebab) menu — wired in both
+    // client apps by the oss#582 fix (PR #590).
     await page
       .getByRole("button", { name: "Actions for doomed-instance" })
       .click();
     await page.getByRole("menuitem", { name: "Delete" }).click();
 
-    // Should show cascade warning
+    // Instance deletion does NOT cascade to executions (oss#582 owner
+    // ruling): the confirmation says so instead of claiming history is
+    // destroyed.
     await expect(
       page.getByText(
-        "permanently delete this instance and all its execution history",
+        "permanently removes the instance and its environment bindings",
       ),
     ).toBeVisible();
   });

@@ -14,9 +14,10 @@
 //   merged key not declared by the blueprint is dropped; a declared-but-required
 //   key that is unprovisioned is only a warning (the run is not failed).
 //
-// The proto comments that describe "blueprint defaults < environment < runtime"
-// are aspirational — the blueprint carries declarations (keys), not values — so
-// we assert the implemented two-value-layer + whitelist model.
+// The proto comments once described a "blueprint defaults < environment <
+// runtime" model that never existed — the blueprint carries declarations
+// (keys), not values. They were corrected to this contract in stigmer#222;
+// this suite asserts the implemented two-value-layer + whitelist model.
 //
 // Observation strategy (why this is deterministic without polling):
 // The ExecutionContext is created SYNCHRONOUSLY inside the create pipeline

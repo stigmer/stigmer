@@ -623,7 +623,7 @@ func inlineRefreshIfExpired(
 const personalEnvLabel = "stigmer.ai/personal"
 
 // injectFromPersonalEnvironment is the fallback for workspace-provisioning
-// keys that were absent from the standard 3-layer merge entirely. When the
+// keys that were absent from the standard 2-layer merge entirely. When the
 // session has git_repo workspace entries and a required key (e.g.
 // GITHUB_TOKEN) is still missing after the merged-map re-injection, this
 // function looks up the caller's personal environment via gRPC and injects

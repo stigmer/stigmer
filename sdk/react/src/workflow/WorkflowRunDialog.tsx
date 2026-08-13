@@ -25,6 +25,16 @@ export interface WorkflowRunDialogProps {
    */
   readonly defaultInstanceId?: string;
   /**
+   * Instance to preselect when the dialog opens — wire this from a
+   * row-level "Run" action so the form reflects the instance the user
+   * clicked. Applied on each open transition (after the form resets);
+   * ignored when the id is not in `instances`, so a stale id degrades
+   * to the default option. Omit (or pass `null`) for the
+   * server-resolved default. Same convention as
+   * {@link SessionComposer}'s `initialInstanceId`.
+   */
+  readonly initialInstanceId?: string | null;
+  /**
    * Called after the execution is created successfully.
    * Receives the execution ID — use for navigation.
    */
@@ -67,6 +77,7 @@ export function WorkflowRunDialog({
   workflow,
   instances,
   defaultInstanceId,
+  initialInstanceId,
   onSuccess,
   onError,
 }: WorkflowRunDialogProps) {
@@ -94,11 +105,27 @@ export function WorkflowRunDialog({
     if (!dialog) return;
     if (open && !dialog.open) {
       flow.reset();
+      // Preselection must follow reset (reset clears the selection back to
+      // the server-resolved default). Guarded against stale ids: an instance
+      // deleted between the caller capturing the id and this open falls back
+      // to the default option instead of a <select> value with no option.
+      if (
+        initialInstanceId &&
+        instances.some((i) => i.metadata?.id === initialInstanceId)
+      ) {
+        flow.setSelectedInstanceId(initialInstanceId);
+      }
       dialog.showModal();
     } else if (!open && dialog.open) {
       dialog.close();
     }
-  }, [open, flow.reset]);
+  }, [
+    open,
+    flow.reset,
+    flow.setSelectedInstanceId,
+    initialInstanceId,
+    instances,
+  ]);
 
   const handleDialogCancel = useCallback(
     (e: React.SyntheticEvent) => {

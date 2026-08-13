@@ -237,10 +237,13 @@ func (x *LocalPathSource) GetPath() string {
 //
 // @internal
 // Authentication: The provisioner resolves GITHUB_TOKEN from the merged
-// environment (Agent defaults < Environment < ExecutionContext.runtime_env)
-// and injects it into the clone URL. The token is consumed by provisioning
-// and stripped before forwarding to the agent runtime (see AD-05).
-// SSH key authentication is a future enhancement.
+// environment (instance environment_refs < ExecutionContext.runtime_env). As a
+// workspace-provisioning key it is re-injected past the Agent.spec.env
+// declared-key filter when the session has git_repo entries, with a fallback
+// to the caller's personal environment (see the agentexecution controller's
+// executionContextBuilder). The token is injected into the clone URL, consumed
+// by provisioning, and stripped before forwarding to the agent runtime (see
+// AD-05). SSH key authentication is a future enhancement.
 type GitRepoSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// HTTPS clone URL for the repository.

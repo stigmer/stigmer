@@ -10,8 +10,11 @@ export interface UseDeleteWorkflowInstanceReturn {
   /**
    * Delete a workflow instance by ID. Returns the deleted resource.
    *
-   * WARNING: Deleting an instance cascades — all executions belonging
-   * to this instance are permanently removed.
+   * Deletion does NOT cascade to executions: runs already created
+   * against the instance are preserved and stay visible in the parent
+   * workflow's execution history (every execution carries a
+   * denormalized workflow reference). Only the instance itself — its
+   * environment bindings and configuration — is removed.
    */
   readonly deleteInstance: (id: string) => Promise<WorkflowInstance>;
   /** `true` while the delete request is in flight. */
@@ -29,8 +32,10 @@ export interface UseDeleteWorkflowInstanceReturn {
  * The caller is responsible for handling post-delete UI updates
  * (e.g., refreshing the instance list, closing a detail panel).
  *
- * Deletion cascades to all WorkflowExecution resources that belong
- * to the instance. The confirmation UI should warn the user about this.
+ * Deletion is instance-only on both editions — executions are NOT
+ * cascaded (deliberate platform posture: they keep a denormalized
+ * workflow reference and remain in the workflow's execution history).
+ * Confirmation UI must not claim execution history is deleted.
  *
  * @example
  * ```tsx

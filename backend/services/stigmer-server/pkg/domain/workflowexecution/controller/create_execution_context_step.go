@@ -23,8 +23,8 @@ import (
 //
 // Resolution chain:
 //   - Resolve workflow_instance_id from pipeline context (ResolvedWorkflowInstanceIDKey) or execution spec
-//   - workflowInstanceClient.Get -> WorkflowInstance.env_refs + workflow_id
-//   - store.GetResource(workflow_id) -> Workflow.env_spec (follows WE controller's "same service" store-access pattern)
+//   - workflowInstanceClient.Get -> WorkflowInstance.environment_refs + workflow_id
+//   - store.GetResource(workflow_id) -> Workflow.spec.env declarations (follows WE controller's "same service" store-access pattern)
 //
 // Merge priority (lowest to highest):
 //  1. WorkflowInstance.env_refs resolved via the environment

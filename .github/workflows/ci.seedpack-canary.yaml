@@ -1,5 +1,10 @@
 # Live-tests marketplace MCP servers: transport reachability plus canary calls
 # with real vendor credentials fetched from Planton at run time.
+#
+# The suites are full-harness integration tests (test/integration TestMain
+# boots the stigmer-service JAR, Temporal, and the unified runner), so this
+# lane builds the JAR from stigmer-cloud first — the ci.integration-canary
+# two-job shape. Without a JAR the suite exits 0 having run nothing (oss#565).
 
 name: ci.seedpack-canary
 
@@ -7,47 +12,209 @@ on:
   schedule:
     - cron: '0 2 * * 1-5'  # Weekdays at 2am UTC
   workflow_dispatch:
+    inputs:
+      cloud_ref:
+        description: "stigmer-cloud git ref to build the service JAR from"
+        required: false
+        type: string
+        default: "main"
+
+concurrency:
+  group: seedpack-canary-${{ github.run_id }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
+  checks: write
+
+env:
+  # Pinned deliberately: this lane's whole history is silent drift, so CLI
+  # bumps are a reviewed one-line change, not an auto-latest surprise. The
+  # binary is the same asset the plantonhq/tap Homebrew formula wraps.
+  # 20260805.0 is the newest build proven against prod: 20260812.1 calls
+  # v1alpha1 RPCs (whoAmI, organization getBySlug) that api.live.planton.ai
+  # does not implement yet (observed 2026-08-13).
+  PLANTON_CLI_VERSION: v0.0.34-cli.20260805.0
 
 jobs:
-  seedpack-canary:
+  build-service-jar:
+    name: Build Service JAR
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - name: Checkout stigmer-cloud
+        uses: actions/checkout@v4
         with:
-          go-version-file: test/integration/go.mod
-          cache-dependency-path: test/integration/go.sum
-      - uses: actions/setup-node@v4
+          repository: stigmer/stigmer-cloud
+          ref: ${{ inputs.cloud_ref || 'main' }}
+          path: stigmer-cloud
+          token: ${{ secrets.STIGMER_CLOUD_TOKEN }}
+
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@0.19.0
         with:
-          node-version: '20'
+          bazelisk-cache: true
+          disk-cache: integration-jar
+          repository-cache: true
+
+      - name: Build fat JAR
+        working-directory: stigmer-cloud
+        run: ./bazelw build //backend/services/stigmer-service:stigmer_service_fatjar
+
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: stigmer-service-jar
+          path: stigmer-cloud/bazel-bin/backend/services/stigmer-service/stigmer_service_fatjar.jar
+          retention-days: 1
+          if-no-files-found: error
+
+  seedpack-canary:
+    name: Seedpack Canary
+    runs-on: ubuntu-latest
+    needs: build-service-jar
+    timeout-minutes: 45
+    # Harness images come from the GHCR mirror, not Docker Hub (issue #334);
+    # see test/integration/harness/images.go.
+    env:
+      TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: ghcr.io/stigmer/mirror
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download service JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: stigmer-service-jar
+          path: .artifacts
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      # TestCanary_NoAuth_Fetch_Connects spawns `uvx mcp-server-fetch`;
+      # ubuntu-24.04 runners do not ship uv (actions/runner-images#10533).
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v10.0.0
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build proto stubs
+        run: npm run build -w @stigmer/protos
+
+      - name: Install and build unified runner
+        working-directory: backend/services/runner
+        run: npm ci && npm run build
+
+      - name: Install Temporal CLI
+        uses: temporalio/setup-temporal@v0
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@v1.13.0
+
+      - name: Install OpenFGA CLI
+        run: |
+          go install github.com/openfga/cli/cmd/fga@latest
+          fga version
+
+      # Direct pinned download: cli.planton.cloud (the old install host) is
+      # dead, and a `curl | bash` pipe hid that failure until the next step.
+      # A dead CDN now fails HERE, loudly.
       - name: Install Planton CLI
         run: |
-          curl -fsSL https://cli.planton.cloud/install.sh | bash
+          install_dir="${RUNNER_TEMP}/planton-cli"
+          mkdir -p "$install_dir"
+          curl -fsSL -o "$install_dir/planton" \
+            "https://downloads.planton.app/cli/${PLANTON_CLI_VERSION}/planton-${PLANTON_CLI_VERSION}-linux-amd64"
+          chmod +x "$install_dir/planton"
+          echo "$install_dir" >> "$GITHUB_PATH"
+          "$install_dir/planton" version
+
+      # Stateless env-driven CLI configuration — the overrides the CLI
+      # provides for exactly this: PLANTON_API_ENDPOINT satisfies the
+      # backend guard and wins endpoint resolution outright, PLANTON_API_KEY
+      # is first in the credential chain. No `planton login` state: the
+      # login command's --api-key path is broken both ways right now
+      # (validation calls a whoAmI RPC that is Unimplemented on prod;
+      # --skip-validation stores the key under an empty account the store
+      # cannot find again — observed 2026-08-13).
+      #
+      # Empty-value guard matters here: the canary tests t.Skip on missing
+      # env vars, so a silently-empty export would turn the lane green with
+      # every vendor skipped. GITHUB_ENV values are not auto-masked, hence
+      # the explicit add-mask before each write.
       - name: Fetch canary credentials
-        run: |
-          planton secret get mcp-canary-tavily-api-key --org stigmer --plain > /dev/null
-          echo "TAVILY_API_KEY=$(planton secret get mcp-canary-tavily-api-key --org stigmer --plain)" >> $GITHUB_ENV
-          echo "GITHUB_MCP_TOKEN=$(planton secret get mcp-canary-github-token --org stigmer --plain)" >> $GITHUB_ENV
-          echo "STRIPE_ACCESS_TOKEN=$(planton secret get mcp-canary-stripe-token --org stigmer --plain)" >> $GITHUB_ENV
-          echo "LINEAR_ACCESS_TOKEN=$(planton secret get mcp-canary-linear-api-key --org stigmer --plain)" >> $GITHUB_ENV
-          echo "GOOGLE_MAPS_API_KEY=$(planton secret get mcp-canary-google-maps-api-key --org stigmer --plain)" >> $GITHUB_ENV
         env:
+          PLANTON_API_ENDPOINT: api.live.planton.ai:443
           PLANTON_API_KEY: ${{ secrets.PLANTON_API_KEY }}
+        run: |
+          fetch() {
+            local env_name="$1" slug="$2"
+            local value
+            value="$(planton secret get "$slug" --org stigmer --key value -o plain)"
+            if [ -z "$value" ]; then
+              echo "::error::Planton secret '$slug' returned an empty value"
+              exit 1
+            fi
+            echo "::add-mask::$value"
+            echo "${env_name}=${value}" >> "$GITHUB_ENV"
+          }
+          fetch TAVILY_API_KEY      mcp-canary-tavily-api-key
+          fetch GITHUB_MCP_TOKEN    mcp-canary-github-token
+          fetch STRIPE_ACCESS_TOKEN mcp-canary-stripe-token
+          fetch LINEAR_ACCESS_TOKEN mcp-canary-linear-api-key
+          fetch GOOGLE_MAPS_API_KEY mcp-canary-google-maps-api-key
+
       - name: Run transport reachability tests
-        run: make test-seedpack-transport
-      - name: Run canary tests
-        run: make test-seedpack-canary
         env:
-          STIGMER_MCP_CANARY: "true"
+          STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
+        run: make test-seedpack-transport
+
+      - name: Run canary tests
+        env:
+          STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
+        run: make test-seedpack-canary
+
+      - name: Upload seedpack test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seedpack-test-results
+          path: |
+            test/integration/.test-output-seedpack-transport/
+            test/integration/.test-output-seedpack-canary/
+          retention-days: 30
+          if-no-files-found: ignore
+          # The output dirs are dot-prefixed and upload-artifact@v4 excludes
+          # hidden paths by default — without this the artifact is silently
+          # empty (found on the integration-canary lane's first real run, #323).
+          include-hidden-files: true
+
+      - name: Publish seedpack test report
+        if: always() && hashFiles('test/integration/.test-output-seedpack-*/junit.xml') != ''
+        uses: dorny/test-reporter@v3
+        with:
+          name: Seedpack Test Report
+          path: test/integration/.test-output-seedpack-*/junit.xml
+          reporter: java-junit
 
   # Scheduled runs are unattended; manual dispatches are watched (#477).
   # Shared file-or-comment mechanics live in notify-failure.yaml.
   notify-failure:
     name: File Seedpack Canary Failure Issue
-    needs: seedpack-canary
+    needs: [build-service-jar, seedpack-canary]
     if: failure() && github.event_name == 'schedule'
     permissions:
       issues: write
