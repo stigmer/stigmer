@@ -539,6 +539,7 @@ func main() {
 	metaDir := flag.String("meta-dir", "", "Directory containing sidecar YAML metadata (used by the task-registry and task-docs targets)")
 	apisDir := flag.String("apis-dir", "", "Root directory of proto API definitions (used by sdk-docs for overview.md loading and by task-docs for the index enrichment template)")
 	docsDir := flag.String("docs-dir", "", "Root directory of the documentation tree (used by the docs-yaml-check target)")
+	rules := flag.String("rules", "off", "Protovalidate rule evaluation for docs-yaml-check: off, report (print findings, never fail), or enforce (findings fail the gate)")
 	flag.Parse()
 
 	// docs-yaml-check is a pass/fail validator over the docs tree: it reads
@@ -549,7 +550,12 @@ func main() {
 			fmt.Println("--docs-dir is required for --target=docs-yaml-check")
 			os.Exit(1)
 		}
-		if err := runDocsYamlCheck(*docsDir); err != nil {
+		ruleMode, err := parseDocsYamlRuleMode(*rules)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			os.Exit(1)
+		}
+		if err := runDocsYamlCheck(*docsDir, ruleMode); err != nil {
 			fmt.Printf("Error: %v\n", err)
 			os.Exit(1)
 		}

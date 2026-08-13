@@ -113,6 +113,10 @@ type docsYamlRegistries struct {
 	// variantTypes maps a discriminator value (e.g. "wait") to the typed
 	// config message for that variant (e.g. WaitTaskConfig).
 	variantTypes map[string]protoreflect.MessageType
+	// rules is the optional protovalidate pass (--rules flag); nil when off.
+	// Every method on it is nil-safe, so validators call it unconditionally.
+	// See docs_yaml_rules.go for the mode semantics and the #305 background.
+	rules *docsYamlRuleEval
 }
 
 type manifestKindInfo struct {
@@ -242,6 +246,7 @@ func validateManifestDoc(doc map[string]interface{}, reg *docsYamlRegistries) []
 		return append(problems, fmt.Sprintf("%s manifest does not validate against %s: %v",
 			kindStr, info.msgType.Descriptor().FullName(), err))
 	}
+	problems = append(problems, reg.rules.evaluate(msg, kindStr)...)
 	return append(problems, validateDiscriminatedStructs(msg.ProtoReflect(), reg, kindStr)...)
 }
 
@@ -266,7 +271,9 @@ func validateAuthoringTaskEntry(entry map[string]interface{}, reg *docsYamlRegis
 	if task.TaskConfig == nil {
 		return []string{fmt.Sprintf("task %q: task_config is required", task.Name)}
 	}
-	return validateDiscriminatedStructs(task.ProtoReflect(), reg, fmt.Sprintf("task %q", task.Name))
+	at := fmt.Sprintf("task %q", task.Name)
+	problems := reg.rules.evaluate(task, at)
+	return append(problems, validateDiscriminatedStructs(task.ProtoReflect(), reg, at)...)
 }
 
 // validateDiscriminatedStructs walks a decoded message tree. For every
@@ -349,7 +356,13 @@ func validateDiscriminatedStruct(
 	if err := protojson.Unmarshal(cfgJSON, msg); err != nil {
 		return []string{fmt.Sprintf("%s is not a valid %s: %v", path, variant.Descriptor().FullName(), err)}
 	}
-	return validateDiscriminatedStructs(msg.ProtoReflect(), reg, path)
+	// Rule evaluation happens at THIS decode point too — on the parent
+	// message the config was an opaque Struct, invisible to protovalidate —
+	// but as the NESTED (latent) class: the platform's own validation stops
+	// at the Struct envelope, so these findings are report-only (the #305
+	// parity ruling; see docs_yaml_rules.go).
+	problems := reg.rules.evaluateNested(msg, path)
+	return append(problems, validateDiscriminatedStructs(msg.ProtoReflect(), reg, path)...)
 }
 
 func isStructField(fd protoreflect.FieldDescriptor) bool {
@@ -443,6 +456,12 @@ const (
 // validates it. The returned problems are empty exactly when the block is
 // valid (or legitimately skipped).
 func classifyAndValidateFence(f codeFence, reg *docsYamlRegistries) (docsYamlBlockClass, []string) {
+	// Locate rule findings and reset to suppressed: only the auto-classified
+	// branches below arm evaluation, so anchored fragments (deliberately
+	// partial — required-elision is their point) and skipped blocks are
+	// never rule-evaluated.
+	reg.rules.beginFence(f.Path, f.Line)
+
 	hasNoValidate := strings.Contains(f.Meta, "no-validate")
 	hasValidateAs := strings.Contains(f.Meta, "validate-as")
 	if hasNoValidate && hasValidateAs {
@@ -501,11 +520,13 @@ func classifyAndValidateFence(f codeFence, reg *docsYamlRegistries) (docsYamlBlo
 				if class == blockInvalid {
 					class = blockManifest
 				}
+				reg.rules.setBlockClass("manifest")
 				problems = append(problems, validateManifestDoc(d, reg)...)
 				continue
 			}
 			problems = append(problems, unclassifiedBlockProblem())
 		case []interface{}:
+			reg.rules.setBlockClass("task list")
 			taskProblems, isTaskList := validateTaskListDoc(d, reg)
 			if isTaskList {
 				if class == blockInvalid {
@@ -618,14 +639,22 @@ type docsYamlProblem struct {
 
 // checkDocsYaml scans every .md/.mdx file under docsDir (excluding _archive,
 // mirroring the Makefile's DOCS_SOURCES) and validates every yaml fence.
-func checkDocsYaml(docsDir string) (docsYamlSummary, []docsYamlProblem, error) {
+// ruleMode arms the optional protovalidate pass (docs_yaml_rules.go); the
+// returned evaluator carries report-mode findings and is nil when off.
+func checkDocsYaml(docsDir string, ruleMode docsYamlRuleMode) (docsYamlSummary, []docsYamlProblem, *docsYamlRuleEval, error) {
 	reg, err := buildDocsYamlRegistries()
 	if err != nil {
-		return docsYamlSummary{}, nil, err
+		return docsYamlSummary{}, nil, nil, err
+	}
+	reg.rules, err = newDocsYamlRuleEval(ruleMode)
+	if err != nil {
+		return docsYamlSummary{}, nil, nil, err
 	}
 
 	var summary docsYamlSummary
 	var problems []docsYamlProblem
+
+	rules := reg.rules
 
 	walkErr := filepath.WalkDir(docsDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -680,7 +709,7 @@ func checkDocsYaml(docsDir string) (docsYamlSummary, []docsYamlProblem, error) {
 		return nil
 	})
 	if walkErr != nil {
-		return summary, problems, walkErr
+		return summary, problems, rules, walkErr
 	}
 
 	sort.Slice(problems, func(i, j int) bool {
@@ -689,15 +718,20 @@ func checkDocsYaml(docsDir string) (docsYamlSummary, []docsYamlProblem, error) {
 		}
 		return problems[i].Line < problems[j].Line
 	})
-	return summary, problems, nil
+	return summary, problems, rules, nil
 }
 
 // runDocsYamlCheck is the --target=docs-yaml-check entry point.
-func runDocsYamlCheck(docsDir string) error {
-	summary, problems, err := checkDocsYaml(docsDir)
+func runDocsYamlCheck(docsDir string, ruleMode docsYamlRuleMode) error {
+	summary, problems, rules, err := checkDocsYaml(docsDir, ruleMode)
 	if err != nil {
 		return err
 	}
+
+	// The report precedes the gate result: in report mode the findings are
+	// informational and must print whether or not decode problems fail the
+	// build below.
+	rules.printRuleReport()
 
 	if len(problems) > 0 {
 		fmt.Printf("docs YAML gate found %d problem(s):\n\n", len(problems))

@@ -428,7 +428,7 @@ func TestCheckDocsYamlOnFixtureTree(t *testing.T) {
 	writeFixture("broken.mdx", "```yaml\nexport:\n  as: unmarked-fragment\n```\n")
 	writeFixture("_archive/old.mdx", "```yaml\ntotally: [broken\n```\n")
 
-	summary, problems, err := checkDocsYaml(dir)
+	summary, problems, _, err := checkDocsYaml(dir, ruleModeOff)
 	if err != nil {
 		t.Fatalf("checkDocsYaml: %v", err)
 	}
