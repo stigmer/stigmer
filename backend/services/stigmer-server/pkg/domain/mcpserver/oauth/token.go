@@ -57,11 +57,25 @@ type authedUser struct {
 
 var tokenHTTPClient = &http.Client{Timeout: 15 * time.Second}
 
+// Token-endpoint client authentication methods, in the RFC 8414
+// token_endpoint_auth_methods_supported vocabulary. This package speaks
+// the raw RFC strings (like dcr.go's "none"); callers holding the
+// OAuthAppSpec proto enum map it at their seam.
+//
+// An empty or unrecognized method falls back to Basic — the RFC 6749
+// §2.3.1 baseline and this package's historical behavior.
+const (
+	TokenAuthMethodBasic = "client_secret_basic"
+	TokenAuthMethodPost  = "client_secret_post"
+)
+
 // ExchangeCode exchanges an authorization code for tokens at the given
 // token endpoint using the authorization_code grant with PKCE.
 //
 // For public clients (DCR), clientSecret should be empty.
-// For confidential clients (vendor OAuth), clientSecret is from the OAuthApp.
+// For confidential clients (vendor OAuth), clientSecret is from the
+// OAuthApp and tokenAuthMethod selects how it is presented (see
+// doTokenRequest).
 func ExchangeCode(
 	ctx context.Context,
 	tokenEndpoint string,
@@ -70,6 +84,7 @@ func ExchangeCode(
 	codeVerifier string,
 	clientID string,
 	clientSecret string,
+	tokenAuthMethod string,
 ) (*TokenResponse, error) {
 	params := url.Values{
 		"grant_type":    {"authorization_code"},
@@ -79,13 +94,15 @@ func ExchangeCode(
 		"client_id":     {clientID},
 	}
 
-	return doTokenRequest(ctx, tokenEndpoint, params, clientID, clientSecret)
+	return doTokenRequest(ctx, tokenEndpoint, params, clientID, clientSecret, tokenAuthMethod)
 }
 
 // RefreshToken exchanges a refresh token for a new access token.
 //
 // For public clients (DCR), clientSecret should be empty.
-// For confidential clients (vendor OAuth), clientSecret is from the OAuthApp.
+// For confidential clients (vendor OAuth), clientSecret is from the
+// OAuthApp and tokenAuthMethod selects how it is presented (see
+// doTokenRequest).
 //
 // The response may include a new refresh token (token rotation). Callers
 // should always check TokenResponse.RefreshToken and update storage if
@@ -96,6 +113,7 @@ func RefreshToken(
 	refreshToken string,
 	clientID string,
 	clientSecret string,
+	tokenAuthMethod string,
 ) (*TokenResponse, error) {
 	params := url.Values{
 		"grant_type":    {"refresh_token"},
@@ -103,7 +121,7 @@ func RefreshToken(
 		"client_id":     {clientID},
 	}
 
-	return doTokenRequest(ctx, tokenEndpoint, params, clientID, clientSecret)
+	return doTokenRequest(ctx, tokenEndpoint, params, clientID, clientSecret, tokenAuthMethod)
 }
 
 func doTokenRequest(
@@ -112,7 +130,17 @@ func doTokenRequest(
 	params url.Values,
 	clientID string,
 	clientSecret string,
+	tokenAuthMethod string,
 ) (*TokenResponse, error) {
+	// Exactly one credential channel per request — RFC 6749 §2.3 forbids
+	// presenting the secret through more than one method, and some servers
+	// reject requests that do. Post mode rides the form body; anything
+	// else (including empty) is the Basic-header baseline.
+	usePostSecret := clientSecret != "" && tokenAuthMethod == TokenAuthMethodPost
+	if usePostSecret {
+		params.Set("client_secret", clientSecret)
+	}
+
 	req, err := http.NewRequestWithContext(
 		ctx, http.MethodPost, tokenEndpoint,
 		strings.NewReader(params.Encode()),
@@ -123,7 +151,7 @@ func doTokenRequest(
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 
-	if clientSecret != "" {
+	if clientSecret != "" && !usePostSecret {
 		req.SetBasicAuth(clientID, clientSecret)
 	}
 

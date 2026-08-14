@@ -13,7 +13,7 @@ import { OAuthAppSchema, type OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oa
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
 import { ListOAuthAppsByOrgInputSchema, OAuthAppsSchema, type ListOAuthAppsByOrgInput, type OAuthApps } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
 import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
-import { OAuthAppSpecSchema, VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
+import { OAuthAppSpecSchema, VendorApprovalStatus, TokenEndpointAuthMethod } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 
 /** Provides operations on oauthapp resources. */
 export class OAuthAppClient {
@@ -89,6 +89,7 @@ export interface OAuthAppInput {
   scopeParameterName?: string;
   vendorApprovalStatus?: VendorApprovalStatus;
   vendorApprovalDocsUrl?: string;
+  tokenEndpointAuthMethod?: TokenEndpointAuthMethod;
 }
 
 export function buildOAuthAppProto(input: OAuthAppInput): OAuthApp {
@@ -113,6 +114,7 @@ export function buildOAuthAppProto(input: OAuthAppInput): OAuthApp {
       scopeParameterName: input.scopeParameterName,
       vendorApprovalStatus: input.vendorApprovalStatus,
       vendorApprovalDocsUrl: input.vendorApprovalDocsUrl,
+      tokenEndpointAuthMethod: input.tokenEndpointAuthMethod,
     })),
   }) as OAuthApp;
 }

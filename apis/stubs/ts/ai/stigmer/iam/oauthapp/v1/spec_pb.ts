@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/oauthapp/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_oauthapp_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9zcGVjLnByb3RvEhphaS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MSLWAgoMT0F1dGhBcHBTcGVjEhAKCHByb3ZpZGVyGAEgASgJEhoKCWNsaWVudF9pZBgCIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAMgASgJQge6SARyAhABEiMKEWF1dGhvcml6YXRpb25fdXJsGAQgASgJQgi6SAVyA4gBARIbCgl0b2tlbl91cmwYBSABKAlCCLpIBXIDiAEBEg4KBnNjb3BlcxgGIAMoCRIUCgx1c2VyaW5mb191cmwYByABKAkSHAoUc2NvcGVfcGFyYW1ldGVyX25hbWUYCCABKAkSUAoWdmVuZG9yX2FwcHJvdmFsX3N0YXR1cxgJIAEoDjIwLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLlZlbmRvckFwcHJvdmFsU3RhdHVzEiAKGHZlbmRvcl9hcHByb3ZhbF9kb2NzX3VybBgKIAEoCSqsAQoUVmVuZG9yQXBwcm92YWxTdGF0dXMSJgoiVkVORE9SX0FQUFJPVkFMX1NUQVRVU19VTlNQRUNJRklFRBAAEiIKHlZFTkRPUl9BUFBST1ZBTF9TVEFUVVNfUEVORElORxABEiMKH1ZFTkRPUl9BUFBST1ZBTF9TVEFUVVNfQVBQUk9WRUQQAhIjCh9WRU5ET1JfQVBQUk9WQUxfU1RBVFVTX1JFSkVDVEVEEANiBnByb3RvMw", [file_buf_validate_validate]);
+  fileDesc("CiVhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9zcGVjLnByb3RvEhphaS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MSKvAwoMT0F1dGhBcHBTcGVjEhAKCHByb3ZpZGVyGAEgASgJEhoKCWNsaWVudF9pZBgCIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAMgASgJQge6SARyAhABEiMKEWF1dGhvcml6YXRpb25fdXJsGAQgASgJQgi6SAVyA4gBARIbCgl0b2tlbl91cmwYBSABKAlCCLpIBXIDiAEBEg4KBnNjb3BlcxgGIAMoCRIUCgx1c2VyaW5mb191cmwYByABKAkSHAoUc2NvcGVfcGFyYW1ldGVyX25hbWUYCCABKAkSUAoWdmVuZG9yX2FwcHJvdmFsX3N0YXR1cxgJIAEoDjIwLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLlZlbmRvckFwcHJvdmFsU3RhdHVzEiAKGHZlbmRvcl9hcHByb3ZhbF9kb2NzX3VybBgKIAEoCRJXChp0b2tlbl9lbmRwb2ludF9hdXRoX21ldGhvZBgLIAEoDjIzLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLlRva2VuRW5kcG9pbnRBdXRoTWV0aG9kKqwBChRWZW5kb3JBcHByb3ZhbFN0YXR1cxImCiJWRU5ET1JfQVBQUk9WQUxfU1RBVFVTX1VOU1BFQ0lGSUVEEAASIgoeVkVORE9SX0FQUFJPVkFMX1NUQVRVU19QRU5ESU5HEAESIwofVkVORE9SX0FQUFJPVkFMX1NUQVRVU19BUFBST1ZFRBACEiMKH1ZFTkRPUl9BUFBST1ZBTF9TVEFUVVNfUkVKRUNURUQQAyqsAQoXVG9rZW5FbmRwb2ludEF1dGhNZXRob2QSKgomVE9LRU5fRU5EUE9JTlRfQVVUSF9NRVRIT0RfVU5TUEVDSUZJRUQQABIyCi5UT0tFTl9FTkRQT0lOVF9BVVRIX01FVEhPRF9DTElFTlRfU0VDUkVUX0JBU0lDEAESMQotVE9LRU5fRU5EUE9JTlRfQVVUSF9NRVRIT0RfQ0xJRU5UX1NFQ1JFVF9QT1NUEAJiBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
  * OAuthAppSpec defines a registered OAuth application with an external vendor.
@@ -118,6 +118,24 @@ export type OAuthAppSpec = Message<"ai.stigmer.iam.oauthapp.v1.OAuthAppSpec"> & 
    * @generated from field: string vendor_approval_docs_url = 10;
    */
   vendorApprovalDocsUrl: string;
+
+  /**
+   * How the client secret is presented to the vendor's token endpoint
+   * during authorization-code exchange and refresh.
+   *
+   * RFC 6749 §2.3.1 requires authorization servers to support HTTP Basic,
+   * but some vendors' token endpoints accept only client_secret_post
+   * (e.g. HubSpot advertises token_endpoint_auth_methods_supported:
+   * ["client_secret_post"]). Exactly one method is ever used per request —
+   * RFC 6749 §2.3 forbids presenting credentials through more than one
+   * channel at once, and some servers reject requests that do.
+   *
+   * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
+   * compatibility, preserving the historical behavior byte-for-byte.
+   *
+   * @generated from field: ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11;
+   */
+  tokenEndpointAuthMethod: TokenEndpointAuthMethod;
 };
 
 /**
@@ -174,4 +192,48 @@ export enum VendorApprovalStatus {
  */
 export const VendorApprovalStatusSchema: GenEnum<VendorApprovalStatus> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_iam_oauthapp_v1_spec, 0);
+
+/**
+ * Client authentication method for the vendor's OAuth token endpoint,
+ * mirroring the RFC 8414 token_endpoint_auth_methods_supported vocabulary.
+ *
+ * Only confidential-client methods appear here: public (DCR) clients
+ * authenticate with PKCE alone and never carry a client secret, so this
+ * enum is meaningful only for OAuthApp-backed vendor OAuth.
+ *
+ * @generated from enum ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod
+ */
+export enum TokenEndpointAuthMethod {
+  /**
+   * Default / unset. Treated as CLIENT_SECRET_BASIC for backwards
+   * compatibility — every OAuthApp created before this field existed
+   * authenticated via HTTP Basic.
+   *
+   * @generated from enum value: TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * client_secret_basic: the secret rides the Authorization header as
+   * HTTP Basic credentials (RFC 6749 §2.3.1's baseline method).
+   *
+   * @generated from enum value: TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC = 1;
+   */
+  CLIENT_SECRET_BASIC = 1,
+
+  /**
+   * client_secret_post: the secret rides the request body as the
+   * client_secret form parameter. Required by vendors whose token
+   * endpoints do not accept Basic (e.g. HubSpot).
+   *
+   * @generated from enum value: TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST = 2;
+   */
+  CLIENT_SECRET_POST = 2,
+}
+
+/**
+ * Describes the enum ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod.
+ */
+export const TokenEndpointAuthMethodSchema: GenEnum<TokenEndpointAuthMethod> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_iam_oauthapp_v1_spec, 1);
 

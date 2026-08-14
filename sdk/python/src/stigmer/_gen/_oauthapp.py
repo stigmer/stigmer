@@ -90,6 +90,7 @@ class OAuthAppInput:
     scope_parameter_name: str = ""
     vendor_approval_status: int = 0
     vendor_approval_docs_url: str = ""
+    token_endpoint_auth_method: int = 0
 
     def _to_proto(self) -> api_pb2.OAuthApp:
         spec = spec_pb2.OAuthAppSpec(
@@ -102,6 +103,7 @@ class OAuthAppInput:
             scope_parameter_name=self.scope_parameter_name,
             vendor_approval_status=self.vendor_approval_status,
             vendor_approval_docs_url=self.vendor_approval_docs_url,
+            token_endpoint_auth_method=self.token_endpoint_auth_method,
         )
         if self.scopes:
             spec.scopes.extend(self.scopes)

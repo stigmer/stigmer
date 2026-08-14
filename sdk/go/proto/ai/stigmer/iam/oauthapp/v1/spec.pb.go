@@ -86,6 +86,69 @@ func (VendorApprovalStatus) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDescGZIP(), []int{0}
 }
 
+// Client authentication method for the vendor's OAuth token endpoint,
+// mirroring the RFC 8414 token_endpoint_auth_methods_supported vocabulary.
+//
+// Only confidential-client methods appear here: public (DCR) clients
+// authenticate with PKCE alone and never carry a client secret, so this
+// enum is meaningful only for OAuthApp-backed vendor OAuth.
+type TokenEndpointAuthMethod int32
+
+const (
+	// Default / unset. Treated as CLIENT_SECRET_BASIC for backwards
+	// compatibility — every OAuthApp created before this field existed
+	// authenticated via HTTP Basic.
+	TokenEndpointAuthMethod_TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED TokenEndpointAuthMethod = 0
+	// client_secret_basic: the secret rides the Authorization header as
+	// HTTP Basic credentials (RFC 6749 §2.3.1's baseline method).
+	TokenEndpointAuthMethod_TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC TokenEndpointAuthMethod = 1
+	// client_secret_post: the secret rides the request body as the
+	// client_secret form parameter. Required by vendors whose token
+	// endpoints do not accept Basic (e.g. HubSpot).
+	TokenEndpointAuthMethod_TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST TokenEndpointAuthMethod = 2
+)
+
+// Enum value maps for TokenEndpointAuthMethod.
+var (
+	TokenEndpointAuthMethod_name = map[int32]string{
+		0: "TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED",
+		1: "TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC",
+		2: "TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST",
+	}
+	TokenEndpointAuthMethod_value = map[string]int32{
+		"TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED":         0,
+		"TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC": 1,
+		"TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST":  2,
+	}
+)
+
+func (x TokenEndpointAuthMethod) Enum() *TokenEndpointAuthMethod {
+	p := new(TokenEndpointAuthMethod)
+	*p = x
+	return p
+}
+
+func (x TokenEndpointAuthMethod) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TokenEndpointAuthMethod) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_iam_oauthapp_v1_spec_proto_enumTypes[1].Descriptor()
+}
+
+func (TokenEndpointAuthMethod) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_iam_oauthapp_v1_spec_proto_enumTypes[1]
+}
+
+func (x TokenEndpointAuthMethod) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TokenEndpointAuthMethod.Descriptor instead.
+func (TokenEndpointAuthMethod) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDescGZIP(), []int{1}
+}
+
 // OAuthAppSpec defines a registered OAuth application with an external vendor.
 type OAuthAppSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -140,8 +203,21 @@ type OAuthAppSpec struct {
 	// Shown in the frontend as a help link when vendor_approval_status
 	// is PENDING. Empty means no documentation link is displayed.
 	VendorApprovalDocsUrl string `protobuf:"bytes,10,opt,name=vendor_approval_docs_url,json=vendorApprovalDocsUrl,proto3" json:"vendor_approval_docs_url,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// How the client secret is presented to the vendor's token endpoint
+	// during authorization-code exchange and refresh.
+	//
+	// RFC 6749 §2.3.1 requires authorization servers to support HTTP Basic,
+	// but some vendors' token endpoints accept only client_secret_post
+	// (e.g. HubSpot advertises token_endpoint_auth_methods_supported:
+	// ["client_secret_post"]). Exactly one method is ever used per request —
+	// RFC 6749 §2.3 forbids presenting credentials through more than one
+	// channel at once, and some servers reject requests that do.
+	//
+	// UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
+	// compatibility, preserving the historical behavior byte-for-byte.
+	TokenEndpointAuthMethod TokenEndpointAuthMethod `protobuf:"varint,11,opt,name=token_endpoint_auth_method,json=tokenEndpointAuthMethod,proto3,enum=ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod" json:"token_endpoint_auth_method,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *OAuthAppSpec) Reset() {
@@ -244,11 +320,18 @@ func (x *OAuthAppSpec) GetVendorApprovalDocsUrl() string {
 	return ""
 }
 
+func (x *OAuthAppSpec) GetTokenEndpointAuthMethod() TokenEndpointAuthMethod {
+	if x != nil {
+		return x.TokenEndpointAuthMethod
+	}
+	return TokenEndpointAuthMethod_TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED
+}
+
 var File_ai_stigmer_iam_oauthapp_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"%ai/stigmer/iam/oauthapp/v1/spec.proto\x12\x1aai.stigmer.iam.oauthapp.v1\x1a\x1bbuf/validate/validate.proto\"\xea\x03\n" +
+	"%ai/stigmer/iam/oauthapp/v1/spec.proto\x12\x1aai.stigmer.iam.oauthapp.v1\x1a\x1bbuf/validate/validate.proto\"\xdc\x04\n" +
 	"\fOAuthAppSpec\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12$\n" +
 	"\tclient_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bclientId\x12,\n" +
@@ -260,12 +343,17 @@ const file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDesc = "" +
 	"\x14scope_parameter_name\x18\b \x01(\tR\x12scopeParameterName\x12f\n" +
 	"\x16vendor_approval_status\x18\t \x01(\x0e20.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatusR\x14vendorApprovalStatus\x127\n" +
 	"\x18vendor_approval_docs_url\x18\n" +
-	" \x01(\tR\x15vendorApprovalDocsUrl*\xac\x01\n" +
+	" \x01(\tR\x15vendorApprovalDocsUrl\x12p\n" +
+	"\x1atoken_endpoint_auth_method\x18\v \x01(\x0e23.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethodR\x17tokenEndpointAuthMethod*\xac\x01\n" +
 	"\x14VendorApprovalStatus\x12&\n" +
 	"\"VENDOR_APPROVAL_STATUS_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eVENDOR_APPROVAL_STATUS_PENDING\x10\x01\x12#\n" +
 	"\x1fVENDOR_APPROVAL_STATUS_APPROVED\x10\x02\x12#\n" +
-	"\x1fVENDOR_APPROVAL_STATUS_REJECTED\x10\x03B\x8a\x02\n" +
+	"\x1fVENDOR_APPROVAL_STATUS_REJECTED\x10\x03*\xac\x01\n" +
+	"\x17TokenEndpointAuthMethod\x12*\n" +
+	"&TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED\x10\x00\x122\n" +
+	".TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC\x10\x01\x121\n" +
+	"-TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST\x10\x02B\x8a\x02\n" +
 	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\tSpecProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
 
 var (
@@ -280,19 +368,21 @@ func file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_oauthapp_v1_spec_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_ai_stigmer_iam_oauthapp_v1_spec_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_ai_stigmer_iam_oauthapp_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_iam_oauthapp_v1_spec_proto_goTypes = []any{
-	(VendorApprovalStatus)(0), // 0: ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
-	(*OAuthAppSpec)(nil),      // 1: ai.stigmer.iam.oauthapp.v1.OAuthAppSpec
+	(VendorApprovalStatus)(0),    // 0: ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
+	(TokenEndpointAuthMethod)(0), // 1: ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod
+	(*OAuthAppSpec)(nil),         // 2: ai.stigmer.iam.oauthapp.v1.OAuthAppSpec
 }
 var file_ai_stigmer_iam_oauthapp_v1_spec_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.iam.oauthapp.v1.OAuthAppSpec.vendor_approval_status:type_name -> ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	1, // 1: ai.stigmer.iam.oauthapp.v1.OAuthAppSpec.token_endpoint_auth_method:type_name -> ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_oauthapp_v1_spec_proto_init() }
@@ -305,7 +395,7 @@ func file_ai_stigmer_iam_oauthapp_v1_spec_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDesc), len(file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,

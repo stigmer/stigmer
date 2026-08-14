@@ -4,7 +4,10 @@ import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
-import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
+import {
+  TokenEndpointAuthMethod,
+  VendorApprovalStatus,
+} from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import { useUpdateOAuthApp } from "./useUpdateOAuthApp.js";
 import { useDeleteOAuthApp } from "./useDeleteOAuthApp.js";
@@ -87,6 +90,9 @@ export function OAuthAppDetailPanel({
   const [scopeParameterName, setScopeParameterName] = useState(
     spec?.scopeParameterName ?? "",
   );
+  const [tokenEndpointAuthMethod, setTokenEndpointAuthMethod] = useState(
+    tokenAuthMethodToKey(spec?.tokenEndpointAuthMethod),
+  );
   const [vendorApprovalStatus, setVendorApprovalStatus] = useState(
     approvalStatusToKey(spec?.vendorApprovalStatus),
   );
@@ -103,6 +109,7 @@ export function OAuthAppDetailPanel({
     setScopes(spec?.scopes.join(", ") ?? "");
     setUserinfoUrl(spec?.userinfoUrl ?? "");
     setScopeParameterName(spec?.scopeParameterName ?? "");
+    setTokenEndpointAuthMethod(tokenAuthMethodToKey(spec?.tokenEndpointAuthMethod));
     setVendorApprovalStatus(approvalStatusToKey(spec?.vendorApprovalStatus));
     setVendorApprovalDocsUrl(spec?.vendorApprovalDocsUrl ?? "");
     clearUpdateError();
@@ -139,6 +146,10 @@ export function OAuthAppDetailPanel({
           ...(scopeParameterName.trim() && {
             scopeParameterName: scopeParameterName.trim(),
           }),
+          ...(tokenEndpointAuthMethod !== "unspecified" && {
+            tokenEndpointAuthMethod:
+              TOKEN_AUTH_METHOD_MAP[tokenEndpointAuthMethod],
+          }),
           ...(vendorApprovalStatus !== "unspecified" && {
             vendorApprovalStatus: APPROVAL_STATUS_MAP[vendorApprovalStatus],
           }),
@@ -154,8 +165,9 @@ export function OAuthAppDetailPanel({
     },
     [
       meta, provider, clientId, clientSecret, authorizationUrl, tokenUrl,
-      scopes, userinfoUrl, scopeParameterName, vendorApprovalStatus,
-      vendorApprovalDocsUrl, update, clearUpdateError, onUpdated,
+      scopes, userinfoUrl, scopeParameterName, tokenEndpointAuthMethod,
+      vendorApprovalStatus, vendorApprovalDocsUrl, update, clearUpdateError,
+      onUpdated,
     ],
   );
 
@@ -374,6 +386,40 @@ export function OAuthAppDetailPanel({
 
           <div className="stg:space-y-1">
             <label
+              htmlFor={`${baseId}-token-auth-method`}
+              className="stg:text-xs stg:font-medium stg:text-foreground"
+            >
+              Token endpoint auth method
+            </label>
+            <select
+              id={`${baseId}-token-auth-method`}
+              value={tokenEndpointAuthMethod}
+              onChange={(e) =>
+                setTokenEndpointAuthMethod(
+                  e.target.value as typeof tokenEndpointAuthMethod,
+                )
+              }
+              disabled={isUpdating}
+              className={cn(
+                "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+                "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+              )}
+            >
+              <option value="unspecified">
+                Unspecified (treated as HTTP Basic)
+              </option>
+              <option value="client_secret_basic">
+                client_secret_basic (HTTP Basic header)
+              </option>
+              <option value="client_secret_post">
+                client_secret_post (form body)
+              </option>
+            </select>
+          </div>
+
+          <div className="stg:space-y-1">
+            <label
               htmlFor={`${baseId}-approval-status`}
               className="stg:text-xs stg:font-medium stg:text-foreground"
             >
@@ -481,6 +527,29 @@ function approvalStatusToKey(
   }
 }
 
+const TOKEN_AUTH_METHOD_MAP = {
+  client_secret_basic: TokenEndpointAuthMethod.CLIENT_SECRET_BASIC,
+  client_secret_post: TokenEndpointAuthMethod.CLIENT_SECRET_POST,
+} as const;
+
+const TOKEN_AUTH_METHOD_LABELS: Record<number, string> = {
+  [TokenEndpointAuthMethod.CLIENT_SECRET_BASIC]: "client_secret_basic",
+  [TokenEndpointAuthMethod.CLIENT_SECRET_POST]: "client_secret_post",
+};
+
+function tokenAuthMethodToKey(
+  method?: TokenEndpointAuthMethod,
+): "unspecified" | "client_secret_basic" | "client_secret_post" {
+  switch (method) {
+    case TokenEndpointAuthMethod.CLIENT_SECRET_BASIC:
+      return "client_secret_basic";
+    case TokenEndpointAuthMethod.CLIENT_SECRET_POST:
+      return "client_secret_post";
+    default:
+      return "unspecified";
+  }
+}
+
 // ---------------------------------------------------------------------------
 // View mode
 // ---------------------------------------------------------------------------
@@ -514,6 +583,18 @@ function ViewMode({
           mono
         />
       )}
+      {spec?.tokenEndpointAuthMethod !== undefined &&
+        spec.tokenEndpointAuthMethod !==
+          TokenEndpointAuthMethod.UNSPECIFIED && (
+          <Field
+            label="Token endpoint auth method"
+            value={
+              TOKEN_AUTH_METHOD_LABELS[spec.tokenEndpointAuthMethod] ??
+              "Unknown"
+            }
+            mono
+          />
+        )}
       {spec?.vendorApprovalStatus !== undefined &&
         spec.vendorApprovalStatus !== VendorApprovalStatus.UNSPECIFIED && (
           <Field
