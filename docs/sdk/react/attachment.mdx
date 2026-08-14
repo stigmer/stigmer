@@ -39,14 +39,15 @@ function useAttachments(options?: UseAttachmentsOptions): UseAttachmentsReturn
 
 <TypeTable
   type={{
-    addFiles: { type: "(files: FileList | File[]) => void", description: "Add one or more files. Each file is validated and uploaded immediately. Invalid files (e.g., too large) are rejected via `onValidationError` and not added." },
-    allReady: { type: "boolean", description: "True when there are entries and all are ready (none uploading or errored)." },
+    addFiles: { type: "(files: FileList | File[], addOptions?: AddFilesOptions) => void", description: "Add one or more files. Each file is validated and uploaded immediately. Invalid files (e.g., too large) are rejected via `onValidationError` and not added. With AddFilesOptions.prepareImages, images are bounded to vision resolution first — entries appear at once in the `preparing` phase." },
+    allReady: { type: "boolean", description: "True when there are entries and all are ready (none preparing, uploading, or errored)." },
     clear: { type: "() => void", description: "Clear all entries and abort any in-flight uploads." },
-    entries: { type: "readonly AttachmentEntry[]", description: "Current attachment entries (uploading, ready, or errored)." },
+    entries: { type: "readonly AttachmentEntry[]", description: "Current attachment entries (preparing, uploading, ready, or errored)." },
     hasEntries: { type: "boolean", description: "True when there is at least one entry (in any phase)." },
-    isUploading: { type: "boolean", description: "True when at least one entry is in the `\"uploading\"` phase." },
+    isPreparing: { type: "boolean", description: "True when at least one entry is in the `\"preparing\"` phase." },
+    isUploading: { type: "boolean", description: "True while any entry has work in flight (`preparing` or `uploading`). This is the submit gate: `toAttachmentInputs()` carries only `ready` entries, so a send while this is true would silently drop the file the user just added." },
     readyCount: { type: "number", description: "Number of entries that are ready for submission." },
-    removeEntry: { type: "(id: string) => void", description: "Remove an entry by its stable ID. Aborts in-flight uploads." },
+    removeEntry: { type: "(id: string) => void", description: "Remove an entry by its stable ID. Aborts in-flight preparation and uploads." },
     retryEntry: { type: "(id: string) => void", description: "Retry a failed upload." },
     toAttachmentInputs: { type: "() => AttachmentInput[]", description: "Produces the `AttachmentInput[]` suitable for execution creation. Only includes entries in the `\"ready\"` phase." },
   }}
@@ -134,6 +135,17 @@ function CustomComposer() {
 
 ## Types
 
+### AddFilesOptions
+
+Per-call options for `UseAttachmentsReturn.addFiles`.
+
+<TypeTable
+  type={{
+    prepareImages: { type: "boolean", description: "Bound image files to provider vision resolution before upload (via prepareImageForVision) — the paste-to-attach treatment (stigmer/stigmer#284). Each file's entry appears immediately in the `preparing` phase, so a large screenshot shows a chip the instant it is pasted instead of after the 150-350 ms decode/downscale/re-encode (stigmer/stigmer#369). Non-image files pass through preparation untouched.  Meant for pasted content only: a picked or dragged file may be the subject of the task (\"read the EXIF\"), and silently re-encoding it would be a regression — see prepare-image.ts for the doctrine.  With this flag, size validation runs against the PREPARED bytes (the bytes that actually upload), so an oversized paste that downscales under the limit is accepted — identical to preparing before calling `addFiles`, which is what this option replaces. A file still oversized after preparation is removed and reported via `onValidationError`." },
+  }}
+/>
+
+
 ### assessVisionPreflight
 
 Predict which attached images the runner will degrade this turn.
@@ -173,7 +185,7 @@ independent entries with distinct IDs.
   type={{
     contentType: { type: "string", description: "MIME type of the file (e.g. `\"image/png\"`).", required: true },
     error: { type: "string | null", description: "Human-readable error message. Set when `phase` is `\"error\"`.", required: true },
-    file: { type: "File", description: "The original `File` object selected by the user.", required: true },
+    file: { type: "File", description: "The `File` object backing this attachment. For entries added with AddFilesOptions.prepareImages this starts as the user's original file and swaps to the prepared file (possibly smaller, with a matching extension/MIME change) when the `preparing` phase ends.", required: true },
     id: { type: "string", description: "Unique client-side identifier for this attachment.", required: true },
     phase: { type: "AttachmentPhase", description: "Current upload lifecycle phase.", required: true, typeDescriptionLink: "#attachmentphase" },
     storageKey: { type: "string | null", description: "Server-assigned storage key. Set when `phase` is `\"ready\"`.", required: true },
@@ -198,6 +210,11 @@ attachments.entries.map((entry) => (
 
 Lifecycle phase of a single attachment managed by [`useAttachments`](#useattachments).
 
+- `preparing` — client-side image preparation is running (see
+  `AddFilesOptions.prepareImages`); the entry exists so the UI can
+  show the file from the instant it was added, but no bytes have been
+  sent yet. Only entries added with `prepareImages` ever visit this
+  phase — everything else starts at `uploading`.
 - `uploading` — bytes are being sent to the server
 - `ready` — upload succeeded, `storageKey` is available
 - `error` — upload failed, `error` describes the failure

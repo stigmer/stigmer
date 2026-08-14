@@ -101,6 +101,18 @@ describe("AttachmentChipList — image miniature", () => {
     expect(container.querySelector("svg.stg\\:animate-spin")).toBeTruthy();
   });
 
+  it("treats the preparing phase as busy: spinner over the miniature, 'preparing' in the accessible label (#369)", async () => {
+    const preparing = entry({ id: "prep", phase: "preparing", storageKey: null });
+
+    const { container } = renderChips([preparing]);
+
+    await waitFor(() => expect(chipImage(container)).toBeTruthy());
+    expect(container.querySelector("svg.stg\\:animate-spin")).toBeTruthy();
+    expect(
+      screen.getByRole("listitem", { name: /shot\.png.*preparing/ }),
+    ).toBeTruthy();
+  });
+
   it("renders image chips preview-only: no visible filename or size text", async () => {
     const { container } = renderChips([entry()]);
 
