@@ -27,7 +27,7 @@ Use PlatformClient when a platform builder wants to embed Stigmer UI components 
 
 4. **Rotate when needed**: Call `PlatformClientCommandController.rotateSecret` to generate a new secret. The old secret is invalidated immediately. The `client_id` remains unchanged.
 
-5. **Delete**: Call `PlatformClientCommandController.delete` to permanently invalidate the credentials. Previously minted tokens remain valid until their own expiration.
+5. **Delete**: Call `PlatformClientCommandController.delete` to permanently invalidate the credentials AND revoke the client's outstanding user tokens — requests bearing them are refused `UNAUTHENTICATED` on their next call.
 
 ## Token Minting Flow
 

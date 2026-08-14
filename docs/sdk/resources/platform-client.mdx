@@ -33,7 +33,7 @@ Use PlatformClient when a platform builder wants to embed Stigmer UI components 
 
 4. **Rotate when needed**: Call `PlatformClientCommandController.rotateSecret` to generate a new secret. The old secret is invalidated immediately. The `client_id` remains unchanged.
 
-5. **Delete**: Call `PlatformClientCommandController.delete` to permanently invalidate the credentials. Previously minted tokens remain valid until their own expiration.
+5. **Delete**: Call `PlatformClientCommandController.delete` to permanently invalidate the credentials AND revoke the client's outstanding user tokens — requests bearing them are refused `UNAUTHENTICATED` on their next call.
 
 ## Token Minting Flow
 
@@ -487,7 +487,7 @@ PlatformClient platformClient = client.platformclients().update(PlatformClientIn
 
 Delete a platform client.
 
-Immediately invalidates the client_id and client_secret. Any tokens previously minted by this platform client remain valid until their own expiration — deletion does not revoke already-issued tokens.
+Immediately invalidates the client_id and client_secret AND revokes the client's outstanding user tokens: the platform resolves the minting client on every user-token request, and a client that no longer exists is refused UNAUTHENTICATED (fail closed) — so deletion takes effect on the very next request, not at token expiry.
 
 <SDKTabs>
 <Tab value="TypeScript">

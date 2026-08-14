@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "PlatformClient",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
-          "description": "Delete a platform client.\n\n Immediately invalidates the client_id and client_secret. Any tokens\n previously minted by this platform client remain valid until their\n own expiration — deletion does not revoke already-issued tokens."
+          "description": "Delete a platform client.\n\n Immediately invalidates the client_id and client_secret AND revokes\n the client's outstanding user tokens: the platform resolves the\n minting client on every user-token request, and a client that no\n longer exists is refused UNAUTHENTICATED (fail closed) — so deletion\n takes effect on the very next request, not at token expiry."
         },
         {
           "name": "RotateSecret",
