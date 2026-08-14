@@ -154,9 +154,20 @@ function AttachmentChip({
 
 /** Shared accessible name: filename, size, and upload status. */
 function chipAriaLabel(entry: AttachmentEntry): string {
+  const isPreparing = entry.phase === "preparing";
   const isUploading = entry.phase === "uploading";
   const isError = entry.phase === "error";
-  return `${entry.file.name}, ${formatFileSize(entry.file.size)}${isUploading ? ", uploading" : ""}${isError ? ", upload failed" : ""}`;
+  return `${entry.file.name}, ${formatFileSize(entry.file.size)}${isPreparing ? ", preparing" : ""}${isUploading ? ", uploading" : ""}${isError ? ", upload failed" : ""}`;
+}
+
+/**
+ * True while the entry has work in flight (`preparing` or `uploading`) —
+ * the chips render both identically (dimmed + spinner): to the user each
+ * means "your file is on its way", and the split is audible in the
+ * accessible label where it actually informs.
+ */
+function isChipBusy(entry: AttachmentEntry): boolean {
+  return entry.phase === "preparing" || entry.phase === "uploading";
 }
 
 // ---------------------------------------------------------------------------
@@ -212,7 +223,7 @@ function ImageAttachmentChip({
   }
 
   const isError = entry.phase === "error";
-  const isUploading = entry.phase === "uploading";
+  const isBusy = isChipBusy(entry);
 
   return (
     // The remove badge and retry pill are SIBLINGS of the preview button,
@@ -250,7 +261,7 @@ function ImageAttachmentChip({
               onError={() => setLoadFailed(true)}
               className={cn(
                 "stg:h-full stg:w-full stg:object-cover",
-                (isUploading || isError) && "stg:opacity-50",
+                (isBusy || isError) && "stg:opacity-50",
               )}
             />
           ) : (
@@ -261,7 +272,7 @@ function ImageAttachmentChip({
               aria-hidden="true"
             />
           )}
-          {isUploading && (
+          {isBusy && (
             <span className="stg:absolute stg:inset-0 stg:flex stg:items-center stg:justify-center">
               <ChipSpinner size={16} />
             </span>
@@ -322,7 +333,7 @@ function FileAttachmentChip({
   readonly disabled?: boolean;
 }) {
   const isError = entry.phase === "error";
-  const isUploading = entry.phase === "uploading";
+  const isBusy = isChipBusy(entry);
 
   return (
     <span
@@ -333,12 +344,12 @@ function FileAttachmentChip({
         isError
           ? "stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:text-destructive"
           : "stg:bg-muted-subtle stg:text-foreground",
-        isUploading && "stg:opacity-70",
+        isBusy && "stg:opacity-70",
       )}
     >
-      {isUploading && <ChipSpinner />}
+      {isBusy && <ChipSpinner />}
       {isError && <ErrorDot />}
-      {!isUploading && !isError && <FileIcon />}
+      {!isBusy && !isError && <FileIcon />}
 
       <span className="stg:truncate">{entry.file.name}</span>
 

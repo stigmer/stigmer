@@ -502,6 +502,7 @@ export {
   visionPreflightMessage,
 } from "./attachment/index.js";
 export type {
+  AddFilesOptions,
   AttachmentPhase,
   AttachmentEntry,
   AssessVisionPreflightOptions,
