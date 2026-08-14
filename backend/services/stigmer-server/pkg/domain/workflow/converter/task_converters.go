@@ -493,11 +493,40 @@ func convertEmitEventTask(cfg *tasksv1.EmitEventTaskConfig) map[string]interface
 		event["data"] = cfg.Event.Data.AsMap()
 	}
 
+	with := map[string]interface{}{
+		"event": event,
+	}
+
+	// Delivery targets emit as the runner's DeliveryTarget union shape:
+	// exactly one of {"webhook": {...}} or {"signal": {...}} per entry
+	// (the runner discriminates structurally; keys are snake_case verbatim).
+	if len(cfg.Delivery) > 0 {
+		targets := make([]interface{}, 0, len(cfg.Delivery))
+		for _, target := range cfg.Delivery {
+			switch t := target.Target.(type) {
+			case *tasksv1.EmitDeliveryTarget_Webhook:
+				webhook := map[string]interface{}{
+					"url": t.Webhook.Url,
+				}
+				if len(t.Webhook.Headers) > 0 {
+					webhook["headers"] = t.Webhook.Headers
+				}
+				targets = append(targets, map[string]interface{}{"webhook": webhook})
+			case *tasksv1.EmitDeliveryTarget_Signal:
+				targets = append(targets, map[string]interface{}{
+					"signal": map[string]interface{}{
+						"execution_id": t.Signal.ExecutionId,
+						"signal_name":  t.Signal.SignalName,
+					},
+				})
+			}
+		}
+		with["delivery"] = targets
+	}
+
 	return map[string]interface{}{
 		"call": "emit_event",
-		"with": map[string]interface{}{
-			"event": event,
-		},
+		"with": with,
 	}
 }
 

@@ -20,10 +20,6 @@ import "google/protobuf/struct.proto";
 // - time: ISO 8601 timestamp of emission
 // - datacontenttype: always "application/json" (since data is a Struct)
 //
-// The runtime (T13) decides how events are delivered: Temporal signals to
-// other workflows, message queues, webhooks, or event buses. The proto
-// carries the event specification; delivery is a runtime concern.
-//
 // @since T03 (P0 New Task Types)
 message EmitEventSpec {
   // CloudEvents type identifier.
@@ -67,12 +63,15 @@ message EmitEventSpec {
 // emit_event is the complement to listen. While listen waits for Temporal
 // signals (internal workflow primitives), emit_event publishes business
 // events using the CloudEvents envelope (a standard external contract).
-// The runtime (T13) bridges the two: an emitted CloudEvent can be
-// delivered as a Temporal signal to another workflow's listen task, or
-// routed to external consumers via message queues, webhooks, or event buses.
+// The delivery field bridges the two: an emitted CloudEvent can be
+// delivered as a signal to another workflow's listen task (server-mediated
+// per oss#517) or POSTed to an external webhook. Authoring surface added
+// at oss#530; before that the runner capability existed but was
+// proto-invisible.
 //
 // The task output is the fully-resolved CloudEvents envelope with
-// runtime-generated fields populated:
+// runtime-generated fields populated (plus "delivery_errors" when any
+// delivery target failed):
 //   {
 //     "id": "<generated UUID>",
 //     "specversion": "1.0",
@@ -111,6 +110,24 @@ message EmitEventSpec {
 //             fulfilled_at: "${ $context.timestamp }"
 //       export:
 //         as: "${ . }"
+//
+// YAML Example (emit with delivery — webhook plus a signal to another
+// workflow's listen task):
+//   - notify_downstream:
+//       emit_event:
+//         event:
+//           type: "acme.order.fulfilled"
+//           subject: "${ $context.order.number }"
+//           data:
+//             order_id: "${ $context.order.id }"
+//         delivery:
+//           - webhook:
+//               url: "https://hooks.acme.com/orders"
+//               headers:
+//                 Authorization: "Bearer ${.secrets.ACME_HOOK_TOKEN}"
+//           - signal:
+//               execution_id: "${ .start_shipping.execution_id }"
+//               signal_name: "order-fulfilled"
 message EmitEventTaskConfig {
   option (ai.stigmer.commons.apiresource.discriminator_value) = "emit_event";
 
@@ -118,4 +135,90 @@ message EmitEventTaskConfig {
   // Contains the CloudEvents envelope fields (type, source, data, subject).
   // Required field.
   EmitEventSpec event = 1 [(buf.validate.field).required = true];
+
+  // Delivery targets for the emitted event (optional).
+  // When empty, the task only constructs the CloudEvents envelope and
+  // exposes it as task output — no external delivery happens.
+  //
+  // Delivery is best-effort: a failed target never fails the task. Failures
+  // are collected into the "delivery_errors" array on the task output, one
+  // entry per failed target, so workflows can branch on delivery health.
+  // Each target has a 30-second timeout.
+  repeated EmitDeliveryTarget delivery = 2;
+}
+
+// EmitDeliveryTarget selects one destination for an emitted event.
+//
+// Two delivery mechanisms are supported:
+// - webhook: HTTP POST the CloudEvents envelope to an external endpoint.
+// - signal: deliver the envelope as a signal to another workflow
+//   execution's listen task (the emit/listen pairing).
+message EmitDeliveryTarget {
+  oneof target {
+    option (buf.validate.oneof).required = true;
+
+    // POST the CloudEvents envelope to an HTTP endpoint.
+    WebhookDelivery webhook = 1;
+
+    // Signal another workflow execution's listen task.
+    SignalDelivery signal = 2;
+  }
+}
+
+// WebhookDelivery posts the CloudEvents envelope to an external HTTP
+// endpoint with Content-Type: application/cloudevents+json.
+//
+// @internal
+// Executed by the runner's emit-event activity (deliverWebhook): plain
+// fetch, 30s timeout, response body never read into the envelope. Egress
+// posture matches the http_call task — both let workflow authors reach
+// arbitrary URLs from the runner, so any future egress policy must govern
+// the two surfaces together (ruled at oss#530).
+message WebhookDelivery {
+  // Endpoint URL to POST the event to.
+  // Can contain expressions: "https://hooks.example.com/${ $context.tenant }"
+  string url = 1 [
+    (ai.stigmer.commons.apiresource.is_expression) = true,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // HTTP headers to send with the POST (optional).
+  // Values can contain runtime placeholders resolved just-in-time by the
+  // runner: "Authorization: Bearer ${.secrets.WEBHOOK_TOKEN}" or
+  // "${.env_vars.KEY}". Secrets resolve inside the delivery activity and
+  // never enter workflow history.
+  map<string, string> headers = 2;
+}
+
+// SignalDelivery routes the CloudEvents envelope to another workflow
+// execution as a signal, completing the emit/listen pairing: the target
+// execution receives the envelope on the listen task whose signal id
+// matches signal_name.
+//
+// @internal
+// Delivery is server-mediated via the workflowexecution sendSignal RPC —
+// the only sanctioned path for runner-originated signals (oss#517:
+// authorization boundary, phase gate, execution-id addressing). sendSignal
+// enforces can_edit on the TARGET execution, which resolves to its owner:
+// cross-execution signals therefore work only between executions triggered
+// by the same principal. Deliberate conservative posture, ruled at
+// oss#530; a scoped can_signal relation is the named follow-up if
+// cross-principal pipelines get demand.
+message SignalDelivery {
+  // Target workflow execution id ("wfx_..."), as returned by run/create.
+  // Usually flows from a prior task's output:
+  // "${ .start_processor.execution_id }"
+  string execution_id = 1 [
+    (ai.stigmer.commons.apiresource.is_expression) = true,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Signal name, matching the target's listen task event id (verbatim).
+  string signal_name = 2 [
+    (ai.stigmer.commons.apiresource.is_expression) = true,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
 }

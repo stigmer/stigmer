@@ -460,3 +460,151 @@ func TestProtoToYAML_NoTasks(t *testing.T) {
 		t.Error("Expected error for empty tasks")
 	}
 }
+
+// TestProtoToYAML_EmitEventEmissionContract pins the cross-edition emission
+// contract for emit_event (issue #530): this converter and the cloud Java
+// InProcessWorkflowValidator must emit a `with:` block with exactly these
+// keys and values for this fixture — the runner executes whichever
+// edition's YAML was stored at validation time. Delivery targets emit as
+// the runner's structurally-discriminated union: exactly one of
+// {"webhook": {...}} or {"signal": {...}} per entry, snake_case keys
+// verbatim. The Java twin (InProcessWorkflowValidatorTest#
+// emitEventEmissionContract) pins the same fixture; change both together
+// or not at all.
+func TestProtoToYAML_EmitEventEmissionContract(t *testing.T) {
+	config, _ := structpb.NewStruct(map[string]interface{}{
+		"event": map[string]interface{}{
+			"type":    "acme.order.fulfilled",
+			"subject": "${ $context.order.number }",
+			"data": map[string]interface{}{
+				"order_id": "${ $context.order.id }",
+			},
+		},
+		"delivery": []interface{}{
+			map[string]interface{}{
+				"webhook": map[string]interface{}{
+					"url": "https://hooks.acme.com/orders",
+					"headers": map[string]interface{}{
+						"Authorization": "Bearer ${.secrets.ACME_HOOK_TOKEN}",
+					},
+				},
+			},
+			map[string]interface{}{
+				"signal": map[string]interface{}{
+					"execution_id": "${ .start_shipping.execution_id }",
+					"signal_name":  "order-fulfilled",
+				},
+			},
+		},
+	})
+
+	spec := &workflowv1.WorkflowSpec{
+		Document: &workflowv1.WorkflowDocument{
+			Dsl:       "1.0.0",
+			Namespace: "test",
+			Name:      "emit-emission-contract",
+			Version:   "1.0.0",
+		},
+		Tasks: []*workflowv1.WorkflowTask{
+			{
+				Name:       "notify_downstream",
+				Kind:       workflowv1.WorkflowTaskKind_emit_event,
+				TaskConfig: config,
+			},
+		},
+	}
+
+	yamlStr, err := NewConverter().ProtoToYAML(spec)
+	if err != nil {
+		t.Fatalf("ProtoToYAML failed: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := yaml.Unmarshal([]byte(yamlStr), &parsed); err != nil {
+		t.Fatalf("emitted YAML does not parse: %v", err)
+	}
+
+	doTasks, ok := parsed["do"].([]interface{})
+	if !ok || len(doTasks) != 1 {
+		t.Fatalf("expected 1 do-task, got %v", parsed["do"])
+	}
+	emitTask, ok := doTasks[0].(map[string]interface{})["notify_downstream"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("missing 'notify_downstream' task in %v", doTasks[0])
+	}
+	if emitTask["call"] != "emit_event" {
+		t.Fatalf("expected call: emit_event, got %v", emitTask["call"])
+	}
+
+	expectedWith := map[string]interface{}{
+		"event": map[string]interface{}{
+			"type":    "acme.order.fulfilled",
+			"subject": "${ $context.order.number }",
+			"data": map[string]interface{}{
+				"order_id": "${ $context.order.id }",
+			},
+		},
+		"delivery": []interface{}{
+			map[string]interface{}{
+				"webhook": map[string]interface{}{
+					"url": "https://hooks.acme.com/orders",
+					"headers": map[string]interface{}{
+						"Authorization": "Bearer ${.secrets.ACME_HOOK_TOKEN}",
+					},
+				},
+			},
+			map[string]interface{}{
+				"signal": map[string]interface{}{
+					"execution_id": "${ .start_shipping.execution_id }",
+					"signal_name":  "order-fulfilled",
+				},
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(emitTask["with"], expectedWith) {
+		t.Errorf("emit_event with-block diverges from the pinned emission contract.\ngot:  %#v\nwant: %#v",
+			emitTask["with"], expectedWith)
+	}
+}
+
+// TestProtoToYAML_EmitEventWithoutDelivery pins that the delivery key is
+// ABSENT (not an empty list) when no targets are configured — envelope-only
+// emits stay byte-compatible with every workflow authored before #530.
+func TestProtoToYAML_EmitEventWithoutDelivery(t *testing.T) {
+	config, _ := structpb.NewStruct(map[string]interface{}{
+		"event": map[string]interface{}{
+			"type": "stigmer.workflow.ticket.classified",
+		},
+	})
+
+	spec := &workflowv1.WorkflowSpec{
+		Document: &workflowv1.WorkflowDocument{
+			Dsl:       "1.0.0",
+			Namespace: "test",
+			Name:      "emit-no-delivery",
+			Version:   "1.0.0",
+		},
+		Tasks: []*workflowv1.WorkflowTask{
+			{
+				Name:       "notify",
+				Kind:       workflowv1.WorkflowTaskKind_emit_event,
+				TaskConfig: config,
+			},
+		},
+	}
+
+	yamlStr, err := NewConverter().ProtoToYAML(spec)
+	if err != nil {
+		t.Fatalf("ProtoToYAML failed: %v", err)
+	}
+	var parsed map[string]interface{}
+	if err := yaml.Unmarshal([]byte(yamlStr), &parsed); err != nil {
+		t.Fatalf("emitted YAML does not parse: %v", err)
+	}
+	emitTask := parsed["do"].([]interface{})[0].(map[string]interface{})["notify"].(map[string]interface{})
+	with := emitTask["with"].(map[string]interface{})
+	if _, present := with["delivery"]; present {
+		t.Errorf("delivery key must be absent when unconfigured, got %v", with["delivery"])
+	}
+}

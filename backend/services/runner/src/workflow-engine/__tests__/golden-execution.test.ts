@@ -523,8 +523,27 @@ describe("Golden Execution — Tier 1d: Advanced Tasks", () => {
 
     await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
 
-    expect(mockCallFunction).toHaveBeenCalledTimes(2);
+    expect(mockCallFunction).toHaveBeenCalledTimes(3);
     expect(state.data.events_emitted).toBe(true);
+
+    // Delivery targets authored in the DSL (oss#530) must reach the
+    // function-call boundary verbatim: the runner's emit activity
+    // discriminates each entry structurally on its webhook/signal key.
+    const deliveryConfig = mockCallFunction.mock.calls[2][1] as Record<string, unknown>;
+    expect(deliveryConfig.delivery).toEqual([
+      {
+        webhook: {
+          url: "https://hooks.acme.com/orders",
+          headers: { "X-Source": "stigmer" },
+        },
+      },
+      {
+        signal: {
+          execution_id: "wfx_shipping_001",
+          signal_name: "order-fulfilled",
+        },
+      },
+    ]);
   });
 
   it("#20 human-input — HITL approval gates with timeout policies", async () => {
