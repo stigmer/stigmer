@@ -44,7 +44,10 @@ on:
 
 concurrency:
   group: e2e-interactive-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+  # PR pushes cancel superseded runs; main pushes queue instead, so every
+  # merge gets a completed, attributable run (stigmer/stigmer#725 — this
+  # lane merged minutes after that sweep and adopts its ruling here).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -165,15 +168,9 @@ jobs:
         working-directory: test/e2e
         run: npx playwright install --with-deps chromium
 
-      # share-agent-flow is excluded pending re-anchoring: it drives the
-      # pre-redesign single-toggle Share dialog, but the agent detail page
-      # moved to a Shares tab with per-share channels — found by this lane's
-      # own bring-up run (deterministic failure, product copy is fine).
-      # Tracked in the follow-up issue linked from #572; drop the filter
-      # when the spec is re-anchored. Local runs still surface it.
       - name: Run interactive E2E suite
         working-directory: test/e2e
-        run: npx playwright test --project=interactive --grep-invert "Share agent flow"
+        run: npx playwright test --project=interactive
 
       - name: Upload test results
         if: always()

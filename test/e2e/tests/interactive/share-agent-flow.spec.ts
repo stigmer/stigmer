@@ -4,12 +4,15 @@ import { assertNoErrorBoundary } from "../../helpers/navigation";
 import type { Page } from "@playwright/test";
 
 /**
- * Share flow on the agent detail page: open the Share dialog from the
- * actions menu, toggle sharing on, verify the public chat link renders,
- * copy it, and toggle sharing back off.
+ * Share flow on the agent detail page, anchored to the Shares-tab surface
+ * (stigmer#744): the Share action is pure navigation to the Shares tab,
+ * where each share is its own channel — created through the Create-share
+ * dialog, listed with its chat link, and deleted through the row's
+ * actions menu.
  *
  * Runs against the OSS stack, where permission checks degrade permissive
- * — the Share action is always visible to the single local user.
+ * — the Share action and every share affordance are visible to the
+ * single local user.
  */
 
 async function openAgentDetail(page: Page, org: string, slug: string) {
@@ -20,12 +23,45 @@ async function openAgentDetail(page: Page, org: string, slug: string) {
   await assertNoErrorBoundary(page);
 }
 
-async function openShareDialog(page: Page) {
+// The Share action navigates to the Shares tab; a fresh fixture agent has
+// no shares, so it lands on the first-use empty state.
+async function openSharesTab(page: Page) {
   await page.getByRole("button", { name: "More actions" }).click();
   await page.getByRole("menuitem", { name: "Share" }).click();
-  await expect(
-    page.getByRole("dialog").getByText("Anyone with the link can chat"),
-  ).toBeVisible({ timeout: 10_000 });
+}
+
+// Creates a share through the dialog. The form prefills name and slug from
+// the agent; the slug is overridden because share slugs live in the org's
+// resource namespace, so reusing the agent's own slug would collide.
+async function createShare(page: Page, shareSlug: string) {
+  await page.getByRole("button", { name: "Create share" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Slug").fill(shareSlug);
+  await dialog.getByRole("button", { name: "Create share" }).click();
+
+  // Success flips the dialog from the create form to the share editor.
+  await expect(page.getByText("Share created — the link is live")).toBeVisible(
+    { timeout: 10_000 },
+  );
+  await dialog.getByRole("button", { name: "Done" }).click();
+}
+
+// Deletes the share via the row's actions menu, confirming the destructive
+// dialog, and waits for the list to return to the empty state — leaving
+// the fixture agent unshared for other tests.
+async function deleteShare(page: Page, shareName: string) {
+  await page.getByRole("button", { name: `Actions for ${shareName}` }).click();
+  await page.getByRole("menuitem", { name: "Delete" }).click();
+
+  const confirmDialog = page.getByRole("dialog", { name: "Delete share?" });
+  await confirmDialog.getByRole("button", { name: "Delete" }).click();
+
+  await expect(page.getByText("Share deleted")).toBeVisible({
+    timeout: 10_000,
+  });
+  await expect(page.getByText("No shares yet")).toBeVisible({
+    timeout: 10_000,
+  });
 }
 
 test.describe("Share agent flow", () => {
@@ -36,71 +72,61 @@ test.describe("Share agent flow", () => {
     await ensureDefaultOrg(stigmerClient);
   });
 
-  test("toggle sharing on, see the link, copy it, toggle off", async ({
+  test("create a share from the Shares tab, see the live link, copy it, delete it", async ({
     page,
     testAgent,
   }) => {
     await openAgentDetail(page, testAgent.org, testAgent.slug);
-    await openShareDialog(page);
+    await openSharesTab(page);
 
-    const dialog = page.getByRole("dialog");
-    const shareSwitch = dialog.getByRole("switch");
-
-    // Fresh agent: sharing starts disabled.
-    await expect(shareSwitch).toHaveAttribute("aria-checked", "false");
-
-    // Enable sharing — persisted by creating the canonical AgentShare
-    // (agentShare.apply) against the real server.
-    await shareSwitch.click();
-    await expect(shareSwitch).toHaveAttribute("aria-checked", "true", {
+    // Fresh agent: the Shares tab opens on the first-use empty state.
+    await expect(page.getByText("No shares yet")).toBeVisible({
       timeout: 10_000,
     });
 
-    // The public chat link renders for this agent.
-    const expectedPath = `/chat/${testAgent.org}/${testAgent.slug}`;
-    await expect(dialog.getByText(expectedPath)).toBeVisible();
+    const shareSlug = `${testAgent.slug}-share`;
+    await createShare(page, shareSlug);
 
-    // Copy the link (clipboard-permission-free assertion: the toast confirms).
-    await dialog.getByRole("button", { name: "Copy" }).first().click();
-    await expect(page.getByText("Link copied")).toBeVisible({ timeout: 5_000 });
-
-    // Toggle sharing back off.
-    await shareSwitch.click();
-    await expect(shareSwitch).toHaveAttribute("aria-checked", "false", {
+    // The list shows the share with its chat link (name stays prefilled
+    // from the agent, so the row is addressed by the agent's name).
+    const expectedPath = `/chat/${testAgent.org}/${shareSlug}`;
+    await expect(page.getByText(expectedPath)).toBeVisible({
       timeout: 10_000,
     });
+
+    // Copy the link (clipboard-permission-free assertion: the toast
+    // confirms; the copied URL additionally carries the link token).
+    await page
+      .getByRole("button", { name: `Copy link for ${testAgent.slug}` })
+      .click();
+    await expect(page.getByText("Link copied")).toBeVisible({
+      timeout: 5_000,
+    });
+
+    await deleteShare(page, testAgent.slug);
   });
 
-  test("sharing state persists across a dialog reopen", async ({
+  test("a created share persists across a page reload", async ({
     page,
     testAgent,
   }) => {
     await openAgentDetail(page, testAgent.org, testAgent.slug);
-    await openShareDialog(page);
-
-    const dialog = page.getByRole("dialog");
-    const shareSwitch = dialog.getByRole("switch");
-
-    await shareSwitch.click();
-    await expect(shareSwitch).toHaveAttribute("aria-checked", "true", {
+    await openSharesTab(page);
+    await expect(page.getByText("No shares yet")).toBeVisible({
       timeout: 10_000,
     });
 
-    // Close and reopen — the persisted state must survive the remount.
-    await dialog.getByRole("button", { name: "Done" }).click();
-    await openShareDialog(page);
-    await expect(page.getByRole("dialog").getByRole("switch")).toHaveAttribute(
-      "aria-checked",
-      "true",
-      { timeout: 10_000 },
-    );
+    const shareSlug = `${testAgent.slug}-share`;
+    await createShare(page, shareSlug);
 
-    // Leave the fixture unshared for other tests.
-    await page.getByRole("dialog").getByRole("switch").click();
-    await expect(page.getByRole("dialog").getByRole("switch")).toHaveAttribute(
-      "aria-checked",
-      "false",
-      { timeout: 10_000 },
-    );
+    // Reload and come back through the same entry path — the share is a
+    // server-side resource, so it must survive the full remount.
+    await openAgentDetail(page, testAgent.org, testAgent.slug);
+    await openSharesTab(page);
+    await expect(
+      page.getByText(`/chat/${testAgent.org}/${shareSlug}`),
+    ).toBeVisible({ timeout: 10_000 });
+
+    await deleteShare(page, testAgent.slug);
   });
 });
