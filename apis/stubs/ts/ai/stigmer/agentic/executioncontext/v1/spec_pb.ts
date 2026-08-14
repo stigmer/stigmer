@@ -16,9 +16,6 @@ export const file_ai_stigmer_agentic_executioncontext_v1_spec: GenFile = /*@__PU
 /**
  * Runtime configuration and secrets for a single execution.
  *
- * @internal
- * Created by the execution engine, deleted when execution completes.
- *
  * @generated from message ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec
  */
 export type ExecutionContextSpec = Message<"ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec"> & {
@@ -31,10 +28,6 @@ export type ExecutionContextSpec = Message<"ai.stigmer.agentic.executioncontext.
 
   /**
    * Runtime key-value pairs, each marked as secret or plaintext.
-   *
-   * @internal
-   * Provided at runtime and only exist for the duration of the execution.
-   * Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
    *
    * @generated from field: map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> data = 2;
    */
@@ -59,21 +52,12 @@ export type ExecutionValue = Message<"ai.stigmer.agentic.executioncontext.v1.Exe
    * workflow env vars may be provided with no value, and the workflow
    * engine resolves them to "" in expression interpolation.
    *
-   * @internal
-   * If is_secret=true: encrypted at rest and redacted in logs.
-   * If is_secret=false: stored as plaintext.
-   *
    * @generated from field: string value = 1;
    */
   value: string;
 
   /**
    * Whether this value should be treated as a secret.
-   *
-   * @internal
-   * When true: value is encrypted at rest, redacted in logs, and deleted
-   * when execution completes.
-   * When false: value is stored as plaintext and visible in audit logs.
    *
    * @generated from field: bool is_secret = 2;
    */

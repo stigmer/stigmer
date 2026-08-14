@@ -129,12 +129,6 @@ export type ListAgentExecutionsRequest = Message<"ai.stigmer.agentic.agentexecut
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.
    *
-   * @internal
-   * Optional by design: pre-existing callers rely on the permission-bounded
-   * behavior, and the OSS single-user edition treats org filtering as a
-   * no-op. Filtering happens in the query/list step of each edition's
-   * handler, never client-side.
-   *
    * @generated from field: string org = 5;
    */
   org: string;

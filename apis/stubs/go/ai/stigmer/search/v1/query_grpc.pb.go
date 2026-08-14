@@ -34,28 +34,6 @@ const (
 // search, or leave both empty to list all accessible resources.
 //
 // Results only include resources the caller has permission to view.
-//
-// @internal
-// This is a CQRS Query Service on the read-side. It queries multiple domain
-// aggregates (Agent, Skill, McpServer, Workflow) and returns display-optimized
-// projections. It does not modify state.
-//
-// Search is cross-aggregate query infrastructure, not a domain bounded context.
-// It lives in the query layer (CQRS read-side), not the domain layer.
-// Therefore, it does not have an api_resource_kind option like domain services.
-//
-// Authorization is handled programmatically in the handler (not via
-// declarative authorization options like domain services):
-// 1. Call FGA to get authorized resource IDs per requested kind
-// 2. Apply filters (org, query, exclude_public) against authorized set
-// 3. Return only resources the caller has can_view permission on
-//
-// Usage Patterns (all via single RPC):
-// - List agents in org:    {kinds: [agent], org: "acme", query: ""}
-// - Search agents:         {kinds: [agent], query: "security"}
-// - Search in org:         {kinds: [agent], org: "acme", query: "security"}
-// - Discover all kinds:    {kinds: [], query: "kubernetes"}
-// - Discover specific:     {kinds: [agent, skill], query: "kubernetes"}
 type SearchServiceClient interface {
 	// Search resources across one or more kinds.
 	//
@@ -77,10 +55,6 @@ type SearchServiceClient interface {
 	// Pagination:
 	// Use page.num (1-indexed) and page.size to paginate results.
 	// Response includes total_count and total_pages for pagination controls.
-	//
-	// @internal
-	// Authorization: Returns only resources the caller has can_view permission on.
-	// The handler queries FGA per kind to get authorized IDs, then applies filters.
 	Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error)
 }
 
@@ -114,28 +88,6 @@ func (c *searchServiceClient) Search(ctx context.Context, in *SearchRequest, opt
 // search, or leave both empty to list all accessible resources.
 //
 // Results only include resources the caller has permission to view.
-//
-// @internal
-// This is a CQRS Query Service on the read-side. It queries multiple domain
-// aggregates (Agent, Skill, McpServer, Workflow) and returns display-optimized
-// projections. It does not modify state.
-//
-// Search is cross-aggregate query infrastructure, not a domain bounded context.
-// It lives in the query layer (CQRS read-side), not the domain layer.
-// Therefore, it does not have an api_resource_kind option like domain services.
-//
-// Authorization is handled programmatically in the handler (not via
-// declarative authorization options like domain services):
-// 1. Call FGA to get authorized resource IDs per requested kind
-// 2. Apply filters (org, query, exclude_public) against authorized set
-// 3. Return only resources the caller has can_view permission on
-//
-// Usage Patterns (all via single RPC):
-// - List agents in org:    {kinds: [agent], org: "acme", query: ""}
-// - Search agents:         {kinds: [agent], query: "security"}
-// - Search in org:         {kinds: [agent], org: "acme", query: "security"}
-// - Discover all kinds:    {kinds: [], query: "kubernetes"}
-// - Discover specific:     {kinds: [agent, skill], query: "kubernetes"}
 type SearchServiceServer interface {
 	// Search resources across one or more kinds.
 	//
@@ -157,10 +109,6 @@ type SearchServiceServer interface {
 	// Pagination:
 	// Use page.num (1-indexed) and page.size to paginate results.
 	// Response includes total_count and total_pages for pagination controls.
-	//
-	// @internal
-	// Authorization: Returns only resources the caller has can_view permission on.
-	// The handler queries FGA per kind to get authorized IDs, then applies filters.
 	Search(context.Context, *SearchRequest) (*SearchResponse, error)
 }
 

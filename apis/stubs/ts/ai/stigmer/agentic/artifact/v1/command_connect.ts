@@ -11,22 +11,6 @@ import { ApiResourceId } from "../../../commons/apiresource/io_pbjs";
 /**
  * ArtifactCommandController handles write operations for Artifact resources.
  *
- * @internal
- * Follows the Command-Query Separation (CQS) pattern.
- *
- * These RPCs are system-level — used by the runner (stigmer-runner)
- * to persist task outputs. They are NOT exposed to end users or the SDK.
- *
- * Artifact creation flow:
- * 1. Runner detects output exceeding auto-promotion threshold (256KB)
- * 2. Runner calls create() with spec (metadata) + content (bytes)
- * 3. Backend hashes content, deduplicates, stores blob, creates record
- * 4. Runner receives Artifact with ID and status
- * 5. Runner replaces inline task output with artifact reference
- * 6. Runner includes artifact_created event in next updateStatus call
- *
- * @since T07 (Artifact Store)
- *
  * @generated from service ai.stigmer.agentic.artifact.v1.ArtifactCommandController
  */
 export const ArtifactCommandController = {
@@ -41,21 +25,6 @@ export const ArtifactCommandController = {
      * 3. If new: writes blob to storage (filesystem in OSS, S3 in Cloud)
      * 4. Creates Artifact metadata record with status populated
      * 5. Returns the created Artifact
-     *
-     * @internal
-     * Authorization: skip_authorization (system-level RPC, called by runners)
-     * The runner authenticates via service identity, not user credentials.
-     *
-     * Idempotent by content hash: creating the same content twice returns
-     * two distinct Artifact metadata records pointing to the same blob.
-     * This is intentional — different tasks may independently produce the
-     * same content, and each needs its own provenance trail.
-     *
-     * Error Cases:
-     *
-     * - INVALID_ARGUMENT: spec or content is missing/invalid
-     * - RESOURCE_EXHAUSTED: content exceeds 50MB limit
-     * - INTERNAL: blob storage write failure
      *
      * @generated from rpc ai.stigmer.agentic.artifact.v1.ArtifactCommandController.create
      */
@@ -72,14 +41,6 @@ export const ArtifactCommandController = {
      * state to deleted and schedules the blob for garbage collection.
      * If other artifacts reference the same content hash, the blob is
      * retained until all references are deleted.
-     *
-     * @internal
-     * Authorization: requires can_edit permission on the artifact.
-     *
-     * Error Cases:
-     *
-     * - NOT_FOUND: Artifact with given ID doesn't exist
-     * - PERMISSION_DENIED: User lacks can_edit permission
      *
      * @generated from rpc ai.stigmer.agentic.artifact.v1.ArtifactCommandController.delete
      */

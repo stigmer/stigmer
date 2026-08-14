@@ -10,12 +10,6 @@ import { ApiResourceDeleteInput } from "../../../commons/apiresource/io_pbjs";
 /**
  * ChannelAppCommandController handles write operations for channel apps.
  *
- * @internal
- * ChannelApps hold provider secrets (client_secret, signing_secret) and
- * are always org-private. There is no updateVisibility RPC — public
- * visibility is intentionally unsupported to prevent credential leakage
- * (the OAuthApp posture).
- *
  * @generated from service ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController
  */
 export const ChannelAppCommandController = {
@@ -27,11 +21,6 @@ export const ChannelAppCommandController = {
      * If the resource does not exist, creates a new channel app.
      * If the resource exists, updates the existing channel app. Sending
      * the redaction marker for a secret field preserves the stored value.
-     *
-     * @internal
-     * The authorization and state-operation are determined depending on
-     * whether the channel app is going to be created or updated, resolved
-     * as part of request execution.
      *
      * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.apply
      */
@@ -47,11 +36,6 @@ export const ChannelAppCommandController = {
      * The creator's organization owns the channel app. The creator is
      * granted the owner role automatically.
      *
-     * @internal
-     * Authorization: requires can_create_channel_app permission in the
-     * organization (admin-gated like can_create_oauth_app — the resource
-     * holds org-wide webhook credentials).
-     *
      * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.create
      */
     create: {
@@ -66,10 +50,6 @@ export const ChannelAppCommandController = {
      * Sending the redaction marker for a secret field preserves the
      * stored value; the provider arm is immutable.
      *
-     * @internal
-     * Authorization: requires can_edit permission on the channel_app
-     * resource.
-     *
      * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.update
      */
     update: {
@@ -83,12 +63,6 @@ export const ChannelAppCommandController = {
      *
      * Deletion is blocked while any AgentChannel references this app via
      * spec.app_ref — disconnect or delete those channels first.
-     *
-     * @internal
-     * Authorization: requires can_delete permission on the channel_app
-     * resource. The referencing-channels block mirrors OAuthApp's
-     * referencing-mcp-servers check and fails with FAILED_PRECONDITION
-     * naming a referencing channel.
      *
      * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.delete
      */

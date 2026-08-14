@@ -15,13 +15,6 @@ class CursorAccountCommandControllerStub(object):
     can_manage_cursor_accounts on platform:stigmer (human operators only):
     the resource holds provider key material and per-member spend, which
     are platform-internal and never org-visible.
-
-    @internal
-    Cloud-only. The OSS Go server does not implement this service — in the
-    OSS edition Cursor credentials are the user's own (BYOK env var), so
-    there is nothing to manage. Handlers refuse writes when secret
-    encryption is not enabled on the deployment (FAILED_PRECONDITION):
-    silently persisting plaintext keys is never acceptable for this store.
     """
 
     def __init__(self, channel):
@@ -71,13 +64,6 @@ class CursorAccountCommandControllerServicer(object):
     can_manage_cursor_accounts on platform:stigmer (human operators only):
     the resource holds provider key material and per-member spend, which
     are platform-internal and never org-visible.
-
-    @internal
-    Cloud-only. The OSS Go server does not implement this service — in the
-    OSS edition Cursor credentials are the user's own (BYOK env var), so
-    there is nothing to manage. Handlers refuse writes when secret
-    encryption is not enabled on the deployment (FAILED_PRECONDITION):
-    silently persisting plaintext keys is never acceptable for this store.
     """
 
     def upsertCursorAccount(self, request, context):
@@ -184,13 +170,6 @@ class CursorAccountCommandController(object):
     can_manage_cursor_accounts on platform:stigmer (human operators only):
     the resource holds provider key material and per-member spend, which
     are platform-internal and never org-visible.
-
-    @internal
-    Cloud-only. The OSS Go server does not implement this service — in the
-    OSS edition Cursor credentials are the user's own (BYOK env var), so
-    there is nothing to manage. Handlers refuse writes when secret
-    encryption is not enabled on the deployment (FAILED_PRECONDITION):
-    silently persisting plaintext keys is never acceptable for this store.
     """
 
     @staticmethod

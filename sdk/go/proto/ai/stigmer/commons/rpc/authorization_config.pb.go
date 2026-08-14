@@ -24,11 +24,6 @@ const (
 )
 
 // RpcAuthorizationConfig defines the authorization check performed before an RPC executes.
-//
-// @internal
-// The authorization interceptor reads these fields from the method option annotation
-// and performs an FGA check: does the caller have `permission` on
-// `resource_kind:<resolved_id>`?
 type RpcAuthorizationConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Permission required to invoke the RPC.
@@ -43,9 +38,6 @@ type RpcAuthorizationConfig struct {
 	// Error message returned when the caller lacks the required permission.
 	ErrorMsg string `protobuf:"bytes,5,opt,name=error_msg,json=errorMsg,proto3" json:"error_msg,omitempty"`
 	// Static resource identifier used when the ID is not part of the request.
-	//
-	// @internal
-	// Used for platform-level RPCs where the resource is always "stigmer".
 	ResourceId    string `protobuf:"bytes,6,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

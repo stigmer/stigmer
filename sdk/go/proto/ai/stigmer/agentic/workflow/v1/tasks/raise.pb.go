@@ -24,15 +24,6 @@ const (
 )
 
 // RaiseTaskConfig defines the configuration for raise_error tasks that raise errors.
-//
-// @internal
-// YAML Example:
-//   - taskName:
-//     raise:
-//     error: ValidationError
-//     message: ${ .errorMessage }
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 11
 type RaiseTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Error type/name.

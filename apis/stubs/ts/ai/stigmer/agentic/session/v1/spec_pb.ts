@@ -25,20 +25,11 @@ export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
 /**
  * SessionSpec defines the configurable properties of a session.
  *
- * @internal
- * This is the "Execution" layer — ephemeral runtime against an AgentInstance.
- * The overview.md file provides the SDK-facing description and example YAML.
- *
  * @generated from message ai.stigmer.agentic.session.v1.SessionSpec
  */
 export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> & {
   /**
    * Agent instance this session runs against.
-   *
-   * @internal
-   * When empty, the backend resolves the platform default agent
-   * (labeled stigmer.ai/default-agent: "true" with visibility_public)
-   * and auto-creates a default instance if needed.
    *
    * @generated from field: string agent_instance_id = 1;
    */
@@ -65,11 +56,6 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    *   returned by Agent.create(). Used for Agent.resume() on
    *   subsequent executions.
    *
-   * @internal
-   * Also serves as the immutability sentinel: when non-empty, the
-   * session's harness and cursor_mode cannot be changed — each harness
-   * owns its conversation state independently.
-   *
    * @generated from field: string harness_state_id = 3;
    */
   harnessStateId: string;
@@ -80,14 +66,6 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * A session can span multiple harness-side conversations: when the
    * cursor-runner's resume fails, it creates a fresh Cursor agent and
    * replaces harness_state_id, and the replaced id lands here.
-   *
-   * @internal
-   * Server-owned, append-only. The update handler computes the append from
-   * the observed harness_state_id transition — client-supplied values for
-   * this field are discarded, so a stale client resending an old spec can
-   * never clobber the history. Billing reconciliation joins Cursor ledger
-   * events on the union of current + prior ids; dropping a replaced id
-   * would orphan the ledger events of every turn that ran under it.
    *
    * @generated from field: repeated string harness_state_id_history = 13;
    */
@@ -120,13 +98,6 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * modifying the agent blueprint. Each usage references an McpServer
    * resource.
    *
-   * @internal
-   * Merge semantics: session-level usages are union'd with agent-level usages.
-   * If both reference the same MCP server slug, the session-level entry takes
-   * precedence (enables per-session tool restriction or expansion). The agent
-   * runner merges these with the agent's mcp_server_usages when constructing
-   * the execution graph.
-   *
    * @generated from field: repeated ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7;
    */
   mcpServerUsages: McpServerUsage[];
@@ -137,9 +108,6 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * Provides domain-specific knowledge for this specific conversation without
    * modifying the agent blueprint. Each reference points to a Skill resource
    * whose content is added to the agent's context alongside agent-level skills.
-   *
-   * @internal
-   * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8;
    */
@@ -174,16 +142,6 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    *
    * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
    * harness types.
-   *
-   * @internal
-   * Runner-owned, never user-set (see the CursorMode enum docs): the
-   * cursor-runner stamps it on the first execution when UNSPECIFIED —
-   * always LOCAL while cloud mode is disabled platform-wide. The
-   * workflow reads it back on subsequent executions to route to the
-   * correct Agent.create / Agent.resume path.
-   *
-   * When UNSPECIFIED on an existing CURSOR session, the runner defaults
-   * to LOCAL for backward compatibility.
    *
    * @generated from field: ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11;
    */

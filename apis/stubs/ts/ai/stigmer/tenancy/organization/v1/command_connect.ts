@@ -18,10 +18,6 @@ export const OrganizationCommandController = {
     /**
      * Create or update an organization.
      *
-     * @internal
-     * The authorization and state-operation are determined depending on whether the organization
-     * is going to be created or updated which is determined as part of the request execution.
-     *
      * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationCommandController.apply
      */
     apply: {
@@ -32,10 +28,6 @@ export const OrganizationCommandController = {
     },
     /**
      * Create an organization.
-     *
-     * @internal
-     * No authorization required — any authenticated user can create an organization.
-     * The creator automatically becomes the owner of the organization.
      *
      * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationCommandController.create
      */
@@ -48,9 +40,6 @@ export const OrganizationCommandController = {
     /**
      * Update an existing organization.
      *
-     * @internal
-     * Authorization: Requires can_edit permission on the organization.
-     *
      * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationCommandController.update
      */
     update: {
@@ -61,10 +50,6 @@ export const OrganizationCommandController = {
     },
     /**
      * Delete an organization.
-     *
-     * @internal
-     * Authorization: Requires can_delete permission on the organization.
-     * This will cascade-delete all resources under the organization.
      *
      * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationCommandController.delete
      */

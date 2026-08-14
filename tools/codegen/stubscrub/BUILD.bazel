@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "stubscrub_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/stigmer/stigmer/tools/codegen/stubscrub",
+    visibility = ["//visibility:private"],
+    deps = ["//tools/codegen/internalcomment"],
+)
+
+go_binary(
+    name = "stubscrub",
+    embed = [":stubscrub_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "stubscrub_test",
+    srcs = ["main_test.go"],
+    embed = [":stubscrub_lib"],
+)

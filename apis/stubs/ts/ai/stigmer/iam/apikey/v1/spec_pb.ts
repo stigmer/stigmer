@@ -28,10 +28,6 @@ export type ApiKeySpec = Message<"ai.stigmer.iam.apikey.v1.ApiKeySpec"> & {
    * Hash of the raw API key.
    * The actual key is returned only in the create response and never persisted.
    *
-   * @internal
-   * SHA-256/Bcrypt hash of the raw key generated during creation.
-   * Only the last 6 chars are persisted in the fingerprint field for UI display.
-   *
    * @generated from field: string key_hash = 1;
    */
   keyHash: string;

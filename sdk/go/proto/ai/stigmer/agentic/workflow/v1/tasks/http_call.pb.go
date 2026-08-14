@@ -25,21 +25,6 @@ const (
 )
 
 // HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests.
-//
-// @internal
-// YAML Example:
-//   - taskName:
-//     call: http
-//     with:
-//     method: POST
-//     endpoint:
-//     uri: https://api.example.com/data
-//     headers:
-//     Authorization: "Bearer ${TOKEN}"
-//     body:
-//     field1: value
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 2
 type HttpCallTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// HTTP method (GET, POST, PUT, DELETE, PATCH).

@@ -14,9 +14,6 @@ export const file_ai_stigmer_iam_identityaccount_v1_enum: GenFile = /*@__PURE__*
 /**
  * IdentityAccountProvisioningMode defines how an identity account was created.
  *
- * @internal
- * Unspecified is the default for legacy accounts created before this enum was introduced.
- *
  * @generated from enum ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode
  */
 export enum IdentityAccountProvisioningMode {

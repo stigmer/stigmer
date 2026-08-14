@@ -24,8 +24,6 @@ const (
 )
 
 // Environment stores configuration and secrets as key-value pairs for runtime use by agents and workflow instances.
-//
-// @internal
 type Environment struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.
@@ -33,9 +31,6 @@ type Environment struct {
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Resource metadata including name, organization, visibility, and labels.
-	//
-	// @internal
-	// Environments are typically PRIVATE visibility to prevent secret exposure.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Configurable properties: description and key-value data.
 	Spec *EnvironmentSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`

@@ -117,24 +117,6 @@ func (x *Duration) GetMilliseconds() uint32 {
 // WaitTaskConfig defines the configuration for wait tasks that pause workflow execution.
 //
 // Supports both relative durations and absolute timestamps.
-//
-// @internal
-// Implemented via Temporal timers.
-//
-// YAML Examples:
-//
-//	Relative duration:
-//	- waitForApproval:
-//	    wait:
-//	      duration:
-//	        days: 7
-//
-//	Absolute timestamp:
-//	- waitUntilMarketOpen:
-//	    wait:
-//	      until: "2026-03-02T09:30:00Z"
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 8
 type WaitTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to WaitType:

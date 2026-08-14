@@ -38,9 +38,6 @@ type IamPolicyQueryControllerClient interface {
 	// Get an IAM policy by its unique identifier.
 	//
 	// Returns the full IAM policy including its principal, resource, and relation binding.
-	//
-	// @internal
-	// Authorization: Requires can_view_access permission.
 	Get(ctx context.Context, in *IamPolicyId, opts ...grpc.CallOption) (*IamPolicy, error)
 	// Check whether the AUTHENTICATED CALLER has a permission on a resource.
 	//
@@ -58,11 +55,6 @@ type IamPolicyQueryControllerClient interface {
 	//
 	// Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
 	// Output: CheckAuthorizationResult with is_authorized boolean
-	//
-	// @internal
-	// Skips standard authorization because authorizing this RPC via IAM would
-	// recurse into IAM. Authentication is still required; the handler anchors
-	// the FGA check to the caller's identity account.
 	CheckMyPermission(ctx context.Context, in *CheckMyPermissionInput, opts ...grpc.CallOption) (*CheckAuthorizationResult, error)
 	// Check if a principal is authorized to perform a relation on a resource
 	//
@@ -83,11 +75,6 @@ type IamPolicyQueryControllerClient interface {
 	//
 	// Input: CheckAuthorizationInput with policy spec and optional contextual policies
 	// Output: CheckAuthorizationResult with is_authorized boolean
-	//
-	// @internal
-	// Skips standard authorization to avoid IAM-authorizing-IAM recursion.
-	// The handler enforces principal trust instead: the caller must either BE
-	// the principal being checked, or be a machine (system) account.
 	CheckAuthorization(ctx context.Context, in *CheckAuthorizationInput, opts ...grpc.CallOption) (*CheckAuthorizationResult, error)
 	// List all resource IDs of a specific kind that a principal is authorized to access
 	//
@@ -253,9 +240,6 @@ type IamPolicyQueryControllerServer interface {
 	// Get an IAM policy by its unique identifier.
 	//
 	// Returns the full IAM policy including its principal, resource, and relation binding.
-	//
-	// @internal
-	// Authorization: Requires can_view_access permission.
 	Get(context.Context, *IamPolicyId) (*IamPolicy, error)
 	// Check whether the AUTHENTICATED CALLER has a permission on a resource.
 	//
@@ -273,11 +257,6 @@ type IamPolicyQueryControllerServer interface {
 	//
 	// Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
 	// Output: CheckAuthorizationResult with is_authorized boolean
-	//
-	// @internal
-	// Skips standard authorization because authorizing this RPC via IAM would
-	// recurse into IAM. Authentication is still required; the handler anchors
-	// the FGA check to the caller's identity account.
 	CheckMyPermission(context.Context, *CheckMyPermissionInput) (*CheckAuthorizationResult, error)
 	// Check if a principal is authorized to perform a relation on a resource
 	//
@@ -298,11 +277,6 @@ type IamPolicyQueryControllerServer interface {
 	//
 	// Input: CheckAuthorizationInput with policy spec and optional contextual policies
 	// Output: CheckAuthorizationResult with is_authorized boolean
-	//
-	// @internal
-	// Skips standard authorization to avoid IAM-authorizing-IAM recursion.
-	// The handler enforces principal trust instead: the caller must either BE
-	// the principal being checked, or be a machine (system) account.
 	CheckAuthorization(context.Context, *CheckAuthorizationInput) (*CheckAuthorizationResult, error)
 	// List all resource IDs of a specific kind that a principal is authorized to access
 	//

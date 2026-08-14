@@ -27,9 +27,6 @@ const (
 type GetOAuthAuthorizeUrlRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Callback URI that GitHub redirects to after the user authorizes.
-	//
-	// @internal
-	// Must match one of the callback URLs registered on the GitHub App.
 	RedirectUri   string `protobuf:"bytes,1,opt,name=redirect_uri,json=redirectUri,proto3" json:"redirect_uri,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -136,9 +133,6 @@ type ExchangeOAuthCodeRequest struct {
 	// State value from the original authorize response, for CSRF verification.
 	State string `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
 	// Redirect URI used in the original authorize request.
-	//
-	// @internal
-	// GitHub requires this to match the value from the authorize step.
 	RedirectUri   string `protobuf:"bytes,3,opt,name=redirect_uri,json=redirectUri,proto3" json:"redirect_uri,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -65,9 +65,6 @@ class IdentityAccountQueryControllerServicer(object):
         """Get the identity account of the currently authenticated user.
 
         Returns the full identity account for the caller based on the auth header.
-
-        @internal
-        Scoped to the caller's own account, so authorization is skipped.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -109,21 +106,6 @@ class IdentityAccountQueryControllerServicer(object):
 
     def getActorInfo(self, request, context):
         """Get lightweight actor information for an identity account.
-
-        @internal
-        This RPC is specifically designed to break circular dependency loops in audit actor resolution.
-        When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
-        needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion
-        including audit actors, which can create infinite recursion if audit actors reference IdentityAccounts.
-
-        This dedicated endpoint:
-        - Returns ONLY the lightweight ApiResourceAuditActor (id + avatar)
-        - Does NOT include full audit trail in the response
-        - Accesses entity data directly without recursive proto conversion
-        - Is used by ApiResourceAuditActorCacheProxy to safely populate Redis cache
-        - Prevents StackOverflowError when Redis cache is empty or cleared
-
-        Restricted to platform operators only as this is an internal cache-population mechanism.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

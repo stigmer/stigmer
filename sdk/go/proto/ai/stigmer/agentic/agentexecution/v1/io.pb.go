@@ -241,12 +241,6 @@ type ListAgentExecutionsRequest struct {
 	// org-context view a console tab needs. When empty, results are bounded
 	// only by the caller's view permissions, which for a member of several
 	// organizations spans all of them.
-	//
-	// @internal
-	// Optional by design: pre-existing callers rely on the permission-bounded
-	// behavior, and the OSS single-user edition treats org filtering as a
-	// no-op. Filtering happens in the query/list step of each edition's
-	// handler, never client-side.
 	Org           string `protobuf:"bytes,5,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

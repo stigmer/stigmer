@@ -25,26 +25,6 @@ const (
 )
 
 // ForkTaskConfig defines the configuration for fork tasks that execute branches in parallel.
-//
-// @internal
-// YAML Example:
-//   - taskName:
-//     fork:
-//     branches:
-//   - branch1:
-//     do:
-//   - task1:
-//     call: http
-//     with:
-//     method: POST
-//     endpoint:
-//     uri: https://api.example.com/branch1
-//   - branch2:
-//     do:
-//   - task2:
-//     call: http
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 5
 type ForkTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Branches to execute in parallel (at least 2 required).

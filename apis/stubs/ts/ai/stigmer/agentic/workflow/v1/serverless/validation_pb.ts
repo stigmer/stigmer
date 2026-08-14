@@ -17,11 +17,6 @@ export const file_ai_stigmer_agentic_workflow_v1_serverless_validation: GenFile 
 /**
  * ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.
  *
- * @internal
- * Produced synchronously by in-process workflow validation: on create/update it
- * is persisted onto WorkflowStatus, and it is the direct response of the
- * validateSpec RPC.
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation
  */
 export type ServerlessWorkflowValidation = Message<"ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation"> & {
@@ -36,9 +31,6 @@ export type ServerlessWorkflowValidation = Message<"ai.stigmer.agentic.workflow.
    * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
    * Present even if validation failed (helps debugging).
    * Empty if validation has not started yet.
-   *
-   * @internal
-   * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
    *
    * @generated from field: string yaml = 2;
    */
@@ -67,11 +59,6 @@ export type ServerlessWorkflowValidation = Message<"ai.stigmer.agentic.workflow.
 
   /**
    * Optional identifier for tracking a validation run.
-   *
-   * @internal
-   * Legacy field from when validation ran as a separate async process. In-process
-   * validation is synchronous and does not populate this; retained for wire
-   * compatibility.
    *
    * @generated from field: string validation_workflow_id = 6;
    */
@@ -123,11 +110,6 @@ export enum ValidationState {
   /**
    * Validation process failed due to a system error (not a user error).
    * Retry validation or contact support.
-   *
-   * @internal
-   * Reserved for a genuine validator fault (e.g., the converter panics or an
-   * unexpected internal error prevents validation from completing) — not a
-   * user-fixable spec problem.
    *
    * @generated from enum value: FAILED = 4;
    */

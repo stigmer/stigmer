@@ -29,12 +29,6 @@ const (
 )
 
 // WorkflowInstanceId wraps a workflow instance identifier.
-//
-// @internal
-// Used as input to RPCs that operate on a single instance:
-// - get: Retrieve a specific instance by ID
-// - delete: Remove a specific instance by ID
-// Format: Resource ID string (e.g., "wfi_abc123")
 type WorkflowInstanceId struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Workflow instance resource ID.
@@ -81,14 +75,6 @@ func (x *WorkflowInstanceId) GetValue() string {
 }
 
 // GetWorkflowInstancesByWorkflowRequest retrieves all instances of a specific workflow template.
-//
-// @internal
-// This allows you to find all configured deployments of a given Workflow.
-// For example, a "deploy-to-cloud" Workflow might have instances:
-// - "prod-deploy" (with production environments)
-// - "staging-deploy" (with staging environments)
-// - "dev-deploy" (with development environments)
-// Supports pagination for efficient retrieval of large result sets.
 type GetWorkflowInstancesByWorkflowRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Workflow template ID to filter by.
@@ -101,11 +87,6 @@ type GetWorkflowInstancesByWorkflowRequest struct {
 	// org-context view a console tab needs. When empty, results are bounded
 	// only by the caller's view permissions, which for a member of several
 	// organizations spans all of them.
-	//
-	// @internal
-	// Optional by design: pre-existing callers rely on the permission-bounded
-	// behavior. Filtering happens in the query/list step of each edition's
-	// handler, never client-side.
 	Org           string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

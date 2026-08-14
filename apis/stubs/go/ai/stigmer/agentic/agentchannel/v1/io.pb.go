@@ -82,11 +82,6 @@ type GetAgentChannelsByAgentRequest struct {
 	// org-context view a console tab needs. When empty, results are bounded
 	// only by the caller's view permissions, which for a member of several
 	// organizations spans all of them.
-	//
-	// @internal
-	// Mirrors the org scoping on the sibling getByAgent/getByWorkflow
-	// requests (agent shares, agent instances, workflow instances). Handlers
-	// implementing this RPC must apply the filter in their query/list step.
 	Org           string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -324,20 +319,11 @@ type InitiateChannelInstallOutput struct {
 	AuthorizationUrl string `protobuf:"bytes,1,opt,name=authorization_url,json=authorizationUrl,proto3" json:"authorization_url,omitempty"`
 	// Single-use opaque state parameter bound to this install attempt.
 	// Empty when the install completed directly.
-	//
-	// @internal
-	// Persisted server-side (PendingOAuthStateDocument pattern) and consumed
-	// atomically by completeInstall; expired or replayed states are rejected.
 	State string `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
 	// True when the install completed synchronously inside this RPC
 	// (direct-installed providers). Clients branch on this field — never on
 	// provider knowledge of their own — so the server stays the single
 	// source of install-style truth.
-	//
-	// @internal
-	// DD-WA-1b. The seam behind it is the sealed ChannelInstaller split:
-	// AuthorizationRedirectInstaller populates authorization_url + state;
-	// DirectInstaller populates completed.
 	Completed     bool `protobuf:"varint,3,opt,name=completed,proto3" json:"completed,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

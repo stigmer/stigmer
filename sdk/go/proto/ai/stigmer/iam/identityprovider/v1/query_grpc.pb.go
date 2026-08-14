@@ -33,26 +33,16 @@ const (
 // IdentityProviderQueryController provides read operations for identity providers.
 type IdentityProviderQueryControllerClient interface {
 	// Get an identity provider by its unique identifier.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the identity provider resource.
 	Get(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*IdentityProvider, error)
 	// Get an identity provider by its organization-scoped reference (org/slug).
 	//
 	// Resolves a human-readable reference like "acme/planton" to the full
 	// IdentityProvider resource.
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*IdentityProvider, error)
 	// List all identity providers belonging to an organization.
 	//
 	// Returns every IdentityProvider whose metadata.org matches the input org.
 	// Typically a small set (1-3 per org), so results are not paginated.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the organization resource.
 	ListByOrg(ctx context.Context, in *ListIdentityProvidersByOrgInput, opts ...grpc.CallOption) (*IdentityProviders, error)
 	// Look up the SSO identity provider for an organization.
 	//
@@ -63,9 +53,6 @@ type IdentityProviderQueryControllerClient interface {
 	// This endpoint is called by the web app's login page before the user has
 	// authenticated, so it requires no authorization. The response intentionally
 	// omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
-	//
-	// @internal
-	// Authorization: none — unauthenticated, public endpoint for login page rendering.
 	GetSsoProvider(ctx context.Context, in *OrganizationSsoLookup, opts ...grpc.CallOption) (*SsoProviderInfo, error)
 }
 
@@ -124,26 +111,16 @@ func (c *identityProviderQueryControllerClient) GetSsoProvider(ctx context.Conte
 // IdentityProviderQueryController provides read operations for identity providers.
 type IdentityProviderQueryControllerServer interface {
 	// Get an identity provider by its unique identifier.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the identity provider resource.
 	Get(context.Context, *apiresource.ApiResourceId) (*IdentityProvider, error)
 	// Get an identity provider by its organization-scoped reference (org/slug).
 	//
 	// Resolves a human-readable reference like "acme/planton" to the full
 	// IdentityProvider resource.
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*IdentityProvider, error)
 	// List all identity providers belonging to an organization.
 	//
 	// Returns every IdentityProvider whose metadata.org matches the input org.
 	// Typically a small set (1-3 per org), so results are not paginated.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the organization resource.
 	ListByOrg(context.Context, *ListIdentityProvidersByOrgInput) (*IdentityProviders, error)
 	// Look up the SSO identity provider for an organization.
 	//
@@ -154,9 +131,6 @@ type IdentityProviderQueryControllerServer interface {
 	// This endpoint is called by the web app's login page before the user has
 	// authenticated, so it requires no authorization. The response intentionally
 	// omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
-	//
-	// @internal
-	// Authorization: none — unauthenticated, public endpoint for login page rendering.
 	GetSsoProvider(context.Context, *OrganizationSsoLookup) (*SsoProviderInfo, error)
 }
 

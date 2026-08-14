@@ -34,32 +34,12 @@ const (
 // ScheduleCommandController handles write operations for schedules.
 type ScheduleCommandControllerClient interface {
 	// Create or update a schedule.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on
-	// whether the schedule is going to be created or updated, resolved as
-	// part of request execution. Status is preserved verbatim across
-	// apply-as-update (the AgentChannel decision-004 posture): status is
-	// written only by the scheduling runtime and by the explicit resume
-	// command, and a routine manifest apply must never reset the failure
-	// streak or un-pause a platform-paused schedule (DD-008 D7 / DD-009
-	// pinned behaviors / DD-013 D-D).
 	Apply(ctx context.Context, in *Schedule, opts ...grpc.CallOption) (*Schedule, error)
 	// Create a schedule.
 	//
 	// Scheduling an agent is a billing-affecting decision: every fire
 	// creates an execution that consumes the schedule-owning
 	// organization's credits, unattended.
-	//
-	// @internal
-	// Authorization: requires can_edit on the REFERENCED AGENT
-	// (spec.agent.agent_ref), checked in-handler — the AgentChannel /
-	// same-org AgentShare Phase A bar (DD-009 C-6): whoever may edit the
-	// agent may schedule it; there is deliberately no org-level
-	// can_create_schedule permission. Standard org-scoped create tuples
-	// (owner = creator); no visibility tuples (the kind has no visibility
-	// block). Invariant enforced here: metadata.org must equal
-	// spec.agent.agent_ref.org.
 	Create(ctx context.Context, in *Schedule, opts ...grpc.CallOption) (*Schedule, error)
 	// Update an existing schedule.
 	//
@@ -68,34 +48,12 @@ type ScheduleCommandControllerClient interface {
 	// message may all change. Status (firing observations, the platform
 	// pause) is never touched by updates — use resume to clear a platform
 	// pause.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the schedule.
-	// agent_ref immutability is a consent-bar guarantee, not convenience
-	// (DD-009 C-7): create's bar is can_edit on the REFERENCED agent, and
-	// a repointing update would let a schedule owner drive an agent they
-	// may not edit — the AgentChannel rule for the AgentChannel reason.
-	// Target-arm immutability (an agent schedule cannot become a workflow
-	// schedule once that arm exists) is enforced in-handler: the two
-	// targets enter different execution pipelines. Update deliberately
-	// does NOT clear a platform auto-pause (DD-013 D-D, superseding the
-	// DD-008 D7 ensure-on-mutate sketch): apply routes through this same
-	// handler, so any update-clears-pause behavior would let a routine
-	// GitOps re-apply silently un-pause a failing schedule. resume is the
-	// one clearing path.
 	Update(ctx context.Context, in *Schedule, opts ...grpc.CallOption) (*Schedule, error)
 	// Delete a schedule.
 	//
 	// Firing stops permanently. Executions created by past fires are
 	// untouched. To stop firing while keeping the schedule and its
 	// history, disable it (enabled=false) instead.
-	//
-	// @internal
-	// Authorization: requires can_delete permission on the schedule. The
-	// referenced agent is untouched. The Temporal artifact teardown
-	// (best-effort, AFTER the row delete — DD-008 D9) arrives with the
-	// clock; until then delete is the row alone, and an orphaned artifact
-	// is harmless by construction (fire-time revalidation no-ops it).
 	Delete(ctx context.Context, in *ScheduleId, opts ...grpc.CallOption) (*Schedule, error)
 	// Resume a schedule the platform paused after repeated run failures.
 	//
@@ -104,19 +62,6 @@ type ScheduleCommandControllerClient interface {
 	// succeeds and changes nothing. A disabled schedule stays disabled:
 	// resume clears the platform's pause, not the owner's switch
 	// (spec.enabled).
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the schedule — the
-	// update bar; resuming does not change which agent runs, so it does
-	// not re-open create's consent bar (DD-009 C-6). This command is
-	// deliberately the ONLY path that clears a platform auto-pause
-	// (DD-013 D-D): apply and update preserve status byte-for-byte, so a
-	// routine manifest apply can never silently un-pause a failing
-	// schedule. The cloud handler loads before authorizing (#224: a
-	// missing schedule answers NOT_FOUND, not PERMISSION_DENIED) and
-	// patches status leaves rather than saving the row — the tick is a
-	// concurrent status writer. OSS excludes the authorization step, per
-	// its recorded single-user posture.
 	Resume(ctx context.Context, in *ScheduleId, opts ...grpc.CallOption) (*Schedule, error)
 	// Trigger a schedule to fire once, immediately, and answer with the
 	// run's real outcome.
@@ -133,30 +78,6 @@ type ScheduleCommandControllerClient interface {
 	// schedule MAY be triggered — a test fire is exactly how an owner
 	// verifies a fix before resuming; resume remains the one path that
 	// clears the pause.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the schedule — the
-	// update bar (DD-014 D-A). Project DD-017 D-5/D-6 amends DD-014: the
-	// artifact round-trip is gone for manual fires (it made the fire
-	// asynchronous, so the RPC answered before the launch gates ran — a
-	// false "run started" beside a climbing failure counter). Cron fires
-	// keep the tracked artifact tick unchanged. The disabled refusal
-	// SURVIVES for a different reason than DD-014 D-B recorded:
-	// ScheduleBlueprintAccess requires spec.enabled at the create gate AND
-	// the mid-run sandbox read predicate, so a disabled-schedule run would
-	// die mid-execution after billing side effects (consoles offer
-	// "Enable & run now" instead; the fire-legitimacy model that would
-	// lift this is DD-017's named follow-up). Two-level contract: a gRPC
-	// error means the trigger itself was refused (disabled →
-	// FAILED_PRECONDITION with the byte-pinned copy, missing → NOT_FOUND
-	// before authorize, #224); a gRPC success means the fire happened and
-	// ScheduleTriggerResult names the run's outcome — a deterministically
-	// refused run is a successful trigger honestly reported, never an
-	// exception. The handler stamps last_fire_at/last_execution_id and
-	// writes the fire-ledger row (origin=manual) because the tick is not
-	// in the path to do it; status writes ride updateFields, never save()
-	// (DD-010 D-B). OSS mirrors the semantics; it excludes the
-	// authorization step per its recorded single-user posture.
 	Trigger(ctx context.Context, in *ScheduleId, opts ...grpc.CallOption) (*ScheduleTriggerResult, error)
 }
 
@@ -235,32 +156,12 @@ func (c *scheduleCommandControllerClient) Trigger(ctx context.Context, in *Sched
 // ScheduleCommandController handles write operations for schedules.
 type ScheduleCommandControllerServer interface {
 	// Create or update a schedule.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on
-	// whether the schedule is going to be created or updated, resolved as
-	// part of request execution. Status is preserved verbatim across
-	// apply-as-update (the AgentChannel decision-004 posture): status is
-	// written only by the scheduling runtime and by the explicit resume
-	// command, and a routine manifest apply must never reset the failure
-	// streak or un-pause a platform-paused schedule (DD-008 D7 / DD-009
-	// pinned behaviors / DD-013 D-D).
 	Apply(context.Context, *Schedule) (*Schedule, error)
 	// Create a schedule.
 	//
 	// Scheduling an agent is a billing-affecting decision: every fire
 	// creates an execution that consumes the schedule-owning
 	// organization's credits, unattended.
-	//
-	// @internal
-	// Authorization: requires can_edit on the REFERENCED AGENT
-	// (spec.agent.agent_ref), checked in-handler — the AgentChannel /
-	// same-org AgentShare Phase A bar (DD-009 C-6): whoever may edit the
-	// agent may schedule it; there is deliberately no org-level
-	// can_create_schedule permission. Standard org-scoped create tuples
-	// (owner = creator); no visibility tuples (the kind has no visibility
-	// block). Invariant enforced here: metadata.org must equal
-	// spec.agent.agent_ref.org.
 	Create(context.Context, *Schedule) (*Schedule, error)
 	// Update an existing schedule.
 	//
@@ -269,34 +170,12 @@ type ScheduleCommandControllerServer interface {
 	// message may all change. Status (firing observations, the platform
 	// pause) is never touched by updates — use resume to clear a platform
 	// pause.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the schedule.
-	// agent_ref immutability is a consent-bar guarantee, not convenience
-	// (DD-009 C-7): create's bar is can_edit on the REFERENCED agent, and
-	// a repointing update would let a schedule owner drive an agent they
-	// may not edit — the AgentChannel rule for the AgentChannel reason.
-	// Target-arm immutability (an agent schedule cannot become a workflow
-	// schedule once that arm exists) is enforced in-handler: the two
-	// targets enter different execution pipelines. Update deliberately
-	// does NOT clear a platform auto-pause (DD-013 D-D, superseding the
-	// DD-008 D7 ensure-on-mutate sketch): apply routes through this same
-	// handler, so any update-clears-pause behavior would let a routine
-	// GitOps re-apply silently un-pause a failing schedule. resume is the
-	// one clearing path.
 	Update(context.Context, *Schedule) (*Schedule, error)
 	// Delete a schedule.
 	//
 	// Firing stops permanently. Executions created by past fires are
 	// untouched. To stop firing while keeping the schedule and its
 	// history, disable it (enabled=false) instead.
-	//
-	// @internal
-	// Authorization: requires can_delete permission on the schedule. The
-	// referenced agent is untouched. The Temporal artifact teardown
-	// (best-effort, AFTER the row delete — DD-008 D9) arrives with the
-	// clock; until then delete is the row alone, and an orphaned artifact
-	// is harmless by construction (fire-time revalidation no-ops it).
 	Delete(context.Context, *ScheduleId) (*Schedule, error)
 	// Resume a schedule the platform paused after repeated run failures.
 	//
@@ -305,19 +184,6 @@ type ScheduleCommandControllerServer interface {
 	// succeeds and changes nothing. A disabled schedule stays disabled:
 	// resume clears the platform's pause, not the owner's switch
 	// (spec.enabled).
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the schedule — the
-	// update bar; resuming does not change which agent runs, so it does
-	// not re-open create's consent bar (DD-009 C-6). This command is
-	// deliberately the ONLY path that clears a platform auto-pause
-	// (DD-013 D-D): apply and update preserve status byte-for-byte, so a
-	// routine manifest apply can never silently un-pause a failing
-	// schedule. The cloud handler loads before authorizing (#224: a
-	// missing schedule answers NOT_FOUND, not PERMISSION_DENIED) and
-	// patches status leaves rather than saving the row — the tick is a
-	// concurrent status writer. OSS excludes the authorization step, per
-	// its recorded single-user posture.
 	Resume(context.Context, *ScheduleId) (*Schedule, error)
 	// Trigger a schedule to fire once, immediately, and answer with the
 	// run's real outcome.
@@ -334,30 +200,6 @@ type ScheduleCommandControllerServer interface {
 	// schedule MAY be triggered — a test fire is exactly how an owner
 	// verifies a fix before resuming; resume remains the one path that
 	// clears the pause.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the schedule — the
-	// update bar (DD-014 D-A). Project DD-017 D-5/D-6 amends DD-014: the
-	// artifact round-trip is gone for manual fires (it made the fire
-	// asynchronous, so the RPC answered before the launch gates ran — a
-	// false "run started" beside a climbing failure counter). Cron fires
-	// keep the tracked artifact tick unchanged. The disabled refusal
-	// SURVIVES for a different reason than DD-014 D-B recorded:
-	// ScheduleBlueprintAccess requires spec.enabled at the create gate AND
-	// the mid-run sandbox read predicate, so a disabled-schedule run would
-	// die mid-execution after billing side effects (consoles offer
-	// "Enable & run now" instead; the fire-legitimacy model that would
-	// lift this is DD-017's named follow-up). Two-level contract: a gRPC
-	// error means the trigger itself was refused (disabled →
-	// FAILED_PRECONDITION with the byte-pinned copy, missing → NOT_FOUND
-	// before authorize, #224); a gRPC success means the fire happened and
-	// ScheduleTriggerResult names the run's outcome — a deterministically
-	// refused run is a successful trigger honestly reported, never an
-	// exception. The handler stamps last_fire_at/last_execution_id and
-	// writes the fire-ledger row (origin=manual) because the tick is not
-	// in the path to do it; status writes ride updateFields, never save()
-	// (DD-010 D-B). OSS mirrors the semantics; it excludes the
-	// authorization step per its recorded single-user posture.
 	Trigger(context.Context, *ScheduleId) (*ScheduleTriggerResult, error)
 }
 

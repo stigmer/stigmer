@@ -18,21 +18,6 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_http_call: GenFile = /*@_
 /**
  * HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests.
  *
- * @internal
- * YAML Example:
- *   - taskName:
- *       call: http
- *       with:
- *         method: POST
- *         endpoint:
- *           uri: https://api.example.com/data
- *         headers:
- *           Authorization: "Bearer ${TOKEN}"
- *         body:
- *           field1: value
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 2
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
  */
 export type HttpCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig"> & {

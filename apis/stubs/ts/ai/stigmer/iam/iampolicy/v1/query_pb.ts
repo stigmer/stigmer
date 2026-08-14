@@ -28,9 +28,6 @@ export const IamPolicyQueryController: GenService<{
    *
    * Returns the full IAM policy including its principal, resource, and relation binding.
    *
-   * @internal
-   * Authorization: Requires can_view_access permission.
-   *
    * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.get
    */
   get: {
@@ -55,11 +52,6 @@ export const IamPolicyQueryController: GenService<{
    *
    * Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
    * Output: CheckAuthorizationResult with is_authorized boolean
-   *
-   * @internal
-   * Skips standard authorization because authorizing this RPC via IAM would
-   * recurse into IAM. Authentication is still required; the handler anchors
-   * the FGA check to the caller's identity account.
    *
    * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.checkMyPermission
    */
@@ -88,11 +80,6 @@ export const IamPolicyQueryController: GenService<{
    *
    * Input: CheckAuthorizationInput with policy spec and optional contextual policies
    * Output: CheckAuthorizationResult with is_authorized boolean
-   *
-   * @internal
-   * Skips standard authorization to avoid IAM-authorizing-IAM recursion.
-   * The handler enforces principal trust instead: the caller must either BE
-   * the principal being checked, or be a machine (system) account.
    *
    * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.checkAuthorization
    */

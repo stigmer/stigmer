@@ -24,11 +24,6 @@ const (
 )
 
 // OrganizationSpec defines the configurable properties of an organization.
-//
-// @internal
-// Organizations are the top-level container for all Stigmer resources.
-// Similar to GitHub organizations, all agents, workflows, and other resources
-// are scoped under an organization.
 type OrganizationSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Human-readable description of the organization.
@@ -36,31 +31,12 @@ type OrganizationSpec struct {
 	// Public URL for the organization logo.
 	LogoUrl string `protobuf:"bytes,2,opt,name=logo_url,json=logoUrl,proto3" json:"logo_url,omitempty"`
 	// How this organization is operated.
-	//
-	// @internal
-	// Immutable after creation.
-	// - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
-	// - platform_managed: Created programmatically by an external platform via an IdentityProvider.
 	ManagementMode ManagementMode `protobuf:"varint,3,opt,name=management_mode,json=managementMode,proto3,enum=ai.stigmer.tenancy.organization.v1.ManagementMode" json:"management_mode,omitempty"`
 	// Reference to the IdentityProvider that authenticates requests for this organization.
-	//
-	// @internal
-	// Required when management_mode is platform_managed; must be empty for self_managed.
-	// The referenced IdentityProvider must exist and be active at creation time.
-	// Immutable after creation.
 	IdentityProviderRef *apiresource.ApiResourceReference `protobuf:"bytes,4,opt,name=identity_provider_ref,json=identityProviderRef,proto3" json:"identity_provider_ref,omitempty"`
 	// External platform's organization identifier for reverse mapping.
-	//
-	// @internal
-	// Set only for platform_managed organizations. Stores the integrating platform's
-	// own org ID so the platform can look up the corresponding Stigmer org even if
-	// the Stigmer slug differs from the platform's original slug due to availability.
 	ExternalOrgId string `protobuf:"bytes,5,opt,name=external_org_id,json=externalOrgId,proto3" json:"external_org_id,omitempty"`
 	// Whether this is a personal organization, auto-created during identity provisioning.
-	//
-	// @internal
-	// Personal orgs serve as the user's default workspace (like GitHub personal accounts).
-	// Immutable after creation. Set by the server — clients cannot set this to true.
 	IsPersonal    bool `protobuf:"varint,6,opt,name=is_personal,json=isPersonal,proto3" json:"is_personal,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

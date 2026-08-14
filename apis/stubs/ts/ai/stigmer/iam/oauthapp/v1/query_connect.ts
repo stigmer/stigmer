@@ -19,9 +19,6 @@ export const OAuthAppQueryController = {
     /**
      * Get an OAuth app by its unique identifier.
      *
-     * @internal
-     * Authorization: Requires can_view permission on the oauth_app resource.
-     *
      * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.get
      */
     get: {
@@ -36,10 +33,6 @@ export const OAuthAppQueryController = {
      * Resolves a human-readable reference like "acme/slack-oauth" to the full
      * OAuthApp resource.
      *
-     * @internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
-     *
      * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.getByReference
      */
     getByReference: {
@@ -53,9 +46,6 @@ export const OAuthAppQueryController = {
      *
      * Returns every OAuthApp whose metadata.org matches the input org.
      * Typically a small set (1-5 per org), so results are not paginated.
-     *
-     * @internal
-     * Authorization: Requires can_view permission on the organization resource.
      *
      * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.listByOrg
      */

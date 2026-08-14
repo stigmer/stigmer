@@ -43,34 +43,19 @@ const (
 type BillingCommandControllerClient interface {
 	// Provision or retrieve the billing account for an organization.
 	// Idempotent: creates the account on first call, returns existing on subsequent calls.
-	//
-	// @internal
-	// Called during org creation or first billing interaction.
-	// Initializes balance to zero with default thresholds.
 	GetOrCreateBillingAccount(ctx context.Context, in *GetOrCreateBillingAccountInput, opts ...grpc.CallOption) (*BillingAccount, error)
 	// Manually adjust an org's credit balance.
 	// Produces an immutable ledger entry for audit. Requires admin privileges.
 	AdjustCredits(ctx context.Context, in *AdjustCreditsInput, opts ...grpc.CallOption) (*CreditLedgerEntry, error)
 	// Reserve credits before starting an agent execution.
 	// Returns authorization status and reservation details.
-	//
-	// @internal
-	// Called by the Temporal workflow before dispatching to the agent runner.
-	// The runner must not start if authorized is false.
 	AuthorizeExecution(ctx context.Context, in *AuthorizeExecutionInput, opts ...grpc.CallOption) (*AuthorizeExecutionResponse, error)
 	// Record a single LLM call's usage for billing.
 	// Computes cost server-side from the model registry, inserts an immutable
 	// LlmCallUsageRecord, and debits credits from the execution's reservation.
-	//
-	// @internal
-	// Called by the proxy after each LLM SSE stream completes.
-	// Deduplicated by (execution_id, sequence, metering_source).
 	RecordLlmCallUsage(ctx context.Context, in *RecordLlmCallUsageInput, opts ...grpc.CallOption) (*RecordLlmCallUsageResponse, error)
 	// Settle billing for a completed execution.
 	// Releases unused reservation credits and produces the final billing record.
-	//
-	// @internal
-	// Called by the Temporal workflow after the agent runner completes.
 	FinalizeExecution(ctx context.Context, in *FinalizeExecutionInput, opts ...grpc.CallOption) (*FinalizeExecutionResponse, error)
 	// Create a Stripe Checkout Session to purchase a credit pack.
 	// Returns a checkout URL for the client to redirect the user.
@@ -237,34 +222,19 @@ func (c *billingCommandControllerClient) RetireModelPricingBaseline(ctx context.
 type BillingCommandControllerServer interface {
 	// Provision or retrieve the billing account for an organization.
 	// Idempotent: creates the account on first call, returns existing on subsequent calls.
-	//
-	// @internal
-	// Called during org creation or first billing interaction.
-	// Initializes balance to zero with default thresholds.
 	GetOrCreateBillingAccount(context.Context, *GetOrCreateBillingAccountInput) (*BillingAccount, error)
 	// Manually adjust an org's credit balance.
 	// Produces an immutable ledger entry for audit. Requires admin privileges.
 	AdjustCredits(context.Context, *AdjustCreditsInput) (*CreditLedgerEntry, error)
 	// Reserve credits before starting an agent execution.
 	// Returns authorization status and reservation details.
-	//
-	// @internal
-	// Called by the Temporal workflow before dispatching to the agent runner.
-	// The runner must not start if authorized is false.
 	AuthorizeExecution(context.Context, *AuthorizeExecutionInput) (*AuthorizeExecutionResponse, error)
 	// Record a single LLM call's usage for billing.
 	// Computes cost server-side from the model registry, inserts an immutable
 	// LlmCallUsageRecord, and debits credits from the execution's reservation.
-	//
-	// @internal
-	// Called by the proxy after each LLM SSE stream completes.
-	// Deduplicated by (execution_id, sequence, metering_source).
 	RecordLlmCallUsage(context.Context, *RecordLlmCallUsageInput) (*RecordLlmCallUsageResponse, error)
 	// Settle billing for a completed execution.
 	// Releases unused reservation credits and produces the final billing record.
-	//
-	// @internal
-	// Called by the Temporal workflow after the agent runner completes.
 	FinalizeExecution(context.Context, *FinalizeExecutionInput) (*FinalizeExecutionResponse, error)
 	// Create a Stripe Checkout Session to purchase a credit pack.
 	// Returns a checkout URL for the client to redirect the user.

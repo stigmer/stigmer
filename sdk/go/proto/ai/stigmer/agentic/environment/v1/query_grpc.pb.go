@@ -33,29 +33,15 @@ const (
 // EnvironmentQueryController handles read operations for environments.
 type EnvironmentQueryControllerClient interface {
 	// Get an environment by ID.
-	//
-	// @internal
-	// Authorization: requires can_view permission on the environment resource.
 	Get(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*Environment, error)
 	// Get an environment by its organization-scoped reference (org/slug).
 	// Resolves a human-readable reference like "acme/aws-prod" to the full Environment resource.
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Environment, error)
 	// Get the unredacted value of a single secret key in an environment.
 	// Returns the EnvironmentValue with the decrypted value for exactly one key.
-	//
-	// @internal
-	// Creator-only: FGA authorization grants can_read_secrets via the creator relation.
 	GetSecretValue(ctx context.Context, in *EnvironmentSecretValueInput, opts ...grpc.CallOption) (*EnvironmentValue, error)
 	// List environments with optional label filtering.
 	// Secret values are redacted in the response.
-	//
-	// @internal
-	// Authorization is handled in-handler via FGA-filtered queries (cloud)
-	// or unrestricted store queries (OSS).
 	List(ctx context.Context, in *ListEnvironmentsRequest, opts ...grpc.CallOption) (*EnvironmentList, error)
 }
 
@@ -114,29 +100,15 @@ func (c *environmentQueryControllerClient) List(ctx context.Context, in *ListEnv
 // EnvironmentQueryController handles read operations for environments.
 type EnvironmentQueryControllerServer interface {
 	// Get an environment by ID.
-	//
-	// @internal
-	// Authorization: requires can_view permission on the environment resource.
 	Get(context.Context, *apiresource.ApiResourceId) (*Environment, error)
 	// Get an environment by its organization-scoped reference (org/slug).
 	// Resolves a human-readable reference like "acme/aws-prod" to the full Environment resource.
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Environment, error)
 	// Get the unredacted value of a single secret key in an environment.
 	// Returns the EnvironmentValue with the decrypted value for exactly one key.
-	//
-	// @internal
-	// Creator-only: FGA authorization grants can_read_secrets via the creator relation.
 	GetSecretValue(context.Context, *EnvironmentSecretValueInput) (*EnvironmentValue, error)
 	// List environments with optional label filtering.
 	// Secret values are redacted in the response.
-	//
-	// @internal
-	// Authorization is handled in-handler via FGA-filtered queries (cloud)
-	// or unrestricted store queries (OSS).
 	List(context.Context, *ListEnvironmentsRequest) (*EnvironmentList, error)
 }
 

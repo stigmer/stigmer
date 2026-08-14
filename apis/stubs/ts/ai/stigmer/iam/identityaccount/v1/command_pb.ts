@@ -28,11 +28,6 @@ export const IdentityAccountCommandController: GenService<{
   /**
    * Create a new identity account.
    *
-   * @internal
-   * System-level RPC used by federated account creation and bootstrap migrations.
-   * No FGA authorization — called via inProcessChannelAsSystem (machine account).
-   * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
-   *
    * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.create
    */
   create: {
@@ -43,9 +38,6 @@ export const IdentityAccountCommandController: GenService<{
   /**
    * Update an existing identity account.
    *
-   * @internal
-   * Authorization: Requires can_edit permission on the identity account resource.
-   *
    * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.update
    */
   update: {
@@ -55,9 +47,6 @@ export const IdentityAccountCommandController: GenService<{
   },
   /**
    * Delete an identity account.
-   *
-   * @internal
-   * Authorization: Requires can_delete permission on the identity account resource.
    *
    * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.delete
    */

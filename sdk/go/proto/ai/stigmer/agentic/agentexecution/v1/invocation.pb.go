@@ -36,69 +36,16 @@ const (
 // correspondence) because its task config is a kind+Struct authoring
 // DSL whose field names are the YAML keys — see
 // workflow/v1/tasks/agent_call.proto; channels embed RunConfig.
-//
-// @internal
-// Project DD-018 (whatsapp-proactive-messaging). An ALLOWLIST by
-// construction: platform-owned execution fields (approval_mode,
-// execution_target, callback_token, harness_state_id,
-// activity_task_queue, auto_approve_all, org/labels/subject) cannot
-// appear here, so embedding surfaces never need a blocklist validator
-// — the rejected alternative was embedding AgentExecutionSpec /
-// SessionSpec and validating the illegal fields away. Exclusions,
-// each with its reason (DD-018 D-1): runtime_env (plaintext secrets
-// in manifests leak; environments are the vehicle), attachments
-// (one-shot uploads don't recur), mcp_server_usages/skill_refs (the
-// agent blueprint owns its tool set), interaction_mode (Plan mode's
-// deliverable is a plan for a human who isn't there), cursor_mode
-// (runner-owned constant). Surface-specific constraints live in the
-// embedding surface's handlers, never here — e.g. schedules reject
-// local_path workspace sources and enforce agent_ref.org ==
-// metadata.org.
 type AgentInvocation struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Reference to the agent to run.
-	//
-	// @internal
-	// Embedding surfaces own the referential invariants: the schedule
-	// requires agent_ref.org == metadata.org (the owning org is the
-	// billing org for every run) and can_edit on this agent at create
-	// (DD-009 C-6). Deletion of the agent does not cascade (house
-	// convention): a dangling reference surfaces at run time as a
-	// failed start, never as a silent stall.
 	AgentRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=agent_ref,json=agentRef,proto3" json:"agent_ref,omitempty"`
 	// Prompt the run starts from.
-	//
-	// @internal
-	// DD-008 D5: the runner injects no current date into any prompt, so
-	// unattended surfaces compose this message plus a fire-context line.
-	// The bound applies to the stored prompt, not the composed message.
 	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 	// Execution engine for the run's session. Unspecified inherits the
 	// embedding surface's platform default.
-	//
-	// @internal
-	// DD-018 D-1: graduates from surface platform config (e.g.
-	// stigmer.schedules.session-defaults.harness) to the invocation —
-	// the config demotes from "the only source" to "the default".
-	// Verified before deciding: unattended approval semantics are one
-	// shared contract across both harnesses (approval-policy.ts), so
-	// owner harness choice changes the engine, never the safety
-	// posture. cursor_mode stays runner-owned and is deliberately
-	// absent.
 	Harness v1.Harness `protobuf:"varint,3,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
 	// Workspace the run's session operates on. Empty means no workspace.
-	//
-	// @internal
-	// Maps onto SessionSpec.workspace_entries of the session each run
-	// creates. Unattended surfaces constrain sources in their handlers:
-	// schedules accept git_repo only (no client is connected at fire
-	// time to serve a local_path). Credentials (DD-018 D-4): the
-	// provisioner resolves GITHUB_TOKEN from the merged environment;
-	// for surfaces with no interactive caller the one supported
-	// contract is an org-visibility Environment holding GITHUB_TOKEN
-	// bound via environment_refs — the personal-environment fallback
-	// resolves as-caller and is structurally closed to synthetic
-	// accounts. Public repos need no token.
 	WorkspaceEntries []*v1.WorkspaceEntry `protobuf:"bytes,4,rep,name=workspace_entries,json=workspaceEntries,proto3" json:"workspace_entries,omitempty"`
 	// References to Environment resources whose values are provided to
 	// the runs this invocation creates.
@@ -108,15 +55,6 @@ type AgentInvocation struct {
 	// example an MCP server's shared secret), and the runs receive its
 	// values at runtime. The agent and its default instance stay
 	// untouched.
-	//
-	// @internal
-	// The AgentShare/AgentChannel/Schedule environment_refs lineage
-	// (project DD-017 D-2). Resolution stays with the embedding
-	// surface's pipeline (CreateExecutionContextStep branch, claim-
-	// driven, LOWEST merge priority — instance refs and runtime_env
-	// override on key conflicts). No write-time existence or visibility
-	// check: enforcement lives solely at runtime resolution, which
-	// fails closed.
 	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,5,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
 	// Per-invocation model choice and run bounds. Unset fields inherit
 	// the embedding surface's platform execution profile.
@@ -203,20 +141,6 @@ func (x *AgentInvocation) GetRunConfig() *RunConfig {
 // "inherit the surface's platform default". Embeddable on its own:
 // surfaces that derive agent and message elsewhere (a channel's
 // conversations, for example) carry just this message.
-//
-// @internal
-// Project DD-018 D-2, factored from schedule DD-017 D-3's
-// ScheduleRunConfig so no surface mints another copy (chat-surface
-// DD-001 embeds this instead of a ChannelRunConfig mirror). A
-// deliberate SUBSET of ExecutionConfig: the full message carries
-// interactive-surface concepts (interaction_mode, build_from_plan,
-// structured_output_schema) and the platform-owned approval_mode —
-// none of which a caller-facing override may set. Clamp semantics
-// live in each surface's run starter, per field: model_name replaces
-// the platform value outright (the owner's spend, cheaper OR
-// pricier); the bounds clamp min(owner, platform) when the platform
-// cap is set, owner value stands when it is unset. The owner can
-// lower spend, never raise it past the platform profile.
 type RunConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The model each run uses. Example: "claude-sonnet-4-6".
@@ -226,10 +150,6 @@ type RunConfig struct {
 	MaxCostUsd float64 `protobuf:"fixed64,2,opt,name=max_cost_usd,json=maxCostUsd,proto3" json:"max_cost_usd,omitempty"`
 	// Maximum model-to-tools reasoning cycles per run. The surface's
 	// platform execution profile caps this value; the lower bound wins.
-	//
-	// @internal
-	// An implementation knob, not a user concept: API-reachable for
-	// operators, deliberately absent from creation forms (DD-018 D-5).
 	MaxToolRounds int32 `protobuf:"varint,3,opt,name=max_tool_rounds,json=maxToolRounds,proto3" json:"max_tool_rounds,omitempty"`
 	// Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
 	//

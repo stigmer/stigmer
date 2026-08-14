@@ -360,11 +360,6 @@ func (x *ListSessionsByChannelRequest) GetPageToken() string {
 }
 
 // UpdateSessionSubjectRequest sets the conversation title for a session.
-//
-// @internal
-// Field-level update that atomically modifies only the subject field,
-// avoiding the lost-update race condition that occurs when multiple
-// activities concurrently perform full-resource updates on the same session.
 type UpdateSessionSubjectRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Session ID to update.

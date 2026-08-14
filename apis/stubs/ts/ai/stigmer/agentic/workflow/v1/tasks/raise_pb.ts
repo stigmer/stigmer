@@ -17,15 +17,6 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_raise: GenFile = /*@__PUR
 /**
  * RaiseTaskConfig defines the configuration for raise_error tasks that raise errors.
  *
- * @internal
- * YAML Example:
- *   - taskName:
- *       raise:
- *         error: ValidationError
- *         message: ${ .errorMessage }
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 11
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
  */
 export type RaiseTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig"> & {

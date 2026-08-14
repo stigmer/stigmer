@@ -21,20 +21,6 @@ export const SkillCommandController = {
      * Creates a skill if it does not exist, or creates a new version of an
      * existing skill. The artifact must contain a SKILL.md file.
      *
-     * @internal
-     * Authorization:
-     * - Organization-scoped skills: Caller must have can_create_skill permission in the organization
-     * - Platform-scoped skills: Caller must be a platform operator
-     *
-     * The backend will:
-     * 1. Normalize the name to a slug
-     * 2. Find or create the skill resource
-     * 3. Extract SKILL.md from the artifact
-     * 4. Calculate SHA256 hash (version identifier)
-     * 5. Store the artifact (deduplicated by hash)
-     * 6. Update skill spec and status
-     * 7. Archive the previous version (if updating)
-     *
      * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.push
      */
     push: {
@@ -54,10 +40,6 @@ export const SkillCommandController = {
      *
      * The server refuses over-limit size_bytes here, before any bytes move.
      *
-     * @internal
-     * Authorization matches push() — the URL is a capability to stage bytes,
-     * so minting one requires the same permission as consuming it.
-     *
      * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.createArtifactUploadUrl
      */
     createArtifactUploadUrl: {
@@ -70,15 +52,6 @@ export const SkillCommandController = {
      * Push a skill from an execution artifact already in storage.
      * Use this when an agent execution has already produced a skill artifact
      * and you want to publish it without downloading and re-uploading the ZIP.
-     *
-     * @internal
-     * Server-side equivalent of push() — reads the ZIP directly from artifact
-     * storage instead of receiving bytes from the client. This eliminates
-     * CORS concerns for SDK consumers.
-     *
-     * Authorization:
-     * - Requires can_view on the referenced execution (to read the artifact)
-     * - Requires can_create_skill in the target organization (to push the skill)
      *
      * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.pushFromExecutionArtifact
      */
@@ -94,9 +67,6 @@ export const SkillCommandController = {
      * metadata fields untouched. Use this to make a skill publicly accessible
      * or to revoke public access.
      *
-     * @internal
-     * Authorization: Requires can_edit permission on the skill resource.
-     *
      * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.updateVisibility
      */
     updateVisibility: {
@@ -107,9 +77,6 @@ export const SkillCommandController = {
     },
     /**
      * Delete a skill and all its versions.
-     *
-     * @internal
-     * Removes the skill from the main collection but preserves audit history.
      *
      * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.delete
      */

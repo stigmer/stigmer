@@ -89,38 +89,14 @@ func (AgentChannelInstallState) EnumDescriptor() ([]byte, []int) {
 }
 
 // AgentChannelStatus contains system-managed state for an agent channel.
-//
-// @internal
-// Server-owned per decision 001 D-e / decision 004: install facts and the
-// credentials reference survive every apply/update verbatim (the
-// share_link_token precedent), so a routine manifest apply can never
-// clobber an install or leak a secret. Secrets themselves NEVER appear
-// here — the bot token lives encrypted in the referenced managed
-// Environment; status is readable by anyone with can_view.
 type AgentChannelStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Install lifecycle of the provider connection.
 	InstallState AgentChannelInstallState `protobuf:"varint,1,opt,name=install_state,json=installState,proto3,enum=ai.stigmer.agentic.agentchannel.v1.AgentChannelInstallState" json:"install_state,omitempty"`
 	// Provider-specific install facts observed during the install flow.
-	//
-	// @internal
-	// Populated by the install completion path (sole writer). The arm always
-	// matches spec.provider_config's case.
-	//
-	// Types that are valid to be assigned to ProviderStatus:
-	//
-	//	*AgentChannelStatus_Slack
-	//	*AgentChannelStatus_Whatsapp
 	ProviderStatus isAgentChannelStatus_ProviderStatus `protobuf_oneof:"provider_status"`
 	// ID of the system-managed Environment holding this connection's
 	// provider credentials (e.g. the Slack bot token).
-	//
-	// @internal
-	// Decision 004: created via ManagedEnvironmentService in the
-	// connection's org (stigmer.ai/managed=true), non-secret grant metadata
-	// in the resource-agnostic OAuthGrant document. The webhook receiver and
-	// delivery worker resolve the token through this reference — never from
-	// the channel resource itself.
 	CredentialsEnvironmentId string `protobuf:"bytes,3,opt,name=credentials_environment_id,json=credentialsEnvironmentId,proto3" json:"credentials_environment_id,omitempty"`
 	// Standard audit information (created_at, updated_at, created_by, etc.)
 	Audit         *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
@@ -227,12 +203,6 @@ func (*AgentChannelStatus_Whatsapp) isAgentChannelStatus_ProviderStatus() {}
 type SlackInstallStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Slack workspace (team) ID, e.g. "T0123ABCD".
-	//
-	// @internal
-	// The inbound routing key: the webhook receiver resolves the
-	// AgentChannel from the event payload's team_id. One INSTALLED channel
-	// per workspace, enforced by a partial-unique index on installed rows
-	// (decision 007).
 	TeamId string `protobuf:"bytes,1,opt,name=team_id,json=teamId,proto3" json:"team_id,omitempty"`
 	// Human-readable workspace name at install time.
 	TeamName string `protobuf:"bytes,2,opt,name=team_name,json=teamName,proto3" json:"team_name,omitempty"`
@@ -247,15 +217,6 @@ type SlackInstallStatus struct {
 	InstalledAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=installed_at,json=installedAt,proto3" json:"installed_at,omitempty"`
 	// ID of the ChannelApp the install went through; empty for installs
 	// of the platform's shared Stigmer app.
-	//
-	// @internal
-	// Written by the install completion path from the resolved
-	// spec.app_ref (sole writer, like every install fact). Discriminates
-	// routing and workspace uniqueness once multiple apps can serve one
-	// workspace: lookups key on (team_id, channel_app_id) and the
-	// partial-unique installed index is compound over both (decision 007
-	// as amended by T04 item 2). Existing platform installs predate the
-	// field; a missing value means the platform app — no backfill.
 	ChannelAppId  string `protobuf:"bytes,7,opt,name=channel_app_id,json=channelAppId,proto3" json:"channel_app_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -342,24 +303,9 @@ func (x *SlackInstallStatus) GetChannelAppId() string {
 
 // WhatsAppInstallStatus holds the facts observed when a WhatsApp Business
 // number was connected through the Meta Cloud API.
-//
-// @internal
-// Written by the direct-install path (sole writer, DD-WA-1): the installer
-// validates spec.whatsapp.phone_number_id against the Graph API and echoes
-// it here alongside the observed display facts. The echo is deliberate —
-// routing and uniqueness read STATUS (the install fact), mirroring
-// status.slack.team_id, so a later spec edit can never silently re-route
-// live traffic; the number binding changes only through a re-install.
 type WhatsAppInstallStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Phone number ID the install validated and bound, e.g. "106540352242922".
-	//
-	// @internal
-	// The inbound routing key: the webhook receiver resolves the
-	// AgentChannel from the event payload's metadata.phone_number_id. One
-	// INSTALLED channel per (phone_number_id, channel_app_id), enforced by
-	// a compound partial-unique index on installed rows — the
-	// status.slack.team_id mechanism (decision 007) applied to WhatsApp.
 	PhoneNumberId string `protobuf:"bytes,1,opt,name=phone_number_id,json=phoneNumberId,proto3" json:"phone_number_id,omitempty"`
 	// Human-readable phone number at install time, e.g. "+1 555 025 3483".
 	DisplayPhoneNumber string `protobuf:"bytes,2,opt,name=display_phone_number,json=displayPhoneNumber,proto3" json:"display_phone_number,omitempty"`
@@ -367,10 +313,6 @@ type WhatsAppInstallStatus struct {
 	VerifiedName string `protobuf:"bytes,3,opt,name=verified_name,json=verifiedName,proto3" json:"verified_name,omitempty"`
 	// ID of the ChannelApp the install went through. Always set for
 	// WhatsApp — every WhatsApp channel installs through your own Meta app.
-	//
-	// @internal
-	// Same discriminator role as SlackInstallStatus.channel_app_id; never
-	// empty because WhatsApp has no platform app (DD-WA-2).
 	ChannelAppId string `protobuf:"bytes,4,opt,name=channel_app_id,json=channelAppId,proto3" json:"channel_app_id,omitempty"`
 	// When the install completed.
 	InstalledAt   *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=installed_at,json=installedAt,proto3" json:"installed_at,omitempty"`

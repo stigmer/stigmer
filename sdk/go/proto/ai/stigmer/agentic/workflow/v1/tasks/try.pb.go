@@ -25,27 +25,6 @@ const (
 )
 
 // TryTaskConfig defines the configuration for try_catch tasks that handle errors.
-//
-// @internal
-// YAML Example:
-//   - taskName:
-//     try:
-//   - attemptTask:
-//     call: http
-//     with:
-//     method: POST
-//     endpoint:
-//     uri: https://api.example.com/flaky
-//     catch:
-//     as: error
-//     do:
-//   - errorHandler:
-//     call: http
-//     with:
-//     body:
-//     error: ${ .error }
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 6
 type TryTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Tasks to attempt (at least one required).

@@ -27,10 +27,6 @@ export const file_ai_stigmer_iam_apikey_v1_api: GenFile = /*@__PURE__*/
  * Each API key is scoped to a single identity account (user or machine) and
  * can optionally be configured to expire.
  *
- * @internal
- * The raw key value is returned only once in the create response. Only the
- * hash and fingerprint are persisted.
- *
  * @generated from message ai.stigmer.iam.apikey.v1.ApiKey
  */
 export type ApiKey = Message<"ai.stigmer.iam.apikey.v1.ApiKey"> & {

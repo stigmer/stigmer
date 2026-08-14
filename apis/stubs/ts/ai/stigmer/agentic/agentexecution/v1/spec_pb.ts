@@ -88,14 +88,6 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
    * empty — it is server-owned harness continuity state, created by the runner
    * after the first execution.
    *
-   * @internal
-   * The Session resource created from this spec is the single source of truth
-   * for session configuration. The handler clears this field after the session
-   * is created (before persist), so the execution record never carries a
-   * second copy of session config that could drift as the session evolves.
-   * Extends the existing auto-create path in createSessionIfNeededStep rather
-   * than adding a parallel one (stigmer/stigmer#249).
-   *
    * @generated from field: ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13;
    */
   sessionSpec?: SessionSpec;
@@ -127,17 +119,6 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
    * These values are consumed into the ExecutionContext (deleted when the
    * execution completes) and cleared from the persisted execution.
    *
-   * @internal
-   * Merge priority (lowest to highest): resolved Environment values — from the
-   * creating schedule's or agent_call task's environment_refs (when present),
-   * then the instance's environment_refs; a later ref wins — then runtime_env
-   * (this field). The merged map is filtered to the keys declared in
-   * Agent.spec.env (no filtering when the agent declares none); a missing
-   * required key only logs a warning — the run is not failed. The merge is
-   * owned by backend/libs/go/envmerge and the agentexecution controller's
-   * executionContextBuilder, and asserted by
-   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
-   *
    * @generated from field: map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 5;
    */
   runtimeEnv: { [key: string]: ExecutionValue };
@@ -148,56 +129,6 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
    * When a workflow invokes an agent, this token enables the workflow to
    * wait for the agent to finish without blocking. When empty, the
    * execution runs independently (CLI, API calls, non-workflow triggers).
-   *
-   * @internal
-   *
-   * Enables async completion pattern where the caller (typically a
-   * workflow activity) waits for actual agent completion without blocking
-   * worker threads.
-   *
-   * Flow:
-   * 1. Caller (Go Temporal activity) extracts its task token
-   * 2. Passes token in this field when creating AgentExecution
-   * 3. Returns activity.ErrResultPending (activity paused, thread released)
-   * 4. Agent workflow completes (minutes/hours later)
-   * 5. Agent workflow calls ActivityCompletionClient.complete(token, result)
-   * 6. Temporal resumes the paused activity with the result
-   *
-   * Token Format:
-   * - Opaque binary blob from Temporal SDK (typically 100-200 bytes)
-   * - Contains: namespace, workflow ID, run ID, activity ID, attempt
-   * - DO NOT parse or modify - treat as opaque handle
-   *
-   * Security:
-   * - Token grants ability to complete the activity (bearer token)
-   * - Should only be passed through trusted internal services
-   * - Logged as Base64-encoded string (truncated for security)
-   *
-   * Timeout:
-   * - Caller should set StartToCloseTimeout (e.g., 24 hours)
-   * - If token callback never arrives, activity times out
-   *
-   * Example Usage (Go):
-   * ```go
-   * func CallAgentActivity(ctx context.Context, config *AgentCallTaskConfig) {
-   *     taskToken := activity.GetInfo(ctx).TaskToken
-   *     execution := &AgentExecution{
-   *         Spec: &AgentExecutionSpec{
-   *             AgentId: config.Agent,
-   *             Message: config.Message,
-   *             CallbackToken: taskToken,
-   *         },
-   *     }
-   *     client.Create(ctx, execution)
-   *     return nil, activity.ErrResultPending
-   * }
-   * ```
-   *
-   * References:
-   * - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
-   * - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
-   *
-   * @since 2026-01-22 (Phase 2: Async Agent Execution Integration)
    *
    * @generated from field: bytes callback_token = 6;
    */
@@ -233,24 +164,6 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
    * When set, the platform notifies the parent workflow about approval
    * requests instead of requiring polling. When empty, approvals are
    * submitted directly via the SubmitApproval RPC.
-   *
-   * @internal
-   *
-   * Signal Pattern:
-   * 1. Go workflow passes its workflow ID when creating AgentExecution
-   * 2. Go workflow starts signal listener for "child_approval_required"
-   * 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent
-   * 4. Go workflow receives signal, updates task status to WAITING_APPROVAL
-   *
-   * Format:
-   * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
-   *
-   * Backward Compatibility:
-   * This field is optional. Agents invoked without a parent workflow ID will
-   * continue to work normally - approval is submitted directly via the
-   * AgentExecution.SubmitApproval RPC.
-   *
-   * @since Phase 5.1 (Events-Based Approval Notification)
    *
    * @generated from field: string parent_workflow_id = 8;
    */
@@ -309,24 +222,6 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
   /**
    * Explicit Temporal task queue override for activity routing.
    *
-   * @internal
-   * When set, the agent execution's activities are routed to this queue
-   * instead of the normally-resolved queue (session:{id} or global stigmer_runner).
-   * This enables sandbox sharing: a parent workflow execution passes its own
-   * queue so child agents run in the same sandbox without provisioning new VMs.
-   *
-   * When empty: normal dispatch resolution applies (default behavior).
-   *
-   * Security: Only accepted from internal callers (workflow engine's CallAgent
-   * activity). External API callers cannot set this field — the create handler
-   * strips it during input sanitization. Presence of parent_workflow_id is used
-   * as a co-validation signal.
-   *
-   * Format: "wfexec:{workflow_execution_id}" (matches the parent workflow's
-   * sandbox queue). The prefix ensures no collision with session:{id} queues.
-   *
-   * @since Workflow Sandbox Affinity
-   *
    * @generated from field: string activity_task_queue = 11;
    */
   activityTaskQueue: string;
@@ -342,20 +237,6 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
    *
    * Empty means this execution is not an edit of another turn.
    *
-   * @internal
-   *
-   * The link always lives on the successor — the superseded record is never
-   * mutated (append-only execution log, single writer). Chained edits form a
-   * chain of links (A <- B <- C), each persisted on its own successor.
-   *
-   * Display-level semantics only: the runner does NOT rewind model context.
-   * Conversation history lives in an opaque session-keyed store (LangGraph
-   * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
-   * superseded turn's partial messages remain visible to the model. Do not
-   * build features that assume the runner skips superseded turns.
-   *
-   * @since Edit-and-Resubmit In Place (stigmer/stigmer#181)
-   *
    * @generated from field: string supersedes_execution_id = 12;
    */
   supersedesExecutionId: string;
@@ -368,16 +249,6 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
    * teammate handled the conversation or messages otherwise landed while the
    * agent was not watching, the digest carries what happened so the agent
    * re-enters informed. Absent on every other execution surface.
-   *
-   * @internal
-   * Composed per turn by the cloud channel runtime — ChannelSessionBroker
-   * over the DD-004 timeline stitch, windowed by the conversation's
-   * agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
-   * The OSS server never sets it. The runner prepends the framed digest to
-   * the turn's user message on both harnesses (A27) and must never read
-   * window_end. Top-level rather than inside ExecutionConfig by design:
-   * conversation content must not vanish with the execution-profile
-   * kill-switch (DD-006 D-a).
    *
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14;
    */
@@ -795,14 +666,6 @@ export const AttachmentSchema: GenMessage<Attachment> = /*@__PURE__*/
  * ConversationCatchup carries the channel-conversation events an agent
  * missed, composed fresh for one execution.
  *
- * @internal
- * Present on EVERY channel turn — even with an empty digest — so window_end
- * can advance the conversation's agent_witnessed_through watermark when the
- * turn settles (channel-conversations DD-006 as amended by T03 Sitting 3,
- * A21). Content is composed in the cloud; presentation (preamble, framing,
- * prompt placement) is owned by the OSS runner's shared/conversation-catchup
- * module — the DD-013 content/presentation split.
- *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.ConversationCatchup
  */
 export type ConversationCatchup = Message<"ai.stigmer.agentic.agentexecution.v1.ConversationCatchup"> & {
@@ -810,26 +673,12 @@ export type ConversationCatchup = Message<"ai.stigmer.agentic.agentexecution.v1.
    * Plain-text digest of what the agent missed, oldest first; empty when
    * nothing was missed.
    *
-   * @internal
-   * Bare content lines ("Customer: ..." / "Teammate: ..." / "System: ..." /
-   * "You escalated: ..." / "Note: ..."), no model-facing framing — the
-   * runner owns the preamble and the prompt placement. Blank means "inject
-   * nothing" (the shared-module blank-is-absent convention).
-   *
    * @generated from field: string digest = 1;
    */
   digest: string;
 
   /**
    * The timeline instant this digest conveys through.
-   *
-   * @internal
-   * Cloud bookkeeping, NEVER read by the runner. The delivery settle path
-   * advances the conversation's agent_witnessed_through watermark to this
-   * instant when the execution COMPLETED and the settle won (DD-007 D-b as
-   * sharpened by A26). Set on every channel turn, digest or not (A21); its
-   * value is the broker's compose instant, which is strictly later than the
-   * turn's own inbound message (A24).
    *
    * @generated from field: google.protobuf.Timestamp window_end = 2;
    */

@@ -37,10 +37,6 @@ type AgentShareQueryControllerClient interface {
 	// Get a single agent share by ID.
 	Get(ctx context.Context, in *AgentShareId, opts ...grpc.CallOption) (*AgentShare, error)
 	// Get an agent share by its organization-scoped reference (org/slug).
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*AgentShare, error)
 	// Get all shares of a specific agent.
 	// Returns only shares the caller has access to, optionally scoped to
@@ -48,16 +44,8 @@ type AgentShareQueryControllerClient interface {
 	//
 	// This is how the Share dialog and CLI resolve an agent's existing
 	// share regardless of its slug (a renamed share keeps working).
-	//
-	// @internal
-	// Authorization is handled in-handler: FGA-filtered in cloud, unrestricted
-	// in OSS (single-user edition).
 	GetByAgent(ctx context.Context, in *GetAgentSharesByAgentRequest, opts ...grpc.CallOption) (*AgentShareList, error)
 	// List agent shares with optional label filtering.
-	//
-	// @internal
-	// Authorization is handled in-handler via FGA-filtered queries (cloud)
-	// or unrestricted store queries (OSS).
 	List(ctx context.Context, in *ListAgentSharesRequest, opts ...grpc.CallOption) (*AgentShareList, error)
 	// Get the public profile of a shared agent by the share's org/slug.
 	//
@@ -75,11 +63,6 @@ type AgentShareQueryControllerClient interface {
 	// or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is
 	// empty: org+slug is the shared URL's identity, and cross-org slug
 	// matching on a public endpoint would enable enumeration.
-	//
-	// @internal
-	// Public by design (no authentication): enforcement is the app-level
-	// sharing gate in the handler, not FGA — see AgentShareSpec for why a
-	// share writes no visibility tuples.
 	GetSharedProfile(ctx context.Context, in *GetSharedProfileRequest, opts ...grpc.CallOption) (*SharedAgentProfile, error)
 	// Get the profile of a shared agent as a signed-in organization member.
 	//
@@ -96,13 +79,6 @@ type AgentShareQueryControllerClient interface {
 	// must not reveal a killed link's profile) — the cases are deliberately
 	// indistinguishable so a share URL leaks nothing to non-members.
 	// Returns INVALID_ARGUMENT when org is empty.
-	//
-	// @internal
-	// Custom authorization in handler — requires authentication (not
-	// is_public), then an app-level organization#member FGA check for org
-	// shares. No standard resource_kind/permission config: the sharing gate
-	// is app-level by design (see AgentShareSpec), and membership is checked
-	// live on every call so revoked members lose access immediately.
 	GetSharedProfileForMember(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*SharedAgentProfile, error)
 }
 
@@ -183,10 +159,6 @@ type AgentShareQueryControllerServer interface {
 	// Get a single agent share by ID.
 	Get(context.Context, *AgentShareId) (*AgentShare, error)
 	// Get an agent share by its organization-scoped reference (org/slug).
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*AgentShare, error)
 	// Get all shares of a specific agent.
 	// Returns only shares the caller has access to, optionally scoped to
@@ -194,16 +166,8 @@ type AgentShareQueryControllerServer interface {
 	//
 	// This is how the Share dialog and CLI resolve an agent's existing
 	// share regardless of its slug (a renamed share keeps working).
-	//
-	// @internal
-	// Authorization is handled in-handler: FGA-filtered in cloud, unrestricted
-	// in OSS (single-user edition).
 	GetByAgent(context.Context, *GetAgentSharesByAgentRequest) (*AgentShareList, error)
 	// List agent shares with optional label filtering.
-	//
-	// @internal
-	// Authorization is handled in-handler via FGA-filtered queries (cloud)
-	// or unrestricted store queries (OSS).
 	List(context.Context, *ListAgentSharesRequest) (*AgentShareList, error)
 	// Get the public profile of a shared agent by the share's org/slug.
 	//
@@ -221,11 +185,6 @@ type AgentShareQueryControllerServer interface {
 	// or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is
 	// empty: org+slug is the shared URL's identity, and cross-org slug
 	// matching on a public endpoint would enable enumeration.
-	//
-	// @internal
-	// Public by design (no authentication): enforcement is the app-level
-	// sharing gate in the handler, not FGA — see AgentShareSpec for why a
-	// share writes no visibility tuples.
 	GetSharedProfile(context.Context, *GetSharedProfileRequest) (*SharedAgentProfile, error)
 	// Get the profile of a shared agent as a signed-in organization member.
 	//
@@ -242,13 +201,6 @@ type AgentShareQueryControllerServer interface {
 	// must not reveal a killed link's profile) — the cases are deliberately
 	// indistinguishable so a share URL leaks nothing to non-members.
 	// Returns INVALID_ARGUMENT when org is empty.
-	//
-	// @internal
-	// Custom authorization in handler — requires authentication (not
-	// is_public), then an app-level organization#member FGA check for org
-	// shares. No standard resource_kind/permission config: the sharing gate
-	// is app-level by design (see AgentShareSpec), and membership is checked
-	// live on every call so revoked members lose access immediately.
 	GetSharedProfileForMember(context.Context, *apiresource.ApiResourceReference) (*SharedAgentProfile, error)
 }
 

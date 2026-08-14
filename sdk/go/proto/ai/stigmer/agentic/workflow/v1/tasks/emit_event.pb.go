@@ -25,24 +25,6 @@ const (
 )
 
 // EmitEventSpec defines the CloudEvents envelope for an event to be emitted.
-//
-// @internal
-// Follows CloudEvents semantics (type, source, subject, data) because:
-// 1. CloudEvents is a graduated CNCF project with broad ecosystem support
-// 2. The CNCF Serverless Workflow spec already uses CloudEvents
-// 3. It provides a standard envelope that external consumers can parse
-//
-// Runtime-generated fields not authored here:
-// - id: unique event identifier (UUID, generated at emit time)
-// - specversion: always "1.0"
-// - time: ISO 8601 timestamp of emission
-// - datacontenttype: always "application/json" (since data is a Struct)
-//
-// The runtime (T13) decides how events are delivered: Temporal signals to
-// other workflows, message queues, webhooks, or event buses. The proto
-// carries the event specification; delivery is a runtime concern.
-//
-// @since T03 (P0 New Task Types)
 type EmitEventSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// CloudEvents type identifier.
@@ -134,56 +116,6 @@ func (x *EmitEventSpec) GetSubject() string {
 // EmitEventTaskConfig defines the configuration for emit_event tasks that
 // publish CloudEvents to external consumers, other workflows, audit trails,
 // and metrics systems.
-//
-// @internal
-// emit_event is the complement to listen. While listen waits for Temporal
-// signals (internal workflow primitives), emit_event publishes business
-// events using the CloudEvents envelope (a standard external contract).
-// The runtime (T13) bridges the two: an emitted CloudEvent can be
-// delivered as a Temporal signal to another workflow's listen task, or
-// routed to external consumers via message queues, webhooks, or event buses.
-//
-// The task output is the fully-resolved CloudEvents envelope with
-// runtime-generated fields populated:
-//
-//	{
-//	  "id": "<generated UUID>",
-//	  "specversion": "1.0",
-//	  "type": "stigmer.workflow.ticket.classified",
-//	  "source": "/workflows/triage/executions/abc-123",
-//	  "time": "2026-05-12T14:30:00Z",
-//	  "subject": "TICKET-456",
-//	  "datacontenttype": "application/json",
-//	  "data": { <resolved payload> }
-//	}
-//
-// YAML Example (emit a classification event):
-//   - notify_classified:
-//     emit_event:
-//     event:
-//     type: "stigmer.workflow.ticket.classified"
-//     subject: "${ $context.ticket.id }"
-//     data:
-//     ticket_id: "${ $context.ticket.id }"
-//     severity: "${ $context.triage.severity }"
-//     category: "${ $context.triage.category }"
-//     classified_by: "${ $context.workflow_instance_id }"
-//     export:
-//     as: "${ . }"
-//
-// YAML Example (emit with explicit source):
-//   - publish_completion:
-//     emit_event:
-//     event:
-//     type: "acme.order.fulfilled"
-//     source: "urn:acme:fulfillment-service"
-//     subject: "${ $context.order.number }"
-//     data:
-//     order_id: "${ $context.order.id }"
-//     status: "fulfilled"
-//     fulfilled_at: "${ $context.timestamp }"
-//     export:
-//     as: "${ . }"
 type EmitEventTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The event specification to emit.

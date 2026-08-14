@@ -22,28 +22,12 @@ const (
 )
 
 // GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.
-//
-// @internal
-// The platform enables write-back by default when credentials are
-// available. Users can override this per-session by setting an
-// explicit mode. The agent never sees or controls this setting.
 type GitWriteBackMode int32
 
 const (
 	// Platform default behavior — write-back is enabled when git credentials are available.
-	//
-	// @internal
-	// Artifacts are still published as downloadable files regardless of this
-	// setting. Set an explicit mode to override the platform default.
 	GitWriteBackMode_GIT_WRITE_BACK_MODE_UNSPECIFIED GitWriteBackMode = 0
 	// Create a branch and pull request from the agent's file changes after execution completes.
-	//
-	// @internal
-	// The platform automatically detects uncommitted changes via git diff,
-	// creates a branch (stigmer/{execution_id_short}), commits all changes,
-	// pushes the branch to the remote, and creates a pull request targeting
-	// the original branch. The write-back outcome is recorded in
-	// AgentExecutionStatus.workspace_write_backs.
 	GitWriteBackMode_GIT_WRITE_BACK_BRANCH_AND_PR GitWriteBackMode = 1
 )
 
@@ -161,20 +145,10 @@ func (Harness) EnumDescriptor() ([]byte, []int) {
 // client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.
 // Set at session creation time and immutable once an execution has run —
 // workspace state may not be portable between local and cloud environments.
-//
-// @internal
-// The control plane uses this field in dispatch to decide whether to route
-// activities to a client-polled per-session queue (LOCAL) or provision a
-// cloud sandbox (CLOUD). Both use task queues named "session:{session_id}".
-// The difference is who provides the runner: the client (LOCAL) or the
-// server (CLOUD).
 type ExecutionTarget int32
 
 const (
 	// Platform default — server decides based on deployment context.
-	//
-	// @internal
-	// Resolves to LOCAL for OSS/self-hosted, CLOUD for managed cloud service.
 	ExecutionTarget_EXECUTION_TARGET_UNSPECIFIED ExecutionTarget = 0
 	// Client's embedded runner handles activities.
 	//
@@ -238,18 +212,6 @@ func (ExecutionTarget) EnumDescriptor() ([]byte, []int) {
 // separate, incompatible conversation stores.
 //
 // Ignored when harness is not HARNESS_CURSOR.
-//
-// @internal
-// Runner-owned, never user-set: determineCursorMode() in the cursor
-// runner always returns LOCAL while cloud mode is disabled platform-wide
-// (Cursor cloud agents clone via Cursor's own GitHub App and accept no
-// per-request git credential, so Stigmer provisions the workspace itself
-// and runs a local Cursor agent against it). The former workspace-based
-// selection logic was removed 2026-06-03; STIGMER_CURSOR_CLOUD_MODE_ENABLED
-// still parses into runner config but no longer drives mode selection.
-//
-// When UNSPECIFIED on an existing session, the runner treats it as LOCAL
-// for backward compatibility with sessions created before this field existed.
 type CursorMode int32
 
 const (

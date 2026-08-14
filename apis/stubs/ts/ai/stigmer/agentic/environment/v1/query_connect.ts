@@ -20,9 +20,6 @@ export const EnvironmentQueryController = {
     /**
      * Get an environment by ID.
      *
-     * @internal
-     * Authorization: requires can_view permission on the environment resource.
-     *
      * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentQueryController.get
      */
     get: {
@@ -34,10 +31,6 @@ export const EnvironmentQueryController = {
     /**
      * Get an environment by its organization-scoped reference (org/slug).
      * Resolves a human-readable reference like "acme/aws-prod" to the full Environment resource.
-     *
-     * @internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
      *
      * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentQueryController.getByReference
      */
@@ -51,9 +44,6 @@ export const EnvironmentQueryController = {
      * Get the unredacted value of a single secret key in an environment.
      * Returns the EnvironmentValue with the decrypted value for exactly one key.
      *
-     * @internal
-     * Creator-only: FGA authorization grants can_read_secrets via the creator relation.
-     *
      * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentQueryController.getSecretValue
      */
     getSecretValue: {
@@ -65,10 +55,6 @@ export const EnvironmentQueryController = {
     /**
      * List environments with optional label filtering.
      * Secret values are redacted in the response.
-     *
-     * @internal
-     * Authorization is handled in-handler via FGA-filtered queries (cloud)
-     * or unrestricted store queries (OSS).
      *
      * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentQueryController.list
      */

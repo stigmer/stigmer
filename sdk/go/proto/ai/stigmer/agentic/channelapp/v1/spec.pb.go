@@ -27,29 +27,9 @@ const (
 // Exactly one provider configuration must be set; the provider of a
 // ChannelApp always matches the provider of the channels that reference
 // it.
-//
-// @internal
-// Provider variance is config-shaped, not lifecycle-shaped — one kind,
-// a validated oneof (the AgentChannelSpec.provider_config precedent).
-// Secrets are inline spec fields encrypted at rest and redacted in every
-// response (the OAuthAppSpec.client_secret pipeline, both editions) —
-// NOT managed-environment refs: app credentials are user-authored
-// configuration entered in one motion with the resource, unlike
-// install-produced tokens (decision 004's split, amended for BYO).
-// The resource is always visibility_private; there is no updateVisibility
-// RPC.
 type ChannelAppSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Provider this app belongs to. Exactly one must be specified.
-	//
-	// @internal
-	// Adding a provider extends this oneof; it touches zero kinds (the
-	// pattern WhatsApp proved in T05).
-	//
-	// Types that are valid to be assigned to ProviderConfig:
-	//
-	//	*ChannelAppSpec_Slack
-	//	*ChannelAppSpec_Whatsapp
 	ProviderConfig isChannelAppSpec_ProviderConfig `protobuf_oneof:"provider_config"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -135,14 +115,6 @@ func (*ChannelAppSpec_Whatsapp) isChannelAppSpec_ProviderConfig() {}
 // api.slack.com. The app must be configured with Stigmer's OAuth
 // redirect URL and this ChannelApp's events webhook URL — the console
 // shows both, along with a ready-to-paste app manifest.
-//
-// @internal
-// No api_app_id and no redirect/webhook URLs here: webhook attribution
-// is by the per-app request path (/webhook/slack/{channelAppId}), chosen
-// over envelope api_app_id sniffing because Slack's url_verification
-// handshake carries no app identity and the raw body must verify before
-// any parse. The redirect URI is platform-derived, mirroring OAuthApp's
-// deliberate omission.
 type SlackChannelAppConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// OAuth client ID of the Slack app.
@@ -214,16 +186,6 @@ func (x *SlackChannelAppConfig) GetSigningSecret() string {
 // The values come from the app's dashboard on developers.facebook.com.
 // The app's webhook must be configured with this ChannelApp's events URL
 // and verify token — the console shows both after the app is registered.
-//
-// @internal
-// DD-WA-3: every WhatsApp credential is per-app authored (Meta's Cloud
-// API has no per-install OAuth), so they all live here — no managed
-// Environment, no OAuthGrant row; AgentChannelStatus.credentials_environment_id
-// stays empty for WhatsApp channels. Webhook attribution is by the per-app
-// request path (/webhook/whatsapp/{channelAppId}), matching Slack's
-// per-app URL posture: Meta's GET verification handshake carries no app
-// identity, and the POST signature (X-Hub-Signature-256, HMAC over the
-// raw body with app_secret) must verify before any parse.
 type WhatsAppChannelAppConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Meta app ID, from the app dashboard's Basic Settings.

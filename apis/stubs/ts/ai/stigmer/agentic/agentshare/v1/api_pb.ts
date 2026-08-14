@@ -30,12 +30,6 @@ export const file_ai_stigmer_agentic_agentshare_v1_api: GenFile = /*@__PURE__*/
  * configuration. The referenced agent is never modified by share
  * operations.
  *
- * @internal
- * Promoted from Agent.spec.sharing (decision 011): sharing is channel
- * configuration with its own writer, lifecycle, and — in Phase B — its own
- * billing org per channel. metadata.slug appears in the hosted chat URL,
- * defaults to the referenced agent's slug, and is unique per org.
- *
  * @generated from message ai.stigmer.agentic.agentshare.v1.AgentShare
  */
 export type AgentShare = Message<"ai.stigmer.agentic.agentshare.v1.AgentShare"> & {

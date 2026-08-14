@@ -46,9 +46,6 @@ class OrganizationQueryControllerServicer(object):
 
     def get(self, request, context):
         """Get an organization by ID.
-
-        @internal
-        Authorization: Requires can_view permission on the organization.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -56,9 +53,6 @@ class OrganizationQueryControllerServicer(object):
 
     def find(self, request, context):
         """List organizations with pagination and filtering.
-
-        @internal
-        Authorization: Requires platform admin permission. Administrative use only.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -67,9 +61,6 @@ class OrganizationQueryControllerServicer(object):
     def findMyOrganizations(self, request, context):
         """Find organizations the authenticated user is a member of.
         Returns only organizations the caller has access to.
-
-        @internal
-        Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -78,9 +69,6 @@ class OrganizationQueryControllerServicer(object):
     def getByExternalOrgId(self, request, context):
         """Look up a platform-managed organization by its external platform coordinates.
         Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
-
-        @internal
-        Authorization: custom — checks can_view on the referenced IdentityProvider.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

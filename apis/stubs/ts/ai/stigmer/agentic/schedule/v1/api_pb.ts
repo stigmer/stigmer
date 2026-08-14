@@ -29,16 +29,6 @@ export const file_ai_stigmer_agentic_schedule_v1_api: GenFile = /*@__PURE__*/
  * status. Deleting a schedule stops firing permanently; disabling pauses
  * firing while preserving the schedule and its history.
  *
- * @internal
- * DD-008 D1 (as amended by DD-009): standalone kind (56), target oneof
- * extensible to workflows without a new kind. One agent may have many
- * schedules with different prompts; metadata.org is the billing org for
- * every fire. Calendar semantics live in the Temporal server (D2) — the
- * platform parses no cron in either edition. The defaults resolver does
- * NOT default the slug to the agent slug (schedules are N-per-agent, the
- * AgentChannel P7 rule); standard derive-from-name applies. The
- * overview.md file provides the SDK-facing description and example YAML.
- *
  * @generated from message ai.stigmer.agentic.schedule.v1.Schedule
  */
 export type Schedule = Message<"ai.stigmer.agentic.schedule.v1.Schedule"> & {

@@ -9,11 +9,6 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 
 class AgentChannelQueryControllerStub(object):
     """AgentChannelQueryController handles read operations for agent channels.
-
-    @internal
-    Deliberately no anonymous/public RPC (AgentShare's getSharedProfile has
-    no analog here): the channel's public surface is the provider webhook,
-    which authenticates by signature — never a query endpoint.
     """
 
     def __init__(self, channel):
@@ -46,11 +41,6 @@ class AgentChannelQueryControllerStub(object):
 
 class AgentChannelQueryControllerServicer(object):
     """AgentChannelQueryController handles read operations for agent channels.
-
-    @internal
-    Deliberately no anonymous/public RPC (AgentShare's getSharedProfile has
-    no analog here): the channel's public surface is the provider webhook,
-    which authenticates by signature — never a query endpoint.
     """
 
     def get(self, request, context):
@@ -62,10 +52,6 @@ class AgentChannelQueryControllerServicer(object):
 
     def getByReference(self, request, context):
         """Get an agent channel by its organization-scoped reference (org/slug).
-
-        @internal
-        Custom authorization in handler — checks both direct resource access
-        and organization-level visibility permissions (AgentShare pattern).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -77,9 +63,6 @@ class AgentChannelQueryControllerServicer(object):
 
         This is how the agent's integrations surface and CLI resolve an
         agent's existing channels regardless of slug.
-
-        @internal
-        Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -87,10 +70,6 @@ class AgentChannelQueryControllerServicer(object):
 
     def list(self, request, context):
         """List agent channels with optional label filtering.
-
-        @internal
-        Authorization in-handler via FGA-filtered queries (cloud) or
-        unrestricted store queries (OSS).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -129,11 +108,6 @@ def add_AgentChannelQueryControllerServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class AgentChannelQueryController(object):
     """AgentChannelQueryController handles read operations for agent channels.
-
-    @internal
-    Deliberately no anonymous/public RPC (AgentShare's getSharedProfile has
-    no analog here): the channel's public surface is the provider webhook,
-    which authenticates by signature — never a query endpoint.
     """
 
     @staticmethod

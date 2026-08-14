@@ -31,46 +31,17 @@ const (
 // environments supply the agent's tool credentials. Workspace identity and
 // provider credentials are produced by the install flow and live in
 // status — a declarative apply can never clobber them.
-//
-// @internal
-// P1: the provider arms carry only genuinely user-declarable fields. For
-// the multi-tenant Slack app everything concrete (team_id, bot_user_id,
-// scopes, credentials env) is OAuth-observed → status. Owner-customizable
-// refusal copy (the AgentShareMessages analog) is deliberately deferred:
-// platform-default copy lives in the deliverer (decision 006); adding a
-// messages block later is a non-breaking change.
 type AgentChannelSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Reference to the agent this channel serves.
-	//
-	// @internal
-	// Invariant (enforced in create/update/apply handlers of both editions,
-	// mirroring AgentShare's Phase A rule): agent_ref.org must equal
-	// metadata.org — the connection-owning org is the billing org and
-	// provider credentials resolve in that org (decision 004; T06 invariant).
 	AgentRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=agent_ref,json=agentRef,proto3" json:"agent_ref,omitempty"`
 	// Whether serving traffic on this channel is enabled.
 	//
 	// Disabling is a config-preserving pause: the connection keeps its
 	// install state and credentials, but inbound events are refused until
 	// re-enabled. Delete the channel instead for a full teardown.
-	//
-	// @internal
-	// Decision 001 D-d. Pause must never drop the install: re-installing a
-	// Slack app to re-auth is painful. The per-turn gate re-reads this live
-	// (decision 003), so disabling takes effect on the next message.
 	Enabled bool `protobuf:"varint,2,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Provider this channel connects to. Exactly one must be specified.
-	//
-	// @internal
-	// Decision 001: provider variance is config-shaped, not lifecycle-shaped
-	// — one kind, a validated oneof (McpServerSpec.server_type precedent).
-	// Adding WhatsApp (T05) extends this oneof; it touches zero kinds.
-	//
-	// Types that are valid to be assigned to ProviderConfig:
-	//
-	//	*AgentChannelSpec_Slack
-	//	*AgentChannelSpec_Whatsapp
 	ProviderConfig isAgentChannelSpec_ProviderConfig `protobuf_oneof:"provider_config"`
 	// References to Environment resources whose values are provided to
 	// conversations on this channel.
@@ -79,22 +50,6 @@ type AgentChannelSpec struct {
 	// an org-shared environment holding the needed credentials (for example
 	// a read-only API token), and channel executions receive its values at
 	// runtime. The agent and its default instance stay untouched.
-	//
-	// @internal
-	// The AgentShareSpec.environment_refs analog (decision 011: sharing is
-	// a channel — both connection kinds carry their own credentials).
-	// Resolved in the channel's org through the org-shared environment
-	// resolution seam (EnvironmentRuntimeResolutionService /
-	// OrgSharedEnvironmentPolicy): each referenced environment must be
-	// visibility_org in the channel's org, or the merge skips it with a
-	// diagnostic. Merged at channel execution-context build time only,
-	// lowest priority (instance refs and runtime_env override on key
-	// conflicts) — never bound to the agent's system-managed default
-	// instance. No write-time existence or visibility check, matching the
-	// share: enforcement lives solely at runtime resolution, which fails
-	// closed. Unlike the share there is no audience CEL — channels have no
-	// audience concept, and the same-org invariant (agent_ref.org ==
-	// metadata.org) already scopes resolution.
 	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,4,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
 	// Reference to the ChannelApp this channel installs through.
 	//
@@ -104,30 +59,10 @@ type AgentChannelSpec struct {
 	// and each app is its own bot identity, so multiple agents can serve
 	// one workspace. For WhatsApp the reference is required — every
 	// WhatsApp channel installs through your own Meta app (DD-WA-2).
-	//
-	// @internal
-	// T04 item 2. Invariants (enforced in handlers of both editions):
-	// app_ref.org must equal metadata.org (secrets never cross orgs — the
-	// agent_ref rule), and the ref is immutable while install_state ==
-	// installed (the workspace granted THAT app; switching apps requires
-	// re-install, so pending/revoked channels may rebind freely). No
-	// write-time existence or provider-match check, matching the
-	// environment_refs posture: the install flow resolves the app and
-	// fails closed on a missing or wrong-provider reference.
 	AppRef *apiresource.ApiResourceReference `protobuf:"bytes,5,opt,name=app_ref,json=appRef,proto3" json:"app_ref,omitempty"`
 	// Whether the serving agent may send business-initiated (proactive)
 	// messages on this channel. Off by default: a channel is reply-only
 	// until its owner grants this.
-	//
-	// @internal
-	// proactive-messaging DD-002 D5, the DD-014 two-consents operator
-	// lever, living where `enabled` lives (the surface owns the grant).
-	// Existing channels keep reply-only behavior on deploy. Tuning knobs
-	// (rate caps) stay platform config (DD-006 posture); what owners
-	// control is this grant. The runner attaches the send_channel_message
-	// tool only when getByAgent finds an installed + enabled channel with
-	// this flag set — an agent with no proactive channel never sees the
-	// tool.
 	ProactiveMessagingEnabled bool `protobuf:"varint,7,opt,name=proactive_messaging_enabled,json=proactiveMessagingEnabled,proto3" json:"proactive_messaging_enabled,omitempty"`
 	// Per-turn model choice and run bounds for conversations on this
 	// channel, overriding the platform's channel execution profile.
@@ -136,18 +71,6 @@ type AgentChannelSpec struct {
 	// platform model outright, while max_cost_usd and max_tool_rounds can
 	// only lower the platform caps — a channel owner can reduce what one
 	// turn may spend, never raise it past the platform profile.
-	//
-	// @internal
-	// Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
-	// owner-settable run shape (stigmer/stigmer#360), embedded directly —
-	// never a ChannelRunConfig mirror, mirroring being the drift mechanism
-	// the shared message exists to end. Merged at the single broker write
-	// site (ChannelSessionBroker — the promise recorded on
-	// ChannelExecutionProfileProperties), per field: bounds clamp
-	// min(owner, platform), model replaces outright, service_tier stamps
-	// when set (validated fail-closed at execution create), approval_mode
-	// stays platform-owned. Runtime enforcement is cloud-only — OSS has
-	// no channel serving runtime and stores/echoes the field.
 	RunConfig     *v1.RunConfig `protobuf:"bytes,8,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -274,11 +197,6 @@ func (*AgentChannelSpec_Whatsapp) isAgentChannelSpec_ProviderConfig() {}
 // nothing for the user to declare before installing — workspace identity,
 // bot user, and granted scopes are observed during the OAuth install and
 // recorded in status. Future user-tunable Slack behavior lands here.
-//
-// @internal
-// P1. An empty message is set explicitly in manifests (`slack: {}`),
-// satisfying the required oneof. Do not add OAuth-observed facts here —
-// that is the spec-clobbering bug class decision 004 rejected.
 type SlackChannelConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -322,16 +240,6 @@ func (*SlackChannelConfig) Descriptor() ([]byte, []int) {
 // ChannelApp: `spec.app_ref` is required for this provider (there is no
 // shared platform WhatsApp app). Installing validates the number against
 // the Meta Cloud API and records the observed facts in status.
-//
-// @internal
-// DD-WA-2: unlike Slack, WhatsApp v1 is BYO-only — app_ref presence is
-// enforced in the create/update/apply handlers of both editions (the
-// oneof-conditional rule does not fit a field-level CEL). phone_number_id
-// lives in SPEC because it is genuinely user-declared (a WABA holds many
-// numbers; the owner picks which one this agent serves) — the P1
-// honest-modeling rule, not an exception to it. The install flow echoes it
-// into status.whatsapp as the routing/uniqueness fact, mirroring
-// status.slack.team_id.
 type WhatsAppChannelConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Phone number ID of the WhatsApp Business number this channel serves,

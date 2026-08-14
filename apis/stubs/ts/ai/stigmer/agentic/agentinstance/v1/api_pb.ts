@@ -22,8 +22,6 @@ export const file_ai_stigmer_agentic_agentinstance_v1_api: GenFile = /*@__PURE__
 /**
  * AgentInstance defines a configured deployment of an Agent template.
  *
- * @internal
- *
  * @generated from message ai.stigmer.agentic.agentinstance.v1.AgentInstance
  */
 export type AgentInstance = Message<"ai.stigmer.agentic.agentinstance.v1.AgentInstance"> & {
@@ -43,9 +41,6 @@ export type AgentInstance = Message<"ai.stigmer.agentic.agentinstance.v1.AgentIn
 
   /**
    * Resource metadata including name, organization, scope, and labels.
-   *
-   * @internal
-   * AgentInstances can have platform, organization, or identity_account scope.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
    */

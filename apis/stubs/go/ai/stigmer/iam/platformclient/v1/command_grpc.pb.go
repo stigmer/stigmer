@@ -36,11 +36,6 @@ const (
 // platform builders embedding Stigmer into their products. The client_secret
 // is generated server-side and returned only once in the create and
 // rotateSecret responses.
-//
-// @internal
-// PlatformClients hold credential material (client_secret_hash) and are always
-// org-private. There is no updateVisibility RPC — public visibility is
-// intentionally unsupported to prevent credential leakage.
 type PlatformClientCommandControllerClient interface {
 	// Create a platform client.
 	//
@@ -54,9 +49,6 @@ type PlatformClientCommandControllerClient interface {
 	// The slug `system-share-client` is platform-reserved (it identifies the org's
 	// system-managed share client) and is rejected with INVALID_ARGUMENT — including
 	// when derived from the resource name.
-	//
-	// @internal
-	// Authorization: Requires can_create_platform_client permission in the organization.
 	Create(ctx context.Context, in *PlatformClient, opts ...grpc.CallOption) (*PlatformClientCreateResponse, error)
 	// Update an existing platform client.
 	//
@@ -64,18 +56,12 @@ type PlatformClientCommandControllerClient interface {
 	// auto_grant_role, and allowed_origins. Credential fields (client_id,
 	// client_secret_hash, secret_fingerprint) are immutable after creation.
 	// Use rotateSecret to change the client secret.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the platform client resource.
 	Update(ctx context.Context, in *PlatformClient, opts ...grpc.CallOption) (*PlatformClient, error)
 	// Delete a platform client.
 	//
 	// Immediately invalidates the client_id and client_secret. Any tokens
 	// previously minted by this platform client remain valid until their
 	// own expiration — deletion does not revoke already-issued tokens.
-	//
-	// @internal
-	// Authorization: Requires can_delete permission on the platform client resource.
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*PlatformClient, error)
 	// Rotate the client secret.
 	//
@@ -83,9 +69,6 @@ type PlatformClientCommandControllerClient interface {
 	// and returns the new raw secret in the response. The client_id remains
 	// unchanged — platform builders do not need to update their client_id
 	// configuration after rotation.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the platform client resource.
 	RotateSecret(ctx context.Context, in *PlatformClientId, opts ...grpc.CallOption) (*PlatformClientCreateResponse, error)
 }
 
@@ -147,11 +130,6 @@ func (c *platformClientCommandControllerClient) RotateSecret(ctx context.Context
 // platform builders embedding Stigmer into their products. The client_secret
 // is generated server-side and returned only once in the create and
 // rotateSecret responses.
-//
-// @internal
-// PlatformClients hold credential material (client_secret_hash) and are always
-// org-private. There is no updateVisibility RPC — public visibility is
-// intentionally unsupported to prevent credential leakage.
 type PlatformClientCommandControllerServer interface {
 	// Create a platform client.
 	//
@@ -165,9 +143,6 @@ type PlatformClientCommandControllerServer interface {
 	// The slug `system-share-client` is platform-reserved (it identifies the org's
 	// system-managed share client) and is rejected with INVALID_ARGUMENT — including
 	// when derived from the resource name.
-	//
-	// @internal
-	// Authorization: Requires can_create_platform_client permission in the organization.
 	Create(context.Context, *PlatformClient) (*PlatformClientCreateResponse, error)
 	// Update an existing platform client.
 	//
@@ -175,18 +150,12 @@ type PlatformClientCommandControllerServer interface {
 	// auto_grant_role, and allowed_origins. Credential fields (client_id,
 	// client_secret_hash, secret_fingerprint) are immutable after creation.
 	// Use rotateSecret to change the client secret.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the platform client resource.
 	Update(context.Context, *PlatformClient) (*PlatformClient, error)
 	// Delete a platform client.
 	//
 	// Immediately invalidates the client_id and client_secret. Any tokens
 	// previously minted by this platform client remain valid until their
 	// own expiration — deletion does not revoke already-issued tokens.
-	//
-	// @internal
-	// Authorization: Requires can_delete permission on the platform client resource.
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*PlatformClient, error)
 	// Rotate the client secret.
 	//
@@ -194,9 +163,6 @@ type PlatformClientCommandControllerServer interface {
 	// and returns the new raw secret in the response. The client_id remains
 	// unchanged — platform builders do not need to update their client_id
 	// configuration after rotation.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the platform client resource.
 	RotateSecret(context.Context, *PlatformClientId) (*PlatformClientCreateResponse, error)
 }
 

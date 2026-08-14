@@ -40,9 +40,6 @@ class OAuthAppQueryControllerServicer(object):
 
     def get(self, request, context):
         """Get an OAuth app by its unique identifier.
-
-        @internal
-        Authorization: Requires can_view permission on the oauth_app resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -53,10 +50,6 @@ class OAuthAppQueryControllerServicer(object):
 
         Resolves a human-readable reference like "acme/slack-oauth" to the full
         OAuthApp resource.
-
-        @internal
-        Custom authorization in handler — checks both direct resource access
-        and organization-level visibility permissions.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -67,9 +60,6 @@ class OAuthAppQueryControllerServicer(object):
 
         Returns every OAuthApp whose metadata.org matches the input org.
         Typically a small set (1-5 per org), so results are not paginated.
-
-        @internal
-        Authorization: Requires can_view permission on the organization resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

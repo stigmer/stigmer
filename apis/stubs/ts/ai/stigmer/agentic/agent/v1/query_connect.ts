@@ -31,10 +31,6 @@ export const AgentQueryController = {
      * Get an agent by its organization-scoped reference (org/slug).
      * Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
      *
-     * @internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
-     *
      * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.getByReference
      */
     getByReference: {
@@ -51,17 +47,6 @@ export const AgentQueryController = {
      * to start a conversation without selecting an agent first.
      *
      * Returns NOT_FOUND if no default agent is configured.
-     *
-     * @internal
-     * Resolves the agent labeled stigmer.ai/default-agent: "true" with
-     * visibility_public. Custom authorization in handler.
-     *
-     * Resolution is deterministic (stigmer/stigmer#356): only public labeled
-     * agents are candidates, and with multiple candidates — a reachable state,
-     * since safe label rotation applies the new default before retiring the
-     * old — the one with the lowest metadata.id (the incumbent) wins. The
-     * default changes only when the incumbent's label is explicitly removed,
-     * never as a side effect of another agent gaining the label.
      *
      * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.getDefault
      */

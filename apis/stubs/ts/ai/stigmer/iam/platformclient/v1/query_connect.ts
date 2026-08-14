@@ -19,9 +19,6 @@ export const PlatformClientQueryController = {
     /**
      * Get a platform client by its unique identifier.
      *
-     * @internal
-     * Authorization: Requires can_view permission on the platform client resource.
-     *
      * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.get
      */
     get: {
@@ -36,10 +33,6 @@ export const PlatformClientQueryController = {
      * Resolves a human-readable reference like "acme/acme-dashboard" to the full
      * PlatformClient resource.
      *
-     * @internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
-     *
      * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.getByReference
      */
     getByReference: {
@@ -53,9 +46,6 @@ export const PlatformClientQueryController = {
      *
      * Returns every PlatformClient whose metadata.org matches the input org.
      * Typically a small set per org, so results are not paginated.
-     *
-     * @internal
-     * Authorization: Requires can_view permission on the organization resource.
      *
      * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.listByOrg
      */

@@ -8,12 +8,6 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 
 class ChannelAppCommandControllerStub(object):
     """ChannelAppCommandController handles write operations for channel apps.
-
-    @internal
-    ChannelApps hold provider secrets (client_secret, signing_secret) and
-    are always org-private. There is no updateVisibility RPC — public
-    visibility is intentionally unsupported to prevent credential leakage
-    (the OAuthApp posture).
     """
 
     def __init__(self, channel):
@@ -46,12 +40,6 @@ class ChannelAppCommandControllerStub(object):
 
 class ChannelAppCommandControllerServicer(object):
     """ChannelAppCommandController handles write operations for channel apps.
-
-    @internal
-    ChannelApps hold provider secrets (client_secret, signing_secret) and
-    are always org-private. There is no updateVisibility RPC — public
-    visibility is intentionally unsupported to prevent credential leakage
-    (the OAuthApp posture).
     """
 
     def apply(self, request, context):
@@ -60,11 +48,6 @@ class ChannelAppCommandControllerServicer(object):
         If the resource does not exist, creates a new channel app.
         If the resource exists, updates the existing channel app. Sending
         the redaction marker for a secret field preserves the stored value.
-
-        @internal
-        The authorization and state-operation are determined depending on
-        whether the channel app is going to be created or updated, resolved
-        as part of request execution.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -75,11 +58,6 @@ class ChannelAppCommandControllerServicer(object):
 
         The creator's organization owns the channel app. The creator is
         granted the owner role automatically.
-
-        @internal
-        Authorization: requires can_create_channel_app permission in the
-        organization (admin-gated like can_create_oauth_app — the resource
-        holds org-wide webhook credentials).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -90,10 +68,6 @@ class ChannelAppCommandControllerServicer(object):
 
         Sending the redaction marker for a secret field preserves the
         stored value; the provider arm is immutable.
-
-        @internal
-        Authorization: requires can_edit permission on the channel_app
-        resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -104,12 +78,6 @@ class ChannelAppCommandControllerServicer(object):
 
         Deletion is blocked while any AgentChannel references this app via
         spec.app_ref — disconnect or delete those channels first.
-
-        @internal
-        Authorization: requires can_delete permission on the channel_app
-        resource. The referencing-channels block mirrors OAuthApp's
-        referencing-mcp-servers check and fails with FAILED_PRECONDITION
-        naming a referencing channel.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -148,12 +116,6 @@ def add_ChannelAppCommandControllerServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class ChannelAppCommandController(object):
     """ChannelAppCommandController handles write operations for channel apps.
-
-    @internal
-    ChannelApps hold provider secrets (client_secret, signing_secret) and
-    are always org-private. There is no updateVisibility RPC — public
-    visibility is intentionally unsupported to prevent credential leakage
-    (the OAuthApp posture).
     """
 
     @staticmethod

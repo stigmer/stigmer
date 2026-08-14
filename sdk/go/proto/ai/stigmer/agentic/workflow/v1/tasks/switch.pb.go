@@ -24,18 +24,6 @@ const (
 )
 
 // SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally.
-//
-// @internal
-// YAML Example:
-//   - taskName:
-//     switch:
-//   - case1:
-//     when: ${ $context.value > 5 }
-//     then: highValueTask
-//   - defaultCase:
-//     then: unknownTask
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 3
 type SwitchTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// List of switch cases (at least one required).

@@ -40,32 +40,17 @@ type WorkflowQueryControllerClient interface {
 	// - Empty/"latest" → Returns the current version
 	// - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
 	// - SHA256 hash (64 hex chars) → Returns the exact immutable version
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Workflow, error)
 	// List version history for a workflow.
 	//
 	// Returns all historical versions ordered by applied_at (newest first).
 	// Each entry includes the version hash, applied timestamp, actor, tag,
 	// git provenance, and the validated CNCF YAML for historical access.
-	//
-	// @internal
-	// Authorization is handled in the handler after resolving the workflow.
-	// (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
-	//
-	// @since Workflow Versioning
 	ListVersions(ctx context.Context, in *ListWorkflowVersionsInput, opts ...grpc.CallOption) (*ListWorkflowVersionsResponse, error)
 	// Get a specific historical version of a workflow by its content hash.
 	//
 	// Used by the runner (to hydrate execution from a pinned version) and
 	// the execution viewer (to render the graph for historical executions).
-	//
-	// @internal
-	// Authorization uses can_view on the workflow resource.
-	//
-	// @since Workflow Versioning
 	GetVersion(ctx context.Context, in *GetWorkflowVersionInput, opts ...grpc.CallOption) (*WorkflowVersionEntry, error)
 }
 
@@ -131,32 +116,17 @@ type WorkflowQueryControllerServer interface {
 	// - Empty/"latest" → Returns the current version
 	// - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
 	// - SHA256 hash (64 hex chars) → Returns the exact immutable version
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Workflow, error)
 	// List version history for a workflow.
 	//
 	// Returns all historical versions ordered by applied_at (newest first).
 	// Each entry includes the version hash, applied timestamp, actor, tag,
 	// git provenance, and the validated CNCF YAML for historical access.
-	//
-	// @internal
-	// Authorization is handled in the handler after resolving the workflow.
-	// (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
-	//
-	// @since Workflow Versioning
 	ListVersions(context.Context, *ListWorkflowVersionsInput) (*ListWorkflowVersionsResponse, error)
 	// Get a specific historical version of a workflow by its content hash.
 	//
 	// Used by the runner (to hydrate execution from a pinned version) and
 	// the execution viewer (to render the graph for historical executions).
-	//
-	// @internal
-	// Authorization uses can_view on the workflow resource.
-	//
-	// @since Workflow Versioning
 	GetVersion(context.Context, *GetWorkflowVersionInput) (*WorkflowVersionEntry, error)
 }
 

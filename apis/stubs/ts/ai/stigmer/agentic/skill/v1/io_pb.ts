@@ -51,11 +51,6 @@ export const SkillIdSchema: GenMessage<SkillId> = /*@__PURE__*/
  *   createArtifactUploadUrl() + HTTP PUT. Required for artifacts above the
  *   transport cap; works for any size up to the skill limit.
  *
- * @internal
- * The skill name and description are extracted by the backend from the SKILL.md
- * YAML frontmatter within the artifact. The CLI validates the format but does not
- * send these fields — backend is the single source of truth for parsing.
- *
  * @generated from message ai.stigmer.agentic.skill.v1.PushSkillRequest
  */
 export type PushSkillRequest = Message<"ai.stigmer.agentic.skill.v1.PushSkillRequest"> & {
@@ -94,12 +89,6 @@ export type PushSkillRequest = Message<"ai.stigmer.agentic.skill.v1.PushSkillReq
   /**
    * Git provenance for this skill version.
    * Absent when pushed from a non-git directory.
-   *
-   * @internal
-   * Populated by CLI during push:
-   * - For local pushes: auto-detected if directory is within a git repository
-   * - For git pushes: resolved from user-provided URL/ref
-   * Stored in SkillStatus.git_provenance for traceability.
    *
    * @generated from field: ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4;
    */
@@ -174,14 +163,6 @@ export const CreateSkillArtifactUploadUrlRequestSchema: GenMessage<CreateSkillAr
  * SkillArtifactUploadUrl is a short-lived, single-use capability for
  * staging a skill artifact over HTTP.
  *
- * @internal
- * The upload strategy differs by edition (mirrors ArtifactDownloadUrl):
- * - Cloud: pre-signed R2/S3 PUT URL with short TTL
- * - OSS: capability URL on the server's own HTTP lane (the unguessable
- *   token in the path is the credential, exactly like a presigned URL)
- *
- * This pattern avoids streaming large blobs through the gRPC control plane.
- *
  * @generated from message ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl
  */
 export type SkillArtifactUploadUrl = Message<"ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl"> & {
@@ -221,16 +202,6 @@ export const SkillArtifactUploadUrlSchema: GenMessage<SkillArtifactUploadUrl> = 
  * SkillArtifactDownloadUrl provides a URL for downloading a skill
  * artifact over HTTP.
  *
- * @internal
- * The download strategy differs by edition (mirrors ArtifactDownloadUrl):
- * - Cloud: pre-signed R2/S3 URL with short TTL (e.g., 15 minutes)
- * - OSS: capability URL on the server's own HTTP lane; the content-hash
- *   storage key in the path is the capability (the same trust model as
- *   getArtifact, which deliberately skips authorization)
- *
- * This pattern avoids streaming large blobs through the gRPC control
- * plane — the transport cap stays at 10MB while skills may be 100MB.
- *
  * @generated from message ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl
  */
 export type SkillArtifactDownloadUrl = Message<"ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl"> & {
@@ -269,18 +240,6 @@ export const SkillArtifactDownloadUrlSchema: GenMessage<SkillArtifactDownloadUrl
  * PushSkillFromExecutionArtifactRequest publishes a skill from an execution
  * artifact already in storage, without downloading and re-uploading the ZIP.
  *
- * @internal
- * Server-side push flow: reads the ZIP directly from artifact storage and
- * delegates to the standard push logic.
- *
- * Authorization:
- * - Requires can_view on the agent execution (to read the artifact)
- * - Requires can_create_skill in the target organization (to push the skill)
- *
- * Security:
- * The storage_key is validated to start with "artifacts/{execution_id}/"
- * to prevent access to other executions' artifacts.
- *
  * @generated from message ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest
  */
 export type PushSkillFromExecutionArtifactRequest = Message<"ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest"> & {
@@ -294,10 +253,6 @@ export type PushSkillFromExecutionArtifactRequest = Message<"ai.stigmer.agentic.
   /**
    * ID of the agent execution that produced the artifact (e.g., "aex_abc123xyz456").
    *
-   * @internal
-   * Used for authorization (can_view check) and storage_key validation.
-   * Format: "aex_{ulid}".
-   *
    * @generated from field: string execution_id = 2;
    */
   executionId: string;
@@ -305,10 +260,6 @@ export type PushSkillFromExecutionArtifactRequest = Message<"ai.stigmer.agentic.
   /**
    * Storage key of the directory artifact (ZIP) to push as a skill.
    * Obtain this from ExecutionArtifact.storage_key in the execution status.
-   *
-   * @internal
-   * Must start with "artifacts/{execution_id}/" for security.
-   * Format: "artifacts/{execution_id}/{filename}.zip".
    *
    * @generated from field: string storage_key = 3;
    */
@@ -338,9 +289,6 @@ export const PushSkillFromExecutionArtifactRequestSchema: GenMessage<PushSkillFr
 export type GetArtifactRequest = Message<"ai.stigmer.agentic.skill.v1.GetArtifactRequest"> & {
   /**
    * The artifact storage key from skill.status.artifact_storage_key.
-   *
-   * @internal
-   * Identifies the location of the ZIP file in storage (R2/S3).
    *
    * @generated from field: string artifact_storage_key = 1;
    */

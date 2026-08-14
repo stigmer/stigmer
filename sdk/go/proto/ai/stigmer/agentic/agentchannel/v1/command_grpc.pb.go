@@ -34,39 +34,18 @@ const (
 // AgentChannelCommandController handles write operations for agent channels.
 type AgentChannelCommandControllerClient interface {
 	// Create or update an agent channel.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on
-	// whether the channel is going to be created or updated, resolved as
-	// part of request execution. status is preserved verbatim (the install
-	// flow is its sole writer).
 	Apply(ctx context.Context, in *AgentChannel, opts ...grpc.CallOption) (*AgentChannel, error)
 	// Create an agent channel.
 	//
 	// Connecting an agent to a channel is a billing-affecting decision:
 	// conversations arriving over the channel consume the connection-owning
 	// organization's credits.
-	//
-	// @internal
-	// Authorization: requires can_edit on the REFERENCED AGENT
-	// (spec.agent_ref), checked in-handler — same bar as AgentShare create,
-	// since connecting a channel broadens who can chat with the agent
-	// runtime. Standard org-scoped create tuples (owner = creator) for the
-	// channel itself; no visibility tuples (channel admission is app-level).
-	// Invariant enforced here: metadata.org must equal spec.agent_ref.org.
-	// status.install_state is initialized to pending_install.
 	Create(ctx context.Context, in *AgentChannel, opts ...grpc.CallOption) (*AgentChannel, error)
 	// Update an existing agent channel.
 	//
 	// Replaces the spec wholesale. The slug, referenced agent, and provider
 	// arm are immutable; status (install facts, credential reference) is
 	// never touched by updates.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the agent channel.
-	// Provider-arm immutability (a slack channel cannot become whatsapp) is
-	// enforced in-handler: the install state, credentials, and delivery
-	// records are all provider-shaped.
 	Update(ctx context.Context, in *AgentChannel, opts ...grpc.CallOption) (*AgentChannel, error)
 	// Start the provider install flow for an agent channel.
 	//
@@ -84,17 +63,6 @@ type AgentChannelCommandControllerClient interface {
 	//     already serves an agent through this channel app (one agent per
 	//     number per app). Metadata: display_phone_number (the occupied
 	//     number), channel_app_id (the serving app).
-	//
-	// @internal
-	// Authorization: requires can_edit on the agent channel — installing
-	// grants a workspace access to the agent runtime, the same bar as
-	// enabling. Redirect style generates and persists the single-use state
-	// (pending-state pattern from MCP OAuth); direct style validates
-	// against the provider, persists the status, and maps the
-	// duplicate-number refusal (the completeInstall duplicate-workspace
-	// mechanism). Cloud-first runtime: the OSS edition stores channel
-	// resources but returns FAILED_PRECONDITION here (documented posture,
-	// decision 001 D-g / T02 §0-b).
 	InitiateInstall(ctx context.Context, in *InitiateChannelInstallInput, opts ...grpc.CallOption) (*InitiateChannelInstallOutput, error)
 	// Complete the provider install flow for an agent channel.
 	//
@@ -118,14 +86,6 @@ type AgentChannelCommandControllerClient interface {
 	//
 	// Other refusals (unconfigured deployment, provider-refused code
 	// exchange) carry no reason — their message is the interface.
-	//
-	// @internal
-	// Authorization: requires can_edit on the agent channel — the same bar
-	// as initiateInstall (the two halves of one flow). The handler consumes
-	// the state atomically, exchanges the code, stores credentials in the
-	// system-managed Environment, records the grant, and writes the status
-	// facts (sole writer). The OSS edition returns FAILED_PRECONDITION
-	// (documented posture, decision 001 D-g / T02 §0-b).
 	CompleteInstall(ctx context.Context, in *CompleteChannelInstallInput, opts ...grpc.CallOption) (*AgentChannel, error)
 	// Delete an agent channel.
 	//
@@ -133,11 +93,6 @@ type AgentChannelCommandControllerClient interface {
 	// resolving, pending deliveries are abandoned, and the credentials
 	// environment is deleted with the grant. To pause serving while keeping
 	// the install, update the channel with enabled=false instead.
-	//
-	// @internal
-	// Authorization: requires can_delete permission on the agent channel.
-	// The referenced agent is untouched. Teardown cascade (managed env +
-	// grant deletion) mirrors McpServer disconnectOAuth.
 	Delete(ctx context.Context, in *AgentChannelId, opts ...grpc.CallOption) (*AgentChannel, error)
 }
 
@@ -216,39 +171,18 @@ func (c *agentChannelCommandControllerClient) Delete(ctx context.Context, in *Ag
 // AgentChannelCommandController handles write operations for agent channels.
 type AgentChannelCommandControllerServer interface {
 	// Create or update an agent channel.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on
-	// whether the channel is going to be created or updated, resolved as
-	// part of request execution. status is preserved verbatim (the install
-	// flow is its sole writer).
 	Apply(context.Context, *AgentChannel) (*AgentChannel, error)
 	// Create an agent channel.
 	//
 	// Connecting an agent to a channel is a billing-affecting decision:
 	// conversations arriving over the channel consume the connection-owning
 	// organization's credits.
-	//
-	// @internal
-	// Authorization: requires can_edit on the REFERENCED AGENT
-	// (spec.agent_ref), checked in-handler — same bar as AgentShare create,
-	// since connecting a channel broadens who can chat with the agent
-	// runtime. Standard org-scoped create tuples (owner = creator) for the
-	// channel itself; no visibility tuples (channel admission is app-level).
-	// Invariant enforced here: metadata.org must equal spec.agent_ref.org.
-	// status.install_state is initialized to pending_install.
 	Create(context.Context, *AgentChannel) (*AgentChannel, error)
 	// Update an existing agent channel.
 	//
 	// Replaces the spec wholesale. The slug, referenced agent, and provider
 	// arm are immutable; status (install facts, credential reference) is
 	// never touched by updates.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the agent channel.
-	// Provider-arm immutability (a slack channel cannot become whatsapp) is
-	// enforced in-handler: the install state, credentials, and delivery
-	// records are all provider-shaped.
 	Update(context.Context, *AgentChannel) (*AgentChannel, error)
 	// Start the provider install flow for an agent channel.
 	//
@@ -266,17 +200,6 @@ type AgentChannelCommandControllerServer interface {
 	//     already serves an agent through this channel app (one agent per
 	//     number per app). Metadata: display_phone_number (the occupied
 	//     number), channel_app_id (the serving app).
-	//
-	// @internal
-	// Authorization: requires can_edit on the agent channel — installing
-	// grants a workspace access to the agent runtime, the same bar as
-	// enabling. Redirect style generates and persists the single-use state
-	// (pending-state pattern from MCP OAuth); direct style validates
-	// against the provider, persists the status, and maps the
-	// duplicate-number refusal (the completeInstall duplicate-workspace
-	// mechanism). Cloud-first runtime: the OSS edition stores channel
-	// resources but returns FAILED_PRECONDITION here (documented posture,
-	// decision 001 D-g / T02 §0-b).
 	InitiateInstall(context.Context, *InitiateChannelInstallInput) (*InitiateChannelInstallOutput, error)
 	// Complete the provider install flow for an agent channel.
 	//
@@ -300,14 +223,6 @@ type AgentChannelCommandControllerServer interface {
 	//
 	// Other refusals (unconfigured deployment, provider-refused code
 	// exchange) carry no reason — their message is the interface.
-	//
-	// @internal
-	// Authorization: requires can_edit on the agent channel — the same bar
-	// as initiateInstall (the two halves of one flow). The handler consumes
-	// the state atomically, exchanges the code, stores credentials in the
-	// system-managed Environment, records the grant, and writes the status
-	// facts (sole writer). The OSS edition returns FAILED_PRECONDITION
-	// (documented posture, decision 001 D-g / T02 §0-b).
 	CompleteInstall(context.Context, *CompleteChannelInstallInput) (*AgentChannel, error)
 	// Delete an agent channel.
 	//
@@ -315,11 +230,6 @@ type AgentChannelCommandControllerServer interface {
 	// resolving, pending deliveries are abandoned, and the credentials
 	// environment is deleted with the grant. To pause serving while keeping
 	// the install, update the channel with enabled=false instead.
-	//
-	// @internal
-	// Authorization: requires can_delete permission on the agent channel.
-	// The referenced agent is untouched. Teardown cascade (managed env +
-	// grant deletion) mirrors McpServer disconnectOAuth.
 	Delete(context.Context, *AgentChannelId) (*AgentChannel, error)
 }
 

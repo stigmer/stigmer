@@ -16,15 +16,6 @@ export const file_ai_stigmer_agentic_agentchannel_v1_message_io: GenFile = /*@__
 /**
  * Input for sending a business-initiated message on an agent channel.
  *
- * @internal
- * proactive-messaging DD-002 D4, amended: channel + org are separate
- * fields, never a slug-or-id union. Dispatch is token-class-driven:
- * session-bound runner credentials leave both empty and the server
- * derives them from the session's serving channel; direct principals
- * (console, CLI, SDK) set them. Ambiguity — the caller's agent has more
- * than one proactive-enabled channel and no channel is named — is an
- * INVALID_ARGUMENT whose detail lists the candidates (D7).
- *
  * @generated from message ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput
  */
 export type SendChannelMessageInput = Message<"ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput"> & {
@@ -70,14 +61,6 @@ export const SendChannelMessageInputSchema: GenMessage<SendChannelMessageInput> 
 /**
  * ChannelOutboundPayload is the typed content of a business-initiated
  * message. Exactly one kind must be set.
- *
- * @internal
- * The payments seam (proactive-messaging DD-001 D4 / DD-002 D3): the
- * payments follow-up adds `OrderDetailsPayload order_details = 3` —
- * the provider_config / delivery_context oneof-extension pattern
- * ("extends this oneof; touches zero kinds"). Deliverers dispatch on
- * the arm and refuse unknown arms cleanly (INVALID_ARGUMENT, never
- * silent text coercion).
  *
  * @generated from message ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
  */
@@ -138,14 +121,6 @@ export const TextPayloadSchema: GenMessage<TextPayload> = /*@__PURE__*/
  * TemplatePayload sends a provider-approved message template, filled
  * with the supplied parameter values.
  *
- * @internal
- * proactive-messaging DD-003 D4. Registry-dependent validation (name
- * exists, status APPROVED, language resolution, parameter arity, header
- * requirement) is deliberately NOT proto-level: it is the cloud
- * handler's courtesy pre-check plus the provider's send-time verdict
- * (D7), mapped to ChannelSendOutcome — never a local approval state
- * machine.
- *
  * @generated from message ai.stigmer.agentic.agentchannel.v1.TemplatePayload
  */
 export type TemplatePayload = Message<"ai.stigmer.agentic.agentchannel.v1.TemplatePayload"> & {
@@ -160,11 +135,6 @@ export type TemplatePayload = Message<"ai.stigmer.agentic.agentchannel.v1.Templa
   /**
    * Template language code (e.g. "en", "en_US"). Optional when the
    * template name exists in exactly one language.
-   *
-   * @internal
-   * Omitted-language resolution echoes SendChannelMessageInput.channel:
-   * unambiguous resolves, ambiguous is INVALID_ARGUMENT with the
-   * candidate languages in the detail (DD-003 D4).
    *
    * @generated from field: string language = 2;
    */
@@ -265,12 +235,6 @@ export type ListChannelTemplatesInput = Message<"ai.stigmer.agentic.agentchannel
    * When true, only templates the provider will accept for sending are
    * returned (WhatsApp: status APPROVED, filtered server-side).
    *
-   * @internal
-   * The two callers split on this flag: the runner's discovery fetch
-   * sets it (an agent must never compose against a paused or pending
-   * template, DD-003 D5); the console leaves it unset to render every
-   * status with its badge (DD-003 D10).
-   *
    * @generated from field: bool approved_only = 3;
    */
   approvedOnly: boolean;
@@ -308,12 +272,6 @@ export const ChannelTemplatesSchema: GenMessage<ChannelTemplates> = /*@__PURE__*
 /**
  * ChannelTemplate is one message template as the channel's provider
  * registry reports it.
- *
- * @internal
- * proactive-messaging DD-003 D6: provider vocabulary verbatim — status,
- * category, format, and rejection copy are the provider's own strings,
- * never re-encoded into a Stigmer enum. The provider is the registry
- * and the send-time authority; this projection is a read-through view.
  *
  * @generated from message ai.stigmer.agentic.agentchannel.v1.ChannelTemplate
  */
@@ -392,16 +350,6 @@ export type ChannelTemplate = Message<"ai.stigmer.agentic.agentchannel.v1.Channe
    * Why this platform version cannot send the template. Empty when the
    * template can be sent.
    *
-   * @internal
-   * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
-   * rejection_reason: that is the PROVIDER's verdict on the template;
-   * this is Stigmer's verdict on its own ability to supply the
-   * template's send payload (e.g. a text-header variable or dynamic-URL
-   * button the TemplatePayload contract cannot express). Sendability is
-   * derived — empty means sendable — and deliberately NOT a second
-   * boolean field: one writer (the provider mapper), nothing to drift.
-   * The runner's prompt section and the send pre-check both key off it.
-   *
    * @generated from field: string unsupported_reason = 10;
    */
   unsupportedReason: string;
@@ -417,14 +365,6 @@ export const ChannelTemplateSchema: GenMessage<ChannelTemplate> = /*@__PURE__*/
 /**
  * Input for listing the agent channels the caller can send
  * business-initiated messages on.
- *
- * @internal
- * proactive-messaging DD-006 D2. Deliberately empty (the
- * GetServerInfoInput house style): org, agent, and session all derive
- * from the caller's token (DD-013 — never from arguments). Session-bound
- * callers only in this slice; a direct principal is told to use the
- * channel resource surface instead. Room is reserved for a
- * direct-caller `org` arm if one is ever justified.
  *
  * @generated from message ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput
  */
@@ -464,13 +404,6 @@ export const MessagingChannelsSchema: GenMessage<MessagingChannels> = /*@__PURE_
  * MessagingChannel is one agent channel available for business-initiated
  * messaging, as a slim projection.
  *
- * @internal
- * proactive-messaging DD-006 D2: deliberately NOT the AgentChannel
- * resource — provider_config and status carry install facts and
- * credential references that must never reach a sandbox-token surface.
- * The runner needs exactly enough to name the channel in a send and
- * label the prompt section.
- *
  * @generated from message ai.stigmer.agentic.agentchannel.v1.MessagingChannel
  */
 export type MessagingChannel = Message<"ai.stigmer.agentic.agentchannel.v1.MessagingChannel"> & {
@@ -501,12 +434,6 @@ export const MessagingChannelSchema: GenMessage<MessagingChannel> = /*@__PURE__*
 /**
  * ChannelSendOutcome reports what happened to a business-initiated
  * message on the inline delivery attempt.
- *
- * @internal
- * proactive-messaging DD-002 D1/D4: policy refusals the agent adapts to
- * are typed outcomes; contract violations and authority failures are
- * gRPC errors. Provider verdicts map into the same vocabulary (DD-003
- * D7).
  *
  * @generated from enum ai.stigmer.agentic.agentchannel.v1.ChannelSendOutcome
  */

@@ -49,11 +49,6 @@ export type IamPolicy = Message<"ai.stigmer.iam.iampolicy.v1.IamPolicy"> & {
   /**
    * Resource metadata including name, organization, and labels.
    *
-   * @internal
-   * id format: iamp_<ulid>
-   * name: human-readable identifier (e.g., "john-vpc-admin")
-   * org: organization this policy belongs to
-   *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
    */
   metadata?: ApiResourceMetadata;

@@ -50,10 +50,6 @@ class AgentInstanceCommandControllerServicer(object):
 
     def apply(self, request, context):
         """Create or update an agent instance.
-
-        @internal
-        The authorization and state-operation are determined depending on whether the agent instance
-        is going to be created or updated which is determined as part of the request execution.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -64,12 +60,6 @@ class AgentInstanceCommandControllerServicer(object):
 
         Public agents allow any authenticated user to create instances (cross-org allowed).
         Private agents restrict instance creation to org members and the agent owner.
-
-        @internal
-        Provide organization_id in metadata.org, and complete spec with configuration and secrets.
-        Authorization: FGA can_create_instance on parent agent (handler-level).
-        FGA is the single source of truth — no hardcoded org-matching rules.
-        Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -77,19 +67,6 @@ class AgentInstanceCommandControllerServicer(object):
 
     def update(self, request, context):
         """Update an existing agent instance.
-
-        @internal
-        Replaces the entire instance configuration including metadata, spec, and secrets.
-        No individual field updates — always provide complete state.
-
-        Mutable fields:
-        - spec.description, spec.environment_refs
-        - metadata.name, metadata.labels, metadata.tags, metadata.annotations
-
-        Immutable fields (must delete and recreate to change):
-        - spec.agent_id, metadata.id, metadata.org
-
-        Authorization: Only owner can update (can_edit permission).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -105,14 +82,6 @@ class AgentInstanceCommandControllerServicer(object):
         For agent instances, visibility controls who can create sessions and run
         executions against this instance. Sessions remain personal regardless of
         instance visibility (conversation privacy is preserved).
-
-        @internal
-        Authorization: Requires can_edit permission on the agent instance.
-        Visibility transitions trigger FGA tuple management in Cloud mode:
-        - PRIVATE → ORG: creates agent_instance#viewer@organization:<org>#member
-        - PRIVATE → PUBLIC: creates agent_instance#viewer@identity_account:*
-        - ORG → PRIVATE: deletes the org member viewer tuple
-        - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -120,9 +89,6 @@ class AgentInstanceCommandControllerServicer(object):
 
     def delete(self, request, context):
         """Delete an agent instance.
-
-        @internal
-        Authorization: Only owner can delete (can_delete permission).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

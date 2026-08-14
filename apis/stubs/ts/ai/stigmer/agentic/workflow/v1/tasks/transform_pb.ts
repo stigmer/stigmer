@@ -18,35 +18,6 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_transform: GenFile = /*@_
  * TransformTaskConfig defines the configuration for transform tasks that
  * perform deterministic data transformation without LLM calls.
  *
- * @internal
- * Use transform when you need to reshape data between tasks: projecting
- * fields, joining objects, converting formats, or building API payloads.
- * Unlike set_vars (which mutates workflow state variables as a side effect),
- * transform produces an explicit output that flows through export like any
- * other task — visible and inspectable in the execution viewer.
- *
- * The distinction from set_vars:
- *   set_vars = imperative assignment ("set X to Y"), mutates workflow context
- *   transform = functional transformation ("reshape this data"), produces output
- *
- * YAML Example (JQ — reshape data for an API call):
- *   - build_api_payload:
- *       transform:
- *         engine: jq
- *         expression: '{name: .customer.full_name, severity: .triage.severity, summary: .agent_analysis.structured.summary}'
- *         input: "${ $context }"
- *       export:
- *         as: "${ . }"
- *
- * YAML Example (template — render a notification message):
- *   - render_notification:
- *       transform:
- *         engine: template
- *         expression: "Ticket {{ .ticket_id }} classified as {{ .severity }} — {{ .summary }}"
- *         input: "${ $context.build_api_payload }"
- *       export:
- *         as: "${ . }"
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
  */
 export type TransformTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig"> & {

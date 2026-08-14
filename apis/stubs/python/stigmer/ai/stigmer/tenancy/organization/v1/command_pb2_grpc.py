@@ -44,10 +44,6 @@ class OrganizationCommandControllerServicer(object):
 
     def apply(self, request, context):
         """Create or update an organization.
-
-        @internal
-        The authorization and state-operation are determined depending on whether the organization
-        is going to be created or updated which is determined as part of the request execution.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -55,10 +51,6 @@ class OrganizationCommandControllerServicer(object):
 
     def create(self, request, context):
         """Create an organization.
-
-        @internal
-        No authorization required — any authenticated user can create an organization.
-        The creator automatically becomes the owner of the organization.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -66,9 +58,6 @@ class OrganizationCommandControllerServicer(object):
 
     def update(self, request, context):
         """Update an existing organization.
-
-        @internal
-        Authorization: Requires can_edit permission on the organization.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -76,10 +65,6 @@ class OrganizationCommandControllerServicer(object):
 
     def delete(self, request, context):
         """Delete an organization.
-
-        @internal
-        Authorization: Requires can_delete permission on the organization.
-        This will cascade-delete all resources under the organization.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

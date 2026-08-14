@@ -51,9 +51,6 @@ class SessionQueryControllerServicer(object):
 
     def list(self, request, context):
         """List all sessions with pagination and optional filtering.
-
-        @internal
-        Authorization is handled in-handler via FGA-filtered queries.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -61,10 +58,6 @@ class SessionQueryControllerServicer(object):
 
     def listByAgentInstance(self, request, context):
         """List all sessions for a specific agent instance.
-
-        @internal
-        Authorization is handled in handler via FGA query for authorized
-        session_ids, then filtered by agent_instance_id.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -77,12 +70,6 @@ class SessionQueryControllerServicer(object):
         the given agent channel, newest first. The caller must be able to view
         the channel; results are additionally filtered to sessions the caller
         can view.
-
-        @internal
-        Authorization is two-stage in the handler: an explicit can_view check on
-        the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
-        then an FGA query for authorized session_ids intersected with the
-        stigmer.ai/channel-id label filter.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

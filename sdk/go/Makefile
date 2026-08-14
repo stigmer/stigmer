@@ -55,6 +55,11 @@ codegen-stubs: ## Generate proto stubs inside the SDK module
 		mv proto/github.com/stigmer/stigmer/sdk/go/v3/proto/* proto/ 2>/dev/null || true; \
 		rm -rf proto/github.com; \
 	fi
+	@# Scrub @internal comment sections: proto/ is a subpackage of the
+	@# published SDK module, so protoc-copied internal notes would render on
+	@# pkg.go.dev and in IDE hovers (oss#497). This generation path bypasses
+	@# apis/scripts/gen-stubs.sh, hence its own scrub hook.
+	@cd ../.. && go run ./tools/codegen/stubscrub sdk/go/proto
 	@echo "Proto stubs generated in proto/"
 
 .PHONY: codegen-schemas

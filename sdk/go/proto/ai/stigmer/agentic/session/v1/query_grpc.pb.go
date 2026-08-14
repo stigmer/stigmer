@@ -34,15 +34,8 @@ type SessionQueryControllerClient interface {
 	// Get a single session by ID.
 	Get(ctx context.Context, in *SessionId, opts ...grpc.CallOption) (*Session, error)
 	// List all sessions with pagination and optional filtering.
-	//
-	// @internal
-	// Authorization is handled in-handler via FGA-filtered queries.
 	List(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*SessionList, error)
 	// List all sessions for a specific agent instance.
-	//
-	// @internal
-	// Authorization is handled in handler via FGA query for authorized
-	// session_ids, then filtered by agent_instance_id.
 	ListByAgentInstance(ctx context.Context, in *ListSessionsByAgentInstanceRequest, opts ...grpc.CallOption) (*SessionList, error)
 	// List the conversations an agent channel created.
 	//
@@ -50,12 +43,6 @@ type SessionQueryControllerClient interface {
 	// the given agent channel, newest first. The caller must be able to view
 	// the channel; results are additionally filtered to sessions the caller
 	// can view.
-	//
-	// @internal
-	// Authorization is two-stage in the handler: an explicit can_view check on
-	// the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
-	// then an FGA query for authorized session_ids intersected with the
-	// stigmer.ai/channel-id label filter.
 	ListByChannel(ctx context.Context, in *ListSessionsByChannelRequest, opts ...grpc.CallOption) (*SessionList, error)
 }
 
@@ -116,15 +103,8 @@ type SessionQueryControllerServer interface {
 	// Get a single session by ID.
 	Get(context.Context, *SessionId) (*Session, error)
 	// List all sessions with pagination and optional filtering.
-	//
-	// @internal
-	// Authorization is handled in-handler via FGA-filtered queries.
 	List(context.Context, *ListSessionsRequest) (*SessionList, error)
 	// List all sessions for a specific agent instance.
-	//
-	// @internal
-	// Authorization is handled in handler via FGA query for authorized
-	// session_ids, then filtered by agent_instance_id.
 	ListByAgentInstance(context.Context, *ListSessionsByAgentInstanceRequest) (*SessionList, error)
 	// List the conversations an agent channel created.
 	//
@@ -132,12 +112,6 @@ type SessionQueryControllerServer interface {
 	// the given agent channel, newest first. The caller must be able to view
 	// the channel; results are additionally filtered to sessions the caller
 	// can view.
-	//
-	// @internal
-	// Authorization is two-stage in the handler: an explicit can_view check on
-	// the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
-	// then an FGA query for authorized session_ids intersected with the
-	// stigmer.ai/channel-id label filter.
 	ListByChannel(context.Context, *ListSessionsByChannelRequest) (*SessionList, error)
 }
 

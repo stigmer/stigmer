@@ -19,14 +19,6 @@ export const file_ai_stigmer_agentic_agentchannel_v1_status: GenFile = /*@__PURE
 /**
  * AgentChannelStatus contains system-managed state for an agent channel.
  *
- * @internal
- * Server-owned per decision 001 D-e / decision 004: install facts and the
- * credentials reference survive every apply/update verbatim (the
- * share_link_token precedent), so a routine manifest apply can never
- * clobber an install or leak a secret. Secrets themselves NEVER appear
- * here — the bot token lives encrypted in the referenced managed
- * Environment; status is readable by anyone with can_view.
- *
  * @generated from message ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus
  */
 export type AgentChannelStatus = Message<"ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus"> & {
@@ -39,10 +31,6 @@ export type AgentChannelStatus = Message<"ai.stigmer.agentic.agentchannel.v1.Age
 
   /**
    * Provider-specific install facts observed during the install flow.
-   *
-   * @internal
-   * Populated by the install completion path (sole writer). The arm always
-   * matches spec.provider_config's case.
    *
    * @generated from oneof ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus.provider_status
    */
@@ -67,13 +55,6 @@ export type AgentChannelStatus = Message<"ai.stigmer.agentic.agentchannel.v1.Age
   /**
    * ID of the system-managed Environment holding this connection's
    * provider credentials (e.g. the Slack bot token).
-   *
-   * @internal
-   * Decision 004: created via ManagedEnvironmentService in the
-   * connection's org (stigmer.ai/managed=true), non-secret grant metadata
-   * in the resource-agnostic OAuthGrant document. The webhook receiver and
-   * delivery worker resolve the token through this reference — never from
-   * the channel resource itself.
    *
    * @generated from field: string credentials_environment_id = 3;
    */
@@ -103,12 +84,6 @@ export const AgentChannelStatusSchema: GenMessage<AgentChannelStatus> = /*@__PUR
 export type SlackInstallStatus = Message<"ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus"> & {
   /**
    * Slack workspace (team) ID, e.g. "T0123ABCD".
-   *
-   * @internal
-   * The inbound routing key: the webhook receiver resolves the
-   * AgentChannel from the event payload's team_id. One INSTALLED channel
-   * per workspace, enforced by a partial-unique index on installed rows
-   * (decision 007).
    *
    * @generated from field: string team_id = 1;
    */
@@ -154,15 +129,6 @@ export type SlackInstallStatus = Message<"ai.stigmer.agentic.agentchannel.v1.Sla
    * ID of the ChannelApp the install went through; empty for installs
    * of the platform's shared Stigmer app.
    *
-   * @internal
-   * Written by the install completion path from the resolved
-   * spec.app_ref (sole writer, like every install fact). Discriminates
-   * routing and workspace uniqueness once multiple apps can serve one
-   * workspace: lookups key on (team_id, channel_app_id) and the
-   * partial-unique installed index is compound over both (decision 007
-   * as amended by T04 item 2). Existing platform installs predate the
-   * field; a missing value means the platform app — no backfill.
-   *
    * @generated from field: string channel_app_id = 7;
    */
   channelAppId: string;
@@ -179,26 +145,11 @@ export const SlackInstallStatusSchema: GenMessage<SlackInstallStatus> = /*@__PUR
  * WhatsAppInstallStatus holds the facts observed when a WhatsApp Business
  * number was connected through the Meta Cloud API.
  *
- * @internal
- * Written by the direct-install path (sole writer, DD-WA-1): the installer
- * validates spec.whatsapp.phone_number_id against the Graph API and echoes
- * it here alongside the observed display facts. The echo is deliberate —
- * routing and uniqueness read STATUS (the install fact), mirroring
- * status.slack.team_id, so a later spec edit can never silently re-route
- * live traffic; the number binding changes only through a re-install.
- *
  * @generated from message ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus
  */
 export type WhatsAppInstallStatus = Message<"ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus"> & {
   /**
    * Phone number ID the install validated and bound, e.g. "106540352242922".
-   *
-   * @internal
-   * The inbound routing key: the webhook receiver resolves the
-   * AgentChannel from the event payload's metadata.phone_number_id. One
-   * INSTALLED channel per (phone_number_id, channel_app_id), enforced by
-   * a compound partial-unique index on installed rows — the
-   * status.slack.team_id mechanism (decision 007) applied to WhatsApp.
    *
    * @generated from field: string phone_number_id = 1;
    */
@@ -221,10 +172,6 @@ export type WhatsAppInstallStatus = Message<"ai.stigmer.agentic.agentchannel.v1.
   /**
    * ID of the ChannelApp the install went through. Always set for
    * WhatsApp — every WhatsApp channel installs through your own Meta app.
-   *
-   * @internal
-   * Same discriminator role as SlackInstallStatus.channel_app_id; never
-   * empty because WhatsApp has no platform app (DD-WA-2).
    *
    * @generated from field: string channel_app_id = 4;
    */

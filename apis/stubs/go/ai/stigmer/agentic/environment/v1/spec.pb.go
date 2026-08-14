@@ -22,9 +22,6 @@ const (
 )
 
 // EnvironmentSpec defines the configurable properties of an environment.
-//
-// @internal
-// The overview.md file provides the SDK-facing description and example YAML.
 type EnvironmentSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Human-readable description for UI and listing display.
@@ -84,17 +81,8 @@ func (x *EnvironmentSpec) GetData() map[string]*EnvironmentValue {
 type EnvironmentValue struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The configuration or secret string.
-	//
-	// @internal
-	// When is_secret is true the value is encrypted at rest and redacted in logs.
-	// When is_secret is false the value is stored as plaintext.
-	// Value can be empty when pre-declaring keys whose values are injected at runtime.
 	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	// Whether this value should be treated as a secret.
-	//
-	// @internal
-	// When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal.
-	// When false: stored as plaintext, visible in audit logs.
 	IsSecret bool `protobuf:"varint,2,opt,name=is_secret,json=isSecret,proto3" json:"is_secret,omitempty"`
 	// Human-readable description of what this value is used for.
 	Description   string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
@@ -163,21 +151,11 @@ func (x *EnvironmentValue) GetDescription() string {
 type EnvVarDeclaration struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Whether the resolved value should be treated as a secret.
-	//
-	// @internal
-	// When true: encrypted at rest, redacted in logs and Temporal history.
-	// When false: stored as plaintext, visible in audit logs.
 	IsSecret bool `protobuf:"varint,1,opt,name=is_secret,json=isSecret,proto3" json:"is_secret,omitempty"`
 	// Human-readable description shown in the UI credential form.
 	// Should explain what the variable is used for and where to obtain it.
 	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	// Whether this variable is optional.
-	//
-	// @internal
-	// When false (default): the execution pipeline rejects a run if this
-	// variable is missing from the user's environment.
-	// When true: a missing value is acceptable (the MCP server or agent
-	// degrades gracefully without it).
 	Optional      bool `protobuf:"varint,3,opt,name=optional,proto3" json:"optional,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -32,37 +32,18 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // ScheduleQueryController handles read operations for schedules.
-//
-// @internal
-// No anonymous/public RPC by design (the AgentChannel posture): a
-// schedule has no public surface at all — its only runtime effect is the
-// executions its fires create.
 type ScheduleQueryControllerClient interface {
 	// Get a single schedule by ID.
 	Get(ctx context.Context, in *ScheduleId, opts ...grpc.CallOption) (*Schedule, error)
 	// Get a schedule by its organization-scoped reference (org/slug).
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions (the AgentShare /
-	// AgentChannel pattern).
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Schedule, error)
 	// Get all schedules of a specific agent.
 	// Returns only schedules the caller has access to.
 	//
 	// This is how the agent's operational surfaces and CLI resolve an
 	// agent's existing schedules regardless of slug.
-	//
-	// @internal
-	// Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS
-	// (the getByAgent family convention — agent channels, agent shares,
-	// agent instances).
 	GetByAgent(ctx context.Context, in *GetSchedulesByAgentRequest, opts ...grpc.CallOption) (*ScheduleList, error)
 	// List schedules with optional label filtering.
-	//
-	// @internal
-	// Authorization in-handler via FGA-filtered queries (cloud) or
-	// unrestricted store queries (OSS).
 	List(ctx context.Context, in *ListSchedulesRequest, opts ...grpc.CallOption) (*ScheduleList, error)
 	// List a schedule's run history, newest first.
 	//
@@ -70,16 +51,6 @@ type ScheduleQueryControllerClient interface {
 	// (a refused launch gate, a missing target agent) — with the refusing
 	// gate's copy verbatim. This is the surface that explains
 	// status.consecutive_failures.
-	//
-	// @internal
-	// Backed by the fire ledger (project DD-017 D-7). Authorization:
-	// can_view on the schedule — run history is the schedule's own
-	// operational record; the linked executions keep their own bars. Rows
-	// carrying an execution id but no terminal outcome are enriched with
-	// the execution's live phase at read time (one join), so manual fires
-	// need no tracker and outcome columns never lie. OSS implements the
-	// same contract against its store; the conformance suite holds both
-	// editions to it.
 	ListRuns(ctx context.Context, in *ListScheduleRunsRequest, opts ...grpc.CallOption) (*ScheduleRunList, error)
 }
 
@@ -146,37 +117,18 @@ func (c *scheduleQueryControllerClient) ListRuns(ctx context.Context, in *ListSc
 // for forward compatibility.
 //
 // ScheduleQueryController handles read operations for schedules.
-//
-// @internal
-// No anonymous/public RPC by design (the AgentChannel posture): a
-// schedule has no public surface at all — its only runtime effect is the
-// executions its fires create.
 type ScheduleQueryControllerServer interface {
 	// Get a single schedule by ID.
 	Get(context.Context, *ScheduleId) (*Schedule, error)
 	// Get a schedule by its organization-scoped reference (org/slug).
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions (the AgentShare /
-	// AgentChannel pattern).
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Schedule, error)
 	// Get all schedules of a specific agent.
 	// Returns only schedules the caller has access to.
 	//
 	// This is how the agent's operational surfaces and CLI resolve an
 	// agent's existing schedules regardless of slug.
-	//
-	// @internal
-	// Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS
-	// (the getByAgent family convention — agent channels, agent shares,
-	// agent instances).
 	GetByAgent(context.Context, *GetSchedulesByAgentRequest) (*ScheduleList, error)
 	// List schedules with optional label filtering.
-	//
-	// @internal
-	// Authorization in-handler via FGA-filtered queries (cloud) or
-	// unrestricted store queries (OSS).
 	List(context.Context, *ListSchedulesRequest) (*ScheduleList, error)
 	// List a schedule's run history, newest first.
 	//
@@ -184,16 +136,6 @@ type ScheduleQueryControllerServer interface {
 	// (a refused launch gate, a missing target agent) — with the refusing
 	// gate's copy verbatim. This is the surface that explains
 	// status.consecutive_failures.
-	//
-	// @internal
-	// Backed by the fire ledger (project DD-017 D-7). Authorization:
-	// can_view on the schedule — run history is the schedule's own
-	// operational record; the linked executions keep their own bars. Rows
-	// carrying an execution id but no terminal outcome are enriched with
-	// the execution's live phase at read time (one join), so manual fires
-	// need no tracker and outcome columns never lie. OSS implements the
-	// same contract against its store; the conformance suite holds both
-	// editions to it.
 	ListRuns(context.Context, *ListScheduleRunsRequest) (*ScheduleRunList, error)
 }
 

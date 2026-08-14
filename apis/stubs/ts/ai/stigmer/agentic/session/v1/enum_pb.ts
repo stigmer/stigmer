@@ -14,20 +14,11 @@ export const file_ai_stigmer_agentic_session_v1_enum: GenFile = /*@__PURE__*/
 /**
  * GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.
  *
- * @internal
- * The platform enables write-back by default when credentials are
- * available. Users can override this per-session by setting an
- * explicit mode. The agent never sees or controls this setting.
- *
  * @generated from enum ai.stigmer.agentic.session.v1.GitWriteBackMode
  */
 export enum GitWriteBackMode {
   /**
    * Platform default behavior — write-back is enabled when git credentials are available.
-   *
-   * @internal
-   * Artifacts are still published as downloadable files regardless of this
-   * setting. Set an explicit mode to override the platform default.
    *
    * @generated from enum value: GIT_WRITE_BACK_MODE_UNSPECIFIED = 0;
    */
@@ -35,13 +26,6 @@ export enum GitWriteBackMode {
 
   /**
    * Create a branch and pull request from the agent's file changes after execution completes.
-   *
-   * @internal
-   * The platform automatically detects uncommitted changes via git diff,
-   * creates a branch (stigmer/{execution_id_short}), commits all changes,
-   * pushes the branch to the remote, and creates a pull request targeting
-   * the original branch. The write-back outcome is recorded in
-   * AgentExecutionStatus.workspace_write_backs.
    *
    * @generated from enum value: GIT_WRITE_BACK_BRANCH_AND_PR = 1;
    */
@@ -112,21 +96,11 @@ export const HarnessSchema: GenEnum<Harness> = /*@__PURE__*/
  * Set at session creation time and immutable once an execution has run —
  * workspace state may not be portable between local and cloud environments.
  *
- * @internal
- * The control plane uses this field in dispatch to decide whether to route
- * activities to a client-polled per-session queue (LOCAL) or provision a
- * cloud sandbox (CLOUD). Both use task queues named "session:{session_id}".
- * The difference is who provides the runner: the client (LOCAL) or the
- * server (CLOUD).
- *
  * @generated from enum ai.stigmer.agentic.session.v1.ExecutionTarget
  */
 export enum ExecutionTarget {
   /**
    * Platform default — server decides based on deployment context.
-   *
-   * @internal
-   * Resolves to LOCAL for OSS/self-hosted, CLOUD for managed cloud service.
    *
    * @generated from enum value: EXECUTION_TARGET_UNSPECIFIED = 0;
    */
@@ -169,18 +143,6 @@ export const ExecutionTargetSchema: GenEnum<ExecutionTarget> = /*@__PURE__*/
  * separate, incompatible conversation stores.
  *
  * Ignored when harness is not HARNESS_CURSOR.
- *
- * @internal
- * Runner-owned, never user-set: determineCursorMode() in the cursor
- * runner always returns LOCAL while cloud mode is disabled platform-wide
- * (Cursor cloud agents clone via Cursor's own GitHub App and accept no
- * per-request git credential, so Stigmer provisions the workspace itself
- * and runs a local Cursor agent against it). The former workspace-based
- * selection logic was removed 2026-06-03; STIGMER_CURSOR_CLOUD_MODE_ENABLED
- * still parses into runner config but no longer drives mode selection.
- *
- * When UNSPECIFIED on an existing session, the runner treats it as LOCAL
- * for backward compatibility with sessions created before this field existed.
  *
  * @generated from enum ai.stigmer.agentic.session.v1.CursorMode
  */

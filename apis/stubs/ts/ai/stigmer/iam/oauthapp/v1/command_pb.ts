@@ -20,11 +20,6 @@ export const file_ai_stigmer_iam_oauthapp_v1_command: GenFile = /*@__PURE__*/
 /**
  * OAuthAppCommandController provides write operations for OAuth app resources.
  *
- * @internal
- * OAuthApps hold vendor client credentials (client_secret) and are always
- * org-private. There is no updateVisibility RPC — public visibility is
- * intentionally unsupported to prevent credential leakage.
- *
  * @generated from service ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController
  */
 export const OAuthAppCommandController: GenService<{
@@ -33,11 +28,6 @@ export const OAuthAppCommandController: GenService<{
    *
    * If the resource does not exist, creates a new OAuth app.
    * If the resource exists, updates the existing OAuth app.
-   *
-   * @internal
-   * The authorization and state-operation are determined depending on whether the
-   * OAuth app is going to be created or updated, which is determined as
-   * part of the request execution.
    *
    * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController.apply
    */
@@ -52,9 +42,6 @@ export const OAuthAppCommandController: GenService<{
    * The creator's organization owns the OAuth app. The creator is granted
    * the owner role automatically.
    *
-   * @internal
-   * Authorization: Requires can_create_oauth_app permission in the organization.
-   *
    * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController.create
    */
   create: {
@@ -64,9 +51,6 @@ export const OAuthAppCommandController: GenService<{
   },
   /**
    * Update an existing OAuth app.
-   *
-   * @internal
-   * Authorization: Requires can_edit permission on the oauth_app resource.
    *
    * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController.update
    */
@@ -80,9 +64,6 @@ export const OAuthAppCommandController: GenService<{
    *
    * Deletion should be blocked if any McpServer resources reference this
    * OAuth app via McpServerVendorOAuth.oauth_app_ref.
-   *
-   * @internal
-   * Authorization: Requires can_delete permission on the oauth_app resource.
    *
    * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController.delete
    */

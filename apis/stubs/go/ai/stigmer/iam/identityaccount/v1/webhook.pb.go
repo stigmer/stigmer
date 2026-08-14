@@ -22,11 +22,6 @@ const (
 )
 
 // Auth0Webhook represents a log-stream event payload from Auth0.
-//
-// @internal
-// Stigmer receives these events via a custom Auth0 log stream to trigger
-// identity account provisioning on signup.
-// See: https://auth0.com/docs/customize/log-streams/custom-log-streams
 type Auth0Webhook struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ISO 8601 timestamp of the event.

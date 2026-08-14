@@ -26,10 +26,6 @@ export const ProjectCommandController: GenService<{
   /**
    * Create or update a project.
    *
-   * @internal
-   * The authorization and state-operation are determined depending on whether the project
-   * is going to be created or updated which is determined as part of the request execution.
-   *
    * @generated from rpc ai.stigmer.tenancy.project.v1.ProjectCommandController.apply
    */
   apply: {
@@ -39,11 +35,6 @@ export const ProjectCommandController: GenService<{
   },
   /**
    * Create a project.
-   *
-   * @internal
-   * Authorization:
-   * - Organization-scoped projects: Caller must have can_create_project permission in the organization.
-   * - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step).
    *
    * @generated from rpc ai.stigmer.tenancy.project.v1.ProjectCommandController.create
    */
@@ -55,9 +46,6 @@ export const ProjectCommandController: GenService<{
   /**
    * Update an existing project.
    *
-   * @internal
-   * Authorization: Requires can_edit permission on the project.
-   *
    * @generated from rpc ai.stigmer.tenancy.project.v1.ProjectCommandController.update
    */
   update: {
@@ -67,9 +55,6 @@ export const ProjectCommandController: GenService<{
   },
   /**
    * Delete a project.
-   *
-   * @internal
-   * Authorization: Requires can_delete permission on the project.
    *
    * @generated from rpc ai.stigmer.tenancy.project.v1.ProjectCommandController.delete
    */

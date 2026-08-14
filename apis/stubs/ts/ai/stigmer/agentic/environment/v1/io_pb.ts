@@ -43,11 +43,6 @@ export const EnvironmentIdSchema: GenMessage<EnvironmentId> = /*@__PURE__*/
 /**
  * Input for retrieving a single unredacted secret value from an environment.
  *
- * @internal
- * Single-key retrieval by design: limits blast radius if intercepted,
- * enables per-key audit trails, and matches the industry-standard
- * "reveal" UX pattern (AWS, GitHub, 1Password).
- *
  * @generated from message ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput
  */
 export type EnvironmentSecretValueInput = Message<"ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput"> & {
@@ -88,9 +83,6 @@ export type ListEnvironmentsRequest = Message<"ai.stigmer.agentic.environment.v1
 
   /**
    * Filter by metadata labels. AND semantics: the resource must match all provided labels.
-   *
-   * @internal
-   * Example: {"stigmer.ai/personal": "true"} returns only personal environments.
    *
    * @generated from field: map<string, string> labels = 2;
    */
@@ -142,10 +134,6 @@ export const EnvironmentListSchema: GenMessage<EnvironmentList> = /*@__PURE__*/
 /**
  * Request to add or update specific variables in an environment.
  * Existing variables not included in this request are preserved.
- *
- * @internal
- * Server-side merge. For secret variables the new value replaces the old
- * one and is re-encrypted server-side.
  *
  * @generated from message ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest
  */

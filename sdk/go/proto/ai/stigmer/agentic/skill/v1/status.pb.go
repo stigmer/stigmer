@@ -84,31 +84,15 @@ func (SkillState) EnumDescriptor() ([]byte, []int) {
 type SkillStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Standard audit information tracking creation and modification.
-	//
-	// @internal
-	// Field 99 follows Stigmer convention for audit placement.
 	Audit *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
 	// SHA256 hash of the skill artifact, used as the immutable version identifier.
-	//
-	// @internal
-	// Calculated by the system from the uploaded artifact ZIP.
 	VersionHash string `protobuf:"bytes,1,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
 	// Storage key for the skill artifact.
-	//
-	// @internal
-	// Format varies based on storage backend:
-	// - Local: "<hash>.zip"
-	// - Cloud: "skills/<slug>_<hash>.zip"
-	// Determined by the system based on storage configuration.
 	ArtifactStorageKey string `protobuf:"bytes,2,opt,name=artifact_storage_key,json=artifactStorageKey,proto3" json:"artifact_storage_key,omitempty"`
 	// Current lifecycle state of the skill.
 	State SkillState `protobuf:"varint,3,opt,name=state,proto3,enum=ai.stigmer.agentic.skill.v1.SkillState" json:"state,omitempty"`
 	// Git provenance tracking where the skill artifacts originated from.
 	// Absent when pushed from a non-git directory.
-	//
-	// @internal
-	// Populated by CLI during push; provides traceability and enables
-	// "view on GitHub" links and reproducible deployments.
 	GitProvenance *GitProvenance `protobuf:"bytes,4,opt,name=git_provenance,json=gitProvenance,proto3" json:"git_provenance,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -180,31 +164,13 @@ func (x *SkillStatus) GetGitProvenance() *GitProvenance {
 }
 
 // GitProvenance tracks the git origin of skill artifacts.
-//
-// @internal
-// System-detected metadata, not user-specified configuration.
-// Populated by CLI during push based on:
-// - Local push: auto-detected from directory's git context
-// - Git push: resolved from user-provided URL/ref
 type GitProvenance struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Git remote URL (e.g., "https://github.com/stigmer/stigmer.git").
-	//
-	// @internal
-	// For local push: detected "origin" remote URL.
-	// For git push: the user-provided repository URL.
 	RemoteUrl string `protobuf:"bytes,1,opt,name=remote_url,json=remoteUrl,proto3" json:"remote_url,omitempty"`
 	// Original git reference such as a branch or tag name (e.g., "main", "v1.0.0").
-	//
-	// @internal
-	// For local push: detected branch name or empty if detached HEAD.
-	// For git push: the user-provided ref.
-	// Preserves user intent for display while commit provides immutability.
 	Ref string `protobuf:"bytes,2,opt,name=ref,proto3" json:"ref,omitempty"`
 	// Resolved commit SHA for exact reproducibility.
-	//
-	// @internal
-	// Always populated. Full 40-character SHA.
 	Commit string `protobuf:"bytes,3,opt,name=commit,proto3" json:"commit,omitempty"`
 	// Subdirectory path relative to repo root.
 	// Empty if skill is at repo root.

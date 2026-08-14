@@ -24,13 +24,6 @@ export const file_ai_stigmer_agentic_workflow_v1_version: GenFile = /*@__PURE__*
  * creates a new immutable version entry. The version is identified by its content
  * hash (SHA-256 of the validated YAML).
  *
- * @internal
- * Stored in the resource_audit table (OSS SQLite) or workflow_audit collection
- * (Cloud MongoDB). Entries are immutable after creation — a version's content
- * never changes, only its tag can be reassigned via tagVersion.
- *
- * @since Workflow Versioning
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry
  */
 export type WorkflowVersionEntry = Message<"ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry"> & {
@@ -60,11 +53,6 @@ export type WorkflowVersionEntry = Message<"ai.stigmer.agentic.workflow.v1.Workf
    * May be empty if the version was applied without a tag.
    * Examples: "stable", "v1.0", "production"
    *
-   * @internal
-   * Tags are mutable pointers — calling tagVersion moves a tag to a different
-   * version. When resolving by tag, the system returns the most recent audit
-   * entry with that tag (ordered by applied_at DESC).
-   *
    * @generated from field: string tag = 4;
    */
   tag: string;
@@ -87,11 +75,6 @@ export type WorkflowVersionEntry = Message<"ai.stigmer.agentic.workflow.v1.Workf
   /**
    * The generated CNCF Serverless Workflow DSL 1.0.0 YAML for this version.
    *
-   * @internal
-   * Used by the runner (to execute the workflow) and the execution viewer
-   * (to render the graph for historical executions). This is the exact YAML
-   * that was validated at the time this version was created.
-   *
    * @generated from field: string validated_yaml = 7;
    */
   validatedYaml: string;
@@ -99,10 +82,6 @@ export type WorkflowVersionEntry = Message<"ai.stigmer.agentic.workflow.v1.Workf
   /**
    * Git provenance tracking where this version's definition originated.
    * Absent when applied from a non-git directory or via the web editor.
-   *
-   * @internal
-   * Populated by CLI during apply when the working directory is within a
-   * git repository. Provides traceability and enables "view on GitHub" links.
    *
    * @generated from field: ai.stigmer.agentic.workflow.v1.GitProvenance git_provenance = 8;
    */
@@ -118,12 +97,6 @@ export const WorkflowVersionEntrySchema: GenMessage<WorkflowVersionEntry> = /*@_
 
 /**
  * GitProvenance tracks the git origin of a workflow version.
- *
- * @internal
- * Reuses the same structure as Skill's GitProvenance for consistency.
- * Populated by the CLI during apply when the directory is a git repo.
- *
- * @since Workflow Versioning
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.GitProvenance
  */

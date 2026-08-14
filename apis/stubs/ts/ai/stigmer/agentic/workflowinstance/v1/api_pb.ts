@@ -30,26 +30,6 @@ export const file_ai_stigmer_agentic_workflowinstance_v1_api: GenFile = /*@__PUR
 /**
  * WorkflowInstance represents a configured deployment of a Workflow template.
  *
- * @internal
- * This is the "Instance" layer in the Template→Instance→Execution pattern.
- * It binds a reusable Workflow template to specific environments containing credentials,
- * configuration, and secrets needed for execution.
- *
- * A WorkflowInstance:
- * - References a Workflow template (the orchestration blueprint)
- * - Binds one or more Environment resources (configuration + secrets)
- * - Can be executed multiple times via WorkflowExecution resources
- * - Can be platform-scoped (global defaults), org-scoped (team instances), or user-scoped (personal)
- *
- * Example use case:
- * Workflow "deploy-to-cloud" (template) → WorkflowInstance "prod-deploy" (with aws-prod-env)
- * → WorkflowExecution "prod-deploy-20250111-001" (specific run)
- *
- * This separation allows:
- * - Workflow templates to be reusable across teams/environments
- * - Instances to maintain stateful configuration with secrets
- * - Executions to track individual runs with results
- *
  * @generated from message ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance
  */
 export type WorkflowInstance = Message<"ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance"> & {
@@ -83,10 +63,6 @@ export type WorkflowInstance = Message<"ai.stigmer.agentic.workflowinstance.v1.W
 
   /**
    * System-managed audit information.
-   *
-   * @internal
-   * This is a simple status (no custom execution state) since WorkflowInstance
-   * is configuration only. Execution state is tracked in WorkflowExecution resources.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
    */

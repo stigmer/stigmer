@@ -220,43 +220,11 @@ type MintGuestTokenRequest struct {
 	// (their own page origin). Leave empty on the unframed hosted page. The
 	// literal value "null" reports a framed page whose parent origin could not
 	// be determined (opaque origin).
-	//
-	// @internal
-	// Validated at mint against the share's spec.allowed_origins: empty list
-	// admits any origin; a non-empty list refuses PERMISSION_DENIED for
-	// unlisted origins and for "null". An empty field always passes for
-	// hosted-page and non-browser requests (the anyone-with-link hosted
-	// page). The validated value is stamped into the guest JWT as the
-	// embed_origin claim and re-validated against the live list by the
-	// guest create-time gate.
-	//
-	// The hosted server cross-checks this field against the request's
-	// browser-enforced Origin header (stigmer-cloud#341). When the header
-	// is a third-party origin (a direct SDK embed), the header is
-	// authoritative: a non-empty field that disagrees with it is refused
-	// PERMISSION_DENIED naming both origins, and an empty field resolves
-	// to the header instead of the hosted-page exemption. When the header
-	// is Stigmer's own hosted-page origin, this self-report is the only
-	// embedder signal (the iframe'd page's RPCs carry Stigmer's origin) —
-	// the widget code derives it from browser-authentic sources the
-	// embedder cannot alter. Non-browser callers send no Origin header and
-	// keep the self-report semantics; they gain nothing by omitting it
-	// since the hosted link is anyone-with-link (decision 001) — rate
-	// limits and the billing gate remain the API guards.
 	EmbedOrigin string `protobuf:"bytes,4,opt,name=embed_origin,json=embedOrigin,proto3" json:"embed_origin,omitempty"`
 	// Link token from the share URL's `?k=` parameter (optional).
 	//
 	// Required when the share link has been locked with rotateShareLink;
 	// ignored for plain share links.
-	//
-	// @internal
-	// Validated at mint against the share's live status.share_link_token
-	// (mismatch or absence answers the same NOT_FOUND as a disabled share,
-	// so a killed link is indistinguishable from a nonexistent one). The
-	// validated value is stamped into the guest JWT as the link_token claim
-	// and re-validated against the live value by the guest create-time gate
-	// on every session/execution create — rotation therefore revokes live
-	// guest tokens on their next message, exactly like disabling the share.
 	LinkToken     string `protobuf:"bytes,5,opt,name=link_token,json=linkToken,proto3" json:"link_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

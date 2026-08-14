@@ -24,9 +24,6 @@ export type SkillStatus = Message<"ai.stigmer.agentic.skill.v1.SkillStatus"> & {
   /**
    * Standard audit information tracking creation and modification.
    *
-   * @internal
-   * Field 99 follows Stigmer convention for audit placement.
-   *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
    */
   audit?: ApiResourceAudit;
@@ -34,21 +31,12 @@ export type SkillStatus = Message<"ai.stigmer.agentic.skill.v1.SkillStatus"> & {
   /**
    * SHA256 hash of the skill artifact, used as the immutable version identifier.
    *
-   * @internal
-   * Calculated by the system from the uploaded artifact ZIP.
-   *
    * @generated from field: string version_hash = 1;
    */
   versionHash: string;
 
   /**
    * Storage key for the skill artifact.
-   *
-   * @internal
-   * Format varies based on storage backend:
-   * - Local: "<hash>.zip"
-   * - Cloud: "skills/<slug>_<hash>.zip"
-   * Determined by the system based on storage configuration.
    *
    * @generated from field: string artifact_storage_key = 2;
    */
@@ -65,10 +53,6 @@ export type SkillStatus = Message<"ai.stigmer.agentic.skill.v1.SkillStatus"> & {
    * Git provenance tracking where the skill artifacts originated from.
    * Absent when pushed from a non-git directory.
    *
-   * @internal
-   * Populated by CLI during push; provides traceability and enables
-   * "view on GitHub" links and reproducible deployments.
-   *
    * @generated from field: ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4;
    */
   gitProvenance?: GitProvenance;
@@ -84,21 +68,11 @@ export const SkillStatusSchema: GenMessage<SkillStatus> = /*@__PURE__*/
 /**
  * GitProvenance tracks the git origin of skill artifacts.
  *
- * @internal
- * System-detected metadata, not user-specified configuration.
- * Populated by CLI during push based on:
- * - Local push: auto-detected from directory's git context
- * - Git push: resolved from user-provided URL/ref
- *
  * @generated from message ai.stigmer.agentic.skill.v1.GitProvenance
  */
 export type GitProvenance = Message<"ai.stigmer.agentic.skill.v1.GitProvenance"> & {
   /**
    * Git remote URL (e.g., "https://github.com/stigmer/stigmer.git").
-   *
-   * @internal
-   * For local push: detected "origin" remote URL.
-   * For git push: the user-provided repository URL.
    *
    * @generated from field: string remote_url = 1;
    */
@@ -107,20 +81,12 @@ export type GitProvenance = Message<"ai.stigmer.agentic.skill.v1.GitProvenance">
   /**
    * Original git reference such as a branch or tag name (e.g., "main", "v1.0.0").
    *
-   * @internal
-   * For local push: detected branch name or empty if detached HEAD.
-   * For git push: the user-provided ref.
-   * Preserves user intent for display while commit provides immutability.
-   *
    * @generated from field: string ref = 2;
    */
   ref: string;
 
   /**
    * Resolved commit SHA for exact reproducibility.
-   *
-   * @internal
-   * Always populated. Full 40-character SHA.
    *
    * @generated from field: string commit = 3;
    */

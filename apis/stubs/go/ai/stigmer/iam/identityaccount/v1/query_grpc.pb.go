@@ -40,9 +40,6 @@ type IdentityAccountQueryControllerClient interface {
 	// Get the identity account of the currently authenticated user.
 	//
 	// Returns the full identity account for the caller based on the auth header.
-	//
-	// @internal
-	// Scoped to the caller's own account, so authorization is skipped.
 	WhoAmI(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Get a direct identity account by email address.
 	//
@@ -64,21 +61,6 @@ type IdentityAccountQueryControllerClient interface {
 	// that owns the identity provider.
 	GetByExternalSub(ctx context.Context, in *ExternalSubLookup, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Get lightweight actor information for an identity account.
-	//
-	// @internal
-	// This RPC is specifically designed to break circular dependency loops in audit actor resolution.
-	// When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
-	// needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion
-	// including audit actors, which can create infinite recursion if audit actors reference IdentityAccounts.
-	//
-	// This dedicated endpoint:
-	// - Returns ONLY the lightweight ApiResourceAuditActor (id + avatar)
-	// - Does NOT include full audit trail in the response
-	// - Accesses entity data directly without recursive proto conversion
-	// - Is used by ApiResourceAuditActorCacheProxy to safely populate Redis cache
-	// - Prevents StackOverflowError when Redis cache is empty or cleared
-	//
-	// Restricted to platform operators only as this is an internal cache-population mechanism.
 	GetActorInfo(ctx context.Context, in *IdentityAccountId, opts ...grpc.CallOption) (*apiresource.ApiResourceAuditActor, error)
 }
 
@@ -161,9 +143,6 @@ type IdentityAccountQueryControllerServer interface {
 	// Get the identity account of the currently authenticated user.
 	//
 	// Returns the full identity account for the caller based on the auth header.
-	//
-	// @internal
-	// Scoped to the caller's own account, so authorization is skipped.
 	WhoAmI(context.Context, *emptypb.Empty) (*IdentityAccount, error)
 	// Get a direct identity account by email address.
 	//
@@ -185,21 +164,6 @@ type IdentityAccountQueryControllerServer interface {
 	// that owns the identity provider.
 	GetByExternalSub(context.Context, *ExternalSubLookup) (*IdentityAccount, error)
 	// Get lightweight actor information for an identity account.
-	//
-	// @internal
-	// This RPC is specifically designed to break circular dependency loops in audit actor resolution.
-	// When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
-	// needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion
-	// including audit actors, which can create infinite recursion if audit actors reference IdentityAccounts.
-	//
-	// This dedicated endpoint:
-	// - Returns ONLY the lightweight ApiResourceAuditActor (id + avatar)
-	// - Does NOT include full audit trail in the response
-	// - Accesses entity data directly without recursive proto conversion
-	// - Is used by ApiResourceAuditActorCacheProxy to safely populate Redis cache
-	// - Prevents StackOverflowError when Redis cache is empty or cleared
-	//
-	// Restricted to platform operators only as this is an internal cache-population mechanism.
 	GetActorInfo(context.Context, *IdentityAccountId) (*apiresource.ApiResourceAuditActor, error)
 }
 

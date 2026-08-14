@@ -22,9 +22,6 @@ export const file_ai_stigmer_platform_cursoraccount_v1_query: GenFile = /*@__PUR
  * reveals team structure and per-member spend, which are
  * platform-internal.
  *
- * @internal
- * Cloud-only; not implemented by the OSS Go server.
- *
  * @generated from service ai.stigmer.platform.cursoraccount.v1.CursorAccountQueryController
  */
 export const CursorAccountQueryController: GenService<{

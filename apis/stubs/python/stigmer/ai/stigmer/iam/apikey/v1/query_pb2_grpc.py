@@ -47,10 +47,6 @@ class ApiKeyQueryControllerServicer(object):
 
     def getByKeyHash(self, request, context):
         """Get an API key by its hashed key value.
-
-        @internal
-        Authorization is handled in the handler after loading the resource
-        (input doesn't contain API key ID, so proto-level auth cannot work).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -60,9 +56,6 @@ class ApiKeyQueryControllerServicer(object):
         """List all API keys belonging to the authenticated user.
 
         Returns only the keys owned by the identity account in the auth header.
-
-        @internal
-        Scoped to the caller's own keys, so authorization is skipped.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
