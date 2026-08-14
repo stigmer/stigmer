@@ -7,7 +7,8 @@
 package platformclientv1
 
 import (
-	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -145,8 +146,15 @@ type PlatformClientSpec struct {
 	// Edits propagate immediately: the enforcement cache is evicted on every
 	// PlatformClient update.
 	AllowedOrigins []string `protobuf:"bytes,9,rep,name=allowed_origins,json=allowedOrigins,proto3" json:"allowed_origins,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Environments whose values are delivered to every agent execution
+	// created by a session this PlatformClient minted. This is how an
+	// embedded assistant reaches secret-gated MCP servers: the client — the
+	// connection resource — carries the credentials (for example a shared
+	// API secret), and minted-user executions receive its values at
+	// runtime. The agent and its default instance stay untouched.
+	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,10,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *PlatformClientSpec) Reset() {
@@ -242,11 +250,18 @@ func (x *PlatformClientSpec) GetAllowedOrigins() []string {
 	return nil
 }
 
+func (x *PlatformClientSpec) GetEnvironmentRefs() []*apiresource.ApiResourceReference {
+	if x != nil {
+		return x.EnvironmentRefs
+	}
+	return nil
+}
+
 var File_ai_stigmer_iam_platformclient_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_platformclient_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/iam/platformclient/v1/spec.proto\x12 ai.stigmer.iam.platformclient.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd0\x03\n" +
+	"+ai/stigmer/iam/platformclient/v1/spec.proto\x12 ai.stigmer.iam.platformclient.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xac\x05\n" +
 	"\x12PlatformClientSpec\x12!\n" +
 	"\tclient_id\x18\x01 \x01(\tB\x04ȅ,\x01R\bclientId\x122\n" +
 	"\x12client_secret_hash\x18\x02 \x01(\tB\x04ȅ,\x01R\x10clientSecretHash\x123\n" +
@@ -257,7 +272,10 @@ const file_ai_stigmer_iam_platformclient_v1_spec_proto_rawDesc = "" +
 	"\x17auto_provision_accounts\x18\x06 \x01(\bR\x15autoProvisionAccounts\x12)\n" +
 	"\x11auto_grant_on_org\x18\a \x01(\bR\x0eautoGrantOnOrg\x12B\n" +
 	"\x0fauto_grant_role\x18\b \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\rautoGrantRole\x12'\n" +
-	"\x0fallowed_origins\x18\t \x03(\tR\x0eallowedOriginsB\xb2\x02\n" +
+	"\x0fallowed_origins\x18\t \x03(\tR\x0eallowedOrigins\x12\xd9\x01\n" +
+	"\x10environment_refs\x18\n" +
+	" \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
+	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefsB\xb2\x02\n" +
 	"$com.ai.stigmer.iam.platformclient.v1B\tSpecProtoP\x01ZZgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
 
 var (
@@ -274,18 +292,20 @@ func file_ai_stigmer_iam_platformclient_v1_spec_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_iam_platformclient_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_iam_platformclient_v1_spec_proto_goTypes = []any{
-	(*PlatformClientSpec)(nil),    // 0: ai.stigmer.iam.platformclient.v1.PlatformClientSpec
-	(*timestamppb.Timestamp)(nil), // 1: google.protobuf.Timestamp
-	(v1.IamRole)(0),               // 2: ai.stigmer.iam.v1.IamRole
+	(*PlatformClientSpec)(nil),               // 0: ai.stigmer.iam.platformclient.v1.PlatformClientSpec
+	(*timestamppb.Timestamp)(nil),            // 1: google.protobuf.Timestamp
+	(v1.IamRole)(0),                          // 2: ai.stigmer.iam.v1.IamRole
+	(*apiresource.ApiResourceReference)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceReference
 }
 var file_ai_stigmer_iam_platformclient_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.iam.platformclient.v1.PlatformClientSpec.expires_at:type_name -> google.protobuf.Timestamp
 	2, // 1: ai.stigmer.iam.platformclient.v1.PlatformClientSpec.auto_grant_role:type_name -> ai.stigmer.iam.v1.IamRole
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	3, // 2: ai.stigmer.iam.platformclient.v1.PlatformClientSpec.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_platformclient_v1_spec_proto_init() }

@@ -5,8 +5,11 @@
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
+import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
+import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import type { IamRole } from "../../v1/enum_pb.js";
 import { file_ai_stigmer_iam_v1_enum } from "../../v1/enum_pb.js";
+import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
@@ -15,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/platformclient/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_platformclient_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MSLCAgoSUGxhdGZvcm1DbGllbnRTcGVjEhcKCWNsaWVudF9pZBgBIAEoCUIEyIUsARIgChJjbGllbnRfc2VjcmV0X2hhc2gYAiABKAlCBMiFLAESIAoSc2VjcmV0X2ZpbmdlcnByaW50GAMgASgJQgTIhSwBEi4KCmV4cGlyZXNfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhUKDW5ldmVyX2V4cGlyZXMYBSABKAgSHwoXYXV0b19wcm92aXNpb25fYWNjb3VudHMYBiABKAgSGQoRYXV0b19ncmFudF9vbl9vcmcYByABKAgSMwoPYXV0b19ncmFudF9yb2xlGAggASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZRIXCg9hbGxvd2VkX29yaWdpbnMYCSADKAliBnByb3RvMw", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_iam_v1_enum, file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MSKNBAoSUGxhdGZvcm1DbGllbnRTcGVjEhcKCWNsaWVudF9pZBgBIAEoCUIEyIUsARIgChJjbGllbnRfc2VjcmV0X2hhc2gYAiABKAlCBMiFLAESIAoSc2VjcmV0X2ZpbmdlcnByaW50GAMgASgJQgTIhSwBEi4KCmV4cGlyZXNfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhUKDW5ldmVyX2V4cGlyZXMYBSABKAgSHwoXYXV0b19wcm92aXNpb25fYWNjb3VudHMYBiABKAgSGQoRYXV0b19ncmFudF9vbl9vcmcYByABKAgSMwoPYXV0b19ncmFudF9yb2xlGAggASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZRIXCg9hbGxvd2VkX29yaWdpbnMYCSADKAkSyAEKEGVudmlyb25tZW50X3JlZnMYCiADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCeLpIcZIBbiJsugFpChVlbnZpcm9ubWVudF9yZWZzLmtpbmQSP2Vudmlyb25tZW50X3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1lbnZpcm9ubWVudBoPdGhpcy5raW5kID09IDUz4IUsNWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * PlatformClientSpec defines the configuration for a platform client credential.
@@ -184,6 +187,18 @@ export type PlatformClientSpec = Message<"ai.stigmer.iam.platformclient.v1.Platf
    * @generated from field: repeated string allowed_origins = 9;
    */
   allowedOrigins: string[];
+
+  /**
+   * Environments whose values are delivered to every agent execution
+   * created by a session this PlatformClient minted. This is how an
+   * embedded assistant reaches secret-gated MCP servers: the client — the
+   * connection resource — carries the credentials (for example a shared
+   * API secret), and minted-user executions receive its values at
+   * runtime. The agent and its default instance stay untouched.
+   *
+   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10;
+   */
+  environmentRefs: ApiResourceReference[];
 };
 
 /**

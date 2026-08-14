@@ -43,31 +43,40 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "\n+ai/stigmer/iam/platformclient/v1/spec." +
       "proto\022 ai.stigmer.iam.platformclient.v1\032" +
       "2ai/stigmer/commons/apiresource/field_op" +
-      "tions.proto\032\034ai/stigmer/iam/v1/enum.prot" +
-      "o\032\037google/protobuf/timestamp.proto\"\320\003\n\022P" +
-      "latformClientSpec\022!\n\tclient_id\030\001 \001(\tB\004\310\205" +
-      ",\001R\010clientId\0222\n\022client_secret_hash\030\002 \001(\t" +
-      "B\004\310\205,\001R\020clientSecretHash\0223\n\022secret_finge" +
-      "rprint\030\003 \001(\tB\004\310\205,\001R\021secretFingerprint\0229\n" +
-      "\nexpires_at\030\004 \001(\0132\032.google.protobuf.Time" +
-      "stampR\texpiresAt\022#\n\rnever_expires\030\005 \001(\010R" +
-      "\014neverExpires\0226\n\027auto_provision_accounts" +
-      "\030\006 \001(\010R\025autoProvisionAccounts\022)\n\021auto_gr" +
-      "ant_on_org\030\007 \001(\010R\016autoGrantOnOrg\022B\n\017auto" +
-      "_grant_role\030\010 \001(\0162\032.ai.stigmer.iam.v1.Ia" +
-      "mRoleR\rautoGrantRole\022\'\n\017allowed_origins\030" +
-      "\t \003(\tR\016allowedOriginsB\260\001B\tSpecProtoP\001\242\002\004" +
-      "ASIP\252\002 Ai.Stigmer.Iam.Platformclient.V1\312" +
-      "\002 Ai\\Stigmer\\Iam\\Platformclient\\V1\342\002,Ai\\" +
-      "Stigmer\\Iam\\Platformclient\\V1\\GPBMetadat" +
-      "a\352\002$Ai::Stigmer::Iam::Platformclient::V1" +
-      "b\006proto3"
+      "tions.proto\032\'ai/stigmer/commons/apiresou" +
+      "rce/io.proto\032\034ai/stigmer/iam/v1/enum.pro" +
+      "to\032\033buf/validate/validate.proto\032\037google/" +
+      "protobuf/timestamp.proto\"\254\005\n\022PlatformCli" +
+      "entSpec\022!\n\tclient_id\030\001 \001(\tB\004\310\205,\001R\010client" +
+      "Id\0222\n\022client_secret_hash\030\002 \001(\tB\004\310\205,\001R\020cl" +
+      "ientSecretHash\0223\n\022secret_fingerprint\030\003 \001" +
+      "(\tB\004\310\205,\001R\021secretFingerprint\0229\n\nexpires_a" +
+      "t\030\004 \001(\0132\032.google.protobuf.TimestampR\texp" +
+      "iresAt\022#\n\rnever_expires\030\005 \001(\010R\014neverExpi" +
+      "res\0226\n\027auto_provision_accounts\030\006 \001(\010R\025au" +
+      "toProvisionAccounts\022)\n\021auto_grant_on_org" +
+      "\030\007 \001(\010R\016autoGrantOnOrg\022B\n\017auto_grant_rol" +
+      "e\030\010 \001(\0162\032.ai.stigmer.iam.v1.IamRoleR\raut" +
+      "oGrantRole\022\'\n\017allowed_origins\030\t \003(\tR\016all" +
+      "owedOrigins\022\331\001\n\020environment_refs\030\n \003(\01324" +
+      ".ai.stigmer.commons.apiresource.ApiResou" +
+      "rceReferenceBx\272Hq\222\001n\"l\272\001i\n\025environment_r" +
+      "efs.kind\022?environment_refs must referenc" +
+      "e resources with kind=environment\032\017this." +
+      "kind == 53\340\205,5R\017environmentRefsB\260\001B\tSpec" +
+      "ProtoP\001\242\002\004ASIP\252\002 Ai.Stigmer.Iam.Platform" +
+      "client.V1\312\002 Ai\\Stigmer\\Iam\\Platformclien" +
+      "t\\V1\342\002,Ai\\Stigmer\\Iam\\Platformclient\\V1\\" +
+      "GPBMetadata\352\002$Ai::Stigmer::Iam::Platform" +
+      "client::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor(),
+          ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.iam.v1.EnumProto.getDescriptor(),
+          build.buf.validate.ValidateProto.getDescriptor(),
           com.google.protobuf.TimestampProto.getDescriptor(),
         });
     internal_static_ai_stigmer_iam_platformclient_v1_PlatformClientSpec_descriptor =
@@ -75,14 +84,18 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_platformclient_v1_PlatformClientSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_platformclient_v1_PlatformClientSpec_descriptor,
-        new java.lang.String[] { "ClientId", "ClientSecretHash", "SecretFingerprint", "ExpiresAt", "NeverExpires", "AutoProvisionAccounts", "AutoGrantOnOrg", "AutoGrantRole", "AllowedOrigins", });
+        new java.lang.String[] { "ClientId", "ClientSecretHash", "SecretFingerprint", "ExpiresAt", "NeverExpires", "AutoProvisionAccounts", "AutoGrantOnOrg", "AutoGrantRole", "AllowedOrigins", "EnvironmentRefs", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
+    ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.iam.v1.EnumProto.getDescriptor();
+    build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.TimestampProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.computed);
+    registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.referenceKind);
+    registry.add(build.buf.validate.ValidateProto.field);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }
