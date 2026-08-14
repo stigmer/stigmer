@@ -1422,9 +1422,11 @@ export {
   VisibilitySelector,
   VisibilityBadge,
   blueprintVisibilityLevels,
-  INSTANCE_VISIBILITY_LEVELS,
+  instanceVisibilityLevels,
+  PUBLIC_LOCKED_REASON,
   visibilityLabel,
   useUpdateVisibility,
+  useCanSetPublicVisibility,
 } from "./library/index.js";
 export type {
   ScopeToggleProps,
@@ -1444,8 +1446,10 @@ export type {
   VisibilityBadgeProps,
   VisibilityLevelOption,
   BlueprintVisibilityLevelsContext,
+  InstanceVisibilityLevelsContext,
   VisibilityResourceKind,
   UseUpdateVisibilityReturn,
+  UseCanSetPublicVisibilityReturn,
 } from "./library/index.js";
 
 // Manifest — kind-agnostic YAML edit/apply (editor, hooks, dialogs)

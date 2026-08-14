@@ -51,6 +51,7 @@ export class CloudTarget implements TargetProfile {
     // writes from the ordinary conformance user; unguarding requires the
     // platform-privileged caller lane (stigmer#547).
     clientReservedLabelWrites: false,
+    clientPublicVisibilityWrites: false,
   };
 
   private grpcBaseUrl: string | undefined;

@@ -454,6 +454,8 @@ Changes who can view this instance and its executions. Supports the full visibil
 
 For workflow instances, visibility has cascading effects on execution observability: workflow executions inherit visibility from their parent instance via FGA. An ORG-visible instance means all org members can see all executions — zero per-execution tuples needed.
 
+In the cloud edition, PUBLIC is operator-gated: public listing crosses every org boundary, so it is granted by the platform team on request. Un-publishing and all other levels stay self-service.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript

@@ -280,8 +280,18 @@ public final class AgentCommandControllerGrpc {
      * leaving spec, status, and other metadata fields untouched. Use this to
      * make an agent publicly accessible or to revoke public access without
      * sending the entire agent resource (avoiding read-modify-write races).
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the agent resource.
+     * Authorization: can_edit on the agent for private/org/platform
+     * transitions. Escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition; the
+     * operator acts on the owner's request, so resource can_edit is not
+     * also required). Downgrade from PUBLIC: can_edit OR the platform
+     * permission. The annotation below carries the baseline can_edit gate;
+     * the public-escalation overlay is enforced by the handler pipeline
+     * (AuthorizeVisibilityTransitionStep), not by this annotation.
      * </pre>
      */
     default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -396,8 +406,18 @@ public final class AgentCommandControllerGrpc {
      * leaving spec, status, and other metadata fields untouched. Use this to
      * make an agent publicly accessible or to revoke public access without
      * sending the entire agent resource (avoiding read-modify-write races).
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the agent resource.
+     * Authorization: can_edit on the agent for private/org/platform
+     * transitions. Escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition; the
+     * operator acts on the owner's request, so resource can_edit is not
+     * also required). Downgrade from PUBLIC: can_edit OR the platform
+     * permission. The annotation below carries the baseline can_edit gate;
+     * the public-escalation overlay is enforced by the handler pipeline
+     * (AuthorizeVisibilityTransitionStep), not by this annotation.
      * </pre>
      */
     public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -497,8 +517,18 @@ public final class AgentCommandControllerGrpc {
      * leaving spec, status, and other metadata fields untouched. Use this to
      * make an agent publicly accessible or to revoke public access without
      * sending the entire agent resource (avoiding read-modify-write races).
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the agent resource.
+     * Authorization: can_edit on the agent for private/org/platform
+     * transitions. Escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition; the
+     * operator acts on the owner's request, so resource can_edit is not
+     * also required). Downgrade from PUBLIC: can_edit OR the platform
+     * permission. The annotation below carries the baseline can_edit gate;
+     * the public-escalation overlay is enforced by the handler pipeline
+     * (AuthorizeVisibilityTransitionStep), not by this annotation.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
@@ -596,8 +626,18 @@ public final class AgentCommandControllerGrpc {
      * leaving spec, status, and other metadata fields untouched. Use this to
      * make an agent publicly accessible or to revoke public access without
      * sending the entire agent resource (avoiding read-modify-write races).
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the agent resource.
+     * Authorization: can_edit on the agent for private/org/platform
+     * transitions. Escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition; the
+     * operator acts on the owner's request, so resource can_edit is not
+     * also required). Downgrade from PUBLIC: can_edit OR the platform
+     * permission. The annotation below carries the baseline can_edit gate;
+     * the public-escalation overlay is enforced by the handler pipeline
+     * (AuthorizeVisibilityTransitionStep), not by this annotation.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
@@ -698,8 +738,18 @@ public final class AgentCommandControllerGrpc {
      * leaving spec, status, and other metadata fields untouched. Use this to
      * make an agent publicly accessible or to revoke public access without
      * sending the entire agent resource (avoiding read-modify-write races).
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the agent resource.
+     * Authorization: can_edit on the agent for private/org/platform
+     * transitions. Escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition; the
+     * operator acts on the owner's request, so resource can_edit is not
+     * also required). Downgrade from PUBLIC: can_edit OR the platform
+     * permission. The annotation below carries the baseline can_edit gate;
+     * the public-escalation overlay is enforced by the handler pipeline
+     * (AuthorizeVisibilityTransitionStep), not by this annotation.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> updateVisibility(

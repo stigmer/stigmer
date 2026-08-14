@@ -51,6 +51,10 @@ type AgentInstanceCommandControllerClient interface {
 	// For agent instances, visibility controls who can create sessions and run
 	// executions against this instance. Sessions remain personal regardless of
 	// instance visibility (conversation privacy is preserved).
+	//
+	// In the cloud edition, PUBLIC is operator-gated: public listing crosses
+	// every org boundary, so it is granted by the platform team on request.
+	// Un-publishing and all other levels stay self-service.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*AgentInstance, error)
 	// Delete an agent instance.
 	Delete(ctx context.Context, in *AgentInstanceId, opts ...grpc.CallOption) (*AgentInstance, error)
@@ -138,6 +142,10 @@ type AgentInstanceCommandControllerServer interface {
 	// For agent instances, visibility controls who can create sessions and run
 	// executions against this instance. Sessions remain personal regardless of
 	// instance visibility (conversation privacy is preserved).
+	//
+	// In the cloud edition, PUBLIC is operator-gated: public listing crosses
+	// every org boundary, so it is granted by the platform team on request.
+	// Un-publishing and all other levels stay self-service.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*AgentInstance, error)
 	// Delete an agent instance.
 	Delete(context.Context, *AgentInstanceId) (*AgentInstance, error)

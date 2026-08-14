@@ -57,6 +57,10 @@ export const AgentCommandController = {
      * make an agent publicly accessible or to revoke public access without
      * sending the entire agent resource (avoiding read-modify-write races).
      *
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
+     *
      * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.updateVisibility
      */
     updateVisibility: {

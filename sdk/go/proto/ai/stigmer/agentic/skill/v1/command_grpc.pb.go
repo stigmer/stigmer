@@ -55,6 +55,10 @@ type SkillCommandControllerClient interface {
 	// Only modifies metadata.visibility, leaving spec, status, and other
 	// metadata fields untouched. Use this to make a skill publicly accessible
 	// or to revoke public access.
+	//
+	// In the cloud edition, PUBLIC is operator-gated: public listing crosses
+	// every org boundary, so it is granted by the platform team on request.
+	// Un-publishing and all other levels stay self-service.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Skill, error)
 	// Delete a skill and all its versions.
 	Delete(ctx context.Context, in *SkillId, opts ...grpc.CallOption) (*Skill, error)
@@ -146,6 +150,10 @@ type SkillCommandControllerServer interface {
 	// Only modifies metadata.visibility, leaving spec, status, and other
 	// metadata fields untouched. Use this to make a skill publicly accessible
 	// or to revoke public access.
+	//
+	// In the cloud edition, PUBLIC is operator-gated: public listing crosses
+	// every org boundary, so it is granted by the platform team on request.
+	// Un-publishing and all other levels stay self-service.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Skill, error)
 	// Delete a skill and all its versions.
 	Delete(context.Context, *SkillId) (*Skill, error)

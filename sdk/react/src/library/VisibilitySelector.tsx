@@ -150,6 +150,12 @@ export function VisibilitySelector({
 
   const handleSelect = useCallback(
     (option: VisibilityLevelOption) => {
+      // Locked levels are not selectable; the row is disabled, this guard
+      // is defense in depth for programmatic activation.
+      if (option.lockedReason !== undefined) {
+        return;
+      }
+
       const value = option.value;
       if (value === visibility) {
         setPendingInline(null);
@@ -193,11 +199,17 @@ export function VisibilitySelector({
   const moveFocus = useCallback(
     (from: number, delta: number) => {
       const count = effectiveOptions.length;
-      const next = (from + delta + count) % count;
+      // Skip locked rows: their buttons are disabled and cannot take focus,
+      // so landing on one would strand the roving tabindex.
+      let next = from;
+      for (let step = 0; step < count; step++) {
+        next = (next + delta + count) % count;
+        if (effectiveOptions[next]?.lockedReason === undefined) break;
+      }
       setHighlightIdx(next);
       optionRefs.current[next]?.focus();
     },
-    [effectiveOptions.length],
+    [effectiveOptions],
   );
 
   const handleRowKeyDown = useCallback(

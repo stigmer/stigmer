@@ -13,9 +13,13 @@ import {
   VisibilityBadge,
 } from "../VisibilitySelector";
 import {
-  INSTANCE_VISIBILITY_LEVELS,
+  instanceVisibilityLevels,
   blueprintVisibilityLevels,
 } from "../visibilityLevels";
+
+const INSTANCE_VISIBILITY_LEVELS = instanceVisibilityLevels({
+  canSetPublicVisibility: true,
+});
 
 // Base UI's Popover positioner observes its anchor; happy-dom lacks
 // ResizeObserver, so provide a no-op shim.
@@ -35,6 +39,7 @@ afterEach(cleanup);
 const BLUEPRINT_LEVELS = blueprintVisibilityLevels({
   deploymentMode: "cloud",
   hasIdentityProvider: true,
+  canSetPublicVisibility: true,
 });
 
 // Option accessible names are "<label> <description>"; anchor on the label so
@@ -115,6 +120,48 @@ describe("VisibilitySelector — create mode (inline list)", () => {
     for (const radio of screen.getAllByRole("radio")) {
       expect((radio as HTMLButtonElement).disabled).toBe(true);
     }
+  });
+});
+
+describe("VisibilitySelector — operator-gated Public (locked row)", () => {
+  // The caller may not publish: the level builders lock the Public row.
+  const GATED_LEVELS = instanceVisibilityLevels({
+    canSetPublicVisibility: false,
+  });
+
+  it("renders the locked Public row non-interactive with the platform-team copy", () => {
+    const onChange = vi.fn();
+    render(
+      <VisibilitySelector
+        mode="create"
+        visibility={ApiResourceVisibility.visibility_private}
+        options={GATED_LEVELS}
+        onVisibilityChange={onChange}
+      />,
+    );
+
+    const publicRow = screen.getByRole("radio", { name: /Public/i });
+    expect((publicRow as HTMLButtonElement).disabled).toBe(true);
+    expect(publicRow.getAttribute("aria-disabled")).toBe("true");
+    expect(publicRow.textContent).toContain("granted by the platform team");
+
+    fireEvent.click(publicRow);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps every other level selectable — only publishing is operator-granted", () => {
+    const onChange = vi.fn();
+    render(
+      <VisibilitySelector
+        mode="create"
+        visibility={ApiResourceVisibility.visibility_private}
+        options={GATED_LEVELS}
+        onVisibilityChange={onChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /^Organization/i }));
+    expect(onChange).toHaveBeenCalledWith(ApiResourceVisibility.visibility_org);
   });
 });
 

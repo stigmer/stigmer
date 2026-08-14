@@ -443,7 +443,7 @@
         {
           "name": "visibility_public",
           "number": 2,
-          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n\n In the cloud edition, entering this level is operator-gated\n (can_set_public_visibility on platform:stigmer): public listing is a\n curation decision, requested by the resource owner and granted by the\n platform team — at both doors, updateVisibility escalation and\n create-with-public. Leaving this level stays self-service for anyone\n with can_edit. The OSS edition is unguarded (the self-hosted operator\n owns the store).\n Named visibility_public to avoid Java reserved keyword conflict."
         },
         {
           "name": "visibility_org",

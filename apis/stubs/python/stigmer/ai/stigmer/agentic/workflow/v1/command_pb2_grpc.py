@@ -88,6 +88,10 @@ class WorkflowCommandControllerServicer(object):
         leaving spec, status, and other metadata fields untouched. Use this to
         make a workflow publicly accessible or to revoke public access without
         sending the entire workflow resource (avoiding read-modify-write races).
+
+        In the cloud edition, PUBLIC is operator-gated: public listing crosses
+        every org boundary, so it is granted by the platform team on request.
+        Un-publishing and all other levels stay self-service.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
