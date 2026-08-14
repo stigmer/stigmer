@@ -1,8 +1,10 @@
 /**
  * Strict placeholder resolver for ${VAR_NAME} syntax in MCP server configs.
  *
+ * Port of the Python agent-runner's PlaceholderResolver (strict mode only).
  * Always raises on unresolved placeholders — sending literal ${VAR} as an
- * HTTP header value produces cryptic auth failures from the remote server.
+ * HTTP header value (e.g. Authorization: Bearer ${API_KEY}) produces
+ * cryptic auth failures from the remote server.
  */
 
 const PLACEHOLDER_RE = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
@@ -41,6 +43,9 @@ export function resolvePlaceholders(
 
 /**
  * Resolve placeholders in all values of a headers map.
+ *
+ * @throws PlaceholderResolutionError if any header value contains an
+ *   unresolvable placeholder.
  */
 export function resolveHeaders(
   headers: Record<string, string>,
@@ -55,7 +60,9 @@ export function resolveHeaders(
 
 /**
  * Filter env vars to only keys declared in the MCP server's spec.env.
- * Prevents secret over-sharing by restricting the environment to
+ *
+ * Mirrors the agent-runner's _filter_env_to_declared_keys: prevents
+ * secret over-sharing by restricting the subprocess/HTTP environment to
  * explicitly declared variables.
  */
 export function filterEnvToDeclaredKeys(

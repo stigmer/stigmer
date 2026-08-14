@@ -47,7 +47,7 @@ import type {
   ModelParameterValue,
 } from "@cursor/sdk";
 import { withTimeout, TimeoutError } from "../../shared/with-timeout.js";
-import type { CursorMcpServerConfig } from "./mcp-resolver.js";
+import type { CursorMcpServerConfig } from "./cursor-mcp-config.js";
 
 // ---------------------------------------------------------------------------
 // Constants

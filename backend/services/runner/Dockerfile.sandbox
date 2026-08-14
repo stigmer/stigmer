@@ -1,5 +1,5 @@
 # Cloud Sandbox — Unified TypeScript Runner
-# Daytona sandbox image for cloud-mode execution. Published to GHCR.
+# Sandbox image for cloud-mode execution. Published to GHCR.
 #
 # Build context: Repository root
 # Build command: docker build -f backend/services/runner/Dockerfile.sandbox .
@@ -15,9 +15,9 @@
 # The runtimes stay because agents legitimately shell out to node/python/go
 # in their workspaces.
 #
-# The runner process is started by stigmer-service via
-# sandbox.process.executeCommand() after sandbox creation — CMD stays
-# /bin/bash per Daytona convention.
+# The runner process is started by the control plane (the Kubernetes
+# provisioner sets the pod command to launch the runner) — CMD stays
+# /bin/bash so an ad-hoc `docker run` lands in a shell.
 #
 # Platform: linux/amd64 only (Temporal native bindings are arch-specific)
 
