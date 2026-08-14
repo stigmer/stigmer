@@ -35,6 +35,16 @@ Two signals tell you where you're needed:
   action needed. A strong dot means a person holds the conversation, so the
   Agent stays quiet and the reply has to come from your team.
 
+<Still
+  id="take-over-conversations-tour/conversations-inbox"
+  alt="The Conversations area in the console: the sidebar's Conversations item
+carries a badge reading 2, and the inbox lists four customer conversations with
+All and Needs human filters above them. One row shows a muted unanswered dot,
+another a strong dot with 'Human has the conversation' beneath the customer's
+number, and a third carries an attention flag. The right pane prompts to select
+a conversation."
+/>
+
 ## Read a conversation
 
 Open a row and you get the conversation the way the customer experiences it:
@@ -45,6 +55,15 @@ internals, just what was said on the customer's phone.
 Sent messages carry WhatsApp-style ticks. A failed send shows the reason in
 plain words right in the bubble — for example, that WhatsApp refused the message
 because the customer hasn't written in over 24 hours.
+
+<Still
+  id="take-over-conversations-tour/conversation-timeline"
+  alt="An open conversation: the customer's messages on the left, the Agent's
+replies on the right labeled Agent with delivery ticks on each bubble, and the
+customer's unanswered follow-up at the bottom. A banner above the thread reads
+'The agent is serving this conversation' with a Take over button, and the
+composer at the bottom reads 'Reply as your business'."
+/>
 
 ## Take over
 
@@ -61,6 +80,15 @@ replied yet, the platform sends them a single acknowledgment — "Someone from o
 team is looking at this and will reply here." — so they're never left wondering.
 A prompt reply from you replaces it entirely.
 
+<Still
+  id="take-over-conversations-tour/taken-over"
+  alt="A conversation your team holds: the banner above the thread reads 'You
+have this conversation — the agent is quiet until you hand it back' with a Hand
+back to agent button. The timeline shows the customer asking for a person, a
+teammate's reply labeled Teammate with delivery ticks, and the customer's
+thank-you with the new details."
+/>
+
 ## Reply
 
 Type in the composer and send. The reply goes out through the channel's own
@@ -71,9 +99,21 @@ accepts it.
 One WhatsApp rule to know: free-form replies only deliver within 24 hours of the
 customer's last message. If the window has closed, the composer warns you before
 you send — a reply sent anyway will probably fail, and the window reopens the
-moment the customer writes again. Message templates are the lane WhatsApp
-provides for reaching out past the window; sending them from the composer isn't
-available yet.
+moment the customer writes again. Approved
+[message templates](/docs/guides/channels/send-proactive-messages-with-templates)
+are the lane WhatsApp provides for reaching out past the window, and they send
+from the template button beside **Send** — pick a template, fill its variables,
+and it delivers even while free-form replies would fail.
+
+<Still
+  id="take-over-conversations-tour/closed-window-advisory"
+  alt="A conversation whose customer last wrote yesterday: the composer carries
+an advisory reading 'WhatsApp closes free-form replies 24 hours after the
+customer's last message — a reply sent now will probably fail. The window
+reopens when the customer writes again. Approved templates still deliver — use
+the template button beside Send.' The template button sits between the message
+field and Send."
+/>
 
 ## Hand back
 
@@ -98,6 +138,15 @@ Agent keeps serving the customer in the meantime rather than leaving dead air.
 
 Two ways to answer the flag: **Take over** (you step in — the flag clears) or
 **Dismiss** (a false alarm — the flag clears and the Agent carries on).
+
+<Still
+  id="take-over-conversations-tour/attention-banner"
+  alt="An escalated conversation: a highlighted banner reads 'The agent asked
+for a human' followed by the agent's own reason in quotes, with Dismiss and
+Take over buttons on its right. Below it, the control row still reads 'The
+agent is serving this conversation' — the agent keeps answering while the flag
+waits."
+/>
 
 ## Who can step in
 
