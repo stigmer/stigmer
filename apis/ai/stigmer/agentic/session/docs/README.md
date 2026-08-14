@@ -23,7 +23,7 @@ A Session is not ephemeral. It is a resource you create explicitly (or let the p
 
 **Thread continuity** — The Session holds the `thread_id` that carries the full conversation history across every execution. The agent "remembers" everything said in previous turns because all executions within a session share the same thread.
 
-**Workspace persistence** — The Session optionally provisions a sandbox (Daytona) with a workspace sourced from a git repository or a local path. That workspace persists across all executions in the session. Files the agent creates in turn one are still there in turn ten.
+**Workspace persistence** — The Session optionally provisions a sandbox (a Kubernetes pod with a persistent workspace volume, on managed deployments) with a workspace sourced from a git repository or a local path. That workspace persists across all executions in the session. Files the agent creates in turn one are still there in turn ten.
 
 **Workspace sources** — A session can be backed by a `GitRepoSource` (clone a repo on first execution) or a `LocalPathSource` (use an existing directory on the host, local mode only). When no workspace source is specified, the agent runs in an empty directory.
 

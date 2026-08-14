@@ -7,9 +7,8 @@
  * - An empty usage list falls back to the server's default_enabled_tools.
  * - Both empty means NO restriction — every discovered tool is available.
  *
- * Both harnesses import THIS module so they can never drift on these
- * semantics (the mcp-transport-guard precedent for logic shared across the
- * duplicated resolvers — see the header of shared/mcp-resolver.ts):
+ * Resolution is shared (shared/mcp-resolver.ts threads the effective list
+ * onto every ResolvedMcpServer), but ENFORCEMENT is per-harness:
  * - The deep-agent harness filters the discovered toolset before it reaches
  *   the model (shared/mcp-manager.ts connectMcpServers).
  * - The Cursor harness cannot hide tools (the Cursor SDK's McpServerConfig

@@ -2,13 +2,17 @@
  * Resolves Stigmer McpServerUsage references into an intermediate
  * ResolvedMcpServer format.
  *
- * Consumers: the deep-agent harness (execute-deep-agent/setup.ts), the
- * connect backfill (shared/connect-backfill.ts), and the discovery
- * activity (activities/discover-mcp-server.ts, via mcpServerToResolved).
- * NOTE: the Cursor harness does NOT use this module — it has its own
- * near-duplicate resolver at activities/execute-cursor/mcp-resolver.ts.
- * A behavioral change here (like the transport guard) must be mirrored
- * there until the two are consolidated.
+ * THE single resolver for both harnesses (oss#387 retired the Cursor
+ * harness's near-duplicate): the deep-agent harness
+ * (execute-deep-agent/setup.ts), the Cursor harness
+ * (execute-cursor/index.ts), the connect backfill
+ * (shared/connect-backfill.ts), and the discovery activity
+ * (activities/discover-mcp-server.ts, via mcpServerToResolved) all consume
+ * it. Each harness maps the result into its SDK format at the last hop:
+ * toMcpClientConfig (shared/mcp-manager.ts) for LangChain,
+ * toCursorMcpConfig (execute-cursor/cursor-mcp-config.ts) for the Cursor
+ * SDK — so a behavioral change here (like the transport guard) lands in
+ * both execution paths by construction.
  */
 
 import type { McpServerUsage, ToolApprovalOverride } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -51,8 +55,11 @@ export interface ResolvedMcpServer {
    * enabled_tools, falling back to the server's default_enabled_tools when
    * the usage's list is empty (see shared/mcp-enabled-tools.ts). Absent when
    * unrestricted — which keeps synthesized attachment servers (built without
-   * a usage) and the discovery path unfiltered by construction. Enforced at
-   * connect time by connectMcpServers (shared/mcp-manager.ts).
+   * a usage) and the discovery path unfiltered by construction. Enforcement
+   * is per-harness: the deep-agent path filters at connect time
+   * (connectMcpServers, shared/mcp-manager.ts); the Cursor SDK config cannot
+   * hide tools, so that harness denies non-enabled calls in the HITL hook
+   * (see hook-script.ts).
    */
   enabledTools?: string[];
   /**
@@ -61,11 +68,10 @@ export interface ResolvedMcpServer {
    * override to its own server — a flat cross-server list is how an
    * override once leaked onto (or silently un-gated) a same-named tool on
    * another server. Deliberately REQUIRED, not optional: empty means "no
-   * overrides", and every construction site — including the near-duplicate
-   * Cursor resolver and the synthesized attachments, which have no usage
-   * and therefore no layer 3 — must say so explicitly, so a forgotten
-   * mirror cannot compile. Consumed by mergeApprovalPolicies
-   * (shared/approval-policy.ts).
+   * overrides", and every construction site — including the synthesized
+   * attachments, which have no usage and therefore no layer 3 — must say so
+   * explicitly, so a forgotten site cannot compile. Consumed by
+   * mergeApprovalPolicies (shared/approval-policy.ts).
    */
   toolApprovalOverrides: ToolApprovalOverride[];
 }
@@ -200,12 +206,6 @@ export function mcpServerToResolved(
     default:
       return null;
   }
-}
-
-export function extractMcpServerSlugs(usages: McpServerUsage[]): string[] {
-  return usages
-    .map((u) => u.mcpServerRef?.slug)
-    .filter((s): s is string => !!s);
 }
 
 /**
