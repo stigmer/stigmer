@@ -54,7 +54,9 @@ func (s *removeVariableKeysAndPersistStep) Execute(ctx *pipeline.RequestContext[
 		Str("environment_id", env.GetMetadata().GetId()).
 		Msg("Removed variables from environment")
 
-	updateSpecAudit(env)
+	if err := pipelinesteps.SetAuditFieldsForUpdate(env, pipelinesteps.SpecAudit); err != nil {
+		return grpclib.InternalError(err, "failed to set audit fields")
+	}
 
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 	if err := s.store.SaveResource(ctx.Context(), kind, env.GetMetadata().GetId(), env); err != nil {

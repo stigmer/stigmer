@@ -5,14 +5,12 @@ import (
 
 	"github.com/rs/zerolog/log"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
-	commonspb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	pipelinesteps "github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // UpdatedEnvironmentKey is the context key for the modified environment after
@@ -102,7 +100,9 @@ func (s *mergeVariablesAndPersistStep) Execute(ctx *pipeline.RequestContext[*env
 		Str("environment_id", env.GetMetadata().GetId()).
 		Msg("Merged variables into environment")
 
-	updateSpecAudit(env)
+	if err := pipelinesteps.SetAuditFieldsForUpdate(env, pipelinesteps.SpecAudit); err != nil {
+		return grpclib.InternalError(err, "failed to set audit fields")
+	}
 
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 	if err := s.store.SaveResource(ctx.Context(), kind, env.GetMetadata().GetId(), env); err != nil {
@@ -111,28 +111,4 @@ func (s *mergeVariablesAndPersistStep) Execute(ctx *pipeline.RequestContext[*env
 
 	ctx.Set(UpdatedEnvironmentKey, env)
 	return nil
-}
-
-// updateSpecAudit bumps spec_audit.updated_at and updated_by while
-// preserving the original created_at / created_by.
-func updateSpecAudit(env *environmentv1.Environment) {
-	now := timestamppb.Now()
-	actor := &commonspb.ApiResourceAuditActor{Id: "system"}
-
-	if env.Status == nil {
-		env.Status = &commonspb.ApiResourceAuditStatus{}
-	}
-	if env.Status.Audit == nil {
-		env.Status.Audit = &commonspb.ApiResourceAudit{}
-	}
-	if env.Status.Audit.SpecAudit == nil {
-		env.Status.Audit.SpecAudit = &commonspb.ApiResourceAuditInfo{
-			CreatedBy: actor,
-			CreatedAt: now,
-		}
-	}
-
-	env.Status.Audit.SpecAudit.UpdatedBy = actor
-	env.Status.Audit.SpecAudit.UpdatedAt = now
-	env.Status.Audit.SpecAudit.Event = "updated"
 }

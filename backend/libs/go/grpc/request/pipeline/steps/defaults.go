@@ -196,35 +196,102 @@ func SetAuditFieldsForCreate(resource proto.Message) error {
 	})
 }
 
-// SetAuditFieldsForUpdate sets audit fields for an updated resource
+// AuditSlot names which half of status.audit a targeted mutation writes.
+// Zero is invalid — callers must pick SpecAudit or StatusAudit. The
+// required argument is the census: every SetAuditFieldsForUpdate call
+// site fails to compile until it declares which slot it owns
+// (stigmer/stigmer#540).
+type AuditSlot int
+
+const (
+	// SpecAudit is the definition-changed slot (search recency, version
+	// "pushed at", created_at-sorted library lists). Stamp it when spec
+	// or other definition fields changed.
+	SpecAudit AuditSlot = iota + 1
+	// StatusAudit is the operational-changed slot (Recents, lifecycle
+	// metadata). Stamp it when only status or metadata such as
+	// visibility changed.
+	StatusAudit
+)
+
+func (s AuditSlot) fieldName() (protoreflect.Name, error) {
+	switch s {
+	case SpecAudit:
+		return "spec_audit", nil
+	case StatusAudit:
+		return "status_audit", nil
+	default:
+		return "", fmt.Errorf("invalid audit slot %d: must be SpecAudit or StatusAudit", int(s))
+	}
+}
+
+// SetAuditFieldsForUpdate stamps one audit slot on a targeted mutation.
 //
-// This preserves created_by and created_at from the resource's own current
-// audit — in both spec_audit and status_audit — and stamps updated_by and
-// updated_at with the current actor/time (event "updated"). Callers hand
-// this the loaded resource they mutated in place (or one that carries the
-// existing audit copied onto it, as skill push does), so the resource
-// itself is the source of creation truth. A resource with no prior audit
-// falls back to the current actor/time for the creation fields, the same
-// fallback BuildUpdateStateStep uses.
+// The named slot keeps its created_by/created_at (falling back to the
+// current actor/time when that slot had no prior audit) and gets a fresh
+// updated_by/updated_at with event "updated". The other slot is not
+// rewritten — it stays proto-equal to before, including when it is
+// absent. A first write therefore creates only the stamped slot; it does
+// not invent the other.
 //
-// Unlike BuildUpdateStateStep's updateAuditFieldsReflect — which resets
-// status_audit because the update pipeline rebuilds status from the
-// request — this helper preserves status_audit's creation identity too:
-// its callers are targeted mutations (visibility flips, skill push,
-// schedule stamps, soft deletes) that never reset status.
+// The write Sets a newly allocated slot message onto the existing audit
+// wrapper. It must not mutate the existing slot in place: skill push
+// copies SpecAudit/StatusAudit pointers from the loaded skill onto a new
+// wrapper, and in-place field assignment would corrupt that in-memory
+// original (stigmer/stigmer#540).
+//
+// Callers hand this the loaded resource they mutated in place (or one
+// that carries the existing audit copied onto it, as skill push does),
+// so the resource itself is the source of creation truth.
+//
+// Unlike BuildUpdateStateStep's updateAuditFieldsReflect — which
+// wholesale-replaces both slots because the full Update pipeline rebuilds
+// status from the request — this helper is for targeted mutations
+// (visibility flips, skill push, schedule stamps, soft deletes) that
+// change one class of field.
 //
 // This function is exported so custom steps can use it for audit field management.
-func SetAuditFieldsForUpdate(resource proto.Message) error {
+func SetAuditFieldsForUpdate(resource proto.Message, slot AuditSlot) error {
+	fieldName, err := slot.fieldName()
+	if err != nil {
+		return err
+	}
+
 	now := timestamppb.Now()
 	actor := currentAuditActor()
+	createdBy, createdAt := creationAuditOf(resource, fieldName)
+	return setAuditSlotReflect(resource, fieldName, updatedAuditInfo(createdBy, createdAt, actor, now))
+}
 
-	specCreatedBy, specCreatedAt := creationAuditOf(resource, "spec_audit")
-	statusCreatedBy, statusCreatedAt := creationAuditOf(resource, "status_audit")
+// setAuditSlotReflect writes one audit-info message onto the named slot
+// of status.audit, creating status/audit if needed. The other slot is
+// left untouched. Resources without a status field, or whose status has
+// no audit field, are a no-op.
+func setAuditSlotReflect(
+	resource proto.Message,
+	slot protoreflect.Name,
+	info *commonspb.ApiResourceAuditInfo,
+) error {
+	statusMsg := getOrCreateStatusField(resource)
+	if statusMsg == nil {
+		return nil
+	}
 
-	return setAuditReflect(resource, &commonspb.ApiResourceAudit{
-		SpecAudit:   updatedAuditInfo(specCreatedBy, specCreatedAt, actor, now),
-		StatusAudit: updatedAuditInfo(statusCreatedBy, statusCreatedAt, actor, now),
-	})
+	auditField := statusMsg.Descriptor().Fields().ByName("audit")
+	if auditField == nil {
+		return nil
+	}
+
+	// Mutable creates an empty audit wrapper when none exists, without
+	// replacing a wrapper that already holds the other slot.
+	auditMsg := statusMsg.Mutable(auditField).Message()
+	slotField := auditMsg.Descriptor().Fields().ByName(slot)
+	if slotField == nil {
+		return nil
+	}
+
+	auditMsg.Set(slotField, protoreflect.ValueOfMessage(info.ProtoReflect()))
+	return nil
 }
 
 // currentAuditActor returns the actor to stamp on audit fields.

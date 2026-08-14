@@ -467,12 +467,12 @@ func TestAgentController_Delete_Cascade(t *testing.T) {
 }
 
 // TestAgentController_UpdateVisibility_PreservesCreationAudit pins the
-// call-site half of the stigmer/stigmer#453 fix: a visibility flip must
-// not rewrite spec_audit.created_by/created_at (before the fix,
-// steps.SetAuditFieldsForUpdate rebuilt the whole audit block, resetting
-// creation to system/now — which also reordered every created_at-sorted
-// list). The steps package pins the helper contract; this test proves the
-// preservation survives the full update-visibility pipeline.
+// call-site half of stigmer/stigmer#453 (creation identity) and
+// stigmer/stigmer#540 (slot granularity): a visibility flip must not
+// rewrite spec_audit at all — not created_*, not updated_*, not event.
+// Before #453 the helper reset creation to system/now; before #540 it
+// still stamped both slots, so spec_audit.event flipped to "updated"
+// and search recency jumped. Status_audit is the slot that moved.
 func TestAgentController_UpdateVisibility_PreservesCreationAudit(t *testing.T) {
 	s, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 	if err != nil {
@@ -496,10 +496,11 @@ func TestAgentController_UpdateVisibility_PreservesCreationAudit(t *testing.T) {
 		t.Fatalf("Create failed: %v", err)
 	}
 
-	originalSpecAudit := created.GetStatus().GetAudit().GetSpecAudit()
-	if originalSpecAudit.GetCreatedAt() == nil || originalSpecAudit.GetCreatedBy() == nil {
-		t.Fatalf("precondition: create should stamp spec_audit creation, got %v", originalSpecAudit)
+	originalSpecAudit, ok := proto.Clone(created.GetStatus().GetAudit().GetSpecAudit()).(*apiresource.ApiResourceAuditInfo)
+	if !ok || originalSpecAudit.GetCreatedAt() == nil || originalSpecAudit.GetCreatedBy() == nil {
+		t.Fatalf("precondition: create should stamp spec_audit creation, got %v", created.GetStatus().GetAudit().GetSpecAudit())
 	}
+	originalStatusUpdatedAt := created.GetStatus().GetAudit().GetStatusAudit().GetUpdatedAt()
 
 	updated, err := controller.UpdateVisibility(contextWithAgentKind(), &apiresource.UpdateVisibilityInput{
 		ResourceId: created.Metadata.Id,
@@ -514,16 +515,22 @@ func TestAgentController_UpdateVisibility_PreservesCreationAudit(t *testing.T) {
 	}
 
 	specAudit := updated.GetStatus().GetAudit().GetSpecAudit()
-	if !proto.Equal(specAudit.GetCreatedAt(), originalSpecAudit.GetCreatedAt()) {
-		t.Errorf("spec_audit.created_at destroyed by visibility flip: want %v, got %v",
-			originalSpecAudit.GetCreatedAt(), specAudit.GetCreatedAt())
+	if !proto.Equal(specAudit, originalSpecAudit) {
+		t.Errorf("spec_audit mutated by visibility flip: want %v, got %v", originalSpecAudit, specAudit)
 	}
-	if !proto.Equal(specAudit.GetCreatedBy(), originalSpecAudit.GetCreatedBy()) {
-		t.Errorf("spec_audit.created_by destroyed by visibility flip: want %v, got %v",
-			originalSpecAudit.GetCreatedBy(), specAudit.GetCreatedBy())
+
+	statusAudit := updated.GetStatus().GetAudit().GetStatusAudit()
+	if statusAudit.GetEvent() != "updated" {
+		t.Errorf("status_audit.event: want updated, got %q", statusAudit.GetEvent())
 	}
-	if specAudit.GetEvent() != "updated" {
-		t.Errorf("spec_audit.event: want updated, got %q", specAudit.GetEvent())
+	if !statusAudit.GetUpdatedAt().AsTime().After(originalStatusUpdatedAt.AsTime()) &&
+		!statusAudit.GetUpdatedAt().AsTime().Equal(originalStatusUpdatedAt.AsTime()) {
+		// Equal is possible if create+visibility land in the same timestamp
+		// tick; the spec-slot proto.Equal pin is the load-bearing check.
+		t.Errorf("status_audit.updated_at did not move: got %v", statusAudit.GetUpdatedAt())
+	}
+	if proto.Equal(statusAudit.GetUpdatedAt(), originalStatusUpdatedAt) && statusAudit.GetEvent() != "updated" {
+		t.Errorf("status_audit was not stamped")
 	}
 
 	// The persisted row must agree with the response.
@@ -531,9 +538,9 @@ func TestAgentController_UpdateVisibility_PreservesCreationAudit(t *testing.T) {
 	if err := s.GetResource(context.Background(), apiresourcekind.ApiResourceKind_agent, created.Metadata.Id, persisted); err != nil {
 		t.Fatalf("failed to reload agent: %v", err)
 	}
-	if !proto.Equal(persisted.GetStatus().GetAudit().GetSpecAudit().GetCreatedAt(), originalSpecAudit.GetCreatedAt()) {
-		t.Errorf("persisted spec_audit.created_at destroyed: want %v, got %v",
-			originalSpecAudit.GetCreatedAt(), persisted.GetStatus().GetAudit().GetSpecAudit().GetCreatedAt())
+	if !proto.Equal(persisted.GetStatus().GetAudit().GetSpecAudit(), originalSpecAudit) {
+		t.Errorf("persisted spec_audit mutated: want %v, got %v",
+			originalSpecAudit, persisted.GetStatus().GetAudit().GetSpecAudit())
 	}
 }
 

@@ -40,7 +40,10 @@ func (c *ArtifactController) Delete(ctx context.Context, id *apiresource.ApiReso
 	}
 	artifact.Status.StorageState = artifactv1.ArtifactStorageState_storage_state_deleted
 
-	if err := steps.SetAuditFieldsForUpdate(artifact); err != nil {
+	// Soft-delete is a status transition (storage_state). Stamp status_audit
+	// only — cloud currently stamps neither slot; OSS stays honest rather
+	// than copying that omission (stigmer/stigmer#540).
+	if err := steps.SetAuditFieldsForUpdate(artifact, steps.StatusAudit); err != nil {
 		log.Error().Err(err).Msg("Failed to set audit fields on artifact delete")
 	}
 

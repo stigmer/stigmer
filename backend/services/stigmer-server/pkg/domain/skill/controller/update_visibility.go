@@ -90,7 +90,7 @@ func (s *setVisibilityStep) Execute(ctx *pipeline.RequestContext[*apiresourcepb.
 
 	skill.Metadata.Visibility = input.GetVisibility()
 
-	if err := steps.SetAuditFieldsForUpdate(skill); err != nil {
+	if err := steps.SetAuditFieldsForUpdate(skill, steps.StatusAudit); err != nil {
 		return fmt.Errorf("failed to set audit fields: %w", err)
 	}
 
