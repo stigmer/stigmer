@@ -22,6 +22,9 @@ export type { ConversationAttentionBannerProps } from "./ConversationAttentionBa
 export { ConversationComposer } from "./ConversationComposer.js";
 export type { ConversationComposerProps } from "./ConversationComposer.js";
 
+export { ConversationTemplatePickerDialog } from "./ConversationTemplatePickerDialog.js";
+export type { ConversationTemplatePickerDialogProps } from "./ConversationTemplatePickerDialog.js";
+
 export { useConversation } from "./useConversation.js";
 export type {
   UseConversationOptions,
@@ -49,6 +52,7 @@ export type {
 export { useConversationParticipation } from "./useConversationParticipation.js";
 export type {
   ConversationCommand,
+  ConversationReplyPayload,
   UseConversationParticipationOptions,
   UseConversationParticipationReturn,
 } from "./useConversationParticipation.js";

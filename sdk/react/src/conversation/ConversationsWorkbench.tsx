@@ -16,6 +16,7 @@ import { ConversationAttentionBanner } from "./ConversationAttentionBanner.js";
 import { ConversationComposer } from "./ConversationComposer.js";
 import { ConversationControlBanner } from "./ConversationControlBanner.js";
 import { ConversationListPane, type ConversationIdentity } from "./ConversationListPane.js";
+import { ConversationTemplatePickerDialog } from "./ConversationTemplatePickerDialog.js";
 import { ConversationTimelineView } from "./ConversationTimelineView.js";
 import {
   conversationContactOf,
@@ -25,7 +26,10 @@ import {
 } from "./conversationPresentation.js";
 import { useConversation } from "./useConversation.js";
 import { useConversationList } from "./useConversationList.js";
-import { useConversationParticipation } from "./useConversationParticipation.js";
+import {
+  useConversationParticipation,
+  type ConversationReplyPayload,
+} from "./useConversationParticipation.js";
 import { useConversationTimeline } from "./useConversationTimeline.js";
 
 /**
@@ -179,9 +183,20 @@ export function ConversationsWorkbench({
   const serviceWindow = detail.conversation
     ? serviceWindowOf(detail.conversation, descriptor?.id ?? null, now ?? new Date())
     : null;
+  // cloud#260: templates are the lane that SUCCEEDS on a closed window,
+  // offered from the persistent affordance beside Send — the advisory
+  // points at it in copy only (it is the input's description with zero
+  // tab stops, F-18; a control inside it would be unreachable context).
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const templatesAvailable =
+    (descriptor?.supportsMessageTemplates ?? false) && selectedChannel !== null;
   const composerAdvisory =
     serviceWindow === "closed" && descriptor
-      ? `${descriptor.label} closes free-form replies 24 hours after the customer's last message — a reply sent now will probably fail. The window reopens when the customer writes again.`
+      ? `${descriptor.label} closes free-form replies 24 hours after the customer's last message — a reply sent now will probably fail. The window reopens when the customer writes again.${
+          templatesAvailable
+            ? " Approved templates still deliver — use the template button beside Send."
+            : ""
+        }`
       : null;
 
   const handleSelect = useCallback(
@@ -219,8 +234,8 @@ export function ConversationsWorkbench({
   }, [timeline.items, settlingItemId]);
 
   const handleSend = useCallback(
-    async (text: string) => {
-      const output = await participation.reply(text);
+    async (payload: ConversationReplyPayload) => {
+      const output = await participation.reply(payload);
       // The ledger row is committed before reply answers, so one head
       // refresh renders the REAL item (with its true status) — the SDK
       // never fabricates an optimistic item that might misstate what
@@ -371,9 +386,30 @@ export function ConversationsWorkbench({
             isSending={
               participation.pendingCommands.has("reply") || settlingItemId !== null
             }
+            onOpenTemplatePicker={
+              templatesAvailable && composerDisabledReason === null
+                ? () => setTemplatePickerOpen(true)
+                : undefined
+            }
             disabledReason={composerDisabledReason}
             advisory={composerAdvisory}
           />
+
+          {/* Inside the keyed column on purpose: switching conversations
+              remounts and closes it, so a half-filled template can never
+              travel into another customer's conversation (F-22). */}
+          {templatesAvailable && (
+            <ConversationTemplatePickerDialog
+              open={templatePickerOpen}
+              onOpenChange={setTemplatePickerOpen}
+              channelSlug={selectedChannel?.metadata?.slug ?? ""}
+              org={selectedChannel?.metadata?.org ?? ""}
+              onSend={handleSend}
+              isSending={
+                participation.pendingCommands.has("reply") || settlingItemId !== null
+              }
+            />
+          )}
         </div>
       )}
     </div>
