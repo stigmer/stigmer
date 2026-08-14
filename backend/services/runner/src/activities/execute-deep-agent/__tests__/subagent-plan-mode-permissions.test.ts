@@ -64,7 +64,7 @@ describe("plan-mode sub-agent filesystem permissions (issue #255)", () => {
         workspaceRootDir: root,
         casObserver: observer,
         modelFactory: async () => new ScriptedModel(script),
-        ...(planMode ? { permissions: buildPlanModePermissions(root) } : {}),
+        ...(planMode ? { permissions: buildPlanModePermissions() } : {}),
       },
     );
     expect(compiled).toHaveLength(1);
@@ -176,12 +176,14 @@ describe("plan-mode sub-agent filesystem permissions (issue #255)", () => {
     expect(readResult).not.toMatch(/path must be absolute/i);
   });
 
-  it("scopes sub-agent reads to the workspace and fills the bare-ls default (issue #528)", async () => {
-    // The read boundary must hold on SUB-AGENT graphs too — they carry their
-    // own rules (issue #255) and their own normalization shim (#429), so a
-    // parent-only fix would leave sub-agents reading anywhere. One turn,
-    // three calls: out-of-root read denied, in-root read flows, bare ls
-    // (whose schema default is the OS root) lists the workspace.
+  it("confines sub-agent reads to the workspace; the bare-ls default lists it (issues #528/#754)", async () => {
+    // The boundary must hold on SUB-AGENT graphs too — they carry their own
+    // rules (issue #255), their own normalization shim (#429), and their own
+    // virtual-rooted backend (#754), so a parent-only fix would leave
+    // sub-agents reading anywhere. One turn, three calls: a host-file read
+    // resolves in-workspace and finds nothing, an in-root read flows, a bare
+    // ls (schema default "/", the workspace root in the virtual dialect)
+    // lists the workspace.
     const script: ScriptSelector = () => ({
       toolCalls: [
         { name: "read_file", args: { file_path: "/etc/hosts" }, id: "c_read_out" },
@@ -198,7 +200,8 @@ describe("plan-mode sub-agent filesystem permissions (issue #255)", () => {
     )) as { messages: BaseMessage[] };
 
     const outResult = toolResultById(result.messages, "c_read_out");
-    expect(outResult).toMatch(/permission denied for read/i);
+    expect(outResult).toMatch(/not found|no such file/i);
+    expect(outResult).not.toContain("localhost");
 
     expect(toolResultById(result.messages, "c_read_in")).toContain("PLAN_MODE_README_TOKEN");
 

@@ -700,9 +700,17 @@ test-e2e-approval: ## Run the deterministic HITL approval E2E (mock LLM, serial,
 	# `cd test/e2e && npm ci` would prune the root-hoisted packages because
 	# test/e2e is a workspace member — fine in isolated CI, but it breaks a local
 	# monorepo checkout. The browser fetch stays scoped to test/e2e.
+	#
+	# TWO invocations, two stack shapes (one Playwright run boots one stack):
+	#   1. capture stack (local artifact store) — approval FLOW + disclosure
+	#      specs; the gated vehicle is the shell category (writes apply-then-
+	#      review there and never gate).
+	#   2. file-gate stack (no artifact store) — the file-write GATE-CARD specs,
+	#      the only shape where that surface exists.
 	npm ci
 	cd test/e2e && npx playwright install --with-deps chromium && \
-		STIGMER_E2E_MOCK_LLM=1 npx playwright test --project=interactive-approval --workers=1
+		STIGMER_E2E_MOCK_LLM=1 npx playwright test --project=interactive-approval --workers=1 && \
+		STIGMER_E2E_MOCK_LLM=1 STIGMER_E2E_FILE_GATES=1 npx playwright test --project=interactive-approval-gate --workers=1
 
 # Parallel CI gate.
 #

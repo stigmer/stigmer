@@ -309,4 +309,133 @@ public interface PlatformClientSpecOrBuilder extends
    */
   com.google.protobuf.ByteString
       getAllowedOriginsBytes(int index);
+
+  /**
+   * <pre>
+   * Environments whose values are delivered to every agent execution
+   * created by a session this PlatformClient minted. This is how an
+   * embedded assistant reaches secret-gated MCP servers: the client — the
+   * connection resource — carries the credentials (for example a shared
+   * API secret), and minted-user executions receive its values at
+   * runtime. The agent and its default instance stay untouched.
+   *
+   * &#64;internal
+   * The fifth application of the connection-resource credential mechanism
+   * (AgentShare, AgentChannel, Schedule, agent_call — stigmer/stigmer#381):
+   * prepended lowest-priority in the cloud CreateExecutionContextStep for
+   * platform-client-minted callers, so AgentInstance.environment_refs and
+   * AgentExecution.runtime_env override on key conflicts. Resolved in the
+   * client's owning org through the org-shared environment resolution seam
+   * (OrgSharedEnvironmentPolicy): each referenced environment must be
+   * visibility_org there, or the merge skips it with a diagnostic. Edits
+   * propagate immediately — every PlatformClient mutation path evicts the
+   * client cache (the allowed_origins precedent).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> 
+      getEnvironmentRefsList();
+  /**
+   * <pre>
+   * Environments whose values are delivered to every agent execution
+   * created by a session this PlatformClient minted. This is how an
+   * embedded assistant reaches secret-gated MCP servers: the client — the
+   * connection resource — carries the credentials (for example a shared
+   * API secret), and minted-user executions receive its values at
+   * runtime. The agent and its default instance stay untouched.
+   *
+   * &#64;internal
+   * The fifth application of the connection-resource credential mechanism
+   * (AgentShare, AgentChannel, Schedule, agent_call — stigmer/stigmer#381):
+   * prepended lowest-priority in the cloud CreateExecutionContextStep for
+   * platform-client-minted callers, so AgentInstance.environment_refs and
+   * AgentExecution.runtime_env override on key conflicts. Resolved in the
+   * client's owning org through the org-shared environment resolution seam
+   * (OrgSharedEnvironmentPolicy): each referenced environment must be
+   * visibility_org there, or the merge skips it with a diagnostic. Edits
+   * propagate immediately — every PlatformClient mutation path evicts the
+   * client cache (the allowed_origins precedent).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index);
+  /**
+   * <pre>
+   * Environments whose values are delivered to every agent execution
+   * created by a session this PlatformClient minted. This is how an
+   * embedded assistant reaches secret-gated MCP servers: the client — the
+   * connection resource — carries the credentials (for example a shared
+   * API secret), and minted-user executions receive its values at
+   * runtime. The agent and its default instance stay untouched.
+   *
+   * &#64;internal
+   * The fifth application of the connection-resource credential mechanism
+   * (AgentShare, AgentChannel, Schedule, agent_call — stigmer/stigmer#381):
+   * prepended lowest-priority in the cloud CreateExecutionContextStep for
+   * platform-client-minted callers, so AgentInstance.environment_refs and
+   * AgentExecution.runtime_env override on key conflicts. Resolved in the
+   * client's owning org through the org-shared environment resolution seam
+   * (OrgSharedEnvironmentPolicy): each referenced environment must be
+   * visibility_org there, or the merge skips it with a diagnostic. Edits
+   * propagate immediately — every PlatformClient mutation path evicts the
+   * client cache (the allowed_origins precedent).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   */
+  int getEnvironmentRefsCount();
+  /**
+   * <pre>
+   * Environments whose values are delivered to every agent execution
+   * created by a session this PlatformClient minted. This is how an
+   * embedded assistant reaches secret-gated MCP servers: the client — the
+   * connection resource — carries the credentials (for example a shared
+   * API secret), and minted-user executions receive its values at
+   * runtime. The agent and its default instance stay untouched.
+   *
+   * &#64;internal
+   * The fifth application of the connection-resource credential mechanism
+   * (AgentShare, AgentChannel, Schedule, agent_call — stigmer/stigmer#381):
+   * prepended lowest-priority in the cloud CreateExecutionContextStep for
+   * platform-client-minted callers, so AgentInstance.environment_refs and
+   * AgentExecution.runtime_env override on key conflicts. Resolved in the
+   * client's owning org through the org-shared environment resolution seam
+   * (OrgSharedEnvironmentPolicy): each referenced environment must be
+   * visibility_org there, or the merge skips it with a diagnostic. Edits
+   * propagate immediately — every PlatformClient mutation path evicts the
+   * client cache (the allowed_origins precedent).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+      getEnvironmentRefsOrBuilderList();
+  /**
+   * <pre>
+   * Environments whose values are delivered to every agent execution
+   * created by a session this PlatformClient minted. This is how an
+   * embedded assistant reaches secret-gated MCP servers: the client — the
+   * connection resource — carries the credentials (for example a shared
+   * API secret), and minted-user executions receive its values at
+   * runtime. The agent and its default instance stay untouched.
+   *
+   * &#64;internal
+   * The fifth application of the connection-resource credential mechanism
+   * (AgentShare, AgentChannel, Schedule, agent_call — stigmer/stigmer#381):
+   * prepended lowest-priority in the cloud CreateExecutionContextStep for
+   * platform-client-minted callers, so AgentInstance.environment_refs and
+   * AgentExecution.runtime_env override on key conflicts. Resolved in the
+   * client's owning org through the org-shared environment resolution seam
+   * (OrgSharedEnvironmentPolicy): each referenced environment must be
+   * visibility_org there, or the merge skips it with a diagnostic. Edits
+   * propagate immediately — every PlatformClient mutation path evicts the
+   * client cache (the allowed_origins precedent).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
+      int index);
 }

@@ -3,7 +3,9 @@ syntax = "proto3";
 package ai.stigmer.iam.platformclient.v1;
 
 import "ai/stigmer/commons/apiresource/field_options.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/iam/v1/enum.proto";
+import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
 
 // PlatformClientSpec defines the configuration for a platform client credential.
@@ -135,4 +137,31 @@ message PlatformClientSpec {
   // Edits propagate immediately: the enforcement cache is evicted on every
   // PlatformClient update.
   repeated string allowed_origins = 9;
+
+  // Environments whose values are delivered to every agent execution
+  // created by a session this PlatformClient minted. This is how an
+  // embedded assistant reaches secret-gated MCP servers: the client — the
+  // connection resource — carries the credentials (for example a shared
+  // API secret), and minted-user executions receive its values at
+  // runtime. The agent and its default instance stay untouched.
+  //
+  // @internal
+  // The fifth application of the connection-resource credential mechanism
+  // (AgentShare, AgentChannel, Schedule, agent_call — stigmer/stigmer#381):
+  // prepended lowest-priority in the cloud CreateExecutionContextStep for
+  // platform-client-minted callers, so AgentInstance.environment_refs and
+  // AgentExecution.runtime_env override on key conflicts. Resolved in the
+  // client's owning org through the org-shared environment resolution seam
+  // (OrgSharedEnvironmentPolicy): each referenced environment must be
+  // visibility_org there, or the merge skips it with a diagnostic. Edits
+  // propagate immediately — every PlatformClient mutation path evicts the
+  // client cache (the allowed_origins precedent).
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [
+    (ai.stigmer.commons.apiresource.reference_kind) = environment,
+    (buf.validate.field).repeated.items.cel = {
+      id: "environment_refs.kind"
+      message: "environment_refs must reference resources with kind=environment"
+      expression: "this.kind == 53"
+    }
+  ];
 }

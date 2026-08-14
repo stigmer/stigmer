@@ -320,6 +320,7 @@ const platformClientCreateResponse = await stigmer.platformclient.create({
   autoGrantOnOrg: false,
   autoGrantRole: "...",
   allowedOrigins: [],
+  environmentRefs: [],
 });
 ```
 </Tab>
@@ -339,6 +340,7 @@ platformClientCreateResponse, err := client.PlatformClient.Create(ctx, &stigmer.
   AutoGrantOnOrg:        false,
   AutoGrantRole:         "...",
   AllowedOrigins:        []string{},
+  EnvironmentRefs:       []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -358,6 +360,7 @@ platform_client_create_response = client.platformclients.create(PlatformClientIn
     auto_grant_on_org=False,
     auto_grant_role="...",
     allowed_origins=[],
+    environment_refs=[],
 ))
 ```
 </Tab>
@@ -377,6 +380,7 @@ PlatformClient platformClientCreateResponse = client.platformclients().create(Pl
     .autoGrantOnOrg(false)
     .autoGrantRole("...")
     .allowedOrigins(List.of())
+    .environmentRefs(List.of())
     .build());
 ```
 </Tab>
@@ -409,6 +413,7 @@ const platformClient = await stigmer.platformclient.update({
   autoGrantOnOrg: false,
   autoGrantRole: "...",
   allowedOrigins: [],
+  environmentRefs: [],
 });
 ```
 </Tab>
@@ -428,6 +433,7 @@ platformClient, err := client.PlatformClient.Update(ctx, &stigmer.PlatformClient
   AutoGrantOnOrg:        false,
   AutoGrantRole:         "...",
   AllowedOrigins:        []string{},
+  EnvironmentRefs:       []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -447,6 +453,7 @@ platform_client = client.platformclients.update(PlatformClientInput(
     auto_grant_on_org=False,
     auto_grant_role="...",
     allowed_origins=[],
+    environment_refs=[],
 ))
 ```
 </Tab>
@@ -466,6 +473,7 @@ PlatformClient platformClient = client.platformclients().update(PlatformClientIn
     .autoGrantOnOrg(false)
     .autoGrantRole("...")
     .allowedOrigins(List.of())
+    .environmentRefs(List.of())
     .build());
 ```
 </Tab>
@@ -702,17 +710,7 @@ Input for creating or updating a Platform Client.
     autoGrantOnOrg: { type: "boolean", description: "Whether to automatically grant a role on the PlatformClient's owning organization when an account is auto-provisioned." },
     autoGrantRole: { type: "IamRole", description: "The role to grant when auto_grant_on_org is true.", typeDescriptionLink: "#iamrole" },
     allowedOrigins: { type: "string[]", description: "Web origins allowed for browser-based requests using tokens minted by this PlatformClient (Stigmer Cloud)." },
-  }}
-/>
-
-### PlatformClientCreateResponse
-
-PlatformClientCreateResponse wraps a PlatformClient resource with the one-time raw client secret.
-
-<TypeTable
-  type={{
-    platformClient: { type: "PlatformClientInput", description: "The created or updated platform client resource.", typeDescriptionLink: "#platformclientinput" },
-    clientSecret: { type: "string", description: "The raw client secret." },
+    environmentRefs: { type: "ResourceRef[]", description: "Environments whose values are delivered to every agent execution created by a session this PlatformClient minted.", typeDescriptionLink: "#resourceref" },
   }}
 />
 
@@ -726,6 +724,17 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### PlatformClientCreateResponse
+
+PlatformClientCreateResponse wraps a PlatformClient resource with the one-time raw client secret.
+
+<TypeTable
+  type={{
+    platformClient: { type: "PlatformClientInput", description: "The created or updated platform client resource.", typeDescriptionLink: "#platformclientinput" },
+    clientSecret: { type: "string", description: "The raw client secret." },
   }}
 />
 

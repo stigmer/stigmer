@@ -7,12 +7,16 @@
 // rework) can only be observed end-to-end, where the runner emits real
 // COMPLETED tool calls into a real SessionViewer.
 //
-// Determinism: the execution is created with `auto_approve_all`, so the seeded
-// tool turns run straight through to EXECUTION_COMPLETED with no approval
-// interrupt. Tool choice is the native deep-agent built-ins (write_file /
-// read_file); `shell`/MCP are not directly-callable native tools (shell is a
-// sub-agent type), and the shell/MCP *bounded-preview* rendering is covered
-// exhaustively at the jsdom layer where the result shape is controllable.
+// Determinism: the execution is created with `auto_approve_all`, so no
+// pre-execution GATE interrupts the seeded turns. On this capture-substrate
+// stack the flowed writes still pause the run at the REVIEW boundary
+// (apply-then-review; capture is deliberately gate-independent, so file review
+// opens even under the bypass), which the specs resolve through the real
+// file-review card ("Keep all") — making this file the e2e coverage of the
+// apply-then-review flow as well as of row persistence. Tool choice is the
+// native deep-agent built-ins (write_file / read_file); the shell/MCP
+// *bounded-preview* rendering is covered exhaustively at the jsdom layer where
+// the result shape is controllable.
 //
 // Serial + a shared single-FIFO mock queue: the project runs `--workers=1` and
 // resets the queue per test.
@@ -21,17 +25,15 @@ import {
   MockControl,
   getMockControlUrl,
   seedToolRunSession,
+  settleThroughFileReview,
   writeFileBlock,
   readFileBlock,
-  awaitExecutionPhase,
   toolCallRow,
   toolRunGroup,
   fileDiff,
-  toolPreview,
-  toolPreviewExpand,
+  fileDiffExpand,
   type SeededGatedExecution,
 } from "../../helpers/approval";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 const mockUrl = getMockControlUrl();
 
@@ -60,15 +62,9 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     seeded = await seedToolRunSession(stigmerClient, control, {
       toolTurns: [[writeFileBlock("call_run_1", "/tmp/e2e-disclosure.txt", "hello from e2e")]],
     });
-    // The run settles on its own (auto-approved) — no browser interaction needed
-    // to reach the terminal state the timeline must render.
-    await awaitExecutionPhase(
-      stigmerClient,
-      seeded.executionId,
-      ExecutionPhase.EXECUTION_COMPLETED,
-    );
-
-    await page.goto(`/sessions/${seeded.sessionId}`);
+    // The write applies during the turn and the run pauses at the review
+    // boundary; resolving it through the real card settles the run.
+    await settleThroughFileReview(page, stigmerClient, seeded);
 
     // The completed tool call persists as a visible row…
     await expect(toolCallRow(page).first()).toBeVisible({ timeout: 30_000 });
@@ -91,13 +87,7 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
         [readFileBlock("call_r", "/tmp/e2e-row-a.txt")],
       ],
     });
-    await awaitExecutionPhase(
-      stigmerClient,
-      seeded.executionId,
-      ExecutionPhase.EXECUTION_COMPLETED,
-    );
-
-    await page.goto(`/sessions/${seeded.sessionId}`);
+    await settleThroughFileReview(page, stigmerClient, seeded);
 
     // Both completed rows persist; neither is folded into a run chip.
     await expect(toolCallRow(page)).toHaveCount(2, { timeout: 30_000 });
@@ -114,13 +104,7 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     seeded = await seedToolRunSession(stigmerClient, control, {
       toolTurns: [[writeFileBlock("call_diff", "/tmp/e2e-additive.txt", "line one\nline two\n")]],
     });
-    await awaitExecutionPhase(
-      stigmerClient,
-      seeded.executionId,
-      ExecutionPhase.EXECUTION_COMPLETED,
-    );
-
-    await page.goto(`/sessions/${seeded.sessionId}`);
+    await settleThroughFileReview(page, stigmerClient, seeded);
 
     const row = toolCallRow(page).first();
     await expect(row).toBeVisible({ timeout: 30_000 });
@@ -144,24 +128,26 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     seeded = await seedToolRunSession(stigmerClient, control, {
       toolTurns: [[writeFileBlock("call_big_settled", "/tmp/e2e-big-settled.txt", big)]],
     });
-    await awaitExecutionPhase(
-      stigmerClient,
-      seeded.executionId,
-      ExecutionPhase.EXECUTION_COMPLETED,
-    );
-
-    await page.goto(`/sessions/${seeded.sessionId}`);
+    await settleThroughFileReview(page, stigmerClient, seeded);
 
     const row = toolCallRow(page).first();
     await expect(row).toBeVisible({ timeout: 30_000 });
 
     // A settled preview card has NO competing header chevron — the diff body is
-    // always visible, so the row carries no aria-expanded disclosure toggle.
+    // always visible, so the row carries no aria-expanded disclosure toggle
+    // (RevealToggle is a native <button> with no explicit role attribute, so it
+    // deliberately does not match this pin).
     await expect(row.locator('[role="button"][aria-expanded]')).toHaveCount(0);
 
-    // Collapsed: the diff body is clipped to the budget — the same clamp the gate
-    // uses, so the two surfaces are visually consistent by construction.
-    const clamp = toolPreview(row).locator(".overflow-hidden").first();
+    // Collapsed: the diff body is clipped to the budget — the shared
+    // BoundedContent clamp (`stg:overflow-hidden` + the standard max height),
+    // the same primitive the approval gate uses, so the two surfaces are
+    // visually consistent by construction. (With capture restored, the row's
+    // diff renders through the file-diff family, not the legacy tool-preview
+    // wrapper — the selectors target the diff's own clamp.)
+    const diff = fileDiff(row).first();
+    await expect(diff).toBeVisible();
+    const clamp = diff.locator('[class*="overflow-hidden"]').first();
     const collapsed = await clamp.evaluate((el) => el.clientHeight);
     const full = await clamp.evaluate((el) => el.scrollHeight);
     expect(collapsed).toBeGreaterThan(0);
@@ -170,7 +156,7 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
 
     // "Show more" reveals the rest IN PLACE — the clamp grows past its collapsed
     // height, rather than swapping in a separate detail panel.
-    const expand = toolPreviewExpand(row);
+    const expand = fileDiffExpand(row);
     await expect(expand).toBeVisible();
     await expand.click();
     const expanded = await clamp.evaluate((el) => el.clientHeight);

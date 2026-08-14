@@ -618,6 +618,22 @@ describe("createArtifactStorage", () => {
     };
     expect(() => createArtifactStorage(cfg)).toThrow("STIGMER_TOKEN");
   });
+
+  it("throws for the deliberate 'none' posture — resolveUsable degrades it, claimcheck fail-hards", async () => {
+    const cfg: ArtifactStorageConfig = {
+      type: "none",
+      localPath: "/tmp/artifacts",
+      localServeUrl: "http://localhost:7235",
+      proxyEndpoint: null,
+      proxyAuthToken: null,
+    };
+    expect(() => createArtifactStorage(cfg)).toThrow(/deliberately disabled/i);
+    // The capture/offload resolver treats it as the first-class absent store:
+    // deny-gate mode, not a crash.
+    await expect(
+      resolveUsableArtifactStorage(cfg, { executionId: "exec-none" }),
+    ).resolves.toBeUndefined();
+  });
 });
 
 describe("loadArtifactStorageConfig", () => {
@@ -678,6 +694,18 @@ describe("loadArtifactStorageConfig", () => {
     expect(cfg.type).toBe("proxy");
     expect(cfg.proxyEndpoint).toBe("https://localhost:9090");
     expect(cfg.proxyAuthToken).toBe("tok");
+  });
+
+  it("honors ARTIFACT_STORAGE_TYPE=none even when a proxy endpoint is configured", () => {
+    // "none" is a deliberate operator/e2e posture — it must beat the
+    // storage-follows-transport default exactly like the other overrides.
+    process.env.ARTIFACT_STORAGE_TYPE = "none";
+    const cfg = loadArtifactStorageConfig({
+      ...baseConfig,
+      proxyEndpoint: "https://proxy.example.com",
+      stigmerToken: "tok",
+    });
+    expect(cfg.type).toBe("none");
   });
 
   it("respects ARTIFACT_STORAGE_TYPE override", () => {

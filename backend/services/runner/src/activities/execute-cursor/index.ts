@@ -71,7 +71,8 @@ import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
 import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { createCursorEventRecorder } from "./cursor-event-recorder.js";
-import { resolveMcpServers, toCursorMcpConfig, validateMcpServerEnv } from "./mcp-resolver.js";
+import { resolveMcpServers } from "../../shared/mcp-resolver.js";
+import { toCursorMcpConfig, validateMcpServerEnv } from "./cursor-mcp-config.js";
 import { resolveMcpTransportPosture } from "../../shared/mcp-transport-guard.js";
 import {
   discoverChannelMessaging,
@@ -85,7 +86,7 @@ import { injectSynthesizedAttachment } from "../../shared/synthesized-attachment
 import { mergeApprovalPolicies } from "./approval-policy.js";
 import { deriveActiveLeases, isUnattendedApprovalMode } from "../../shared/approval-policy.js";
 import { enabledToolsBySlug } from "../../shared/mcp-enabled-tools.js";
-import { backfillMcpServersIfNeeded } from "./connect-backfill.js";
+import { backfillMcpServersIfNeeded } from "../../shared/connect-backfill.js";
 import { resolveExecutionEnv } from "./env-resolver.js";
 import { resolveBlueprint } from "./blueprint-resolver.js";
 import { buildCursorSubAgentDefinitions } from "./subagent-config.js";
@@ -627,16 +628,19 @@ async function executeCursorInner(
       ),
       sessionId,
     );
-    let mcpResolution = await resolveMcpServers(
+    // The resolved-server list mutates through backfill and attachment
+    // injection below; the Cursor SDK config is projected from it exactly
+    // once, after the last mutation (see toCursorMcpConfig).
+    let resolvedMcpServers = (await resolveMcpServers(
       client, blueprint.mergedMcpServerUsages, mcpEnvVars, transportPosture,
-    );
+    )).resolvedServers;
     setupTiming.mark("resolve_mcp_servers");
 
     // Phase 4a: Connect backfill for undiscovered MCP servers
     heartbeatPhase = "resolving_mcp_servers";
     const sessionOrg = session.metadata?.org ?? "";
-    mcpResolution = await backfillMcpServersIfNeeded(
-      client, mcpResolution, blueprint.mergedMcpServerUsages, mcpEnvVars, sessionOrg,
+    resolvedMcpServers = await backfillMcpServersIfNeeded(
+      client, resolvedMcpServers, blueprint.mergedMcpServerUsages, mcpEnvVars, sessionOrg,
       transportPosture, heartbeat, secretKeys,
     );
     setupTiming.mark("backfill_mcp");
@@ -684,13 +688,9 @@ async function executeCursorInner(
         backendEndpoint: config.stigmerBackendEndpoint,
       });
       if (attachment) {
-        const resolvedServers = injectSynthesizedAttachment(
-          mcpResolution.resolvedServers, attachment, "channel messaging",
+        resolvedMcpServers = injectSynthesizedAttachment(
+          resolvedMcpServers, attachment, "channel messaging",
         );
-        mcpResolution = {
-          resolvedServers,
-          cursorConfig: toCursorMcpConfig(resolvedServers),
-        };
       }
     }
 
@@ -710,15 +710,13 @@ async function executeCursorInner(
       },
     );
     if (conversationAttachment) {
-      const resolvedServers = injectSynthesizedAttachment(
-        mcpResolution.resolvedServers, conversationAttachment, "conversation participation",
+      resolvedMcpServers = injectSynthesizedAttachment(
+        resolvedMcpServers, conversationAttachment, "conversation participation",
       );
-      mcpResolution = {
-        resolvedServers,
-        cursorConfig: toCursorMcpConfig(resolvedServers),
-      };
     }
-    const mcpConfig = mcpResolution.cursorConfig;
+    // The one projection point: every mutation above is now visible in the
+    // Cursor SDK config by construction (no per-mutation rebuild to forget).
+    const mcpConfig = toCursorMcpConfig(resolvedMcpServers);
 
     // Phase 4b: Merge approval policies from all layers.
     //
@@ -734,16 +732,15 @@ async function executeCursorInner(
     // see ResolvedMcpServer.toolApprovalOverrides (issue #349) — so there
     // is no separate override input to pass here.
     const mergedPolicies = mergeApprovalPolicies(
-      mcpResolution.resolvedServers,
+      resolvedMcpServers,
       leases,
     );
     heartbeat();
 
     // Phase 4c: Validate MCP server env health (diagnostic, non-blocking)
     const mcpWarnings = validateMcpServerEnv(
-      mcpResolution.resolvedServers,
+      resolvedMcpServers,
       blueprint.mergedMcpServerUsages,
-      envVars,
     );
     if (mcpWarnings.length > 0) {
       console.warn(
@@ -910,7 +907,7 @@ async function executeCursorInner(
       // servers' allow-lists, enforced by the hook's "disabled" arm ahead of
       // every approval bypass. The Cursor SDK config cannot hide a server's
       // tools, so this deny-at-call is the harness's enforcement.
-      enabledToolsBySlug(mcpResolution.resolvedServers),
+      enabledToolsBySlug(resolvedMcpServers),
     );
     const hitlGate = await installHitlGate({
       workspaceRoot: primaryWorkspaceDir,

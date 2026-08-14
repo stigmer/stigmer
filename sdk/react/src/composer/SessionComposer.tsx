@@ -31,7 +31,6 @@ import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js
 import { useAttachments } from "../attachment/useAttachments.js";
 import { AttachmentChipList } from "../attachment/AttachmentChipList.js";
 import { extractClipboardFiles } from "../attachment/clipboard.js";
-import { prepareImageForVision } from "../attachment/prepare-image.js";
 import { useFileReferences } from "../file-reference/useFileReferences.js";
 import { FileReferenceChipList } from "../file-reference/FileReferenceChipList.js";
 import { FILE_REF_MIME } from "../internal/file-tree/index.js";
@@ -855,11 +854,17 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   const visionNotice = useMemo(() => {
     if (!enableAttachments || attachments.entries.length === 0) return null;
     const preflight = assessVisionPreflight(
-      attachments.entries.map((e) => ({
-        name: e.file.name,
-        sizeBytes: e.file.size,
-        contentType: e.contentType,
-      })),
+      attachments.entries
+        // A `preparing` entry still carries pre-downscale bytes — judging
+        // those would flash a false "too large" that vanishes when
+        // preparation lands. Same tri-state discipline as the module
+        // itself: silent while the real size is unknown.
+        .filter((e) => e.phase !== "preparing")
+        .map((e) => ({
+          name: e.file.name,
+          sizeBytes: e.file.size,
+          contentType: e.contentType,
+        })),
       { model: effective.model, limits: visionLimits },
     );
     return visionPreflightMessage(preflight, {
@@ -963,12 +968,11 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       e.preventDefault();
 
       // Pasted images (and only pasted — see prepare-image.ts) are bounded
-      // to provider resolution before upload. prepareImageForVision never
-      // throws; every failure path yields the original file.
+      // to provider resolution before upload. The hook owns the whole
+      // pipeline: chips appear immediately in the `preparing` phase
+      // (stigmer/stigmer#369), then upload.
       const addFiles = attachments.addFiles;
-      void Promise.all(files.map(prepareImageForVision)).then((prepared) => {
-        addFiles(prepared);
-      });
+      addFiles(files, { prepareImages: true });
     },
     [enableAttachments, isDisabled, attachments.addFiles],
   );
@@ -1376,11 +1380,12 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // ---------------------------------------------------------------------------
 
   const mcpBlocked = showMcp && !mcpSetup.allReady;
-  // Send waits for in-flight uploads: toAttachmentInputs() carries only
+  // Send waits for in-flight work: toAttachmentInputs() carries only
   // "ready" entries, so a send racing an upload would silently drop the
   // file the user just pasted — the worst failure for "what's wrong in
   // this screenshot?". Errored entries never gate (their chip offers
-  // retry/remove); only the uploading phase blocks.
+  // retry/remove); isUploading covers both the preparing and uploading
+  // phases (see its doc — same drop class).
   const uploadsBlocked = enableAttachments && attachments.isUploading;
   const canSend = composer.canSubmit && !mcpBlocked && !uploadsBlocked;
 
@@ -1758,7 +1763,11 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             className="stg:mx-3 stg:mb-2 stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-muted stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-muted-foreground"
           >
             <ChipSpinner />
-            <span>Waiting for attachments to finish uploading…</span>
+            <span>
+              {attachments.isPreparing
+                ? "Waiting for attachments to finish preparing…"
+                : "Waiting for attachments to finish uploading…"}
+            </span>
           </div>
         )}
 

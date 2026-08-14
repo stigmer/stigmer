@@ -49,8 +49,9 @@ export class WorkspaceProvisionError extends Error {
 /**
  * Abstraction for executing commands inside a workspace.
  *
- * In local mode, commands run via child_process. In cloud mode (Phase 3),
- * commands route through the Daytona sandbox proxy.
+ * Commands run via child_process in both modes: in cloud mode the runner
+ * itself lives inside the sandbox, so "local" execution is already
+ * sandbox-scoped there.
  *
  * When `platformDir` is set, paths under `.stigmer/` are transparently
  * routed to the platform directory instead of the workspace root, keeping

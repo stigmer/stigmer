@@ -3,7 +3,10 @@
 // The seedpack (system agents, skills, MCP servers, workflows under the
 // "stigmer" org) is applied automatically on `stigmer up` in local mode; these
 // commands bootstrap it explicitly against whatever backend is configured
-// (local or cloud). Apply is idempotent via a content-hash marker.
+// (local or cloud). Apply is content-hash idempotent: in cloud mode the truth
+// is the stigmer.ai/seedpack-hash label on the server's seedpack Project (any
+// machine sees the same applied state — cloud#429); in local mode it is a
+// marker file in the data dir, which lives and dies with the local backend.
 //
 // Heavy modules load lazily inside the action so `--help` stays fast (DD-001).
 
@@ -50,7 +53,11 @@ async function runApply(flags: ApplyFlags): Promise<void> {
       info: (line) => process.stderr.write(`${line}\n`),
       warn: (line) => process.stderr.write(`${line}\n`),
     },
-    { markerDir: markerDir(), force: flags.force === true },
+    {
+      markerDir: markerDir(),
+      force: flags.force === true,
+      useServerHash: isCloudMode(load()),
+    },
   );
 
   const label = backendLabel();
@@ -61,11 +68,26 @@ async function runApply(flags: ApplyFlags): Promise<void> {
 }
 
 async function runStatus(flags: OutputFlags): Promise<void> {
-  const { seedpackContentHash } = await import("../local/seedpack/apply.js");
+  const { readServerSeedpackHash, resolveSeedpackOrg, seedpackContentHash } = await import("../local/seedpack/apply.js");
   const { readMarker } = await import("../local/seedpack/content.js");
 
   const hash = seedpackContentHash();
-  const stored = readMarker(markerDir());
+
+  // Cloud mode asks the server (the label on the seedpack Project) so status
+  // is truthful from ANY machine, not just the one that last ran apply.
+  let stored: string | null;
+  let storedLabel: string;
+  if (isCloudMode(load())) {
+    const { connectBackend } = await import("../backend.js");
+    const { ensureAuthenticated } = await import("../config/index.js");
+    const client = connectBackend();
+    ensureAuthenticated(client.config);
+    stored = await readServerSeedpackHash(client.stigmer, resolveSeedpackOrg());
+    storedLabel = "Applied Hash (server)";
+  } else {
+    stored = readMarker(markerDir());
+    storedLabel = "Applied Hash";
+  }
 
   const result = CommandResult.success("Seedpack status");
   const section = result.addSection("");
@@ -74,7 +96,7 @@ async function runStatus(flags: OutputFlags): Promise<void> {
   if (stored === null) {
     section.field("Status", "Not applied (run 'stigmer seedpack apply')");
   } else {
-    section.field("Applied Hash", stored);
+    section.field(storedLabel, stored);
     section.field("Status", stored === hash ? "Up to date" : "Outdated (run 'stigmer seedpack apply' to update)");
   }
   renderResult(result, resultFormat(flags));

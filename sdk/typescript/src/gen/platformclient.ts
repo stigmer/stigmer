@@ -104,10 +104,12 @@ export interface PlatformClientInput {
   autoGrantOnOrg?: boolean;
   autoGrantRole?: IamRole;
   allowedOrigins?: string[];
+  environmentRefs?: ResourceRef[];
 }
 
 export function buildPlatformClientProto(input: PlatformClientInput): PlatformClient {
   const expiresAt = input.expiresAt !== undefined ? toTimestamp(input.expiresAt) : undefined;
+  const environmentRefs = input.environmentRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 53 }));
   return Object.assign(create(PlatformClientSchema), {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "PlatformClient",
@@ -128,6 +130,7 @@ export function buildPlatformClientProto(input: PlatformClientInput): PlatformCl
       autoGrantOnOrg: input.autoGrantOnOrg,
       autoGrantRole: input.autoGrantRole,
       allowedOrigins: input.allowedOrigins,
+      environmentRefs,
     })),
   }) as PlatformClient;
 }

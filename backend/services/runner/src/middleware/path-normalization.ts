@@ -1,55 +1,49 @@
 /**
- * Workspace-relative path normalization for permission-rule-bearing graphs
- * (issues #429, #528).
+ * Canonical virtual-path normalization for the native harness's built-in
+ * filesystem tools (issues #429, #528, #754).
  *
- * deepagents' permission enforcement canonicalizes tool-call paths BEFORE any
- * rule or backend runs, and its validation refuses non-absolute paths — on
- * EVERY filesystem tool call once a graph carries any permission rules, reads
- * included. Plan mode is the only rule-bearing production configuration
- * (shared/plan-mode-permissions.ts), so there a workspace-relative path —
- * the shape the multi-workspace prompt explicitly mandates, and one models
- * routinely choose in single-workspace sessions — fails with
- * `path must be absolute` instead of just working, burning tool rounds until
- * the model adapts by switching to absolute paths.
+ * The native harness speaks ONE path dialect end to end: the VIRTUAL ROOT,
+ * where "/" denotes the workspace root (backends are constructed with
+ * `virtualMode: true` — see execute-deep-agent/cas-capture-backend.ts). This
+ * middleware is the dialect-repair seam at the model boundary. It rewrites,
+ * on the deepagents built-in filesystem tools only:
  *
- * This middleware repairs the contract at our own seam: it rewrites
- * workspace-relative paths on the deepagents built-in filesystem tools to
- * workspace-absolute before the tool (and therefore enforcement) runs. The
- * write-deny rule then fires as designed and reads succeed on the first try.
- * Rule-less (act-mode) graphs never install it — the legacy backend already
- * resolves relative paths under the workspace root, so act mode keeps a
- * byte-zero delta.
+ *  - workspace-relative paths ("src/x.py", "./notes.md") to their virtual
+ *    absolute form ("/src/x.py") — deepagents' permission validation refuses
+ *    non-absolute shapes on rule-bearing graphs (plan mode), and the prompt
+ *    explicitly mandates entry-relative paths, so without this seam a
+ *    prompt-compliant call would die with `path must be absolute`;
+ *  - REAL-absolute paths under the workspace root ("{root}/src/x.py") to
+ *    their virtual form ("/src/x.py") — the compatibility mapping for the
+ *    pre-#754 dialect, where tool results and transcripts surfaced real
+ *    filesystem paths that a model may still echo back;
+ *  - interior `..` segments that stay inside the root ("src/../notes.md" →
+ *    "/notes.md") — the virtual resolver rejects `..` outright, so a safe
+ *    interior collapse is repaired here rather than burning a tool round.
  *
- * It also supplies the workspace root when `ls`/`glob`/`grep` are called
- * with NO path argument (issue #528). Those tools' schema default is "/" —
- * the OS ROOT under the legacy backend — and the default is applied inside
- * the tool, after this seam, so under the workspace read boundary a bare
- * first `ls` would otherwise die with `permission denied for read on /`
- * (the same first-turn degradation class #429 fixed). An EXPLICIT "/" is
- * deliberately NOT rewritten: the model asked for the OS root, and the
- * honest answer under plan mode's read boundary is the rules' denial —
- * silently substituting workspace contents would be an answer to a
- * different question.
+ * Nothing becomes newly reachable: escaping relatives ("../x") and
+ * `~`-carrying paths are left raw so the upstream refusal keeps speaking,
+ * and every rewritten path is workspace-confined by the virtual resolver
+ * regardless. The middleware converts false errors into correct behavior —
+ * never a refusal into an allowance.
  *
- * Invariant — nothing becomes newly reachable: only paths whose resolution
- * stays INSIDE the workspace root are rewritten. Escaping relatives (`../x`)
- * and `~`-carrying paths are left raw so today's validation refusal keeps
- * speaking (a naive join would resolve `..` away and smuggle an out-of-root
- * read past validation), and absolute paths pass through byte-untouched.
- * The middleware converts false errors into correct behavior — never a
- * refusal into an allowance the rules didn't decide. (The absent-path
- * injection honors the same line: it narrows the tool's own OS-root default
- * to the workspace, granting nothing the rules would refuse.)
+ * Installed on EVERY native graph (parent and sub-agent, act and plan mode)
+ * so all downstream consumers — the approval gate's capturability checks,
+ * the CAS observer, otel spans — observe one canonical dialect. The pre-#754
+ * version was installed only beside permission rules and also injected the
+ * workspace root when `ls`/`glob`/`grep` omitted their path (the tools'
+ * schema default "/" was the OS ROOT under the legacy backend); under the
+ * virtual root that default already MEANS the workspace root, so the
+ * injection is retired.
  *
  * Tool matching is by bare built-in name, the house doctrine (an MCP server
  * is not expected to shadow a built-in name — see shared/tool-kind.ts); the
  * rewrite touches only the tool's path-bearing argument, never glob/grep
  * patterns. Install FIRST in the stack so every downstream middleware
- * (approval gate, error hints, otel spans) observes canonical paths.
+ * observes canonical paths.
  */
 
-import { isAbsolute, relative } from "node:path";
-import { resolveWorkspacePath } from "../shared/file-change.js";
+import { isAbsolute, relative, posix } from "node:path";
 import type { StigmerMiddleware } from "./types.js";
 
 /**
@@ -66,55 +60,65 @@ const PATH_ARG_BY_TOOL: ReadonlyMap<string, string> = new Map([
   ["edit_file", "file_path"],
 ]);
 
-/**
- * The tools whose path argument is optional with an OS-root ("/") schema
- * default. When the model omits it, this middleware supplies the workspace
- * root instead (issue #528). The file tools are deliberately excluded: an
- * absent `file_path` is a genuine model error, and the tool's own input
- * validation gives the better message.
- */
-const DIR_DEFAULTING_TOOLS: ReadonlySet<string> = new Set(["ls", "glob", "grep"]);
-
 export interface PathNormalizationConfig {
-  /** The workspace root the graph's filesystem backend resolves against. */
+  /**
+   * The REAL workspace root the graph's backend is rooted at — used only for
+   * the legacy-dialect compatibility mapping (real-absolute in-root paths →
+   * virtual). The virtual rewrite itself needs no root.
+   */
   readonly rootDir: string;
 }
 
 /**
- * Rewrite `raw` to its workspace-absolute form, or return undefined when the
- * value must be left untouched (absolute already, `~`-carrying, or escaping
- * the workspace root). Exported for direct unit testing of the mapping table.
+ * Rewrite `raw` to its canonical virtual-absolute form, or return undefined
+ * when the value must be left untouched. Exported for direct unit testing of
+ * the mapping table.
+ *
+ * Left raw (undefined): empty strings, `~`-carrying paths (refused upstream
+ * in every mode), escaping relatives ("../x" — the refusal is the honest
+ * answer), real-absolute paths OUTSIDE the root (virtual dialect: they name
+ * an in-workspace path that simply does not exist — resolution answers
+ * honestly), and paths already in canonical virtual form.
  */
 export function normalizeWorkspacePathArg(
   raw: string,
   rootDir: string,
 ): string | undefined {
-  if (raw.length === 0 || isAbsolute(raw)) return undefined;
-  // Upstream validation refuses `~` segments even in absolute paths, so a
-  // rewrite could not make such a call succeed — leave the raw shape (and
-  // therefore the honest refusal) intact.
+  if (raw.length === 0) return undefined;
+  // Upstream validation refuses `~` segments in every position, and a rewrite
+  // could not make such a call succeed — leave the honest refusal intact.
   if (raw.split("/").includes("~")) return undefined;
 
-  const { absolutePath } = resolveWorkspacePath(raw, rootDir, false);
+  // Legacy-dialect compatibility: a REAL absolute path under the workspace
+  // root maps to its virtual form. Any other absolute path is already a
+  // virtual-dialect name — reduced to relative form for canonicalization.
+  let candidate: string;
+  if (isAbsolute(raw)) {
+    const rel = relative(rootDir, raw);
+    if (rel === "") return "/";
+    candidate =
+      rel && !rel.startsWith("..") && !isAbsolute(rel)
+        ? rel
+        : raw.replace(/^\/+/, "");
+  } else {
+    candidate = raw;
+  }
 
-  // No-new-reachability guard: `join` inside the resolver normalizes `..`
-  // segments away, so an escaping relative would otherwise pass upstream
-  // validation as a clean out-of-root absolute path. Today that shape is
-  // refused; keep it that way.
-  const rel = relative(rootDir, absolutePath);
-  if (rel.startsWith("..") || isAbsolute(rel)) return undefined;
+  // Canonicalize in RELATIVE form first: posix.normalize keeps a leading
+  // ".." on relative paths but silently swallows it on absolute ones, and a
+  // swallowed escape would rewrite the call onto a DIFFERENT in-root path —
+  // a refusal converted into an allowance. Detect the escape while it is
+  // still visible, and leave it raw for the upstream refusal.
+  const normalizedRel = posix.normalize(candidate);
+  if (normalizedRel === ".." || normalizedRel.startsWith("../")) return undefined;
 
-  return absolutePath;
+  const virtual = normalizedRel === "." ? "/" : `/${normalizedRel}`;
+  return virtual === raw ? undefined : virtual;
 }
 
 /**
- * Create middleware that normalizes workspace-relative paths on the built-in
- * filesystem tools before permission enforcement sees them.
- *
- * Installed only on graphs that carry filesystem permission rules — derive
- * the install condition from the same expression that supplies the rules
- * (setup.ts / compileSubagents) so the rules and their normalization shim
- * cannot drift apart.
+ * Create the dialect-repair middleware (see module header). Stateless per
+ * request; safe on every graph.
  */
 export function createPathNormalizationMiddleware(
   config: PathNormalizationConfig,
@@ -129,22 +133,6 @@ export function createPathNormalizationMiddleware(
       if (!argKey) return handler(request);
 
       const raw = request.toolCall.args[argKey];
-
-      // Absent base directory on ls/glob/grep: the middleware sees the
-      // model's raw args, BEFORE the tool's zod parse applies the "/"
-      // (OS root) schema default — so the omission must be filled here,
-      // where the workspace root is known. An explicit "/" is not this
-      // case and flows through to an honest rule denial (header doctrine).
-      if (raw == null && DIR_DEFAULTING_TOOLS.has(request.toolCall.name)) {
-        return handler({
-          ...request,
-          toolCall: {
-            ...request.toolCall,
-            args: { ...request.toolCall.args, [argKey]: rootDir },
-          },
-        });
-      }
-
       if (typeof raw !== "string") return handler(request);
 
       const normalized = normalizeWorkspacePathArg(raw, rootDir);

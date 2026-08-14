@@ -82,7 +82,7 @@
       "title": "conversation",
       "description": "",
       "hooks": 6,
-      "components": 6
+      "components": 7
     },
     {
       "slug": "dashboard",
@@ -165,7 +165,7 @@
       "slug": "library",
       "title": "Library",
       "description": "Hooks and components for resource browsing, YAML detection, apply flow, and visibility.",
-      "hooks": 7,
+      "hooks": 8,
       "components": 5
     },
     {

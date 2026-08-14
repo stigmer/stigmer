@@ -124,6 +124,81 @@ describe("CasCaptureShellBackend (shell + CAS adapter)", () => {
   });
 });
 
+/**
+ * The issue #754 regression pins: the backends are virtual-rooted, so a
+ * leading-"/" tool path resolves INSIDE the workspace — never onto the host
+ * filesystem — and the CAS observer sees it under the same key the
+ * turn-boundary capture and InlinePublisher resolve. Before the fix, an
+ * absolute `write_file("/tmp/x")` landed in the REAL /tmp: outside the
+ * workspace, outside CAS capture, outside the file_review ledger — an
+ * auto-approved, unreviewed host write.
+ */
+describe("virtual-root confinement (issue #754)", () => {
+  let root: string;
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), "cas-virtual-"));
+  });
+
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true });
+  });
+
+  function makeBackend(): { backend: CasCaptureFilesystemBackend; observer: CasCaptureObserver } {
+    // Non-git shape: the observer owns EVERY touched path (setup.ts wires
+    // isIgnored to always-true when there is no git work tree).
+    const observer = new CasCaptureObserver({ rootDir: root, isIgnored: async () => true });
+    const backend = new CasCaptureFilesystemBackend(
+      { rootDir: root, virtualMode: true },
+      { observer },
+    );
+    return { backend, observer };
+  }
+
+  it("an absolute write resolves inside the workspace, never onto the host", async () => {
+    const { backend, observer } = makeBackend();
+    const hostPath = `/tmp/stigmer-754-escape-${Date.now()}.txt`;
+
+    await backend.write(hostPath, "confined");
+
+    // Landed under the workspace root, keyed workspace-relative for capture…
+    expect(await readFile(join(root, hostPath.slice(1)), "utf8")).toBe("confined");
+    expect(observer.before.get(hostPath.slice(1))).toBeNull();
+    // …and the REAL host path was never touched.
+    await expect(readFile(hostPath, "utf8")).rejects.toThrow();
+  });
+
+  it("reads resolve inside the workspace — '/etc/hosts' is the workspace's, not the host's", async () => {
+    const { backend } = makeBackend();
+
+    const result = await backend.read("/etc/hosts");
+
+    // The workspace has no etc/hosts: the honest not-found, never host bytes.
+    expect(JSON.stringify(result)).toMatch(/not found|no such file/i);
+    expect(JSON.stringify(result)).not.toContain("localhost");
+  });
+
+  it("traversal is rejected at resolution", async () => {
+    const { backend } = makeBackend();
+
+    const result = await backend.write("../escape.txt", "nope");
+
+    expect((result as { error?: string }).error).toMatch(/traversal/i);
+    await expect(readFile(join(root, "..", "escape.txt"), "utf8")).rejects.toThrow();
+  });
+
+  it("the shell variant is confined identically", async () => {
+    const observer = new CasCaptureObserver({ rootDir: root, isIgnored: async () => true });
+    const backend = await createCasCaptureBackend({ rootDir: root, observer, shellEnv: {} });
+    const hostPath = `/tmp/stigmer-754-shell-escape-${Date.now()}.txt`;
+
+    await backend.write(hostPath, "confined");
+
+    expect(await readFile(join(root, hostPath.slice(1)), "utf8")).toBe("confined");
+    await expect(readFile(hostPath, "utf8")).rejects.toThrow();
+  });
+});
+
 describe("plan-mode filesystem backend", () => {
   it("is not sandbox-capable", async () => {
     const root = await mkdtemp(join(tmpdir(), "cas-plan-"));

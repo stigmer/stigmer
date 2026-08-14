@@ -1,5 +1,6 @@
 export { useAttachments } from "./useAttachments.js";
 export type {
+  AddFilesOptions,
   AttachmentPhase,
   AttachmentEntry,
   UseAttachmentsOptions,

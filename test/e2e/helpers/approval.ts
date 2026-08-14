@@ -64,6 +64,19 @@ export function writeFileBlock(
 }
 
 /**
+ * A single `execute` block (the deepagents built-in shell tool, approval
+ * category `shell` — gated fail-closed in EVERY stack shape, capture substrate
+ * or not). The approval-FLOW specs seed with this: since apply-then-review
+ * (phase-7 capture mode) file writes no longer gate on a substrate-backed
+ * stack, shell is the stable interactive-gate vehicle there. The file-write
+ * GATE surface itself is pinned by tool-card-ux.spec.ts against the file-gate
+ * stack (STIGMER_E2E_FILE_GATES), where writes still gate pre-execution.
+ */
+export function shellBlock(toolCallId: string, command: string): ToolUseBlock {
+  return { toolCallId, toolName: "execute", toolInput: { command } };
+}
+
+/**
  * Seeds an agent + a NATIVE-harness session + a gated AgentExecution via the
  * node SDK client, and programs the mock LLM to drive the run to its gate.
  *
@@ -93,10 +106,12 @@ export async function seedGatedSession(
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   // Normalize to a single source of truth: a list of sequential gated turns.
   // `gateTurns` (multi-step) wins; else `gateBlocks` as one co-pending turn;
-  // else the default single `write_file` gate.
+  // else the default single `execute` (shell) gate — the category that gates
+  // fail-closed in EVERY stack shape. (A write_file default would silently
+  // not gate on a capture-substrate stack, where writes apply-then-review.)
   const gateTurns: ToolUseBlock[][] =
     opts.gateTurns ??
-    [opts.gateBlocks ?? [writeFileBlock("call_write_1", "/tmp/e2e-approval.txt", "hello from e2e")]];
+    [opts.gateBlocks ?? [shellBlock("call_shell_1", "echo 'hello from e2e'")]];
 
   const agent = await client.agent.create({
     name: `e2e-approval-agent-${stamp}`,
@@ -424,6 +439,44 @@ export function approvalPeekBar(page: Page): Locator {
 }
 
 /** The session-scoped auto-approve indicator (shown after APPROVE_ALL). */
+/**
+ * The file-review card's bulk "Keep all" decision button. On a
+ * capture-substrate stack, flowed file writes pause the run at the review
+ * boundary (apply-then-review — even under `auto_approve_all`, by design:
+ * capture is gate-independent), and this is the real UI that resolves it.
+ */
+export function fileReviewApproveButton(page: Page): Locator {
+  return page.locator('[data-cursor-target="file-review-approve"]');
+}
+
+/**
+ * Drive a seeded write-bearing run through its review boundary to settled:
+ * wait for the apply-then-review pause, open the session, resolve the review
+ * with the card's bulk "Keep all", and wait for the terminal phase. Returns
+ * with the page ON the session, showing the settled timeline. Shared by the
+ * disclosure and file-review specs — the canonical way a capture-stack write
+ * run reaches EXECUTION_COMPLETED.
+ */
+export async function settleThroughFileReview(
+  page: Page,
+  client: Stigmer,
+  seeded: SeededGatedExecution,
+): Promise<void> {
+  await awaitExecutionPhase(
+    client,
+    seeded.executionId,
+    ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+  );
+  await page.goto(`/sessions/${seeded.sessionId}`);
+  await fileReviewApproveButton(page).click({ timeout: 30_000 });
+  const phase = await awaitExecutionTerminal(client, seeded.executionId);
+  if (phase !== ExecutionPhase.EXECUTION_COMPLETED) {
+    throw new Error(
+      `review-resolved run should complete, got ${ExecutionPhase[phase]}`,
+    );
+  }
+}
+
 export function autoApproveIndicator(page: Page): Locator {
   return page.getByRole("status").filter({ hasText: /Auto-approving tool calls/ });
 }

@@ -81,4 +81,19 @@ describe("captureApprovalArtifacts", () => {
     const { argsPreview } = captureApprovalArtifacts({ toolCallId: "call-1", messages });
     expect(argsPreview).toContain("needle");
   });
+
+  it("returns the redacted args object for stamping the placeholder row (issue #754)", () => {
+    // The interrupt-placeholder ToolCall must carry `args`, not just the
+    // preview string: the row header extracts its filename-first path from
+    // args, so a placeholder without them rendered a pathless "Write" gate.
+    // Redaction posture matches the preview: secret keys never surface.
+    const messages = [
+      aiMessage([
+        { id: "call-1", name: "write_file", args: { file_path: "a.txt", content: "hi", token: "sk-secret" } },
+      ]),
+    ];
+    const { args } = captureApprovalArtifacts({ toolCallId: "call-1", messages });
+
+    expect(args).toEqual({ file_path: "a.txt", content: "hi", token: "[REDACTED]" });
+  });
 });

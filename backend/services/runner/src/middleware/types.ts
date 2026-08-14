@@ -117,9 +117,9 @@ export interface MiddlewareStackConfig {
   readonly otelSpans?: Partial<OtelSpansConfig>;
   readonly approvalGate?: ApprovalGateConfig | null;
   /**
-   * Workspace-relative path normalization (issue #429). Set iff the graph
-   * carries filesystem permission rules — derive from the same expression
-   * that supplies the rules so the two cannot drift apart.
+   * Virtual-dialect path normalization (issues #429/#754). Set on every
+   * native graph: the backends are virtual-rooted, so every graph carries
+   * the repair seam that keeps model-supplied paths canonical.
    */
   readonly pathNormalization?: PathNormalizationConfig | null;
 }

@@ -10,11 +10,18 @@
 //   2. the project (stigmer.yaml + agents/skills/mcp-servers/workflows) via the
 //      declarative reconciler, under the target org.
 //
-// Idempotent: a content-hash marker skips the apply when nothing changed.
+// Idempotent, with the applied-hash truth living with the backend it describes
+// (cloud#429): every apply stamps the content hash as a reserved label on the
+// seedpack Project, and cloud-mode runs skip by reading that label back — so
+// any machine (operator laptop, CI) sees the same applied state. Local mode
+// keeps the original marker file (the local data dir lives and dies with the
+// local backend, so a local file IS backend-scoped state there).
 
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { create } from "@bufbuild/protobuf";
+import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { applyItem, resolveApplyItems } from "../../resources/apply/apply.js";
 import { applyDeclarative, detectTrack } from "../../resources/apply/declarative.js";
@@ -31,6 +38,23 @@ import {
 const DEFAULT_ORG = "stigmer";
 const ORG_ENV_VAR = "STIGMER_SEEDPACK_ORG";
 
+/**
+ * Reserved label on the seedpack Project recording the last applied content
+ * hash (cloud#429). Writing a NEW value requires `can_write_reserved_labels`
+ * (the seeding identity's capability); re-sending an unchanged value is an
+ * echo the cloud guard passes for any caller — so re-applies of identical
+ * content are never treated as reserved-label writes.
+ */
+export const SEEDPACK_HASH_LABEL = "stigmer.ai/seedpack-hash";
+
+/**
+ * The seedpack Project's slug. The server derives it from the manifest's
+ * `metadata.name` in `seedpack/stigmer.yaml` — "stigmer-seedpack" is already
+ * slug-shaped, so name and slug coincide. Pinned by a test against the real
+ * content so a rename there fails loudly here.
+ */
+export const SEEDPACK_PROJECT_SLUG = "stigmer-seedpack";
+
 export interface SeedpackApplyDeps {
   /** Raw command-controller accessor (full-proto apply, preserves metadata.id). */
   readonly controller: ControllerFn;
@@ -43,7 +67,7 @@ export interface SeedpackApplyDeps {
 }
 
 export interface SeedpackApplyOptions {
-  /** Directory holding the idempotency marker (data dir for local, config dir for cloud). */
+  /** Directory holding the idempotency marker (local mode only). */
   readonly markerDir: string;
   /** Target org slug. Defaults to STIGMER_SEEDPACK_ORG, then "stigmer". */
   readonly org?: string;
@@ -52,6 +76,13 @@ export interface SeedpackApplyOptions {
   /** Pre-resolved content (injectable for tests); resolved on demand otherwise. */
   readonly content?: SeedpackContent;
   readonly home?: string;
+  /**
+   * Cloud mode: the idempotency truth is the {@link SEEDPACK_HASH_LABEL} on the
+   * server's seedpack Project, read via {@link readServerSeedpackHash} — the
+   * local marker is neither read nor written, so a stateless machine (CI, a
+   * second operator laptop) still skips unchanged content correctly.
+   */
+  readonly useServerHash?: boolean;
 }
 
 export interface SeedpackApplyResult {
@@ -78,16 +109,34 @@ export function seedpackContentHash(opts: Pick<SeedpackApplyOptions, "content" |
 }
 
 /**
+ * Read the applied content hash recorded on the backend's seedpack Project,
+ * or null when it cannot be proven (project absent — never applied — or the
+ * read failed). Null means "apply": the apply itself is idempotent server-side,
+ * so an unprovable state costs one redundant pass, never a skipped update.
+ */
+export async function readServerSeedpackHash(stigmer: Stigmer, org: string): Promise<string | null> {
+  try {
+    const project = await stigmer.project.getByReference({ org, slug: SEEDPACK_PROJECT_SLUG });
+    return project.metadata?.labels?.[SEEDPACK_HASH_LABEL] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Apply the seedpack to the backend the deps connect to. Returns `applied:false`
- * (without touching the backend) when the marker already matches the content
- * hash and `force` is not set.
+ * (without touching the backend beyond the cloud-mode hash read) when the
+ * recorded hash already matches the content hash and `force` is not set.
  */
 export async function applySeedpack(deps: SeedpackApplyDeps, opts: SeedpackApplyOptions): Promise<SeedpackApplyResult> {
   const org = resolveSeedpackOrg(opts.org);
   const content = opts.content ?? resolveSeedpackContent({ home: opts.home });
   const hash = hashSeedpackContent(content.dir);
 
-  if (opts.force !== true && readMarker(opts.markerDir) === hash) {
+  const appliedHash = opts.useServerHash === true
+    ? await readServerSeedpackHash(deps.stigmer, org)
+    : readMarker(opts.markerDir);
+  if (opts.force !== true && appliedHash === hash) {
     return { applied: false, hash, org };
   }
 
@@ -96,8 +145,12 @@ export async function applySeedpack(deps: SeedpackApplyDeps, opts: SeedpackApply
   try {
     extractSeedpack(content.dir, stage);
     await applyOrganizations(deps, stage);
-    await applyProject(deps, stage, org);
-    writeMarker(opts.markerDir, hash);
+    await applyProject(deps, stage, org, hash);
+    // The Project label written above is the cloud-mode record; the marker
+    // stays the local-mode one. Never both — two records of one fact drift.
+    if (opts.useServerHash !== true) {
+      writeMarker(opts.markerDir, hash);
+    }
   } finally {
     rmSync(stage, { recursive: true, force: true });
   }
@@ -124,11 +177,18 @@ async function applyOrganizations(deps: SeedpackApplyDeps, stageDir: string): Pr
 
 // Phase 2: the project (agents, skills, MCP servers, workflows) via the shared
 // declarative reconciler — the same path `stigmer apply` runs for a user project.
-async function applyProject(deps: SeedpackApplyDeps, stageDir: string, org: string): Promise<void> {
+//
+// The content hash is stamped as a reserved label on the Project HERE, in the
+// seedpack path only — general `stigmer apply` never writes reserved labels.
+// The stamp rides the project apply that happens anyway, so recording the hash
+// costs no extra RPC and can never succeed while the apply failed.
+async function applyProject(deps: SeedpackApplyDeps, stageDir: string, org: string, contentHash: string): Promise<void> {
   const detect = detectTrack(stageDir);
-  if (detect.track !== "declarative") {
+  if (detect.track !== "declarative" || detect.project === undefined) {
     throw new Error(`seedpack is not a declarative project (detected '${detect.track}')`);
   }
+  detect.project.metadata ??= create(ApiResourceMetadataSchema, {});
+  detect.project.metadata.labels[SEEDPACK_HASH_LABEL] = contentHash;
   await applyDeclarative(detect, {
     controller: deps.controller,
     stigmer: deps.stigmer,

@@ -31,8 +31,9 @@ import (
 // concurrent SubmitApproval appends to the now-authoritative
 // approval_event_stream can never be lost to a stale-read overwrite.
 //
-// This is called by the agent-runner worker via polyglot Temporal workflow.
-// Language-agnostic design: works regardless of which service implements the activity.
+// This is called from the agent execution Temporal workflow on behalf of the
+// runner. Language-agnostic design: works regardless of which service
+// implements the calling activity.
 type UpdateExecutionStatusActivityImpl struct {
 	store        store.Store
 	streamBroker StreamBroker
@@ -86,7 +87,7 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 				Msg("Loaded execution - current status")
 
 			// Snapshot existing messages/sub-agents before replacement so we can
-			// preserve SubmitApproval-owned fields that Python doesn't know about.
+			// preserve SubmitApproval-owned fields that the runner doesn't know about.
 			existingMessages := status.GetMessages()
 			existingSubAgents := status.GetSubAgentExecutions()
 
@@ -109,7 +110,7 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 			}
 
 			// Preserve approval fields (approval_action, approval_decided_at, approved_by)
-			// that were atomically recorded by SubmitApproval. Python always sends
+			// that were atomically recorded by SubmitApproval. The runner always sends
 			// UNSPECIFIED for these fields, so without this step the wholesale message
 			// replacement above would erase user-submitted approval decisions.
 			approval.PreserveApprovalFields(

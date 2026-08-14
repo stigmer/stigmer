@@ -100,7 +100,9 @@ describe("useConversationParticipation", () => {
       { wrapper: wrapper(client) },
     );
 
-    const output = await act(() => result.current.reply("on my way"));
+    const output = await act(() =>
+      result.current.reply({ kind: "text", body: "on my way" }),
+    );
 
     expect(output.outboundMessageId).toBe("obm_1");
     const agentChannel = (client as { agentChannel: Record<string, ReturnType<typeof vi.fn>> })
@@ -109,7 +111,10 @@ describe("useConversationParticipation", () => {
       expect.objectContaining({
         ...IDENTITY,
         payload: expect.objectContaining({
-          kind: expect.objectContaining({ case: "text" }),
+          kind: expect.objectContaining({
+            case: "text",
+            value: expect.objectContaining({ body: "on my way" }),
+          }),
         }),
       }),
     );
@@ -118,6 +123,40 @@ describe("useConversationParticipation", () => {
     );
     expect(onConversation).toHaveBeenCalledWith(
       expect.objectContaining({ control: ConversationControl.control_human }),
+    );
+  });
+
+  it("reply sends the template lane through the same command — name, language, and parameters verbatim", async () => {
+    const client = createMockStigmer();
+    const { result } = renderHook(() => useConversationParticipation(IDENTITY), {
+      wrapper: wrapper(client),
+    });
+
+    await act(() =>
+      result.current.reply({
+        kind: "template",
+        name: "order_update",
+        language: "en_US",
+        parameters: { "1": "Noor", "2": "tomorrow" },
+      }),
+    );
+
+    const agentChannel = (client as { agentChannel: Record<string, ReturnType<typeof vi.fn>> })
+      .agentChannel;
+    expect(agentChannel.reply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...IDENTITY,
+        payload: expect.objectContaining({
+          kind: expect.objectContaining({
+            case: "template",
+            value: expect.objectContaining({
+              name: "order_update",
+              language: "en_US",
+              parameters: { "1": "Noor", "2": "tomorrow" },
+            }),
+          }),
+        }),
+      }),
     );
   });
 
@@ -131,7 +170,9 @@ describe("useConversationParticipation", () => {
       { wrapper: wrapper(client) },
     );
 
-    const output = await act(() => result.current.reply("on my way"));
+    const output = await act(() =>
+      result.current.reply({ kind: "text", body: "on my way" }),
+    );
 
     expect(output.outboundMessageId).toBe("obm_1");
     expect(onConversation).not.toHaveBeenCalled();
@@ -144,7 +185,7 @@ describe("useConversationParticipation", () => {
       wrapper: wrapper(client),
     });
 
-    await act(() => result.current.reply("on my way"));
+    await act(() => result.current.reply({ kind: "text", body: "on my way" }));
 
     const agentChannel = (client as { agentChannel: Record<string, ReturnType<typeof vi.fn>> })
       .agentChannel;

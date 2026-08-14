@@ -23,11 +23,13 @@ _sym_db = _symbol_database.Default()
 
 
 from ai.stigmer.commons.apiresource import field_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_field__options__pb2
+from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from ai.stigmer.iam.v1 import enum_pb2 as ai_dot_stigmer_dot_iam_dot_v1_dot_enum__pb2
+from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/iam/platformclient/v1/spec.proto\x12 ai.stigmer.iam.platformclient.v1\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\x1c\x61i/stigmer/iam/v1/enum.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd0\x03\n\x12PlatformClientSpec\x12!\n\tclient_id\x18\x01 \x01(\tB\x04\xc8\x85,\x01R\x08\x63lientId\x12\x32\n\x12\x63lient_secret_hash\x18\x02 \x01(\tB\x04\xc8\x85,\x01R\x10\x63lientSecretHash\x12\x33\n\x12secret_fingerprint\x18\x03 \x01(\tB\x04\xc8\x85,\x01R\x11secretFingerprint\x12\x39\n\nexpires_at\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\texpiresAt\x12#\n\rnever_expires\x18\x05 \x01(\x08R\x0cneverExpires\x12\x36\n\x17\x61uto_provision_accounts\x18\x06 \x01(\x08R\x15\x61utoProvisionAccounts\x12)\n\x11\x61uto_grant_on_org\x18\x07 \x01(\x08R\x0e\x61utoGrantOnOrg\x12\x42\n\x0f\x61uto_grant_role\x18\x08 \x01(\x0e\x32\x1a.ai.stigmer.iam.v1.IamRoleR\rautoGrantRole\x12\'\n\x0f\x61llowed_origins\x18\t \x03(\tR\x0e\x61llowedOriginsB\xd6\x01\n$com.ai.stigmer.iam.platformclient.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/iam/platformclient/v1/spec.proto\x12 ai.stigmer.iam.platformclient.v1\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1c\x61i/stigmer/iam/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xac\x05\n\x12PlatformClientSpec\x12!\n\tclient_id\x18\x01 \x01(\tB\x04\xc8\x85,\x01R\x08\x63lientId\x12\x32\n\x12\x63lient_secret_hash\x18\x02 \x01(\tB\x04\xc8\x85,\x01R\x10\x63lientSecretHash\x12\x33\n\x12secret_fingerprint\x18\x03 \x01(\tB\x04\xc8\x85,\x01R\x11secretFingerprint\x12\x39\n\nexpires_at\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\texpiresAt\x12#\n\rnever_expires\x18\x05 \x01(\x08R\x0cneverExpires\x12\x36\n\x17\x61uto_provision_accounts\x18\x06 \x01(\x08R\x15\x61utoProvisionAccounts\x12)\n\x11\x61uto_grant_on_org\x18\x07 \x01(\x08R\x0e\x61utoGrantOnOrg\x12\x42\n\x0f\x61uto_grant_role\x18\x08 \x01(\x0e\x32\x1a.ai.stigmer.iam.v1.IamRoleR\rautoGrantRole\x12\'\n\x0f\x61llowed_origins\x18\t \x03(\tR\x0e\x61llowedOrigins\x12\xd9\x01\n\x10\x65nvironment_refs\x18\n \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n\x15\x65nvironment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0f\x65nvironmentRefsB\xd6\x01\n$com.ai.stigmer.iam.platformclient.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,6 +43,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_PLATFORMCLIENTSPEC'].fields_by_name['client_secret_hash']._serialized_options = b'\310\205,\001'
   _globals['_PLATFORMCLIENTSPEC'].fields_by_name['secret_fingerprint']._loaded_options = None
   _globals['_PLATFORMCLIENTSPEC'].fields_by_name['secret_fingerprint']._serialized_options = b'\310\205,\001'
-  _globals['_PLATFORMCLIENTSPEC']._serialized_start=197
-  _globals['_PLATFORMCLIENTSPEC']._serialized_end=661
+  _globals['_PLATFORMCLIENTSPEC'].fields_by_name['environment_refs']._loaded_options = None
+  _globals['_PLATFORMCLIENTSPEC'].fields_by_name['environment_refs']._serialized_options = b'\272Hq\222\001n\"l\272\001i\n\025environment_refs.kind\022?environment_refs must reference resources with kind=environment\032\017this.kind == 53\340\205,5'
+  _globals['_PLATFORMCLIENTSPEC']._serialized_start=267
+  _globals['_PLATFORMCLIENTSPEC']._serialized_end=951
 # @@protoc_insertion_point(module_scope)

@@ -56,7 +56,17 @@ export interface ArtifactStorage {
   exists(key: string): Promise<boolean>;
 }
 
-export type ArtifactStorageType = "local" | "proxy";
+/**
+ * "none" is the explicit no-store posture: capture degrades to the deny-gate
+ * (file writes gated pre-execution, DD-22/DD-26) and offload is disabled —
+ * the same first-class absent-store state a proxy misconfig or unwritable
+ * local path resolves to, but chosen deliberately (ARTIFACT_STORAGE_TYPE=none)
+ * instead of reached by failure. The e2e file-gate stack boots with it, and
+ * an operator can use it to force gate-everything behavior. It is only valid
+ * where an absent store is: claimcheck (fail-hard by contract) refuses it at
+ * construction.
+ */
+export type ArtifactStorageType = "local" | "proxy" | "none";
 
 // ── Local Backend ────────────────────────────────────────────────────
 
@@ -371,6 +381,7 @@ export function loadArtifactStorageConfig(config: Config): ArtifactStorageConfig
   const type: ArtifactStorageType =
     envType === "proxy" ? "proxy" :
     envType === "local" ? "local" :
+    envType === "none" ? "none" :
     config.proxyEndpoint ? "proxy" : "local";
 
   return {
@@ -387,6 +398,14 @@ export function loadArtifactStorageConfig(config: Config): ArtifactStorageConfig
 }
 
 export function createArtifactStorage(cfg: ArtifactStorageConfig): ArtifactStorage {
+  if (cfg.type === "none") {
+    // Deliberate no-store posture. Throwing keeps both consumers honest:
+    // resolveUsableArtifactStorage catches and degrades to the deny-gate
+    // (the intent of "none"), while claimcheck's direct fail-hard call
+    // surfaces the config contradiction at boot instead of silently
+    // dropping Temporal payloads.
+    throw new Error("ARTIFACT_STORAGE_TYPE=none: artifact storage deliberately disabled");
+  }
   if (cfg.type === "proxy") {
     if (!cfg.proxyEndpoint) {
       throw new Error("Proxy artifact storage requires STIGMER_PROXY_ENDPOINT");

@@ -502,6 +502,7 @@ export {
   visionPreflightMessage,
 } from "./attachment/index.js";
 export type {
+  AddFilesOptions,
   AttachmentPhase,
   AttachmentEntry,
   AssessVisionPreflightOptions,
@@ -1335,6 +1336,7 @@ export {
   ConversationControlBanner,
   ConversationAttentionBanner,
   ConversationComposer,
+  ConversationTemplatePickerDialog,
   useConversation,
   useConversationList,
   useConversationMediaUrl,
@@ -1364,6 +1366,8 @@ export type {
   ConversationControlBannerProps,
   ConversationAttentionBannerProps,
   ConversationComposerProps,
+  ConversationTemplatePickerDialogProps,
+  ConversationReplyPayload,
   UseConversationOptions,
   UseConversationReturn,
   UseConversationListOptions,

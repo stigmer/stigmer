@@ -1,60 +1,73 @@
-// Tool-card & approval-diff UX, end-to-end against the real stack (deterministic
-// via the mock LLM proxy). This is the maintained guardrail for the redesign:
+// Tool-card & approval UX, end-to-end against the real stack (deterministic
+// via the mock LLM proxy). This is the maintained guardrail for the gate card:
 //
 //  - Visual regression (element-scoped `toHaveScreenshot`) of the approval gate
-//    card and the post-execution diff preview, in light AND dark, so a future
-//    change to the card's structure, spacing, or diff rendering is caught.
+//    card (proposed-content body) and the post-execution diff preview, in light
+//    AND dark, so a future change to the card's structure, spacing, or content
+//    rendering is caught.
 //  - Accessibility (axe-core) of the page while a gate is shown, plus keyboard
 //    operability of the disclosure row and the approve action.
 //
 // The functional `accessibility.spec.ts` cannot cover these because tool cards
 // only exist once a real execution has produced tool calls; this project has the
 // full backend, so the cards render for real.
+//
+// STACK SHAPE: this file runs as the `interactive-approval-gate` project
+// against the FILE-GATE stack (STIGMER_E2E_FILE_GATES: runner boots with
+// ARTIFACT_STORAGE_TYPE=none). File-write GATES exist only there — on the
+// capture-substrate stack the other approval specs use, writes follow
+// apply-then-review (phase-7) and never pause. The specs skip against the
+// wrong stack shape rather than fail confusingly.
 import { test, expect } from "../../fixtures";
 import AxeBuilder from "@axe-core/playwright";
 import {
   MockControl,
   getMockControlUrl,
   seedGatedSession,
-  seedToolRunSession,
   writeFileBlock,
-  awaitExecutionPhase,
   toolCallRow,
   approveButton,
   rejectButton,
-  fileDiff,
-  fileDiffExpand,
   type SeededGatedExecution,
 } from "../../helpers/approval";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { isFileGateStack } from "../../helpers/mock-llm-control";
 
 const mockUrl = getMockControlUrl();
+const fileGates = isFileGateStack();
 const COLOR_SCHEMES = ["light", "dark"] as const;
 
+import type { Locator } from "@playwright/test";
+
 /**
- * Parses a CSS `background-color` computed value into numeric channels.
- * Returns `null` for `transparent`/unparseable; `a` defaults to 1 for `rgb(...)`.
+ * Resolve an element's computed `background-color` to numeric RGBA channels
+ * (`a` in 0..1), IN the page, via a 1x1 canvas round-trip. Canvas `fillStyle`
+ * parses every CSS color form the engine can compute — the Tailwind v4 theme
+ * emits `oklch(...)`, which a text `rgb(...)` regex (this helper's previous
+ * form) silently fails on. A fully transparent background resolves to a=0.
  */
-function parseRgb(
-  value: string,
-): { r: number; g: number; b: number; a: number } | null {
-  if (value === "transparent") return null;
-  const m = value.match(
-    /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)/,
-  );
-  if (!m) return null;
-  return {
-    r: Number(m[1]),
-    g: Number(m[2]),
-    b: Number(m[3]),
-    a: m[4] === undefined ? 1 : Number(m[4]),
-  };
+function resolvedBackgroundRgba(
+  locator: Locator,
+): Promise<{ r: number; g: number; b: number; a: number }> {
+  return locator.evaluate((el) => {
+    const color = getComputedStyle(el).backgroundColor;
+    const ctx = document.createElement("canvas").getContext("2d")!;
+    ctx.clearRect(0, 0, 1, 1);
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, 1, 1);
+    const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+    return { r, g, b, a: a / 255 };
+  });
 }
 
 test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
   test.skip(
     mockUrl === null,
     "Requires the mock-LLM stack — run via `make test-e2e-approval` (STIGMER_E2E_MOCK_LLM=1)",
+  );
+  test.skip(
+    !fileGates,
+    "Requires the FILE-GATE stack (STIGMER_E2E_FILE_GATES=1) — on a capture-substrate " +
+      "stack file writes apply-then-review and never gate. Run via `make test-e2e-approval`.",
   );
   test.describe.configure({ mode: "serial", timeout: 90_000 });
 
@@ -70,8 +83,13 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
   });
 
   // --- Visual regression: the approval gate card ---------------------------
+  // The gate is PRE-execution: the change has not been captured (the tool is
+  // denied, awaiting the decision), so there is no FileChangeSet and no
+  // before/after diff — the card shows the PROPOSED content from the tool
+  // args. (The diff surface lives on the apply-then-review path's file-review
+  // card, pinned by file-review.spec.ts on the capture stack.)
   for (const scheme of COLOR_SCHEMES) {
-    test(`approval gate card renders the redesigned diff (${scheme})`, async ({
+    test(`approval gate card renders the proposed content (${scheme})`, async ({
       page,
       stigmerClient,
     }) => {
@@ -84,11 +102,12 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
       // Wait for the gate to render with its decision actions.
       const gateRow = toolCallRow(page).filter({ has: approveButton(page) }).first();
       await expect(gateRow).toBeVisible({ timeout: 30_000 });
-      // The before/after diff is the body of the gate (the whole point of the
-      // redesign): the content is shown, not hidden.
-      await expect(fileDiff(gateRow)).toBeVisible();
-      // The file name appears exactly once in the card's header subtitle (the
-      // old design repeated the absolute path three times).
+      // The proposed content is the body of the gate: shown, not hidden.
+      await expect(gateRow.getByText("alpha")).toBeVisible();
+      await expect(gateRow.getByText("beta")).toBeVisible();
+      // The file name appears exactly once — in the card's header subtitle
+      // (the body deliberately suppresses it; the old design repeated the
+      // absolute path three times).
       await expect(gateRow.getByText("e2e-gate.txt", { exact: true })).toHaveCount(1);
 
       await expect(gateRow).toHaveScreenshot(`approval-gate-card-${scheme}.png`, {
@@ -98,14 +117,17 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
   }
 
   // --- Empty-file create: honest representation, no redundant filename ------
-  test("an empty-file create gate shows 'New empty file' and names the file once", async ({
+  test("an empty-file create gate shows the create notice and names the file once", async ({
     page,
     stigmerClient,
   }) => {
-    // An empty-content write is a genuinely empty new file: the native gate
-    // captures a CREATE with an empty after-side, so the card must say so rather
-    // than render a blank diff — and must not restate the filename the header
-    // already shows (the de-dup the redesign introduced).
+    // An empty-content write carries no renderable content, so the card renders
+    // the honest create notice instead of a blank body — and must not restate
+    // the filename the header already shows. NOTE: the pre-capture gate proved
+    // emptiness from its captured change and said "New empty file"; the current
+    // args-derived gate cannot distinguish "empty" from "content unavailable",
+    // so it uses the non-committal create copy. (Flagged in oss#754's PR as a
+    // possible refinement: args carrying content === "" ARE proof of emptiness.)
     seeded = await seedGatedSession(stigmerClient, control, {
       gateBlocks: [writeFileBlock("call_empty", "/tmp/e2e-empty.txt", "")],
     });
@@ -114,13 +136,12 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
     const gateRow = toolCallRow(page).filter({ has: approveButton(page) }).first();
     await expect(gateRow).toBeVisible({ timeout: 30_000 });
 
-    // The diff slot is present, but renders the honest empty-file notice — not a
-    // blank diff body.
-    await expect(fileDiff(gateRow)).toBeVisible();
-    await expect(gateRow.getByText("New empty file", { exact: true })).toBeVisible();
+    await expect(
+      gateRow.getByText("New file — preview unavailable", { exact: true }),
+    ).toBeVisible();
 
     // The filename appears exactly once — in the header, never restated by the
-    // (now suppressed) diff body.
+    // body.
     await expect(gateRow.getByText("e2e-empty.txt", { exact: true })).toHaveCount(1);
   });
 
@@ -182,32 +203,25 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
 
     // Approve: opaque fill, but neutral grey (R≈G≈B) — not the success green
     // (whose green channel dominates).
-    const approveBg = parseRgb(
-      await approveButton(gateRow).evaluate((el) => getComputedStyle(el).backgroundColor),
-    );
-    expect(approveBg, "Approve should have a parseable background").not.toBeNull();
-    expect(approveBg!.a, "Approve is a filled chip").toBeGreaterThan(0);
+    const approveBg = await resolvedBackgroundRgba(approveButton(gateRow));
+    expect(approveBg.a, "Approve is a filled chip").toBeGreaterThan(0);
     const spread =
-      Math.max(approveBg!.r, approveBg!.g, approveBg!.b) -
-      Math.min(approveBg!.r, approveBg!.g, approveBg!.b);
+      Math.max(approveBg.r, approveBg.g, approveBg.b) -
+      Math.min(approveBg.r, approveBg.g, approveBg.b);
     expect(spread, "Approve fill is neutral grey, not green").toBeLessThanOrEqual(12);
 
     // Reject: a quiet ghost — transparent at rest (no fill).
-    const rejectBg = parseRgb(
-      await rejectButton(gateRow).evaluate((el) => getComputedStyle(el).backgroundColor),
-    );
-    expect(
-      rejectBg === null || rejectBg.a === 0,
-      "Reject has no resting background fill",
-    ).toBe(true);
+    const rejectBg = await resolvedBackgroundRgba(rejectButton(gateRow));
+    expect(rejectBg.a, "Reject has no resting background fill").toBe(0);
   });
 
-  // --- Bounded preview: a large gate diff clamps and reveals in place -------
+  // --- Bounded preview: a large gate's content truncates and reveals in place
   // The motivating bug: a gated edit rendered the WHOLE file, pushing the
-  // decision buttons off-screen. The fix bounds the diff to one shared height
-  // budget (max-h-48) with an in-place "Show more". happy-dom cannot compute
-  // layout, so this clamp is only provable in a real browser — here.
-  test("a large gate diff is bounded to the shared budget and reveals in place", async ({
+  // decision buttons off-screen. The current args-derived content preview
+  // (CollapsibleCode) bounds by LINES: content past the truncation limit is
+  // cut with an in-place "Show all N lines" reveal — decision buttons stay
+  // reachable throughout. Only provable in a real browser — here.
+  test("a large gate content preview is bounded and reveals in place", async ({
     page,
     stigmerClient,
   }) => {
@@ -220,74 +234,25 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
     const gateRow = toolCallRow(page).filter({ has: approveButton(page) }).first();
     await expect(gateRow).toBeVisible({ timeout: 30_000 });
 
-    const diff = fileDiff(gateRow);
-    await expect(diff).toBeVisible();
+    // Truncated: the head renders, the tail does not (the content is one code
+    // block, so substring containment is the right probe).
+    await expect(gateRow).toContainText("gate line 1");
+    await expect(gateRow).not.toContainText("gate line 30");
 
-    // Collapsed: the diff body is clipped to the budget — clientHeight is capped
-    // well below the full 30-line content (scrollHeight), proving the clamp.
-    const clamp = diff.locator(".overflow-hidden").first();
-    const collapsed = await clamp.evaluate((el) => el.clientHeight);
-    const full = await clamp.evaluate((el) => el.scrollHeight);
-    expect(collapsed).toBeGreaterThan(0);
-    expect(collapsed).toBeLessThan(full); // actually clipped
-    expect(collapsed).toBeLessThanOrEqual(220); // ~max-h-48 (192px) + table chrome
-
-    // The decision action is reachable WHILE the diff is bounded (the bug).
+    // The decision action is reachable WHILE the content is bounded (the bug).
     await expect(approveButton(gateRow)).toBeVisible();
 
-    // "Show more" reveals the rest in place (the clamp grows toward full height).
-    const expand = fileDiffExpand(gateRow);
-    await expect(expand).toBeVisible();
-    await expand.click();
-    const expanded = await clamp.evaluate((el) => el.clientHeight);
-    expect(expanded).toBeGreaterThan(collapsed);
+    // "Show all N lines" reveals the rest in place.
+    const reveal = gateRow.getByRole("button", { name: /Show all \d+ lines/ });
+    await expect(reveal).toBeVisible();
+    await reveal.click();
+    await expect(gateRow).toContainText("gate line 30");
   });
 
-  // --- Visual regression: the post-execution diff preview ------------------
-  for (const scheme of COLOR_SCHEMES) {
-    test(`completed write shows an inline additive diff (${scheme})`, async ({
-      page,
-      stigmerClient,
-    }) => {
-      seeded = await seedToolRunSession(stigmerClient, control, {
-        toolTurns: [[writeFileBlock("call_done", "/tmp/e2e-done.txt", "one\ntwo\nthree\n")]],
-      });
-      await awaitExecutionPhase(
-        stigmerClient,
-        seeded.executionId,
-        ExecutionPhase.EXECUTION_COMPLETED,
-      );
-      await page.emulateMedia({ colorScheme: scheme });
-      await page.goto(`/sessions/${seeded.sessionId}`);
-
-      const diff = fileDiff(page).first();
-      await expect(diff).toBeVisible({ timeout: 30_000 });
-
-      // De-duplicated: the settled card shows the "+3 -0" summary once — in the
-      // row header — and the bounded diff preview below it no longer repeats the
-      // counts (the body suppresses its own stats via showStats={false}).
-      const settledRow = toolCallRow(page).first();
-      await expect(settledRow.getByText("+3 -0")).toHaveCount(1);
-      await expect(diff.getByText("+3", { exact: true })).toHaveCount(0);
-
-      // A settled (non-gate) tool card carries the same neutral border with no
-      // accent — guard its computed width so the layer fix covers plain cards too,
-      // in both color schemes (the screenshot above cannot see a 1px line).
-      const neutralBorder = await toolCallRow(page)
-        .first()
-        .evaluate((el) => {
-          const s = getComputedStyle(el);
-          return { top: s.borderTopWidth, color: s.borderTopColor };
-        });
-      expect(parseFloat(neutralBorder.top)).toBeGreaterThanOrEqual(1);
-      expect(neutralBorder.color).not.toBe("transparent");
-      expect(neutralBorder.color).not.toMatch(/,\s*0\)\s*$/);
-
-      await expect(diff).toHaveScreenshot(`completed-write-diff-${scheme}.png`, {
-        maxDiffPixelRatio: 0.02,
-      });
-    });
-  }
+  // NOTE: the "completed write shows an inline additive diff" visual pins
+  // moved to file-review.spec.ts (the capture stack): the settled row's diff
+  // is capture-fed, so on THIS no-substrate stack a completed write honestly
+  // renders its content, not a diff.
 
   // --- Accessibility: axe + keyboard operability ---------------------------
   test("approval gate card is accessible and keyboard-operable", async ({
