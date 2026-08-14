@@ -86,9 +86,11 @@ class PlatformClientCommandControllerServicer(object):
     def delete(self, request, context):
         """Delete a platform client.
 
-        Immediately invalidates the client_id and client_secret. Any tokens
-        previously minted by this platform client remain valid until their
-        own expiration — deletion does not revoke already-issued tokens.
+        Immediately invalidates the client_id and client_secret AND revokes
+        the client's outstanding user tokens: the platform resolves the
+        minting client on every user-token request, and a client that no
+        longer exists is refused UNAUTHENTICATED (fail closed) — so deletion
+        takes effect on the very next request, not at token expiry.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
