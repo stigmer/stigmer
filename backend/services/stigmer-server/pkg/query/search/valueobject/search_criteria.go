@@ -4,9 +4,11 @@ package valueobject
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
 )
 
 // Search parameter constants
@@ -24,26 +26,65 @@ const (
 // SearchableKinds defines the set of resource kinds that support search operations.
 // These are the only kinds that can be searched via the SearchService.
 //
-// Must stay in step with the extractor registry (pkg/query/search/extractor):
-// a kind indexed on write but absent here is silently unqueryable — the
-// CLI's search-backed `list environment` and the React SDK's
-// useSessionSearch hook depend on their entries.
-// agent_channel and channel_app are deliberately absent (not_search_indexed
-// by design; the CLI lists them via their dedicated query RPCs).
+// The posture since stigmer/stigmer#439 is full read-side parity with the
+// proto contract: every OSS-servable kind the registry declares
+// search-indexed (SearchIndexedKinds below) is listed here, exactly as the
+// cloud edition serves its extractor-registry set. The write side indexes
+// all of these on every save, so an absence here is never an optimization —
+// it is a silently-empty read path, the defect environment, project, and
+// session each shipped with (#310 class). agent_channel and channel_app are
+// absent because they are not_search_indexed by design (the CLI lists them
+// via their dedicated query RPCs).
 //
-// TestSearchableKinds_CoverSearchIndexedProtoKinds pins this map against the
-// proto kind registry's not_search_indexed annotation: adding an extractor
-// for a new kind without deciding its entry here fails the suite instead of
-// shipping a silently-empty read path (the defect environment, project, and
-// session each shipped with).
+// TestSearchableKinds_CoverSearchIndexedProtoKinds pins this map against
+// SearchIndexedKinds: a kind may leave the parity set only by flipping its
+// proto annotation, or by an explicit decision-pending row citing the issue
+// that owns the decision.
 var SearchableKinds = map[apiresourcekind.ApiResourceKind]bool{
-	apiresourcekind.ApiResourceKind_agent:       true,
-	apiresourcekind.ApiResourceKind_skill:       true,
-	apiresourcekind.ApiResourceKind_mcp_server:  true,
-	apiresourcekind.ApiResourceKind_workflow:    true,
-	apiresourcekind.ApiResourceKind_project:     true,
-	apiresourcekind.ApiResourceKind_environment: true,
-	apiresourcekind.ApiResourceKind_session:     true,
+	apiresourcekind.ApiResourceKind_agent:              true,
+	apiresourcekind.ApiResourceKind_skill:              true,
+	apiresourcekind.ApiResourceKind_mcp_server:         true,
+	apiresourcekind.ApiResourceKind_workflow:           true,
+	apiresourcekind.ApiResourceKind_project:            true,
+	apiresourcekind.ApiResourceKind_environment:        true,
+	apiresourcekind.ApiResourceKind_session:            true,
+	apiresourcekind.ApiResourceKind_agent_execution:    true,
+	apiresourcekind.ApiResourceKind_agent_instance:     true,
+	apiresourcekind.ApiResourceKind_execution_context:  true,
+	apiresourcekind.ApiResourceKind_organization:       true,
+	apiresourcekind.ApiResourceKind_workflow_execution: true,
+	apiresourcekind.ApiResourceKind_workflow_instance:  true,
+}
+
+// SearchIndexedKinds derives, from the proto kind registry, every kind this
+// edition's search read side is expected to serve: kind_meta declares it
+// search-indexed (not_search_indexed: false) and servable outside the cloud
+// (tier != cloud_only). This is the single source of truth consumed by both
+// the SearchableKinds invariant test and the extractor registry's startup
+// validation — before stigmer/stigmer#439 each maintained its own hand-copied
+// kind list, and the copies drifted from the proto and from each other.
+//
+// Kinds whose kind_meta cannot be read are skipped here; the invariant test
+// separately fails on any such kind, so a registry defect surfaces as a red
+// test rather than a silent hole in this derivation.
+func SearchIndexedKinds() []apiresourcekind.ApiResourceKind {
+	kinds := make([]apiresourcekind.ApiResourceKind, 0, len(apiresourcekind.ApiResourceKind_name))
+	for value := range apiresourcekind.ApiResourceKind_name {
+		kind := apiresourcekind.ApiResourceKind(value)
+		if kind == apiresourcekind.ApiResourceKind_api_resource_kind_unknown {
+			continue
+		}
+		meta, err := apiresource.GetKindMeta(kind)
+		if err != nil {
+			continue
+		}
+		if meta.GetNotSearchIndexed() || meta.GetTier() == apiresourcekind.ResourceTier_cloud_only {
+			continue
+		}
+		kinds = append(kinds, kind)
+	}
+	sort.Slice(kinds, func(i, j int) bool { return kinds[i] < kinds[j] })
+	return kinds
 }
 
 // SearchCriteria is an immutable value object encapsulating all search parameters.
