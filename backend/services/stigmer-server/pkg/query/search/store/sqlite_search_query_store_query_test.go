@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -176,10 +177,12 @@ func TestSearch_OnlyNonSearchableKinds_ReturnsEmpty(t *testing.T) {
 
 	queryStore := NewSQLiteSearchQueryStore(s.DB(), s, extractor.GetRegistry())
 
-	// agent_execution is indexed on write but deliberately not searchable
-	// (read-side decision pending, stigmer/stigmer#439) — the exact request
-	// shape the issue reproduced. Both list mode and query mode must be
-	// empty.
+	// agent_channel is not_search_indexed by design (permanently, not
+	// decision-pending — it lists via its dedicated query RPC), which makes
+	// it the stable exemplar for this pin. The original exemplar,
+	// agent_execution, joined SearchableKinds when stigmer/stigmer#439
+	// closed the read-side parity gap. Both list mode and query mode must
+	// be empty.
 	for _, tc := range []struct {
 		name  string
 		query string
@@ -189,7 +192,7 @@ func TestSearch_OnlyNonSearchableKinds_ReturnsEmpty(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			criteria, err := valueobject.NewSearchCriteria(
-				[]apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent_execution},
+				[]apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent_channel},
 				tc.query, "acme", false, false, 1, 20,
 			)
 			if err != nil {
@@ -206,6 +209,94 @@ func TestSearch_OnlyNonSearchableKinds_ReturnsEmpty(t *testing.T) {
 					"expected an empty result for a request naming only non-searchable kinds, got %d results (total %d) — other kinds' resources are masquerading as the requested kind",
 					len(result.Results()), result.TotalCount(),
 				)
+			}
+		})
+	}
+}
+
+// TestSearch_NewlySearchableKind_EndToEnd pins the stigmer/stigmer#439
+// parity decision at the wiring level, using the kind whose emptiness the
+// #440 test above used to demonstrate: agent_execution was indexed on every
+// write yet returned nothing on read. After the six-kind parity landed, a
+// kind-scoped, org-scoped request must serve it in both list mode and query
+// mode — write → index → query as one path, the same shape the session pin
+// at the top of this file guards.
+func TestSearch_NewlySearchableKind_EndToEnd(t *testing.T) {
+	ctx := context.Background()
+
+	s, seed := newSeededSQLiteStore(t, ctx)
+
+	newExecution := func(id, org string) *agentexecutionv1.AgentExecution {
+		return &agentexecutionv1.AgentExecution{
+			Metadata: &apiresource.ApiResourceMetadata{
+				Id:   id,
+				Name: id,
+				Org:  org,
+			},
+			Status: &agentexecutionv1.AgentExecutionStatus{
+				Audit: &apiresource.ApiResourceAudit{
+					SpecAudit: &apiresource.ApiResourceAuditInfo{
+						CreatedAt: timestamppb.New(time.Now()),
+					},
+				},
+			},
+		}
+	}
+
+	seed(apiresourcekind.ApiResourceKind_agent_execution, "exe-acme-1", newExecution("exe-acme-1", "acme"))
+	// Another org's execution and a same-org non-execution resource: the
+	// kind- and org-scoped queries below must return neither.
+	seed(apiresourcekind.ApiResourceKind_agent_execution, "exe-other-1", newExecution("exe-other-1", "otherorg"))
+	seed(apiresourcekind.ApiResourceKind_session, "ses-acme-1", &sessionv1.Session{
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   "ses-acme-1",
+			Name: "ses-acme-1",
+			Org:  "acme",
+		},
+		Spec: &sessionv1.SessionSpec{Subject: "Fix the deploy pipeline"},
+		Status: &apiresource.ApiResourceAuditStatus{
+			Audit: &apiresource.ApiResourceAudit{
+				SpecAudit: &apiresource.ApiResourceAuditInfo{
+					CreatedAt: timestamppb.New(time.Now()),
+				},
+			},
+		},
+	})
+
+	queryStore := NewSQLiteSearchQueryStore(s.DB(), s, extractor.GetRegistry())
+
+	// Executions index their name (they have no description field), so the
+	// query-mode term matches the seeded name.
+	for _, tc := range []struct {
+		name  string
+		query string
+	}{
+		{"list mode", ""},
+		{"query mode", "exe-acme-1"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			criteria, err := valueobject.NewSearchCriteria(
+				[]apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent_execution},
+				tc.query, "acme", false, false, 1, 20,
+			)
+			if err != nil {
+				t.Fatalf("build criteria: %v", err)
+			}
+
+			result, err := queryStore.Search(ctx, criteria)
+			if err != nil {
+				t.Fatalf("search: %v", err)
+			}
+
+			if result.TotalCount() != 1 {
+				t.Fatalf("expected exactly 1 result (the acme execution), got %d", result.TotalCount())
+			}
+			got := result.Results()[0]
+			if got.GetKind() != apiresourcekind.ApiResourceKind_agent_execution {
+				t.Errorf("expected kind agent_execution, got %s", got.GetKind())
+			}
+			if got.GetId() != "exe-acme-1" {
+				t.Errorf("expected exe-acme-1, got %s", got.GetId())
 			}
 		})
 	}

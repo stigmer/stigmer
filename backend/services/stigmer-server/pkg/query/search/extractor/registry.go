@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/valueobject"
 )
 
 // SearchableResourceRegistry maps ApiResourceKind to its SearchableExtractor.
@@ -148,22 +149,11 @@ func (r *SearchableResourceRegistry) ValidateExpectedKinds() {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	// All resource kinds with not_search_indexed: false in the proto enum.
-	expectedKinds := []apiresourcekind.ApiResourceKind{
-		apiresourcekind.ApiResourceKind_organization,
-		apiresourcekind.ApiResourceKind_agent,
-		apiresourcekind.ApiResourceKind_agent_execution,
-		apiresourcekind.ApiResourceKind_session,
-		apiresourcekind.ApiResourceKind_skill,
-		apiresourcekind.ApiResourceKind_mcp_server,
-		apiresourcekind.ApiResourceKind_agent_instance,
-		apiresourcekind.ApiResourceKind_workflow,
-		apiresourcekind.ApiResourceKind_workflow_instance,
-		apiresourcekind.ApiResourceKind_workflow_execution,
-		apiresourcekind.ApiResourceKind_environment,
-		apiresourcekind.ApiResourceKind_execution_context,
-		apiresourcekind.ApiResourceKind_project,
-	}
+	// Derived from the proto kind registry — the same source the
+	// SearchableKinds invariant test pins (stigmer/stigmer#439 folded the
+	// hand-copied kind list this function used to carry, which had already
+	// drifted from the sibling copy in the invariant test).
+	expectedKinds := valueobject.SearchIndexedKinds()
 
 	var missing []string
 	for _, kind := range expectedKinds {

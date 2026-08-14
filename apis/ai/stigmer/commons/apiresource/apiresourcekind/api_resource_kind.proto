@@ -633,7 +633,11 @@ enum ApiResourceKind {
     display_name: "Artifact"
     id_prefix: "art"
     is_versioned: false
-    not_search_indexed: false
+    // Truthed by stigmer/stigmer#439: NEITHER edition has ever registered a
+    // search extractor for artifacts (nothing indexes artifact writes), so
+    // the earlier `false` promised a search surface that never existed.
+    // Flip this back only together with real extractors in both editions.
+    not_search_indexed: true
     tier: open_source
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION

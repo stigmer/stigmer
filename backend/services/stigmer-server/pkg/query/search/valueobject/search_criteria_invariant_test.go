@@ -9,75 +9,56 @@ import (
 
 // searchDecisionPending lists kinds the proto declares search-indexed
 // (not_search_indexed: false) that are deliberately NOT in SearchableKinds
-// yet: each is indexed on write today but needs its own read-side decision
-// before it becomes queryable (should organization be full-text searchable
-// in a single-user install? should executions surface in discover mode?).
-// Every entry cites the issue tracking that decision. Resolving a kind means
-// moving it into SearchableKinds — or flipping its proto annotation — and
-// deleting its row here.
-var searchDecisionPending = map[apiresourcekind.ApiResourceKind]string{
-	apiresourcekind.ApiResourceKind_agent_execution:    "stigmer/stigmer#439",
-	apiresourcekind.ApiResourceKind_agent_instance:     "stigmer/stigmer#439",
-	apiresourcekind.ApiResourceKind_execution_context:  "stigmer/stigmer#439",
-	apiresourcekind.ApiResourceKind_organization:       "stigmer/stigmer#439",
-	apiresourcekind.ApiResourceKind_workflow_execution: "stigmer/stigmer#439",
-	apiresourcekind.ApiResourceKind_workflow_instance:  "stigmer/stigmer#439",
-	// artifact is annotated search-indexed but NEITHER edition has an
-	// extractor for it (nothing indexes artifact writes anywhere) — the
-	// annotation itself looks wrong. Flagged on the same audit issue.
-	apiresourcekind.ApiResourceKind_artifact: "stigmer/stigmer#439",
-}
+// yet: indexed on write, but awaiting an explicit read-side decision before
+// becoming queryable. Every entry must cite the issue that owns the
+// decision. Resolving a kind means moving it into SearchableKinds — or
+// flipping its proto annotation — and deleting its row here.
+//
+// Empty since stigmer/stigmer#439 resolved the last six (full parity with
+// the proto contract, matching cloud) and flipped artifact's annotation to
+// truth (no extractor exists in either edition). The mechanism stays: a
+// future kind declared search-indexed before its read surface is designed
+// parks here instead of shipping the silently-empty read path that
+// environment, project, and session each shipped with (#310 class).
+var searchDecisionPending = map[apiresourcekind.ApiResourceKind]string{}
 
 // TestSearchableKinds_CoverSearchIndexedProtoKinds pins SearchableKinds
-// against the proto kind registry's not_search_indexed annotation — the
-// platform's declared source of truth for what search serves.
+// against SearchIndexedKinds — the proto-derived set of kinds this edition's
+// read side must serve (declared search-indexed, not cloud-only).
+//
+// The contract, in both directions:
+//   - Every derived kind is either served (SearchableKinds) or explicitly
+//     parked with an issue citation (searchDecisionPending) — never silently
+//     absent, and never both.
+//   - Nothing outside the derived set appears in either map: an allowlist or
+//     pending entry for a not_search_indexed or cloud-only kind is stale the
+//     moment the proto says so.
 //
 // The defect this kills: a kind whose extractor indexes every write while
 // the allowlist silently drops every read shipped three separate times
-// (environment and project, fixed in cd141a8be; session, stigmer/stigmer#310).
-// Nothing cross-checked the two layers, so each gap was invisible until a
-// consumer noticed an empty list. This test makes the gap a suite failure:
-// declaring a kind search-indexed in the proto now forces an explicit
-// read-side decision — an allowlist entry or a cited searchDecisionPending
-// row — before the suite goes green.
+// (environment and project, fixed in cd141a8be; session,
+// stigmer/stigmer#310). Nothing cross-checked the layers, so each gap was
+// invisible until a consumer noticed an empty list. Declaring a kind
+// search-indexed in the proto now forces an explicit read-side decision
+// before this suite goes green.
 func TestSearchableKinds_CoverSearchIndexedProtoKinds(t *testing.T) {
+	// SearchIndexedKinds skips kinds whose kind_meta cannot be read; fail
+	// them here so a registry defect is a red test, not a derivation hole.
 	for value := range apiresourcekind.ApiResourceKind_name {
 		kind := apiresourcekind.ApiResourceKind(value)
 		if kind == apiresourcekind.ApiResourceKind_api_resource_kind_unknown {
 			continue
 		}
-
-		meta, err := apiresource.GetKindMeta(kind)
-		if err != nil {
+		if _, err := apiresource.GetKindMeta(kind); err != nil {
 			t.Errorf("kind %s: reading kind_meta failed: %v", kind, err)
-			continue
 		}
+	}
+
+	derived := make(map[apiresourcekind.ApiResourceKind]bool)
+	for _, kind := range SearchIndexedKinds() {
+		derived[kind] = true
 
 		issue, pending := searchDecisionPending[kind]
-
-		// The OSS server never serves cloud-only kinds (e.g. identity_account),
-		// so they take no read-side decision here.
-		if meta.GetTier() == apiresourcekind.ResourceTier_cloud_only {
-			if SearchableKinds[kind] {
-				t.Errorf("kind %s: tier cloud_only but present in SearchableKinds — the OSS server cannot serve it", kind)
-			}
-			if pending {
-				t.Errorf("kind %s: tier cloud_only needs no OSS read-side decision — remove its searchDecisionPending row", kind)
-			}
-			continue
-		}
-
-		if meta.GetNotSearchIndexed() {
-			if SearchableKinds[kind] {
-				t.Errorf("kind %s: proto declares not_search_indexed but SearchableKinds allows it — flip the annotation or drop the entry", kind)
-			}
-			if pending {
-				t.Errorf("kind %s: proto already rules it not_search_indexed — remove its searchDecisionPending row", kind)
-			}
-			continue
-		}
-
-		// Search-indexed, OSS-tier kind: the read-side decision must be explicit.
 		switch {
 		case SearchableKinds[kind] && pending:
 			t.Errorf("kind %s: present in SearchableKinds AND searchDecisionPending — the decision landed, remove the pending row", kind)
@@ -92,6 +73,24 @@ func TestSearchableKinds_CoverSearchIndexedProtoKinds(t *testing.T) {
 			)
 		case pending && issue == "":
 			t.Errorf("kind %s: searchDecisionPending entry has no issue citation", kind)
+		}
+	}
+
+	for kind := range SearchableKinds {
+		if !derived[kind] {
+			t.Errorf(
+				"kind %s: in SearchableKinds but not derivable from the proto (not_search_indexed, cloud_only, or unreadable kind_meta) — "+
+					"the OSS server cannot honestly serve it; flip the annotation or drop the entry",
+				kind,
+			)
+		}
+	}
+	for kind := range searchDecisionPending {
+		if !derived[kind] {
+			t.Errorf(
+				"kind %s: searchDecisionPending row is stale — the proto no longer declares it an OSS-servable search-indexed kind; remove the row",
+				kind,
+			)
 		}
 	}
 }
