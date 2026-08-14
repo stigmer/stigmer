@@ -148,9 +148,11 @@ func TestOrgAdminInheritance_RevokedAdminLosesManagement(t *testing.T) {
 
 // TestAgentDeleteCascade_DefaultInstanceAndShares pins the dual-edition
 // delete contract: deleting an agent removes its system-managed default
-// instance and every AgentShare referencing it (including a renamed share),
-// while a personal instance of the same agent survives as an inert dangling
-// reference. Runs against both editions — no FGA dependency.
+// instance, every AgentShare referencing it (including a renamed share),
+// AND every personal instance — the stigmer#611 DD-022-extension ruling:
+// surviving orphans would squat the org-wide instance-slug namespace
+// (stigmer#751 repinned this from the pre-#611 "personal instances
+// survive" contract). Runs against both editions — no FGA dependency.
 func TestAgentDeleteCascade_DefaultInstanceAndShares(t *testing.T) {
 	require.NotNil(t, grpcConn)
 
@@ -165,7 +167,7 @@ func TestAgentDeleteCascade_DefaultInstanceAndShares(t *testing.T) {
 	defaultInstanceID := agent.GetStatus().GetDefaultInstanceId()
 	require.NotEmpty(t, defaultInstanceID, "agent create must provision the default instance")
 
-	// A personal instance of the SAME agent — must survive the cascade.
+	// A personal instance of the SAME agent — cascades with it (#611).
 	personal, err := clients.AgentInstanceCommand.Apply(ctx, &agentinstancev1.AgentInstance{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "AgentInstance",
@@ -213,11 +215,15 @@ func TestAgentDeleteCascade_DefaultInstanceAndShares(t *testing.T) {
 		assert.Equal(t, codes.NotFound, st.Code())
 	}
 
-	// Personal instance: survives (inert dangling reference by design).
-	survived, err := clients.AgentInstanceQuery.Get(ctx,
+	// Personal instance: gone too — the #611 ruling cascades ALL instances
+	// so no orphan can squat the org-wide instance-slug namespace.
+	_, err = clients.AgentInstanceQuery.Get(ctx,
 		&agentinstancev1.AgentInstanceId{Value: personal.GetMetadata().GetId()})
-	require.NoError(t, err, "a personal instance must survive the agent delete")
-	assert.Equal(t, agentID, survived.GetSpec().GetAgentId())
+	require.Error(t, err, "a personal instance must be cascade-deleted with its agent")
+	st, ok = status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.NotFound, st.Code(),
+		"cascaded personal instance should be NOT_FOUND, got %s", st.Code())
 }
 
 // TestAgentDeleteCascade_CrossPrincipalRecreate reproduces the exact DD-010
