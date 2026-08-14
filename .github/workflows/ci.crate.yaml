@@ -37,7 +37,9 @@ on:
 
 concurrency:
   group: ci-crate-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+  # PR pushes cancel superseded runs; main pushes queue instead, so every
+  # merge gets a completed, attributable run (stigmer/stigmer#725).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read

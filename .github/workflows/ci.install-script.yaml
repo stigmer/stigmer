@@ -25,7 +25,9 @@ on:
 
 concurrency:
   group: install-script-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+  # PR pushes cancel superseded runs; main pushes queue instead, so every
+  # merge gets a completed, attributable run (stigmer/stigmer#725).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 # Make the installer's `npm install` resilient to transient registry drops
 # (ECONNRESET). npm reads these npm_config_* vars, so the install retries

@@ -45,7 +45,9 @@ on:
 
 concurrency:
   group: docs-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+  # PR pushes cancel superseded runs; main pushes queue instead, so every
+  # merge gets a completed, attributable run (stigmer/stigmer#725).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 # Make `npm ci` resilient to transient registry drops (ECONNRESET). npm reads
 # these npm_config_* vars, so every install step retries with backoff instead
