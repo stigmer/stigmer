@@ -203,7 +203,7 @@ func TestActivity_PreservesExistingDecision(t *testing.T) {
 	// A prior approval records the decision + appends the DECISION event.
 	appendApprovalDecision(t, cs, ctx, id, toolCallID)
 
-	// Two heartbeats that never carry the decision (Python's view stays UNSPECIFIED).
+	// Two heartbeats that never carry the decision (the runner's view stays UNSPECIFIED).
 	for n := 0; n < 2; n++ {
 		if err := runActivity(t, impl, id, gatedHeartbeatStatus(toolCallID)); err != nil {
 			t.Fatalf("activity heartbeat %d failed: %v", n, err)

@@ -19,7 +19,7 @@ import (
 //
 // Unified Runner Architecture:
 // Both ExecuteCursor and ExecuteDeepAgent are registered on the same activity
-// task queue (global: agent_execution_runner, or per-session: session:{id}).
+// task queue (global: stigmer_runner, or per-session: session:{id}).
 // Temporal routes by activity name — no queue suffix is needed. The workflow
 // dispatches to the correct activity based on session.spec.harness.
 // ExecuteCursorActivityInput is the typed input for the ExecuteCursor activity.

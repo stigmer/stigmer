@@ -6,10 +6,11 @@ import (
 
 // InvokeAgentExecutionWorkflow is the interface for the agent execution workflow.
 //
-// Orchestrates the execution of an agent by calling Graphton agents at runtime,
-// and streaming results back to execution status.
+// Orchestrates the execution of an agent by dispatching harness activities
+// (ExecuteDeepAgent / ExecuteCursor) to the TS unified runner, and streaming
+// results back to execution status.
 type InvokeAgentExecutionWorkflow interface {
-	// Run invokes an agent execution (Graphton agent creation).
+	// Run invokes an agent execution.
 	//
 	// input: Slim orchestration coordinates (execution_id, session_id, agent_id,
 	// callback_token). Secrets and large payloads are excluded -- they live in
