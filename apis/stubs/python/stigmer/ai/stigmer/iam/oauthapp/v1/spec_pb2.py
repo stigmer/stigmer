@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%ai/stigmer/iam/oauthapp/v1/spec.proto\x12\x1a\x61i.stigmer.iam.oauthapp.v1\x1a\x1b\x62uf/validate/validate.proto\"\xea\x03\n\x0cOAuthAppSpec\x12\x1a\n\x08provider\x18\x01 \x01(\tR\x08provider\x12$\n\tclient_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08\x63lientId\x12,\n\rclient_secret\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0c\x63lientSecret\x12\x35\n\x11\x61uthorization_url\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x88\x01\x01R\x10\x61uthorizationUrl\x12%\n\ttoken_url\x18\x05 \x01(\tB\x08\xbaH\x05r\x03\x88\x01\x01R\x08tokenUrl\x12\x16\n\x06scopes\x18\x06 \x03(\tR\x06scopes\x12!\n\x0cuserinfo_url\x18\x07 \x01(\tR\x0buserinfoUrl\x12\x30\n\x14scope_parameter_name\x18\x08 \x01(\tR\x12scopeParameterName\x12\x66\n\x16vendor_approval_status\x18\t \x01(\x0e\x32\x30.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatusR\x14vendorApprovalStatus\x12\x37\n\x18vendor_approval_docs_url\x18\n \x01(\tR\x15vendorApprovalDocsUrl*\xac\x01\n\x14VendorApprovalStatus\x12&\n\"VENDOR_APPROVAL_STATUS_UNSPECIFIED\x10\x00\x12\"\n\x1eVENDOR_APPROVAL_STATUS_PENDING\x10\x01\x12#\n\x1fVENDOR_APPROVAL_STATUS_APPROVED\x10\x02\x12#\n\x1fVENDOR_APPROVAL_STATUS_REJECTED\x10\x03\x42\xb8\x01\n\x1e\x63om.ai.stigmer.iam.oauthapp.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SIO\xaa\x02\x1a\x41i.Stigmer.Iam.Oauthapp.V1\xca\x02\x1a\x41i\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Iam::Oauthapp::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%ai/stigmer/iam/oauthapp/v1/spec.proto\x12\x1a\x61i.stigmer.iam.oauthapp.v1\x1a\x1b\x62uf/validate/validate.proto\"\xdc\x04\n\x0cOAuthAppSpec\x12\x1a\n\x08provider\x18\x01 \x01(\tR\x08provider\x12$\n\tclient_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08\x63lientId\x12,\n\rclient_secret\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0c\x63lientSecret\x12\x35\n\x11\x61uthorization_url\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x88\x01\x01R\x10\x61uthorizationUrl\x12%\n\ttoken_url\x18\x05 \x01(\tB\x08\xbaH\x05r\x03\x88\x01\x01R\x08tokenUrl\x12\x16\n\x06scopes\x18\x06 \x03(\tR\x06scopes\x12!\n\x0cuserinfo_url\x18\x07 \x01(\tR\x0buserinfoUrl\x12\x30\n\x14scope_parameter_name\x18\x08 \x01(\tR\x12scopeParameterName\x12\x66\n\x16vendor_approval_status\x18\t \x01(\x0e\x32\x30.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatusR\x14vendorApprovalStatus\x12\x37\n\x18vendor_approval_docs_url\x18\n \x01(\tR\x15vendorApprovalDocsUrl\x12p\n\x1atoken_endpoint_auth_method\x18\x0b \x01(\x0e\x32\x33.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethodR\x17tokenEndpointAuthMethod*\xac\x01\n\x14VendorApprovalStatus\x12&\n\"VENDOR_APPROVAL_STATUS_UNSPECIFIED\x10\x00\x12\"\n\x1eVENDOR_APPROVAL_STATUS_PENDING\x10\x01\x12#\n\x1fVENDOR_APPROVAL_STATUS_APPROVED\x10\x02\x12#\n\x1fVENDOR_APPROVAL_STATUS_REJECTED\x10\x03*\xac\x01\n\x17TokenEndpointAuthMethod\x12*\n&TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED\x10\x00\x12\x32\n.TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC\x10\x01\x12\x31\n-TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST\x10\x02\x42\xb8\x01\n\x1e\x63om.ai.stigmer.iam.oauthapp.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SIO\xaa\x02\x1a\x41i.Stigmer.Iam.Oauthapp.V1\xca\x02\x1a\x41i\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Iam::Oauthapp::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,8 +41,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_OAUTHAPPSPEC'].fields_by_name['authorization_url']._serialized_options = b'\272H\005r\003\210\001\001'
   _globals['_OAUTHAPPSPEC'].fields_by_name['token_url']._loaded_options = None
   _globals['_OAUTHAPPSPEC'].fields_by_name['token_url']._serialized_options = b'\272H\005r\003\210\001\001'
-  _globals['_VENDORAPPROVALSTATUS']._serialized_start=592
-  _globals['_VENDORAPPROVALSTATUS']._serialized_end=764
+  _globals['_VENDORAPPROVALSTATUS']._serialized_start=706
+  _globals['_VENDORAPPROVALSTATUS']._serialized_end=878
+  _globals['_TOKENENDPOINTAUTHMETHOD']._serialized_start=881
+  _globals['_TOKENENDPOINTAUTHMETHOD']._serialized_end=1053
   _globals['_OAUTHAPPSPEC']._serialized_start=99
-  _globals['_OAUTHAPPSPEC']._serialized_end=589
+  _globals['_OAUTHAPPSPEC']._serialized_end=703
 # @@protoc_insertion_point(module_scope)

@@ -102,6 +102,20 @@ message OAuthAppSpec {
   // Shown in the frontend as a help link when vendor_approval_status
   // is PENDING. Empty means no documentation link is displayed.
   string vendor_approval_docs_url = 10;
+
+  // How the client secret is presented to the vendor's token endpoint
+  // during authorization-code exchange and refresh.
+  //
+  // RFC 6749 §2.3.1 requires authorization servers to support HTTP Basic,
+  // but some vendors' token endpoints accept only client_secret_post
+  // (e.g. HubSpot advertises token_endpoint_auth_methods_supported:
+  // ["client_secret_post"]). Exactly one method is ever used per request —
+  // RFC 6749 §2.3 forbids presenting credentials through more than one
+  // channel at once, and some servers reject requests that do.
+  //
+  // UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
+  // compatibility, preserving the historical behavior byte-for-byte.
+  TokenEndpointAuthMethod token_endpoint_auth_method = 11;
 }
 
 // Lifecycle status of an OAuthApp's vendor marketplace approval.
@@ -124,4 +138,26 @@ enum VendorApprovalStatus {
 
   // The vendor rejected the OAuth app. Sign-in is disabled.
   VENDOR_APPROVAL_STATUS_REJECTED = 3;
+}
+
+// Client authentication method for the vendor's OAuth token endpoint,
+// mirroring the RFC 8414 token_endpoint_auth_methods_supported vocabulary.
+//
+// Only confidential-client methods appear here: public (DCR) clients
+// authenticate with PKCE alone and never carry a client secret, so this
+// enum is meaningful only for OAuthApp-backed vendor OAuth.
+enum TokenEndpointAuthMethod {
+  // Default / unset. Treated as CLIENT_SECRET_BASIC for backwards
+  // compatibility — every OAuthApp created before this field existed
+  // authenticated via HTTP Basic.
+  TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED = 0;
+
+  // client_secret_basic: the secret rides the Authorization header as
+  // HTTP Basic credentials (RFC 6749 §2.3.1's baseline method).
+  TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC = 1;
+
+  // client_secret_post: the secret rides the request body as the
+  // client_secret form parameter. Required by vendors whose token
+  // endpoints do not accept Basic (e.g. HubSpot).
+  TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST = 2;
 }

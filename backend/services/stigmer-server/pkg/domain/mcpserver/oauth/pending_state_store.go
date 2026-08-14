@@ -27,6 +27,7 @@ type PendingOAuthState struct {
 	IdentityAccountID string
 	TargetEnvVar      string // From McpServer auth block
 	AuthMethod        string // "mcp_oauth" or "vendor_oauth"
+	TokenAuthMethod   string // RFC 8414 string from OAuthAppSpec (TokenAuthMethodBasic/-Post); empty for DCR
 	RedirectURI       string // The redirect URI used in the auth request
 	Org               string // Caller's org for personal environment resolution
 	CreatedAt         int64
@@ -58,6 +59,7 @@ func (s *PendingOAuthStateStore) ensureTable() error {
 			identity_account_id TEXT NOT NULL,
 			target_env_var      TEXT NOT NULL DEFAULT '',
 			auth_method         TEXT NOT NULL DEFAULT '',
+			token_auth_method   TEXT NOT NULL DEFAULT '',
 			redirect_uri        TEXT NOT NULL DEFAULT '',
 			org                 TEXT NOT NULL DEFAULT '',
 			created_at          INTEGER NOT NULL
@@ -67,8 +69,9 @@ func (s *PendingOAuthStateStore) ensureTable() error {
 		return err
 	}
 
-	// Add org column to existing tables (idempotent — SQLite ignores if exists)
+	// Add columns to existing tables (idempotent — SQLite ignores if exists)
 	_, _ = s.db.Exec(`ALTER TABLE pending_oauth_state ADD COLUMN org TEXT NOT NULL DEFAULT ''`)
+	_, _ = s.db.Exec(`ALTER TABLE pending_oauth_state ADD COLUMN token_auth_method TEXT NOT NULL DEFAULT ''`)
 	return nil
 }
 
@@ -82,13 +85,13 @@ func (s *PendingOAuthStateStore) Save(ctx context.Context, state *PendingOAuthSt
 		INSERT INTO pending_oauth_state (
 			state, code_verifier, client_id, client_secret, token_endpoint,
 			mcp_server_id, identity_account_id, target_env_var, auth_method,
-			redirect_uri, org, created_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			token_auth_method, redirect_uri, org, created_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		state.State, state.CodeVerifier, state.ClientID, state.ClientSecret,
 		state.TokenEndpoint, state.McpServerID, state.IdentityAccountID,
-		state.TargetEnvVar, state.AuthMethod, state.RedirectURI, state.Org,
-		state.CreatedAt,
+		state.TargetEnvVar, state.AuthMethod, state.TokenAuthMethod,
+		state.RedirectURI, state.Org, state.CreatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to save pending oauth state: %w", err)
@@ -114,14 +117,14 @@ func (s *PendingOAuthStateStore) GetAndDelete(ctx context.Context, stateParam st
 	err = tx.QueryRowContext(ctx, `
 		SELECT state, code_verifier, client_id, client_secret, token_endpoint,
 			mcp_server_id, identity_account_id, target_env_var, auth_method,
-			redirect_uri, org, created_at
+			token_auth_method, redirect_uri, org, created_at
 		FROM pending_oauth_state
 		WHERE state = ?
 	`, stateParam).Scan(
 		&state.State, &state.CodeVerifier, &state.ClientID, &state.ClientSecret,
 		&state.TokenEndpoint, &state.McpServerID, &state.IdentityAccountID,
-		&state.TargetEnvVar, &state.AuthMethod, &state.RedirectURI, &state.Org,
-		&state.CreatedAt,
+		&state.TargetEnvVar, &state.AuthMethod, &state.TokenAuthMethod,
+		&state.RedirectURI, &state.Org, &state.CreatedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil

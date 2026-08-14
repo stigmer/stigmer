@@ -90,6 +90,7 @@ func (c *McpServerController) CompleteOAuthConnect(
 		pendingState.CodeVerifier,
 		pendingState.ClientID,
 		pendingState.ClientSecret,
+		pendingState.TokenAuthMethod,
 	)
 	if err != nil {
 		return nil, grpclib.UnavailableError(

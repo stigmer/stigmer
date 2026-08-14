@@ -803,10 +803,11 @@ func (c *McpServerController) refreshOAuthTokenIfNeeded(
 		return nil
 	}
 
-	// For vendor OAuth, we need the client_secret. For DCR, it's empty.
-	var clientSecret string
+	// For vendor OAuth, we need the client_secret and its token-endpoint
+	// auth method. For DCR, both are empty (public client).
+	var clientSecret, tokenAuthMethod string
 	if grant.AuthMethod == "vendor_oauth" && c.encryptionService != nil {
-		clientSecret, err = c.loadOAuthAppClientSecret(ctx, mcpServer)
+		clientSecret, tokenAuthMethod, err = c.loadOAuthAppClientCredentials(ctx, mcpServer)
 		if err != nil {
 			log.Warn().Err(err).
 				Str("mcp_server_id", mcpServerID).
@@ -815,7 +816,7 @@ func (c *McpServerController) refreshOAuthTokenIfNeeded(
 	}
 
 	result, err := oauth.RefreshTokenIfExpired(
-		ctx, grant, refreshToken, clientSecret,
+		ctx, grant, refreshToken, clientSecret, tokenAuthMethod,
 	)
 	if err != nil {
 		return grpclib.FailedPreconditionError("%v", err)
@@ -853,36 +854,43 @@ func (c *McpServerController) refreshOAuthTokenIfNeeded(
 	return nil
 }
 
-// loadOAuthAppClientSecret loads and decrypts the client_secret from the
-// referenced OAuthApp for vendor OAuth token refresh.
+// loadOAuthAppClientCredentials loads the decrypted client_secret and the
+// token-endpoint auth method from the referenced OAuthApp for vendor OAuth
+// token refresh. The method is read live (not snapshotted on the grant) so
+// an admin correcting a misconfigured OAuthApp fixes refreshes immediately.
 //
 // Resolution goes through refresolution.Resolve — the same lookup the
 // initiate path used when the grant was minted — so the refresh always runs
 // against the credentials the user actually signed in with. This path
 // previously carried its own slug-only scan that ignored the ref's org and
 // could load a same-slug app from a different org (stigmer/stigmer#584).
-func (c *McpServerController) loadOAuthAppClientSecret(
+func (c *McpServerController) loadOAuthAppClientCredentials(
 	ctx context.Context,
 	mcpServer *mcpserverv1.McpServer,
-) (string, error) {
+) (clientSecret string, tokenAuthMethod string, err error) {
 	ref := mcpServer.GetSpec().GetAuth().GetOauthAppRef()
 	if ref == nil || ref.GetSlug() == "" {
-		return "", nil
+		return "", "", nil
 	}
 
 	app, err := refresolution.Resolve(ctx, c.store, ref)
 	if err != nil {
-		return "", fmt.Errorf("failed to list oauth apps: %w", err)
+		return "", "", fmt.Errorf("failed to list oauth apps: %w", err)
 	}
 	if app == nil {
-		return "", fmt.Errorf("OAuthApp '%s' not found", ref.GetSlug())
+		return "", "", fmt.Errorf("OAuthApp '%s' not found", ref.GetSlug())
 	}
+
+	tokenAuthMethod = tokenAuthMethodFromSpec(app.GetSpec().GetTokenEndpointAuthMethod())
 
 	secret := app.GetSpec().GetClientSecret()
 	if c.encryptionService != nil && c.encryptionService.IsEncrypted(secret) {
-		return c.encryptionService.Decrypt(secret)
+		secret, err = c.encryptionService.Decrypt(secret)
+		if err != nil {
+			return "", "", err
+		}
 	}
-	return secret, nil
+	return secret, tokenAuthMethod, nil
 }
 
 // StartBestEffortConnect runs the connect workflow for a freshly applied MCP

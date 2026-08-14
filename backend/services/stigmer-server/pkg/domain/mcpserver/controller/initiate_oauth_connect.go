@@ -75,6 +75,7 @@ func (c *McpServerController) InitiateOAuthConnect(
 		clientSecret     string
 		tokenEndpoint    string
 		authMethod       string
+		tokenAuthMethod  string
 	)
 
 	oauthAppRef := auth.GetOauthAppRef()
@@ -104,6 +105,7 @@ func (c *McpServerController) InitiateOAuthConnect(
 		clientSecret = result.clientSecret
 		tokenEndpoint = result.tokenEndpoint
 		authMethod = "vendor_oauth"
+		tokenAuthMethod = result.tokenAuthMethod
 	}
 
 	pendingState := &oauth.PendingOAuthState{
@@ -116,6 +118,7 @@ func (c *McpServerController) InitiateOAuthConnect(
 		IdentityAccountID: "", // OSS mode: single user, no identity account
 		TargetEnvVar:      auth.GetTargetEnvVar(),
 		AuthMethod:        authMethod,
+		TokenAuthMethod:   tokenAuthMethod,
 		RedirectURI:       c.oauthRedirectURI,
 		Org:               input.GetOrg(),
 	}
@@ -151,6 +154,7 @@ type initiateResult struct {
 	clientID         string
 	clientSecret     string
 	tokenEndpoint    string
+	tokenAuthMethod  string // RFC 8414 string; set on the vendor OAuth arm only
 }
 
 func (c *McpServerController) initiateDCR(
@@ -302,7 +306,18 @@ func (c *McpServerController) initiateVendorOAuth(
 		clientID:         oauthApp.GetSpec().GetClientId(),
 		clientSecret:     clientSecret,
 		tokenEndpoint:    oauthApp.GetSpec().GetTokenUrl(),
+		tokenAuthMethod:  tokenAuthMethodFromSpec(oauthApp.GetSpec().GetTokenEndpointAuthMethod()),
 	}, nil
+}
+
+// tokenAuthMethodFromSpec maps the OAuthAppSpec enum onto the oauth
+// package's RFC 8414 strings. UNSPECIFIED means Basic — every OAuthApp
+// created before the field existed authenticated via HTTP Basic.
+func tokenAuthMethodFromSpec(m oauthappv1.TokenEndpointAuthMethod) string {
+	if m == oauthappv1.TokenEndpointAuthMethod_TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST {
+		return oauth.TokenAuthMethodPost
+	}
+	return oauth.TokenAuthMethodBasic
 }
 
 func buildAuthorizationURL(

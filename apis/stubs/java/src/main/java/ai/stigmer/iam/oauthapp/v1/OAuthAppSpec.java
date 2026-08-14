@@ -80,6 +80,7 @@ private static final long serialVersionUID = 0L;
     scopeParameterName_ = "";
     vendorApprovalStatus_ = 0;
     vendorApprovalDocsUrl_ = "";
+    tokenEndpointAuthMethod_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -621,6 +622,54 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int TOKEN_ENDPOINT_AUTH_METHOD_FIELD_NUMBER = 11;
+  private int tokenEndpointAuthMethod_ = 0;
+  /**
+   * <pre>
+   * How the client secret is presented to the vendor's token endpoint
+   * during authorization-code exchange and refresh.
+   *
+   * RFC 6749 §2.3.1 requires authorization servers to support HTTP Basic,
+   * but some vendors' token endpoints accept only client_secret_post
+   * (e.g. HubSpot advertises token_endpoint_auth_methods_supported:
+   * ["client_secret_post"]). Exactly one method is ever used per request —
+   * RFC 6749 §2.3 forbids presenting credentials through more than one
+   * channel at once, and some servers reject requests that do.
+   *
+   * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
+   * compatibility, preserving the historical behavior byte-for-byte.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11 [json_name = "tokenEndpointAuthMethod"];</code>
+   * @return The enum numeric value on the wire for tokenEndpointAuthMethod.
+   */
+  @java.lang.Override public int getTokenEndpointAuthMethodValue() {
+    return tokenEndpointAuthMethod_;
+  }
+  /**
+   * <pre>
+   * How the client secret is presented to the vendor's token endpoint
+   * during authorization-code exchange and refresh.
+   *
+   * RFC 6749 §2.3.1 requires authorization servers to support HTTP Basic,
+   * but some vendors' token endpoints accept only client_secret_post
+   * (e.g. HubSpot advertises token_endpoint_auth_methods_supported:
+   * ["client_secret_post"]). Exactly one method is ever used per request —
+   * RFC 6749 §2.3 forbids presenting credentials through more than one
+   * channel at once, and some servers reject requests that do.
+   *
+   * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
+   * compatibility, preserving the historical behavior byte-for-byte.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11 [json_name = "tokenEndpointAuthMethod"];</code>
+   * @return The tokenEndpointAuthMethod.
+   */
+  @java.lang.Override public ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod getTokenEndpointAuthMethod() {
+    ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod result = ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod.forNumber(tokenEndpointAuthMethod_);
+    return result == null ? ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -664,6 +713,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(vendorApprovalDocsUrl_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 10, vendorApprovalDocsUrl_);
+    }
+    if (tokenEndpointAuthMethod_ != ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod.TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED.getNumber()) {
+      output.writeEnum(11, tokenEndpointAuthMethod_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -710,6 +762,10 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(vendorApprovalDocsUrl_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(10, vendorApprovalDocsUrl_);
     }
+    if (tokenEndpointAuthMethod_ != ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod.TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(11, tokenEndpointAuthMethod_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -744,6 +800,7 @@ private static final long serialVersionUID = 0L;
     if (vendorApprovalStatus_ != other.vendorApprovalStatus_) return false;
     if (!getVendorApprovalDocsUrl()
         .equals(other.getVendorApprovalDocsUrl())) return false;
+    if (tokenEndpointAuthMethod_ != other.tokenEndpointAuthMethod_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -777,6 +834,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + vendorApprovalStatus_;
     hash = (37 * hash) + VENDOR_APPROVAL_DOCS_URL_FIELD_NUMBER;
     hash = (53 * hash) + getVendorApprovalDocsUrl().hashCode();
+    hash = (37 * hash) + TOKEN_ENDPOINT_AUTH_METHOD_FIELD_NUMBER;
+    hash = (53 * hash) + tokenEndpointAuthMethod_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -960,6 +1019,7 @@ private static final long serialVersionUID = 0L;
       scopeParameterName_ = "";
       vendorApprovalStatus_ = 0;
       vendorApprovalDocsUrl_ = "";
+      tokenEndpointAuthMethod_ = 0;
       return this;
     }
 
@@ -1023,6 +1083,9 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00000200) != 0)) {
         result.vendorApprovalDocsUrl_ = vendorApprovalDocsUrl_;
+      }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.tokenEndpointAuthMethod_ = tokenEndpointAuthMethod_;
       }
     }
 
@@ -1090,6 +1153,9 @@ private static final long serialVersionUID = 0L;
         vendorApprovalDocsUrl_ = other.vendorApprovalDocsUrl_;
         bitField0_ |= 0x00000200;
         onChanged();
+      }
+      if (other.tokenEndpointAuthMethod_ != 0) {
+        setTokenEndpointAuthMethodValue(other.getTokenEndpointAuthMethodValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1167,6 +1233,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000200;
               break;
             } // case 82
+            case 88: {
+              tokenEndpointAuthMethod_ = input.readEnum();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 88
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2297,6 +2368,133 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       vendorApprovalDocsUrl_ = value;
       bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+
+    private int tokenEndpointAuthMethod_ = 0;
+    /**
+     * <pre>
+     * How the client secret is presented to the vendor's token endpoint
+     * during authorization-code exchange and refresh.
+     *
+     * RFC 6749 §2.3.1 requires authorization servers to support HTTP Basic,
+     * but some vendors' token endpoints accept only client_secret_post
+     * (e.g. HubSpot advertises token_endpoint_auth_methods_supported:
+     * ["client_secret_post"]). Exactly one method is ever used per request —
+     * RFC 6749 §2.3 forbids presenting credentials through more than one
+     * channel at once, and some servers reject requests that do.
+     *
+     * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
+     * compatibility, preserving the historical behavior byte-for-byte.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11 [json_name = "tokenEndpointAuthMethod"];</code>
+     * @return The enum numeric value on the wire for tokenEndpointAuthMethod.
+     */
+    @java.lang.Override public int getTokenEndpointAuthMethodValue() {
+      return tokenEndpointAuthMethod_;
+    }
+    /**
+     * <pre>
+     * How the client secret is presented to the vendor's token endpoint
+     * during authorization-code exchange and refresh.
+     *
+     * RFC 6749 §2.3.1 requires authorization servers to support HTTP Basic,
+     * but some vendors' token endpoints accept only client_secret_post
+     * (e.g. HubSpot advertises token_endpoint_auth_methods_supported:
+     * ["client_secret_post"]). Exactly one method is ever used per request —
+     * RFC 6749 §2.3 forbids presenting credentials through more than one
+     * channel at once, and some servers reject requests that do.
+     *
+     * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
+     * compatibility, preserving the historical behavior byte-for-byte.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11 [json_name = "tokenEndpointAuthMethod"];</code>
+     * @param value The enum numeric value on the wire for tokenEndpointAuthMethod to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setTokenEndpointAuthMethodValue(int value) {
+      tokenEndpointAuthMethod_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * How the client secret is presented to the vendor's token endpoint
+     * during authorization-code exchange and refresh.
+     *
+     * RFC 6749 §2.3.1 requires authorization servers to support HTTP Basic,
+     * but some vendors' token endpoints accept only client_secret_post
+     * (e.g. HubSpot advertises token_endpoint_auth_methods_supported:
+     * ["client_secret_post"]). Exactly one method is ever used per request —
+     * RFC 6749 §2.3 forbids presenting credentials through more than one
+     * channel at once, and some servers reject requests that do.
+     *
+     * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
+     * compatibility, preserving the historical behavior byte-for-byte.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11 [json_name = "tokenEndpointAuthMethod"];</code>
+     * @return The tokenEndpointAuthMethod.
+     */
+    @java.lang.Override
+    public ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod getTokenEndpointAuthMethod() {
+      ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod result = ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod.forNumber(tokenEndpointAuthMethod_);
+      return result == null ? ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * How the client secret is presented to the vendor's token endpoint
+     * during authorization-code exchange and refresh.
+     *
+     * RFC 6749 §2.3.1 requires authorization servers to support HTTP Basic,
+     * but some vendors' token endpoints accept only client_secret_post
+     * (e.g. HubSpot advertises token_endpoint_auth_methods_supported:
+     * ["client_secret_post"]). Exactly one method is ever used per request —
+     * RFC 6749 §2.3 forbids presenting credentials through more than one
+     * channel at once, and some servers reject requests that do.
+     *
+     * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
+     * compatibility, preserving the historical behavior byte-for-byte.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11 [json_name = "tokenEndpointAuthMethod"];</code>
+     * @param value The tokenEndpointAuthMethod to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTokenEndpointAuthMethod(ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000400;
+      tokenEndpointAuthMethod_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * How the client secret is presented to the vendor's token endpoint
+     * during authorization-code exchange and refresh.
+     *
+     * RFC 6749 §2.3.1 requires authorization servers to support HTTP Basic,
+     * but some vendors' token endpoints accept only client_secret_post
+     * (e.g. HubSpot advertises token_endpoint_auth_methods_supported:
+     * ["client_secret_post"]). Exactly one method is ever used per request —
+     * RFC 6749 §2.3 forbids presenting credentials through more than one
+     * channel at once, and some servers reject requests that do.
+     *
+     * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
+     * compatibility, preserving the historical behavior byte-for-byte.
+     * </pre>
+     *
+     * <code>.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11 [json_name = "tokenEndpointAuthMethod"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearTokenEndpointAuthMethod() {
+      bitField0_ = (bitField0_ & ~0x00000400);
+      tokenEndpointAuthMethod_ = 0;
       onChanged();
       return this;
     }

@@ -295,4 +295,45 @@ public interface OAuthAppSpecOrBuilder extends
    */
   com.google.protobuf.ByteString
       getVendorApprovalDocsUrlBytes();
+
+  /**
+   * <pre>
+   * How the client secret is presented to the vendor's token endpoint
+   * during authorization-code exchange and refresh.
+   *
+   * RFC 6749 §2.3.1 requires authorization servers to support HTTP Basic,
+   * but some vendors' token endpoints accept only client_secret_post
+   * (e.g. HubSpot advertises token_endpoint_auth_methods_supported:
+   * ["client_secret_post"]). Exactly one method is ever used per request —
+   * RFC 6749 §2.3 forbids presenting credentials through more than one
+   * channel at once, and some servers reject requests that do.
+   *
+   * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
+   * compatibility, preserving the historical behavior byte-for-byte.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11 [json_name = "tokenEndpointAuthMethod"];</code>
+   * @return The enum numeric value on the wire for tokenEndpointAuthMethod.
+   */
+  int getTokenEndpointAuthMethodValue();
+  /**
+   * <pre>
+   * How the client secret is presented to the vendor's token endpoint
+   * during authorization-code exchange and refresh.
+   *
+   * RFC 6749 §2.3.1 requires authorization servers to support HTTP Basic,
+   * but some vendors' token endpoints accept only client_secret_post
+   * (e.g. HubSpot advertises token_endpoint_auth_methods_supported:
+   * ["client_secret_post"]). Exactly one method is ever used per request —
+   * RFC 6749 §2.3 forbids presenting credentials through more than one
+   * channel at once, and some servers reject requests that do.
+   *
+   * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
+   * compatibility, preserving the historical behavior byte-for-byte.
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11 [json_name = "tokenEndpointAuthMethod"];</code>
+   * @return The tokenEndpointAuthMethod.
+   */
+  ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod getTokenEndpointAuthMethod();
 }
