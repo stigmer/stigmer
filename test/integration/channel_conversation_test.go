@@ -853,6 +853,115 @@ func TestChannelConversation_StaffReplyDeliversThroughTheFrontDoor(t *testing.T)
 	assert.Equal(t, 1, teammateItems, "the staff reply is teammate-authored on the timeline")
 }
 
+// TestChannelConversation_TemplateReplyDeliversThroughTheFrontDoor pins the
+// TEMPLATE arm of the one reply payload contract (cloud#260) — the only
+// lane WhatsApp offers a business once the customer's 24-hour service
+// window has closed. This test runs the registry-DEGRADED lane
+// deliberately: the harness seeds the conversation directly (no inbound
+// webhook has taught the platform the number's WABA id), so the registry
+// read fails and the DD-005 D4 split applies — an EXPLICIT language skips
+// the courtesy pre-check and the provider's send-time verdict stays final,
+// with the ledger storing honest absence for the rendered body. The
+// pre-check's own verdicts (unknown name, wrong language, parameter
+// mismatch) are pinned by the cloud's TemplatePreCheckTest and
+// ReplyToConversationHandlerTest at the unit seam.
+func TestChannelConversation_TemplateReplyDeliversThroughTheFrontDoor(t *testing.T) {
+	requireVisibilityHarness(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	agent := harness.CreateAgent(t, ctx, clients, "test-conv-template-reply",
+		"You are a test agent for the template reply front door.")
+	fx := applyWhatsAppChannel(t, ctx, clients, agent,
+		"conv-template-reply-"+agent.GetMetadata().GetSlug())
+
+	installed, err := clients.AgentChannelCommand.InitiateInstall(ctx,
+		&agentchannelv1.InitiateChannelInstallInput{ResourceId: fx.ChannelID})
+	require.NoError(t, err)
+	require.True(t, installed.GetCompleted())
+
+	const customer = "15550008888"
+	seeder := harness.NewChannelConversationSeeder(testHarness.AppPostgres)
+	require.NoError(t, seeder.SeedConversation(ctx, harness.SeedConversationInput{
+		AgentChannelID:  fx.ChannelID,
+		ConversationKey: customer,
+		Org:             agent.GetMetadata().GetOrg(),
+		DisplayName:     "Noor",
+		LastActivityAt:  time.Now(),
+	}))
+
+	answer, err := clients.ChannelConversationCommand.Reply(ctx,
+		&agentchannelv1.ReplyToConversationInput{
+			AgentChannelId:  fx.ChannelID,
+			ConversationKey: customer,
+			Payload: &agentchannelv1.ChannelOutboundPayload{
+				Kind: &agentchannelv1.ChannelOutboundPayload_Template{
+					Template: &agentchannelv1.TemplatePayload{
+						Name:     "fee_reminder",
+						Language: "en_US",
+						Parameters: map[string]string{
+							"1": "Noor",
+							"2": "$40",
+						},
+					},
+				},
+			},
+		})
+	require.NoError(t, err, "a template reply with an explicit language must ride the "+
+		"degraded lane, never fail on an unreadable registry")
+	require.Equal(t, agentchannelv1.ChannelSendOutcome_accepted, answer.GetOutcome(),
+		"the provider's verdict stays final on the degraded lane: %s", answer.GetDetail())
+	assert.NotEmpty(t, answer.GetProviderMessageId(), "accepted carries the wamid")
+	assert.NotEmpty(t, answer.GetOutboundMessageId(), "the durable audit handle")
+
+	// The template lane shares the text lane's whole participation
+	// contract: the reply IS the implicit takeover.
+	list, err := clients.ChannelConversationQuery.ListConversations(ctx,
+		&agentchannelv1.ListChannelConversationsInput{
+			Org: agent.GetMetadata().GetOrg(), AgentChannelId: fx.ChannelID})
+	require.NoError(t, err)
+	require.Len(t, list.GetItems(), 1)
+	assert.Equal(t, agentchannelv1.ConversationControl_control_human,
+		list.GetItems()[0].GetControl(),
+		"a template reply flips control exactly like a text reply (DD-002 #1)")
+
+	// One participant-origin ledger row, like the text lane.
+	origin, err := testHarness.AppPostgres.QueryScalar(ctx, fmt.Sprintf(
+		`SELECT origin FROM s_agentic.channel_outbound_message
+		  WHERE outbound_message_id = '%s'`, answer.GetOutboundMessageId()))
+	require.NoError(t, err)
+	assert.Equal(t, "participant", origin)
+
+	// The provider received a TEMPLATE message carrying the name, the
+	// explicit language, and the variables — never a text rendering.
+	sends := mockWhatsAppGraph.SendsTo(fx.PhoneNumberID)
+	require.Len(t, sends, 1)
+	assert.Contains(t, sends[0].Body, `"template"`)
+	assert.Contains(t, sends[0].Body, "fee_reminder")
+	assert.Contains(t, sends[0].Body, "en_US")
+
+	// Honest absence (DD-005 D1-A): with no registry to render from, the
+	// timeline's teammate item carries no body text rather than a
+	// fabricated one.
+	timeline, err := clients.ChannelConversationQuery.GetTimeline(ctx,
+		&agentchannelv1.GetConversationTimelineInput{
+			AgentChannelId:  fx.ChannelID,
+			ConversationKey: customer,
+		})
+	require.NoError(t, err)
+	teammateItems := 0
+	for _, item := range timeline.GetItems() {
+		if item.GetAuthor() == agentchannelv1.ConversationItemAuthor_author_teammate {
+			teammateItems++
+			assert.Empty(t, item.GetText(),
+				"registry-degraded template sends render bodyless — honest absence")
+		}
+	}
+	assert.Equal(t, 1, teammateItems, "the template reply is teammate-authored on the timeline")
+}
+
 // TestChannelConversation_AsyncSendFailureExplainsItselfOnTheTimeline pins
 // DD-014 D-c end to end through the real front door — the receipt lane's
 // FIRST front-door test. Meta reports send errors synchronously, via

@@ -206,7 +206,7 @@ function useConversationParticipation(options: UseConversationParticipationOptio
     commandErrors: { type: "ReadonlyMap<ConversationCommand, Error>", description: "Per-command failures, cleared when that command is retried." },
     handBack: { type: "() => Promise<ChannelConversation>", description: "Hand the conversation back to the agent." },
     pendingCommands: { type: "ReadonlySet<ConversationCommand>", description: "Commands currently in flight." },
-    reply: { type: "(text: string) => Promise<SendChannelMessageOutput>", description: "Send a staff text reply. Resolves with the truthful outcome of the inline attempt: `accepted` (with `outboundMessageId` — the item will appear on the timeline as `ob:<that id>`), `queued`, or `refused`. A `refused` outcome WITHOUT an `outboundMessageId` left no ledger row and no timeline item will ever exist for it." },
+    reply: { type: "(payload: ConversationReplyPayload) => Promise<SendChannelMessageOutput>", description: "Send a staff reply — text or template (see ConversationReplyPayload). Resolves with the truthful outcome of the inline attempt: `accepted` (with `outboundMessageId` — the item will appear on the timeline as `ob:<that id>`), `queued`, or `refused` (template pre-check refusals land here too, with the server's corrective detail). A `refused` outcome WITHOUT an `outboundMessageId` left no ledger row and no timeline item will ever exist for it." },
     takeOver: { type: "() => Promise<ChannelConversation>", description: "Take the conversation over: the agent goes quiet until handBack. Resolves with the fresh row — for the LOSER of a concurrent takeover too (success-with-the-winner's-state, never an error), so compare `controlledBy` against the caller rather than assuming the transition won." },
   }}
 />
@@ -360,7 +360,8 @@ read — this component never fabricates one.
     className: { type: "string", description: "Additional classes for the composer container." },
     disabledReason: { type: "string | null", description: "Why replying is unavailable, when it is — rendered in place of the input (a senderless provider, or a conversation the customer has not started yet). `null` enables the composer.", required: true },
     isSending: { type: "boolean", description: "`true` while a reply is in flight.", required: true },
-    onSend: { type: "(text: string) => Promise<SendChannelMessageOutput>", description: "Send a staff reply (from `useConversationParticipation().reply`).", required: true },
+    onOpenTemplatePicker: { type: "() => void", description: "Opens the host's template picker. When present, a persistent template affordance renders beside Send — templates are the one lane WhatsApp offers for a closed window, so the surface must offer the door, not just the advisory's warning (hosts should point at the button in the advisory copy; the advisory itself stays interaction-free — it is the input's description, F-18). Omit on channels whose provider has no template registry." },
+    onSend: { type: "(payload: ConversationReplyPayload) => Promise<SendChannelMessageOutput>", description: "Send a staff reply (from `useConversationParticipation().reply`). The composer's own textarea always submits the `text` lane; hosts wiring a template picker send the `template` lane through the same seam — one command, one busy state, one outcome contract.", required: true },
   }}
 />
 
@@ -448,6 +449,50 @@ different layout compose `ConversationListPane`,
     onSelectionChange: { type: "(selection: ConversationIdentity | null) => void", description: "Called when the user opens or leaves a conversation.", required: true },
     org: { type: "string", description: "Organization whose conversations to show.", required: true },
     selected: { type: "ConversationIdentity | null", description: "The open conversation. Controlled by the host so selection can live in the URL (deep links, reloads, back button).", required: true },
+  }}
+/>
+
+
+### ConversationTemplatePickerDialog
+
+Pick a provider-approved template, fill its variables, and send it as
+a staff reply — the one lane WhatsApp offers a business once the
+customer's 24-hour service window has closed (cloud#260).
+
+Where [`ChannelTemplatesDialog`](/docs/sdk/react/channel#channeltemplatesdialog) is the channel surface's
+read-only registry *viewer* (every status, diagnosis copy), this is
+the conversation surface's *picker*: it lists only approved
+templates, marks the ones this platform version cannot send (an
+`unsupported_reason` from the server, or an IMAGE header — the send
+payload needs a public HTTPS asset no console surface can supply
+yet), and walks the two steps of a send: choose, then fill the
+`{{...}}` variables with a live preview of the exact body the
+customer will receive.
+
+Outcome honesty mirrors the composer's contract: a `refused` outcome
+keeps the dialog open with every filled value intact and renders the
+server's corrective detail verbatim (the pre-check names missing
+parameters, wrong languages, paused templates); a thrown failure does
+the same with the transport error. `accepted` and `queued` close the
+dialog — the ledger row exists, so the timeline shows the real item
+with its true delivery status (the SDK never fabricates one).
+
+The body mounts only while open, so each opening fetches the registry
+fresh (approval statuses change on the provider's side at any time)
+and a closed dialog holds no draft — the same clean-reset rule that
+keys the workbench's detail column (F-22).
+
+**Props** — `ConversationTemplatePickerDialogProps`
+
+<TypeTable
+  type={{
+    channelSlug: { type: "string", description: "The conversation's channel, addressed as the template registry addresses it: `metadata.slug` + `metadata.org` (the registry is derived from the channel's phone number, not stored on a resource).", required: true },
+    isSending: { type: "boolean", description: "`true` while a reply is in flight.", required: true },
+    modal: { type: "boolean", description: "When `false`, renders as an in-flow open dialog instead of a top-layer modal — for embedding in constrained surfaces (documentation demos, visual tests). Interactive hosts keep the default." },
+    onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog requests an open-state change.", required: true },
+    onSend: { type: "(payload: ConversationReplyPayload) => Promise<SendChannelMessageOutput>", description: "Send the chosen template as a staff reply — the SAME seam the composer's textarea uses (`useConversationParticipation().reply` or the host's wrapper around it), so a template send takes over, settles, and reports outcomes exactly like a text send.", required: true },
+    open: { type: "boolean", description: "Whether the dialog is open.", required: true },
+    org: { type: "string", description: "", required: true },
   }}
 />
 
@@ -627,6 +672,24 @@ uniformly meaningful: WhatsApp's key is the customer's phone number
 ```tsx
 function conversationLabelOf(conversation: ChannelConversation, provider: ChannelProviderId | null): string
 ```
+
+
+### ConversationReplyPayload
+
+A staff reply's payload — the client-side face of the wire's
+`ChannelOutboundPayload` oneof. Reply is ONE command with two lanes,
+never two commands: both lanes share the implicit takeover, the
+`"reply"` pending key, and the outcome contract.
+
+- `text` — free-form; requires an open 24-hour customer-service
+  window on providers that enforce one (WhatsApp).
+- `template` — a provider-approved message template, the only lane
+  for a closed window. `language` is always required here (the wire
+  allows omitting it for single-language names, but a caller that
+  picked a template knows its language — sending it structurally
+  avoids the ambiguity refusal). Image-header templates are not yet
+  sendable from the SDK: the wire's `header_image_link` needs a
+  public HTTPS asset no console surface can supply today.
 
 
 ### inboundPlaceholderOf
