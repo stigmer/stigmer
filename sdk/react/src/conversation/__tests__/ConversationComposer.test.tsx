@@ -40,8 +40,43 @@ describe("ConversationComposer", () => {
     const input = screen.getByLabelText("Reply to the customer");
     await user.type(input, "on my way{Enter}");
 
-    expect(onSend).toHaveBeenCalledWith("on my way");
+    // One reply command, two lanes (cloud#260): the textarea always
+    // submits the text lane of the payload union.
+    expect(onSend).toHaveBeenCalledWith({ kind: "text", body: "on my way" });
     await waitFor(() => expect((input as HTMLTextAreaElement).value).toBe(""));
+  });
+
+  it("renders the template affordance only when a picker is wired, disabled while sending", () => {
+    const onOpenTemplatePicker = vi.fn();
+    const { rerender } = render(
+      <ConversationComposer onSend={vi.fn()} isSending={false} disabledReason={null} />,
+    );
+    expect(screen.queryByRole("button", { name: "Send a template reply" })).toBeNull();
+
+    rerender(
+      <ConversationComposer
+        onSend={vi.fn()}
+        isSending={false}
+        disabledReason={null}
+        onOpenTemplatePicker={onOpenTemplatePicker}
+      />,
+    );
+    const affordance = screen.getByRole("button", { name: "Send a template reply" });
+    affordance.click();
+    expect(onOpenTemplatePicker).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <ConversationComposer
+        onSend={vi.fn()}
+        isSending={true}
+        disabledReason={null}
+        onOpenTemplatePicker={onOpenTemplatePicker}
+      />,
+    );
+    expect(
+      (screen.getByRole("button", { name: "Send a template reply" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
   });
 
   it("keeps the draft and shows the refusal detail verbatim when the send is refused", async () => {
@@ -116,6 +151,26 @@ describe("ConversationComposer", () => {
 
     // Zero new tab stops (the F-18 discipline).
     expect(advisoryEl?.querySelector("button, a, [tabindex]")).toBeNull();
+  });
+
+  it("keeps the advisory interaction-free even with a template picker wired (F-18)", () => {
+    render(
+      <ConversationComposer
+        onSend={vi.fn()}
+        isSending={false}
+        disabledReason={null}
+        advisory="The window has closed — send an approved template with the template button."
+        onOpenTemplatePicker={vi.fn()}
+      />,
+    );
+    const input = screen.getByLabelText("Reply to the customer");
+    const advisoryEl = document.getElementById(
+      input.getAttribute("aria-describedby") as string,
+    );
+    // The way forward lives on the persistent affordance BESIDE Send —
+    // the description itself must never grow a control.
+    expect(advisoryEl?.querySelector("button, a, [tabindex]")).toBeNull();
+    expect(screen.getByRole("button", { name: "Send a template reply" })).toBeDefined();
   });
 
   it("renders no advisory and no dangling description when there is no claim", () => {

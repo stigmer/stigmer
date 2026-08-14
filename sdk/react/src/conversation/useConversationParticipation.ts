@@ -17,6 +17,43 @@ import { useKeyedSubmission } from "../internal/useKeyedSubmission.js";
 /** The four staff-facing participation commands. */
 export type ConversationCommand = "reply" | "takeOver" | "handBack" | "clearAttention";
 
+/**
+ * A staff reply's payload — the client-side face of the wire's
+ * `ChannelOutboundPayload` oneof. Reply is ONE command with two lanes,
+ * never two commands: both lanes share the implicit takeover, the
+ * `"reply"` pending key, and the outcome contract.
+ *
+ * - `text` — free-form; requires an open 24-hour customer-service
+ *   window on providers that enforce one (WhatsApp).
+ * - `template` — a provider-approved message template, the only lane
+ *   for a closed window. `language` is always required here (the wire
+ *   allows omitting it for single-language names, but a caller that
+ *   picked a template knows its language — sending it structurally
+ *   avoids the ambiguity refusal). Image-header templates are not yet
+ *   sendable from the SDK: the wire's `header_image_link` needs a
+ *   public HTTPS asset no console surface can supply today.
+ */
+export type ConversationReplyPayload =
+  | {
+      readonly kind: "text";
+      /** The message body, as the customer will receive it. */
+      readonly body: string;
+    }
+  | {
+      readonly kind: "template";
+      /** Template name on the channel provider's registry. */
+      readonly name: string;
+      /** Template language code (e.g. `"en"`, `"en_US"`). */
+      readonly language: string;
+      /**
+       * Variable values: keyed by parameter name for NAMED templates,
+       * by position (`"1"`, `"2"`, …) for POSITIONAL ones — exactly the
+       * template's declared parameters, no more, no fewer (the server's
+       * pre-check refuses mismatches with a corrective detail).
+       */
+      readonly parameters: Readonly<Record<string, string>>;
+    };
+
 /** Options for {@link useConversationParticipation}. */
 export interface UseConversationParticipationOptions {
   /** AgentChannel the conversation belongs to. */
@@ -37,13 +74,16 @@ export interface UseConversationParticipationOptions {
 /** Return value of {@link useConversationParticipation}. */
 export interface UseConversationParticipationReturn {
   /**
-   * Send a staff text reply. Resolves with the truthful outcome of the
-   * inline attempt: `accepted` (with `outboundMessageId` — the item will
-   * appear on the timeline as `ob:<that id>`), `queued`, or `refused`.
+   * Send a staff reply — text or template (see
+   * {@link ConversationReplyPayload}). Resolves with the truthful
+   * outcome of the inline attempt: `accepted` (with
+   * `outboundMessageId` — the item will appear on the timeline as
+   * `ob:<that id>`), `queued`, or `refused` (template pre-check
+   * refusals land here too, with the server's corrective detail).
    * A `refused` outcome WITHOUT an `outboundMessageId` left no ledger
    * row and no timeline item will ever exist for it.
    */
-  readonly reply: (text: string) => Promise<SendChannelMessageOutput>;
+  readonly reply: (payload: ConversationReplyPayload) => Promise<SendChannelMessageOutput>;
   /**
    * Take the conversation over: the agent goes quiet until handBack.
    * Resolves with the fresh row — for the LOSER of a concurrent
@@ -120,13 +160,25 @@ export function useConversationParticipation(
   );
 
   const reply = useCallback(
-    (text: string) =>
+    (payload: ConversationReplyPayload) =>
       run("reply", async () => {
         const output = await stigmer.agentChannel.reply(
           create(ReplyToConversationInputSchema, {
             agentChannelId,
             conversationKey,
-            payload: { kind: { case: "text", value: { body: text } } },
+            payload: {
+              kind:
+                payload.kind === "text"
+                  ? { case: "text", value: { body: payload.body } }
+                  : {
+                      case: "template",
+                      value: {
+                        name: payload.name,
+                        language: payload.language,
+                        parameters: { ...payload.parameters },
+                      },
+                    },
+            },
           }),
         );
         // The implicit takeover flipped control BEFORE the send ran —

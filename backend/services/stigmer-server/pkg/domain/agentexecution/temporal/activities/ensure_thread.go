@@ -9,7 +9,8 @@ import (
 
 // EnsureThreadActivity is the interface for ensuring a thread exists for agent execution.
 //
-// This activity is implemented in Python (agent-runner) and:
+// This activity is implemented in the TypeScript unified runner
+// (backend/services/runner/src/activities/ensure-thread.ts) and:
 // 1. If session exists: fetches session, checks/creates thread, updates session
 // 2. If no session: creates ephemeral thread
 //
@@ -25,15 +26,16 @@ type EnsureThreadActivity interface {
 }
 
 // EnsureThreadActivityName is the activity name used for registration.
-// This MUST match the Python activity name exactly for polyglot to work.
+// This is a WIRE IDENTIFIER: it must match the runner's registration exactly
+// (and stay byte-identical for in-flight workflow compatibility).
 const EnsureThreadActivityName = "EnsureThread"
 
 // NewEnsureThreadActivityStub creates an activity stub for calling EnsureThread from workflows.
-// This is used by workflow implementations to call the Python activity.
+// This is used by workflow implementations to call the runner activity.
 func NewEnsureThreadActivityStub(ctx workflow.Context, taskQueue string) EnsureThreadActivity {
-	// Create activity options with explicit task queue routing to Python worker
+	// Create activity options with explicit task queue routing to the runner
 	options := workflow.ActivityOptions{
-		TaskQueue:              taskQueue,        // Route to Python worker (from memo)
+		TaskQueue:              taskQueue,        // Route to the runner worker (from memo)
 		StartToCloseTimeout:    30 * time.Second, // Fast operation
 		ScheduleToStartTimeout: 5 * time.Minute,  // Max wait for worker to pick up task (matches Java cloud)
 		RetryPolicy: &temporal.RetryPolicy{

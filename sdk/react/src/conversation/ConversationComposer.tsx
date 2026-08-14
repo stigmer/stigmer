@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { Send, TriangleAlert } from "lucide-react";
+import { LayoutTemplate, Send, TriangleAlert } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { ChannelSendOutcome } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
@@ -9,13 +9,29 @@ import type { SendChannelMessageOutput } from "@stigmer/protos/ai/stigmer/agenti
 import { Button } from "../button/Button.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useComposer } from "../composer/useComposer.js";
+import type { ConversationReplyPayload } from "./useConversationParticipation.js";
 
 /** Props for {@link ConversationComposer}. */
 export interface ConversationComposerProps {
-  /** Send a staff reply (from `useConversationParticipation().reply`). */
-  readonly onSend: (text: string) => Promise<SendChannelMessageOutput>;
+  /**
+   * Send a staff reply (from `useConversationParticipation().reply`).
+   * The composer's own textarea always submits the `text` lane; hosts
+   * wiring a template picker send the `template` lane through the same
+   * seam — one command, one busy state, one outcome contract.
+   */
+  readonly onSend: (payload: ConversationReplyPayload) => Promise<SendChannelMessageOutput>;
   /** `true` while a reply is in flight. */
   readonly isSending: boolean;
+  /**
+   * Opens the host's template picker. When present, a persistent
+   * template affordance renders beside Send — templates are the one
+   * lane WhatsApp offers for a closed window, so the surface must
+   * offer the door, not just the advisory's warning (hosts should
+   * point at the button in the advisory copy; the advisory itself
+   * stays interaction-free — it is the input's description, F-18).
+   * Omit on channels whose provider has no template registry.
+   */
+  readonly onOpenTemplatePicker?: () => void;
   /**
    * Why replying is unavailable, when it is — rendered in place of the
    * input (a senderless provider, or a conversation the customer has
@@ -52,6 +68,7 @@ export interface ConversationComposerProps {
 export function ConversationComposer({
   onSend,
   isSending,
+  onOpenTemplatePicker,
   disabledReason,
   advisory,
   className,
@@ -66,7 +83,7 @@ export function ConversationComposer({
   const composer = useComposer({
     onSubmit: (message) => {
       setNotice(null);
-      onSend(message).then(
+      onSend({ kind: "text", body: message }).then(
         (output) => {
           if (output.outcome === ChannelSendOutcome.refused) {
             // The words never left; keep them so the user can adjust.
@@ -110,6 +127,12 @@ export function ConversationComposer({
           className="stg:mb-2 stg:flex stg:items-start stg:gap-1.5 stg:rounded-md stg:bg-status-degraded-subtle stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-status-degraded"
         >
           <TriangleAlert aria-hidden="true" className="stg:mt-0.5 stg:size-3.5 stg:shrink-0" />
+          {/* Interactive content is deliberately NOT allowed in here:
+              this element is the input's aria-describedby target with
+              zero tab stops (F-18). The way forward the advisory names
+              (the template lane) lives on the persistent template
+              button beside Send — hosts point at it in the advisory
+              COPY, never with an embedded control. */}
           <span className="stg:min-w-0">{advisory}</span>
         </p>
       )}
@@ -137,6 +160,17 @@ export function ConversationComposer({
             "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           )}
         />
+        {onOpenTemplatePicker && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onOpenTemplatePicker}
+            disabled={isSending}
+            aria-label="Send a template reply"
+          >
+            <LayoutTemplate aria-hidden="true" className="stg:size-4" />
+          </Button>
+        )}
         <Button
           variant="primary"
           size="sm"

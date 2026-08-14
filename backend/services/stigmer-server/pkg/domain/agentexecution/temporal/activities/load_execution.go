@@ -19,7 +19,7 @@ import (
 //
 // Historically the workflow held a stale copy of the execution (the workflow input).
 // Loading from DB ensures the result reflects all status updates made by the
-// agent-runner during execution.
+// runner during execution.
 type LoadAgentExecutionActivityImpl struct {
 	store store.Store
 }

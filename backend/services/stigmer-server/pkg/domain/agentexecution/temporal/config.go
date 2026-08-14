@@ -10,8 +10,8 @@ import (
 // resolves the Temporal task queue for runner activities.
 const (
 	// RoutingGlobal routes all activities to the shared global queue
-	// (agent_execution_runner). This is the default for OSS local development
-	// where a single runner polls one queue for all sessions.
+	// (RunnerQueue, default stigmer_runner). This is the default for OSS local
+	// development where a single runner polls one queue for all sessions.
 	RoutingGlobal = "global"
 
 	// RoutingSession derives a per-session task queue (session:{session_id})
@@ -33,9 +33,10 @@ const (
 
 // Config holds configuration for agent execution Temporal workers.
 //
-// Polyglot Architecture:
-// - stigmer-queue: Go workflows (stigmer-server) on agent_execution_stigmer
-// - runner-queue: Activities on stigmer_runner (global) or session:{id} (per-session)
+// Queue Architecture:
+//   - stigmer-queue: Go workflows (stigmer-server) on agent_execution_stigmer
+//   - runner-queue: TS unified-runner activities on stigmer_runner (global) or
+//     session:{id} (per-session)
 //
 // Environment Variables:
 // - TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE: Queue for Go workflows
