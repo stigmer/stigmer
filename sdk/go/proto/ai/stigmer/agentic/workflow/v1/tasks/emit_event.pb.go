@@ -121,7 +121,16 @@ type EmitEventTaskConfig struct {
 	// The event specification to emit.
 	// Contains the CloudEvents envelope fields (type, source, data, subject).
 	// Required field.
-	Event         *EmitEventSpec `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
+	Event *EmitEventSpec `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
+	// Delivery targets for the emitted event (optional).
+	// When empty, the task only constructs the CloudEvents envelope and
+	// exposes it as task output — no external delivery happens.
+	//
+	// Delivery is best-effort: a failed target never fails the task. Failures
+	// are collected into the "delivery_errors" array on the task output, one
+	// entry per failed target, so workflows can branch on delivery health.
+	// Each target has a 30-second timeout.
+	Delivery      []*EmitDeliveryTarget `protobuf:"bytes,2,rep,name=delivery,proto3" json:"delivery,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -163,6 +172,224 @@ func (x *EmitEventTaskConfig) GetEvent() *EmitEventSpec {
 	return nil
 }
 
+func (x *EmitEventTaskConfig) GetDelivery() []*EmitDeliveryTarget {
+	if x != nil {
+		return x.Delivery
+	}
+	return nil
+}
+
+// EmitDeliveryTarget selects one destination for an emitted event.
+//
+// Two delivery mechanisms are supported:
+//   - webhook: HTTP POST the CloudEvents envelope to an external endpoint.
+//   - signal: deliver the envelope as a signal to another workflow
+//     execution's listen task (the emit/listen pairing).
+type EmitDeliveryTarget struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Target:
+	//
+	//	*EmitDeliveryTarget_Webhook
+	//	*EmitDeliveryTarget_Signal
+	Target        isEmitDeliveryTarget_Target `protobuf_oneof:"target"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EmitDeliveryTarget) Reset() {
+	*x = EmitDeliveryTarget{}
+	mi := &file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EmitDeliveryTarget) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EmitDeliveryTarget) ProtoMessage() {}
+
+func (x *EmitDeliveryTarget) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EmitDeliveryTarget.ProtoReflect.Descriptor instead.
+func (*EmitDeliveryTarget) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *EmitDeliveryTarget) GetTarget() isEmitDeliveryTarget_Target {
+	if x != nil {
+		return x.Target
+	}
+	return nil
+}
+
+func (x *EmitDeliveryTarget) GetWebhook() *WebhookDelivery {
+	if x != nil {
+		if x, ok := x.Target.(*EmitDeliveryTarget_Webhook); ok {
+			return x.Webhook
+		}
+	}
+	return nil
+}
+
+func (x *EmitDeliveryTarget) GetSignal() *SignalDelivery {
+	if x != nil {
+		if x, ok := x.Target.(*EmitDeliveryTarget_Signal); ok {
+			return x.Signal
+		}
+	}
+	return nil
+}
+
+type isEmitDeliveryTarget_Target interface {
+	isEmitDeliveryTarget_Target()
+}
+
+type EmitDeliveryTarget_Webhook struct {
+	// POST the CloudEvents envelope to an HTTP endpoint.
+	Webhook *WebhookDelivery `protobuf:"bytes,1,opt,name=webhook,proto3,oneof"`
+}
+
+type EmitDeliveryTarget_Signal struct {
+	// Signal another workflow execution's listen task.
+	Signal *SignalDelivery `protobuf:"bytes,2,opt,name=signal,proto3,oneof"`
+}
+
+func (*EmitDeliveryTarget_Webhook) isEmitDeliveryTarget_Target() {}
+
+func (*EmitDeliveryTarget_Signal) isEmitDeliveryTarget_Target() {}
+
+// WebhookDelivery posts the CloudEvents envelope to an external HTTP
+// endpoint with Content-Type: application/cloudevents+json.
+type WebhookDelivery struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Endpoint URL to POST the event to.
+	// Can contain expressions: "https://hooks.example.com/${ $context.tenant }"
+	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	// HTTP headers to send with the POST (optional).
+	// Values can contain runtime placeholders resolved just-in-time by the
+	// runner: "Authorization: Bearer ${.secrets.WEBHOOK_TOKEN}" or
+	// "${.env_vars.KEY}". Secrets resolve inside the delivery activity and
+	// never enter workflow history.
+	Headers       map[string]string `protobuf:"bytes,2,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WebhookDelivery) Reset() {
+	*x = WebhookDelivery{}
+	mi := &file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WebhookDelivery) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WebhookDelivery) ProtoMessage() {}
+
+func (x *WebhookDelivery) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WebhookDelivery.ProtoReflect.Descriptor instead.
+func (*WebhookDelivery) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *WebhookDelivery) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *WebhookDelivery) GetHeaders() map[string]string {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
+}
+
+// SignalDelivery routes the CloudEvents envelope to another workflow
+// execution as a signal, completing the emit/listen pairing: the target
+// execution receives the envelope on the listen task whose signal id
+// matches signal_name.
+type SignalDelivery struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Target workflow execution id ("wfx_..."), as returned by run/create.
+	// Usually flows from a prior task's output:
+	// "${ .start_processor.execution_id }"
+	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	// Signal name, matching the target's listen task event id (verbatim).
+	SignalName    string `protobuf:"bytes,2,opt,name=signal_name,json=signalName,proto3" json:"signal_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SignalDelivery) Reset() {
+	*x = SignalDelivery{}
+	mi := &file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SignalDelivery) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SignalDelivery) ProtoMessage() {}
+
+func (x *SignalDelivery) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SignalDelivery.ProtoReflect.Descriptor instead.
+func (*SignalDelivery) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *SignalDelivery) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *SignalDelivery) GetSignalName() string {
+	if x != nil {
+		return x.SignalName
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_rawDesc = "" +
@@ -173,10 +400,25 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_rawDesc = "" +
 	"\xc8\x01\x01r\x05\x10\x01\x18\xff\x01R\x04type\x12\x1c\n" +
 	"\x06source\x18\x02 \x01(\tB\x04\u0605,\x01R\x06source\x12+\n" +
 	"\x04data\x18\x03 \x01(\v2\x17.google.protobuf.StructR\x04data\x12\x1e\n" +
-	"\asubject\x18\x04 \x01(\tB\x04\u0605,\x01R\asubject\"x\n" +
+	"\asubject\x18\x04 \x01(\tB\x04\u0605,\x01R\asubject\"\xce\x01\n" +
 	"\x13EmitEventTaskConfig\x12Q\n" +
-	"\x05event\x18\x01 \x01(\v23.ai.stigmer.agentic.workflow.v1.tasks.EmitEventSpecB\x06\xbaH\x03\xc8\x01\x01R\x05event:\x0e\xea\x8b,\n" +
-	"emit_eventB\xc3\x02\n" +
+	"\x05event\x18\x01 \x01(\v23.ai.stigmer.agentic.workflow.v1.tasks.EmitEventSpecB\x06\xbaH\x03\xc8\x01\x01R\x05event\x12T\n" +
+	"\bdelivery\x18\x02 \x03(\v28.ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTargetR\bdelivery:\x0e\xea\x8b,\n" +
+	"emit_event\"\xc8\x01\n" +
+	"\x12EmitDeliveryTarget\x12Q\n" +
+	"\awebhook\x18\x01 \x01(\v25.ai.stigmer.agentic.workflow.v1.tasks.WebhookDeliveryH\x00R\awebhook\x12N\n" +
+	"\x06signal\x18\x02 \x01(\v24.ai.stigmer.agentic.workflow.v1.tasks.SignalDeliveryH\x00R\x06signalB\x0f\n" +
+	"\x06target\x12\x05\xbaH\x02\b\x01\"\xcd\x01\n" +
+	"\x0fWebhookDelivery\x12 \n" +
+	"\x03url\x18\x01 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\x03url\x12\\\n" +
+	"\aheaders\x18\x02 \x03(\v2B.ai.stigmer.agentic.workflow.v1.tasks.WebhookDelivery.HeadersEntryR\aheaders\x1a:\n" +
+	"\fHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"t\n" +
+	"\x0eSignalDelivery\x121\n" +
+	"\fexecution_id\x18\x01 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\vexecutionId\x12/\n" +
+	"\vsignal_name\x18\x02 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\n" +
+	"signalNameB\xc3\x02\n" +
 	"(com.ai.stigmer.agentic.workflow.v1.tasksB\x0eEmitEventProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 
 var (
@@ -191,20 +433,28 @@ func file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_rawDescGZIP() []
 	return file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_goTypes = []any{
 	(*EmitEventSpec)(nil),       // 0: ai.stigmer.agentic.workflow.v1.tasks.EmitEventSpec
 	(*EmitEventTaskConfig)(nil), // 1: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
-	(*structpb.Struct)(nil),     // 2: google.protobuf.Struct
+	(*EmitDeliveryTarget)(nil),  // 2: ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget
+	(*WebhookDelivery)(nil),     // 3: ai.stigmer.agentic.workflow.v1.tasks.WebhookDelivery
+	(*SignalDelivery)(nil),      // 4: ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery
+	nil,                         // 5: ai.stigmer.agentic.workflow.v1.tasks.WebhookDelivery.HeadersEntry
+	(*structpb.Struct)(nil),     // 6: google.protobuf.Struct
 }
 var file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_depIdxs = []int32{
-	2, // 0: ai.stigmer.agentic.workflow.v1.tasks.EmitEventSpec.data:type_name -> google.protobuf.Struct
+	6, // 0: ai.stigmer.agentic.workflow.v1.tasks.EmitEventSpec.data:type_name -> google.protobuf.Struct
 	0, // 1: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig.event:type_name -> ai.stigmer.agentic.workflow.v1.tasks.EmitEventSpec
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	2, // 2: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig.delivery:type_name -> ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget
+	3, // 3: ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget.webhook:type_name -> ai.stigmer.agentic.workflow.v1.tasks.WebhookDelivery
+	4, // 4: ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget.signal:type_name -> ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery
+	5, // 5: ai.stigmer.agentic.workflow.v1.tasks.WebhookDelivery.headers:type_name -> ai.stigmer.agentic.workflow.v1.tasks.WebhookDelivery.HeadersEntry
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_init() }
@@ -212,13 +462,17 @@ func file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_init() {
 	if File_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto != nil {
 		return
 	}
+	file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_msgTypes[2].OneofWrappers = []any{
+		(*EmitDeliveryTarget_Webhook)(nil),
+		(*EmitDeliveryTarget_Signal)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_rawDesc), len(file_ai_stigmer_agentic_workflow_v1_tasks_emit_event_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

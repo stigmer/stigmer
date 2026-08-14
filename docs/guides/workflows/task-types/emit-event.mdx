@@ -15,7 +15,7 @@ systems.
 
 `emit_event`
 
-## YAML Example
+## YAML Examples
 
 ```yaml
 - name: notify_classified
@@ -32,6 +32,25 @@ systems.
     as: "${ . }"
 ```
 
+```yaml
+- name: notify_downstream
+  kind: emit_event
+  task_config:
+    event:
+      type: "acme.order.fulfilled"
+      subject: "${ $context.order.number }"
+      data:
+        order_id: "${ $context.order.id }"
+    delivery:
+      - webhook:
+          url: "https://hooks.acme.com/orders"
+          headers:
+            Authorization: "Bearer ${.secrets.ACME_HOOK_TOKEN}"
+      - signal:
+          execution_id: "${ .start_shipping.execution_id }"
+          signal_name: "order-fulfilled"
+```
+
 ## task_config Fields
 
 <TypeTable
@@ -41,6 +60,11 @@ systems.
       description: "The event specification to emit.",
       typeDescriptionLink: "#emiteventspec",
       required: true,
+    },
+    delivery: {
+      type: "EmitDeliveryTarget[]",
+      description: "Delivery targets for the emitted event (optional).",
+      typeDescriptionLink: "#emitdeliverytarget",
     },
   }}
 />
@@ -64,6 +88,67 @@ EmitEventSpec defines the CloudEvents envelope for an event to be emitted.
   }}
 />
 
+### EmitDeliveryTarget
+
+EmitDeliveryTarget selects one destination for an emitted event.
+
+<TypeTable
+  type={{
+    webhook: {
+      type: "WebhookDelivery",
+      description: "POST the CloudEvents envelope to an HTTP endpoint.",
+      typeDescriptionLink: "#webhookdelivery",
+    },
+    signal: {
+      type: "SignalDelivery",
+      description: "Signal another workflow execution's listen task.",
+      typeDescriptionLink: "#signaldelivery",
+    },
+  }}
+/>
+
+### WebhookDelivery
+
+WebhookDelivery posts the CloudEvents envelope to an external HTTP endpoint with
+Content-Type: application/cloudevents+json.
+
+<TypeTable
+  type={{
+    url: {
+      type: "string",
+      description: "Endpoint URL to POST the event to.",
+      required: true,
+    },
+    headers: {
+      type: "Record<string, string>",
+      description: "HTTP headers to send with the POST (optional).",
+    },
+  }}
+/>
+
+### SignalDelivery
+
+SignalDelivery routes the CloudEvents envelope to another workflow execution as
+a signal, completing the emit/listen pairing: the target execution receives the
+envelope on the listen task whose signal id matches signal_name.
+
+<TypeTable
+  type={{
+    execution_id: {
+      type: "string",
+      description:
+        'Target workflow execution id ("wfx_..."), as returned by run/create.',
+      required: true,
+    },
+    signal_name: {
+      type: "string",
+      description:
+        "Signal name, matching the target's listen task event id (verbatim).",
+      required: true,
+    },
+  }}
+/>
+
 ## Output Shape
 
 ```json
@@ -76,6 +161,13 @@ EmitEventSpec defines the CloudEvents envelope for an event to be emitted.
     "datacontenttype": {
       "description": "Always 'application/json'.",
       "type": "string"
+    },
+    "delivery_errors": {
+      "description": "Present only when at least one delivery target failed. One entry per failed target; delivery is best-effort and never fails the task.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
     },
     "id": {
       "description": "Generated UUID for this event.",

@@ -27,7 +27,7 @@ from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import struct_pb2 as google_dot_protobuf_dot_struct__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n5ai/stigmer/agentic/workflow/v1/tasks/emit_event.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x9d\x01\n\rEmitEventSpec\x12!\n\x04type\x18\x01 \x01(\tB\r\xbaH\nr\x05\x10\x01\x18\xff\x01\xc8\x01\x01R\x04type\x12\x1c\n\x06source\x18\x02 \x01(\tB\x04\xd8\x85,\x01R\x06source\x12+\n\x04\x64\x61ta\x18\x03 \x01(\x0b\x32\x17.google.protobuf.StructR\x04\x64\x61ta\x12\x1e\n\x07subject\x18\x04 \x01(\tB\x04\xd8\x85,\x01R\x07subject\"x\n\x13\x45mitEventTaskConfig\x12Q\n\x05\x65vent\x18\x01 \x01(\x0b\x32\x33.ai.stigmer.agentic.workflow.v1.tasks.EmitEventSpecB\x06\xbaH\x03\xc8\x01\x01R\x05\x65vent:\x0e\xea\x8b,\nemit_eventB\xf2\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\x0e\x45mitEventProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n5ai/stigmer/agentic/workflow/v1/tasks/emit_event.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x9d\x01\n\rEmitEventSpec\x12!\n\x04type\x18\x01 \x01(\tB\r\xbaH\nr\x05\x10\x01\x18\xff\x01\xc8\x01\x01R\x04type\x12\x1c\n\x06source\x18\x02 \x01(\tB\x04\xd8\x85,\x01R\x06source\x12+\n\x04\x64\x61ta\x18\x03 \x01(\x0b\x32\x17.google.protobuf.StructR\x04\x64\x61ta\x12\x1e\n\x07subject\x18\x04 \x01(\tB\x04\xd8\x85,\x01R\x07subject\"\xce\x01\n\x13\x45mitEventTaskConfig\x12Q\n\x05\x65vent\x18\x01 \x01(\x0b\x32\x33.ai.stigmer.agentic.workflow.v1.tasks.EmitEventSpecB\x06\xbaH\x03\xc8\x01\x01R\x05\x65vent\x12T\n\x08\x64\x65livery\x18\x02 \x03(\x0b\x32\x38.ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTargetR\x08\x64\x65livery:\x0e\xea\x8b,\nemit_event\"\xc8\x01\n\x12\x45mitDeliveryTarget\x12Q\n\x07webhook\x18\x01 \x01(\x0b\x32\x35.ai.stigmer.agentic.workflow.v1.tasks.WebhookDeliveryH\x00R\x07webhook\x12N\n\x06signal\x18\x02 \x01(\x0b\x32\x34.ai.stigmer.agentic.workflow.v1.tasks.SignalDeliveryH\x00R\x06signalB\x0f\n\x06target\x12\x05\xbaH\x02\x08\x01\"\xcd\x01\n\x0fWebhookDelivery\x12 \n\x03url\x18\x01 \x01(\tB\x0e\xbaH\x07r\x02\x10\x01\xc8\x01\x01\xd8\x85,\x01R\x03url\x12\\\n\x07headers\x18\x02 \x03(\x0b\x32\x42.ai.stigmer.agentic.workflow.v1.tasks.WebhookDelivery.HeadersEntryR\x07headers\x1a:\n\x0cHeadersEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"t\n\x0eSignalDelivery\x12\x31\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x0e\xbaH\x07r\x02\x10\x01\xc8\x01\x01\xd8\x85,\x01R\x0b\x65xecutionId\x12/\n\x0bsignal_name\x18\x02 \x01(\tB\x0e\xbaH\x07r\x02\x10\x01\xc8\x01\x01\xd8\x85,\x01R\nsignalNameB\xf2\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\x0e\x45mitEventProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -45,8 +45,26 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_EMITEVENTTASKCONFIG'].fields_by_name['event']._serialized_options = b'\272H\003\310\001\001'
   _globals['_EMITEVENTTASKCONFIG']._loaded_options = None
   _globals['_EMITEVENTTASKCONFIG']._serialized_options = b'\352\213,\nemit_event'
+  _globals['_EMITDELIVERYTARGET'].oneofs_by_name['target']._loaded_options = None
+  _globals['_EMITDELIVERYTARGET'].oneofs_by_name['target']._serialized_options = b'\272H\002\010\001'
+  _globals['_WEBHOOKDELIVERY_HEADERSENTRY']._loaded_options = None
+  _globals['_WEBHOOKDELIVERY_HEADERSENTRY']._serialized_options = b'8\001'
+  _globals['_WEBHOOKDELIVERY'].fields_by_name['url']._loaded_options = None
+  _globals['_WEBHOOKDELIVERY'].fields_by_name['url']._serialized_options = b'\272H\007r\002\020\001\310\001\001\330\205,\001'
+  _globals['_SIGNALDELIVERY'].fields_by_name['execution_id']._loaded_options = None
+  _globals['_SIGNALDELIVERY'].fields_by_name['execution_id']._serialized_options = b'\272H\007r\002\020\001\310\001\001\330\205,\001'
+  _globals['_SIGNALDELIVERY'].fields_by_name['signal_name']._loaded_options = None
+  _globals['_SIGNALDELIVERY'].fields_by_name['signal_name']._serialized_options = b'\272H\007r\002\020\001\310\001\001\330\205,\001'
   _globals['_EMITEVENTSPEC']._serialized_start=207
   _globals['_EMITEVENTSPEC']._serialized_end=364
-  _globals['_EMITEVENTTASKCONFIG']._serialized_start=366
-  _globals['_EMITEVENTTASKCONFIG']._serialized_end=486
+  _globals['_EMITEVENTTASKCONFIG']._serialized_start=367
+  _globals['_EMITEVENTTASKCONFIG']._serialized_end=573
+  _globals['_EMITDELIVERYTARGET']._serialized_start=576
+  _globals['_EMITDELIVERYTARGET']._serialized_end=776
+  _globals['_WEBHOOKDELIVERY']._serialized_start=779
+  _globals['_WEBHOOKDELIVERY']._serialized_end=984
+  _globals['_WEBHOOKDELIVERY_HEADERSENTRY']._serialized_start=926
+  _globals['_WEBHOOKDELIVERY_HEADERSENTRY']._serialized_end=984
+  _globals['_SIGNALDELIVERY']._serialized_start=986
+  _globals['_SIGNALDELIVERY']._serialized_end=1102
 # @@protoc_insertion_point(module_scope)

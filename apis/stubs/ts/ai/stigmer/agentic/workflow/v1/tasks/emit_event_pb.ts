@@ -13,7 +13,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/tasks/emit_event.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_tasks_emit_event: GenFile = /*@__PURE__*/
-  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvZW1pdF9ldmVudC5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzIoABCg1FbWl0RXZlbnRTcGVjEhsKBHR5cGUYASABKAlCDbpICsgBAXIFEAEY/wESFAoGc291cmNlGAIgASgJQgTYhSwBEiUKBGRhdGEYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EhUKB3N1YmplY3QYBCABKAlCBNiFLAEicQoTRW1pdEV2ZW50VGFza0NvbmZpZxJKCgVldmVudBgBIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5FbWl0RXZlbnRTcGVjQga6SAPIAQE6DuqLLAplbWl0X2V2ZW50YgZwcm90bzM", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvZW1pdF9ldmVudC5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzIoABCg1FbWl0RXZlbnRTcGVjEhsKBHR5cGUYASABKAlCDbpICsgBAXIFEAEY/wESFAoGc291cmNlGAIgASgJQgTYhSwBEiUKBGRhdGEYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EhUKB3N1YmplY3QYBCABKAlCBNiFLAEivQEKE0VtaXRFdmVudFRhc2tDb25maWcSSgoFZXZlbnQYASABKAsyMy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuRW1pdEV2ZW50U3BlY0IGukgDyAEBEkoKCGRlbGl2ZXJ5GAIgAygLMjguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLkVtaXREZWxpdmVyeVRhcmdldDoO6ossCmVtaXRfZXZlbnQitwEKEkVtaXREZWxpdmVyeVRhcmdldBJICgd3ZWJob29rGAEgASgLMjUuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLldlYmhvb2tEZWxpdmVyeUgAEkYKBnNpZ25hbBgCIAEoCzI0LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5TaWduYWxEZWxpdmVyeUgAQg8KBnRhcmdldBIFukgCCAEiswEKD1dlYmhvb2tEZWxpdmVyeRIbCgN1cmwYASABKAlCDrpIB8gBAXICEAHYhSwBElMKB2hlYWRlcnMYAiADKAsyQi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuV2ViaG9va0RlbGl2ZXJ5LkhlYWRlcnNFbnRyeRouCgxIZWFkZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJbCg5TaWduYWxEZWxpdmVyeRIkCgxleGVjdXRpb25faWQYASABKAlCDrpIB8gBAXICEAHYhSwBEiMKC3NpZ25hbF9uYW1lGAIgASgJQg66SAfIAQFyAhAB2IUsAWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * EmitEventSpec defines the CloudEvents envelope for an event to be emitted.
@@ -89,6 +89,20 @@ export type EmitEventTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
    * @generated from field: ai.stigmer.agentic.workflow.v1.tasks.EmitEventSpec event = 1;
    */
   event?: EmitEventSpec;
+
+  /**
+   * Delivery targets for the emitted event (optional).
+   * When empty, the task only constructs the CloudEvents envelope and
+   * exposes it as task output — no external delivery happens.
+   *
+   * Delivery is best-effort: a failed target never fails the task. Failures
+   * are collected into the "delivery_errors" array on the task output, one
+   * entry per failed target, so workflows can branch on delivery health.
+   * Each target has a 30-second timeout.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget delivery = 2;
+   */
+  delivery: EmitDeliveryTarget[];
 };
 
 /**
@@ -97,4 +111,111 @@ export type EmitEventTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
  */
 export const EmitEventTaskConfigSchema: GenMessage<EmitEventTaskConfig> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflow_v1_tasks_emit_event, 1);
+
+/**
+ * EmitDeliveryTarget selects one destination for an emitted event.
+ *
+ * Two delivery mechanisms are supported:
+ * - webhook: HTTP POST the CloudEvents envelope to an external endpoint.
+ * - signal: deliver the envelope as a signal to another workflow
+ *   execution's listen task (the emit/listen pairing).
+ *
+ * @generated from message ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget
+ */
+export type EmitDeliveryTarget = Message<"ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget"> & {
+  /**
+   * @generated from oneof ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget.target
+   */
+  target: {
+    /**
+     * POST the CloudEvents envelope to an HTTP endpoint.
+     *
+     * @generated from field: ai.stigmer.agentic.workflow.v1.tasks.WebhookDelivery webhook = 1;
+     */
+    value: WebhookDelivery;
+    case: "webhook";
+  } | {
+    /**
+     * Signal another workflow execution's listen task.
+     *
+     * @generated from field: ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery signal = 2;
+     */
+    value: SignalDelivery;
+    case: "signal";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget.
+ * Use `create(EmitDeliveryTargetSchema)` to create a new message.
+ */
+export const EmitDeliveryTargetSchema: GenMessage<EmitDeliveryTarget> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflow_v1_tasks_emit_event, 2);
+
+/**
+ * WebhookDelivery posts the CloudEvents envelope to an external HTTP
+ * endpoint with Content-Type: application/cloudevents+json.
+ *
+ * @generated from message ai.stigmer.agentic.workflow.v1.tasks.WebhookDelivery
+ */
+export type WebhookDelivery = Message<"ai.stigmer.agentic.workflow.v1.tasks.WebhookDelivery"> & {
+  /**
+   * Endpoint URL to POST the event to.
+   * Can contain expressions: "https://hooks.example.com/${ $context.tenant }"
+   *
+   * @generated from field: string url = 1;
+   */
+  url: string;
+
+  /**
+   * HTTP headers to send with the POST (optional).
+   * Values can contain runtime placeholders resolved just-in-time by the
+   * runner: "Authorization: Bearer ${.secrets.WEBHOOK_TOKEN}" or
+   * "${.env_vars.KEY}". Secrets resolve inside the delivery activity and
+   * never enter workflow history.
+   *
+   * @generated from field: map<string, string> headers = 2;
+   */
+  headers: { [key: string]: string };
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflow.v1.tasks.WebhookDelivery.
+ * Use `create(WebhookDeliverySchema)` to create a new message.
+ */
+export const WebhookDeliverySchema: GenMessage<WebhookDelivery> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflow_v1_tasks_emit_event, 3);
+
+/**
+ * SignalDelivery routes the CloudEvents envelope to another workflow
+ * execution as a signal, completing the emit/listen pairing: the target
+ * execution receives the envelope on the listen task whose signal id
+ * matches signal_name.
+ *
+ * @generated from message ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery
+ */
+export type SignalDelivery = Message<"ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery"> & {
+  /**
+   * Target workflow execution id ("wfx_..."), as returned by run/create.
+   * Usually flows from a prior task's output:
+   * "${ .start_processor.execution_id }"
+   *
+   * @generated from field: string execution_id = 1;
+   */
+  executionId: string;
+
+  /**
+   * Signal name, matching the target's listen task event id (verbatim).
+   *
+   * @generated from field: string signal_name = 2;
+   */
+  signalName: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery.
+ * Use `create(SignalDeliverySchema)` to create a new message.
+ */
+export const SignalDeliverySchema: GenMessage<SignalDelivery> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflow_v1_tasks_emit_event, 4);
 

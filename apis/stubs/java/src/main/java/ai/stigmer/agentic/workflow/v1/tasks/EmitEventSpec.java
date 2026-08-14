@@ -21,10 +21,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * - time: ISO 8601 timestamp of emission
  * - datacontenttype: always "application/json" (since data is a Struct)
  *
- * The runtime (T13) decides how events are delivered: Temporal signals to
- * other workflows, message queues, webhooks, or event buses. The proto
- * carries the event specification; delivery is a runtime concern.
- *
  * &#64;since T03 (P0 New Task Types)
  * </pre>
  *
@@ -499,10 +495,6 @@ private static final long serialVersionUID = 0L;
    * - specversion: always "1.0"
    * - time: ISO 8601 timestamp of emission
    * - datacontenttype: always "application/json" (since data is a Struct)
-   *
-   * The runtime (T13) decides how events are delivered: Temporal signals to
-   * other workflows, message queues, webhooks, or event buses. The proto
-   * carries the event specification; delivery is a runtime concern.
    *
    * &#64;since T03 (P0 New Task Types)
    * </pre>
