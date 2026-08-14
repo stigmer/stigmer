@@ -211,6 +211,13 @@
       "components": 4
     },
     {
+      "slug": "provider-standing",
+      "title": "provider-standing",
+      "description": "",
+      "hooks": 1,
+      "components": 2
+    },
+    {
       "slug": "resource-creation",
       "title": "Resource Creation",
       "description": "Hooks and components for template-driven resource creation flows.",
