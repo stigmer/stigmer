@@ -31,18 +31,10 @@ const (
 // InvitationQueryController handles read operations for invitations.
 type InvitationQueryControllerClient interface {
 	// Get an invitation by its unique identifier.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the invitation resource.
 	Get(ctx context.Context, in *InvitationId, opts ...grpc.CallOption) (*Invitation, error)
 	// List all invitations belonging to an organization.
 	//
 	// Returns invitations ordered by creation time (newest first).
-	//
-	// @internal
-	// Authorization: Requires can_view_access permission on the organization.
-	// This is intentionally stricter than can_view — only users who can
-	// manage org access (admins and owners) should see invitation links.
 	ListByOrg(ctx context.Context, in *ListInvitationsByOrgInput, opts ...grpc.CallOption) (*Invitations, error)
 	// Get a preview of an invitation by its shareable token.
 	//
@@ -55,11 +47,6 @@ type InvitationQueryControllerClient interface {
 	// has authenticated, so it requires no authorization. The response
 	// intentionally omits the token value, redemption history, and internal
 	// invitation metadata.
-	//
-	// @internal
-	// Authorization: none — unauthenticated, public endpoint for rendering
-	// the invite acceptance page. Marked is_public so the authentication
-	// interceptor skips token validation entirely.
 	GetByToken(ctx context.Context, in *InvitationTokenInput, opts ...grpc.CallOption) (*InvitationPreview, error)
 }
 
@@ -108,18 +95,10 @@ func (c *invitationQueryControllerClient) GetByToken(ctx context.Context, in *In
 // InvitationQueryController handles read operations for invitations.
 type InvitationQueryControllerServer interface {
 	// Get an invitation by its unique identifier.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the invitation resource.
 	Get(context.Context, *InvitationId) (*Invitation, error)
 	// List all invitations belonging to an organization.
 	//
 	// Returns invitations ordered by creation time (newest first).
-	//
-	// @internal
-	// Authorization: Requires can_view_access permission on the organization.
-	// This is intentionally stricter than can_view — only users who can
-	// manage org access (admins and owners) should see invitation links.
 	ListByOrg(context.Context, *ListInvitationsByOrgInput) (*Invitations, error)
 	// Get a preview of an invitation by its shareable token.
 	//
@@ -132,11 +111,6 @@ type InvitationQueryControllerServer interface {
 	// has authenticated, so it requires no authorization. The response
 	// intentionally omits the token value, redemption history, and internal
 	// invitation metadata.
-	//
-	// @internal
-	// Authorization: none — unauthenticated, public endpoint for rendering
-	// the invite acceptance page. Marked is_public so the authentication
-	// interceptor skips token validation entirely.
 	GetByToken(context.Context, *InvitationTokenInput) (*InvitationPreview, error)
 }
 

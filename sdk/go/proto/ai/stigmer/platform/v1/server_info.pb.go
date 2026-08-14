@@ -231,11 +231,6 @@ type GetRunnerBootstrapConfigOutput struct {
 	// Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
 	// server with no signing key configured. The runner keeps using its existing
 	// token in that case.
-	//
-	// @internal
-	// iss=stigmer, sub=caller identity account, token_type=embedded_runner. The
-	// runner treats this as its proxy credential, distinct from the control-plane
-	// token it authenticated this call with, and refreshes it before expiry.
 	RunnerAccessToken string `protobuf:"bytes,3,opt,name=runner_access_token,json=runnerAccessToken,proto3" json:"runner_access_token,omitempty"`
 	// Token type for runner_access_token. "Bearer" when a token is present,
 	// empty otherwise.
@@ -255,13 +250,6 @@ type GetRunnerBootstrapConfigOutput struct {
 	// management. The runner then falls back to its env-configured key, or runs
 	// without payload encryption. An explicitly env-configured key always wins
 	// over this field.
-	//
-	// @internal
-	// Cloud-only. Per-identity rather than platform-wide because a desktop
-	// runner must never hold the platform key: compromise of one user's machine
-	// exposes only payloads encrypted under that identity's key. The control
-	// plane's decode-only codec resolves these keys by key id, so the service
-	// can read every runner's results while runners cannot read each other's.
 	PayloadEncryptionKey string `protobuf:"bytes,6,opt,name=payload_encryption_key,json=payloadEncryptionKey,proto3" json:"payload_encryption_key,omitempty"`
 	// Key id stamped on payloads encrypted under payload_encryption_key.
 	// Present exactly when the key is present.
@@ -505,15 +493,6 @@ func (*GetRunnerScopedTokenInput_Renewal) isGetRunnerScopedTokenInput_Scope() {}
 // token_type=pool_sandbox credential (carrying its pool_member_id claim). When
 // the control plane claims it for a session, the member presents this arm to
 // exchange that credential for the session's sandbox token.
-//
-// @internal
-// Cloud authorizes against the pool claim record, not FGA: the pool_sandboxes
-// row for the caller token's pool_member_id must be CLAIMED for exactly this
-// session_id (the DB is the authorization source). Identity and org are minted
-// from the values the claimer recorded on that row — never from the client —
-// and the TTL is the config-owned standard sandbox TTL, like every session
-// token (stigmer-cloud#256; renewal, not lifetime, carries long conversations).
-// OSS has no pool and mints nothing (empty output, presence-based contract).
 type PoolClaim struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Session the pool member was claimed for — the scope of the token it
@@ -575,19 +554,6 @@ func (x *PoolClaim) GetSessionId() string {
 // workflow-execution scope) comes from the presented credential's VERIFIED
 // claims, never from the client, so a renewed token is claim-identical to
 // the one it replaces.
-//
-// @internal
-// Cloud authorizes against the live sandbox record, not FGA (a sandbox
-// token is structurally not an FGA principal — the pool_claim posture): a
-// token_type=sandbox caller requires its session_sandboxes row to exist and
-// not be archived/deleting; a token_type=workflow_sandbox caller requires
-// the same of its workflow_sandboxes row. The record IS the revocation
-// lever: when the lifecycle reconciler reaps the sandbox, renewal dies with
-// it, so a credential's renewable lifetime is exactly its sandbox's
-// lifetime. Minted TTL is the standard sandbox TTL — every mint path uses it
-// (stigmer-cloud#256), and renewal is what makes short TTLs sufficient. OSS
-// has no signing key and mints nothing (empty output, presence-based
-// contract).
 type TokenRenewal struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -634,11 +600,6 @@ type GetRunnerScopedTokenOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Stigmer-signed token scoped to the requested work. The runner presents it
 	// for ExecutionContext reads in place of its unscoped bootstrap token.
-	//
-	// @internal
-	// iss=stigmer, sub=caller identity account, token_type=sandbox (with
-	// session_id claim) or workflow_sandbox (with workflow_execution_id claim),
-	// minted by the same SandboxTokenService that provisions cloud sandboxes.
 	RunnerScopedToken string `protobuf:"bytes,1,opt,name=runner_scoped_token,json=runnerScopedToken,proto3" json:"runner_scoped_token,omitempty"`
 	// Token type for runner_scoped_token. "Bearer" when a token is present,
 	// empty otherwise.

@@ -14,42 +14,11 @@ export const file_ai_stigmer_agentic_workflowexecution_v1_enum: GenFile = /*@__P
 /**
  * ExecutionPhase defines the lifecycle phase of a workflow execution.
  *
- * @internal
- * Phase Transitions:
- *
- * Normal flow:
- * EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_COMPLETED
- *
- * Failure flow:
- * EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_FAILED
- *
- * Cancellation flow:
- * EXECUTION_PENDING → EXECUTION_CANCELLED
- * EXECUTION_IN_PROGRESS → EXECUTION_CANCELLED
- * EXECUTION_PAUSED → EXECUTION_CANCELLED
- *
- * Termination flow (force stop):
- * EXECUTION_PENDING → EXECUTION_TERMINATED
- * EXECUTION_IN_PROGRESS → EXECUTION_TERMINATED
- * EXECUTION_PAUSED → EXECUTION_TERMINATED
- *
- * Pause/Resume flow:
- * EXECUTION_PENDING → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
- * EXECUTION_IN_PROGRESS → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
- *
- * Terminal States: COMPLETED, FAILED, CANCELLED, TERMINATED
- * Non-Terminal States: PAUSED (can be resumed)
- *
- * Once a workflow reaches a terminal state, it cannot transition to another phase.
- *
  * @generated from enum ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
  */
 export enum ExecutionPhase {
   /**
    * Unspecified phase (invalid).
-   *
-   * @internal
-   * Exists only for proto3 zero-value semantics.
    *
    * @generated from enum value: EXECUTION_PHASE_UNSPECIFIED = 0;
    */
@@ -58,26 +27,12 @@ export enum ExecutionPhase {
   /**
    * Execution created, waiting to start.
    *
-   * @internal
-   * The WorkflowExecution resource has been created but the workflow runner
-   * has not yet picked it up for execution.
-   *
-   * Typical duration: < 1 second (unless workflow runner is overloaded)
-   * Next phases: EXECUTION_IN_PROGRESS, EXECUTION_CANCELLED, EXECUTION_TERMINATED
-   *
    * @generated from enum value: EXECUTION_PENDING = 1;
    */
   EXECUTION_PENDING = 1,
 
   /**
    * Execution is actively running tasks.
-   *
-   * @internal
-   * The workflow runner is processing tasks in the workflow definition.
-   * Tasks may be executing sequentially, in parallel, or conditionally.
-   *
-   * Typical duration: Seconds to hours (depends on workflow complexity)
-   * Next phases: EXECUTION_COMPLETED, EXECUTION_FAILED, EXECUTION_CANCELLED, EXECUTION_TERMINATED
    *
    * @generated from enum value: EXECUTION_IN_PROGRESS = 2;
    */
@@ -86,28 +41,12 @@ export enum ExecutionPhase {
   /**
    * Execution completed successfully.
    *
-   * @internal
-   * Terminal state - execution will not change phases again.
-   *
-   * When this phase is reached:
-   * - completed_at timestamp is set
-   * - output field is populated (if workflow produces output)
-   * - All tasks have status WORKFLOW_TASK_COMPLETED or WORKFLOW_TASK_SKIPPED
-   *
    * @generated from enum value: EXECUTION_COMPLETED = 3;
    */
   EXECUTION_COMPLETED = 3,
 
   /**
    * Execution failed with an error.
-   *
-   * @internal
-   * Terminal state - execution will not change phases again.
-   *
-   * When this phase is reached:
-   * - completed_at timestamp is set
-   * - error field is populated with failure description
-   * - At least one task has status WORKFLOW_TASK_FAILED
    *
    * @generated from enum value: EXECUTION_FAILED = 4;
    */
@@ -116,14 +55,6 @@ export enum ExecutionPhase {
   /**
    * Execution was cancelled by user or system.
    *
-   * @internal
-   * Terminal state - execution will not change phases again.
-   *
-   * When this phase is reached:
-   * - completed_at timestamp is set
-   * - In-progress tasks are stopped
-   * - Pending tasks remain in WORKFLOW_TASK_PENDING state
-   *
    * @generated from enum value: EXECUTION_CANCELLED = 5;
    */
   EXECUTION_CANCELLED = 5,
@@ -131,37 +62,12 @@ export enum ExecutionPhase {
   /**
    * Execution was force-stopped immediately without cleanup.
    *
-   * @internal
-   * Terminal state - execution will not change phases again.
-   * Unlike CANCELLED, the workflow code cannot clean up.
-   *
-   * When this phase is reached:
-   * - completed_at timestamp is set
-   * - error field may contain termination reason
-   * - In-progress tasks are stopped abruptly
-   * - No cleanup callbacks are executed
-   *
-   * Terminated executions CANNOT be recovered (unlike FAILED).
-   *
    * @generated from enum value: EXECUTION_TERMINATED = 6;
    */
   EXECUTION_TERMINATED = 6,
 
   /**
    * Execution was paused by user and can be resumed.
-   *
-   * @internal
-   * NOT a terminal state - execution can be resumed via the resume RPC.
-   *
-   * When this phase is reached:
-   * - Running activities are gracefully cancelled
-   * - Checkpoints are saved (LangGraph thread_id preserved)
-   * - No completed_at timestamp (execution is not finished)
-   *
-   * Resume behavior:
-   * - Workflow re-invokes activity with same thread_id
-   * - Activity loads from LangGraph checkpoint
-   * - Execution continues from where it was paused
    *
    * @generated from enum value: EXECUTION_PAUSED = 7;
    */
@@ -177,18 +83,11 @@ export const ExecutionPhaseSchema: GenEnum<ExecutionPhase> = /*@__PURE__*/
 /**
  * WorkflowTaskType defines the type of workflow task.
  *
- * @internal
- * Each task type has specific input/output schema expectations,
- * execution behavior, and error handling/retry policies.
- *
  * @generated from enum ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType
  */
 export enum WorkflowTaskType {
   /**
    * Unspecified task type (invalid).
-   *
-   * @internal
-   * Exists only for proto3 zero-value semantics.
    *
    * @generated from enum value: WORKFLOW_TASK_TYPE_UNSPECIFIED = 0;
    */
@@ -197,18 +96,12 @@ export enum WorkflowTaskType {
   /**
    * Invoke an AI agent with a prompt.
    *
-   * @internal
-   * Calls an AgentInstance and waits for the agent execution to complete.
-   *
    * @generated from enum value: WORKFLOW_TASK_AGENT_INVOCATION = 1;
    */
   WORKFLOW_TASK_AGENT_INVOCATION = 1,
 
   /**
    * Wait for human approval before proceeding.
-   *
-   * @internal
-   * Pauses the workflow and waits for one or more users to approve or reject.
    *
    * @generated from enum value: WORKFLOW_TASK_APPROVAL = 2;
    */
@@ -217,18 +110,12 @@ export enum WorkflowTaskType {
   /**
    * Call an external HTTP or gRPC API.
    *
-   * @internal
-   * Sends a request to an external API and captures the response.
-   *
    * @generated from enum value: WORKFLOW_TASK_API_CALL = 3;
    */
   WORKFLOW_TASK_API_CALL = 3,
 
   /**
    * Evaluate a condition and branch to different paths.
-   *
-   * @internal
-   * Evaluates a boolean expression and determines which tasks to execute next.
    *
    * @generated from enum value: WORKFLOW_TASK_CONDITIONAL = 4;
    */
@@ -237,9 +124,6 @@ export enum WorkflowTaskType {
   /**
    * Execute multiple sub-tasks concurrently.
    *
-   * @internal
-   * Spawns multiple tasks that run in parallel and waits for all to complete.
-   *
    * @generated from enum value: WORKFLOW_TASK_PARALLEL = 5;
    */
   WORKFLOW_TASK_PARALLEL = 5,
@@ -247,18 +131,12 @@ export enum WorkflowTaskType {
   /**
    * Transform data between tasks.
    *
-   * @internal
-   * Applies transformations to data (map, filter, aggregate, format).
-   *
    * @generated from enum value: WORKFLOW_TASK_TRANSFORM = 6;
    */
   WORKFLOW_TASK_TRANSFORM = 6,
 
   /**
    * Execute custom task logic defined by plugins.
-   *
-   * @internal
-   * Input/output schemas are plugin-specific.
    *
    * @generated from enum value: WORKFLOW_TASK_CUSTOM = 7;
    */
@@ -274,30 +152,11 @@ export const WorkflowTaskTypeSchema: GenEnum<WorkflowTaskType> = /*@__PURE__*/
 /**
  * WorkflowTaskStatus defines the execution status of a workflow task.
  *
- * @internal
- * Status Transitions:
- *
- * Normal flow:
- * WORKFLOW_TASK_PENDING → WORKFLOW_TASK_IN_PROGRESS → WORKFLOW_TASK_COMPLETED
- *
- * Failure flow:
- * WORKFLOW_TASK_PENDING → WORKFLOW_TASK_IN_PROGRESS → WORKFLOW_TASK_FAILED
- *
- * Skip flow (conditional):
- * WORKFLOW_TASK_PENDING → WORKFLOW_TASK_SKIPPED
- *
- * Approval flow (for agent invocation tasks):
- * WORKFLOW_TASK_IN_PROGRESS → WORKFLOW_TASK_WAITING_APPROVAL → WORKFLOW_TASK_IN_PROGRESS
- *                                                            ↘ WORKFLOW_TASK_FAILED (on reject)
- *
  * @generated from enum ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskStatus
  */
 export enum WorkflowTaskStatus {
   /**
    * Unspecified status (invalid).
-   *
-   * @internal
-   * Exists only for proto3 zero-value semantics.
    *
    * @generated from enum value: WORKFLOW_TASK_STATUS_UNSPECIFIED = 0;
    */
@@ -306,20 +165,12 @@ export enum WorkflowTaskStatus {
   /**
    * Task is waiting to execute.
    *
-   * @internal
-   * The task has been created but has not started executing yet.
-   * Next statuses: WORKFLOW_TASK_IN_PROGRESS, WORKFLOW_TASK_SKIPPED
-   *
    * @generated from enum value: WORKFLOW_TASK_PENDING = 1;
    */
   WORKFLOW_TASK_PENDING = 1,
 
   /**
    * Task is currently executing.
-   *
-   * @internal
-   * The workflow runner is actively processing this task.
-   * Next statuses: WORKFLOW_TASK_COMPLETED, WORKFLOW_TASK_FAILED
    *
    * @generated from enum value: WORKFLOW_TASK_IN_PROGRESS = 2;
    */
@@ -328,19 +179,12 @@ export enum WorkflowTaskStatus {
   /**
    * Task finished successfully.
    *
-   * @internal
-   * Terminal state for this task. Output is populated with results.
-   *
    * @generated from enum value: WORKFLOW_TASK_COMPLETED = 3;
    */
   WORKFLOW_TASK_COMPLETED = 3,
 
   /**
    * Task failed during execution.
-   *
-   * @internal
-   * Terminal state for this task. The error field is populated with failure description.
-   * If task fails, workflow phase changes to EXECUTION_FAILED (unless error handling is configured).
    *
    * @generated from enum value: WORKFLOW_TASK_FAILED = 4;
    */
@@ -349,24 +193,12 @@ export enum WorkflowTaskStatus {
   /**
    * Task was skipped due to conditional logic.
    *
-   * @internal
-   * Terminal state for this task. The task was not executed because
-   * a conditional task determined it should be skipped.
-   * Skipped tasks don't cause workflow failure.
-   *
    * @generated from enum value: WORKFLOW_TASK_SKIPPED = 5;
    */
   WORKFLOW_TASK_SKIPPED = 5,
 
   /**
    * Task is waiting for human approval from a child agent execution.
-   *
-   * @internal
-   * Set when task_type == WORKFLOW_TASK_AGENT_INVOCATION and the invoked
-   * AgentExecution has phase == EXECUTION_WAITING_FOR_APPROVAL.
-   *
-   * NOT a terminal state - workflow resumes after approval decision.
-   * Next statuses: WORKFLOW_TASK_IN_PROGRESS (on approval), WORKFLOW_TASK_FAILED (on reject or timeout)
    *
    * @generated from enum value: WORKFLOW_TASK_WAITING_APPROVAL = 6;
    */

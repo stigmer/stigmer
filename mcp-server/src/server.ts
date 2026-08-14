@@ -19,6 +19,7 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 
 import type { Config } from "./config.js";
+import { createReadinessCheck, type ReadinessResult } from "./readiness.js";
 import { registerAgentExecutionTools } from "./domains/agentexecutions/tools.js";
 import { registerAgentResources } from "./domains/agents/resources.js";
 import { registerAgentTools } from "./domains/agents/tools.js";
@@ -244,10 +245,11 @@ export async function serveHttp(
   signal: AbortSignal,
 ): Promise<void> {
   const sessions = new Map<string, StreamableHTTPServerTransport>();
+  const checkReady = createReadinessCheck(cfg.stigmerServerAddress);
 
   const httpServer = createHttpServer((req, res) => {
     logAccess(req, res);
-    void routeRequest(req, res, sessions, makeServer, cfg);
+    void routeRequest(req, res, sessions, makeServer, cfg, checkReady);
   });
 
   const addr = `:${cfg.httpPort}`;
@@ -301,13 +303,17 @@ export async function serveBoth(target: BackendTarget, cfg: Config, signal: Abor
 }
 
 /**
- * Route an inbound HTTP request: liveness probe, the non-validating Bearer
- * extraction, then delegation to the session's MCP transport (reusing an
+ * Route an inbound HTTP request: liveness/readiness probes, the non-validating
+ * Bearer extraction, then delegation to the session's MCP transport (reusing an
  * existing session or creating one for an `initialize` request).
  *
  * The token is never validated here — presence is the only check, and it is
  * forwarded unchanged to stigmer-server which performs validation. This mirrors
  * the Go authMiddleware exactly (inventory §4.2).
+ *
+ * Every refusal is a JSON-RPC-framed error (the SDK transport's own
+ * convention — see jsonRpcError), never text/plain: strict MCP clients parse
+ * the body, and the spec keys session recovery on a recognizable 404.
  */
 async function routeRequest(
   req: IncomingMessage & { auth?: AuthInfo },
@@ -315,10 +321,26 @@ async function routeRequest(
   sessions: Map<string, StreamableHTTPServerTransport>,
   makeServer: RouteServerFactory,
   cfg: Config,
+  checkReady: () => Promise<ReadinessResult>,
 ): Promise<void> {
   if (req.method === "GET" && req.url === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(`{"status":"ok"}\n`);
+    return;
+  }
+
+  // Readiness = liveness AND a working backend hop (see readiness.ts for why
+  // only the readiness probe may point here). Public like /health: Kubernetes
+  // probes carry no bearer.
+  if (req.method === "GET" && requestPath(req) === "/ready") {
+    const result = await checkReady();
+    if (result.ready) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(`{"status":"ready"}\n`);
+    } else {
+      res.writeHead(503, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "unready", reason: result.reason }) + "\n");
+    }
     return;
   }
 
@@ -335,11 +357,11 @@ async function routeRequest(
   if (cfg.httpAuthEnabled) {
     const token = extractBearerToken(req);
     if (token === "") {
-      const headers: Record<string, string> = { "Content-Type": "text/plain" };
       // RFC 9728 §5.1: point OAuth-capable clients at the metadata document.
-      if (cfg.oauth.enabled) headers["WWW-Authenticate"] = bearerChallenge(cfg);
-      res.writeHead(401, headers);
-      res.end("missing or malformed Authorization: Bearer header");
+      const challenge = cfg.oauth.enabled
+        ? { "WWW-Authenticate": bearerChallenge(cfg) }
+        : undefined;
+      jsonRpcError(res, 401, -32000, "missing or malformed Authorization: Bearer header", challenge);
       return;
     }
     req.auth = { token, clientId: "stigmer-mcp-passthrough", scopes: [] };
@@ -352,8 +374,12 @@ async function routeRequest(
   if (sessionId !== undefined) {
     const transport = sessions.get(sessionId);
     if (transport === undefined) {
-      res.writeHead(404, { "Content-Type": "text/plain" });
-      res.end("unknown or expired MCP session");
+      // 404 + code -32001 is the SDK transport's session-not-found shape, and
+      // the streamable-HTTP spec's recovery signal: on it, a client MUST open
+      // a new session with a fresh InitializeRequest. Losing sessions on pod
+      // restart is expected here — they are in-memory by design (single
+      // replica; see the deployment overlay).
+      jsonRpcError(res, 404, -32001, "Session not found: unknown or expired MCP session");
       return;
     }
     await transport.handleRequest(req, res);
@@ -362,15 +388,13 @@ async function routeRequest(
 
   // No session → only an initialize POST may open one.
   if (req.method !== "POST") {
-    res.writeHead(400, { "Content-Type": "text/plain" });
-    res.end("missing Mcp-Session-Id header");
+    jsonRpcError(res, 400, -32000, "Bad Request: Mcp-Session-Id header is required");
     return;
   }
 
   const body = await readJsonBody(req);
   if (!isInitializeRequest(body)) {
-    res.writeHead(400, { "Content-Type": "text/plain" });
-    res.end("Bad Request: an initialize request is required to open a session");
+    jsonRpcError(res, 400, -32000, "Bad Request: an initialize request is required to open a session");
     return;
   }
 
@@ -379,8 +403,7 @@ async function routeRequest(
   // routedServerFactory for the incident this prevents.
   const server = makeServer(path);
   if (server === undefined) {
-    res.writeHead(404, { "Content-Type": "text/plain" });
-    res.end(`unknown MCP route: ${path}`);
+    jsonRpcError(res, 404, -32000, `unknown MCP route: ${path}`);
     return;
   }
 
@@ -409,6 +432,26 @@ async function routeRequest(
 export function stdioServer(target: BackendTarget, cfg: Config): McpServer {
   if (cfg.roster === "channels") return createChannelsServer(target);
   return createServer(target);
+}
+
+/**
+ * Write a JSON-RPC-framed refusal, byte-compatible with the SDK transport's
+ * own createJsonErrorResponse: `{"jsonrpc":"2.0","error":{code,message},"id":null}`
+ * with Content-Type application/json. The HTTP status stays authoritative (the
+ * streamable-HTTP spec keys on it); the body exists for strict MCP clients
+ * that parse refusals instead of surfacing an opaque content-type error
+ * (stigmer/stigmer#316). Code -32001 is reserved for session-not-found; the
+ * transport-level family uses -32000, both per the SDK's convention.
+ */
+function jsonRpcError(
+  res: ServerResponse,
+  status: number,
+  code: number,
+  message: string,
+  headers?: Record<string, string>,
+): void {
+  res.writeHead(status, { "Content-Type": "application/json", ...headers });
+  res.end(JSON.stringify({ jsonrpc: "2.0", error: { code, message }, id: null }));
 }
 
 /** Return a single header value, collapsing the array form Node may produce. */

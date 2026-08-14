@@ -28,6 +28,7 @@ import (
 	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
+	"github.com/stigmer/stigmer/tools/codegen/internalcomment"
 	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -1065,28 +1066,15 @@ func extractStringFromUnknownFields(raw []byte, targetFieldNumber protowire.Numb
 // content: everything from the @internal marker line onward is discarded and
 // the result is whitespace-trimmed.
 //
-// Convention: a comment line that is exactly "@internal" (ignoring
-// surrounding whitespace) marks the start of proto-source-only content —
-// implementation notes, authorization details, storage strategy. That text
-// is for developers reading the proto files and must never reach a
-// generated surface: SDK type docs, MCP tool schemas (read by LLMs), the
-// task registry, or the docs site.
-//
-// This function is the single owner of that convention. It runs here, at
-// the only point where proto comments enter the codegen toolchain, so every
-// schema consumer — current and future — receives SDK-facing text only and
-// no generator needs to know the marker exists (oss#327). The marker must
-// be a full line: inline occurrences of "@internal" inside prose are left
-// alone, matching how every proto in apis/ uses the convention.
+// The marker semantics are owned by tools/codegen/internalcomment (oss#327
+// centralized them; oss#497 extended coverage to protoc-generated stubs via
+// stubscrub, which shares the same package). Proto comments enter the
+// codegen toolchain at two points — schema extraction here, and protoc's
+// verbatim copy into stubs, scrubbed post-generation — and both apply the
+// one convention, so every schema consumer and every stub surface receives
+// SDK-facing text only.
 func stripInternalSection(comment string) string {
-	lines := strings.Split(comment, "\n")
-	for i, line := range lines {
-		if strings.TrimSpace(line) == "@internal" {
-			lines = lines[:i]
-			break
-		}
-	}
-	return strings.TrimSpace(strings.Join(lines, "\n"))
+	return internalcomment.StripText(comment)
 }
 
 // extractComments extracts SDK-facing documentation from a message descriptor.

@@ -35,18 +35,11 @@ export const ExecutionContextIdSchema: GenMessage<ExecutionContextId> = /*@__PUR
 /**
  * Input for looking up an ExecutionContext by its parent execution ID.
  *
- * @internal
- * Primary lookup method used by runners to retrieve merged environment
- * variables during execution.
- *
  * @generated from message ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput
  */
 export type ExecutionContextExecutionIdInput = Message<"ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput"> & {
   /**
    * AgentExecution or WorkflowExecution ID to look up.
-   *
-   * @internal
-   * Must match the execution_id field in ExecutionContextSpec.
    *
    * @generated from field: string execution_id = 1;
    */

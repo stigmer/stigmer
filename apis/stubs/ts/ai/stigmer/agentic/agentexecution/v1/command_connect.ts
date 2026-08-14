@@ -21,11 +21,6 @@ export const AgentExecutionCommandController = {
      * Create and trigger a new agent execution.
      * Session is optional — can be provided or auto-created from agent_id.
      *
-     * @internal
-     * Authorization is handled in handler:
-     *   - If session_id provided: checks can_create_execution_in on session
-     *   - If session_id NOT provided: checks can_create_execution_in on organization
-     *
      * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.create
      */
     create: {
@@ -37,10 +32,6 @@ export const AgentExecutionCommandController = {
     /**
      * Update an agent execution.
      *
-     * @internal
-     * Used by users to update execution configuration (spec fields).
-     * No individual field updates - always provide complete state.
-     *
      * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.update
      */
     update: {
@@ -51,13 +42,6 @@ export const AgentExecutionCommandController = {
     },
     /**
      * Update an agent execution's status.
-     *
-     * @internal
-     * Used by the runner to send progressive status updates (messages,
-     * tool_calls, phase, etc.). The runner authenticates as the triggering user,
-     * who owns the execution through the session ownership chain.
-     * Optimized for frequent status updates and merges status fields with
-     * existing state.
      *
      * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.updateStatus
      */
@@ -95,29 +79,6 @@ export const AgentExecutionCommandController = {
      *   the execution CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
      *   stop the whole run, use cancel/terminate)
      *
-     * @internal
-     *
-     * ## State Transitions
-     *
-     * On success:
-     * - ToolCall.approval_action = submitted action
-     * - ToolCall.approval_decided_at = current timestamp
-     * - ToolCall.approved_by = authenticated user ID
-     * - AgentExecutionStatus.pending_approval = cleared
-     * - ExecutionPhase = EXECUTION_IN_PROGRESS (for every action, REJECT included)
-     *
-     * ## Error Conditions
-     *
-     * - NOT_FOUND: Execution doesn't exist
-     * - FAILED_PRECONDITION: Execution not in WAITING_FOR_APPROVAL phase
-     * - INVALID_ARGUMENT: tool_call_id doesn't match pending approval, or action is UNSPECIFIED
-     * - PERMISSION_DENIED: User lacks can_edit permission
-     *
-     * ## Idempotency
-     *
-     * If the same approval is submitted twice (same execution, tool_call, action),
-     * the second call is a no-op and returns the current state.
-     *
      * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.submitApproval
      */
     submitApproval: {
@@ -142,21 +103,6 @@ export const AgentExecutionCommandController = {
      * - expected_digest must match the target's current digest
      * - User must have can_edit permission on the execution
      *
-     * @internal
-     *
-     * ## Error Conditions
-     *
-     * - NOT_FOUND: Execution doesn't exist
-     * - FAILED_PRECONDITION: Execution terminal, or change set/file not found
-     * - INVALID_ARGUMENT: scope/action UNSPECIFIED, missing file_change_id for
-     *   FILE scope, or expected_digest mismatch
-     * - PERMISSION_DENIED: User lacks can_edit permission
-     *
-     * ## Idempotency
-     *
-     * Re-submitting the same decision (same change set, scope, target) is a no-op
-     * and returns the current state — appends are keyed by FileReviewEvent.event_id.
-     *
      * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.submitFileDecision
      */
     submitFileDecision: {
@@ -171,42 +117,6 @@ export const AgentExecutionCommandController = {
      * Sends a cancellation signal to the agent execution. The agent can handle
      * the cancellation signal to save checkpoint and clean up before
      * transitioning to the CANCELLED phase.
-     *
-     * @internal
-     * Temporal Equivalent: `temporal workflow cancel --workflow-id <id>`
-     *
-     * ## Behavior
-     *
-     * 1. Validates execution exists and is in a cancellable phase
-     * 2. Sends cancellation signal to Temporal workflow
-     * 3. Python activity receives cancellation and saves LangGraph checkpoint
-     * 4. Execution transitions to EXECUTION_CANCELLED phase
-     * 5. Returns updated AgentExecution with new phase
-     *
-     * ## Preconditions
-     *
-     * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
-     * - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
-     *
-     * ## State Transitions
-     *
-     * - status.phase: PENDING/IN_PROGRESS → CANCELLED
-     * - status.completed_at: Set to current timestamp
-     * - LangGraph checkpoint: Preserved for potential future reference
-     *
-     * ## Idempotency
-     *
-     * Cancelling an already-cancelled execution succeeds as a no-op.
-     * The call returns the current execution state without side effects.
-     *
-     * ## Error Cases
-     *
-     * - NOT_FOUND: Execution with given ID doesn't exist
-     * - PERMISSION_DENIED: User lacks can_edit permission on the execution
-     * - FAILED_PRECONDITION: Execution is in a terminal phase
-     * - INVALID_ARGUMENT: ID is empty or malformed
-     *
-     * @since Agent Execution Lifecycle
      *
      * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.cancel
      */
@@ -223,50 +133,6 @@ export const AgentExecutionCommandController = {
      * the agent cannot respond to termination - it is stopped immediately.
      * Use this for stuck or unresponsive agents.
      *
-     * @internal
-     * Temporal Equivalent: `temporal workflow terminate --workflow-id <id>`
-     *
-     * ## Behavior
-     *
-     * 1. Validates execution exists and is in a terminable phase
-     * 2. Force-kills workflow via Temporal (no signal sent to agent)
-     * 3. Execution transitions to EXECUTION_TERMINATED phase immediately
-     * 4. No cleanup callbacks or checkpoint saves occur
-     * 5. Returns updated AgentExecution with TERMINATED phase
-     *
-     * ## Preconditions
-     *
-     * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
-     * - Cannot terminate already-terminal executions
-     *
-     * ## State Transitions
-     *
-     * - status.phase: PENDING/IN_PROGRESS → TERMINATED
-     * - status.completed_at: Set to current timestamp
-     * - LangGraph checkpoint: May be incomplete (no graceful save)
-     *
-     * ## Terminated vs Cancelled
-     *
-     * | Aspect | cancel | terminate |
-     * |--------|--------|-----------|
-     * | Signal to agent | Yes (can handle) | No |
-     * | Checkpoint saved | Yes (graceful) | No |
-     * | Use case | Normal stop | Stuck agents |
-     * | Can recover? | No | No |
-     *
-     * ## Idempotency
-     *
-     * Terminating an already-terminated execution succeeds as a no-op.
-     *
-     * ## Error Cases
-     *
-     * - NOT_FOUND: Execution with given ID doesn't exist
-     * - PERMISSION_DENIED: User lacks can_edit permission on the execution
-     * - FAILED_PRECONDITION: Execution is in a terminal phase
-     * - INVALID_ARGUMENT: ID is empty or malformed
-     *
-     * @since Agent Execution Lifecycle
-     *
      * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.terminate
      */
     terminate: {
@@ -281,49 +147,6 @@ export const AgentExecutionCommandController = {
      * Retries the failed run. Completed work is preserved - successful tool
      * calls are NOT re-executed.
      *
-     * @internal
-     * Terminates the previous Temporal workflow (NOT_FOUND tolerated) and starts
-     * a fresh one; continuity comes from the session's harness state (LangGraph
-     * thread checkpoint / harness_state_id), not from Temporal history. A
-     * Temporal reset cannot work here: the runner activity RETURNS its FAILED
-     * result, so a reset replays the preserved failure instead of re-dispatching.
-     *
-     * ## Behavior
-     *
-     * 1. Validates execution is in FAILED phase (recoverable)
-     * 2. Terminates the previous workflow and recreates the execution environment
-     * 3. Starts a fresh workflow; the activity is re-invoked with the same thread_id
-     * 4. LangGraph loads from checkpoint automatically
-     * 5. Execution transitions from FAILED to IN_PROGRESS phase
-     * 6. Agent retries from where it failed
-     *
-     * ## Preconditions
-     *
-     * - Execution must be in EXECUTION_FAILED phase
-     * - TERMINATED executions cannot be recovered (incomplete checkpoint)
-     * - CANCELLED executions cannot be recovered (intentional user action)
-     *
-     * ## State Transitions
-     *
-     * - status.phase: FAILED → IN_PROGRESS
-     * - status.completed_at: Cleared
-     * - status.error: Cleared
-     * - Completed tool calls: Preserved (not re-executed)
-     *
-     * ## Idempotency
-     *
-     * If recovery already succeeded (execution is now IN_PROGRESS),
-     * the call succeeds as a no-op.
-     *
-     * ## Error Cases
-     *
-     * - NOT_FOUND: Execution with given ID doesn't exist
-     * - PERMISSION_DENIED: User lacks can_edit permission
-     * - FAILED_PRECONDITION: Execution is not in FAILED phase
-     * - INVALID_ARGUMENT: ID is empty or malformed
-     *
-     * @since Agent Execution Lifecycle
-     *
      * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.recover
      */
     recover: {
@@ -337,50 +160,6 @@ export const AgentExecutionCommandController = {
      *
      * Temporarily stops the agent at its current checkpoint. Unlike cancel,
      * the execution is NOT terminal and can be resumed later from where it left off.
-     *
-     * @internal
-     *
-     * ## Behavior
-     *
-     * 1. Validates execution exists and is in a pausable phase
-     * 2. Sends "pause" signal to Temporal workflow
-     * 3. Workflow cancels running activity gracefully
-     * 4. Python activity saves LangGraph checkpoint on cancellation
-     * 5. Execution transitions to EXECUTION_PAUSED phase
-     * 6. Workflow waits for resume signal (no resources consumed)
-     *
-     * ## Preconditions
-     *
-     * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
-     * - Cannot pause already-terminal or already-paused executions
-     *
-     * ## State Transitions
-     *
-     * - status.phase: PENDING/IN_PROGRESS → PAUSED
-     * - status.completed_at: NOT set (execution is not finished)
-     * - LangGraph checkpoint: Saved via thread_id
-     *
-     * ## Paused vs Cancelled
-     *
-     * | Aspect | pause | cancel |
-     * |--------|-------|--------|
-     * | Terminal state? | No | Yes |
-     * | Can resume? | Yes (via resume RPC) | No |
-     * | Checkpoint saved? | Yes | Best-effort |
-     * | Use case | Temporary stop | Permanent stop |
-     *
-     * ## Idempotency
-     *
-     * Pausing an already-paused execution succeeds as a no-op.
-     *
-     * ## Error Cases
-     *
-     * - NOT_FOUND: Execution with given ID doesn't exist
-     * - PERMISSION_DENIED: User lacks can_edit permission
-     * - FAILED_PRECONDITION: Execution is in a terminal phase
-     * - INVALID_ARGUMENT: ID is empty or malformed
-     *
-     * @since Agent Execution Lifecycle
      *
      * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.pause
      */
@@ -397,41 +176,6 @@ export const AgentExecutionCommandController = {
      * re-invokes with the same thread_id, loading from LangGraph checkpoint
      * and continuing from where it left off.
      *
-     * @internal
-     *
-     * ## Behavior
-     *
-     * 1. Validates execution is in EXECUTION_PAUSED phase
-     * 2. Sends "resume" signal to Temporal workflow
-     * 3. Workflow unblocks and re-invokes activity
-     * 4. Activity loads from LangGraph checkpoint using thread_id
-     * 5. Execution transitions back to EXECUTION_IN_PROGRESS phase
-     * 6. Agent continues from exact pause point
-     *
-     * ## Preconditions
-     *
-     * - Execution must be in EXECUTION_PAUSED phase
-     * - Cannot resume non-paused executions
-     *
-     * ## State Transitions
-     *
-     * - status.phase: PAUSED → IN_PROGRESS
-     * - Activities: Re-invoked, load from checkpoint
-     * - LangGraph state: Loaded from checkpoint via thread_id
-     *
-     * ## Idempotency
-     *
-     * Resuming an already-running execution succeeds as a no-op.
-     *
-     * ## Error Cases
-     *
-     * - NOT_FOUND: Execution with given ID doesn't exist
-     * - PERMISSION_DENIED: User lacks can_edit permission
-     * - FAILED_PRECONDITION: Execution is not in PAUSED phase
-     * - INVALID_ARGUMENT: ID is empty or malformed
-     *
-     * @since Agent Execution Lifecycle
-     *
      * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.resume
      */
     resume: {
@@ -446,34 +190,6 @@ export const AgentExecutionCommandController = {
      * Pre-uploads files to artifact storage before creating an execution.
      * The returned storage_key can be used in Attachment.storage_key when
      * creating the execution.
-     *
-     * @internal
-     *
-     * ## Authorization
-     *
-     * This endpoint does not require authorization. The storage_key returned
-     * acts as a capability token - knowing the key grants access to the content.
-     * This simplifies the upload flow for CLI and other clients.
-     *
-     * ## Storage Path
-     *
-     * Files are stored at: attachments/{ulid}/{filename}
-     * The ULID ensures unique paths and enables future cleanup policies.
-     *
-     * ## Use Cases
-     *
-     * - CLI uploading files (>4MB) before agent execution
-     * - Pre-uploading datasets for agent processing
-     * - Uploading binary files that cannot be embedded inline in Attachment
-     *
-     * ## Example Flow
-     *
-     * 1. Client calls uploadAttachment with file content
-     * 2. Server uploads to storage, returns storage_key
-     * 3. Client creates AgentExecution with Attachment using storage_key
-     * 4. The runner downloads attachment content when execution starts
-     *
-     * @since Artifact Lifecycle (Attachments & Artifacts)
      *
      * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.uploadAttachment
      */

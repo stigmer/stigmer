@@ -25,18 +25,6 @@ const (
 )
 
 // RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows.
-//
-// @internal
-// Implemented via Temporal child workflows.
-//
-// YAML Example:
-//   - taskName:
-//     run:
-//     workflow: "sub-workflow-name"
-//     input:
-//     data: ${ .data }
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 12
 type RunTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Sub-workflow name/identifier to execute.

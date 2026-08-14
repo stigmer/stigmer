@@ -15,6 +15,7 @@ import type { RecentActivityEntry, RecentActivityGroup } from "../activity/types
 import { groupRecentActivityByTime } from "../activity/group-activity.js";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { recentActivityStatusBadge } from "../activity/entry-status-badge.js";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { ScrollArea } from "../internal/scroll-area.js";
 import {
   Tooltip,
@@ -313,7 +314,7 @@ function ActivityGroupList({
             <p className="stg:text-sidebar-muted-foreground stg:mb-1 stg:px-2 stg:text-[10px] stg:font-medium stg:tracking-wider stg:uppercase">
               {group.label}
             </p>
-            <ul className="stg:space-y-0.5" role="list">
+            <ul className={`${UNSTYLED_LIST} stg:space-y-0.5`} role="list">
               {group.entries.map((entry) => (
                 <ActivityEntry
                   key={entry.id}

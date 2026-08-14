@@ -1,17 +1,19 @@
 // The sealed event model for the headless snapshot differ.
 //
-// Mirrors Go's pkg/executiontui.Event family (events.go). The differ projects
-// each AgentExecution snapshot into a sequence of these discrete events; the
+// Inherited from the retired Go CLI's pkg/executiontui.Event family (deleted
+// with the TypeScript migration, PR #203). The differ projects each
+// AgentExecution snapshot into a sequence of these discrete events; the
 // NDJSON and plaintext renderers consume them. The Ink TTY path does NOT use
-// this model — it renders from full snapshots via @stigmer/react.
+// this model — it renders from full snapshots via @stigmer/ink.
 //
-// `kind` is the discriminant. The NDJSON renderer maps each kind to Go's exact
-// wire taxonomy (run_stream_json.go), so kinds are deliberately 1:1 with the Go
-// event types rather than the wire strings.
+// `kind` is the discriminant. The NDJSON renderer preserves the retired Go
+// CLI's exact wire taxonomy (its run_stream_json.go) — that output is a
+// machine contract consumers may parse — so kinds are deliberately 1:1 with
+// the original event types rather than the wire strings.
 
 import type { JsonObject } from "@bufbuild/protobuf";
 
-/** A tool call projected for rendering. Mirrors toolrender.ToolCallInfo. */
+/** A tool call projected for rendering. Shape inherited from the retired Go CLI's toolrender.ToolCallInfo. */
 export interface ToolCallInfo {
   readonly id: string;
   readonly name: string;

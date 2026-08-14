@@ -19,14 +19,6 @@ export const file_ai_stigmer_agentic_agentchannel_v1_message_command: GenFile = 
  * ChannelMessageCommandController handles business-initiated outbound
  * messages on agent channels.
  *
- * @internal
- * proactive-messaging DD-002 D2: the runtime messaging surface beside
- * the AgentChannel resource controllers — a dedicated runtime service
- * next to the resource CRUD service, so resource CRUD and runtime
- * traffic never mix. Dual-audience by token-class dispatch: the agent's
- * send_channel_message tool calls with a session-scoped sandbox token;
- * direct principals (console, CLI, SDK) call with their own identity.
- *
  * @generated from service ai.stigmer.agentic.agentchannel.v1.ChannelMessageCommandController
  */
 export const ChannelMessageCommandController: GenService<{
@@ -36,20 +28,6 @@ export const ChannelMessageCommandController: GenService<{
    * The message is durably recorded and attempted once inline; transient
    * failures are retried in the background. The outcome reports the
    * truth of the inline attempt.
-   *
-   * @internal
-   * Authorization in-handler (DD-002 D2/D6/D9): token-class dispatch,
-   * fail closed; agent-anchored chain (never session-sender-anchored —
-   * the recipient is an argument). Error contract (DD-002 D4): unknown
-   * or foreign token class, no serving channel, proactive messaging not
-   * enabled, or channel/org mismatch → PERMISSION_DENIED with no policy
-   * detail leaked; malformed input or ambiguous channel/language →
-   * INVALID_ARGUMENT with the candidates listed; channel not installed →
-   * FAILED_PRECONDITION; rate caps, recipient policy, and provider
-   * refusals → outcome=refused; transient provider failures →
-   * outcome=queued. Cloud-first runtime: the OSS edition returns
-   * FAILED_PRECONDITION (decision 001 D-g posture, the initiateInstall
-   * precedent).
    *
    * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelMessageCommandController.sendMessage
    */

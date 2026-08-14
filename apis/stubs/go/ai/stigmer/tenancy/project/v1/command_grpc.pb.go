@@ -32,27 +32,12 @@ const (
 // ProjectCommandController handles write operations for projects.
 type ProjectCommandControllerClient interface {
 	// Create or update a project.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on whether the project
-	// is going to be created or updated which is determined as part of the request execution.
 	Apply(ctx context.Context, in *Project, opts ...grpc.CallOption) (*Project, error)
 	// Create a project.
-	//
-	// @internal
-	// Authorization:
-	// - Organization-scoped projects: Caller must have can_create_project permission in the organization.
-	// - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step).
 	Create(ctx context.Context, in *Project, opts ...grpc.CallOption) (*Project, error)
 	// Update an existing project.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the project.
 	Update(ctx context.Context, in *Project, opts ...grpc.CallOption) (*Project, error)
 	// Delete a project.
-	//
-	// @internal
-	// Authorization: Requires can_delete permission on the project.
 	Delete(ctx context.Context, in *ProjectId, opts ...grpc.CallOption) (*Project, error)
 }
 
@@ -111,27 +96,12 @@ func (c *projectCommandControllerClient) Delete(ctx context.Context, in *Project
 // ProjectCommandController handles write operations for projects.
 type ProjectCommandControllerServer interface {
 	// Create or update a project.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on whether the project
-	// is going to be created or updated which is determined as part of the request execution.
 	Apply(context.Context, *Project) (*Project, error)
 	// Create a project.
-	//
-	// @internal
-	// Authorization:
-	// - Organization-scoped projects: Caller must have can_create_project permission in the organization.
-	// - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step).
 	Create(context.Context, *Project) (*Project, error)
 	// Update an existing project.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the project.
 	Update(context.Context, *Project) (*Project, error)
 	// Delete a project.
-	//
-	// @internal
-	// Authorization: Requires can_delete permission on the project.
 	Delete(context.Context, *ProjectId) (*Project, error)
 }
 

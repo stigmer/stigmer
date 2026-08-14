@@ -31,42 +31,23 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // OAuthAppCommandController provides write operations for OAuth app resources.
-//
-// @internal
-// OAuthApps hold vendor client credentials (client_secret) and are always
-// org-private. There is no updateVisibility RPC — public visibility is
-// intentionally unsupported to prevent credential leakage.
 type OAuthAppCommandControllerClient interface {
 	// Create or update an OAuth app.
 	//
 	// If the resource does not exist, creates a new OAuth app.
 	// If the resource exists, updates the existing OAuth app.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on whether the
-	// OAuth app is going to be created or updated, which is determined as
-	// part of the request execution.
 	Apply(ctx context.Context, in *OAuthApp, opts ...grpc.CallOption) (*OAuthApp, error)
 	// Create an OAuth app.
 	//
 	// The creator's organization owns the OAuth app. The creator is granted
 	// the owner role automatically.
-	//
-	// @internal
-	// Authorization: Requires can_create_oauth_app permission in the organization.
 	Create(ctx context.Context, in *OAuthApp, opts ...grpc.CallOption) (*OAuthApp, error)
 	// Update an existing OAuth app.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the oauth_app resource.
 	Update(ctx context.Context, in *OAuthApp, opts ...grpc.CallOption) (*OAuthApp, error)
 	// Delete an OAuth app.
 	//
 	// Deletion should be blocked if any McpServer resources reference this
 	// OAuth app via McpServerVendorOAuth.oauth_app_ref.
-	//
-	// @internal
-	// Authorization: Requires can_delete permission on the oauth_app resource.
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*OAuthApp, error)
 }
 
@@ -123,42 +104,23 @@ func (c *oAuthAppCommandControllerClient) Delete(ctx context.Context, in *apires
 // for forward compatibility.
 //
 // OAuthAppCommandController provides write operations for OAuth app resources.
-//
-// @internal
-// OAuthApps hold vendor client credentials (client_secret) and are always
-// org-private. There is no updateVisibility RPC — public visibility is
-// intentionally unsupported to prevent credential leakage.
 type OAuthAppCommandControllerServer interface {
 	// Create or update an OAuth app.
 	//
 	// If the resource does not exist, creates a new OAuth app.
 	// If the resource exists, updates the existing OAuth app.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on whether the
-	// OAuth app is going to be created or updated, which is determined as
-	// part of the request execution.
 	Apply(context.Context, *OAuthApp) (*OAuthApp, error)
 	// Create an OAuth app.
 	//
 	// The creator's organization owns the OAuth app. The creator is granted
 	// the owner role automatically.
-	//
-	// @internal
-	// Authorization: Requires can_create_oauth_app permission in the organization.
 	Create(context.Context, *OAuthApp) (*OAuthApp, error)
 	// Update an existing OAuth app.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the oauth_app resource.
 	Update(context.Context, *OAuthApp) (*OAuthApp, error)
 	// Delete an OAuth app.
 	//
 	// Deletion should be blocked if any McpServer resources reference this
 	// OAuth app via McpServerVendorOAuth.oauth_app_ref.
-	//
-	// @internal
-	// Authorization: Requires can_delete permission on the oauth_app resource.
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*OAuthApp, error)
 }
 

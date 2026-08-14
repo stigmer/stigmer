@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetArtifactRequest, GetArtifactResponse, ListSkillVersionsInput, ListSkillVersionsResponse, SkillId } from "./io_pbjs";
+import { GetArtifactRequest, GetArtifactResponse, ListSkillVersionsInput, ListSkillVersionsResponse, SkillArtifactDownloadUrl, SkillId } from "./io_pbjs";
 import { Skill } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -35,10 +35,6 @@ export const SkillQueryController = {
      * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
      * - SHA256 hash (64 hex chars) → Returns the exact immutable version
      *
-     * @internal
-     * Authorization is handled in the handler after resolving the reference to a skill ID.
-     * (Input doesn't contain skill ID, so proto-level auth cannot work)
-     *
      * @generated from rpc ai.stigmer.agentic.skill.v1.SkillQueryController.getByReference
      */
     getByReference: {
@@ -51,11 +47,6 @@ export const SkillQueryController = {
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
      *
-     * @internal
-     * Used by the runner to download and extract skill artifacts into the
-     * sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
-     * storage key itself acts as a capability token.
-     *
      * @generated from rpc ai.stigmer.agentic.skill.v1.SkillQueryController.getArtifact
      */
     getArtifact: {
@@ -65,15 +56,27 @@ export const SkillQueryController = {
       kind: MethodKind.Unary,
     },
     /**
+     * Mint a URL for downloading a skill artifact over HTTP.
+     *
+     * Preferred over getArtifact for anything that might exceed the gRPC
+     * message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
+     * limit is deliverable. Callers should try this first and fall back to
+     * getArtifact against servers that predate it (UNIMPLEMENTED).
+     *
+     * @generated from rpc ai.stigmer.agentic.skill.v1.SkillQueryController.getArtifactDownloadUrl
+     */
+    getArtifactDownloadUrl: {
+      name: "getArtifactDownloadUrl",
+      I: GetArtifactRequest,
+      O: SkillArtifactDownloadUrl,
+      kind: MethodKind.Unary,
+    },
+    /**
      * List version history for a skill.
      *
      * Returns all historical versions ordered by push time (newest first).
      * Each entry includes the version hash, push timestamp, actor, tag,
      * git provenance, and artifact storage key for historical artifact access.
-     *
-     * @internal
-     * Authorization is handled in the handler after resolving the skill.
-     * (Input uses org+slug, not skill ID, so proto-level auth cannot work)
      *
      * @generated from rpc ai.stigmer.agentic.skill.v1.SkillQueryController.listVersions
      */

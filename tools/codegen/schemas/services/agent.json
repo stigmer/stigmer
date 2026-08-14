@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Update the visibility of an existing agent.\n\n This is a targeted metadata update — it only modifies metadata.visibility,\n leaving spec, status, and other metadata fields untouched. Use this to\n make an agent publicly accessible or to revoke public access without\n sending the entire agent resource (avoiding read-modify-write races)."
+          "description": "Update the visibility of an existing agent.\n\n This is a targeted metadata update — it only modifies metadata.visibility,\n leaving spec, status, and other metadata fields untouched. Use this to\n make an agent publicly accessible or to revoke public access without\n sending the entire agent resource (avoiding read-modify-write races).\n\n In the cloud edition, PUBLIC is operator-gated: public listing crosses\n every org boundary, so it is granted by the platform team on request.\n Un-publishing and all other levels stay self-service."
         },
         {
           "name": "Delete",
@@ -249,7 +249,7 @@
         {
           "name": "visibility_public",
           "number": 2,
-          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n\n In the cloud edition, entering this level is operator-gated\n (can_set_public_visibility on platform:stigmer): public listing is a\n curation decision, requested by the resource owner and granted by the\n platform team — at both doors, updateVisibility escalation and\n create-with-public. Leaving this level stays self-service for anyone\n with can_edit. The OSS edition is unguarded (the self-hosted operator\n owns the store).\n Named visibility_public to avoid Java reserved keyword conflict."
         },
         {
           "name": "visibility_org",

@@ -7,6 +7,7 @@ import {
   artifactKey,
   type SessionArtifactEntry,
 } from "../useSessionArtifacts.js";
+import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import { ArtifactPreviewModal } from "../../execution/ArtifactPreviewModal.js";
 import { ArtifactRow } from "../../execution/ArtifactRow.js";
 import { isPlanArtifact } from "../../library/detect-plan-artifact.js";
@@ -123,7 +124,7 @@ export function ArtifactsTab({
 
   return (
     <>
-      <ul role="list" className="stg:flex stg:flex-col">
+      <ul role="list" className={`${UNSTYLED_LIST} stg:flex stg:flex-col`}>
         {artifacts.map((entry) => (
           <ArtifactRow
             key={artifactKey(entry.artifact)}

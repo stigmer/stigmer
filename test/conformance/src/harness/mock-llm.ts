@@ -15,6 +15,26 @@
 // (fileParallelism:false) and tests within a file run serially, so the queue is
 // consumed deterministically.
 //
+// The queue scripts THE AGENT LOOP UNDER TEST — and only it. The runner also
+// makes background LLM calls that are production behavior, not part of any
+// test's script: session-subject titling (#690) fires per execution as a
+// Temporal fire-and-forget racing the agent turn, and letting it claim queued
+// turns broke every agent suite at once (approval gates sailed to COMPLETED on
+// the eaten tool_use turn, forced failures completed, smoke turns starved —
+// stigmer/stigmer#715). Two defenses, in order:
+//   1. Provider fence — this mock speaks ONLY Anthropic; a request on any
+//      other provider's proxy path is answered with a loud 500 instead of a
+//      queued turn (#715's thief was the titling call leaving on the OpenAI
+//      path via the runner's baked gpt-4.1 primaryModel default, eating
+//      Anthropic turns it couldn't even parse; the harness now pins
+//      STIGMER_PRIMARY_MODEL, and this fence makes any regression legible).
+//   2. Signature routing — recognized background calls (the titling system
+//      prompt) are answered out-of-band with a canned body, never from the
+//      queue. A NEW background call class surfaces as a hard 500 ("no queued
+//      response") — extend the signature match here, never the test queues.
+// Out-of-band and fenced requests still appear in requests(): that surface's
+// contract is "everything the model received over the wire".
+//
 // The `delayMs` knob holds a response open, keeping an execution IN_PROGRESS for
 // a controllable window — the AgentExecution analogue of the WorkflowExecution
 // `wait` timer, and the lever for cancel/terminate/pause/resume on a genuinely
@@ -127,6 +147,40 @@ export interface CapturedLlmRequest {
   body: unknown;
 }
 
+// The stable slice of the session-titling system prompt (SYSTEM_PROMPT in
+// backend/services/runner/src/activities/generate-session-subject.ts, kept in
+// lockstep with the cloud activity). Deliberately a short, meaning-bearing
+// substring so prompt wording can evolve around it without breaking the match.
+const TITLE_GENERATION_SIGNATURE = "session title generator";
+
+// The canned title every out-of-band titling call receives. Exported so a
+// suite can pin the full loop: mock answers → activity cleans and caps the
+// text → session subject updates. Must satisfy the activity's post-processing
+// (≤50 chars, no trailing punctuation) to arrive verbatim.
+export const MOCK_SESSION_TITLE = "Conformance Agent Session";
+
+// True when an Anthropic messages payload is the runner's background
+// session-titling call rather than an agent-loop turn. LangChain sends the
+// system prompt as `system`, either a plain string or an array of text blocks
+// depending on client version — both shapes are folded to text before matching.
+function isTitleGenerationRequest(body: unknown): boolean {
+  if (typeof body !== "object" || body === null) {
+    return false;
+  }
+  const system = (body as { system?: unknown }).system;
+  let text: string;
+  if (typeof system === "string") {
+    text = system;
+  } else if (Array.isArray(system)) {
+    text = system
+      .map((block) => (typeof block === "object" && block !== null ? String((block as { text?: unknown }).text ?? "") : ""))
+      .join(" ");
+  } else {
+    return false;
+  }
+  return text.toLowerCase().includes(TITLE_GENERATION_SIGNATURE);
+}
+
 export class MockLlmProxy {
   private server: Server | undefined;
   // FIFO of pending turns; a request claims the head synchronously on arrival.
@@ -135,6 +189,9 @@ export class MockLlmProxy {
   // Every LLM request body this proxy has received, in arrival order. Cleared
   // by reset() at the afterEach boundary like the queue.
   private readonly captured: CapturedLlmRequest[] = [];
+  // Background titling calls answered out-of-band (#690/#715) — an observation
+  // point, deliberately NOT part of consumed()/remaining() queue accounting.
+  private titleRequestCount = 0;
   // In-flight held responses, keyed by an abort callback. releaseHolds() invokes
   // each to unblock a delayed response early (independent of a socket close).
   private readonly activeHolds = new Set<() => void>();
@@ -217,6 +274,7 @@ export class MockLlmProxy {
     this.queue.length = 0;
     this.consumedCount = 0;
     this.captured.length = 0;
+    this.titleRequestCount = 0;
     this.releaseHolds();
     this.draining = false;
   }
@@ -270,6 +328,11 @@ export class MockLlmProxy {
     return this.consumedCount;
   }
 
+  // Background titling calls served out-of-band so far.
+  titleRequests(): number {
+    return this.titleRequestCount;
+  }
+
   async close(): Promise<void> {
     const server = this.server;
     this.server = undefined;
@@ -301,6 +364,38 @@ export class MockLlmProxy {
       typeof parsedBody === "object" &&
       parsedBody !== null &&
       (parsedBody as { stream?: unknown }).stream === true;
+
+    // Provider fence: queued turns are Anthropic-shaped SSE/JSON, so serving
+    // one to another provider's client corrupts BOTH the caller (unparseable
+    // body) and the test (stolen turn). Fail loudly instead — the message
+    // names the fix so a future non-Anthropic caller is a five-minute triage,
+    // not a phase-timeout mystery (#715).
+    const isForeignProvider = path.includes("/v1/proxy/llm/") && !path.includes("/v1/proxy/llm/anthropic");
+    if (isForeignProvider) {
+      writeJson(res, 500, {
+        error:
+          `MockLlmProxy speaks only Anthropic but received ${path}. A runner-side LLM caller ` +
+          `is routing to another provider — pin its model to an Anthropic one in the harness ` +
+          `env (see STIGMER_PRIMARY_MODEL in runner-process.ts) or teach this mock the provider.`,
+      });
+      return;
+    }
+
+    // Background calls are answered out-of-band, NEVER from the queue: the
+    // queue is the agent loop's script, and a background call claiming a turn
+    // starves or derails the loop under test (#715). The canned title is
+    // wired all the way through — the titling activity really parses it and
+    // writes it as the session subject, so suites can pin the feature.
+    if (isTitleGenerationRequest(parsedBody)) {
+      this.titleRequestCount += 1;
+      const body = anthropicText(MOCK_SESSION_TITLE);
+      if (streaming) {
+        writeAnthropicSse(res, body);
+      } else {
+        writeJson(res, 200, body);
+      }
+      return;
+    }
 
     // Claim the head turn synchronously so concurrent or retried calls can't race
     // for the same entry; an empty queue is a test-authoring error, surfaced as 500.

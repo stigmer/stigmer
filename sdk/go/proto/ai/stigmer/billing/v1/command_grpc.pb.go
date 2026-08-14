@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	BillingCommandController_GetOrCreateBillingAccount_FullMethodName   = "/ai.stigmer.billing.v1.BillingCommandController/getOrCreateBillingAccount"
 	BillingCommandController_AdjustCredits_FullMethodName               = "/ai.stigmer.billing.v1.BillingCommandController/adjustCredits"
+	BillingCommandController_GrantCredits_FullMethodName                = "/ai.stigmer.billing.v1.BillingCommandController/grantCredits"
 	BillingCommandController_AuthorizeExecution_FullMethodName          = "/ai.stigmer.billing.v1.BillingCommandController/authorizeExecution"
 	BillingCommandController_RecordLlmCallUsage_FullMethodName          = "/ai.stigmer.billing.v1.BillingCommandController/recordLlmCallUsage"
 	BillingCommandController_FinalizeExecution_FullMethodName           = "/ai.stigmer.billing.v1.BillingCommandController/finalizeExecution"
@@ -43,34 +44,28 @@ const (
 type BillingCommandControllerClient interface {
 	// Provision or retrieve the billing account for an organization.
 	// Idempotent: creates the account on first call, returns existing on subsequent calls.
-	//
-	// @internal
-	// Called during org creation or first billing interaction.
-	// Initializes balance to zero with default thresholds.
 	GetOrCreateBillingAccount(ctx context.Context, in *GetOrCreateBillingAccountInput, opts ...grpc.CallOption) (*BillingAccount, error)
 	// Manually adjust an org's credit balance.
 	// Produces an immutable ledger entry for audit. Requires admin privileges.
 	AdjustCredits(ctx context.Context, in *AdjustCreditsInput, opts ...grpc.CallOption) (*CreditLedgerEntry, error)
+	// Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
+	// Produces an immutable promotional_credit ledger entry for audit.
+	//
+	// The grant burns before adjustment and purchased credits. When expires_at
+	// is set, any remainder unconsumed at that time is removed from the balance
+	// by the platform's grant-expiry sweep (an expiry_debit ledger entry).
+	// Idempotent: replaying an applied idempotency key returns the original
+	// entry, even after the expiry has passed.
+	GrantCredits(ctx context.Context, in *GrantCreditsInput, opts ...grpc.CallOption) (*CreditLedgerEntry, error)
 	// Reserve credits before starting an agent execution.
 	// Returns authorization status and reservation details.
-	//
-	// @internal
-	// Called by the Temporal workflow before dispatching to the agent runner.
-	// The runner must not start if authorized is false.
 	AuthorizeExecution(ctx context.Context, in *AuthorizeExecutionInput, opts ...grpc.CallOption) (*AuthorizeExecutionResponse, error)
 	// Record a single LLM call's usage for billing.
 	// Computes cost server-side from the model registry, inserts an immutable
 	// LlmCallUsageRecord, and debits credits from the execution's reservation.
-	//
-	// @internal
-	// Called by the proxy after each LLM SSE stream completes.
-	// Deduplicated by (execution_id, sequence, metering_source).
 	RecordLlmCallUsage(ctx context.Context, in *RecordLlmCallUsageInput, opts ...grpc.CallOption) (*RecordLlmCallUsageResponse, error)
 	// Settle billing for a completed execution.
 	// Releases unused reservation credits and produces the final billing record.
-	//
-	// @internal
-	// Called by the Temporal workflow after the agent runner completes.
 	FinalizeExecution(ctx context.Context, in *FinalizeExecutionInput, opts ...grpc.CallOption) (*FinalizeExecutionResponse, error)
 	// Create a Stripe Checkout Session to purchase a credit pack.
 	// Returns a checkout URL for the client to redirect the user.
@@ -130,6 +125,16 @@ func (c *billingCommandControllerClient) AdjustCredits(ctx context.Context, in *
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreditLedgerEntry)
 	err := c.cc.Invoke(ctx, BillingCommandController_AdjustCredits_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingCommandControllerClient) GrantCredits(ctx context.Context, in *GrantCreditsInput, opts ...grpc.CallOption) (*CreditLedgerEntry, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreditLedgerEntry)
+	err := c.cc.Invoke(ctx, BillingCommandController_GrantCredits_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -237,34 +242,28 @@ func (c *billingCommandControllerClient) RetireModelPricingBaseline(ctx context.
 type BillingCommandControllerServer interface {
 	// Provision or retrieve the billing account for an organization.
 	// Idempotent: creates the account on first call, returns existing on subsequent calls.
-	//
-	// @internal
-	// Called during org creation or first billing interaction.
-	// Initializes balance to zero with default thresholds.
 	GetOrCreateBillingAccount(context.Context, *GetOrCreateBillingAccountInput) (*BillingAccount, error)
 	// Manually adjust an org's credit balance.
 	// Produces an immutable ledger entry for audit. Requires admin privileges.
 	AdjustCredits(context.Context, *AdjustCreditsInput) (*CreditLedgerEntry, error)
+	// Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
+	// Produces an immutable promotional_credit ledger entry for audit.
+	//
+	// The grant burns before adjustment and purchased credits. When expires_at
+	// is set, any remainder unconsumed at that time is removed from the balance
+	// by the platform's grant-expiry sweep (an expiry_debit ledger entry).
+	// Idempotent: replaying an applied idempotency key returns the original
+	// entry, even after the expiry has passed.
+	GrantCredits(context.Context, *GrantCreditsInput) (*CreditLedgerEntry, error)
 	// Reserve credits before starting an agent execution.
 	// Returns authorization status and reservation details.
-	//
-	// @internal
-	// Called by the Temporal workflow before dispatching to the agent runner.
-	// The runner must not start if authorized is false.
 	AuthorizeExecution(context.Context, *AuthorizeExecutionInput) (*AuthorizeExecutionResponse, error)
 	// Record a single LLM call's usage for billing.
 	// Computes cost server-side from the model registry, inserts an immutable
 	// LlmCallUsageRecord, and debits credits from the execution's reservation.
-	//
-	// @internal
-	// Called by the proxy after each LLM SSE stream completes.
-	// Deduplicated by (execution_id, sequence, metering_source).
 	RecordLlmCallUsage(context.Context, *RecordLlmCallUsageInput) (*RecordLlmCallUsageResponse, error)
 	// Settle billing for a completed execution.
 	// Releases unused reservation credits and produces the final billing record.
-	//
-	// @internal
-	// Called by the Temporal workflow after the agent runner completes.
 	FinalizeExecution(context.Context, *FinalizeExecutionInput) (*FinalizeExecutionResponse, error)
 	// Create a Stripe Checkout Session to purchase a credit pack.
 	// Returns a checkout URL for the client to redirect the user.
@@ -314,6 +313,9 @@ func (UnimplementedBillingCommandControllerServer) GetOrCreateBillingAccount(con
 }
 func (UnimplementedBillingCommandControllerServer) AdjustCredits(context.Context, *AdjustCreditsInput) (*CreditLedgerEntry, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AdjustCredits not implemented")
+}
+func (UnimplementedBillingCommandControllerServer) GrantCredits(context.Context, *GrantCreditsInput) (*CreditLedgerEntry, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GrantCredits not implemented")
 }
 func (UnimplementedBillingCommandControllerServer) AuthorizeExecution(context.Context, *AuthorizeExecutionInput) (*AuthorizeExecutionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AuthorizeExecution not implemented")
@@ -394,6 +396,24 @@ func _BillingCommandController_AdjustCredits_Handler(srv interface{}, ctx contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BillingCommandControllerServer).AdjustCredits(ctx, req.(*AdjustCreditsInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BillingCommandController_GrantCredits_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GrantCreditsInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingCommandControllerServer).GrantCredits(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingCommandController_GrantCredits_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingCommandControllerServer).GrantCredits(ctx, req.(*GrantCreditsInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -574,6 +594,10 @@ var BillingCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "adjustCredits",
 			Handler:    _BillingCommandController_AdjustCredits_Handler,
+		},
+		{
+			MethodName: "grantCredits",
+			Handler:    _BillingCommandController_GrantCredits_Handler,
 		},
 		{
 			MethodName: "authorizeExecution",

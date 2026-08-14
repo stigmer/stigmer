@@ -126,6 +126,26 @@ enum IamPermission {
   // default agent served to every organization — so ordinary requests
   // may echo or remove them but never write them (cloud#320).
   can_write_reserved_labels = 37;
+
+  // Platform-level permission to view platform provider standing: the
+  // canary-probe verdicts (health, billing/auth rejections, latency) for
+  // the platform's own LLM provider accounts. Read-only and gated to
+  // platform operators — provider account health is platform-internal,
+  // never org-visible. Deliberately distinct from the manage-class
+  // platform permissions: the standing console only observes (cloud#447).
+  can_view_provider_standing = 38;
+
+  // Platform-level permission to set a resource's visibility to PUBLIC —
+  // the only level that crosses every org boundary (the cross-org
+  // "explore" catalog). Gated to platform operators in the cloud
+  // edition: public listing is a curation decision, requested by the
+  // owner and granted by the platform team. Enforced at BOTH doors a
+  // resource can become public through — updateVisibility escalation and
+  // create-with-public — while org/platform levels and un-publishing
+  // stay self-service (resource can_edit). The OSS edition is
+  // deliberately unguarded: the self-hosted operator owns the store,
+  // the same scoping cloud#320 applied to reserved labels.
+  can_set_public_visibility = 39;
 }
 
 // IamRole defines the roles that can be assigned to principals on resources

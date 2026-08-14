@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../internal/DialogShell.js";
 import {
   useWorkflowArchitectFlow,
   type ArchitectPhase,
@@ -64,8 +65,6 @@ export function WorkflowArchitectDialog({
   onSuccess,
   onError,
 }: WorkflowArchitectDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
   const handleSuccess = useCallback(
     (successOrg: string, slug: string) => {
       onOpenChange(false);
@@ -80,54 +79,23 @@ export function WorkflowArchitectDialog({
     onError,
   });
 
+  // Each opening starts from a clean prompt.
   useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) {
-      flow.reset();
-      dialog.showModal();
-    } else if (!open && dialog.open) {
-      dialog.close();
-    }
+    if (open) flow.reset();
   }, [open, flow.reset]);
 
-  const handleDialogCancel = useCallback(
-    (e: React.SyntheticEvent) => {
-      e.preventDefault();
-      onOpenChange(false);
-    },
-    [onOpenChange],
-  );
-
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent<HTMLDialogElement>) => {
-      if (e.target === dialogRef.current) {
-        onOpenChange(false);
-      }
-    },
-    [onOpenChange],
-  );
-
-  const isWorking =
-    flow.phase === "starting" ||
-    flow.phase === "streaming" ||
-    flow.phase === "applying";
-
   return (
-    <dialog
-      ref={dialogRef}
-      onCancel={handleDialogCancel}
-      onClick={handleBackdropClick}
-      className={cn(
-        "stg:fixed stg:inset-0 stg:z-50 stg:m-auto stg:w-full stg:max-w-3xl stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:p-0 stg:text-popover-foreground stg:shadow-lg",
-        "stg:backdrop:bg-backdrop",
-        "stg:open:animate-in stg:open:fade-in-0 stg:open:zoom-in-95",
-      )}
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      width="3xl"
+      dismissOnBackdrop
+      aria-label="Workflow Architect"
     >
       <div className="stg:flex stg:flex-col">
         <DialogPhase flow={flow} onClose={() => onOpenChange(false)} />
       </div>
-    </dialog>
+    </DialogShell>
   );
 }
 

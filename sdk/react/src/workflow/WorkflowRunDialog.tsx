@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect } from "react";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../internal/DialogShell.js";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { useRunWorkflowFlow } from "./useRunWorkflowFlow.js";
@@ -82,8 +83,6 @@ export function WorkflowRunDialog({
   onSuccess,
   onError,
 }: WorkflowRunDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
   const handleSuccess = useCallback(
     (executionId: string) => {
       onOpenChange(false);
@@ -100,25 +99,19 @@ export function WorkflowRunDialog({
     onError,
   });
 
-  // Sync open state with the native dialog
+  // Each opening starts from a clean form.
   useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) {
-      flow.reset();
-      // Preselection must follow reset (reset clears the selection back to
-      // the server-resolved default). Guarded against stale ids: an instance
-      // deleted between the caller capturing the id and this open falls back
-      // to the default option instead of a <select> value with no option.
-      if (
-        initialInstanceId &&
-        instances.some((i) => i.metadata?.id === initialInstanceId)
-      ) {
-        flow.setSelectedInstanceId(initialInstanceId);
-      }
-      dialog.showModal();
-    } else if (!open && dialog.open) {
-      dialog.close();
+    if (!open) return;
+    flow.reset();
+    // Preselection must follow reset (reset clears the selection back to
+    // the server-resolved default). Guarded against stale ids: an instance
+    // deleted between the caller capturing the id and this open falls back
+    // to the default option instead of a <select> value with no option.
+    if (
+      initialInstanceId &&
+      instances.some((i) => i.metadata?.id === initialInstanceId)
+    ) {
+      flow.setSelectedInstanceId(initialInstanceId);
     }
   }, [
     open,
@@ -128,36 +121,16 @@ export function WorkflowRunDialog({
     instances,
   ]);
 
-  const handleDialogCancel = useCallback(
-    (e: React.SyntheticEvent) => {
-      e.preventDefault();
-      onOpenChange(false);
-    },
-    [onOpenChange],
-  );
-
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent<HTMLDialogElement>) => {
-      if (e.target === dialogRef.current) {
-        onOpenChange(false);
-      }
-    },
-    [onOpenChange],
-  );
-
   const workflowName =
     workflow.metadata?.name || workflow.metadata?.slug || "Workflow";
 
   return (
-    <dialog
-      ref={dialogRef}
-      onCancel={handleDialogCancel}
-      onClick={handleBackdropClick}
-      className={cn(
-        "stg:fixed stg:inset-0 stg:z-50 stg:m-auto stg:w-full stg:max-w-lg stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:p-0 stg:text-popover-foreground stg:shadow-lg",
-        "stg:backdrop:bg-backdrop",
-        "stg:open:animate-in stg:open:fade-in-0 stg:open:zoom-in-95",
-      )}
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      width="lg"
+      dismissOnBackdrop
+      aria-label={`Run ${workflowName}`}
     >
       <div className="stg:flex stg:flex-col">
         {/* Header */}
@@ -231,7 +204,7 @@ export function WorkflowRunDialog({
           </button>
         </div>
       </div>
-    </dialog>
+    </DialogShell>
   );
 }
 

@@ -236,6 +236,83 @@ describe("callLlmAction", () => {
     });
   });
 
+  describe("schema validation failure channels (#686)", () => {
+    const schemaConfig: LlmCallConfig = {
+      model: "gpt-4o-mini",
+      prompt: "classify",
+      response_schema: {
+        type: "object",
+        properties: { answer: { type: "number" } },
+        required: ["answer"],
+      },
+    };
+
+    it("default policy throws LLM_SCHEMA_VALIDATION after exactly one model call (no blind retry loop)", async () => {
+      process.env.OPENAI_API_KEY = "sk-test";
+      mockFetchWithRegistry(() => openAIJsonResponse('{"wrong_key": true}'));
+
+      await expect(
+        callLlmAction(schemaConfig, {}, "exec-1"),
+      ).rejects.toMatchObject({ type: "LLM_SCHEMA_VALIDATION" });
+
+      // Before maxRetries was pinned to 0, LangChain blind-retried the
+      // identical call ~7 times on every schema miss (#686).
+      const llmCalls = mockFetch.mock.calls.filter(
+        (call: unknown[]) => !(call[0] as string).includes("model-registry"),
+      );
+      expect(llmCalls).toHaveLength(1);
+    });
+
+    it("soft policies return parse_error instead of throwing so the engine can retry/branch", async () => {
+      process.env.OPENAI_API_KEY = "sk-test";
+      mockFetchWithRegistry(() => openAIJsonResponse('{"wrong_key": true}'));
+
+      const result = await callLlmAction(
+        { ...schemaConfig, on_invalid: "ON_INVALID_RETRY", max_retries: 2 },
+        {},
+        "exec-1",
+      );
+
+      expect(result.parse_error).toContain("answer");
+      expect(result.result).toBeUndefined();
+    });
+
+    it("a conforming response with a soft policy carries no parse_error", async () => {
+      process.env.OPENAI_API_KEY = "sk-test";
+      mockFetchWithRegistry(() => openAIJsonResponse('{"answer": 42}'));
+
+      const result = await callLlmAction(
+        { ...schemaConfig, on_invalid: "ON_INVALID_RETRY" },
+        {},
+        "exec-1",
+      );
+
+      expect(result.parse_error).toBeUndefined();
+      expect(result.result).toEqual({ answer: 42 });
+    });
+  });
+
+  describe("task timeout (#686)", () => {
+    it("times out with non-retryable LLM_TIMEOUT when config.timeout is breached", async () => {
+      process.env.OPENAI_API_KEY = "sk-test";
+      mockFetch.mockImplementation((url: string, init?: RequestInit) => {
+        if ((url as string).includes("model-registry")) {
+          return Promise.resolve(new Response("{}", { status: 404 }));
+        }
+        // Hang until the SDK's timeout signal aborts the request.
+        return new Promise((_, reject) => {
+          init?.signal?.addEventListener("abort", () =>
+            reject(Object.assign(new Error("Request timed out."), { name: "APIConnectionTimeoutError" })),
+          );
+        });
+      });
+
+      await expect(
+        callLlmAction({ model: "gpt-4o-mini", prompt: "hi", timeout: 1 }, {}, "exec-1"),
+      ).rejects.toMatchObject({ type: "LLM_TIMEOUT", nonRetryable: true });
+    }, 15_000);
+  });
+
   describe("direct mode — Anthropic", () => {
     it("calls Anthropic API and returns structured result", async () => {
       process.env.ANTHROPIC_API_KEY = "sk-ant-test";

@@ -16,12 +16,6 @@ export const file_ai_stigmer_agentic_skill_v1_spec: GenFile = /*@__PURE__*/
 /**
  * SkillSpec defines the desired state of a skill.
  *
- * @internal
- * All fields are extracted from the skill artifact by the backend.
- * This follows the Kubernetes spec pattern — contains user's desired state.
- * Source/provenance information is NOT stored here — it's in SkillStatus
- * as GitProvenance (observed state). See synth.proto for SDK input structure.
- *
  * @generated from message ai.stigmer.agentic.skill.v1.SkillSpec
  */
 export type SkillSpec = Message<"ai.stigmer.agentic.skill.v1.SkillSpec"> & {

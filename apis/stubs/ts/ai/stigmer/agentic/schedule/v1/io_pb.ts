@@ -68,11 +68,6 @@ export type GetSchedulesByAgentRequest = Message<"ai.stigmer.agentic.schedule.v1
    * bounded only by the caller's view permissions, which for a member of
    * several organizations spans all of them.
    *
-   * @internal
-   * Mirrors the org scoping on the sibling getByAgent/getByWorkflow
-   * requests (agent channels, agent shares, agent instances). Handlers
-   * implementing this RPC must apply the filter in their query/list step.
-   *
    * @generated from field: string org = 3;
    */
   org: string;
@@ -199,14 +194,6 @@ export const ScheduleTriggerResultSchema: GenMessage<ScheduleTriggerResult> = /*
 
 /**
  * One recorded schedule fire — a run-history row.
- *
- * @internal
- * Backed by the fire ledger (project DD-017 D-7): every fire leaves a
- * row, INCLUDING fires that created no execution — the ledger is the
- * one place a refused fire's reason survives below the pause threshold.
- * Rows carrying an execution id but no terminal outcome are enriched
- * with the execution's live phase at read time, so outcome never lies
- * while a run is in flight.
  *
  * @generated from message ai.stigmer.agentic.schedule.v1.ScheduleRun
  */
@@ -376,14 +363,6 @@ export const ScheduleRunOriginSchema: GenEnum<ScheduleRunOrigin> = /*@__PURE__*/
 
 /**
  * What one schedule fire produced.
- *
- * @internal
- * One vocabulary for two surfaces (project DD-017 D-6/D-7): the trigger
- * result reports the START outcomes (STARTED / REFUSED /
- * TARGET_MISSING), and the run-history rows additionally reach the
- * terminal outcomes (COMPLETED / FAILED / TIMED_OUT) written by the cron
- * tick's tracking. SKIPPED records a cron fire that revalidated against
- * a row deleted/disabled/paused between recording and starting.
  *
  * @generated from enum ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome
  */

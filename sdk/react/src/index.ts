@@ -196,6 +196,7 @@ export type {
   UseSessionFileChangesReturn,
   ModelCostEntry,
   UseSessionUsageReturn,
+  ExecutionUsageEntry,
   UseAgentRefFromSessionReturn,
   UseNewSessionFlowOptions,
   UseNewSessionFlowReturn,
@@ -296,6 +297,9 @@ export {
   toolKindToCategoryInfo,
   defaultDisclosureForCategory,
   extractPrimaryArg,
+  extractShellIntent,
+  extractShellIntentFromPreview,
+  SHELL_INTENT_ARG_FIELD,
   McpToolDetail,
   parseMcpResult,
   formatDuration,
@@ -1039,6 +1043,18 @@ export type {
   CursorAccountEditorProps,
 } from "./cursor-accounts/index.js";
 
+// Provider standing — read-only platform-operator view of the platform's
+// LLM provider account health (canary-probe verdicts, cloud#447)
+export {
+  useProviderStanding,
+  ProviderStandingConsole,
+  ProviderStandingAccessNotice,
+} from "./provider-standing/index.js";
+export type {
+  UseProviderStandingReturn,
+  ProviderStandingConsoleProps,
+} from "./provider-standing/index.js";
+
 // Settings — navigation structure + section components shared across app shells
 export {
   SETTINGS_NAV_GROUPS,
@@ -1319,6 +1335,7 @@ export {
   ConversationControlBanner,
   ConversationAttentionBanner,
   ConversationComposer,
+  ConversationTemplatePickerDialog,
   useConversation,
   useConversationList,
   useConversationMediaUrl,
@@ -1348,6 +1365,8 @@ export type {
   ConversationControlBannerProps,
   ConversationAttentionBannerProps,
   ConversationComposerProps,
+  ConversationTemplatePickerDialogProps,
+  ConversationReplyPayload,
   UseConversationOptions,
   UseConversationReturn,
   UseConversationListOptions,
@@ -1406,9 +1425,11 @@ export {
   VisibilitySelector,
   VisibilityBadge,
   blueprintVisibilityLevels,
-  INSTANCE_VISIBILITY_LEVELS,
+  instanceVisibilityLevels,
+  PUBLIC_LOCKED_REASON,
   visibilityLabel,
   useUpdateVisibility,
+  useCanSetPublicVisibility,
 } from "./library/index.js";
 export type {
   ScopeToggleProps,
@@ -1428,8 +1449,10 @@ export type {
   VisibilityBadgeProps,
   VisibilityLevelOption,
   BlueprintVisibilityLevelsContext,
+  InstanceVisibilityLevelsContext,
   VisibilityResourceKind,
   UseUpdateVisibilityReturn,
+  UseCanSetPublicVisibilityReturn,
 } from "./library/index.js";
 
 // Manifest — kind-agnostic YAML edit/apply (editor, hooks, dialogs)
@@ -1889,6 +1912,7 @@ export type {
   WorkflowTaskListProps,
   WorkflowDetailViewProps,
   WorkflowExecutionViewerProps,
+  WorkflowExecutionPanelMode,
   WorkflowExecutionHeaderProps,
   WorkflowExecutionPanelController,
   UseWorkflowExecutionPanelOptions,

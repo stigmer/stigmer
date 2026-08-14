@@ -35,14 +35,16 @@ async function runList(type: string, options: ListFlags, command: Command): Prom
     return;
   }
 
+  // The one pre-gate alias family: executions resolve BEFORE the registry.
+  // Adding another pre-gate alias here requires its kind to be
+  // non-registry-addressable (agent_execution's posture) — an addressable
+  // kind must list through the registry dispatch instead, or its verb-matrix
+  // row lies. The alias-shadowing pin in registry/registry.test.ts enforces
+  // this; sessions shipped works-but-unadvertised through exactly such a
+  // bypass for two months (stigmer/stigmer#469).
   const { isExecutionAlias } = await import("../resources/execution.js");
-  const { isSessionAlias } = await import("../resources/session.js");
   if (isExecutionAlias(type)) {
     await runListExecutions(options, command);
-    return;
-  }
-  if (isSessionAlias(type)) {
-    await runListSessions(options);
     return;
   }
 
@@ -93,18 +95,6 @@ async function runListExecutions(options: ListFlags, command: Command): Promise<
   }
   const result = await execution.listAgentExecutions(client.stigmer, limit, org);
   process.stdout.write(execution.renderExecutionList(result, format, "agent"));
-}
-
-async function runListSessions(options: ListFlags): Promise<void> {
-  const [{ connectBackend }, session] = await Promise.all([
-    import("../backend.js"),
-    import("../resources/session.js"),
-  ]);
-
-  const client = connectBackend();
-  ensureAuthenticated(client.config);
-  const result = await session.listSessions(client.stigmer, parseLimit(options.limit));
-  process.stdout.write(session.renderSessionList(result, readFormat(options)));
 }
 
 function isTypesAlias(type: string): boolean {

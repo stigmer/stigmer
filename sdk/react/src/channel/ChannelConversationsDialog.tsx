@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useId, useRef } from "react";
+import { useCallback, useId } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { MessageSquare, User, X } from "lucide-react";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../internal/DialogShell.js";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -68,38 +70,18 @@ export function ChannelConversationsDialog({
   sessionHref,
   modal = true,
 }: ChannelConversationsDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
   const handleClose = useCallback(() => {
-    dialogRef.current?.close();
     onOpenChange(false);
   }, [onOpenChange]);
 
-  // Sync native dialog open state (matches the SDK dialog convention).
-  const prevOpenRef = useRef(false);
-  if (modal && open !== prevOpenRef.current) {
-    prevOpenRef.current = open;
-    if (open) {
-      requestAnimationFrame(() => {
-        if (dialogRef.current && !dialogRef.current.open) {
-          dialogRef.current.showModal();
-        }
-      });
-    } else if (dialogRef.current?.open) {
-      dialogRef.current.close();
-    }
-  }
-
   return (
-    <dialog
-      ref={dialogRef}
-      open={modal ? undefined : open}
-      onClose={handleClose}
-      className={cn(
-        "stg:w-full stg:max-w-lg stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
-        modal ? "stg:fixed stg:inset-0 stg:m-auto stg:backdrop:bg-backdrop" : "stg:relative",
-      )}
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      modal={modal}
+      width="lg"
       aria-labelledby={titleId}
     >
       {/* Body mounts only while open so each opening fetches fresh. */}
@@ -111,7 +93,7 @@ export function ChannelConversationsDialog({
           onClose={handleClose}
         />
       )}
-    </dialog>
+    </DialogShell>
   );
 }
 
@@ -172,7 +154,7 @@ function ChannelConversationsDialogBody({
             description="When someone messages this channel, the sessions serving them appear here."
           />
         ) : (
-          <ul className="stg:space-y-1">
+          <ul className={cn(UNSTYLED_LIST, "stg:space-y-1")}>
             {sessions.map((session) => (
               <ConversationRow
                 key={session.metadata?.id}

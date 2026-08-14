@@ -22,13 +22,6 @@ export const file_ai_stigmer_agentic_workflow_v1_spec: GenFile = /*@__PURE__*/
 /**
  * WorkflowSpec defines the configurable properties of a workflow.
  *
- * @internal
- * Follows the "kind + Struct" pattern from CloudResource (Planton).
- * This replaces the old `synthesized_yaml` field with structured proto definitions.
- * Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,
- * providing maximum flexibility and extensibility.
- * The overview.md file provides the SDK-facing description and example YAML.
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.WorkflowSpec
  */
 export type WorkflowSpec = Message<"ai.stigmer.agentic.workflow.v1.WorkflowSpec"> & {
@@ -149,9 +142,6 @@ export const WorkflowBudgetSchema: GenMessage<WorkflowBudget> = /*@__PURE__*/
 /**
  * WorkflowDocument contains workflow-level metadata for versioning and identification.
  *
- * @internal
- * Maps to the `document:` block in Zigflow DSL YAML.
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.WorkflowDocument
  */
 export type WorkflowDocument = Message<"ai.stigmer.agentic.workflow.v1.WorkflowDocument"> & {
@@ -201,25 +191,6 @@ export const WorkflowDocumentSchema: GenMessage<WorkflowDocument> = /*@__PURE__*
 /**
  * WorkflowTask represents a single executable step in a workflow.
  *
- * @internal
- * Uses the "kind + Struct" pattern (like CloudResource in Planton):
- * - `kind` determines the task type (set_vars, http_call, switch_case, etc.)
- * - `task_config` contains task-specific configuration as dynamic JSON
- * - Backend unmarshals `task_config` to the appropriate Go struct based on `kind`
- *
- * Example (HTTP Call):
- * {
- *   "name": "fetchData",
- *   "kind": "http_call",
- *   "task_config": {
- *     "method": "GET",
- *     "endpoint": {"uri": "https://api.example.com/data"},
- *     "headers": {"Authorization": "Bearer ${TOKEN}"}
- *   },
- *   "export": {"as": "${.}"},
- *   "flow": {"then": "processData"}
- * }
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.WorkflowTask
  */
 export type WorkflowTask = Message<"ai.stigmer.agentic.workflow.v1.WorkflowTask"> & {
@@ -241,30 +212,6 @@ export type WorkflowTask = Message<"ai.stigmer.agentic.workflow.v1.WorkflowTask"
 
   /**
    * Task-specific configuration whose structure depends on the `kind` field.
-   *
-   * @internal
-   * Backend unmarshals this Struct to the appropriate proto message:
-   * - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
-   * - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
-   * - grpc_call: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig
-   * - switch_case: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig
-   * - for_each: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig
-   * - fork: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig
-   * - try_catch: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig
-   * - listen: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig
-   * - wait: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig
-   * - activity_call: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig
-   * - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
-   * - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
-   * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
-   * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
-   * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
-   * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
-   * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
-   * - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
-   * - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
-   *
-   * See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.
    *
    * @generated from field: google.protobuf.Struct task_config = 3;
    */
@@ -289,54 +236,6 @@ export type WorkflowTask = Message<"ai.stigmer.agentic.workflow.v1.WorkflowTask"
   /**
    * Compensation tasks to execute if this task needs to be "undone."
    *
-   * @internal
-   * Saga-style compensation for workflows with side effects. When a
-   * try_catch block catches an error, it can optionally run the
-   * compensation tasks for all already-completed tasks in reverse order.
-   *
-   * The compensation tasks receive the original task's output in their
-   * input context, allowing them to construct the appropriate undo
-   * operation (e.g., cancel an API call, delete a created resource,
-   * send a reversal notification).
-   *
-   * Only executed when:
-   * 1. The task completed successfully (failed tasks are not compensated)
-   * 2. A subsequent task within the same try_catch scope fails
-   * 3. The catch block is configured to run compensations
-   *
-   * YAML Example:
-   *   try:
-   *     - create_order:
-   *         call: http
-   *         with:
-   *           method: POST
-   *           endpoint: { uri: "https://api.example.com/orders" }
-   *           body: { ... }
-   *         compensate:
-   *           - cancel_order:
-   *               call: http
-   *               with:
-   *                 method: DELETE
-   *                 endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
-   *         export:
-   *           as: "${ . }"
-   *     - charge_payment:
-   *         call: http
-   *         with:
-   *           method: POST
-   *           endpoint: { uri: "https://api.example.com/payments" }
-   *   catch:
-   *     as: error
-   *     compensate: true
-   *     do:
-   *       - log_failure:
-   *           call: notification
-   *           with: ...
-   *
-   * Optional - when empty, this task has no compensation action.
-   *
-   * @since T17 (Advanced Agentic Orchestration)
-   *
    * @generated from field: repeated ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6;
    */
   compensate: WorkflowTask[];
@@ -351,14 +250,6 @@ export const WorkflowTaskSchema: GenMessage<WorkflowTask> = /*@__PURE__*/
 
 /**
  * Export defines how task output is saved to the workflow context.
- *
- * @internal
- * Maps to the `export:` block in Zigflow DSL.
- *
- * Examples:
- * - {"as": "${.}"} - Export entire output
- * - {"as": "${.fieldName}"} - Export specific field
- * - {"as": "${$context + {taskName: .}}"} - Merge into context
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.Export
  */
@@ -380,14 +271,6 @@ export const ExportSchema: GenMessage<Export> = /*@__PURE__*/
 
 /**
  * FlowControl defines which task executes next after the current task completes.
- *
- * @internal
- * Maps to the `then:` directive in Zigflow DSL.
- *
- * Examples:
- * - {"then": "nextTaskName"} - Jump to specific task
- * - {"then": "end"} - Terminate workflow
- * - Not set - Continue to next task in sequence (default)
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.FlowControl
  */

@@ -14,10 +14,6 @@ export const file_ai_stigmer_commons_apiresource_enum: GenFile = /*@__PURE__*/
 /**
  * Event types produced by command controller RPCs across all API resources.
  *
- * @internal
- * Different enums could be used per resource, but a shared enum is simpler
- * because events are converted to strings during message passing.
- *
  * @generated from enum ai.stigmer.commons.apiresource.ApiResourceEventType
  */
 export enum ApiResourceEventType {
@@ -72,10 +68,6 @@ export const ApiResourceEventTypeSchema: GenEnum<ApiResourceEventType> = /*@__PU
 
 /**
  * Operation type for API resource state transitions.
- *
- * @internal
- * Used by the state machine to classify RPC operations and enforce
- * transition rules (e.g., a resource in "deleting" state rejects create).
  *
  * @generated from enum ai.stigmer.commons.apiresource.ApiResourceStateOperationType
  */
@@ -174,11 +166,6 @@ export enum ApiResourceVisibility {
    * manageable — and visible — to its org's admins. Personal kinds
    * (instances, environments, sessions) stay creator-only.
    *
-   * @internal
-   * Named visibility_private to avoid Java reserved keyword conflict.
-   * Admin inheritance is the FGA-model composition
-   * `owner: [identity_account] or admin from organization` (T08).
-   *
    * @generated from enum value: visibility_private = 1;
    */
   visibility_private = 1,
@@ -187,6 +174,14 @@ export enum ApiResourceVisibility {
    * Anyone can access (read) this resource.
    * Used for marketplace-published resources (e.g., "stigmer/web-search").
    * Write access still requires org membership.
+   *
+   * In the cloud edition, entering this level is operator-gated
+   * (can_set_public_visibility on platform:stigmer): public listing is a
+   * curation decision, requested by the resource owner and granted by the
+   * platform team — at both doors, updateVisibility escalation and
+   * create-with-public. Leaving this level stays self-service for anyone
+   * with can_edit. The OSS edition is unguarded (the self-hosted operator
+   * owns the store).
    * Named visibility_public to avoid Java reserved keyword conflict.
    *
    * @generated from enum value: visibility_public = 2;

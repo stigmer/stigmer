@@ -53,10 +53,6 @@ class AgentInstanceQueryControllerServicer(object):
     def getByAgent(self, request, context):
         """Get all instances of a specific agent template.
         Returns only instances the caller has access to.
-
-        @internal
-        Authorization is handled in handler via FGA query for authorized agent_instance_ids,
-        then filtered by agent_id.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -64,9 +60,6 @@ class AgentInstanceQueryControllerServicer(object):
 
     def getByReference(self, request, context):
         """Get an agent instance by its organization-scoped reference (org/slug).
-
-        @internal
-        Custom authorization in handler.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -74,10 +67,6 @@ class AgentInstanceQueryControllerServicer(object):
 
     def list(self, request, context):
         """List agent instances with optional label filtering.
-
-        @internal
-        Authorization is handled in-handler via FGA-filtered queries (cloud)
-        or unrestricted store queries (OSS).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

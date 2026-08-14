@@ -28,6 +28,11 @@ type ArtifactStorage interface {
 	// GetStorageKey returns the storage key for a given hash (without actually storing).
 	// This is useful for constructing paths or URLs.
 	GetStorageKey(hash string) string
+
+	// Size reports the stored artifact's byte size without loading it.
+	// Used by getArtifactDownloadUrl so clients can sanity-check before
+	// fetching over HTTP.
+	Size(storageKey string) (int64, error)
 }
 
 // LocalFileStorage implements ArtifactStorage using the local filesystem.
@@ -100,6 +105,23 @@ func (s *LocalFileStorage) resolveWithinRoot(storageKey string) (string, bool) {
 		return "", false
 	}
 	return filePath, true
+}
+
+// Size reports the artifact file's byte size via stat (never reads content).
+func (s *LocalFileStorage) Size(storageKey string) (int64, error) {
+	filePath, ok := s.resolveWithinRoot(storageKey)
+	if !ok {
+		return 0, fmt.Errorf("artifact not found: %s", storageKey)
+	}
+
+	info, err := os.Stat(filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return 0, fmt.Errorf("artifact not found: %s", storageKey)
+		}
+		return 0, fmt.Errorf("failed to stat artifact: %w", err)
+	}
+	return info.Size(), nil
 }
 
 // Exists checks if the artifact file exists.

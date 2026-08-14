@@ -25,10 +25,6 @@ const (
 )
 
 // AgentSpec defines the configurable properties of an agent.
-//
-// @internal
-// This is the "Template" layer — declares capabilities and requirements.
-// The overview.md file provides the SDK-facing description and example YAML.
 type AgentSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Human-readable description for UI and marketplace display.
@@ -137,9 +133,6 @@ func (x *AgentSpec) GetEnv() map[string]*v1.EnvVarDeclaration {
 // A sub-agent can only access MCP servers that the parent has in
 // mcp_server_usages, and its tools must be a subset of the parent's
 // enabled tools. Skills are independent of the parent.
-//
-// @internal
-// Permission model enforced at execution time by the delegation handler.
 type SubAgent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unique name of the sub-agent within the parent agent.
@@ -238,10 +231,6 @@ func (x *SubAgent) GetModelOverride() string {
 //
 // The slug from mcp_server_ref identifies this server for SubAgent access
 // grants via McpAccess.
-//
-// @internal
-// Design principle: Users already named their McpServer with a slug.
-// We use that slug as the identifier — no extra naming required.
 type McpServerUsage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Reference to the McpServer resource.
@@ -249,30 +238,6 @@ type McpServerUsage struct {
 	// Tools to enable from this MCP server for this agent.
 	// Empty list uses the McpServer's default_enabled_tools.
 	// Sub-agents can only restrict this set further, not expand it.
-	//
-	// @internal
-	// Tool names must match exactly what the MCP server reports via tools/list.
-	// Only names from discovered_capabilities.tools are valid here.
-	// Do NOT include names from discovered_capabilities.resource_templates —
-	// resource templates are read-only data endpoints, not callable tools.
-	//
-	// Enforcement is two-layered:
-	//   - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
-	//     name the referenced server's discovered_capabilities.tools does not
-	//     contain, with the valid names in the error. The check is skipped when
-	//     the server has no discovered capabilities yet (never connected) —
-	//     there is nothing authoritative to validate against in that window.
-	//   - Execution time: the runner enforces the INTERSECTION with the
-	//     server's live toolset — an unknown name (possible when the manifest
-	//     was applied before the server's first connect, or when the toolset
-	//     changed since) is warned in the runner log and ignored, so a stale
-	//     entry narrows the toolset but never widens it or fails the run.
-	//
-	// Per-harness runtime enforcement: the native (deep-agent) harness filters
-	// the discovered toolset before it reaches the model; the Cursor harness
-	// cannot hide a server's tools (its SDK config has no allow-list field),
-	// so its HITL hook permanently denies calls to non-enabled tools instead —
-	// the model may still see the tool listed, but every call is refused.
 	EnabledTools []string `protobuf:"bytes,2,rep,name=enabled_tools,json=enabledTools,proto3" json:"enabled_tools,omitempty"`
 	// Override approval requirements for specific tools.
 	// Takes precedence over McpServerSpec.pinned_tool_approvals and
@@ -337,11 +302,6 @@ func (x *McpServerUsage) GetToolApprovalOverrides() []*ToolApprovalOverride {
 }
 
 // McpAccess grants a sub-agent access to one of the parent's MCP servers.
-//
-// @internal
-// Permission model enforced at execution time: sub-agent can only access
-// servers in the parent's mcp_server_usages, and tools must be a subset
-// of the parent's enabled_tools.
 type McpAccess struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Slug of the McpServer to grant access to.
@@ -409,16 +369,6 @@ func (x *McpAccess) GetEnabledTools() []string {
 //
 // An override is scoped to the McpServer referenced by its parent usage:
 // it never affects a same-named tool on another server.
-//
-// @internal
-// Policy chain (lowest to highest priority):
-// 1. McpServerStatus.tool_approvals — system-generated defaults
-// 2. McpServerSpec.pinned_tool_approvals — manual overrides
-// 3. Agent.McpServerUsage.tool_approval_overrides — per-agent (this message)
-// 4. AgentExecution.auto_approve_all — runtime bypass
-//
-// Invalid tool names are silently ignored (no approval applied).
-// This allows forward-compatibility when MCP servers add/remove tools.
 type ToolApprovalOverride struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Name of the tool to override.

@@ -225,11 +225,9 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentFlow(ctx workflow.Con
 	logger.Info("Thread ensured", "thread_id", threadID)
 
 	// Step 1.5: Generate session subject (fire-and-forget, non-blocking).
-	// KNOWN-DEAD in OSS (issue #665): no OSS worker registers this activity —
-	// the retired Python agent-runner owned it and the TS runner never picked
-	// it up — so this dispatch fails quietly and the sentinel subject survives.
-	// Kept until #665 picks an arm (implement in the runner / move server-side
-	// / delete); the activity NAME must stay byte-identical if implemented.
+	// Implemented in the TS unified runner (issue #665's fix:
+	// backend/services/runner/src/activities/generate-session-subject.ts);
+	// the activity NAME must stay byte-identical across editions.
 	workflow.Go(ctx, func(ctx workflow.Context) {
 		subjectActivity := activities.NewGenerateSessionSubjectActivityStub(ctx, activityTaskQueue)
 		if err := subjectActivity.GenerateSessionSubject(executionID); err != nil {
@@ -527,8 +525,8 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlow(ctx workflow.Contex
 
 	// Generate session subject (fire-and-forget, non-blocking). The Cursor SDK
 	// does not expose a generated conversation title for local agents, so this
-	// mirrors the deep-agent flow's dispatch — including its KNOWN-DEAD status
-	// in OSS (issue #665; see the note on the deep-agent flow's Step 1.5).
+	// mirrors the deep-agent flow's dispatch (see the note on the deep-agent
+	// flow's Step 1.5 — the TS unified runner implements the activity).
 	workflow.Go(ctx, func(ctx workflow.Context) {
 		subjectActivity := activities.NewGenerateSessionSubjectActivityStub(ctx, activityTaskQueue)
 		if err := subjectActivity.GenerateSessionSubject(executionID); err != nil {

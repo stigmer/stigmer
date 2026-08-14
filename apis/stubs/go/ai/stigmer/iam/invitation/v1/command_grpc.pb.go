@@ -38,20 +38,11 @@ type InvitationCommandControllerClient interface {
 	//
 	// The specified role must be in the organization's grantable_roles.
 	// Platform-managed organizations cannot create invitations.
-	//
-	// @internal
-	// Authorization: Requires can_grant_access permission on the organization.
 	Create(ctx context.Context, in *Invitation, opts ...grpc.CallOption) (*Invitation, error)
 	// Revoke an active invitation, preventing further redemptions.
 	//
 	// Sets the invitation state to revoked. Idempotent — revoking an
 	// already-revoked invitation is a no-op.
-	//
-	// @internal
-	// Authorization is handled in the handler: loads the invitation,
-	// resolves its organization, and checks can_grant_access on the org.
-	// Proto-level auth is skipped because the input (InvitationId) does
-	// not directly identify the org.
 	Revoke(ctx context.Context, in *InvitationId, opts ...grpc.CallOption) (*Invitation, error)
 	// Redeem an invitation to join an organization.
 	//
@@ -65,12 +56,6 @@ type InvitationCommandControllerClient interface {
 	// - Invitation must not be expired
 	// - Invitation must not have reached max_redemptions (if > 0)
 	// - Redeemer must not already be a member of the organization
-	//
-	// @internal
-	// Authorization: The token itself is the authorization mechanism.
-	// The redeemer's identity is resolved from the authentication header.
-	// FGA authorization is skipped — any authenticated user with a valid
-	// token can redeem.
 	Redeem(ctx context.Context, in *RedeemInvitationInput, opts ...grpc.CallOption) (*Invitation, error)
 }
 
@@ -126,20 +111,11 @@ type InvitationCommandControllerServer interface {
 	//
 	// The specified role must be in the organization's grantable_roles.
 	// Platform-managed organizations cannot create invitations.
-	//
-	// @internal
-	// Authorization: Requires can_grant_access permission on the organization.
 	Create(context.Context, *Invitation) (*Invitation, error)
 	// Revoke an active invitation, preventing further redemptions.
 	//
 	// Sets the invitation state to revoked. Idempotent — revoking an
 	// already-revoked invitation is a no-op.
-	//
-	// @internal
-	// Authorization is handled in the handler: loads the invitation,
-	// resolves its organization, and checks can_grant_access on the org.
-	// Proto-level auth is skipped because the input (InvitationId) does
-	// not directly identify the org.
 	Revoke(context.Context, *InvitationId) (*Invitation, error)
 	// Redeem an invitation to join an organization.
 	//
@@ -153,12 +129,6 @@ type InvitationCommandControllerServer interface {
 	// - Invitation must not be expired
 	// - Invitation must not have reached max_redemptions (if > 0)
 	// - Redeemer must not already be a member of the organization
-	//
-	// @internal
-	// Authorization: The token itself is the authorization mechanism.
-	// The redeemer's identity is resolved from the authentication header.
-	// FGA authorization is skipped — any authenticated user with a valid
-	// token can redeem.
 	Redeem(context.Context, *RedeemInvitationInput) (*Invitation, error)
 }
 

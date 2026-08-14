@@ -30,20 +30,6 @@ const (
 // through an external identity provider), machine (service-to-service
 // credentials), or platform_client (provisioned via a PlatformClient's
 // mintUserToken endpoint).
-//
-// @internal
-// All FGA tuples use identity_account as the principal type.
-// Provisioning details:
-//   - direct: Auth0 subject ID (e.g., "auth0|abc123")
-//   - federated: raw OIDC sub claim (e.g., "google-oauth2|109876543210"),
-//     scoped by identity_provider_ref
-//   - machine: Auth0 client ID with "@clients" suffix
-//   - platform_client: composite "stgm_pc|{org}|{external_user_id}" where org
-//     is the Stigmer org that owns the PlatformClient(s) and external_user_id
-//     is the platform builder's stable identifier for the user. Scoping by org
-//     (not by PlatformClient) means a customer's end user resolves to a single
-//     IdentityAccount across all of that customer's PlatformClients. Globally
-//     unique by construction.
 type IdentityAccountSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// IDP ID of the identity account.

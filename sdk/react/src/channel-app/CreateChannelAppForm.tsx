@@ -2,6 +2,7 @@
 
 import { type FormEvent, useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import {
@@ -286,7 +287,7 @@ function ProviderPicker({
 }) {
   const groupName = useId();
   return (
-    <fieldset>
+    <fieldset className={UNSTYLED_FIELDSET}>
       <legend className="stg:mb-1.5 stg:block stg:text-xs stg:font-medium stg:text-foreground">
         Provider
       </legend>

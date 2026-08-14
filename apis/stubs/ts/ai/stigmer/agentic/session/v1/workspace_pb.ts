@@ -18,11 +18,6 @@ export const file_ai_stigmer_agentic_session_v1_workspace: GenFile = /*@__PURE__
 /**
  * WorkspaceSource defines where the workspace content comes from.
  *
- * @internal
- * Pure source-definition type: describes the origin of workspace content
- * without any identity or naming. Use WorkspaceEntry to pair a source with
- * a name for session-level usage.
- *
  * @generated from message ai.stigmer.agentic.session.v1.WorkspaceSource
  */
 export type WorkspaceSource = Message<"ai.stigmer.agentic.session.v1.WorkspaceSource"> & {
@@ -62,12 +57,6 @@ export const WorkspaceSourceSchema: GenMessage<WorkspaceSource> = /*@__PURE__*/
  * operate on. The name serves as the entry's identity and must be unique
  * within a session's workspace_entries list.
  *
- * @internal
- * In a multi-root workspace (VS Code model), the name appears in the system
- * prompt and in cloud mode it becomes the subdirectory name under the
- * workspace root. Names are auto-derived by the CLI from the repository
- * name (last URL path segment sans ".git") or the directory basename.
- *
  * @generated from message ai.stigmer.agentic.session.v1.WorkspaceEntry
  */
 export type WorkspaceEntry = Message<"ai.stigmer.agentic.session.v1.WorkspaceEntry"> & {
@@ -99,11 +88,6 @@ export const WorkspaceEntrySchema: GenMessage<WorkspaceEntry> = /*@__PURE__*/
  * The agent operates directly on the user's files — changes are immediate
  * and persistent. No copy or clone is made.
  *
- * @internal
- * Deployment constraint: only valid when the runner is in local mode.
- * Cloud runners reject this at provisioning time with a clear error, the same
- * way GitRepoSource rejects SSH URLs at validation time.
- *
  * @generated from message ai.stigmer.agentic.session.v1.LocalPathSource
  */
 export type LocalPathSource = Message<"ai.stigmer.agentic.session.v1.LocalPathSource"> & {
@@ -126,16 +110,6 @@ export const LocalPathSourceSchema: GenMessage<LocalPathSource> = /*@__PURE__*/
  * GitRepoSource provisions a workspace by cloning a git repository.
  *
  * Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.
- *
- * @internal
- * Authentication: The provisioner resolves GITHUB_TOKEN from the merged
- * environment (instance environment_refs < ExecutionContext.runtime_env). As a
- * workspace-provisioning key it is re-injected past the Agent.spec.env
- * declared-key filter when the session has git_repo entries, with a fallback
- * to the caller's personal environment (see the agentexecution controller's
- * executionContextBuilder). The token is injected into the clone URL, consumed
- * by provisioning, and stripped before forwarding to the agent runtime (see
- * AD-05). SSH key authentication is a future enhancement.
  *
  * @generated from message ai.stigmer.agentic.session.v1.GitRepoSource
  */
@@ -173,29 +147,12 @@ export type GitRepoSource = Message<"ai.stigmer.agentic.session.v1.GitRepoSource
    * When not set, defaults to a shallow clone with depth 1. Set to 0 for
    * a full clone with complete history.
    *
-   * @internal
-   * Uses proto3 optional to distinguish "not set" from "set to 0."
-   * Absent: shallow clone depth 1; 0: full clone; N > 0: shallow clone depth N.
-   *
    * @generated from field: optional int32 depth = 4;
    */
   depth?: number;
 
   /**
    * Controls whether the platform creates a branch and pull request from the agent's file changes.
-   *
-   * @internal
-   * This is a platform-level workflow, not an agent-level decision. The
-   * agent focuses on making code changes; the platform packages them
-   * incrementally — the PR appears the moment the first file is written
-   * and the diff grows in real time as the agent works.
-   *
-   * Requires GITHUB_TOKEN in the execution environment. If credentials
-   * are not available, the write-back is silently skipped regardless of
-   * this setting.
-   *
-   * Default (UNSPECIFIED): platform decides. Currently defaults to
-   * write-back enabled when git credentials are available.
    *
    * @generated from field: ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5;
    */

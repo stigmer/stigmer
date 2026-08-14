@@ -1,12 +1,14 @@
 // `list` dispatch: render a collection of resources for a kind.
 //
-// Most registry kinds are search-indexed and list through the unified
-// SearchService. Kinds that are deliberately not search-indexed
-// (organizations, API keys, agent instances, agent channels, channel apps,
-// schedules) use their dedicated find/list RPCs with bespoke table shapes,
-// registered in LIST_HANDLERS — the same map-dispatch shape as the get,
-// delete, and apply registries, so the conformance test in
-// registry/registry.test.ts can hold all four to the verb matrix.
+// Most registry kinds list through the unified SearchService. The rest take
+// dedicated find/list RPCs with bespoke table shapes, registered in
+// LIST_HANDLERS — either because the kind is not search-indexed (API keys,
+// agent channels, channel apps, schedules) or because the dedicated RPC is
+// the better list surface than the kind's search index (organizations are
+// caller-scoped; agent instances and sessions carry columns search results
+// don't have). Same map-dispatch shape as the get, delete, and apply
+// registries, so the conformance test in registry/registry.test.ts can hold
+// all four to the verb matrix.
 //
 // Handlers FETCH, the dispatcher RENDERS: every handler returns entries plus
 // its schema/table pair, and listResources alone applies --limit and renders.
@@ -23,6 +25,8 @@ import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/
 import { ListChannelAppsByOrgInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ListSchedulesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { ListSessionsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
@@ -37,8 +41,8 @@ import { bool, type JsonObject, obj, renderCollection, str, type TableShape } fr
 // scope). Must stay in step with the server's SearchableKinds allowlist
 // (backend/services/stigmer-server/pkg/query/search/valueobject/
 // search_criteria.go): a kind present here but absent there silently lists
-// as empty. The LIST_HANDLERS kinds are deliberately NOT here — they are
-// not_search_indexed by design and take dedicated-RPC handlers below.
+// as empty. The LIST_HANDLERS kinds are deliberately NOT here — see the
+// header: not search-indexed, or better served by their dedicated RPC.
 export const SEARCH_KINDS: ReadonlySet<ApiResourceKind> = new Set<ApiResourceKind>([
   ApiResourceKind.agent,
   ApiResourceKind.workflow,
@@ -129,6 +133,19 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<ApiRe
       return { schema: ScheduleSchema, entries: result.items, table: SCHEDULE_TABLE };
     },
   ],
+  [
+    ApiResourceKind.session,
+    async (client, _org, limit) => {
+      // Sessions ARE search-indexed, but list deliberately uses the dedicated
+      // RPC: the table's columns (agent instance, subject) don't exist on
+      // SearchResult rows, and the RPC is caller-scoped like organization and
+      // api_key above — the agent_instance precedent, not an oversight.
+      // Promoted from a bespoke pre-gate route in commands/list.ts by
+      // stigmer/stigmer#469 (it had shipped working-but-unadvertised).
+      const result = await client.session.list(create(ListSessionsRequestSchema, { pageSize: limit }));
+      return { schema: SessionSchema, entries: result.entries, table: SESSION_TABLE };
+    },
+  ],
 ]);
 
 export async function listResources(
@@ -174,6 +191,20 @@ export const SEARCH_TABLE: TableShape = {
     truncate(str(json, "description"), 50),
     str(json, "visibility"),
     date(str(json, "created_at")),
+  ],
+};
+
+// A session's identity for follow-up commands is its ID (`stigmer session
+// resume <id>`), so the ID leads; agent instance and subject are how a human
+// recognizes which conversation it was.
+const SESSION_TABLE: TableShape = {
+  resourceName: "sessions",
+  headers: ["SESSION ID", "AGENT", "SUBJECT", "CREATED"],
+  row: (json) => [
+    str(obj(json, "metadata"), "id"),
+    str(obj(json, "spec"), "agent_instance_id") || "-",
+    truncate(str(obj(json, "spec"), "subject") || "-", 50),
+    date(str(obj(json, "metadata"), "created_at")),
   ],
 };
 

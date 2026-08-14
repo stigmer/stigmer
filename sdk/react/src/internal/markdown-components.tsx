@@ -152,12 +152,19 @@ function extractMermaidSource(children: ReactNode): string | null {
  * ensuring correct rendering in both the Stigmer Console and third-party
  * host applications with custom themes.
  *
+ * Margin-bearing elements (`p`, `ul`, `ol`, `pre`, `blockquote`) declare
+ * their top margin (`stg:mt-0`) and blockquote its inline margins
+ * explicitly: the spacing rhythm here is authored via `mb-*` on the
+ * assumption that UA base margins are zero, which is only true when the
+ * host ships a global reset — preflight-less embeds otherwise stack
+ * `margin-top: 1em` (and 40px blockquote indents) on top (#695).
+ *
  * Used by `MessageEntry` (chat messages) and `SkillDetailView` (SKILL.md).
  */
 export const MARKDOWN_COMPONENTS: Components = {
   p({ children, ...props }: MdProps<"p">) {
     return (
-      <p className="stg:text-sm stg:text-foreground stg:mb-3 stg:last:mb-0 stg:leading-relaxed stg:break-words" {...props}>
+      <p className="stg:text-sm stg:text-foreground stg:mt-0 stg:mb-3 stg:last:mb-0 stg:leading-relaxed stg:break-words" {...props}>
         {children}
       </p>
     );
@@ -211,7 +218,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   ul({ children, ...props }: MdProps<"ul">) {
     return (
-      <ul className="stg:list-disc stg:pl-5 stg:mb-3 stg:last:mb-0 stg:space-y-1 stg:text-sm stg:text-foreground" {...props}>
+      <ul className="stg:list-disc stg:pl-5 stg:mt-0 stg:mb-3 stg:last:mb-0 stg:space-y-1 stg:text-sm stg:text-foreground" {...props}>
         {children}
       </ul>
     );
@@ -219,7 +226,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   ol({ children, ...props }: MdProps<"ol">) {
     return (
-      <ol className="stg:list-decimal stg:pl-5 stg:mb-3 stg:last:mb-0 stg:space-y-1 stg:text-sm stg:text-foreground" {...props}>
+      <ol className="stg:list-decimal stg:pl-5 stg:mt-0 stg:mb-3 stg:last:mb-0 stg:space-y-1 stg:text-sm stg:text-foreground" {...props}>
         {children}
       </ol>
     );
@@ -245,7 +252,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
     return (
       <pre
-        className="stg:mb-3 stg:last:mb-0 stg:overflow-x-auto stg:rounded-md stg:bg-muted stg:p-3"
+        className="stg:mt-0 stg:mb-3 stg:last:mb-0 stg:overflow-x-auto stg:rounded-md stg:bg-muted stg:p-3"
         {...props}
       >
         {children}
@@ -293,9 +300,12 @@ export const MARKDOWN_COMPONENTS: Components = {
   },
 
   blockquote({ children, ...props }: MdProps<"blockquote">) {
+    // mx-0 matters as much as mt-0 here: UA blockquote margin is `1em 40px`,
+    // so a preflight-less host renders a double indent on BOTH sides on top
+    // of the border-l + pl-4 treatment.
     return (
       <blockquote
-        className="stg:border-l-2 stg:border-border stg:pl-4 stg:mb-3 stg:last:mb-0 stg:text-muted-foreground stg:italic"
+        className="stg:border-l-2 stg:border-border stg:mx-0 stg:mt-0 stg:mb-3 stg:pl-4 stg:last:mb-0 stg:text-muted-foreground stg:italic"
         {...props}
       >
         {children}

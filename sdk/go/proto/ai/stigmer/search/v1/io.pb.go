@@ -32,14 +32,6 @@ const (
 // - List: Return all accessible resources of specified kind(s)
 // - Search: Find resources matching a text query
 // - Discover: Search across all resource kinds
-//
-// @internal
-// Examples:
-//
-//	List agents in org:         {kinds: [agent], org: "acme", query: ""}
-//	Search agents by text:      {kinds: [agent], query: "code review"}
-//	Discover all:               {kinds: [], query: "kubernetes"}
-//	Search multiple kinds:      {kinds: [agent, skill], query: "security", org: "acme"}
 type SearchRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Resource kinds to search.
@@ -75,9 +67,6 @@ type SearchRequest struct {
 	// Behavior:
 	// - Empty: Search all organizations the caller has access to
 	// - Non-empty: Search only within the specified organization
-	//
-	// @internal
-	// Caller must have access to at least one resource in the org.
 	Org string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
 	// Exclude public/platform resources from results.
 	//
@@ -290,13 +279,6 @@ func (x *SearchResponse) GetTotalPages() int32 {
 //
 // This is not the full resource. To get the complete resource, call the
 // get method for that resource kind (e.g., client.agent.get()).
-//
-// @internal
-// The description field is populated by each resource's Searchable interface:
-// - Agent: spec.instructions (may be truncated)
-// - Skill: spec.description
-// - McpServer: spec.description
-// - Workflow: spec.description
 type SearchResult struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Type of API resource this result represents (e.g., agent, skill, mcp_server).
@@ -307,16 +289,10 @@ type SearchResult struct {
 	// Use this for subsequent API calls to get/update/delete the resource.
 	Id string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	// Human-readable display name of the resource.
-	//
-	// @internal
-	// From metadata.name.
 	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// URL-friendly identifier, unique within the organization.
 	//
 	// Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
-	//
-	// @internal
-	// From metadata.slug.
 	Slug string `protobuf:"bytes,4,opt,name=slug,proto3" json:"slug,omitempty"`
 	// Fully qualified slug: "org/slug".
 	//
@@ -326,22 +302,10 @@ type SearchResult struct {
 	// This is the canonical reference format used in YAML configurations.
 	QualifiedSlug string `protobuf:"bytes,5,opt,name=qualified_slug,json=qualifiedSlug,proto3" json:"qualified_slug,omitempty"`
 	// Organization that owns this resource (e.g., "stigmer", "acme-corp").
-	//
-	// @internal
-	// From metadata.org.
 	Org string `protobuf:"bytes,6,opt,name=org,proto3" json:"org,omitempty"`
 	// Brief description of the resource for display in search results.
 	//
 	// May be empty if the resource has no description.
-	//
-	// @internal
-	// Extracted from the resource spec via the Searchable interface.
-	// The source field varies by resource type:
-	// - Agent: spec.instructions (may be truncated)
-	// - Skill: spec.description
-	// - McpServer: spec.description
-	// - Workflow: spec.description
-	// Truncation for display is a presentation concern (CLI/UI responsibility).
 	Description string `protobuf:"bytes,7,opt,name=description,proto3" json:"description,omitempty"`
 	// Resource visibility: public or private.
 	//
@@ -349,21 +313,12 @@ type SearchResult struct {
 	// - visibility_public: Anyone can read (e.g., marketplace resources)
 	Visibility apiresource.ApiResourceVisibility `protobuf:"varint,8,opt,name=visibility,proto3,enum=ai.stigmer.commons.apiresource.ApiResourceVisibility" json:"visibility,omitempty"`
 	// User-provided tags for categorization and filtering.
-	//
-	// @internal
-	// From metadata.tags.
 	Tags []string `protobuf:"bytes,9,rep,name=tags,proto3" json:"tags,omitempty"`
 	// When the resource was created.
 	//
 	// Used for sorting in list mode (when no query is provided).
-	//
-	// @internal
-	// From status.audit.created_at.
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// When the resource was last updated.
-	//
-	// @internal
-	// From status.audit.updated_at.
 	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// Relevance score for search ranking.
 	//

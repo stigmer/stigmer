@@ -32,64 +32,14 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // WorkflowInstanceQueryController handles read operations for workflow instances.
-//
-// @internal
-// This service provides all query operations following the Command-Query Separation pattern.
-// All RPCs that read state without modifying it go through this controller.
-//
-// Authorization:
-// - get: Requires get permission on the specific instance
-// - getByWorkflow: Authorization handled in handler via FGA query (returns filtered instances)
-// - getByReference: Custom authorization (supports flexible reference lookup)
-//
-// All operations respect owner scope visibility rules (users see only their org/identity resources).
 type WorkflowInstanceQueryControllerClient interface {
 	// Get a single workflow instance by ID.
-	//
-	// @internal
-	// Retrieves a specific WorkflowInstance using its unique resource identifier.
-	//
-	// Authorization:
-	// Requires "get" permission on the specific WorkflowInstance.
-	// Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
-	// Verifies user has access based on:
-	// - Instance owner scope (organization or identity_account)
-	// - User's IAM policies
-	//
-	// Error: PERMISSION_DENIED if user lacks get permission
-	// Error: NOT_FOUND if instance ID doesn't exist
 	Get(ctx context.Context, in *WorkflowInstanceId, opts ...grpc.CallOption) (*WorkflowInstance, error)
 	// Get all workflow instances that use a specific workflow template.
 	//
 	// Returns a paginated list of instances that reference the given workflow ID.
-	//
-	// @internal
-	// Authorization is handled in handler via FGA query for authorized workflow_instance_ids,
-	// then filtered by workflow_id. This ensures users only see instances they have access to,
-	// even if the parent workflow is shared across organizations.
-	//
-	// Filtering:
-	// Results are filtered by:
-	// - User's organization/identity visibility
-	// - IAM policies
-	// - Owner scope rules
-	//
-	// Error: PERMISSION_DENIED if user lacks access to the workflow
-	// Error: NOT_FOUND if workflow_id doesn't exist
 	GetByWorkflow(ctx context.Context, in *GetWorkflowInstancesByWorkflowRequest, opts ...grpc.CallOption) (*WorkflowInstanceList, error)
 	// Get a workflow instance by reference (ID or slug).
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions.
-	//
-	// Supports lookup by:
-	// - ID: {id: "wfi_abc123"}
-	// - Slug: {slug: "prod-deploy"}
-	// - Name: {name: "Production Deploy"}
-	//
-	// Error: PERMISSION_DENIED if user lacks access
-	// Error: NOT_FOUND if reference doesn't resolve to an instance
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*WorkflowInstance, error)
 }
 
@@ -136,64 +86,14 @@ func (c *workflowInstanceQueryControllerClient) GetByReference(ctx context.Conte
 // for forward compatibility.
 //
 // WorkflowInstanceQueryController handles read operations for workflow instances.
-//
-// @internal
-// This service provides all query operations following the Command-Query Separation pattern.
-// All RPCs that read state without modifying it go through this controller.
-//
-// Authorization:
-// - get: Requires get permission on the specific instance
-// - getByWorkflow: Authorization handled in handler via FGA query (returns filtered instances)
-// - getByReference: Custom authorization (supports flexible reference lookup)
-//
-// All operations respect owner scope visibility rules (users see only their org/identity resources).
 type WorkflowInstanceQueryControllerServer interface {
 	// Get a single workflow instance by ID.
-	//
-	// @internal
-	// Retrieves a specific WorkflowInstance using its unique resource identifier.
-	//
-	// Authorization:
-	// Requires "get" permission on the specific WorkflowInstance.
-	// Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
-	// Verifies user has access based on:
-	// - Instance owner scope (organization or identity_account)
-	// - User's IAM policies
-	//
-	// Error: PERMISSION_DENIED if user lacks get permission
-	// Error: NOT_FOUND if instance ID doesn't exist
 	Get(context.Context, *WorkflowInstanceId) (*WorkflowInstance, error)
 	// Get all workflow instances that use a specific workflow template.
 	//
 	// Returns a paginated list of instances that reference the given workflow ID.
-	//
-	// @internal
-	// Authorization is handled in handler via FGA query for authorized workflow_instance_ids,
-	// then filtered by workflow_id. This ensures users only see instances they have access to,
-	// even if the parent workflow is shared across organizations.
-	//
-	// Filtering:
-	// Results are filtered by:
-	// - User's organization/identity visibility
-	// - IAM policies
-	// - Owner scope rules
-	//
-	// Error: PERMISSION_DENIED if user lacks access to the workflow
-	// Error: NOT_FOUND if workflow_id doesn't exist
 	GetByWorkflow(context.Context, *GetWorkflowInstancesByWorkflowRequest) (*WorkflowInstanceList, error)
 	// Get a workflow instance by reference (ID or slug).
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions.
-	//
-	// Supports lookup by:
-	// - ID: {id: "wfi_abc123"}
-	// - Slug: {slug: "prod-deploy"}
-	// - Name: {name: "Production Deploy"}
-	//
-	// Error: PERMISSION_DENIED if user lacks access
-	// Error: NOT_FOUND if reference doesn't resolve to an instance
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*WorkflowInstance, error)
 }
 

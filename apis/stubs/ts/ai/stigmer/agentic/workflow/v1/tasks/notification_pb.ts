@@ -19,69 +19,6 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_notification: GenFile = /
  * that send messages to humans through channels like Slack, email, Discord,
  * Microsoft Teams, or webhooks.
  *
- * @internal
- * notification is a convenience abstraction for "send a message to humans"
- * — simpler and more intuitive than emit_event for common operational
- * notification patterns. While emit_event publishes system-level CloudEvents
- * for machine consumption, notification is purpose-built for human-readable
- * messages with channel routing and recipient targeting.
- *
- * Key distinction from related task types:
- *   emit_event = system-to-system (CloudEvents, consumed by workflows/services)
- *   notification = system-to-human (Slack, email, Discord — read by people)
- *   human_input = system-to-human-to-system (waits for a response; notification
- *                 is fire-and-forget)
- *
- * Notifications are fire-and-forget by default. The task output confirms
- * delivery was attempted but does not wait for acknowledgment:
- *   {
- *     "channel": "slack",
- *     "recipients": ["#incident-response"],
- *     "delivered": true,
- *     "delivered_at": "<ISO 8601 timestamp>"
- *   }
- *
- * For notifications that require acknowledgment or a response, use
- * human_input instead — it pauses the workflow until a human responds.
- *
- * The channel field is a string (not an enum) to allow extensibility:
- * new notification channels can be added without proto changes. The
- * runtime (T13) resolves channel identifiers to actual notification
- * providers configured in the workflow instance's environment.
- *
- * YAML Example (Slack notification):
- *   - alert_slack:
- *       notification:
- *         channel: "slack"
- *         recipients:
- *           - "#incident-response"
- *           - "@oncall-lead"
- *         subject: "P${ $context.triage.severity } Incident: ${ $context.ticket.title }"
- *         body: |
- *           *Severity*: ${ $context.triage.severity }
- *           *Category*: ${ $context.triage.category }
- *           *Customer Impact*: ${ $context.triage.customer_impact }
- *           *Summary*: ${ $context.agent_analysis.structured.summary }
- *         metadata:
- *           thread_ts: "${ $context.slack_thread_id }"
- *       export:
- *         as: "${ . }"
- *
- * YAML Example (email with template):
- *   - send_confirmation:
- *       notification:
- *         channel: "email"
- *         recipients:
- *           - "${ $context.customer.email }"
- *         subject: "Order ${ $context.order.number } Confirmed"
- *         body: "Your order has been confirmed. You will receive tracking information shortly."
- *         template: "order-confirmation"
- *         metadata:
- *           priority: "high"
- *           reply_to: "support@acme.com"
- *       export:
- *         as: "${ . }"
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
  */
 export type NotificationTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig"> & {

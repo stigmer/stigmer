@@ -4,6 +4,7 @@ go_library(
     name = "generator_lib",
     srcs = [
         "docs_yaml_gate.go",
+        "docs_yaml_rules.go",
         "main.go",
         "mcp_model.go",
         "mcp_ts.go",
@@ -52,6 +53,7 @@ go_library(
         "//apis/stubs/go/ai/stigmer/tenancy/organization/v1:organization",
         "//apis/stubs/go/ai/stigmer/tenancy/project/v1:project",
         "@build_buf_gen_go_bufbuild_protovalidate_protocolbuffers_go//buf/validate",
+        "@build_buf_go_protovalidate//:protovalidate",
         "@in_gopkg_yaml_v3//:yaml_v3",
         "@org_golang_google_protobuf//encoding/protojson",
         "@org_golang_google_protobuf//proto",
@@ -72,10 +74,12 @@ go_test(
     srcs = [
         "conversion_test.go",
         "docs_yaml_gate_test.go",
+        "docs_yaml_rules_test.go",
         "main_test.go",
         "mdx_fence_scanner_test.go",
         "schema_loading_test.go",
         "sdk_docs_test.go",
+        "sdk_types_file_test.go",
         "task_example_validation_test.go",
     ],
     embed = [":generator_lib"],

@@ -243,7 +243,14 @@ Credits are also categorized by source:
 - **Promotional** — from free trial grants and campaigns
 
 Promotional credits are consumed first (burn-order priority), so your purchased
-credits last longer.
+credits last longer. Within a priority tier, grants expiring soonest are
+consumed first, so expiring credits never lapse while permanent ones burn.
+
+Promotional grants can carry an expiry (use-it-or-lose-it): platforms funding
+managed organizations use the `grantCredits` API to issue allowances — for
+example a monthly free budget — that expire on a set date instead of banking
+indefinitely. Whatever remains unconsumed at expiry is removed from the balance
+with an `expiry_debit` ledger entry.
 
 ## Automatic recharge
 

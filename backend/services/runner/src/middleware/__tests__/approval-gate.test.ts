@@ -423,7 +423,10 @@ describe("ApprovalGateMiddleware", () => {
       expect(mockedInterrupt).toHaveBeenCalledTimes(1);
     });
 
-    it("KEEPS GATING a gitignored delete", async () => {
+    it("KEEPS GATING a gitignored delete when no CAS routing is configured", async () => {
+      // captureIgnored unset: there is no substrate to capture the before-bytes
+      // into, so the delete stays on the interrupt gate (fail-closed). The CAS
+      // delete-flow cases live in the captureIgnored suite below (issue #303).
       const mw = createApprovalGateMiddleware(makeConfig({
         fileCaptureMode: true,
         isCapturablePath: async () => false,
@@ -621,6 +624,132 @@ describe("ApprovalGateMiddleware", () => {
       expect(handler).toHaveBeenCalledTimes(1);
       expect(recordBlockedSecret).not.toHaveBeenCalled();
       expect(mockedInterrupt).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("capture mode — CAS delete capture (captureDeleteBefore, issue #303)", () => {
+    it("flows a non-secret CAS-owned delete: captures before-bytes, runs, never interrupts", async () => {
+      const handler = vi.fn(passthrough);
+      const captureDeleteBefore = vi.fn(async () => {});
+      const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+      try {
+        const mw = createApprovalGateMiddleware(makeConfig({
+          fileCaptureMode: true,
+          isCapturablePath: async () => false, // gitignored / non-git
+          captureIgnored: true,
+          captureDeleteBefore,
+          fingerprintKey: "test-key",
+          executionId: "exec-del",
+        }));
+
+        const result = await mw.wrapToolCall!(
+          makeRequest({ name: "delete", args: { path: "scratch/tmp.txt" } }),
+          handler,
+        );
+
+        expect((result as ToolMessage).content).toBe("tool result");
+        expect(captureDeleteBefore).toHaveBeenCalledWith("scratch/tmp.txt");
+        expect(handler).toHaveBeenCalledTimes(1); // the delete flowed (apply-then-review)
+        expect(mockedInterrupt).not.toHaveBeenCalled();
+
+        // The gateway records the flow with file_capture provenance, like writes.
+        const receipt = logSpy.mock.calls
+          .map((c) => String(c[0] ?? ""))
+          .filter((line) => line.startsWith("[hitl-gateway] receipt "))
+          .map((line) => JSON.parse(line.slice("[hitl-gateway] receipt ".length)) as Record<string, unknown>)[0];
+        expect(receipt.policySource).toBe("file_capture");
+        expect(receipt.category).toBe("delete");
+      } finally {
+        logSpy.mockRestore();
+      }
+    });
+
+    it("captures before-bytes BEFORE the tool runs (the bytes exist only until then)", async () => {
+      const order: string[] = [];
+      const captureDeleteBefore = vi.fn(async () => { order.push("capture"); });
+      const handler = vi.fn((req: ToolCallRequest) => {
+        order.push("delete");
+        return passthrough(req);
+      });
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: true,
+        isCapturablePath: async () => false,
+        captureIgnored: true,
+        captureDeleteBefore,
+      }));
+
+      await mw.wrapToolCall!(
+        makeRequest({ name: "delete", args: { path: "scratch/tmp.txt" } }),
+        handler,
+      );
+
+      expect(order).toEqual(["capture", "delete"]);
+    });
+
+    it("keeps a SECRET-LIKE delete on the interrupt gate: approvable, never captured, never hard-blocked", async () => {
+      // A delete's args expose no secret content (unlike a write), so a human
+      // may safely approve it — but its before-bytes must never enter CAS.
+      const handler = vi.fn(passthrough);
+      const captureDeleteBefore = vi.fn(async () => {});
+      const recordBlockedSecret = vi.fn();
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: true,
+        isCapturablePath: async () => false,
+        captureIgnored: true,
+        captureDeleteBefore,
+        recordBlockedSecret,
+      }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      const result = await mw.wrapToolCall!(
+        makeRequest({ name: "delete", args: { path: ".env" } }),
+        handler,
+      );
+
+      expect(mockedInterrupt).toHaveBeenCalledTimes(1); // gated, not blocked
+      expect(captureDeleteBefore).not.toHaveBeenCalled(); // bytes never staged
+      expect(recordBlockedSecret).not.toHaveBeenCalled(); // not a blocked write
+      expect(handler).toHaveBeenCalledTimes(1); // the human approved it
+      expect((result as ToolMessage).content).toBe("tool result");
+    });
+
+    it("keeps gating a CAS-owned delete when no captureDeleteBefore is configured", async () => {
+      // Fail-closed: a delete whose before-bytes cannot be captured cannot be
+      // reviewed post-hoc, so it must be approved up front.
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: true,
+        isCapturablePath: async () => false,
+        captureIgnored: true,
+      }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      await mw.wrapToolCall!(
+        makeRequest({ name: "delete", args: { path: "scratch/tmp.txt" } }),
+        passthrough,
+      );
+
+      expect(mockedInterrupt).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps gating a delete with captureIgnored OFF even when captureDeleteBefore is present", async () => {
+      // An unobserved-backend gate (captureIgnored false) must not flow deletes:
+      // the callback alone is not a substrate.
+      const captureDeleteBefore = vi.fn(async () => {});
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: true,
+        isCapturablePath: async () => false,
+        captureIgnored: false,
+        captureDeleteBefore,
+      }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      await mw.wrapToolCall!(
+        makeRequest({ name: "delete", args: { path: "scratch/tmp.txt" } }),
+        passthrough,
+      );
+
+      expect(mockedInterrupt).toHaveBeenCalledTimes(1);
+      expect(captureDeleteBefore).not.toHaveBeenCalled();
     });
   });
 

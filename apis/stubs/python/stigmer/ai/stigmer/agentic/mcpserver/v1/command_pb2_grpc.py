@@ -9,15 +9,6 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 
 class McpServerCommandControllerStub(object):
     """McpServerCommandController provides write operations for MCP server resources.
-
-    @internal
-    Authorization model for writes:
-    - Platform-scoped: Only platform operators can create/modify
-    - Organization-scoped: Org admins can create/modify
-    - Identity-account-scoped: Only the owner can create/modify
-
-    Primary interface: The `apply` method provides Kubernetes-style idempotent
-    create-or-update semantics, which is the recommended approach for CLI usage.
     """
 
     def __init__(self, channel):
@@ -85,15 +76,6 @@ class McpServerCommandControllerStub(object):
 
 class McpServerCommandControllerServicer(object):
     """McpServerCommandController provides write operations for MCP server resources.
-
-    @internal
-    Authorization model for writes:
-    - Platform-scoped: Only platform operators can create/modify
-    - Organization-scoped: Org admins can create/modify
-    - Identity-account-scoped: Only the owner can create/modify
-
-    Primary interface: The `apply` method provides Kubernetes-style idempotent
-    create-or-update semantics, which is the recommended approach for CLI usage.
     """
 
     def apply(self, request, context):
@@ -101,12 +83,6 @@ class McpServerCommandControllerServicer(object):
 
         If the resource doesn't exist, creates it. If it exists, updates it.
         The resource is identified by its (scope, org, slug) combination.
-
-        @internal
-        The handler determines whether this is a create or update operation
-        and performs appropriate scope-aware authorization:
-        - Create: Requires permission to create in the target scope
-        - Update: Requires can_edit on the existing resource
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -117,13 +93,6 @@ class McpServerCommandControllerServicer(object):
 
         Returns an error if a resource with the same (scope, org, slug) already exists.
         Use `apply` for idempotent create-or-update semantics.
-
-        @internal
-        Authorization: Custom authorization in handler.
-        Requires permission to create MCP servers in the specified scope:
-        - Platform: Requires platform operator role
-        - Organization: Requires org admin role or can_create_mcp_server permission
-        - Identity Account: Automatically allowed for the authenticated user
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -131,13 +100,6 @@ class McpServerCommandControllerServicer(object):
 
     def update(self, request, context):
         """Update an existing MCP server resource.
-
-        @internal
-        Authorization: Requires can_edit permission on the mcp_server resource.
-        Only the owner (based on scope) can update:
-        - Platform: Platform operators
-        - Organization: Org admins or resource owner
-        - Identity Account: The owner
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -148,13 +110,6 @@ class McpServerCommandControllerServicer(object):
 
         Permanently removes the MCP server definition.
         Agents referencing this server will need to be updated.
-
-        @internal
-        Authorization: Requires can_delete permission on the mcp_server resource.
-        Only the owner can delete:
-        - Platform: Platform operators
-        - Organization: Org admins or resource owner
-        - Identity Account: The owner
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -166,8 +121,9 @@ class McpServerCommandControllerServicer(object):
         Only modifies metadata.visibility, leaving spec, status, and other
         metadata fields untouched.
 
-        @internal
-        Authorization: Requires can_edit permission on the mcp_server resource.
+        In the cloud edition, PUBLIC is operator-gated: public listing crosses
+        every org boundary, so it is granted by the platform team on request.
+        Un-publishing and all other levels stay self-service.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -180,24 +136,6 @@ class McpServerCommandControllerServicer(object):
         classifies tool approval policies via a lightweight LLM, and stores the
         results in status.discovered_capabilities and status.tool_approvals.
         Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
-
-        @internal
-        Typical flows:
-        - Web console: user clicks Connect, backend resolves env vars from the
-        user's personal environment, starts a Temporal workflow on the runner
-        (stigmer-runner).
-        - CLI: `stigmer discover mcp-server <name>` calls connect with runtime_env
-        populated from local env vars, delegating discovery to the backend.
-        - Runner backfill: the runner calls connect on first use when
-        status.discovered_capabilities is empty, passing runtime_env from the
-        execution context (shared/connect-backfill.ts).
-
-        Errors:
-        - FAILED_PRECONDITION: Required credentials missing from personal environment
-        - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
-        - NOT_FOUND: MCP server does not exist
-
-        Authorization: Requires can_connect permission on the mcp_server resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -210,21 +148,6 @@ class McpServerCommandControllerServicer(object):
         generation) and returns an authorization URL for the frontend to
         redirect the user to. The frontend calls completeOAuthConnect after
         the user authorizes.
-
-        @internal
-        Two auth modes determined by the MCP server's spec.auth block:
-        - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
-        discovers the authorization server, registers a client via DCR,
-        and builds the auth URL automatically.
-        - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
-        OAuthApp for client credentials and endpoint URLs.
-
-        Errors:
-        - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
-        without oauth_app_ref (DCR requires HTTP transport)
-        - NOT_FOUND: MCP server or referenced OAuthApp does not exist
-
-        Authorization: Requires can_connect permission on the mcp_server resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -241,15 +164,6 @@ class McpServerCommandControllerServicer(object):
 
         After success, the frontend should call connect() to trigger tool
         discovery using the freshly acquired token.
-
-        @internal
-        Errors:
-        - FAILED_PRECONDITION: State parameter is invalid, expired, or does
-        not match the mcp_server_id
-        - UNAVAILABLE: Token exchange with the authorization server failed
-        - NOT_FOUND: No pending OAuth state found for the given state param
-
-        Authorization: Requires can_connect permission on the mcp_server resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -268,11 +182,6 @@ class McpServerCommandControllerServicer(object):
         Idempotent: returns disconnected=true when a grant was deleted,
         disconnected=false when no grant existed. Never returns an error
         for a missing grant.
-
-        @internal
-        Authorization: Requires can_connect permission on the mcp_server resource.
-        Uses the same permission as connect/initiateOAuthConnect — if you can
-        establish a connection, you can tear it down.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -292,16 +201,6 @@ class McpServerCommandControllerServicer(object):
         design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp —
         see the full scoping note on McpServerQueryController.getOrgOAuthApp,
         the RPC clients probe.
-
-        @internal
-        Authorization: Requires can_create_oauth_app permission on the organization.
-        This is an org-admin operation — setting credentials that affect all users
-        in the org who connect to this resource.
-
-        Errors:
-        - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
-        (BYOA requires a platform template to clone from)
-        - NOT_FOUND: Resource does not exist
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -322,13 +221,6 @@ class McpServerCommandControllerServicer(object):
         Existing user OAuthGrants that were issued using the org's OAuthApp
         will fail on next token refresh — those users will need to
         re-authenticate using the platform default or a new org override.
-
-        @internal
-        Authorization: Requires can_create_oauth_app permission on the organization.
-        Same gate as setOrgOAuthApp — org-admin authority for credential management.
-
-        Errors:
-        - NOT_FOUND: No override exists for this resource + org
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -402,15 +294,6 @@ def add_McpServerCommandControllerServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class McpServerCommandController(object):
     """McpServerCommandController provides write operations for MCP server resources.
-
-    @internal
-    Authorization model for writes:
-    - Platform-scoped: Only platform operators can create/modify
-    - Organization-scoped: Org admins can create/modify
-    - Identity-account-scoped: Only the owner can create/modify
-
-    Primary interface: The `apply` method provides Kubernetes-style idempotent
-    create-or-update semantics, which is the recommended approach for CLI usage.
     """
 
     @staticmethod

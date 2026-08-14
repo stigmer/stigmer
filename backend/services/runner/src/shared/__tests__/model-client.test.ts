@@ -23,6 +23,7 @@ vi.mock("@langchain/openai", () => ({
 
 import { buildChatModel } from "../model-client.js";
 import { _resetRegistryCache } from "../model-registry.js";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 interface MockModel {
   id: string;
@@ -306,6 +307,18 @@ describe("buildChatModel", () => {
       expect(lastAnthropicArgs().apiKey).toBe("");
     });
 
+    it("does NOT send service_tier on a backend adapter — tiers are Anthropic-first-party billing, and Vertex/Bedrock/Foundry have no tier dimension", async () => {
+      mockRegistryResponse([
+        { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({ modelName: "claude-sonnet-4.6", serviceTier: ServiceTier.STANDARD });
+
+      const args = lastAnthropicArgs();
+      expect(typeof args.createClient).toBe("function");
+      expect(args).not.toHaveProperty("invocationKwargs");
+    });
+
     it("yields to the proxy: a proxied call never consults the backend var", async () => {
       mockRegistryResponse([
         { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic" },
@@ -358,5 +371,91 @@ describe("buildChatModel", () => {
 
     await expect(buildChatModel({ modelName: "claude-sonnet-4.6" }))
       .rejects.toThrow(/STIGMER_ANTHROPIC_BACKEND="verteks" is not a supported backend/);
+  });
+
+  describe("service tier (stigmer/stigmer#361)", () => {
+    // The #357 contract on the native harness: when the caller passes the
+    // execution's effective tier, every provider request pins it
+    // explicitly, so the provider ACCOUNT's default can never pick the
+    // price. Each provider has its own spelling; both are pinned here so
+    // a wrapper upgrade that moves the slot fails loudly.
+
+    it("OpenAI: STANDARD pins service_tier 'default' — never 'auto', which would re-open the account-default hole", async () => {
+      mockRegistryResponse([
+        { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai" },
+      ]);
+
+      await buildChatModel({ modelName: "gpt-4.1", serviceTier: ServiceTier.STANDARD });
+
+      const args = mockOpenAICtor.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+      expect(args).toMatchObject({ service_tier: "default" });
+    });
+
+    it("OpenAI: FAST pins service_tier 'priority'", async () => {
+      mockRegistryResponse([
+        { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai" },
+      ]);
+
+      await buildChatModel({ modelName: "gpt-4.1", serviceTier: ServiceTier.FAST });
+
+      const args = mockOpenAICtor.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+      expect(args).toMatchObject({ service_tier: "priority" });
+    });
+
+    it("Anthropic: STANDARD rides invocationKwargs as 'standard_only' — priority capacity is never consumed implicitly", async () => {
+      mockRegistryResponse([
+        { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({ modelName: "claude-haiku-4.5", serviceTier: ServiceTier.STANDARD });
+
+      expect(lastAnthropicArgs()).toMatchObject({
+        invocationKwargs: { service_tier: "standard_only" },
+      });
+    });
+
+    it("Anthropic: FAST rides invocationKwargs as 'auto' — use purchased priority capacity when available", async () => {
+      mockRegistryResponse([
+        { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({ modelName: "claude-haiku-4.5", serviceTier: ServiceTier.FAST });
+
+      expect(lastAnthropicArgs()).toMatchObject({
+        invocationKwargs: { service_tier: "auto" },
+      });
+    });
+
+    it("an omitted tier sends NO tier parameter on either provider — platform-internal utility calls stay untiered", async () => {
+      mockRegistryResponse([
+        { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai" },
+      ]);
+      await buildChatModel({ modelName: "gpt-4.1" });
+      const openAiArgs = mockOpenAICtor.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+      expect(openAiArgs).not.toHaveProperty("service_tier");
+
+      mockRegistryResponse([
+        { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic" },
+      ]);
+      await buildChatModel({ modelName: "claude-haiku-4.5" });
+      expect(lastAnthropicArgs()).not.toHaveProperty("invocationKwargs");
+    });
+
+    it("the tier rides the proxy path too — the request body parameter is what the proxy meters", async () => {
+      mockRegistryResponse([
+        { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({
+        modelName: "claude-haiku-4.5",
+        proxyEndpoint: "https://api.stigmer.ai",
+        stigmerToken: "token",
+        serviceTier: ServiceTier.STANDARD,
+      });
+
+      expect(lastAnthropicArgs()).toMatchObject({
+        invocationKwargs: { service_tier: "standard_only" },
+      });
+    });
   });
 });

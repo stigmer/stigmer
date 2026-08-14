@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback, useState, useMemo } from "react";
+import { UNSTYLED_FIELDSET } from "../../../internal/element-resets.js";
 import type { WorkflowGraphNode } from "../../workflow-graph-model.js";
 import type { InspectorMutations } from "../types.js";
 
@@ -177,7 +178,7 @@ export const IterationTab = memo(function IterationTab({
 
       {/* Error policy */}
       {parallelism > 0 && (
-        <fieldset>
+        <fieldset className={UNSTYLED_FIELDSET}>
           <legend className="stg:text-[10px] stg:font-medium stg:text-[var(--stgm-muted-foreground,#737373)] stg:mb-1.5">
             Error policy
           </legend>

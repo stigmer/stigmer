@@ -101,13 +101,10 @@ func imageTool(_ context.Context, _ *mcp.CallToolRequest, _ *imageParams) (*mcp.
 	}, nil, nil
 }
 
-// StartHTTPMcpServer starts an in-process Streamable HTTP MCP test server.
-// The server exposes the same tools as the stdio test server (echo, add, fail,
-// slow) using the official MCP Go SDK transport expected by the native
-// agent-runner (streamable_http).
-func StartHTTPMcpServer(t *testing.T) *httptest.Server {
-	t.Helper()
-
+// newStreamableMcpHandler builds the Streamable HTTP handler exposing the
+// same tools as the stdio test server (echo, add, fail, slow, image).
+// Shared by the open and auth-gated server constructors below.
+func newStreamableMcpHandler() http.Handler {
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "mcp-test-server-http",
 		Version: "1.0.0",
@@ -134,10 +131,13 @@ func StartHTTPMcpServer(t *testing.T) *httptest.Server {
 		Description: "Captures the current screen and returns a status line plus a PNG screenshot as MCP image content. For testing inline image rendering of tool results.",
 	}, imageTool)
 
-	handler := mcp.NewStreamableHTTPHandler(func(_ *http.Request) *mcp.Server {
+	return mcp.NewStreamableHTTPHandler(func(_ *http.Request) *mcp.Server {
 		return server
 	}, nil)
+}
 
+func startHTTPServer(t *testing.T, handler http.Handler) *httptest.Server {
+	t.Helper()
 	httpServer := httptest.NewServer(handler)
 	t.Cleanup(func() {
 		httpServer.CloseClientConnections()
@@ -145,4 +145,35 @@ func StartHTTPMcpServer(t *testing.T) *httptest.Server {
 	})
 	t.Logf("HTTP MCP test server (streamable) started at %s", httpServer.URL)
 	return httpServer
+}
+
+// StartHTTPMcpServer starts an in-process Streamable HTTP MCP test server.
+// The server exposes the same tools as the stdio test server (echo, add, fail,
+// slow) using the official MCP Go SDK transport expected by the native
+// agent-runner (streamable_http).
+func StartHTTPMcpServer(t *testing.T) *httptest.Server {
+	t.Helper()
+	return startHTTPServer(t, newStreamableMcpHandler())
+}
+
+// StartHTTPMcpServerRequiringAuth is StartHTTPMcpServer behind an
+// Authorization gate: every request must carry exactly
+// expectedAuthorization or is refused with 401 before reaching the MCP
+// handler. Fail-closed by construction — discovery against this server can
+// only succeed when the resolved header actually delivered the credential,
+// which is what makes it the pin for the is_secret delivery path
+// (issue #579): a redacted or placeholder-literal value never discovers.
+func StartHTTPMcpServerRequiringAuth(t *testing.T, expectedAuthorization string) *httptest.Server {
+	t.Helper()
+
+	inner := newStreamableMcpHandler()
+	gated := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != expectedAuthorization {
+			t.Logf("HTTP MCP auth gate: refusing request with Authorization=%q", r.Header.Get("Authorization"))
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		inner.ServeHTTP(w, r)
+	})
+	return startHTTPServer(t, gated)
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../internal/DialogShell.js";
 import type { ConfirmState } from "./types.js";
 
 export interface ConfirmDialogProps {
@@ -16,9 +17,8 @@ export interface ConfirmDialogProps {
 /**
  * Accessible confirmation dialog for destructive actions.
  *
- * Uses the native `<dialog>` element with `showModal()` for built-in
- * focus trapping, Escape key handling, and backdrop. Styled via
- * `--stgm-*` design tokens.
+ * Renders on {@link DialogShell} (native `<dialog>` + `showModal()` — focus
+ * trapping, Escape, token backdrop). Styled via `--stgm-*` design tokens.
  *
  * Pairs with {@link useConfirmAction} which manages the imperative
  * `confirm()` → Promise pattern.
@@ -51,22 +51,9 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (state && !dialog.open) {
-      dialog.showModal();
-    } else if (!state && dialog.open) {
-      dialog.close();
-    }
-  }, [state]);
-
-  const handleDialogCancel = useCallback(
-    (e: React.SyntheticEvent) => {
-      e.preventDefault();
-      onCancel();
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) onCancel();
     },
     [onCancel],
   );
@@ -76,15 +63,7 @@ export function ConfirmDialog({
   const isDestructive = state.variant === "destructive";
 
   return (
-    <dialog
-      ref={dialogRef}
-      onCancel={handleDialogCancel}
-      className={cn(
-        "stg:fixed stg:inset-0 stg:z-50 stg:m-auto stg:w-full stg:max-w-sm stg:rounded-lg stg:border stg:border-border stg:bg-popover stg:p-0 stg:text-popover-foreground stg:shadow-lg",
-        "stg:backdrop:bg-backdrop",
-        "stg:open:animate-in stg:open:fade-in-0 stg:open:zoom-in-95",
-      )}
-    >
+    <DialogShell open onOpenChange={handleOpenChange} width="sm" aria-label={state.title}>
       <div className="stg:flex stg:flex-col stg:gap-4 stg:p-6">
         <div className="stg:flex stg:flex-col stg:gap-1.5">
           <h3 className="stg:text-base stg:font-semibold stg:text-foreground">
@@ -122,6 +101,6 @@ export function ConfirmDialog({
           </button>
         </div>
       </div>
-    </dialog>
+    </DialogShell>
   );
 }

@@ -20,6 +20,7 @@ import { useAgentRefFromSession } from "./useAgentRefFromSession.js";
 import { usePersistedModel, type UsePersistedModelReturn } from "./usePersistedModel.js";
 import { specMcpUsagesToInput, specSkillRefsToInput } from "./session-spec-converters.js";
 import type { SessionAudience } from "./audience.js";
+import { assertValidRunConfig, type SessionRunConfig } from "./run-config.js";
 
 /**
  * Well-known Daytona sandbox workspace root. Used as the SDK safety-net
@@ -57,6 +58,16 @@ export interface UseSessionPageFlowOptions {
    * @default "integrator"
    */
   readonly audience?: SessionAudience;
+  /**
+   * Owner-pinned model/tier for every follow-up on this surface
+   * (stigmer/stigmer#664). Stamped at submit — after the composer, so
+   * it wins over composer state, the persisted Console preference, and
+   * the last execution's model — and therefore also covers retries,
+   * which re-enter the same submit path. Ignored for the `"guest"`
+   * audience (the server-side share policy owns guest execution
+   * config). See {@link SessionRunConfig}.
+   */
+  readonly runConfig?: SessionRunConfig;
 }
 
 /** Return value of {@link useSessionPageFlow}. */
@@ -244,6 +255,18 @@ export function useSessionPageFlow(
 ): UseSessionPageFlowReturn {
   const { sessionId, org, getRuntimeEnv } = options;
   const isGuest = options.audience === "guest";
+  // Guests never carry a client pin: guest execution config is owned by
+  // the server-side share policy, and the no-modelName guest invariant
+  // is test-pinned.
+  const runConfig = isGuest ? undefined : options.runConfig;
+  // Render-time, not submit-time: the pin is static host configuration,
+  // so a statically-wrong shape (fast tier, no model) should fail at
+  // mount in the embedder's dev loop — not as an end user's failed send.
+  if (runConfig) assertValidRunConfig(runConfig);
+  // Scalars, not the object: hosts pass inline literals, and the submit
+  // callback's identity must not churn on every render (DD-010).
+  const pinnedModelName = runConfig?.modelName;
+  const pinnedServiceTier = runConfig?.serviceTier;
 
   const stigmer = useStigmer();
   const conv = useSessionConversation(sessionId, org);
@@ -441,7 +464,11 @@ export function useSessionPageFlow(
 
       conv.sendFollowUp(message, {
         agentInstanceId: agentInstanceIdOverride,
-        modelName: selectedModel ?? modelId,
+        // The owner pin wins over everything the user or the SDK
+        // resolved (#664); the pinned tier is stamped only as "fast" —
+        // an untouched/standard tier stays off the wire, preserving the
+        // #357 UNSPECIFIED-vs-explicit telemetry distinction.
+        modelName: pinnedModelName ?? selectedModel ?? modelId,
         workspaceEntries: workspace.hasEntries
           ? workspace.toInput()
           : undefined,
@@ -450,7 +477,9 @@ export function useSessionPageFlow(
         runtimeEnv,
         attachments: context?.attachments,
         interactionMode: context?.interactionMode,
-        serviceTier: context?.serviceTier,
+        serviceTier: pinnedModelName
+          ? (pinnedServiceTier === "fast" ? "fast" : undefined)
+          : context?.serviceTier,
         buildFromPlan: context?.buildFromPlan,
         // Sourced from the session-scoped preference set at the approval gate,
         // not from the composer (the pre-arm toggle was removed).
@@ -461,7 +490,7 @@ export function useSessionPageFlow(
 
       sessionVariables.clear();
     },
-    [conv.sendFollowUp, modelId, workspace, mcpServerUsages, skillRefs, sessionVariables.clear, resolution, agentRef, sessionInstanceId, stigmer, autoApproveAll, getRuntimeEnv],
+    [conv.sendFollowUp, modelId, pinnedModelName, pinnedServiceTier, workspace, mcpServerUsages, skillRefs, sessionVariables.clear, resolution, agentRef, sessionInstanceId, stigmer, autoApproveAll, getRuntimeEnv],
   );
 
   // -------------------------------------------------------------------------

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { FileTreeNode } from "../internal/file-tree/index.js";
 import type { SelectedWorkspaceFile } from "../internal/store/index.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
@@ -231,7 +232,7 @@ function ExplorerRootBody({
   return (
     <>
       <nav aria-label={`File tree for ${entryName}`}>
-        <ul className="stg:py-0.5 stg:pl-1.5" role="tree">
+        <ul className={cn(UNSTYLED_LIST, "stg:py-0.5 stg:pl-1.5")} role="tree">
           {tree.map((node) => (
             <FileTreeNode
               key={node.path}

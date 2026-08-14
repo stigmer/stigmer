@@ -21,7 +21,9 @@ import type { ServiceTierOption } from "../models/service-tier.js";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { useConversationStoreRef } from "../internal/store/index.js";
-import { useCreateAgentExecution } from "../execution/useCreateAgentExecution.js";
+// Type-only import so the SharedAgentExecutionFields doc links below resolve;
+// the strict tsdoc gate (tsdoc:check) guards it against removal.
+import { useCreateAgentExecution, type SharedAgentExecutionFields } from "../execution/useCreateAgentExecution.js";
 import { useExecutionStream } from "../execution/useExecutionStream.js";
 import { useAgentExecutionActions } from "../execution/useAgentExecutionActions.js";
 import { useSubmitApproval } from "../execution/useSubmitApproval.js";
@@ -79,7 +81,7 @@ export interface SendFollowUpOptions {
    * instance. Keys must be declared in the agent's env declarations
    * (a whitelist, not a value source) or they are dropped.
    *
-   * @see {@link CreateAgentExecutionInput.runtimeEnv}
+   * @see {@link SharedAgentExecutionFields.runtimeEnv}
    */
   readonly runtimeEnv?: Record<string, EnvVarInput>;
   /**
@@ -89,7 +91,7 @@ export interface SendFollowUpOptions {
    * `agentExecution.uploadAttachment()`. Forwarded directly to
    * execution creation.
    *
-   * @see {@link CreateAgentExecutionInput.attachments}
+   * @see {@link SharedAgentExecutionFields.attachments}
    */
   readonly attachments?: AttachmentInput[];
   /**
@@ -106,19 +108,19 @@ export interface SendFollowUpOptions {
    * the unspecified-vs-explicit distinction (unset resolves to standard on
    * the platform side — never the provider account default).
    *
-   * @see {@link CreateAgentExecutionInput.serviceTier}
+   * @see {@link SharedAgentExecutionFields.serviceTier}
    */
   readonly serviceTier?: ServiceTierOption;
   /**
    * Marks this execution as a Build-from-plan turn.
    *
-   * @see {@link CreateAgentExecutionInput.buildFromPlan}
+   * @see {@link SharedAgentExecutionFields.buildFromPlan}
    */
   readonly buildFromPlan?: boolean;
   /**
    * Auto-approve every tool call for this execution (bypass the HITL gate).
    *
-   * @see {@link CreateAgentExecutionInput.autoApproveAll}
+   * @see {@link SharedAgentExecutionFields.autoApproveAll}
    */
   readonly autoApproveAll?: boolean;
   /**
@@ -127,7 +129,7 @@ export interface SendFollowUpOptions {
    * Lightweight "attention" signals — no upload, no injection. The agent
    * reads these files directly from the workspace filesystem.
    *
-   * @see {@link CreateAgentExecutionInput.workspaceFileRefs}
+   * @see {@link SharedAgentExecutionFields.workspaceFileRefs}
    */
   readonly workspaceFileRefs?: string[];
   /**
@@ -136,7 +138,7 @@ export interface SendFollowUpOptions {
    * The conversation read model hides the superseded execution so the
    * edited message replaces the original in place.
    *
-   * @see {@link CreateAgentExecutionInput.supersedesExecutionId}
+   * @see {@link SharedAgentExecutionFields.supersedesExecutionId}
    */
   readonly supersedesExecutionId?: string;
 }

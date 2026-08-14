@@ -2,6 +2,7 @@
 
 import { useCallback, useId, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import {
   getUserMessage,
   iamRoleDisplayName,
@@ -302,7 +303,7 @@ function CreateInvitationForm({
       />
 
       {/* Expiry */}
-      <fieldset className="stg:space-y-1.5">
+      <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-1.5")}>
         <legend className="stg:text-xs stg:font-medium stg:text-foreground">
           Expires in
         </legend>
@@ -324,7 +325,7 @@ function CreateInvitationForm({
       </fieldset>
 
       {/* Redemption mode */}
-      <fieldset className="stg:space-y-1.5">
+      <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-1.5")}>
         <legend className="stg:text-xs stg:font-medium stg:text-foreground">
           Usage limit
         </legend>

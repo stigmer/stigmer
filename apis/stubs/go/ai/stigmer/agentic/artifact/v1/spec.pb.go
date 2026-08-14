@@ -23,58 +23,15 @@ const (
 )
 
 // ArtifactSpec defines the properties of an artifact provided at creation time.
-//
-// @internal
-// Artifacts are created by the runner when a task
-// produces output that should be persisted outside the execution status
-// snapshot (either because it exceeds the size threshold or because the
-// workflow author explicitly requested artifact persistence).
-//
-// The spec is immutable after creation — artifacts are append-only.
-// To update an artifact's content, create a new artifact.
-//
-// @since T07 (Artifact Store)
 type ArtifactSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// MIME content type of the artifact payload.
-	//
-	// @internal
-	// Used by the UI to determine rendering strategy (JSON viewer, text,
-	// image preview, download link) and by the download endpoint for
-	// Content-Type headers.
-	//
-	// Common values:
-	// - "application/json" — structured task output, agent response
-	// - "text/plain" — log output, agent final text
-	// - "text/html" — generated reports
-	// - "application/pdf" — rendered documents
-	// - "application/octet-stream" — opaque binary (fallback)
 	ContentType string `protobuf:"bytes,1,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
 	// Human-readable display name for the artifact.
-	//
-	// @internal
-	// Shown in the execution viewer's artifact list and download dialogs.
-	// When auto-promoted, this is derived from the task name and output field
-	// (e.g., "analyze_code — output.json"). When explicitly created by a
-	// workflow author (Phase 1), this is user-provided.
-	//
-	// Does not need to be unique — multiple tasks can produce artifacts
-	// with the same display name across different executions.
 	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Provenance: which execution and task produced this artifact.
-	//
-	// @internal
-	// Used for:
-	// - Listing artifacts by execution (listByExecution RPC)
-	// - Linking artifacts back to their source in the execution viewer
-	// - Access control inheritance (artifact access follows execution access)
 	Source *ArtifactSource `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
 	// Retention policy for this artifact.
-	//
-	// @internal
-	// When not set, the organization's default retention policy applies.
-	// The backend computes ArtifactStatus.expires_at from this policy
-	// at creation time.
 	Retention     *RetentionPolicy `protobuf:"bytes,4,opt,name=retention,proto3" json:"retention,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -139,13 +96,6 @@ func (x *ArtifactSpec) GetRetention() *RetentionPolicy {
 }
 
 // ArtifactSource identifies the execution context that produced an artifact.
-//
-// @internal
-// Exactly one of workflow_execution_id or agent_execution_id should be set,
-// identifying the producer. task_name is set when the artifact was produced
-// by a specific task within a workflow execution.
-//
-// @since T07 (Artifact Store)
 type ArtifactSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// WorkflowExecution that produced this artifact.
@@ -217,13 +167,6 @@ func (x *ArtifactSource) GetTaskName() string {
 }
 
 // RetentionPolicy controls how long an artifact's blob is retained in storage.
-//
-// @internal
-// The backend computes an absolute expires_at timestamp from this policy
-// at artifact creation time. A background garbage collection job
-// periodically scans for expired artifacts and deletes their blobs.
-//
-// @since T07 (Artifact Store)
 type RetentionPolicy struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Time-to-live in days from creation.

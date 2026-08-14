@@ -29,13 +29,6 @@ const (
 // Each apply/update that changes the generated CNCF YAML (and passes validation)
 // creates a new immutable version entry. The version is identified by its content
 // hash (SHA-256 of the validated YAML).
-//
-// @internal
-// Stored in the resource_audit table (OSS SQLite) or workflow_audit collection
-// (Cloud MongoDB). Entries are immutable after creation — a version's content
-// never changes, only its tag can be reassigned via tagVersion.
-//
-// @since Workflow Versioning
 type WorkflowVersionEntry struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// SHA-256 hash of the CNCF YAML — the immutable version identifier.
@@ -47,11 +40,6 @@ type WorkflowVersionEntry struct {
 	// Tag assigned to this version at apply time or via tagVersion.
 	// May be empty if the version was applied without a tag.
 	// Examples: "stable", "v1.0", "production"
-	//
-	// @internal
-	// Tags are mutable pointers — calling tagVersion moves a tag to a different
-	// version. When resolving by tag, the system returns the most recent audit
-	// entry with that tag (ordered by applied_at DESC).
 	Tag string `protobuf:"bytes,4,opt,name=tag,proto3" json:"tag,omitempty"`
 	// Whether this is the currently active version of the workflow.
 	IsCurrent bool `protobuf:"varint,5,opt,name=is_current,json=isCurrent,proto3" json:"is_current,omitempty"`
@@ -59,18 +47,9 @@ type WorkflowVersionEntry struct {
 	// Analogous to a git commit message.
 	Message string `protobuf:"bytes,6,opt,name=message,proto3" json:"message,omitempty"`
 	// The generated CNCF Serverless Workflow DSL 1.0.0 YAML for this version.
-	//
-	// @internal
-	// Used by the runner (to execute the workflow) and the execution viewer
-	// (to render the graph for historical executions). This is the exact YAML
-	// that was validated at the time this version was created.
 	ValidatedYaml string `protobuf:"bytes,7,opt,name=validated_yaml,json=validatedYaml,proto3" json:"validated_yaml,omitempty"`
 	// Git provenance tracking where this version's definition originated.
 	// Absent when applied from a non-git directory or via the web editor.
-	//
-	// @internal
-	// Populated by CLI during apply when the working directory is within a
-	// git repository. Provides traceability and enables "view on GitHub" links.
 	GitProvenance *GitProvenance `protobuf:"bytes,8,opt,name=git_provenance,json=gitProvenance,proto3" json:"git_provenance,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -163,12 +142,6 @@ func (x *WorkflowVersionEntry) GetGitProvenance() *GitProvenance {
 }
 
 // GitProvenance tracks the git origin of a workflow version.
-//
-// @internal
-// Reuses the same structure as Skill's GitProvenance for consistency.
-// Populated by the CLI during apply when the directory is a git repo.
-//
-// @since Workflow Versioning
 type GitProvenance struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Git remote URL (e.g., "https://github.com/org/repo.git").

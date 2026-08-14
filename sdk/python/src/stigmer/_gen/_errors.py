@@ -83,3 +83,14 @@ def is_retryable(err: BaseException) -> bool:
         ErrorCode.INTERNAL,
         ErrorCode.UNAVAILABLE,
     )
+
+
+def is_unimplemented(err: BaseException) -> bool:
+    """The server does not implement the called RPC.
+
+    The code clients key capability fallbacks on (e.g. the skill artifact
+    transfer lane's unary fallback, stigmer#675/#701). Checks the raw gRPC
+    code: UNIMPLEMENTED deliberately has no ErrorCode mapping, so it
+    surfaces as UNKNOWN.
+    """
+    return isinstance(err, StigmerError) and err.grpc_code == grpc.StatusCode.UNIMPLEMENTED

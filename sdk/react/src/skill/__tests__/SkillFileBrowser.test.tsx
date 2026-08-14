@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { zipSync, strToU8 } from "fflate";
-import type { Stigmer } from "@stigmer/sdk";
+import { StigmerError, type Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { SkillFileBrowser } from "../SkillFileBrowser";
 
@@ -12,14 +12,22 @@ function wrapperFor(stigmer: Stigmer) {
   );
 }
 
+/** Connect's Unimplemented code — what a pre-transfer-lane server answers. */
+const CODE_UNIMPLEMENTED = 12;
+
 /**
  * Builds a real ZIP (via fflate, the same library the unpacker uses) and a
  * Stigmer client whose `skill.getArtifact` serves it — so tests exercise the
  * genuine fetch → unzip → browse path instead of stubbing the unpacker.
+ * The download-URL mint answers Unimplemented (a pre-transfer-lane server),
+ * pinning that the browser degrades to the unary lane it always used.
  */
 function makeStigmerServing(files: Record<string, Uint8Array>) {
   const getArtifact = vi.fn().mockResolvedValue({ artifact: zipSync(files) });
-  return { skill: { getArtifact } } as unknown as Stigmer;
+  const getArtifactDownloadUrl = vi
+    .fn()
+    .mockRejectedValue(new StigmerError("unknown", "unimplemented", CODE_UNIMPLEMENTED));
+  return { skill: { getArtifact, getArtifactDownloadUrl } } as unknown as Stigmer;
 }
 
 function renderBrowser(stigmer: Stigmer) {

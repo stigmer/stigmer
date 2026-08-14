@@ -55,7 +55,7 @@ public final class HttpCallProto extends com.google.protobuf.GeneratedFile {
       "low.v1.tasks\0322ai/stigmer/commons/apireso" +
       "urce/field_options.proto\032\033buf/validate/v" +
       "alidate.proto\032\034google/protobuf/struct.pr" +
-      "oto\"\273\003\n\022HttpCallTaskConfig\022?\n\006method\030\001 \001" +
+      "oto\"\276\003\n\022HttpCallTaskConfig\022?\n\006method\030\001 \001" +
       "(\tB\'\272H$r\037R\003GETR\004POSTR\003PUTR\006DELETER\005PATCH" +
       "\310\001\001R\006method\022V\n\010endpoint\030\002 \001(\01322.ai.stigm" +
       "er.agentic.workflow.v1.tasks.HttpEndpoin" +
@@ -63,16 +63,16 @@ public final class HttpCallProto extends com.google.protobuf.GeneratedFile {
       "i.stigmer.agentic.workflow.v1.tasks.Http" +
       "CallTaskConfig.HeadersEntryR\007headers\022+\n\004" +
       "body\030\004 \001(\0132\027.google.protobuf.StructR\004bod" +
-      "y\0223\n\017timeout_seconds\030\005 \001(\005B\n\272H\007\032\005\030\254\002(\001R\016" +
-      "timeoutSeconds\032:\n\014HeadersEntry\022\020\n\003key\030\001 " +
-      "\001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001:\r\352\213,\t" +
-      "http_call\"0\n\014HttpEndpoint\022 \n\003uri\030\001 \001(\tB\016" +
-      "\272H\007r\002\020\001\310\001\001\330\205,\001R\003uriB\307\001B\rHttpCallProtoP\001\242" +
-      "\002\006ASAWVT\252\002$Ai.Stigmer.Agentic.Workflow.V" +
-      "1.Tasks\312\002$Ai\\Stigmer\\Agentic\\Workflow\\V1" +
-      "\\Tasks\342\0020Ai\\Stigmer\\Agentic\\Workflow\\V1\\" +
-      "Tasks\\GPBMetadata\352\002)Ai::Stigmer::Agentic" +
-      "::Workflow::V1::Tasksb\006proto3"
+      "y\0226\n\017timeout_seconds\030\005 \001(\005B\r\272H\n\032\005\030\254\002(\001\330\001" +
+      "\001R\016timeoutSeconds\032:\n\014HeadersEntry\022\020\n\003key" +
+      "\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001:\r\352" +
+      "\213,\thttp_call\"0\n\014HttpEndpoint\022 \n\003uri\030\001 \001(" +
+      "\tB\016\272H\007r\002\020\001\310\001\001\330\205,\001R\003uriB\307\001B\rHttpCallProto" +
+      "P\001\242\002\006ASAWVT\252\002$Ai.Stigmer.Agentic.Workflo" +
+      "w.V1.Tasks\312\002$Ai\\Stigmer\\Agentic\\Workflow" +
+      "\\V1\\Tasks\342\0020Ai\\Stigmer\\Agentic\\Workflow\\" +
+      "V1\\Tasks\\GPBMetadata\352\002)Ai::Stigmer::Agen" +
+      "tic::Workflow::V1::Tasksb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

@@ -18,8 +18,13 @@ import (
 // All resource clients (Agent, Skill, Organization, etc.) are available
 // via the embedded gen.Client. The Search, GitHub and Billing clients are
 // added separately (non-resource bounded contexts get handwritten clients).
+//
+// Skill shadows the embedded generated client with a wrapper that routes
+// Push by artifact size (#675) — existing client.Skill.Push call sites
+// gain >10MB support with no code change.
 type Client struct {
 	*gen.Client
+	Skill   *SkillClient
 	Search  *SearchClient
 	GitHub  *GitHubClient
 	Billing *BillingClient
@@ -83,8 +88,10 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 		return nil, fmt.Errorf("stigmer: failed to connect: %w", err)
 	}
 
+	genClient := gen.NewClient(conn)
 	return &Client{
-		Client:                 gen.NewClient(conn),
+		Client:                 genClient,
+		Skill:                  newSkillClient(genClient.Skill),
 		Search:                 newSearchClient(conn),
 		GitHub:                 newGitHubClient(conn),
 		Billing:                newBillingClient(conn),

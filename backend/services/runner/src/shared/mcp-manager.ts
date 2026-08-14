@@ -73,6 +73,14 @@ export function toMcpClientConfig(
         transport: "http",
         url: server.url,
         headers: server.headers,
+        // Re-establish severed connections (oss#316): when a remote MCP
+        // server restarts mid-execution — the hosted bridge's sessions are
+        // in-memory, so a deploy orphans every live one — the adapter's
+        // onclose hook re-runs initialize, minting a fresh session for
+        // subsequent calls instead of stranding the agent on a dead one.
+        // Covers transport-close only; a session lost with no stream open
+        // still surfaces as a JSON-RPC session-not-found on the next call.
+        reconnect: { enabled: true, maxAttempts: 3, delayMs: 1_000 },
       };
     }
   }

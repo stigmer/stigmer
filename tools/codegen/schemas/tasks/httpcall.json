@@ -73,7 +73,7 @@
       "type": {
         "kind": "int32"
       },
-      "description": "Request timeout in seconds (optional, default: 30).",
+      "description": "Request timeout in seconds. Max: 300 (5 minutes).\n Optional — unset (0) leaves the request bounded by the runner's activity\n timeout. When set, the runner aborts the request at this budget and\n fails the task with HTTP_CALL_TIMEOUT (non-retryable — catchable with\n try/catch); the activity timeout widens to fit (#686).\n\n Unset (0) is valid: proto3 implicit presence makes an omitted field\n indistinguishable from 0, so the range rule must not fire on it (#673).",
       "required": false,
       "validation": {
         "min": 1,

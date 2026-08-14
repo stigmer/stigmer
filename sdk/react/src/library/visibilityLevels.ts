@@ -43,7 +43,27 @@ export interface VisibilityLevelOption {
   };
   /** Color treatment for the selected segment and the confirmation prompt. */
   readonly tone: "private" | "org" | "platform" | "public";
+  /**
+   * When present, the level cannot be selected by the current caller and the
+   * row renders locked (disabled, lock affordance) with this copy explaining
+   * why and what to do instead. Computed by the level builders from caller
+   * context — the component stays free of per-level branching, exactly like
+   * the confirmation ladder.
+   *
+   * Today's only locked level is Public in the cloud edition for callers
+   * without `can_set_public_visibility` (publishing is operator-granted);
+   * the backend independently enforces the same gate.
+   */
+  readonly lockedReason?: string;
 }
+
+/**
+ * The locked-row copy for a caller who may not set PUBLIC visibility. Names
+ * the path forward (ask the platform team) rather than a bare "disabled" —
+ * the option stays discoverable even though it is not self-service.
+ */
+export const PUBLIC_LOCKED_REASON =
+  "Public listing is granted by the platform team — contact us to publish this resource.";
 
 const PRIVATE_OPTION: VisibilityLevelOption = {
   value: ApiResourceVisibility.visibility_private,
@@ -97,10 +117,27 @@ const PUBLIC_OPTION: VisibilityLevelOption = {
  *   operate an IdentityProvider — the backend rejects it otherwise
  *   (`ValidateVisibilityStep`), so the option only renders when the signal
  *   is present (use `useSsoProvider`, the permission-free lookup).
+ * - `canSetPublicVisibility`: entering PUBLIC is operator-gated in the
+ *   cloud edition; when the caller lacks the grant the Public option
+ *   renders locked instead of disappearing (use
+ *   `useCanSetPublicVisibility`, which is always `true` in local mode).
  */
 export interface BlueprintVisibilityLevelsContext {
   readonly deploymentMode: "cloud" | "local";
   readonly hasIdentityProvider: boolean;
+  readonly canSetPublicVisibility: boolean;
+}
+
+/**
+ * The PUBLIC option, locked with {@link PUBLIC_LOCKED_REASON} when the
+ * caller may not publish. Locked rather than hidden: the level (and the
+ * path to it) stays discoverable, matching how the option keeps rendering
+ * as the current state on already-public resources.
+ */
+function publicOption(canSetPublicVisibility: boolean): VisibilityLevelOption {
+  return canSetPublicVisibility
+    ? PUBLIC_OPTION
+    : { ...PUBLIC_OPTION, lockedReason: PUBLIC_LOCKED_REASON };
 }
 
 /**
@@ -114,12 +151,22 @@ export interface BlueprintVisibilityLevelsContext {
 export function blueprintVisibilityLevels(
   context: BlueprintVisibilityLevelsContext,
 ): readonly VisibilityLevelOption[] {
+  const publicLevel = publicOption(context.canSetPublicVisibility);
   if (context.deploymentMode === "local") {
-    return [PRIVATE_OPTION, PUBLIC_OPTION];
+    return [PRIVATE_OPTION, publicLevel];
   }
   return context.hasIdentityProvider
-    ? [PRIVATE_OPTION, ORG_OPTION, PLATFORM_OPTION, PUBLIC_OPTION]
-    : [PRIVATE_OPTION, ORG_OPTION, PUBLIC_OPTION];
+    ? [PRIVATE_OPTION, ORG_OPTION, PLATFORM_OPTION, publicLevel]
+    : [PRIVATE_OPTION, ORG_OPTION, publicLevel];
+}
+
+/**
+ * Inputs that gate the instance level set — only the publish gate; the set
+ * itself is fixed (instances have no platform level and no deployment-mode
+ * collapse).
+ */
+export interface InstanceVisibilityLevelsContext {
+  readonly canSetPublicVisibility: boolean;
 }
 
 /**
@@ -131,17 +178,21 @@ export function blueprintVisibilityLevels(
  * boundary). Descriptions are execution-oriented because org visibility on
  * an instance is about who can run it and see its executions.
  */
-export const INSTANCE_VISIBILITY_LEVELS: readonly VisibilityLevelOption[] = [
-  PRIVATE_OPTION,
-  {
-    ...ORG_OPTION,
-    description: "All org members can view executions",
-  },
-  {
-    ...PUBLIC_OPTION,
-    description: "All authenticated users can view",
-  },
-];
+export function instanceVisibilityLevels(
+  context: InstanceVisibilityLevelsContext,
+): readonly VisibilityLevelOption[] {
+  return [
+    PRIVATE_OPTION,
+    {
+      ...ORG_OPTION,
+      description: "All org members can view executions",
+    },
+    {
+      ...publicOption(context.canSetPublicVisibility),
+      description: "All authenticated users can view",
+    },
+  ];
+}
 
 /**
  * The levels an environment selector offers, in escalation order:

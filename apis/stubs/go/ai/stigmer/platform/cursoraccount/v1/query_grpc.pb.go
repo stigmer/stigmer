@@ -33,9 +33,6 @@ const (
 // Platform-gated like the command controller: even redacted, the resource
 // reveals team structure and per-member spend, which are
 // platform-internal.
-//
-// @internal
-// Cloud-only; not implemented by the OSS Go server.
 type CursorAccountQueryControllerClient interface {
 	// List all Cursor accounts with routing/sync summaries. Key material
 	// is always redacted.
@@ -85,9 +82,6 @@ func (c *cursorAccountQueryControllerClient) GetCursorAccountView(ctx context.Co
 // Platform-gated like the command controller: even redacted, the resource
 // reveals team structure and per-member spend, which are
 // platform-internal.
-//
-// @internal
-// Cloud-only; not implemented by the OSS Go server.
 type CursorAccountQueryControllerServer interface {
 	// List all Cursor accounts with routing/sync summaries. Key material
 	// is always redacted.

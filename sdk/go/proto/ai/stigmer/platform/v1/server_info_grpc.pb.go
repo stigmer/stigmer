@@ -61,13 +61,6 @@ type PlatformQueryControllerClient interface {
 	// required, but no specific FGA permission is — every authenticated caller in
 	// an environment shares one Temporal cluster, and task queues are
 	// per-session/execution and gated separately by control-plane session access.
-	//
-	// @internal
-	// The minted runner access token (iss=stigmer, sub=caller identity account)
-	// is a cloud-only capability — OSS has no Cursor proxy and leaves the token
-	// fields empty. The handler degrades gracefully: if minting is unavailable
-	// (signing key unconfigured, or no caller identity), it returns the Temporal
-	// coordinates with an empty token rather than failing the runner's boot.
 	GetRunnerBootstrapConfig(ctx context.Context, in *GetRunnerBootstrapConfigInput, opts ...grpc.CallOption) (*GetRunnerBootstrapConfigOutput, error)
 	// Exchanges an embedded runner's bootstrap credential for a token scoped to
 	// one unit of dispatched work.
@@ -84,28 +77,6 @@ type PlatformQueryControllerClient interface {
 	//
 	// The token fields are empty when the server cannot mint (OSS, or no signing
 	// key configured) — the runner falls back to its existing credential.
-	//
-	// @internal
-	// Cloud mints via SandboxTokenService: an agent_execution_id yields a
-	// token_type=sandbox token carrying the execution's parent session_id (one
-	// session sandbox serves multi-turn executions); a workflow_execution_id
-	// yields token_type=workflow_sandbox carrying that id. Both are then bound by
-	// RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
-	// cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
-	//
-	// is_skip_authorization because the FGA target is derived from the input
-	// oneof, which the declarative interceptor cannot express — the handler
-	// enforces authorization itself (same pattern as getRunnerBootstrapConfig):
-	// the caller must present a runner-class token_type=embedded_runner
-	// credential AND pass the same can_view check getByExecutionId performs on
-	// the named execution.
-	//
-	// Two arms are exceptions to the embedded_runner rule, each gated on its
-	// own credential class and authorized against a control-plane record
-	// instead of an execution: pool_claim (token_type=pool_sandbox, authorized
-	// against the pool claim record) and renewal (token_type=sandbox /
-	// workflow_sandbox, authorized against the live sandbox record). See each
-	// arm's own doc.
 	GetRunnerScopedToken(ctx context.Context, in *GetRunnerScopedTokenInput, opts ...grpc.CallOption) (*GetRunnerScopedTokenOutput, error)
 }
 
@@ -184,13 +155,6 @@ type PlatformQueryControllerServer interface {
 	// required, but no specific FGA permission is — every authenticated caller in
 	// an environment shares one Temporal cluster, and task queues are
 	// per-session/execution and gated separately by control-plane session access.
-	//
-	// @internal
-	// The minted runner access token (iss=stigmer, sub=caller identity account)
-	// is a cloud-only capability — OSS has no Cursor proxy and leaves the token
-	// fields empty. The handler degrades gracefully: if minting is unavailable
-	// (signing key unconfigured, or no caller identity), it returns the Temporal
-	// coordinates with an empty token rather than failing the runner's boot.
 	GetRunnerBootstrapConfig(context.Context, *GetRunnerBootstrapConfigInput) (*GetRunnerBootstrapConfigOutput, error)
 	// Exchanges an embedded runner's bootstrap credential for a token scoped to
 	// one unit of dispatched work.
@@ -207,28 +171,6 @@ type PlatformQueryControllerServer interface {
 	//
 	// The token fields are empty when the server cannot mint (OSS, or no signing
 	// key configured) — the runner falls back to its existing credential.
-	//
-	// @internal
-	// Cloud mints via SandboxTokenService: an agent_execution_id yields a
-	// token_type=sandbox token carrying the execution's parent session_id (one
-	// session sandbox serves multi-turn executions); a workflow_execution_id
-	// yields token_type=workflow_sandbox carrying that id. Both are then bound by
-	// RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
-	// cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
-	//
-	// is_skip_authorization because the FGA target is derived from the input
-	// oneof, which the declarative interceptor cannot express — the handler
-	// enforces authorization itself (same pattern as getRunnerBootstrapConfig):
-	// the caller must present a runner-class token_type=embedded_runner
-	// credential AND pass the same can_view check getByExecutionId performs on
-	// the named execution.
-	//
-	// Two arms are exceptions to the embedded_runner rule, each gated on its
-	// own credential class and authorized against a control-plane record
-	// instead of an execution: pool_claim (token_type=pool_sandbox, authorized
-	// against the pool claim record) and renewal (token_type=sandbox /
-	// workflow_sandbox, authorized against the live sandbox record). See each
-	// arm's own doc.
 	GetRunnerScopedToken(context.Context, *GetRunnerScopedTokenInput) (*GetRunnerScopedTokenOutput, error)
 }
 

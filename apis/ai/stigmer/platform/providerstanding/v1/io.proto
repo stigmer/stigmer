@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package ai.stigmer.platform.providerstanding.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// Input for the provider standing view. Empty by design: this is a
+// platform-operator surface over a tiny per-provider collection (one row
+// per platform LLM provider account).
+message GetProviderStandingViewInput {}
+
+// The latest observed standing of one platform LLM provider account — the
+// most recent canary-probe verdict, upserted per provider by the hourly
+// probe (cloud#370). Deliberately a lightweight status snapshot, not an
+// API resource: platform provider accounts have no resource surface, and
+// the console page is a read-only mirror of what the probe already
+// records (design ruling on cloud#370, carried into cloud#447).
+message ProviderStandingEntry {
+  // Lowercase provider name ("anthropic", "openai"). Cursor is
+  // deliberately absent — CursorAccount sync owns that provider's health.
+  string provider = 1;
+
+  // The probe's verdict, as the lowercase label the probe persists and
+  // stamps on its metric — one vocabulary across the DB, the alerts, and
+  // this surface. Closed set today: "healthy", "platform_billing",
+  // "platform_auth", "unclassified_error", "unreachable",
+  // "not_configured". A string rather than a proto enum by design: the
+  // standing vocabulary is owned by the probe's classifier, and consoles
+  // must render an unknown future label gracefully instead of failing to
+  // decode it.
+  string status = 2;
+
+  // Upstream HTTP status; 0 when the request never completed or was not
+  // attempted.
+  uint32 http_status = 3;
+
+  // Canary round-trip latency; 0 when not attempted.
+  uint64 latency_ms = 4;
+
+  // Bounded, sanitized upstream error text for the operator surface;
+  // empty when healthy.
+  string error_summary = 5;
+
+  // When the probe last ran for this provider. A stale value is itself a
+  // signal — the probe-silence alert's UI twin: the console flags entries
+  // whose probe has not reported recently.
+  google.protobuf.Timestamp checked_at = 6;
+}
+
+// The provider standing view: the latest verdict for every provider the
+// probe tracks.
+message ProviderStandingView {
+  repeated ProviderStandingEntry providers = 1;
+}

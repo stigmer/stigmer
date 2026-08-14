@@ -1,6 +1,7 @@
-// Validates the tool-view layer against the shared cross-language contract in
-// test/fixtures/tool-view/. The Go CLI runs the same fixtures, so the two
-// surfaces cannot drift in classification or result interpretation.
+// Validates the tool-view layer against the shared cross-surface contract in
+// test/fixtures/tool-view/. The runner's middleware tests assert the same
+// fixtures from the writer side, so producers and this reader cannot drift in
+// classification, result interpretation, or intent extraction.
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -9,7 +10,13 @@ import { describe, it, expect } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ToolKind, resolveToolKindByName, normalizeToolResult } from "../tool-view";
+import {
+  ToolKind,
+  resolveToolKindByName,
+  normalizeToolResult,
+  extractShellIntent,
+  SHELL_INTENT_ARG_FIELD,
+} from "../tool-view";
 
 const here = dirname(fileURLToPath(import.meta.url));
 // sdk/typescript/src/execution/__tests__ -> repo root is five levels up.
@@ -111,6 +118,36 @@ describe("result-view fixtures", () => {
       if (c.expected.linesRemoved !== undefined && view.type === "diff") {
         expect(view.linesRemoved).toBe(c.expected.linesRemoved);
       }
+    });
+  }
+});
+
+describe("intent-title fixtures", () => {
+  interface IntentCase {
+    name: string;
+    mcpServerSlug: string;
+    args: Record<string, unknown>;
+    intent: string | null;
+  }
+
+  const fixture = loadFixture<{ argField: string; cases: IntentCase[] }>(
+    "intent-title.json",
+  );
+
+  it("loads the fixture and agrees on the wire key", () => {
+    expect(fixture.cases.length).toBeGreaterThan(0);
+    expect(SHELL_INTENT_ARG_FIELD).toBe(fixture.argField);
+  });
+
+  for (const c of fixture.cases) {
+    it(`extracts ${c.name}${c.mcpServerSlug ? ` @${c.mcpServerSlug}` : ""} -> ${JSON.stringify(c.intent)}`, () => {
+      const toolCall = create(ToolCallSchema, {
+        id: c.name,
+        name: c.name,
+        mcpServerSlug: c.mcpServerSlug,
+        args: c.args as JsonObject,
+      });
+      expect(extractShellIntent(toolCall)).toBe(c.intent);
     });
   }
 });

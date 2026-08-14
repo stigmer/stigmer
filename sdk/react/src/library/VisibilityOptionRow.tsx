@@ -53,6 +53,12 @@ export interface VisibilityOptionRowProps {
  * label, one-line description, and a check when current. Shared by the
  * {@link VisibilitySelector} popover and its create-mode inline list so
  * option presentation has exactly one source.
+ *
+ * A level carrying {@link VisibilityLevelOption.lockedReason} renders
+ * non-interactive with a lock affordance and the reason as its detail line
+ * — the level stays discoverable (the reason names the path forward)
+ * without being selectable. The locked row keeps its normal opacity: it is
+ * informative, not in a transient disabled state.
  */
 export const VisibilityOptionRow = forwardRef<
   HTMLButtonElement,
@@ -71,6 +77,7 @@ export const VisibilityOptionRow = forwardRef<
   },
   ref,
 ) {
+  const locked = option.lockedReason !== undefined;
   const selectionAttr =
     role === "radio"
       ? { "aria-checked": isSelected }
@@ -82,16 +89,20 @@ export const VisibilityOptionRow = forwardRef<
       type="button"
       role={role}
       {...selectionAttr}
+      aria-disabled={locked || undefined}
       tabIndex={tabIndex}
-      disabled={disabled}
+      disabled={disabled || locked}
       onClick={onSelect}
       onMouseEnter={onMouseEnter}
       onKeyDown={onKeyDown}
       className={cn(
         "stg:flex stg:w-full stg:items-start stg:gap-2 stg:rounded-md stg:px-2.5 stg:py-2 stg:text-left stg:transition-colors",
         "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-        isHighlighted ? "stg:bg-accent stg:text-foreground" : "stg:hover:bg-accent-hover",
+        locked
+          ? "stg:disabled:pointer-events-none stg:cursor-default"
+          : "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+        !locked &&
+          (isHighlighted ? "stg:bg-accent stg:text-foreground" : "stg:hover:bg-accent-hover"),
       )}
     >
       <VisibilityIcon
@@ -99,14 +110,25 @@ export const VisibilityOptionRow = forwardRef<
         className="stg:mt-0.5 stg:size-3.5 stg:shrink-0 stg:text-muted-foreground"
       />
       <span className="stg:min-w-0 stg:flex-1">
-        <span className="stg:block stg:text-xs stg:font-medium stg:text-foreground">
+        <span
+          className={cn(
+            "stg:block stg:text-xs stg:font-medium",
+            locked ? "stg:text-muted-foreground" : "stg:text-foreground",
+          )}
+        >
           {option.label}
         </span>
         <span className="stg:block stg:text-[0.65rem] stg:leading-snug stg:text-muted-foreground">
-          {option.description}
+          {locked ? option.lockedReason : option.description}
         </span>
       </span>
-      {isSelected && <CheckIcon className="stg:mt-0.5 stg:size-3.5 stg:shrink-0 stg:text-primary" />}
+      {locked ? (
+        <LockIcon className="stg:mt-0.5 stg:size-3.5 stg:shrink-0 stg:text-muted-foreground" />
+      ) : (
+        isSelected && (
+          <CheckIcon className="stg:mt-0.5 stg:size-3.5 stg:shrink-0 stg:text-primary" />
+        )
+      )}
     </button>
   );
 });

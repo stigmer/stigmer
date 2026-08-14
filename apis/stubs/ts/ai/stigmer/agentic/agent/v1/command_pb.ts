@@ -28,10 +28,6 @@ export const AgentCommandController: GenService<{
   /**
    * Create or update an agent.
    *
-   * @internal
-   * The authorization and state-operation are determined depending on whether the agent
-   * is going to be created or updated which is determined as part of the request execution.
-   *
    * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.apply
    */
   apply: {
@@ -41,11 +37,6 @@ export const AgentCommandController: GenService<{
   },
   /**
    * Create an agent.
-   *
-   * @internal
-   * Authorization:
-   * - Organization-scoped agents: Caller must have can_create_agent permission in the organization
-   * - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
    *
    * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.create
    */
@@ -72,8 +63,9 @@ export const AgentCommandController: GenService<{
    * make an agent publicly accessible or to revoke public access without
    * sending the entire agent resource (avoiding read-modify-write races).
    *
-   * @internal
-   * Authorization: Requires can_edit permission on the agent resource.
+   * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+   * every org boundary, so it is granted by the platform team on request.
+   * Un-publishing and all other levels stay self-service.
    *
    * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.updateVisibility
    */
@@ -90,18 +82,6 @@ export const AgentCommandController: GenService<{
    * later agent created at the same org/slug starts clean. Personal
    * instances, sessions, and other organizations' shares of this agent are
    * not deleted — external shares stop resolving instead.
-   *
-   * @internal
-   * Cascade order is children-before-parent so a mid-failure retry
-   * converges. Shares are matched by spec.agent_ref (org + agent slug) and
-   * scoped to the agent's own org — leaving same-org shares behind would
-   * silently rebind a stale share (audience, link token, bound
-   * credentials) to whatever agent is later created at that slug, while
-   * cascading ANOTHER org's share would make delete a cross-principal
-   * destructive action (decision 013). Cross-org shares instead fail
-   * closed via the dangling-ref check and the status.agent_id pin; their
-   * owning orgs clean up their own rows. Cloud additionally cleans each
-   * cascaded child's FGA tuples.
    *
    * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.delete
    */

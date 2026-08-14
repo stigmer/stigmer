@@ -22,118 +22,24 @@ const (
 )
 
 // ExecutionPhase defines the lifecycle phase of a workflow execution.
-//
-// @internal
-// Phase Transitions:
-//
-// Normal flow:
-// EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_COMPLETED
-//
-// Failure flow:
-// EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_FAILED
-//
-// Cancellation flow:
-// EXECUTION_PENDING → EXECUTION_CANCELLED
-// EXECUTION_IN_PROGRESS → EXECUTION_CANCELLED
-// EXECUTION_PAUSED → EXECUTION_CANCELLED
-//
-// Termination flow (force stop):
-// EXECUTION_PENDING → EXECUTION_TERMINATED
-// EXECUTION_IN_PROGRESS → EXECUTION_TERMINATED
-// EXECUTION_PAUSED → EXECUTION_TERMINATED
-//
-// Pause/Resume flow:
-// EXECUTION_PENDING → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
-// EXECUTION_IN_PROGRESS → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
-//
-// Terminal States: COMPLETED, FAILED, CANCELLED, TERMINATED
-// Non-Terminal States: PAUSED (can be resumed)
-//
-// Once a workflow reaches a terminal state, it cannot transition to another phase.
 type ExecutionPhase int32
 
 const (
 	// Unspecified phase (invalid).
-	//
-	// @internal
-	// Exists only for proto3 zero-value semantics.
 	ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED ExecutionPhase = 0
 	// Execution created, waiting to start.
-	//
-	// @internal
-	// The WorkflowExecution resource has been created but the workflow runner
-	// has not yet picked it up for execution.
-	//
-	// Typical duration: < 1 second (unless workflow runner is overloaded)
-	// Next phases: EXECUTION_IN_PROGRESS, EXECUTION_CANCELLED, EXECUTION_TERMINATED
 	ExecutionPhase_EXECUTION_PENDING ExecutionPhase = 1
 	// Execution is actively running tasks.
-	//
-	// @internal
-	// The workflow runner is processing tasks in the workflow definition.
-	// Tasks may be executing sequentially, in parallel, or conditionally.
-	//
-	// Typical duration: Seconds to hours (depends on workflow complexity)
-	// Next phases: EXECUTION_COMPLETED, EXECUTION_FAILED, EXECUTION_CANCELLED, EXECUTION_TERMINATED
 	ExecutionPhase_EXECUTION_IN_PROGRESS ExecutionPhase = 2
 	// Execution completed successfully.
-	//
-	// @internal
-	// Terminal state - execution will not change phases again.
-	//
-	// When this phase is reached:
-	// - completed_at timestamp is set
-	// - output field is populated (if workflow produces output)
-	// - All tasks have status WORKFLOW_TASK_COMPLETED or WORKFLOW_TASK_SKIPPED
 	ExecutionPhase_EXECUTION_COMPLETED ExecutionPhase = 3
 	// Execution failed with an error.
-	//
-	// @internal
-	// Terminal state - execution will not change phases again.
-	//
-	// When this phase is reached:
-	// - completed_at timestamp is set
-	// - error field is populated with failure description
-	// - At least one task has status WORKFLOW_TASK_FAILED
 	ExecutionPhase_EXECUTION_FAILED ExecutionPhase = 4
 	// Execution was cancelled by user or system.
-	//
-	// @internal
-	// Terminal state - execution will not change phases again.
-	//
-	// When this phase is reached:
-	// - completed_at timestamp is set
-	// - In-progress tasks are stopped
-	// - Pending tasks remain in WORKFLOW_TASK_PENDING state
 	ExecutionPhase_EXECUTION_CANCELLED ExecutionPhase = 5
 	// Execution was force-stopped immediately without cleanup.
-	//
-	// @internal
-	// Terminal state - execution will not change phases again.
-	// Unlike CANCELLED, the workflow code cannot clean up.
-	//
-	// When this phase is reached:
-	// - completed_at timestamp is set
-	// - error field may contain termination reason
-	// - In-progress tasks are stopped abruptly
-	// - No cleanup callbacks are executed
-	//
-	// Terminated executions CANNOT be recovered (unlike FAILED).
 	ExecutionPhase_EXECUTION_TERMINATED ExecutionPhase = 6
 	// Execution was paused by user and can be resumed.
-	//
-	// @internal
-	// NOT a terminal state - execution can be resumed via the resume RPC.
-	//
-	// When this phase is reached:
-	// - Running activities are gracefully cancelled
-	// - Checkpoints are saved (LangGraph thread_id preserved)
-	// - No completed_at timestamp (execution is not finished)
-	//
-	// Resume behavior:
-	// - Workflow re-invokes activity with same thread_id
-	// - Activity loads from LangGraph checkpoint
-	// - Execution continues from where it was paused
 	ExecutionPhase_EXECUTION_PAUSED ExecutionPhase = 7
 )
 
@@ -189,52 +95,24 @@ func (ExecutionPhase) EnumDescriptor() ([]byte, []int) {
 }
 
 // WorkflowTaskType defines the type of workflow task.
-//
-// @internal
-// Each task type has specific input/output schema expectations,
-// execution behavior, and error handling/retry policies.
 type WorkflowTaskType int32
 
 const (
 	// Unspecified task type (invalid).
-	//
-	// @internal
-	// Exists only for proto3 zero-value semantics.
 	WorkflowTaskType_WORKFLOW_TASK_TYPE_UNSPECIFIED WorkflowTaskType = 0
 	// Invoke an AI agent with a prompt.
-	//
-	// @internal
-	// Calls an AgentInstance and waits for the agent execution to complete.
 	WorkflowTaskType_WORKFLOW_TASK_AGENT_INVOCATION WorkflowTaskType = 1
 	// Wait for human approval before proceeding.
-	//
-	// @internal
-	// Pauses the workflow and waits for one or more users to approve or reject.
 	WorkflowTaskType_WORKFLOW_TASK_APPROVAL WorkflowTaskType = 2
 	// Call an external HTTP or gRPC API.
-	//
-	// @internal
-	// Sends a request to an external API and captures the response.
 	WorkflowTaskType_WORKFLOW_TASK_API_CALL WorkflowTaskType = 3
 	// Evaluate a condition and branch to different paths.
-	//
-	// @internal
-	// Evaluates a boolean expression and determines which tasks to execute next.
 	WorkflowTaskType_WORKFLOW_TASK_CONDITIONAL WorkflowTaskType = 4
 	// Execute multiple sub-tasks concurrently.
-	//
-	// @internal
-	// Spawns multiple tasks that run in parallel and waits for all to complete.
 	WorkflowTaskType_WORKFLOW_TASK_PARALLEL WorkflowTaskType = 5
 	// Transform data between tasks.
-	//
-	// @internal
-	// Applies transformations to data (map, filter, aggregate, format).
 	WorkflowTaskType_WORKFLOW_TASK_TRANSFORM WorkflowTaskType = 6
 	// Execute custom task logic defined by plugins.
-	//
-	// @internal
-	// Input/output schemas are plugin-specific.
 	WorkflowTaskType_WORKFLOW_TASK_CUSTOM WorkflowTaskType = 7
 )
 
@@ -290,69 +168,22 @@ func (WorkflowTaskType) EnumDescriptor() ([]byte, []int) {
 }
 
 // WorkflowTaskStatus defines the execution status of a workflow task.
-//
-// @internal
-// Status Transitions:
-//
-// Normal flow:
-// WORKFLOW_TASK_PENDING → WORKFLOW_TASK_IN_PROGRESS → WORKFLOW_TASK_COMPLETED
-//
-// Failure flow:
-// WORKFLOW_TASK_PENDING → WORKFLOW_TASK_IN_PROGRESS → WORKFLOW_TASK_FAILED
-//
-// Skip flow (conditional):
-// WORKFLOW_TASK_PENDING → WORKFLOW_TASK_SKIPPED
-//
-// Approval flow (for agent invocation tasks):
-// WORKFLOW_TASK_IN_PROGRESS → WORKFLOW_TASK_WAITING_APPROVAL → WORKFLOW_TASK_IN_PROGRESS
-//
-//	↘ WORKFLOW_TASK_FAILED (on reject)
 type WorkflowTaskStatus int32
 
 const (
 	// Unspecified status (invalid).
-	//
-	// @internal
-	// Exists only for proto3 zero-value semantics.
 	WorkflowTaskStatus_WORKFLOW_TASK_STATUS_UNSPECIFIED WorkflowTaskStatus = 0
 	// Task is waiting to execute.
-	//
-	// @internal
-	// The task has been created but has not started executing yet.
-	// Next statuses: WORKFLOW_TASK_IN_PROGRESS, WORKFLOW_TASK_SKIPPED
 	WorkflowTaskStatus_WORKFLOW_TASK_PENDING WorkflowTaskStatus = 1
 	// Task is currently executing.
-	//
-	// @internal
-	// The workflow runner is actively processing this task.
-	// Next statuses: WORKFLOW_TASK_COMPLETED, WORKFLOW_TASK_FAILED
 	WorkflowTaskStatus_WORKFLOW_TASK_IN_PROGRESS WorkflowTaskStatus = 2
 	// Task finished successfully.
-	//
-	// @internal
-	// Terminal state for this task. Output is populated with results.
 	WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED WorkflowTaskStatus = 3
 	// Task failed during execution.
-	//
-	// @internal
-	// Terminal state for this task. The error field is populated with failure description.
-	// If task fails, workflow phase changes to EXECUTION_FAILED (unless error handling is configured).
 	WorkflowTaskStatus_WORKFLOW_TASK_FAILED WorkflowTaskStatus = 4
 	// Task was skipped due to conditional logic.
-	//
-	// @internal
-	// Terminal state for this task. The task was not executed because
-	// a conditional task determined it should be skipped.
-	// Skipped tasks don't cause workflow failure.
 	WorkflowTaskStatus_WORKFLOW_TASK_SKIPPED WorkflowTaskStatus = 5
 	// Task is waiting for human approval from a child agent execution.
-	//
-	// @internal
-	// Set when task_type == WORKFLOW_TASK_AGENT_INVOCATION and the invoked
-	// AgentExecution has phase == EXECUTION_WAITING_FOR_APPROVAL.
-	//
-	// NOT a terminal state - workflow resumes after approval decision.
-	// Next statuses: WORKFLOW_TASK_IN_PROGRESS (on approval), WORKFLOW_TASK_FAILED (on reject or timeout)
 	WorkflowTaskStatus_WORKFLOW_TASK_WAITING_APPROVAL WorkflowTaskStatus = 6
 )
 

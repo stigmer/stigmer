@@ -35,125 +35,17 @@ const (
 )
 
 // WorkflowExecution represents a single runtime invocation of a WorkflowInstance.
-//
-// @internal
-// WorkflowExecution is the "Execution" layer in the Template→Instance→Execution pattern.
-// It captures the complete lifecycle of a workflow run, from initial trigger through
-// task-by-task execution to final completion or failure.
-//
-// A WorkflowExecution:
-// - References a WorkflowInstance (which contains configuration and environment bindings)
-// - Is triggered by a user action, API call, webhook, or scheduled event
-// - Executes tasks sequentially or in parallel based on the workflow definition
-// - Tracks real-time progress through tasks and phases
-// - Captures outputs, errors, and execution metadata
-// - Is ephemeral - deleted after completion based on retention policies
-//
-// Execution Pattern:
-// Workflow "customer-onboarding" (template)
-//
-//	→ WorkflowInstance "acme-onboarding" (with prod-env)
-//	  → WorkflowExecution "acme-onboarding-20250111-143022" (specific run)
-//	    - Phase: IN_PROGRESS
-//	    - Tasks: [validate_email: COMPLETED, create_account: IN_PROGRESS, send_welcome: PENDING]
-//	    - Progress: 1/3 tasks completed
-//
-// Separation of Concerns:
-// - User Inputs (spec): workflow_instance_id, trigger_message, trigger_metadata, runtime_env
-// - System State (status): phase, tasks, output, timestamps, errors
-//
-// This separation ensures:
-// - Clear boundary between what users control (spec) and what the system manages (status)
-// - Status can be updated independently during execution without modifying user inputs
-// - Execution can be retried by creating a new WorkflowExecution with the same spec
 type WorkflowExecution struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.
-	//
-	// @internal
-	// Format: 'agentic.stigmer.ai/v1'
-	// Validated as const to ensure version consistency across all workflow execution resources.
 	ApiVersion string `protobuf:"bytes,1,opt,name=api_version,json=apiVersion,proto3" json:"api_version,omitempty"`
 	// Resource kind identifier.
-	//
-	// @internal
-	// Must be exactly 'WorkflowExecution' to match the message name.
-	// Validated as const for type safety and resource identification.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Resource metadata including name, organization, visibility, and labels.
-	//
-	// @internal
-	// All workflow executions belong to an organization. Visibility (public/private)
-	// is typically PRIVATE for executions since they contain runtime data.
-	//
-	// Naming Pattern:
-	// - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
-	// - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
-	// - Slug Format: Same as name, URL-safe
-	//
-	// Labels and Tags:
-	// - Labels: workflow_instance_id, workflow_id, trigger_source
-	// - Tags: environment names, team names, execution metadata
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// User-provided inputs and configuration for this workflow execution.
-	//
-	// @internal
-	// Contains:
-	// - workflow_instance_id: Which WorkflowInstance to execute (required)
-	// - trigger_message: Input message or payload for the workflow (optional)
-	// - trigger_metadata: Metadata about who/what triggered the execution (optional)
-	// - runtime_env: Execution-specific environment variables and secrets (optional)
-	//
-	// The spec is immutable after creation - it represents the "inputs" for this execution.
-	// To retry with different inputs, create a new WorkflowExecution with updated spec.
-	//
-	// Example:
-	//
-	//	spec {
-	//	  workflow_instance_id: "wfi_customer-onboarding-prod"
-	//	  trigger_message: "New customer: customer-email@example.com"
-	//	  trigger_metadata: {
-	//	    "source": "api"
-	//	    "caller_id": "usr-john-doe"
-	//	    "timestamp": "2025-01-11T14:30:22Z"
-	//	  }
-	//	  runtime_env: {
-	//	    "CUSTOMER_EMAIL": { value: "customer-email@example.com" }
-	//	    "WEBHOOK_URL": { secret_ref: "sec-webhook-callback" }
-	//	  }
-	//	}
 	Spec *WorkflowExecutionSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
 	// System-managed execution state and results.
-	//
-	// @internal
-	// Contains:
-	// - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
-	// - tasks: List of workflow tasks with their execution state (source of truth for progress)
-	// - output: Final workflow output (JSON structure, only for COMPLETED executions)
-	// - error: Error message (only for FAILED executions)
-	// - started_at: Timestamp when execution started
-	// - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
-	// - temporal_workflow_id: Correlation ID for workflow engine
-	//
-	// The status is continuously updated by the workflow execution engine as the workflow progresses.
-	// Users can read status but cannot modify it - it reflects the actual execution state.
-	//
-	// Progress Tracking:
-	// - Total tasks: tasks.length
-	// - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-	// - Progress percentage: (completed_tasks / total_tasks) * 100
-	//
-	// Example (in-progress execution):
-	//
-	//	status {
-	//	  phase: EXECUTION_IN_PROGRESS
-	//	  tasks: [
-	//	    { task_id: "task-1", task_name: "validate_email", status: WORKFLOW_TASK_COMPLETED }
-	//	    { task_id: "task-2", task_name: "create_account", status: WORKFLOW_TASK_IN_PROGRESS }
-	//	    { task_id: "task-3", task_name: "send_welcome", status: WORKFLOW_TASK_PENDING }
-	//	  ]
-	//	  started_at: "2025-01-11T14:30:22Z"
-	//	}
 	Status        *WorkflowExecutionStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -225,221 +117,36 @@ func (x *WorkflowExecution) GetStatus() *WorkflowExecutionStatus {
 }
 
 // WorkflowExecutionStatus contains all system-managed execution state and results.
-//
-// @internal
-// Everything populated during or after execution goes here, not in spec.
-// This message follows the standard pattern: audit information at field 99, custom fields at 1-98.
-//
-// Status Lifecycle:
-// 1. Created: audit.created_at set, phase = EXECUTION_PENDING
-// 2. Started: started_at set, phase = EXECUTION_IN_PROGRESS, tasks populated
-// 3. Progress: tasks updated as workflow runner sends status updates
-// 4. Completed: completed_at set, phase = EXECUTION_COMPLETED, output populated
-// 5. Failed: completed_at set, phase = EXECUTION_FAILED, error populated
-// 6. Cancelled: completed_at set, phase = EXECUTION_CANCELLED
-//
-// The status is read-only to users and continuously updated by the workflow execution engine.
-//
-// Progress Tracking Pattern (Matches Agent Execution):
-// - Agent execution: messages[], tool_calls[], sub_agent_executions[] (transformed from LLM streaming events)
-// - Workflow execution: tasks[] (transformed from workflow task execution)
-// - Both store structured state, not raw streaming events
-// - Both use updateStatus RPC for progressive updates during execution
 type WorkflowExecutionStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Standard audit information including timestamps and created-by identity.
-	//
-	// @internal
-	// Always at field 99 for consistency across all Stigmer API resources.
-	//
-	// Contains:
-	// - created_at: When this execution was created (ISO 8601 timestamp)
-	// - updated_at: Last time status was updated (ISO 8601 timestamp)
-	// - created_by: User or system that created this execution
 	Audit *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
 	// Current execution lifecycle phase.
-	//
-	// @internal
-	// Phase Transitions:
-	// PENDING → IN_PROGRESS → COMPLETED
-	//
-	//	↓              ↘ FAILED
-	//	↓              ↘ CANCELLED
-	//
-	// The phase is used for:
-	// - UI status indicators (progress bars, badges)
-	// - Filtering executions (show only failed, show only in-progress)
-	// - Alerting and notifications (notify on failure)
-	// - Retry logic (retry failed executions)
-	//
-	// Validation: Must be a defined enum value (no unspecified/unknown).
 	Phase ExecutionPhase `protobuf:"varint,1,opt,name=phase,proto3,enum=ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase" json:"phase,omitempty"`
 	// Workflow tasks with their individual execution state.
-	//
-	// @internal
-	// Tasks represent the atomic units of work within the workflow.
-	// Each task has:
-	// - task_id: Unique identifier within this execution
-	// - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-	// - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-	// - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-	// - input: Task input parameters (JSON structure)
-	// - output: Task output results (JSON structure, only for COMPLETED tasks)
-	// - error: Error message (only for FAILED tasks)
-	// - started_at: When task started executing
-	// - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-	//
-	// Tasks are populated as the workflow progresses through its task graph.
-	// The order in this list reflects the execution order (sequential or parallel).
-	//
-	// Progress Calculation:
-	// - Total tasks: tasks.length
-	// - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-	// - Progress percentage: (completed_tasks / total_tasks) * 100
-	// - Current task: tasks.find(status == IN_PROGRESS)
 	Tasks []*WorkflowTask `protobuf:"bytes,2,rep,name=tasks,proto3" json:"tasks,omitempty"`
 	// Final workflow output, populated only when phase is EXECUTION_COMPLETED.
-	//
-	// @internal
-	// The output structure is workflow-specific and defined by the Workflow template.
-	// Common patterns:
-	// - API response data (e.g., created user ID, order confirmation)
-	// - Aggregated results from multiple tasks
-	// - Links to generated artifacts (reports, files)
-	// - Summary statistics (items processed, duration)
 	Output *structpb.Struct `protobuf:"bytes,3,opt,name=output,proto3" json:"output,omitempty"`
 	// Error message, populated only when phase is EXECUTION_FAILED.
-	//
-	// @internal
-	// Contains a human-readable description of what went wrong.
-	//
-	// Error message includes:
-	// - What failed (which task or workflow step)
-	// - Why it failed (validation error, API error, timeout, etc.)
-	// - How to fix it (if known)
-	//
-	// For detailed debugging, inspect tasks[].error for task-specific error messages.
 	Error string `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
 	// ISO 8601 timestamp when execution started processing.
-	//
-	// @internal
-	// Set when phase transitions from PENDING to IN_PROGRESS.
-	// Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
 	StartedAt string `protobuf:"bytes,5,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
 	// ISO 8601 timestamp when execution reached a terminal state.
-	//
-	// @internal
-	// Set when the workflow reaches a terminal state:
-	// - EXECUTION_COMPLETED: Successfully finished
-	// - EXECUTION_FAILED: Failed during execution
-	// - EXECUTION_CANCELLED: Cancelled by user or system
-	//
-	// Not set for PENDING or IN_PROGRESS executions.
-	// Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
 	CompletedAt string `protobuf:"bytes,6,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
 	// Correlation ID for the underlying workflow engine.
-	//
-	// @internal
-	// This is the workflow ID in Temporal, used for:
-	// - Correlation between Stigmer and Temporal (for debugging)
-	// - Querying Temporal directly (for advanced troubleshooting)
-	// - Signaling or cancelling Temporal workflows
-	//
-	// Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-	// Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
-	//
-	// This field is optional and only relevant when Temporal is used as the execution engine.
-	// Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
 	TemporalWorkflowId string `protobuf:"bytes,7,opt,name=temporal_workflow_id,json=temporalWorkflowId,proto3" json:"temporal_workflow_id,omitempty"`
 	// Pending approvals from child agent tool executions.
-	//
-	// @internal
-	// Populated when workflow tasks invoke agents that enter
-	// EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-	// requests at the workflow level for UI visibility.
-	//
-	// Guarded Update Protocol:
-	// This field is only modified when UpdateStatusInput.update_pending_approvals
-	// is explicitly set to true. Normal event emissions (which don't concern
-	// approvals) leave this field untouched, preventing race conditions between
-	// concurrent status writers.
-	//
-	// Only call-agent-status manages this field:
-	// - Non-empty list: child agent(s) need approval
-	// - Empty list + update_pending_approvals=true: all approvals resolved
-	//
-	// Parallel Agents:
-	// When multiple child agents run in parallel, entries from different children
-	// accumulate in this list. Each entry's child_agent_execution_id distinguishes
-	// the source.
 	PendingApprovals []*WorkflowPendingApproval `protobuf:"bytes,9,rep,name=pending_approvals,json=pendingApprovals,proto3" json:"pending_approvals,omitempty"`
 	// Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
-	//
-	// @internal
-	// Updated by the runner alongside each status update. Reflects the
-	// budget tracker's accumulated cost at the time of the last status write.
-	// Used by getExecutionSummary for fast aggregation without scanning events.
-	//
-	// Consistent with WorkflowBudget.max_cost_micros and the billing domain's
-	// micro-USD convention (CostStamp.provider_cost_micros, etc.).
-	//
-	// @since Cost Data Pipeline
 	TotalCostMicros int64 `protobuf:"varint,10,opt,name=total_cost_micros,json=totalCostMicros,proto3" json:"total_cost_micros,omitempty"`
 	// Cumulative input tokens consumed across all LLM and agent tasks.
-	//
-	// @internal
-	// Input tokens represent prompt/context tokens sent to the model.
-	// Updated alongside total_cost_micros from the budget tracker.
-	//
-	// @since Cost Data Pipeline
 	TotalInputTokens int64 `protobuf:"varint,11,opt,name=total_input_tokens,json=totalInputTokens,proto3" json:"total_input_tokens,omitempty"`
 	// Cumulative output tokens consumed across all LLM and agent tasks.
-	//
-	// @internal
-	// Output tokens represent completion/generation tokens returned by the model.
-	// Updated alongside total_cost_micros from the budget tracker.
-	//
-	// @since Cost Data Pipeline
 	TotalOutputTokens int64 `protobuf:"varint,12,opt,name=total_output_tokens,json=totalOutputTokens,proto3" json:"total_output_tokens,omitempty"`
 	// SHA-256 hash identifying which workflow version was used for this execution.
-	//
-	// @internal
-	// Pinned at execution creation time from Workflow.status.version_hash.
-	// Immutable after creation — represents the exact workflow definition this
-	// execution ran (or will run, if still pending).
-	//
-	// Consumers:
-	//   - Runner: fetches the version-specific CNCF YAML via getVersion() during
-	//     hydration, ensuring the execution runs the intended definition even if
-	//     the workflow has been updated since creation.
-	//   - Execution viewer: fetches the version entry to render the correct graph
-	//     for historical executions, eliminating the version mismatch problem.
-	//
-	// Empty for executions created before workflow versioning was introduced.
-	// In that case, consumers fall back to fetching the current workflow
-	// definition (legacy behavior with mismatch warning).
-	//
-	// @since Workflow Versioning
 	WorkflowVersionHash string `protobuf:"bytes,13,opt,name=workflow_version_hash,json=workflowVersionHash,proto3" json:"workflow_version_hash,omitempty"`
 	// Pending file reviews from child agent executions, surfaced for
 	// workflow-level visibility and in-place keep/discard decisioning.
-	//
-	// @internal
-	// A reference-only sibling of pending_approvals (field 9): each entry names a
-	// child agent execution and the change_set ids it currently has
-	// AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-	// stays single-sourced on the child's
-	// AgentExecution.status.file_change_sets and is read on demand by the UI.
-	//
-	// Guarded, per-child merge protocol:
-	// Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-	// is true, scoped by pending_update_child_agent_execution_id. The write
-	// replaces the entry for that one child and preserves every sibling child's
-	// entry, so parallel child agents never clobber each other. A scoped write with
-	// an empty change_set list removes that child's entry. Only call-agent-status
-	// manages this field.
-	//
-	// @since Workflow-Parent File Review
 	PendingFileReviews []*WorkflowPendingFileReview `protobuf:"bytes,14,rep,name=pending_file_reviews,json=pendingFileReviews,proto3" json:"pending_file_reviews,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
@@ -574,23 +281,11 @@ func (x *WorkflowExecutionStatus) GetPendingFileReviews() []*WorkflowPendingFile
 }
 
 // WorkflowPendingApproval pairs approval details with routing information for workflow-level forwarding.
-//
-// @internal
-// PendingApproval is an agentexecution domain type — it describes what tool
-// needs approval. WorkflowPendingApproval adds the workflow-level concern:
-// which child agent execution the approval should be forwarded to.
 type WorkflowPendingApproval struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Approval details from the child agent's tool call.
 	Approval *v1.PendingApproval `protobuf:"bytes,1,opt,name=approval,proto3" json:"approval,omitempty"`
 	// ID of the child agent execution to forward the approval decision to.
-	//
-	// @internal
-	// Set by the runner when surfacing child agent approvals
-	// at the workflow level. WorkflowExecution.SubmitApproval uses this
-	// to route the decision to the correct AgentExecution.SubmitApproval RPC.
-	//
-	// Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
 	ChildAgentExecutionId string `protobuf:"bytes,2,opt,name=child_agent_execution_id,json=childAgentExecutionId,proto3" json:"child_agent_execution_id,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
@@ -642,31 +337,11 @@ func (x *WorkflowPendingApproval) GetChildAgentExecutionId() string {
 
 // WorkflowPendingFileReview references a child agent execution's file-review
 // gate for workflow-level surfacing. Reference-only — never a copy of the diff.
-//
-// @internal
-// FileChangeSet is an agentexecution domain concept owned by the child
-// AgentExecution. WorkflowPendingFileReview adds only the workflow-level
-// concern: which child holds a file-review gate, and which of its change sets
-// are awaiting a decision. The UI reads the child's file_change_sets to render
-// the diff; WorkflowExecution.submitFileDecision forwards the verdict to the
-// child. This mirrors how WorkflowPendingApproval references a child's tool
-// approval without embedding the tool call.
 type WorkflowPendingFileReview struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the child agent execution that holds the file-review gate.
-	//
-	// @internal
-	// WorkflowExecution.submitFileDecision uses this to route the decision to the
-	// correct AgentExecution.submitFileDecision RPC.
-	// Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
 	ChildAgentExecutionId string `protobuf:"bytes,1,opt,name=child_agent_execution_id,json=childAgentExecutionId,proto3" json:"child_agent_execution_id,omitempty"`
 	// IDs of the child's change sets currently AWAITING_REVIEW.
-	//
-	// @internal
-	// Each matches a FileChangeSet.id on the child's
-	// AgentExecution.status.file_change_sets. Empty means the child has no
-	// outstanding review (used transiently to clear this child's entry under the
-	// per-child merge protocol).
 	ChangeSetId   []string `protobuf:"bytes,2,rep,name=change_set_id,json=changeSetId,proto3" json:"change_set_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -717,155 +392,35 @@ func (x *WorkflowPendingFileReview) GetChangeSetId() []string {
 }
 
 // WorkflowTask represents a single task within a workflow execution.
-//
-// @internal
-// Tasks are the atomic units of work in a workflow. Each task:
-// - Has a specific type (agent invocation, API call, approval, conditional, etc.)
-// - Receives input parameters from the workflow context or previous tasks
-// - Executes its specific logic (invoke an agent, call an API, wait for approval)
-// - Produces output that can be used by subsequent tasks
-// - Tracks its own execution state (pending, in-progress, completed, failed, skipped)
-//
-// Task Execution Flow:
-// 1. Task is in PENDING state when workflow starts
-// 2. When task dependencies are met, task_status changes to IN_PROGRESS
-// 3. Task executes its logic (invoke agent, call API, etc.)
-// 4. Task completes successfully (COMPLETED) or fails (FAILED) or is skipped (SKIPPED)
 type WorkflowTask struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unique task identifier within this workflow execution.
-	//
-	// @internal
-	// Format: Typically "task-{number}" or a descriptive slug
-	// Examples: "task-1", "task-validate-email", "task-send-notification"
-	//
-	// The task_id is unique within this WorkflowExecution but may repeat across
-	// different executions of the same WorkflowInstance (same task, different run).
 	TaskId string `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
 	// Human-readable task name.
-	//
-	// @internal
-	// Describes what this task does in plain language.
-	// Used in UI to show task progress and in logs for debugging.
-	//
-	// Naming conventions:
-	// - Use verb phrases (validate, create, send, wait)
-	// - Be specific about what's being operated on
-	// - Keep it concise (under 50 characters)
 	TaskName string `protobuf:"bytes,2,opt,name=task_name,json=taskName,proto3" json:"task_name,omitempty"`
 	// Type of task (agent invocation, API call, approval, etc.).
-	//
-	// @internal
-	// Determines how the task is executed by the workflow engine.
-	// The task_type influences:
-	// - How task.input is structured (different types expect different input schemas)
-	// - How task.output is produced (different types produce different outputs)
-	// - How errors are handled (retry policies, timeout behaviors)
-	//
-	// Validation: Must be a defined enum value (no unspecified).
 	TaskType WorkflowTaskType `protobuf:"varint,3,opt,name=task_type,json=taskType,proto3,enum=ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType" json:"task_type,omitempty"`
 	// Task input parameters, structured as JSON.
-	//
-	// @internal
-	// Contains the configuration and data needed for this task to execute.
-	// The structure varies by task_type.
-	//
-	// Input can reference:
-	// - Workflow inputs: {{workflow.input.field_name}}
-	// - Previous task outputs: {{tasks.task-1.output.field_name}}
-	// - Environment variables: {{env.VARIABLE_NAME}}
 	Input *structpb.Struct `protobuf:"bytes,4,opt,name=input,proto3" json:"input,omitempty"`
 	// Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
-	//
-	// @internal
-	// Contains the data produced by this task after successful execution.
-	// Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
 	Output *structpb.Struct `protobuf:"bytes,5,opt,name=output,proto3" json:"output,omitempty"`
 	// Current task execution status.
-	//
-	// @internal
-	// Status Transitions:
-	// PENDING → IN_PROGRESS → COMPLETED
-	//
-	//	↓              ↘ FAILED
-	//	↓              ↘ SKIPPED (if conditional)
-	//
-	// Validation: Must be a defined enum value (no unspecified).
 	Status WorkflowTaskStatus `protobuf:"varint,6,opt,name=status,proto3,enum=ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskStatus" json:"status,omitempty"`
 	// ISO 8601 timestamp when the task started executing.
-	//
-	// @internal
-	// Set when task status changes from PENDING to IN_PROGRESS.
-	// Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
 	StartedAt string `protobuf:"bytes,7,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
 	// ISO 8601 timestamp when the task reached a terminal state.
-	//
-	// @internal
-	// Set when task reaches COMPLETED, FAILED, or SKIPPED.
-	// Not set for PENDING or IN_PROGRESS tasks.
-	// Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
 	CompletedAt string `protobuf:"bytes,8,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
 	// Error message, populated only when status is WORKFLOW_TASK_FAILED.
-	//
-	// @internal
-	// Contains a human-readable description of why the task failed.
-	//
-	// Error message includes:
-	// - What operation failed (API call, agent invocation, etc.)
-	// - Error type (validation error, network error, timeout, etc.)
-	// - Error details (status code, exception message, stacktrace)
-	// - How to fix it (if known)
 	Error string `protobuf:"bytes,9,opt,name=error,proto3" json:"error,omitempty"`
 	// Task-specific metadata as arbitrary JSON.
-	//
-	// @internal
-	// Contains task-specific information that doesn't fit in other fields.
-	// Used for:
-	// - Retry count (how many times this task was retried)
-	// - Agent execution ID (for WORKFLOW_TASK_AGENT_INVOCATION)
-	// - API response headers (for WORKFLOW_TASK_API_CALL)
-	// - Approval history (who approved, when, comments)
-	// - Performance metrics (execution time, memory usage)
 	Metadata *structpb.Struct `protobuf:"bytes,10,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Artifact IDs produced by this task.
-	//
-	// @internal
-	// Populated when the task's output (or portions of it) is auto-promoted
-	// to the artifact store because it exceeds the size threshold (256KB),
-	// or when the workflow author explicitly declares artifact persistence.
-	//
-	// Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
-	// be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
-	//
-	// When artifact_ids is non-empty, the task's output field contains
-	// artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
-	// the original inline data. Consumers (execution viewer, SDK hooks)
-	// detect these references and resolve them via the Artifact APIs.
-	//
-	// @since T07 (Artifact Store)
 	ArtifactIds []string `protobuf:"bytes,11,rep,name=artifact_ids,json=artifactIds,proto3" json:"artifact_ids,omitempty"`
 	// Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
-	//
-	// @internal
-	// Non-zero for cost-incurring task kinds (llm_call, agent_call).
-	// Zero for non-LLM tasks (transform, validate, emit_event, etc.).
-	// Set by the runner when the task completes.
-	//
-	// @since Cost Data Pipeline
 	CostMicros int64 `protobuf:"varint,12,opt,name=cost_micros,json=costMicros,proto3" json:"cost_micros,omitempty"`
 	// Input (prompt/context) tokens consumed by this task.
-	//
-	// @internal
-	// Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
-	//
-	// @since Cost Data Pipeline
 	InputTokens int64 `protobuf:"varint,13,opt,name=input_tokens,json=inputTokens,proto3" json:"input_tokens,omitempty"`
 	// Output (completion/generation) tokens produced by this task.
-	//
-	// @internal
-	// Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
-	//
-	// @since Cost Data Pipeline
 	OutputTokens int64 `protobuf:"varint,14,opt,name=output_tokens,json=outputTokens,proto3" json:"output_tokens,omitempty"`
 	// Hint identifying which UI should present this task's review payload.
 	//
@@ -875,20 +430,6 @@ type WorkflowTask struct {
 	// event log. Empty for non-human_input tasks and for executions
 	// persisted before this field existed — consumers treat empty as a
 	// generic review.
-	//
-	// @internal
-	// Written by the runner's task status accumulator on the
-	// waiting_approval transition and retained after the gate resolves
-	// (the record of what kind of review was performed). The user-input
-	// length constraint (max 63 chars) is enforced at the source field,
-	// HumanInputTaskConfig.ui_hint; this system-written copy is trusted,
-	// matching the other string fields on this message.
-	//
-	// Not to be confused with WorkflowExecutionStatus.pending_approvals,
-	// which carries forwarded child-agent *tool* approvals — workflow-native
-	// human_input gates live only here, on tasks[].
-	//
-	// @since Review Payloads (stigmer/stigmer#234)
 	UiHint        string `protobuf:"bytes,15,opt,name=ui_hint,json=uiHint,proto3" json:"ui_hint,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

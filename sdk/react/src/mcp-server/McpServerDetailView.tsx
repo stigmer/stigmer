@@ -36,6 +36,7 @@ import { OAuthAppForm } from "./OAuthAppForm.js";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { DialogShell } from "../internal/DialogShell.js";
 import { EnvVarForm } from "../environment/EnvVarForm.js";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
@@ -282,7 +283,6 @@ export function McpServerDetailView({
   const [showCredentialForm, setShowCredentialForm] = useState(defaultShowCredentialForm);
   const [showByoaForm, setShowByoaForm] = useState(false);
   const [capabilityTab, setCapabilityTab] = useState<CapabilityTab>(defaultCapabilityTab);
-  const byoaDialogRef = useRef<HTMLDialogElement>(null);
 
   const onResourceLoadRef = useRef(onResourceLoad);
   onResourceLoadRef.current = onResourceLoad;
@@ -388,20 +388,9 @@ export function McpServerDetailView({
     }
   }, [mcpServer, disconnectOAuth, credentials, refetch, activeOrg, org]);
 
-  // BYOA dialog lifecycle — native <dialog> toggle
-  useEffect(() => {
-    const dialog = byoaDialogRef.current;
-    if (!dialog) return;
-    if (showByoaForm && !dialog.open) {
-      dialog.showModal();
-    } else if (!showByoaForm && dialog.open) {
-      dialog.close();
-    }
-  }, [showByoaForm]);
-
-  const handleByoaDialogCancel = useCallback(
-    (e: React.SyntheticEvent) => {
-      e.preventDefault();
+  const handleByoaOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (nextOpen) return;
       setShowByoaForm(false);
       orgOAuthApp.clearErrors();
     },
@@ -706,14 +695,13 @@ export function McpServerDetailView({
         )}
       </Section>
 
-      {/* BYOA dialog — native <dialog> for zero-dependency modal behavior */}
-      <dialog
-        ref={byoaDialogRef}
-        onCancel={handleByoaDialogCancel}
-        className={cn(
-          "stg:m-auto stg:w-full stg:max-w-md stg:rounded-lg stg:border stg:border-border stg:bg-background stg:p-6 stg:shadow-lg",
-          "stg:backdrop:bg-backdrop",
-        )}
+      {/* BYOA dialog */}
+      <DialogShell
+        open={showByoaForm}
+        onOpenChange={handleByoaOpenChange}
+        width="md"
+        className="stg:p-6"
+        aria-label="Use your own OAuth app"
       >
         <h3 className="stg:mb-4 stg:text-base stg:font-semibold stg:text-foreground">
           Use your own OAuth app
@@ -729,7 +717,7 @@ export function McpServerDetailView({
           isSubmitting={orgOAuthApp.isSetting}
           error={orgOAuthApp.setError}
         />
-      </dialog>
+      </DialogShell>
 
       <Section title="Capabilities" scrollTarget="mcp-capabilities">
         <Tabs

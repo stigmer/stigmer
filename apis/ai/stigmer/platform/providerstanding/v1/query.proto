@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package ai.stigmer.platform.providerstanding.v1;
+
+import "ai/stigmer/commons/rpc/method_options.proto";
+import "ai/stigmer/platform/providerstanding/v1/io.proto";
+
+// ProviderStandingQueryController serves the operator console's read-only
+// view of platform provider standing: the canary-probe verdicts the
+// cloud#370 detection core records hourly (health, billing/auth
+// rejections, latency, bounded error summaries).
+//
+// Platform-gated and view-only: provider account health is
+// platform-internal, never org-visible, and this surface only observes —
+// there is nothing to CRUD (the standing model is deliberately a
+// lightweight status, not an API resource).
+//
+// @internal
+// Cloud-only; not implemented by the OSS Go server.
+service ProviderStandingQueryController {
+  // Retrieve the latest probe verdict for every platform provider.
+  rpc getProviderStandingView(GetProviderStandingViewInput) returns (ProviderStandingView) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_view_provider_standing;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can view provider standing";
+  }
+}

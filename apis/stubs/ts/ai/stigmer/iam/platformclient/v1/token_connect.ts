@@ -61,11 +61,6 @@ export const PlatformClientTokenController = {
      * is not on the list are refused PERMISSION_DENIED (see the
      * allowed_origins field docs in spec.proto for the exact semantics).
      *
-     * @internal
-     * This RPC is public — no Bearer token is required. The caller authenticates
-     * by providing client_id + client_secret in the request body. The handler
-     * validates these credentials as business logic, not via the auth interceptor.
-     *
      * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientTokenController.mintUserToken
      */
     mintUserToken: {
@@ -80,13 +75,6 @@ export const PlatformClientTokenController = {
      * Resolves org+slug to an AgentShare, provisions the org's system-managed
      * PlatformClient and guest identity account lazily, and returns a short-lived
      * Stigmer-signed JWT scoped to that org.
-     *
-     * @internal
-     * Public — no Bearer token. No PlatformClient credentials. The handler gates
-     * on an enabled public-audience share (NOT_FOUND when disabled or missing)
-     * and stamps the resolved share's id into the guest JWT as the share_id
-     * claim — the create-time gate re-reads the live share by that id on every
-     * session/execution create (decision 011 D6).
      *
      * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientTokenController.mintGuestToken
      */

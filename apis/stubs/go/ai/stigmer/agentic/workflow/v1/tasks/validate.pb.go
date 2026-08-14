@@ -26,15 +26,6 @@ const (
 
 // ValidationFailPolicy defines what happens when a validate task's
 // validation fails (schema mismatch or business rule violation).
-//
-// @internal
-// The policy determines whether validation failure is a hard stop,
-// a branch point, or an advisory warning. This is distinct from
-// OnInvalidOutputPolicy (which handles LLM/agent output schema failures
-// with retry semantics) — validate tasks check data correctness, not
-// LLM output quality, so retry (re-prompting) is not applicable.
-//
-// @since T03 (P0 New Task Types)
 type ValidationFailPolicy int32
 
 const (
@@ -103,20 +94,6 @@ func (ValidationFailPolicy) EnumDescriptor() ([]byte, []int) {
 }
 
 // ValidationRule defines a business rule evaluated as a boolean expression.
-//
-// @internal
-// Rules complement JSON Schema validation by expressing constraints that
-// schema alone cannot: cross-field dependencies, conditional requirements,
-// and domain-specific invariants.
-//
-// The expression must evaluate to a boolean. When it evaluates to false,
-// the rule is considered violated and the message (if provided) is included
-// in the validation error output.
-//
-// Expressions use the same expression engine as switch_case.when for
-// consistency across the workflow domain.
-//
-// @since T03 (P0 New Task Types)
 type ValidationRule struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Rule identifier for error reporting and debugging.
@@ -191,82 +168,6 @@ func (x *ValidationRule) GetMessage() string {
 
 // ValidateTaskConfig defines the configuration for validate tasks that
 // perform explicit schema and business-rule validation on workflow data.
-//
-// @internal
-// Use validate when you need an explicit validation checkpoint before
-// downstream actions. This is how you distinguish "the API call succeeded"
-// from "the data is safe and complete enough to continue."
-//
-// While switch_case + raise_error can approximate validation, a dedicated
-// validate task makes the intent explicit, the error messages richer, and
-// the execution trace clearer. In the execution viewer (T09), a validate
-// task shows exactly what was checked, what passed, and what failed —
-// visible as a distinct verification step.
-//
-// The task supports two complementary validation modes:
-// - schema: JSON Schema validation for structural correctness
-// - rules: business-rule expressions for domain-specific constraints
-//
-// At least one of schema or rules must be set. Both can be used together
-// for comprehensive validation (schema checks structure, rules check
-// business logic). This cross-field constraint is enforced at runtime
-// validation since buf.validate cannot express it on individual fields.
-//
-// Task output includes the full validation result:
-//
-//	{
-//	  "valid": true/false,
-//	  "errors": [
-//	    {"rule": "critical_needs_rationale", "message": "Critical severity requires a rationale"},
-//	    {"path": "$.category", "message": "must have at least 1 character"}
-//	  ],
-//	  "data": <original input data>
-//	}
-//
-// YAML Example (schema + business rules):
-//   - check_triage_quality:
-//     validate:
-//     input: "${ $context.triage }"
-//     schema:
-//     type: object
-//     required: [severity, category, customer_impact]
-//     properties:
-//     severity:
-//     type: string
-//     enum: [low, medium, high, critical]
-//     category:
-//     type: string
-//     minLength: 1
-//     customer_impact:
-//     type: boolean
-//     rules:
-//   - name: critical_needs_rationale
-//     expression: "${ .severity != 'critical' || (.rationale != null && .rationale != ”) }"
-//     message: "Critical severity requires a rationale"
-//   - name: customer_impact_needs_severity
-//     expression: "${ .customer_impact != true || .severity in ['high', 'critical'] }"
-//     message: "Customer-impacting issues must be high or critical severity"
-//     on_fail: VALIDATION_FAIL_BRANCH
-//     fallback_task: human_review
-//     export:
-//     as: "${ . }"
-//
-// YAML Example (schema-only validation with warn policy):
-//   - check_payload_shape:
-//     validate:
-//     input: "${ $context.api_payload }"
-//     schema:
-//     type: object
-//     required: [name, email]
-//     properties:
-//     name:
-//     type: string
-//     email:
-//     type: string
-//     format: email
-//     on_fail: VALIDATION_FAIL_WARN
-//     export:
-//     as: "${ . }"
 type ValidateTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Expression selecting the data to validate.

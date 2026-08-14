@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import type { DependencyGraphProps } from "./types.js";
 import { DependencyTreeNode } from "./DependencyTreeNode.js";
 
@@ -114,7 +115,7 @@ export function DependencyGraph({
         role="tree"
         aria-label={`Dependencies of ${root.label}`}
         onKeyDown={handleKeyDown}
-        className="stg:rounded-lg stg:border stg:border-border stg:p-2"
+        className={cn(UNSTYLED_LIST, "stg:rounded-lg stg:border stg:border-border stg:p-2")}
       >
         <DependencyTreeNode
           node={root}

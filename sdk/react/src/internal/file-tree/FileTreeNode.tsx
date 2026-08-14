@@ -2,6 +2,7 @@
 
 import { useCallback, useState, type DragEvent } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../element-resets.js";
 import { FileTypeIcon, FolderTypeIcon } from "../file-icons/index.js";
 import type { TreeNode } from "./tree-node.js";
 
@@ -151,7 +152,7 @@ export function FileTreeNode({
       {isFolder && expanded && node.children && (
         <ul
           role="group"
-          className={cn(indentGuides && "stg:ml-3 stg:border-l stg:border-border")}
+          className={cn(UNSTYLED_LIST, indentGuides && "stg:ml-3 stg:border-l stg:border-border")}
         >
           {node.children.map((child) => (
             <FileTreeNode

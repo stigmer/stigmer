@@ -9,11 +9,12 @@
  *      workspace-absolute paths)
  *   1. Loop detection (always)
  *   2. Execution budget (always)
- *   3. Tool truncation (always)
- *   4. Graceful stop (always, inert until activated)
- *   5. Cost cap (conditional: only when maxCostUsd > 0)
- *   6. Error hints (always)
- *   7. OTel spans (always, no-op when OTel not configured)
+ *   3. Tool intent (always — bind-time shell schema extension, issue #276)
+ *   4. Tool truncation (always)
+ *   5. Graceful stop (always, inert until activated)
+ *   6. Cost cap (conditional: only when maxCostUsd > 0)
+ *   7. Error hints (always)
+ *   8. OTel spans (always, no-op when OTel not configured)
  */
 
 import type { StigmerMiddleware, MiddlewareStackConfig } from "./types.js";
@@ -21,6 +22,7 @@ import type { GracefulStopMiddleware } from "./graceful-stop.js";
 import { createPathNormalizationMiddleware } from "./path-normalization.js";
 import { createLoopDetectionMiddleware } from "./loop-detection.js";
 import { createExecutionBudgetMiddleware } from "./execution-budget.js";
+import { createToolIntentMiddleware } from "./tool-intent.js";
 import { createToolTruncationMiddleware } from "./tool-truncation.js";
 import { createGracefulStopMiddleware } from "./graceful-stop.js";
 import { createApprovalGateMiddleware } from "./approval-gate.js";
@@ -50,6 +52,8 @@ export function buildMiddlewareStack(
   stack.push(createLoopDetectionMiddleware(config.loopDetection));
 
   stack.push(createExecutionBudgetMiddleware(config.executionBudget));
+
+  stack.push(createToolIntentMiddleware());
 
   stack.push(createToolTruncationMiddleware(config.toolTruncation));
 

@@ -31,11 +31,21 @@ output_schema:
       description: "Always 'application/json'."
     data:
       type: object
+    delivery_errors:
+      type: array
+      description: >-
+        Present only when at least one delivery target failed. One entry per
+        failed target; delivery is best-effort and never fails the task.
+      items:
+        type: string
 
 field_groups:
   - id: core
     display_name: "Event Specification"
     fields: [event]
+  - id: delivery
+    display_name: "Delivery"
+    fields: [delivery]
 
 yaml_examples:
   - |
@@ -51,3 +61,20 @@ yaml_examples:
             category: "${ $context.triage.category }"
       export:
         as: "${ . }"
+  - |
+    - name: notify_downstream
+      kind: emit_event
+      task_config:
+        event:
+          type: "acme.order.fulfilled"
+          subject: "${ $context.order.number }"
+          data:
+            order_id: "${ $context.order.id }"
+        delivery:
+          - webhook:
+              url: "https://hooks.acme.com/orders"
+              headers:
+                Authorization: "Bearer ${.secrets.ACME_HOOK_TOKEN}"
+          - signal:
+              execution_id: "${ .start_shipping.execution_id }"
+              signal_name: "order-fulfilled"

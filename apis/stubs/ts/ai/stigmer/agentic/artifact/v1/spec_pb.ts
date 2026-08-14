@@ -16,34 +16,11 @@ export const file_ai_stigmer_agentic_artifact_v1_spec: GenFile = /*@__PURE__*/
 /**
  * ArtifactSpec defines the properties of an artifact provided at creation time.
  *
- * @internal
- * Artifacts are created by the runner when a task
- * produces output that should be persisted outside the execution status
- * snapshot (either because it exceeds the size threshold or because the
- * workflow author explicitly requested artifact persistence).
- *
- * The spec is immutable after creation — artifacts are append-only.
- * To update an artifact's content, create a new artifact.
- *
- * @since T07 (Artifact Store)
- *
  * @generated from message ai.stigmer.agentic.artifact.v1.ArtifactSpec
  */
 export type ArtifactSpec = Message<"ai.stigmer.agentic.artifact.v1.ArtifactSpec"> & {
   /**
    * MIME content type of the artifact payload.
-   *
-   * @internal
-   * Used by the UI to determine rendering strategy (JSON viewer, text,
-   * image preview, download link) and by the download endpoint for
-   * Content-Type headers.
-   *
-   * Common values:
-   * - "application/json" — structured task output, agent response
-   * - "text/plain" — log output, agent final text
-   * - "text/html" — generated reports
-   * - "application/pdf" — rendered documents
-   * - "application/octet-stream" — opaque binary (fallback)
    *
    * @generated from field: string content_type = 1;
    */
@@ -52,15 +29,6 @@ export type ArtifactSpec = Message<"ai.stigmer.agentic.artifact.v1.ArtifactSpec"
   /**
    * Human-readable display name for the artifact.
    *
-   * @internal
-   * Shown in the execution viewer's artifact list and download dialogs.
-   * When auto-promoted, this is derived from the task name and output field
-   * (e.g., "analyze_code — output.json"). When explicitly created by a
-   * workflow author (Phase 1), this is user-provided.
-   *
-   * Does not need to be unique — multiple tasks can produce artifacts
-   * with the same display name across different executions.
-   *
    * @generated from field: string display_name = 2;
    */
   displayName: string;
@@ -68,23 +36,12 @@ export type ArtifactSpec = Message<"ai.stigmer.agentic.artifact.v1.ArtifactSpec"
   /**
    * Provenance: which execution and task produced this artifact.
    *
-   * @internal
-   * Used for:
-   * - Listing artifacts by execution (listByExecution RPC)
-   * - Linking artifacts back to their source in the execution viewer
-   * - Access control inheritance (artifact access follows execution access)
-   *
    * @generated from field: ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3;
    */
   source?: ArtifactSource;
 
   /**
    * Retention policy for this artifact.
-   *
-   * @internal
-   * When not set, the organization's default retention policy applies.
-   * The backend computes ArtifactStatus.expires_at from this policy
-   * at creation time.
    *
    * @generated from field: ai.stigmer.agentic.artifact.v1.RetentionPolicy retention = 4;
    */
@@ -100,13 +57,6 @@ export const ArtifactSpecSchema: GenMessage<ArtifactSpec> = /*@__PURE__*/
 
 /**
  * ArtifactSource identifies the execution context that produced an artifact.
- *
- * @internal
- * Exactly one of workflow_execution_id or agent_execution_id should be set,
- * identifying the producer. task_name is set when the artifact was produced
- * by a specific task within a workflow execution.
- *
- * @since T07 (Artifact Store)
  *
  * @generated from message ai.stigmer.agentic.artifact.v1.ArtifactSource
  */
@@ -149,13 +99,6 @@ export const ArtifactSourceSchema: GenMessage<ArtifactSource> = /*@__PURE__*/
 
 /**
  * RetentionPolicy controls how long an artifact's blob is retained in storage.
- *
- * @internal
- * The backend computes an absolute expires_at timestamp from this policy
- * at artifact creation time. A background garbage collection job
- * periodically scans for expired artifacts and deletes their blobs.
- *
- * @since T07 (Artifact Store)
  *
  * @generated from message ai.stigmer.agentic.artifact.v1.RetentionPolicy
  */

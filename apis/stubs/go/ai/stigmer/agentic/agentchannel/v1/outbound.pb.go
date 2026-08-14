@@ -24,17 +24,6 @@ const (
 
 // ChannelReceiptState is the provider-reported delivery progress of an
 // accepted outbound message, as learned from delivery receipts.
-//
-// @internal
-// DD-016 D6. Provider-neutral four-state vocabulary; WhatsApp's fifth
-// value `played` (voice playback) maps to receipt_read (DD-016 D8), and
-// the raw webhook payload retains the verbatim value. Values carry the
-// receipt_ prefix because proto3 enum values are package-scoped —
-// `delivered` and `failed` are taken by ChannelDeliveryStatus — which is
-// also a feature: the send-attempt axis and the receipt axis can never
-// be confused on the wire. Enum numbers are IDENTITY only; the stamp's
-// monotonic ordering lives in an explicit rank map in the handler, so a
-// future value cannot silently mis-rank.
 type ChannelReceiptState int32
 
 const (
@@ -98,19 +87,6 @@ func (ChannelReceiptState) EnumDescriptor() ([]byte, []int) {
 
 // ChannelOutboundOrigin records which trust context authorized a
 // business-initiated send.
-//
-// @internal
-// DD-002 D9: the calling contexts carry different trust levels, so
-// recipient policy is surface-aware — channel-conversation sends are
-// bounded to known senders, operator-authored sends to caps. Stamped
-// server-side for audit, never caller-supplied. Writers, one per value:
-// the reach resolver stamps channel_conversation and operator; the
-// takeover acknowledger stamps platform (channel-conversations DD-005
-// D-d); the conversation reply handler stamps participant
-// (channel-conversations DD-009, amended at T03 Sitting 1). The
-// proactive caps count only channel_conversation and operator rows —
-// platform and participant are reply traffic inside the open service
-// window, outside the proactive levers by design.
 type ChannelOutboundOrigin int32
 
 const (
@@ -124,22 +100,9 @@ const (
 	ChannelOutboundOrigin_operator ChannelOutboundOrigin = 2
 	// Platform-authored conversation-context copy (e.g. the takeover
 	// acknowledgment), neither the agent's words nor a human's.
-	//
-	// @internal
-	// channel-conversations DD-005 D-d: reply traffic inside the open
-	// service window — exempt from the proactive caps and the proactive
-	// consent lever. Renders as author_platform on the timeline.
 	ChannelOutboundOrigin_platform ChannelOutboundOrigin = 3
 	// A staff member's reply inside a live conversation, sent through the
 	// conversation-scoped reply command.
-	//
-	// @internal
-	// channel-conversations DD-009 (T03 Sitting 1 amendment): distinct
-	// from operator because a console cold-send and a staff reply both
-	// carry an empty session — origin is the only durable discriminator
-	// the cap predicate and the timeline author mapping can key on.
-	// Renders as author_teammate on the timeline. First written by the
-	// reply handler (T03 Sitting 2).
 	ChannelOutboundOrigin_participant ChannelOutboundOrigin = 4
 )
 
@@ -190,22 +153,6 @@ func (ChannelOutboundOrigin) EnumDescriptor() ([]byte, []int) {
 
 // ChannelOutboundMessage tracks the delivery of one business-initiated
 // message to one external recipient on an agent channel.
-//
-// @internal
-// Infrastructure-only — no kind, no apiVersion, no CRUD RPCs, no FGA (the
-// ChannelDelivery posture). The proactive sibling of ChannelDelivery
-// (proactive-messaging DD-002 D1, amended by DD-004): its own claim/lease
-// store, sharing the reply lane's idiom but never its table. The row is
-// written by the send handler BEFORE any provider I/O — it is
-// simultaneously the audit trail, the rate-cap ledger, the idempotency
-// anchor for delivery retries, and (via provider_message_id) the future
-// receipt-correlation target. Attempted once inline by the send RPC;
-// attempts 2..N belong to the outbound sweep. Reuses ChannelDeliveryStatus
-// (proto3 enum values are package-scoped; a twin enum would not compile)
-// and carries NO provider-context arm: `recipient` is first-class and the
-// sender re-reads the channel per attempt for provider facts such as the
-// WhatsApp phone_number_id (DD-004 pinned behavior — a stored copy could
-// drift).
 type ChannelOutboundMessage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unique outbound message identifier.
@@ -217,11 +164,6 @@ type ChannelOutboundMessage struct {
 	Org string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
 	// Session of the originating agent run; empty for direct operator
 	// sends, which have no session.
-	//
-	// @internal
-	// DD-004 S-1: the per-run cap keys on session (the sandbox token
-	// carries session_id, never an execution id), so this replaces
-	// DD-002's sketched execution_id.
 	SessionId string `protobuf:"bytes,4,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// How the send was authorized (DD-002 D9's surface-aware policy).
 	Origin ChannelOutboundOrigin `protobuf:"varint,5,opt,name=origin,proto3,enum=ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin" json:"origin,omitempty"`
@@ -238,13 +180,6 @@ type ChannelOutboundMessage struct {
 	// Idempotency key for outbound provider calls (stable across retries).
 	IdempotencyKey string `protobuf:"bytes,11,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
 	// Provider message id once the provider accepted (WhatsApp: wamid).
-	//
-	// @internal
-	// Uniquely indexed where present — the provider-side identity of this
-	// send, kept for forensics and as the payments-era correlation anchor.
-	// Receipt correlation deliberately does NOT ride it (DD-016 D2): the
-	// wamid lands here only AFTER the provider accepts, while receipts are
-	// correlated by the send-time callback token, which can never miss.
 	ProviderMessageId string `protobuf:"bytes,12,opt,name=provider_message_id,json=providerMessageId,proto3" json:"provider_message_id,omitempty"`
 	// When the outbound record was created (send-RPC time).
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
@@ -257,22 +192,10 @@ type ChannelOutboundMessage struct {
 	// platform's own send attempt. `status = delivered` means "handed to
 	// the provider"; `receipt_state = receipt_delivered` means "reached
 	// the recipient's device".
-	//
-	// @internal
-	// DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
-	// handler, its single writer, advancing monotonically (sent <
-	// delivered < read; failed is sticky-terminal) because Meta delivers
-	// receipts out of order and may skip `delivered` entirely. The stamp
-	// never touches updated_at — that timestamp belongs to the
-	// send-attempt axis.
 	ReceiptState ChannelReceiptState `protobuf:"varint,16,opt,name=receipt_state,json=receiptState,proto3,enum=ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState" json:"receipt_state,omitempty"`
 	// The provider's verbatim explanation when receipt_state is
 	// receipt_failed (WhatsApp: the errors[0] title, plus error_data
 	// details when present). Empty otherwise.
-	//
-	// @internal
-	// Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
-	// never pattern-matched; receipt_error_code is the structured twin.
 	ReceiptDetail string `protobuf:"bytes,17,opt,name=receipt_detail,json=receiptDetail,proto3" json:"receipt_detail,omitempty"`
 	// The provider's numeric error code when receipt_state is
 	// receipt_failed (WhatsApp: errors[0].code, e.g. 131026 "recipient
@@ -287,42 +210,14 @@ type ChannelOutboundMessage struct {
 	// (the body lives in the payload's text arm), for rows written before
 	// this field existed, and for sends whose registry was unreachable at
 	// send time.
-	//
-	// @internal
-	// The ChannelDelivery.reply_text idiom (channel-conversations DD-004
-	// D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
-	// lane: the conversation timeline renders a template send's bubble
-	// from THIS field, never by re-deriving from the template registry at
-	// read time — template text changes over releases, and a re-derivation
-	// would attribute today's template copy to yesterday's send. Written
-	// once by the send handlers' pre-check normalization (the DD-005 D2
-	// point where the language-resolved payload is fixed), before any
-	// provider I/O; no later writer touches it. No backfill is possible —
-	// pre-field history stays honestly unavailable (the D1-A consequence).
 	RenderedBody string `protobuf:"bytes,20,opt,name=rendered_body,json=renderedBody,proto3" json:"rendered_body,omitempty"`
 	// Why the send FAILED, in the platform's classification. Unspecified
 	// unless status is failed (and on rows terminal before this field
 	// existed). A third axis fact beside status and the receipt pair.
-	//
-	// @internal
-	// cloud#262 (channel-conversations F-25): the classification that
-	// decides whether the failure's explanation may reach the conversation
-	// timeline. Written only by markFailed and the delete cascade, never by
-	// markRetry — a scheduled retry is not a verdict. The ChannelDelivery
-	// twin (its fields 18/19) carries the same contract.
 	FailureKind ChannelAttemptFailureKind `protobuf:"varint,21,opt,name=failure_kind,json=failureKind,proto3,enum=ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind" json:"failure_kind,omitempty"`
 	// The thread-safe explanation of a FAILED send, when one was authored
 	// for the conversation surface. Empty unless failure_kind is
 	// attempt_refused or attempt_withdrawn.
-	//
-	// @internal
-	// cloud#262: PLATFORM-authored copy — for refusals this is the
-	// TERMINAL_REFUSALS mapped explanation (plus the provider's own
-	// error_data details when present), NOT the receipt axis's
-	// provider-owned vocabulary. The write side is the guarantee: only the
-	// refusal and withdrawal arms carry copy here, so raw exception text
-	// (which stays in last_error, an operator-only fact) can structurally
-	// never reach the timeline relay.
 	AttemptDetail string `protobuf:"bytes,22,opt,name=attempt_detail,json=attemptDetail,proto3" json:"attempt_detail,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

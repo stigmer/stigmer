@@ -129,8 +129,9 @@ locked by `activities/execute_input_test.go`.
      activity after each `approvalGateResolved`).
    - **Cursor**: `ReadHarnessStateId` → `ExecuteCursor` (same loop; the Cursor
      agent id lives in `session.spec.harness_state_id`).
-   - Both flows fire `GenerateSessionSubject` fire-and-forget — KNOWN-DEAD in
-     OSS today (no worker registers it; issue #665 owns the fix).
+   - Both flows fire `GenerateSessionSubject` fire-and-forget — implemented in
+     the TS unified runner (issue #665's fix;
+     `backend/services/runner/src/activities/generate-session-subject.ts`).
 3. **Runner executes (TS worker)** — streams status back via the server's gRPC
    UpdateStatus path; the workflow's `UpdateExecutionStatus` activity covers
    the failure/cancellation and final-persist paths.
@@ -150,7 +151,7 @@ locked by `activities/execute_input_test.go`.
 ## Relationship to the Cloud Edition
 
 The cloud edition (stigmer-cloud, Java) implements the same workflow TYPE and
-signal names with its own worker set — including a Java
-`GenerateSessionSubjectActivityImpl` that OSS currently lacks (#665). The
+signal names with its own worker set — including its own Java
+`GenerateSessionSubjectActivityImpl` (OSS's lives in the TS runner). The
 workflowexecution domain's `worker_config.go` in this repo documents the same
 two-worker split for CNCF workflow execution and is the sibling reference.

@@ -131,6 +131,20 @@ func (r *RunStarter) StartRun(ctx context.Context, schedule *schedulev1.Schedule
 		return RunTargetMissingOutcome{Reason: missingReason}, nil
 	}
 
+	// Launch backstop of the unattended model-pinning rule
+	// (stigmer/stigmer#362): write-time validation
+	// (validateScheduleModelPinning) holds this bar on every create and
+	// update, but rows written before the rule existed must refuse here
+	// rather than run Auto at the account default's price. A deterministic
+	// refusal feeds the failure streak, so a broken config pauses the
+	// schedule instead of burning silently every fire. Copy matches the
+	// write-time rule — the fix is the same either way.
+	if reason := ScheduleModelPinningRefusal(schedule.GetSpec()); reason != "" {
+		log.Error().Str("schedule_id", scheduleID).Str("reason", reason).
+			Msg("Schedule fire refused by the model-pinning backstop")
+		return RunRefusedOutcome{Reason: reason}, nil
+	}
+
 	executionName := ScheduledExecutionName(scheduleID, nominalFireTime)
 
 	// The clock's own idempotency: a retried activity (or a duplicated

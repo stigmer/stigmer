@@ -15,6 +15,16 @@ import java.util.Objects;
  */
 public final class StigmerChannel {
 
+    /**
+     * Client receive cap, raised to the server's own 10MB message limit
+     * (stigmer#702). grpc-java's default is 4MB — an invisible library
+     * default BELOW the platform's documented behavior, so responses the
+     * server would happily serve (e.g. a 4–10MB skill getArtifact) died
+     * client-side with "gRPC message exceeds maximum size". The server
+     * stays the single limiting authority.
+     */
+    static final int MAX_INBOUND_MESSAGE_SIZE = 10 * 1024 * 1024;
+
     private StigmerChannel() {}
 
     /** Creates a {@link ManagedChannel} from the given configuration. */
@@ -29,6 +39,7 @@ public final class StigmerChannel {
             builder = NettyChannelBuilder.forTarget(config.target).useTransportSecurity();
         }
 
+        builder.maxInboundMessageSize(MAX_INBOUND_MESSAGE_SIZE);
         builder.intercept(new ApiKeyInterceptor(config.apiKey));
 
         return builder.build();

@@ -6,6 +6,7 @@ import ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput;
 import ai.stigmer.billing.v1.DecideModelPricingOverrideInput;
 import ai.stigmer.billing.v1.GetBillingUsageReportInput;
 import ai.stigmer.billing.v1.GetCreditLedgerInput;
+import ai.stigmer.billing.v1.GrantCreditsInput;
 import ai.stigmer.billing.v1.LedgerEntryType;
 import ai.stigmer.billing.v1.LedgerView;
 import ai.stigmer.billing.v1.ModelPricingBaseline;
@@ -58,6 +59,51 @@ class BillingClientTest {
         assertThrows(NullPointerException.class, () -> BillingClient.AdjustCreditsParams.builder()
                 .orgId("org_123").amountMicros(1L).idempotencyKey("k").build());
         assertThrows(NullPointerException.class, () -> BillingClient.AdjustCreditsParams.builder()
+                .orgId("org_123").amountMicros(1L).reason("r").build());
+    }
+
+    // -- GrantCreditsParams -------------------------------------------------------
+
+    @Test
+    void grantCredits_toProto_mapsAllFieldsIncludingExpiry() {
+        Instant expiresAt = Instant.parse("2026-08-31T23:59:59Z");
+
+        GrantCreditsInput proto = BillingClient.GrantCreditsParams.builder()
+                .orgId("org_123")
+                .amountMicros(5_000_000L)
+                .expiresAt(expiresAt)
+                .reason("monthly free allowance 2026-08")
+                .idempotencyKey("allowance-org_123-2026-08")
+                .build()
+                .toProto();
+
+        assertEquals("org_123", proto.getOrgId());
+        assertEquals(5_000_000L, proto.getAmountMicros());
+        assertEquals(expiresAt.getEpochSecond(), proto.getExpiresAt().getSeconds());
+        assertEquals("monthly free allowance 2026-08", proto.getReason());
+        assertEquals("allowance-org_123-2026-08", proto.getIdempotencyKey());
+    }
+
+    @Test
+    void grantCredits_toProto_omitsUnsetExpiry() {
+        GrantCreditsInput proto = BillingClient.GrantCreditsParams.builder()
+                .orgId("org_123")
+                .amountMicros(1_000_000L)
+                .reason("welcome credit")
+                .idempotencyKey("welcome-org_123")
+                .build()
+                .toProto();
+
+        assertFalse(proto.hasExpiresAt());
+    }
+
+    @Test
+    void grantCredits_missingRequiredFields_throw() {
+        assertThrows(NullPointerException.class, () -> BillingClient.GrantCreditsParams.builder()
+                .amountMicros(1L).reason("r").idempotencyKey("k").build());
+        assertThrows(NullPointerException.class, () -> BillingClient.GrantCreditsParams.builder()
+                .orgId("org_123").amountMicros(1L).idempotencyKey("k").build());
+        assertThrows(NullPointerException.class, () -> BillingClient.GrantCreditsParams.builder()
                 .orgId("org_123").amountMicros(1L).reason("r").build());
     }
 

@@ -93,6 +93,21 @@ The Harness you choose depends on what your Agent needs to do.
   right Harness when you create the Session — you cannot switch later.
 </Callout>
 
+### Auto and pricing determinism
+
+On the Cursor Harness, leaving the model unset selects **Auto**: Cursor picks
+both the model and its price-bearing variant, governed by the Cursor account's
+own default speed setting. Auto cannot be tier-pinned — its catalog entry has no
+tier dimension — so Auto runs are priced by a setting outside the platform. That
+trade is acceptable when a person is present to watch the cost, so interactive
+sessions may use Auto freely.
+
+Unattended surfaces (schedules and channels) on the Cursor Harness **require a
+pinned model**: configurations without one are refused when written and again
+before each run. The session Usage tab shows the model each run actually
+resolved to, with its billed cost — for Auto runs, that is where the picked
+model becomes visible after the fact.
+
 ## How it works
 
 Both harnesses feed into the same Stigmer pipeline. The difference is which

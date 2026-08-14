@@ -143,6 +143,99 @@ func (x *AdjustCreditsInput) GetIdempotencyKey() string {
 	return ""
 }
 
+// GrantCreditsInput creates a promotional credit grant, optionally expiring.
+//
+// Unlike adjustCredits (a signed balance adjustment), a grant is strictly
+// positive and carries use-it-or-lose-it semantics when expires_at is set:
+// the grant is consumed before adjustment and purchased credits (promotional
+// burn order), and whatever remains unconsumed at expiry is removed from the
+// balance with an expiry_debit ledger entry.
+type GrantCreditsInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	// Amount to grant. Must be positive; grants never remove credits.
+	AmountMicros int64 `protobuf:"varint,2,opt,name=amount_micros,json=amountMicros,proto3" json:"amount_micros,omitempty"`
+	// When the grant expires. Unset means the grant never expires.
+	//
+	// Must be in the future when the grant is created. Deliberately NOT
+	// enforced structurally: a replay of an already-applied idempotency key
+	// always returns the original ledger entry, even if the expiry has since
+	// passed — late retries of a successful grant must never fail. Expiry
+	// precision is whole seconds; sub-second precision is discarded.
+	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	// Human-readable reason for the grant (audit trail).
+	Reason string `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
+	// Client-supplied deduplication key to prevent double-processing.
+	IdempotencyKey string `protobuf:"bytes,5,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GrantCreditsInput) Reset() {
+	*x = GrantCreditsInput{}
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GrantCreditsInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GrantCreditsInput) ProtoMessage() {}
+
+func (x *GrantCreditsInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GrantCreditsInput.ProtoReflect.Descriptor instead.
+func (*GrantCreditsInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GrantCreditsInput) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *GrantCreditsInput) GetAmountMicros() int64 {
+	if x != nil {
+		return x.AmountMicros
+	}
+	return 0
+}
+
+func (x *GrantCreditsInput) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *GrantCreditsInput) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *GrantCreditsInput) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
 // AuthorizeExecutionInput requests a credit reservation before execution starts.
 type AuthorizeExecutionInput struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
@@ -158,7 +251,7 @@ type AuthorizeExecutionInput struct {
 
 func (x *AuthorizeExecutionInput) Reset() {
 	*x = AuthorizeExecutionInput{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[2]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -170,7 +263,7 @@ func (x *AuthorizeExecutionInput) String() string {
 func (*AuthorizeExecutionInput) ProtoMessage() {}
 
 func (x *AuthorizeExecutionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[2]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -183,7 +276,7 @@ func (x *AuthorizeExecutionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthorizeExecutionInput.ProtoReflect.Descriptor instead.
 func (*AuthorizeExecutionInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *AuthorizeExecutionInput) GetOrgId() string {
@@ -233,7 +326,7 @@ type AuthorizeExecutionResponse struct {
 
 func (x *AuthorizeExecutionResponse) Reset() {
 	*x = AuthorizeExecutionResponse{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[3]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -245,7 +338,7 @@ func (x *AuthorizeExecutionResponse) String() string {
 func (*AuthorizeExecutionResponse) ProtoMessage() {}
 
 func (x *AuthorizeExecutionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[3]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -258,7 +351,7 @@ func (x *AuthorizeExecutionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthorizeExecutionResponse.ProtoReflect.Descriptor instead.
 func (*AuthorizeExecutionResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *AuthorizeExecutionResponse) GetAuthorized() bool {
@@ -345,13 +438,23 @@ type RecordLlmCallUsageInput struct {
 	// proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
 	// caller.
 	CursorKeySource v1.CursorKeySource `protobuf:"varint,17,opt,name=cursor_key_source,json=cursorKeySource,proto3,enum=ai.stigmer.agentic.agentexecution.v1.CursorKeySource" json:"cursor_key_source,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Provider-reported service tier that actually served this call
+	// (native harness, stigmer/stigmer#361): Anthropic reports it in the
+	// response usage ("standard" | "priority" | "batch"), OpenAI at the
+	// response top level ("default" | "flex" | "priority"). Reported
+	// verbatim by the proxy from the SSE stream — the wire truth billing
+	// reconciles against the execution's REQUESTED tier (the
+	// service_tier.mismatch counter). Empty when the provider reported
+	// none, and for cursor-harness calls, whose billed variant arrives
+	// through the cursor path's pricing-variant resolution instead.
+	ServedServiceTier string `protobuf:"bytes,18,opt,name=served_service_tier,json=servedServiceTier,proto3" json:"served_service_tier,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *RecordLlmCallUsageInput) Reset() {
 	*x = RecordLlmCallUsageInput{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[4]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -363,7 +466,7 @@ func (x *RecordLlmCallUsageInput) String() string {
 func (*RecordLlmCallUsageInput) ProtoMessage() {}
 
 func (x *RecordLlmCallUsageInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[4]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -376,7 +479,7 @@ func (x *RecordLlmCallUsageInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecordLlmCallUsageInput.ProtoReflect.Descriptor instead.
 func (*RecordLlmCallUsageInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *RecordLlmCallUsageInput) GetExecutionId() string {
@@ -498,6 +601,13 @@ func (x *RecordLlmCallUsageInput) GetCursorKeySource() v1.CursorKeySource {
 	return v1.CursorKeySource(0)
 }
 
+func (x *RecordLlmCallUsageInput) GetServedServiceTier() string {
+	if x != nil {
+		return x.ServedServiceTier
+	}
+	return ""
+}
+
 // RecordLlmCallUsageResponse returns the cost result so callers can
 // observe what was recorded without querying separately.
 type RecordLlmCallUsageResponse struct {
@@ -518,7 +628,7 @@ type RecordLlmCallUsageResponse struct {
 
 func (x *RecordLlmCallUsageResponse) Reset() {
 	*x = RecordLlmCallUsageResponse{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[5]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -530,7 +640,7 @@ func (x *RecordLlmCallUsageResponse) String() string {
 func (*RecordLlmCallUsageResponse) ProtoMessage() {}
 
 func (x *RecordLlmCallUsageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[5]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -543,7 +653,7 @@ func (x *RecordLlmCallUsageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecordLlmCallUsageResponse.ProtoReflect.Descriptor instead.
 func (*RecordLlmCallUsageResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *RecordLlmCallUsageResponse) GetUsageRecordId() string {
@@ -592,7 +702,7 @@ type FinalizeExecutionInput struct {
 
 func (x *FinalizeExecutionInput) Reset() {
 	*x = FinalizeExecutionInput{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[6]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -604,7 +714,7 @@ func (x *FinalizeExecutionInput) String() string {
 func (*FinalizeExecutionInput) ProtoMessage() {}
 
 func (x *FinalizeExecutionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[6]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -617,7 +727,7 @@ func (x *FinalizeExecutionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinalizeExecutionInput.ProtoReflect.Descriptor instead.
 func (*FinalizeExecutionInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *FinalizeExecutionInput) GetExecutionId() string {
@@ -644,7 +754,7 @@ type FinalizeExecutionResponse struct {
 
 func (x *FinalizeExecutionResponse) Reset() {
 	*x = FinalizeExecutionResponse{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -656,7 +766,7 @@ func (x *FinalizeExecutionResponse) String() string {
 func (*FinalizeExecutionResponse) ProtoMessage() {}
 
 func (x *FinalizeExecutionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -669,7 +779,7 @@ func (x *FinalizeExecutionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinalizeExecutionResponse.ProtoReflect.Descriptor instead.
 func (*FinalizeExecutionResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *FinalizeExecutionResponse) GetTotalProviderCostMicros() int64 {
@@ -721,7 +831,7 @@ type CreateCreditCheckoutSessionInput struct {
 
 func (x *CreateCreditCheckoutSessionInput) Reset() {
 	*x = CreateCreditCheckoutSessionInput{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -733,7 +843,7 @@ func (x *CreateCreditCheckoutSessionInput) String() string {
 func (*CreateCreditCheckoutSessionInput) ProtoMessage() {}
 
 func (x *CreateCreditCheckoutSessionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -746,7 +856,7 @@ func (x *CreateCreditCheckoutSessionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCreditCheckoutSessionInput.ProtoReflect.Descriptor instead.
 func (*CreateCreditCheckoutSessionInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CreateCreditCheckoutSessionInput) GetOrgId() string {
@@ -793,7 +903,7 @@ type CreateCreditCheckoutSessionResponse struct {
 
 func (x *CreateCreditCheckoutSessionResponse) Reset() {
 	*x = CreateCreditCheckoutSessionResponse{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[9]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -805,7 +915,7 @@ func (x *CreateCreditCheckoutSessionResponse) String() string {
 func (*CreateCreditCheckoutSessionResponse) ProtoMessage() {}
 
 func (x *CreateCreditCheckoutSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[9]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -818,7 +928,7 @@ func (x *CreateCreditCheckoutSessionResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use CreateCreditCheckoutSessionResponse.ProtoReflect.Descriptor instead.
 func (*CreateCreditCheckoutSessionResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{9}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CreateCreditCheckoutSessionResponse) GetCheckoutUrl() string {
@@ -859,7 +969,7 @@ type CreateBillingPortalSessionInput struct {
 
 func (x *CreateBillingPortalSessionInput) Reset() {
 	*x = CreateBillingPortalSessionInput{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -871,7 +981,7 @@ func (x *CreateBillingPortalSessionInput) String() string {
 func (*CreateBillingPortalSessionInput) ProtoMessage() {}
 
 func (x *CreateBillingPortalSessionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -884,7 +994,7 @@ func (x *CreateBillingPortalSessionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateBillingPortalSessionInput.ProtoReflect.Descriptor instead.
 func (*CreateBillingPortalSessionInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{10}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CreateBillingPortalSessionInput) GetOrgId() string {
@@ -912,7 +1022,7 @@ type CreateBillingPortalSessionResponse struct {
 
 func (x *CreateBillingPortalSessionResponse) Reset() {
 	*x = CreateBillingPortalSessionResponse{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[11]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -924,7 +1034,7 @@ func (x *CreateBillingPortalSessionResponse) String() string {
 func (*CreateBillingPortalSessionResponse) ProtoMessage() {}
 
 func (x *CreateBillingPortalSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[11]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -937,7 +1047,7 @@ func (x *CreateBillingPortalSessionResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use CreateBillingPortalSessionResponse.ProtoReflect.Descriptor instead.
 func (*CreateBillingPortalSessionResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{11}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CreateBillingPortalSessionResponse) GetPortalUrl() string {
@@ -973,7 +1083,7 @@ type SetAutoRechargeConfigInput struct {
 
 func (x *SetAutoRechargeConfigInput) Reset() {
 	*x = SetAutoRechargeConfigInput{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[12]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -985,7 +1095,7 @@ func (x *SetAutoRechargeConfigInput) String() string {
 func (*SetAutoRechargeConfigInput) ProtoMessage() {}
 
 func (x *SetAutoRechargeConfigInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[12]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -998,7 +1108,7 @@ func (x *SetAutoRechargeConfigInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetAutoRechargeConfigInput.ProtoReflect.Descriptor instead.
 func (*SetAutoRechargeConfigInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{12}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SetAutoRechargeConfigInput) GetOrgId() string {
@@ -1046,7 +1156,7 @@ type GetBillingAccountInput struct {
 
 func (x *GetBillingAccountInput) Reset() {
 	*x = GetBillingAccountInput{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[13]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1058,7 +1168,7 @@ func (x *GetBillingAccountInput) String() string {
 func (*GetBillingAccountInput) ProtoMessage() {}
 
 func (x *GetBillingAccountInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[13]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1071,7 +1181,7 @@ func (x *GetBillingAccountInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBillingAccountInput.ProtoReflect.Descriptor instead.
 func (*GetBillingAccountInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{13}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetBillingAccountInput) GetOrgId() string {
@@ -1091,7 +1201,7 @@ type GetCreditBalanceInput struct {
 
 func (x *GetCreditBalanceInput) Reset() {
 	*x = GetCreditBalanceInput{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[14]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1103,7 +1213,7 @@ func (x *GetCreditBalanceInput) String() string {
 func (*GetCreditBalanceInput) ProtoMessage() {}
 
 func (x *GetCreditBalanceInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[14]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1116,7 +1226,7 @@ func (x *GetCreditBalanceInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCreditBalanceInput.ProtoReflect.Descriptor instead.
 func (*GetCreditBalanceInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{14}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetCreditBalanceInput) GetOrgId() string {
@@ -1152,7 +1262,7 @@ type GetCreditLedgerInput struct {
 
 func (x *GetCreditLedgerInput) Reset() {
 	*x = GetCreditLedgerInput{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[15]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1164,7 +1274,7 @@ func (x *GetCreditLedgerInput) String() string {
 func (*GetCreditLedgerInput) ProtoMessage() {}
 
 func (x *GetCreditLedgerInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[15]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1177,7 +1287,7 @@ func (x *GetCreditLedgerInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCreditLedgerInput.ProtoReflect.Descriptor instead.
 func (*GetCreditLedgerInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{15}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetCreditLedgerInput) GetOrgId() string {
@@ -1233,7 +1343,7 @@ type CreditLedgerResponse struct {
 
 func (x *CreditLedgerResponse) Reset() {
 	*x = CreditLedgerResponse{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[16]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1245,7 +1355,7 @@ func (x *CreditLedgerResponse) String() string {
 func (*CreditLedgerResponse) ProtoMessage() {}
 
 func (x *CreditLedgerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[16]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1258,7 +1368,7 @@ func (x *CreditLedgerResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreditLedgerResponse.ProtoReflect.Descriptor instead.
 func (*CreditLedgerResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{16}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CreditLedgerResponse) GetEntries() []*CreditLedgerEntry {
@@ -1289,7 +1399,7 @@ type GetBillingUsageReportInput struct {
 
 func (x *GetBillingUsageReportInput) Reset() {
 	*x = GetBillingUsageReportInput{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[17]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1301,7 +1411,7 @@ func (x *GetBillingUsageReportInput) String() string {
 func (*GetBillingUsageReportInput) ProtoMessage() {}
 
 func (x *GetBillingUsageReportInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[17]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1314,7 +1424,7 @@ func (x *GetBillingUsageReportInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBillingUsageReportInput.ProtoReflect.Descriptor instead.
 func (*GetBillingUsageReportInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{17}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetBillingUsageReportInput) GetOrgId() string {
@@ -1357,7 +1467,7 @@ type BillingUsageReportResponse struct {
 
 func (x *BillingUsageReportResponse) Reset() {
 	*x = BillingUsageReportResponse{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[18]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1369,7 +1479,7 @@ func (x *BillingUsageReportResponse) String() string {
 func (*BillingUsageReportResponse) ProtoMessage() {}
 
 func (x *BillingUsageReportResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[18]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1382,7 +1492,7 @@ func (x *BillingUsageReportResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BillingUsageReportResponse.ProtoReflect.Descriptor instead.
 func (*BillingUsageReportResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{18}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *BillingUsageReportResponse) GetTotalProviderCostMicros() int64 {
@@ -1435,7 +1545,7 @@ type ModelBillingBreakdown struct {
 
 func (x *ModelBillingBreakdown) Reset() {
 	*x = ModelBillingBreakdown{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[19]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1447,7 +1557,7 @@ func (x *ModelBillingBreakdown) String() string {
 func (*ModelBillingBreakdown) ProtoMessage() {}
 
 func (x *ModelBillingBreakdown) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[19]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1460,7 +1570,7 @@ func (x *ModelBillingBreakdown) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelBillingBreakdown.ProtoReflect.Descriptor instead.
 func (*ModelBillingBreakdown) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{19}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ModelBillingBreakdown) GetModel() string {
@@ -1517,7 +1627,7 @@ type GetCustomerModelPricingInput struct {
 
 func (x *GetCustomerModelPricingInput) Reset() {
 	*x = GetCustomerModelPricingInput{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[20]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1529,7 +1639,7 @@ func (x *GetCustomerModelPricingInput) String() string {
 func (*GetCustomerModelPricingInput) ProtoMessage() {}
 
 func (x *GetCustomerModelPricingInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[20]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1542,7 +1652,7 @@ func (x *GetCustomerModelPricingInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCustomerModelPricingInput.ProtoReflect.Descriptor instead.
 func (*GetCustomerModelPricingInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{20}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetCustomerModelPricingInput) GetOrgId() string {
@@ -1562,7 +1672,7 @@ type CustomerModelPricingResponse struct {
 
 func (x *CustomerModelPricingResponse) Reset() {
 	*x = CustomerModelPricingResponse{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[21]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1574,7 +1684,7 @@ func (x *CustomerModelPricingResponse) String() string {
 func (*CustomerModelPricingResponse) ProtoMessage() {}
 
 func (x *CustomerModelPricingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[21]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1587,7 +1697,7 @@ func (x *CustomerModelPricingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CustomerModelPricingResponse.ProtoReflect.Descriptor instead.
 func (*CustomerModelPricingResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{21}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *CustomerModelPricingResponse) GetEntries() []*CustomerModelPricingEntry {
@@ -1608,7 +1718,7 @@ type GetModelPricingGovernanceInput struct {
 
 func (x *GetModelPricingGovernanceInput) Reset() {
 	*x = GetModelPricingGovernanceInput{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[22]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1620,7 +1730,7 @@ func (x *GetModelPricingGovernanceInput) String() string {
 func (*GetModelPricingGovernanceInput) ProtoMessage() {}
 
 func (x *GetModelPricingGovernanceInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[22]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1633,7 +1743,7 @@ func (x *GetModelPricingGovernanceInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetModelPricingGovernanceInput.ProtoReflect.Descriptor instead.
 func (*GetModelPricingGovernanceInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{22}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{23}
 }
 
 // ModelPricingGovernanceResponse is the operator's view of the pricing
@@ -1651,7 +1761,7 @@ type ModelPricingGovernanceResponse struct {
 
 func (x *ModelPricingGovernanceResponse) Reset() {
 	*x = ModelPricingGovernanceResponse{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[23]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1663,7 +1773,7 @@ func (x *ModelPricingGovernanceResponse) String() string {
 func (*ModelPricingGovernanceResponse) ProtoMessage() {}
 
 func (x *ModelPricingGovernanceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[23]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1676,7 +1786,7 @@ func (x *ModelPricingGovernanceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelPricingGovernanceResponse.ProtoReflect.Descriptor instead.
 func (*ModelPricingGovernanceResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{23}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ModelPricingGovernanceResponse) GetEntries() []*ModelPricingGovernanceEntry {
@@ -1730,7 +1840,7 @@ type ModelPricingGovernanceEntry struct {
 
 func (x *ModelPricingGovernanceEntry) Reset() {
 	*x = ModelPricingGovernanceEntry{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[24]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1742,7 +1852,7 @@ func (x *ModelPricingGovernanceEntry) String() string {
 func (*ModelPricingGovernanceEntry) ProtoMessage() {}
 
 func (x *ModelPricingGovernanceEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[24]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1755,7 +1865,7 @@ func (x *ModelPricingGovernanceEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelPricingGovernanceEntry.ProtoReflect.Descriptor instead.
 func (*ModelPricingGovernanceEntry) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{24}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ModelPricingGovernanceEntry) GetModelId() string {
@@ -1900,7 +2010,7 @@ type DecideModelPricingOverrideInput struct {
 
 func (x *DecideModelPricingOverrideInput) Reset() {
 	*x = DecideModelPricingOverrideInput{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[25]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1912,7 +2022,7 @@ func (x *DecideModelPricingOverrideInput) String() string {
 func (*DecideModelPricingOverrideInput) ProtoMessage() {}
 
 func (x *DecideModelPricingOverrideInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[25]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1925,7 +2035,7 @@ func (x *DecideModelPricingOverrideInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DecideModelPricingOverrideInput.ProtoReflect.Descriptor instead.
 func (*DecideModelPricingOverrideInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{25}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *DecideModelPricingOverrideInput) GetOverrideId() string {
@@ -1972,7 +2082,7 @@ type UpsertModelPricingBaselineInput struct {
 
 func (x *UpsertModelPricingBaselineInput) Reset() {
 	*x = UpsertModelPricingBaselineInput{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[26]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1984,7 +2094,7 @@ func (x *UpsertModelPricingBaselineInput) String() string {
 func (*UpsertModelPricingBaselineInput) ProtoMessage() {}
 
 func (x *UpsertModelPricingBaselineInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[26]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1997,7 +2107,7 @@ func (x *UpsertModelPricingBaselineInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertModelPricingBaselineInput.ProtoReflect.Descriptor instead.
 func (*UpsertModelPricingBaselineInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{26}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *UpsertModelPricingBaselineInput) GetBaseline() *ModelPricingBaseline {
@@ -2032,7 +2142,7 @@ type RetireModelPricingBaselineInput struct {
 
 func (x *RetireModelPricingBaselineInput) Reset() {
 	*x = RetireModelPricingBaselineInput{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[27]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2044,7 +2154,7 @@ func (x *RetireModelPricingBaselineInput) String() string {
 func (*RetireModelPricingBaselineInput) ProtoMessage() {}
 
 func (x *RetireModelPricingBaselineInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[27]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2057,7 +2167,7 @@ func (x *RetireModelPricingBaselineInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetireModelPricingBaselineInput.ProtoReflect.Descriptor instead.
 func (*RetireModelPricingBaselineInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{27}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *RetireModelPricingBaselineInput) GetModelId() string {
@@ -2100,7 +2210,7 @@ type ListModelPricingBaselinesInput struct {
 
 func (x *ListModelPricingBaselinesInput) Reset() {
 	*x = ListModelPricingBaselinesInput{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[28]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2112,7 +2222,7 @@ func (x *ListModelPricingBaselinesInput) String() string {
 func (*ListModelPricingBaselinesInput) ProtoMessage() {}
 
 func (x *ListModelPricingBaselinesInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[28]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2125,7 +2235,7 @@ func (x *ListModelPricingBaselinesInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListModelPricingBaselinesInput.ProtoReflect.Descriptor instead.
 func (*ListModelPricingBaselinesInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{28}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ListModelPricingBaselinesInput) GetIncludeHistory() bool {
@@ -2147,7 +2257,7 @@ type ModelPricingBaselinesResponse struct {
 
 func (x *ModelPricingBaselinesResponse) Reset() {
 	*x = ModelPricingBaselinesResponse{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[29]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2159,7 +2269,7 @@ func (x *ModelPricingBaselinesResponse) String() string {
 func (*ModelPricingBaselinesResponse) ProtoMessage() {}
 
 func (x *ModelPricingBaselinesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[29]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2172,7 +2282,7 @@ func (x *ModelPricingBaselinesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelPricingBaselinesResponse.ProtoReflect.Descriptor instead.
 func (*ModelPricingBaselinesResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{29}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *ModelPricingBaselinesResponse) GetBaselines() []*ModelPricingBaseline {
@@ -2216,7 +2326,7 @@ type CustomerModelPricingEntry struct {
 
 func (x *CustomerModelPricingEntry) Reset() {
 	*x = CustomerModelPricingEntry{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[30]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2228,7 +2338,7 @@ func (x *CustomerModelPricingEntry) String() string {
 func (*CustomerModelPricingEntry) ProtoMessage() {}
 
 func (x *CustomerModelPricingEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[30]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2241,7 +2351,7 @@ func (x *CustomerModelPricingEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CustomerModelPricingEntry.ProtoReflect.Descriptor instead.
 func (*CustomerModelPricingEntry) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{30}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *CustomerModelPricingEntry) GetModelId() string {
@@ -2332,7 +2442,14 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12#\n" +
 	"\ramount_micros\x18\x02 \x01(\x03R\famountMicros\x12\x1e\n" +
 	"\x06reason\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x06reason\x12/\n" +
-	"\x0fidempotency_key\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0eidempotencyKey\"\xbe\x01\n" +
+	"\x0fidempotency_key\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0eidempotencyKey\"\xec\x01\n" +
+	"\x11GrantCreditsInput\x12\x1d\n" +
+	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12,\n" +
+	"\ramount_micros\x18\x02 \x01(\x03B\a\xbaH\x04\"\x02 \x00R\famountMicros\x129\n" +
+	"\n" +
+	"expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x1e\n" +
+	"\x06reason\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x06reason\x12/\n" +
+	"\x0fidempotency_key\x18\x05 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0eidempotencyKey\"\xbe\x01\n" +
 	"\x17AuthorizeExecutionInput\x12\x1d\n" +
 	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12)\n" +
 	"\fexecution_id\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexecutionId\x12 \n" +
@@ -2345,7 +2462,7 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\x0ereservation_id\x18\x02 \x01(\tR\rreservationId\x12'\n" +
 	"\x0freserved_micros\x18\x03 \x01(\x03R\x0ereservedMicros\x128\n" +
 	"\x18available_balance_micros\x18\x04 \x01(\x03R\x16availableBalanceMicros\x12#\n" +
-	"\rdenial_reason\x18\x05 \x01(\tR\fdenialReason\"\xff\x06\n" +
+	"\rdenial_reason\x18\x05 \x01(\tR\fdenialReason\"\xaf\a\n" +
 	"\x17RecordLlmCallUsageInput\x12)\n" +
 	"\fexecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexecutionId\x12#\n" +
 	"\bsequence\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00R\bsequence\x12\"\n" +
@@ -2364,7 +2481,8 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\aharness\x18\x0e \x01(\tR\aharness\x12*\n" +
 	"\x11cursor_account_id\x18\x0f \x01(\tR\x0fcursorAccountId\x12\"\n" +
 	"\rcursor_key_id\x18\x10 \x01(\tR\vcursorKeyId\x12a\n" +
-	"\x11cursor_key_source\x18\x11 \x01(\x0e25.ai.stigmer.agentic.agentexecution.v1.CursorKeySourceR\x0fcursorKeySource\"\x81\x02\n" +
+	"\x11cursor_key_source\x18\x11 \x01(\x0e25.ai.stigmer.agentic.agentexecution.v1.CursorKeySourceR\x0fcursorKeySource\x12.\n" +
+	"\x13served_service_tier\x18\x12 \x01(\tR\x11servedServiceTier\"\x81\x02\n" +
 	"\x1aRecordLlmCallUsageResponse\x12&\n" +
 	"\x0fusage_record_id\x18\x01 \x01(\tR\rusageRecordId\x120\n" +
 	"\x14provider_cost_micros\x18\x02 \x01(\x03R\x12providerCostMicros\x12E\n" +
@@ -2512,76 +2630,78 @@ func file_ai_stigmer_billing_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_billing_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_billing_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
+var file_ai_stigmer_billing_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_ai_stigmer_billing_v1_io_proto_goTypes = []any{
 	(*GetOrCreateBillingAccountInput)(nil),      // 0: ai.stigmer.billing.v1.GetOrCreateBillingAccountInput
 	(*AdjustCreditsInput)(nil),                  // 1: ai.stigmer.billing.v1.AdjustCreditsInput
-	(*AuthorizeExecutionInput)(nil),             // 2: ai.stigmer.billing.v1.AuthorizeExecutionInput
-	(*AuthorizeExecutionResponse)(nil),          // 3: ai.stigmer.billing.v1.AuthorizeExecutionResponse
-	(*RecordLlmCallUsageInput)(nil),             // 4: ai.stigmer.billing.v1.RecordLlmCallUsageInput
-	(*RecordLlmCallUsageResponse)(nil),          // 5: ai.stigmer.billing.v1.RecordLlmCallUsageResponse
-	(*FinalizeExecutionInput)(nil),              // 6: ai.stigmer.billing.v1.FinalizeExecutionInput
-	(*FinalizeExecutionResponse)(nil),           // 7: ai.stigmer.billing.v1.FinalizeExecutionResponse
-	(*CreateCreditCheckoutSessionInput)(nil),    // 8: ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput
-	(*CreateCreditCheckoutSessionResponse)(nil), // 9: ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse
-	(*CreateBillingPortalSessionInput)(nil),     // 10: ai.stigmer.billing.v1.CreateBillingPortalSessionInput
-	(*CreateBillingPortalSessionResponse)(nil),  // 11: ai.stigmer.billing.v1.CreateBillingPortalSessionResponse
-	(*SetAutoRechargeConfigInput)(nil),          // 12: ai.stigmer.billing.v1.SetAutoRechargeConfigInput
-	(*GetBillingAccountInput)(nil),              // 13: ai.stigmer.billing.v1.GetBillingAccountInput
-	(*GetCreditBalanceInput)(nil),               // 14: ai.stigmer.billing.v1.GetCreditBalanceInput
-	(*GetCreditLedgerInput)(nil),                // 15: ai.stigmer.billing.v1.GetCreditLedgerInput
-	(*CreditLedgerResponse)(nil),                // 16: ai.stigmer.billing.v1.CreditLedgerResponse
-	(*GetBillingUsageReportInput)(nil),          // 17: ai.stigmer.billing.v1.GetBillingUsageReportInput
-	(*BillingUsageReportResponse)(nil),          // 18: ai.stigmer.billing.v1.BillingUsageReportResponse
-	(*ModelBillingBreakdown)(nil),               // 19: ai.stigmer.billing.v1.ModelBillingBreakdown
-	(*GetCustomerModelPricingInput)(nil),        // 20: ai.stigmer.billing.v1.GetCustomerModelPricingInput
-	(*CustomerModelPricingResponse)(nil),        // 21: ai.stigmer.billing.v1.CustomerModelPricingResponse
-	(*GetModelPricingGovernanceInput)(nil),      // 22: ai.stigmer.billing.v1.GetModelPricingGovernanceInput
-	(*ModelPricingGovernanceResponse)(nil),      // 23: ai.stigmer.billing.v1.ModelPricingGovernanceResponse
-	(*ModelPricingGovernanceEntry)(nil),         // 24: ai.stigmer.billing.v1.ModelPricingGovernanceEntry
-	(*DecideModelPricingOverrideInput)(nil),     // 25: ai.stigmer.billing.v1.DecideModelPricingOverrideInput
-	(*UpsertModelPricingBaselineInput)(nil),     // 26: ai.stigmer.billing.v1.UpsertModelPricingBaselineInput
-	(*RetireModelPricingBaselineInput)(nil),     // 27: ai.stigmer.billing.v1.RetireModelPricingBaselineInput
-	(*ListModelPricingBaselinesInput)(nil),      // 28: ai.stigmer.billing.v1.ListModelPricingBaselinesInput
-	(*ModelPricingBaselinesResponse)(nil),       // 29: ai.stigmer.billing.v1.ModelPricingBaselinesResponse
-	(*CustomerModelPricingEntry)(nil),           // 30: ai.stigmer.billing.v1.CustomerModelPricingEntry
-	(*v1.TokenUsage)(nil),                       // 31: ai.stigmer.agentic.agentexecution.v1.TokenUsage
-	(v1.UsageCompletionStatus)(0),               // 32: ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus
-	(*v1.ProxyTiming)(nil),                      // 33: ai.stigmer.agentic.agentexecution.v1.ProxyTiming
-	(v1.CursorKeySource)(0),                     // 34: ai.stigmer.agentic.agentexecution.v1.CursorKeySource
-	(*rpc.PageInfo)(nil),                        // 35: ai.stigmer.commons.rpc.PageInfo
-	(LedgerEntryType)(0),                        // 36: ai.stigmer.billing.v1.LedgerEntryType
-	(*timestamppb.Timestamp)(nil),               // 37: google.protobuf.Timestamp
-	(LedgerView)(0),                             // 38: ai.stigmer.billing.v1.LedgerView
-	(*CreditLedgerEntry)(nil),                   // 39: ai.stigmer.billing.v1.CreditLedgerEntry
-	(*ModelPricingOverride)(nil),                // 40: ai.stigmer.billing.v1.ModelPricingOverride
-	(*ModelPricingBaseline)(nil),                // 41: ai.stigmer.billing.v1.ModelPricingBaseline
+	(*GrantCreditsInput)(nil),                   // 2: ai.stigmer.billing.v1.GrantCreditsInput
+	(*AuthorizeExecutionInput)(nil),             // 3: ai.stigmer.billing.v1.AuthorizeExecutionInput
+	(*AuthorizeExecutionResponse)(nil),          // 4: ai.stigmer.billing.v1.AuthorizeExecutionResponse
+	(*RecordLlmCallUsageInput)(nil),             // 5: ai.stigmer.billing.v1.RecordLlmCallUsageInput
+	(*RecordLlmCallUsageResponse)(nil),          // 6: ai.stigmer.billing.v1.RecordLlmCallUsageResponse
+	(*FinalizeExecutionInput)(nil),              // 7: ai.stigmer.billing.v1.FinalizeExecutionInput
+	(*FinalizeExecutionResponse)(nil),           // 8: ai.stigmer.billing.v1.FinalizeExecutionResponse
+	(*CreateCreditCheckoutSessionInput)(nil),    // 9: ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput
+	(*CreateCreditCheckoutSessionResponse)(nil), // 10: ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse
+	(*CreateBillingPortalSessionInput)(nil),     // 11: ai.stigmer.billing.v1.CreateBillingPortalSessionInput
+	(*CreateBillingPortalSessionResponse)(nil),  // 12: ai.stigmer.billing.v1.CreateBillingPortalSessionResponse
+	(*SetAutoRechargeConfigInput)(nil),          // 13: ai.stigmer.billing.v1.SetAutoRechargeConfigInput
+	(*GetBillingAccountInput)(nil),              // 14: ai.stigmer.billing.v1.GetBillingAccountInput
+	(*GetCreditBalanceInput)(nil),               // 15: ai.stigmer.billing.v1.GetCreditBalanceInput
+	(*GetCreditLedgerInput)(nil),                // 16: ai.stigmer.billing.v1.GetCreditLedgerInput
+	(*CreditLedgerResponse)(nil),                // 17: ai.stigmer.billing.v1.CreditLedgerResponse
+	(*GetBillingUsageReportInput)(nil),          // 18: ai.stigmer.billing.v1.GetBillingUsageReportInput
+	(*BillingUsageReportResponse)(nil),          // 19: ai.stigmer.billing.v1.BillingUsageReportResponse
+	(*ModelBillingBreakdown)(nil),               // 20: ai.stigmer.billing.v1.ModelBillingBreakdown
+	(*GetCustomerModelPricingInput)(nil),        // 21: ai.stigmer.billing.v1.GetCustomerModelPricingInput
+	(*CustomerModelPricingResponse)(nil),        // 22: ai.stigmer.billing.v1.CustomerModelPricingResponse
+	(*GetModelPricingGovernanceInput)(nil),      // 23: ai.stigmer.billing.v1.GetModelPricingGovernanceInput
+	(*ModelPricingGovernanceResponse)(nil),      // 24: ai.stigmer.billing.v1.ModelPricingGovernanceResponse
+	(*ModelPricingGovernanceEntry)(nil),         // 25: ai.stigmer.billing.v1.ModelPricingGovernanceEntry
+	(*DecideModelPricingOverrideInput)(nil),     // 26: ai.stigmer.billing.v1.DecideModelPricingOverrideInput
+	(*UpsertModelPricingBaselineInput)(nil),     // 27: ai.stigmer.billing.v1.UpsertModelPricingBaselineInput
+	(*RetireModelPricingBaselineInput)(nil),     // 28: ai.stigmer.billing.v1.RetireModelPricingBaselineInput
+	(*ListModelPricingBaselinesInput)(nil),      // 29: ai.stigmer.billing.v1.ListModelPricingBaselinesInput
+	(*ModelPricingBaselinesResponse)(nil),       // 30: ai.stigmer.billing.v1.ModelPricingBaselinesResponse
+	(*CustomerModelPricingEntry)(nil),           // 31: ai.stigmer.billing.v1.CustomerModelPricingEntry
+	(*timestamppb.Timestamp)(nil),               // 32: google.protobuf.Timestamp
+	(*v1.TokenUsage)(nil),                       // 33: ai.stigmer.agentic.agentexecution.v1.TokenUsage
+	(v1.UsageCompletionStatus)(0),               // 34: ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus
+	(*v1.ProxyTiming)(nil),                      // 35: ai.stigmer.agentic.agentexecution.v1.ProxyTiming
+	(v1.CursorKeySource)(0),                     // 36: ai.stigmer.agentic.agentexecution.v1.CursorKeySource
+	(*rpc.PageInfo)(nil),                        // 37: ai.stigmer.commons.rpc.PageInfo
+	(LedgerEntryType)(0),                        // 38: ai.stigmer.billing.v1.LedgerEntryType
+	(LedgerView)(0),                             // 39: ai.stigmer.billing.v1.LedgerView
+	(*CreditLedgerEntry)(nil),                   // 40: ai.stigmer.billing.v1.CreditLedgerEntry
+	(*ModelPricingOverride)(nil),                // 41: ai.stigmer.billing.v1.ModelPricingOverride
+	(*ModelPricingBaseline)(nil),                // 42: ai.stigmer.billing.v1.ModelPricingBaseline
 }
 var file_ai_stigmer_billing_v1_io_proto_depIdxs = []int32{
-	31, // 0: ai.stigmer.billing.v1.RecordLlmCallUsageInput.tokens:type_name -> ai.stigmer.agentic.agentexecution.v1.TokenUsage
-	32, // 1: ai.stigmer.billing.v1.RecordLlmCallUsageInput.usage_status:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus
-	33, // 2: ai.stigmer.billing.v1.RecordLlmCallUsageInput.proxy_timing:type_name -> ai.stigmer.agentic.agentexecution.v1.ProxyTiming
-	34, // 3: ai.stigmer.billing.v1.RecordLlmCallUsageInput.cursor_key_source:type_name -> ai.stigmer.agentic.agentexecution.v1.CursorKeySource
-	35, // 4: ai.stigmer.billing.v1.GetCreditLedgerInput.page:type_name -> ai.stigmer.commons.rpc.PageInfo
-	36, // 5: ai.stigmer.billing.v1.GetCreditLedgerInput.type_filter:type_name -> ai.stigmer.billing.v1.LedgerEntryType
-	37, // 6: ai.stigmer.billing.v1.GetCreditLedgerInput.start_time:type_name -> google.protobuf.Timestamp
-	37, // 7: ai.stigmer.billing.v1.GetCreditLedgerInput.end_time:type_name -> google.protobuf.Timestamp
-	38, // 8: ai.stigmer.billing.v1.GetCreditLedgerInput.view:type_name -> ai.stigmer.billing.v1.LedgerView
-	39, // 9: ai.stigmer.billing.v1.CreditLedgerResponse.entries:type_name -> ai.stigmer.billing.v1.CreditLedgerEntry
-	37, // 10: ai.stigmer.billing.v1.GetBillingUsageReportInput.start_time:type_name -> google.protobuf.Timestamp
-	37, // 11: ai.stigmer.billing.v1.GetBillingUsageReportInput.end_time:type_name -> google.protobuf.Timestamp
-	19, // 12: ai.stigmer.billing.v1.BillingUsageReportResponse.model_breakdown:type_name -> ai.stigmer.billing.v1.ModelBillingBreakdown
-	30, // 13: ai.stigmer.billing.v1.CustomerModelPricingResponse.entries:type_name -> ai.stigmer.billing.v1.CustomerModelPricingEntry
-	24, // 14: ai.stigmer.billing.v1.ModelPricingGovernanceResponse.entries:type_name -> ai.stigmer.billing.v1.ModelPricingGovernanceEntry
-	40, // 15: ai.stigmer.billing.v1.ModelPricingGovernanceResponse.pending_overrides:type_name -> ai.stigmer.billing.v1.ModelPricingOverride
-	40, // 16: ai.stigmer.billing.v1.ModelPricingGovernanceEntry.active_overrides:type_name -> ai.stigmer.billing.v1.ModelPricingOverride
-	41, // 17: ai.stigmer.billing.v1.UpsertModelPricingBaselineInput.baseline:type_name -> ai.stigmer.billing.v1.ModelPricingBaseline
-	41, // 18: ai.stigmer.billing.v1.ModelPricingBaselinesResponse.baselines:type_name -> ai.stigmer.billing.v1.ModelPricingBaseline
-	19, // [19:19] is the sub-list for method output_type
-	19, // [19:19] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	32, // 0: ai.stigmer.billing.v1.GrantCreditsInput.expires_at:type_name -> google.protobuf.Timestamp
+	33, // 1: ai.stigmer.billing.v1.RecordLlmCallUsageInput.tokens:type_name -> ai.stigmer.agentic.agentexecution.v1.TokenUsage
+	34, // 2: ai.stigmer.billing.v1.RecordLlmCallUsageInput.usage_status:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus
+	35, // 3: ai.stigmer.billing.v1.RecordLlmCallUsageInput.proxy_timing:type_name -> ai.stigmer.agentic.agentexecution.v1.ProxyTiming
+	36, // 4: ai.stigmer.billing.v1.RecordLlmCallUsageInput.cursor_key_source:type_name -> ai.stigmer.agentic.agentexecution.v1.CursorKeySource
+	37, // 5: ai.stigmer.billing.v1.GetCreditLedgerInput.page:type_name -> ai.stigmer.commons.rpc.PageInfo
+	38, // 6: ai.stigmer.billing.v1.GetCreditLedgerInput.type_filter:type_name -> ai.stigmer.billing.v1.LedgerEntryType
+	32, // 7: ai.stigmer.billing.v1.GetCreditLedgerInput.start_time:type_name -> google.protobuf.Timestamp
+	32, // 8: ai.stigmer.billing.v1.GetCreditLedgerInput.end_time:type_name -> google.protobuf.Timestamp
+	39, // 9: ai.stigmer.billing.v1.GetCreditLedgerInput.view:type_name -> ai.stigmer.billing.v1.LedgerView
+	40, // 10: ai.stigmer.billing.v1.CreditLedgerResponse.entries:type_name -> ai.stigmer.billing.v1.CreditLedgerEntry
+	32, // 11: ai.stigmer.billing.v1.GetBillingUsageReportInput.start_time:type_name -> google.protobuf.Timestamp
+	32, // 12: ai.stigmer.billing.v1.GetBillingUsageReportInput.end_time:type_name -> google.protobuf.Timestamp
+	20, // 13: ai.stigmer.billing.v1.BillingUsageReportResponse.model_breakdown:type_name -> ai.stigmer.billing.v1.ModelBillingBreakdown
+	31, // 14: ai.stigmer.billing.v1.CustomerModelPricingResponse.entries:type_name -> ai.stigmer.billing.v1.CustomerModelPricingEntry
+	25, // 15: ai.stigmer.billing.v1.ModelPricingGovernanceResponse.entries:type_name -> ai.stigmer.billing.v1.ModelPricingGovernanceEntry
+	41, // 16: ai.stigmer.billing.v1.ModelPricingGovernanceResponse.pending_overrides:type_name -> ai.stigmer.billing.v1.ModelPricingOverride
+	41, // 17: ai.stigmer.billing.v1.ModelPricingGovernanceEntry.active_overrides:type_name -> ai.stigmer.billing.v1.ModelPricingOverride
+	42, // 18: ai.stigmer.billing.v1.UpsertModelPricingBaselineInput.baseline:type_name -> ai.stigmer.billing.v1.ModelPricingBaseline
+	42, // 19: ai.stigmer.billing.v1.ModelPricingBaselinesResponse.baselines:type_name -> ai.stigmer.billing.v1.ModelPricingBaseline
+	20, // [20:20] is the sub-list for method output_type
+	20, // [20:20] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_billing_v1_io_proto_init() }
@@ -2599,7 +2719,7 @@ func file_ai_stigmer_billing_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_billing_v1_io_proto_rawDesc), len(file_ai_stigmer_billing_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   31,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

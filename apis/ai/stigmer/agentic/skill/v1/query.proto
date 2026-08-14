@@ -45,6 +45,21 @@ service SkillQueryController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
+  // Mint a URL for downloading a skill artifact over HTTP.
+  //
+  // Preferred over getArtifact for anything that might exceed the gRPC
+  // message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
+  // limit is deliverable. Callers should try this first and fall back to
+  // getArtifact against servers that predate it (UNIMPLEMENTED).
+  //
+  // @internal
+  // Authorization is skipped for the same reason as getArtifact: the
+  // content-hash storage key acts as the capability token. Cloud returns a
+  // pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
+  rpc getArtifactDownloadUrl(GetArtifactRequest) returns (SkillArtifactDownloadUrl) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
   // List version history for a skill.
   //
   // Returns all historical versions ordered by push time (newest first).

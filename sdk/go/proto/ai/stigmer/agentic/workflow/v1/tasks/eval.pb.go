@@ -25,15 +25,6 @@ const (
 
 // EvalFailPolicy defines what happens when an eval task determines that
 // the evaluated subject does not meet the quality threshold.
-//
-// @internal
-// Mirrors ValidationFailPolicy from validate tasks, since evaluation
-// failure is semantically analogous to validation failure — the subject
-// did not pass a quality gate. The only difference is that eval uses an
-// LLM judge to assess semantic quality rather than deterministic schema
-// checks.
-//
-// @since T17 (Advanced Agentic Orchestration)
 type EvalFailPolicy int32
 
 const (
@@ -102,12 +93,6 @@ func (EvalFailPolicy) EnumDescriptor() ([]byte, []int) {
 }
 
 // EvalScoringMode defines how the LLM judge scores the subject.
-//
-// @internal
-// The scoring mode determines the response schema enforced on the judge
-// LLM and how the threshold is applied.
-//
-// @since T17 (Advanced Agentic Orchestration)
 type EvalScoringMode int32
 
 const (
@@ -173,13 +158,6 @@ func (EvalScoringMode) EnumDescriptor() ([]byte, []int) {
 }
 
 // EvalCriterion defines a single evaluation dimension for multi-criteria mode.
-//
-// @internal
-// When scoring_mode is EVAL_MULTI_CRITERIA, these criteria are included
-// in the judge prompt as distinct evaluation axes. Each criterion gets
-// its own score and reasoning in the output.
-//
-// @since T17 (Advanced Agentic Orchestration)
 type EvalCriterion struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Name of this evaluation dimension.
@@ -251,94 +229,6 @@ func (x *EvalCriterion) GetWeight() float64 {
 
 // EvalTaskConfig defines the configuration for eval tasks that use an LLM
 // judge to assess the semantic quality of workflow data.
-//
-// @internal
-// Use eval when you need to assess quality, correctness, safety, or
-// completeness of LLM-generated or agent-produced content. This fills the
-// gap between structural validation (validate task — JSON Schema, business
-// rules) and human review (human_input task — manual inspection).
-//
-// The eval task constructs a judge prompt from the rubric and subject,
-// calls the specified LLM with structured output enforcement, parses the
-// judge's response, and applies the threshold to determine pass/fail.
-//
-// Key differences from validate:
-// - validate checks deterministic structural properties (schema, rules)
-// - eval checks semantic quality via an LLM judge (hallucination, relevance, safety)
-//
-// Key differences from llm_call:
-//   - llm_call is a general-purpose LLM invocation
-//   - eval has built-in judge prompt construction, scoring semantics,
-//     threshold application, and on_fail branching
-//
-// Task output structure:
-//
-//	{
-//	  "pass": true/false,
-//	  "score": 0.85,              // present for numeric_score and multi_criteria
-//	  "reasoning": "The response...",
-//	  "criteria": [               // present only for multi_criteria
-//	    {"name": "accuracy", "score": 0.9, "reasoning": "..."},
-//	    {"name": "safety", "score": 0.8, "reasoning": "..."}
-//	  ],
-//	  "model_used": "gpt-4o",
-//	  "subject": <original subject data>
-//	}
-//
-// YAML Example (binary pass/fail evaluation):
-//   - check_summary_quality:
-//     call: eval
-//     with:
-//     model: "gpt-4o"
-//     subject: "${ $context.summarize.text }"
-//     rubric: |
-//     Evaluate whether this summary accurately captures the key points
-//     of the source document without hallucinations or omissions.
-//     The summary should be concise (under 3 sentences) and factually
-//     correct.
-//     scoring_mode: EVAL_PASS_FAIL
-//     on_fail: EVAL_FAIL_BRANCH
-//     fallback_task: regenerate_summary
-//     export:
-//     as: "${ . }"
-//
-// YAML Example (numeric score with threshold):
-//   - score_translation:
-//     call: eval
-//     with:
-//     model: "gpt-4o"
-//     subject: "${ $context.translate.text }"
-//     rubric: |
-//     Rate the quality of this translation on accuracy, fluency,
-//     and preservation of meaning. Score 0.0 (unusable) to 1.0 (perfect).
-//     scoring_mode: EVAL_NUMERIC_SCORE
-//     threshold: 0.7
-//     on_fail: EVAL_FAIL_WARN
-//     export:
-//     as: "${ . }"
-//
-// YAML Example (multi-criteria evaluation):
-//   - evaluate_response:
-//     call: eval
-//     with:
-//     model: "gpt-4o"
-//     subject: "${ $context.agent_response }"
-//     rubric: "Evaluate this customer support response."
-//     scoring_mode: EVAL_MULTI_CRITERIA
-//     threshold: 0.75
-//     criteria:
-//   - name: accuracy
-//     description: "Is the information factually correct?"
-//     weight: 3.0
-//   - name: helpfulness
-//     description: "Does it address the customer's actual question?"
-//     weight: 2.0
-//   - name: tone
-//     description: "Is the tone professional and empathetic?"
-//     weight: 1.0
-//     on_fail: EVAL_FAIL_RAISE
-//     export:
-//     as: "${ . }"
 type EvalTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// LLM model used as the judge.

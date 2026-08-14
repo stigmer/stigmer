@@ -24,21 +24,15 @@ const (
 )
 
 // RaiseTaskConfig defines the configuration for raise_error tasks that raise errors.
-//
-// @internal
-// YAML Example:
-//   - taskName:
-//     raise:
-//     error: ValidationError
-//     message: ${ .errorMessage }
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 11
 type RaiseTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Error type/name.
 	Error string `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
 	// Error message.
 	// Can contain expressions: "${ .errorMessage }"
+	// Optional — when omitted, the raised error carries only the error
+	// type/name. (The runtime maps this to the problem-details `detail`
+	// field only when present; requiring it was contract fiction, #685.)
 	Message       string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -92,10 +86,10 @@ var File_ai_stigmer_agentic_workflow_v1_tasks_raise_proto protoreflect.FileDescr
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_raise_proto_rawDesc = "" +
 	"\n" +
-	"0ai/stigmer/agentic/workflow/v1/tasks/raise.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\"r\n" +
+	"0ai/stigmer/agentic/workflow/v1/tasks/raise.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\"h\n" +
 	"\x0fRaiseTaskConfig\x12$\n" +
-	"\x05error\x18\x01 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\x05error\x12(\n" +
-	"\amessage\x18\x02 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\amessage:\x0f\xea\x8b,\vraise_errorB\xbf\x02\n" +
+	"\x05error\x18\x01 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\x05error\x12\x1e\n" +
+	"\amessage\x18\x02 \x01(\tB\x04\u0605,\x01R\amessage:\x0f\xea\x8b,\vraise_errorB\xbf\x02\n" +
 	"(com.ai.stigmer.agentic.workflow.v1.tasksB\n" +
 	"RaiseProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 

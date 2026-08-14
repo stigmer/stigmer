@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, DecideModelPricingOverrideInput, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, RetireModelPricingBaselineInput, SetAutoRechargeConfigInput, UpsertModelPricingBaselineInput } from "./io_pbjs";
+import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, DecideModelPricingOverrideInput, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, GrantCreditsInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, RetireModelPricingBaselineInput, SetAutoRechargeConfigInput, UpsertModelPricingBaselineInput } from "./io_pbjs";
 import { BillingAccount } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { CreditLedgerEntry } from "./credit_pbjs";
@@ -26,10 +26,6 @@ export const BillingCommandController = {
      * Provision or retrieve the billing account for an organization.
      * Idempotent: creates the account on first call, returns existing on subsequent calls.
      *
-     * @internal
-     * Called during org creation or first billing interaction.
-     * Initializes balance to zero with default thresholds.
-     *
      * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.getOrCreateBillingAccount
      */
     getOrCreateBillingAccount: {
@@ -51,12 +47,26 @@ export const BillingCommandController = {
       kind: MethodKind.Unary,
     },
     /**
+     * Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
+     * Produces an immutable promotional_credit ledger entry for audit.
+     *
+     * The grant burns before adjustment and purchased credits. When expires_at
+     * is set, any remainder unconsumed at that time is removed from the balance
+     * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
+     * Idempotent: replaying an applied idempotency key returns the original
+     * entry, even after the expiry has passed.
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.grantCredits
+     */
+    grantCredits: {
+      name: "grantCredits",
+      I: GrantCreditsInput,
+      O: CreditLedgerEntry,
+      kind: MethodKind.Unary,
+    },
+    /**
      * Reserve credits before starting an agent execution.
      * Returns authorization status and reservation details.
-     *
-     * @internal
-     * Called by the Temporal workflow before dispatching to the agent runner.
-     * The runner must not start if authorized is false.
      *
      * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.authorizeExecution
      */
@@ -71,10 +81,6 @@ export const BillingCommandController = {
      * Computes cost server-side from the model registry, inserts an immutable
      * LlmCallUsageRecord, and debits credits from the execution's reservation.
      *
-     * @internal
-     * Called by the proxy after each LLM SSE stream completes.
-     * Deduplicated by (execution_id, sequence, metering_source).
-     *
      * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.recordLlmCallUsage
      */
     recordLlmCallUsage: {
@@ -86,9 +92,6 @@ export const BillingCommandController = {
     /**
      * Settle billing for a completed execution.
      * Releases unused reservation credits and produces the final billing record.
-     *
-     * @internal
-     * Called by the Temporal workflow after the agent runner completes.
      *
      * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.finalizeExecution
      */

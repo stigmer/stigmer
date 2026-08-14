@@ -9,6 +9,7 @@ kind: IdentityAccount
 metadata:
   name: alice
 spec:
+  idp_id: "auth0|abc123def456"
   email: alice@example.com
   first_name: Alice
   last_name: Smith

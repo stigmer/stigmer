@@ -8,11 +8,6 @@ from ai.stigmer.iam.oauthapp.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_oau
 
 class OAuthAppCommandControllerStub(object):
     """OAuthAppCommandController provides write operations for OAuth app resources.
-
-    @internal
-    OAuthApps hold vendor client credentials (client_secret) and are always
-    org-private. There is no updateVisibility RPC — public visibility is
-    intentionally unsupported to prevent credential leakage.
     """
 
     def __init__(self, channel):
@@ -45,11 +40,6 @@ class OAuthAppCommandControllerStub(object):
 
 class OAuthAppCommandControllerServicer(object):
     """OAuthAppCommandController provides write operations for OAuth app resources.
-
-    @internal
-    OAuthApps hold vendor client credentials (client_secret) and are always
-    org-private. There is no updateVisibility RPC — public visibility is
-    intentionally unsupported to prevent credential leakage.
     """
 
     def apply(self, request, context):
@@ -57,11 +47,6 @@ class OAuthAppCommandControllerServicer(object):
 
         If the resource does not exist, creates a new OAuth app.
         If the resource exists, updates the existing OAuth app.
-
-        @internal
-        The authorization and state-operation are determined depending on whether the
-        OAuth app is going to be created or updated, which is determined as
-        part of the request execution.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -72,9 +57,6 @@ class OAuthAppCommandControllerServicer(object):
 
         The creator's organization owns the OAuth app. The creator is granted
         the owner role automatically.
-
-        @internal
-        Authorization: Requires can_create_oauth_app permission in the organization.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -82,9 +64,6 @@ class OAuthAppCommandControllerServicer(object):
 
     def update(self, request, context):
         """Update an existing OAuth app.
-
-        @internal
-        Authorization: Requires can_edit permission on the oauth_app resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -95,9 +74,6 @@ class OAuthAppCommandControllerServicer(object):
 
         Deletion should be blocked if any McpServer resources reference this
         OAuth app via McpServerVendorOAuth.oauth_app_ref.
-
-        @internal
-        Authorization: Requires can_delete permission on the oauth_app resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -136,11 +112,6 @@ def add_OAuthAppCommandControllerServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class OAuthAppCommandController(object):
     """OAuthAppCommandController provides write operations for OAuth app resources.
-
-    @internal
-    OAuthApps hold vendor client credentials (client_secret) and are always
-    org-private. There is no updateVisibility RPC — public visibility is
-    intentionally unsupported to prevent credential leakage.
     """
 
     @staticmethod

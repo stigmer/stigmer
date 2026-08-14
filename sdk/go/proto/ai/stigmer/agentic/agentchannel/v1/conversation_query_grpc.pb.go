@@ -32,29 +32,12 @@ const (
 // ChannelConversationQueryController serves the console's conversation
 // reads: the org-wide conversation list and each conversation's
 // customer-visible timeline.
-//
-// @internal
-// channel-conversations DD-003/DD-004: the query sibling of
-// ChannelConversationCommandController, on the runtime surface beside the
-// message_* triple (resource CRUD and runtime traffic never mix).
-// Supersedes SessionQueryController.listByChannel as the console's
-// conversation read (DD-004 D-g); listByChannel remains the session-level
-// forensics read underneath a conversation. Cloud-first runtime: the OSS
-// edition answers queries with empty results (the listMessagingChannels
-// discovery-read posture) — "none" is the honest answer, not an error.
 type ChannelConversationQueryControllerClient interface {
 	// List an organization's channel conversations, newest activity first.
 	//
 	// Returns conversations across all of the org's channels the caller can
 	// view, optionally filtered to one channel. Entries carry participation
 	// state and the customer's display name.
-	//
-	// @internal
-	// Org-wide read: no single object to authorize, so authorization is
-	// in-handler — an FGA ListObjects over agent_channel#can_view scopes
-	// the scan (the listByChannel two-stage precedent; DD-010 D-b). A
-	// caller who can view no channel receives an empty list, never an
-	// error. OSS answers empty (cloud-only runtime).
 	ListConversations(ctx context.Context, in *ListChannelConversationsInput, opts ...grpc.CallOption) (*ChannelConversationList, error)
 	// Get one conversation's identity and participation state.
 	//
@@ -62,24 +45,6 @@ type ChannelConversationQueryControllerClient interface {
 	// control, whether the conversation needs attention and why, the
 	// customer's display name, and the activity clocks. Answers NOT_FOUND
 	// until the customer's first message creates the conversation.
-	//
-	// @internal
-	// channel-conversations T04: the get sibling of listConversations, so
-	// a deep-linked console view or an embedded conversation surface never
-	// reconstructs one row by scanning list pages — and the open
-	// conversation can poll its own participation state instead of riding
-	// the list's slower refresh. Authorization is declarative on the
-	// channel, exactly getTimeline's shape (DD-003 D-a: conversations
-	// carry no per-conversation FGA tuples — the channel is the trust
-	// boundary). NOT_FOUND deliberately covers the timeline-without-row
-	// case (a proactive cold-send the customer never answered): getTimeline
-	// may serve items while this read refuses, the same "the customer
-	// wrote first" asymmetry reply's existing-conversation precondition
-	// enforces (T03 Sitting 2's A8) — consoles render that as "controls
-	// unlock when the customer writes", not as an error. OSS answers
-	// NOT_FOUND unconditionally: this edition never materializes
-	// conversations (cloud-only runtime), and a single-row get cannot
-	// answer "empty" the way the sibling discovery reads do.
 	GetConversation(ctx context.Context, in *GetChannelConversationInput, opts ...grpc.CallOption) (*ChannelConversation, error)
 	// Get one conversation's timeline, newest first, cursor-paged.
 	//
@@ -87,15 +52,6 @@ type ChannelConversationQueryControllerClient interface {
 	// messages (including non-text kinds the platform cannot render),
 	// delivered agent replies, and operator or platform sends. Execution
 	// internals never appear.
-	//
-	// @internal
-	// channel-conversations DD-004: stitched on read from the webhook
-	// event store, the delivery store (via the same last-AI-message
-	// extraction the delivery posted — never execution transcripts), and
-	// the outbound ledger; internal-lane events join as the fourth source
-	// in T03. Authorization is declarative on the channel: conversations
-	// carry no per-conversation FGA tuples (DD-003 D-a) — the channel is
-	// the trust boundary.
 	GetTimeline(ctx context.Context, in *GetConversationTimelineInput, opts ...grpc.CallOption) (*ConversationTimeline, error)
 	// Mint a short-lived download URL for one inbound timeline item's
 	// media file (an image or document the customer sent).
@@ -103,18 +59,6 @@ type ChannelConversationQueryControllerClient interface {
 	// Answers NOT_FOUND when the item does not exist in this conversation
 	// or carries no ingested media (a text item, or media the platform
 	// declined to ingest).
-	//
-	// @internal
-	// whatsapp-media DD-001 D4: addressed by (channel, conversation,
-	// item_id) so the server resolves the storage key from its own row —
-	// the wire never carries blob capabilities, and authorization is
-	// declarative on the channel exactly like getTimeline (the channel is
-	// the trust boundary, DD-003 D-a). Deliberately stricter than the
-	// attachments-blob posture (authentication-only, ULID-as-capability)
-	// that the runner's download path rides: this is the human-facing
-	// read surface and law-firm client documents travel this pipeline.
-	// OSS answers NOT_FOUND unconditionally (cloud-only runtime, the
-	// getConversation posture).
 	GetMediaDownloadUrl(ctx context.Context, in *GetConversationMediaDownloadUrlInput, opts ...grpc.CallOption) (*ConversationMediaDownloadUrl, error)
 }
 
@@ -173,29 +117,12 @@ func (c *channelConversationQueryControllerClient) GetMediaDownloadUrl(ctx conte
 // ChannelConversationQueryController serves the console's conversation
 // reads: the org-wide conversation list and each conversation's
 // customer-visible timeline.
-//
-// @internal
-// channel-conversations DD-003/DD-004: the query sibling of
-// ChannelConversationCommandController, on the runtime surface beside the
-// message_* triple (resource CRUD and runtime traffic never mix).
-// Supersedes SessionQueryController.listByChannel as the console's
-// conversation read (DD-004 D-g); listByChannel remains the session-level
-// forensics read underneath a conversation. Cloud-first runtime: the OSS
-// edition answers queries with empty results (the listMessagingChannels
-// discovery-read posture) — "none" is the honest answer, not an error.
 type ChannelConversationQueryControllerServer interface {
 	// List an organization's channel conversations, newest activity first.
 	//
 	// Returns conversations across all of the org's channels the caller can
 	// view, optionally filtered to one channel. Entries carry participation
 	// state and the customer's display name.
-	//
-	// @internal
-	// Org-wide read: no single object to authorize, so authorization is
-	// in-handler — an FGA ListObjects over agent_channel#can_view scopes
-	// the scan (the listByChannel two-stage precedent; DD-010 D-b). A
-	// caller who can view no channel receives an empty list, never an
-	// error. OSS answers empty (cloud-only runtime).
 	ListConversations(context.Context, *ListChannelConversationsInput) (*ChannelConversationList, error)
 	// Get one conversation's identity and participation state.
 	//
@@ -203,24 +130,6 @@ type ChannelConversationQueryControllerServer interface {
 	// control, whether the conversation needs attention and why, the
 	// customer's display name, and the activity clocks. Answers NOT_FOUND
 	// until the customer's first message creates the conversation.
-	//
-	// @internal
-	// channel-conversations T04: the get sibling of listConversations, so
-	// a deep-linked console view or an embedded conversation surface never
-	// reconstructs one row by scanning list pages — and the open
-	// conversation can poll its own participation state instead of riding
-	// the list's slower refresh. Authorization is declarative on the
-	// channel, exactly getTimeline's shape (DD-003 D-a: conversations
-	// carry no per-conversation FGA tuples — the channel is the trust
-	// boundary). NOT_FOUND deliberately covers the timeline-without-row
-	// case (a proactive cold-send the customer never answered): getTimeline
-	// may serve items while this read refuses, the same "the customer
-	// wrote first" asymmetry reply's existing-conversation precondition
-	// enforces (T03 Sitting 2's A8) — consoles render that as "controls
-	// unlock when the customer writes", not as an error. OSS answers
-	// NOT_FOUND unconditionally: this edition never materializes
-	// conversations (cloud-only runtime), and a single-row get cannot
-	// answer "empty" the way the sibling discovery reads do.
 	GetConversation(context.Context, *GetChannelConversationInput) (*ChannelConversation, error)
 	// Get one conversation's timeline, newest first, cursor-paged.
 	//
@@ -228,15 +137,6 @@ type ChannelConversationQueryControllerServer interface {
 	// messages (including non-text kinds the platform cannot render),
 	// delivered agent replies, and operator or platform sends. Execution
 	// internals never appear.
-	//
-	// @internal
-	// channel-conversations DD-004: stitched on read from the webhook
-	// event store, the delivery store (via the same last-AI-message
-	// extraction the delivery posted — never execution transcripts), and
-	// the outbound ledger; internal-lane events join as the fourth source
-	// in T03. Authorization is declarative on the channel: conversations
-	// carry no per-conversation FGA tuples (DD-003 D-a) — the channel is
-	// the trust boundary.
 	GetTimeline(context.Context, *GetConversationTimelineInput) (*ConversationTimeline, error)
 	// Mint a short-lived download URL for one inbound timeline item's
 	// media file (an image or document the customer sent).
@@ -244,18 +144,6 @@ type ChannelConversationQueryControllerServer interface {
 	// Answers NOT_FOUND when the item does not exist in this conversation
 	// or carries no ingested media (a text item, or media the platform
 	// declined to ingest).
-	//
-	// @internal
-	// whatsapp-media DD-001 D4: addressed by (channel, conversation,
-	// item_id) so the server resolves the storage key from its own row —
-	// the wire never carries blob capabilities, and authorization is
-	// declarative on the channel exactly like getTimeline (the channel is
-	// the trust boundary, DD-003 D-a). Deliberately stricter than the
-	// attachments-blob posture (authentication-only, ULID-as-capability)
-	// that the runner's download path rides: this is the human-facing
-	// read surface and law-firm client documents travel this pipeline.
-	// OSS answers NOT_FOUND unconditionally (cloud-only runtime, the
-	// getConversation posture).
 	GetMediaDownloadUrl(context.Context, *GetConversationMediaDownloadUrlInput) (*ConversationMediaDownloadUrl, error)
 }
 

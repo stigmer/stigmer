@@ -87,29 +87,6 @@ class IamPolicyCommandControllerServicer(object):
 
         Creates a single IAM policy that grants a principal access to a resource with a specific relation.
         This is the fundamental operation for establishing permissions.
-
-        @internal
-        The operation:
-        1. Validates the input (principal, resource, relation are all valid)
-        2. Checks for duplicates (skips if the exact policy already exists, idempotent)
-        3. Creates the policy in the database with auto-generated ID and metadata
-        4. Writes the corresponding tuple to OpenFGA (where authorization is enforced)
-
-        Authorization:
-        - Caller must have 'can_grant_access' permission on the RESOURCE being shared
-        - This ensures only resource owners/admins can grant access to their resources
-
-        Example:
-        Input:
-        principal: {kind: "identity_account", id: "ia_alice-123"}
-        resource: {kind: "organization", id: "org_demo-456"}
-        relation: "viewer"
-        Result:
-        Created IamPolicy with auto-generated ID (e.g., "iamp_01HQ...")
-        Alice can view (but not modify) the organization
-
-        Input: IamPolicySpec containing principal, resource, and relation
-        Output: The created IamPolicy with generated ID and metadata
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -120,31 +97,6 @@ class IamPolicyCommandControllerServicer(object):
 
         Removes an existing IAM policy by matching the principal, resource, and relation.
         This is a surgical operation — it removes one specific policy without affecting others.
-
-        @internal
-        The operation:
-        1. Finds the policy by matching principal+resource+relation
-        2. Removes it from the database
-        3. Deletes the corresponding tuple from OpenFGA
-        4. If no matching policy exists, the operation is idempotent (no error)
-
-        Authorization:
-        - Caller must have 'can_grant_access' permission on the RESOURCE referenced in the policy
-
-        Use Cases:
-        - Revoking a specific permission from a user
-        - Removing access after a team member leaves
-        - Cleaning up individual policies
-
-        Example:
-        Input:
-        principal: {kind: "identity_account", id: "ia_alice-123"}
-        resource: {kind: "organization", id: "org_demo-456"}
-        relation: "viewer"
-        Result: The policy granting Alice viewer access to the organization is deleted
-
-        Input: IamPolicySpec identifying the policy to delete (principal, resource, relation)
-        Output: The deleted IamPolicy object (for audit/confirmation purposes)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -155,41 +107,6 @@ class IamPolicyCommandControllerServicer(object):
 
         Creates IAM policies during resource creation when standard authorization cannot work yet
         because no tuples exist.
-
-        @internal
-        Solves the chicken-and-egg problem where creating the first policy for a resource
-        requires authorization, but authorization requires that first policy.
-
-        The operation:
-        1. Validates that caller has can_bootstrap_iam permission on platform:stigmer
-        2. Validates the input (principal, resource, relation are all valid)
-        3. Checks for duplicates (skips if the exact policy already exists, idempotent)
-        4. Creates the policy in the database with auto-generated ID and metadata
-        5. Writes the corresponding tuple to OpenFGA (where authorization is enforced)
-
-        Authorization:
-        - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
-        - This is typically only called by resource creation handlers running as machine accounts
-
-        Use Cases:
-        - Creating scope links (agent#organization@organization:acme) during agent creation
-        - Creating owner relations (agent#owner@identity_account:alice) during agent creation
-        - Establishing initial authorization tuples for any newly created resource
-
-        Example:
-        Input:
-        principal: {kind: "organization", id: "org_demo-123"}
-        resource: {kind: "agent", id: "agt_abc-456"}
-        relation: "organization"
-        Result:
-        Created IamPolicy establishing agent's organization scope
-        Subsequent IAM policy operations can now use standard authorization
-
-        Note: After the bootstrap policies are created, subsequent IAM policy modifications
-        must use the standard 'create' RPC which requires 'can_grant_access' permission.
-
-        Input: IamPolicySpec containing principal, resource, and relation
-        Output: The created IamPolicy with generated ID and metadata
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -199,34 +116,6 @@ class IamPolicyCommandControllerServicer(object):
         """Cleanup all IAM policies for a deleted resource.
 
         Removes all IAM policies associated with a deleted resource.
-
-        @internal
-        Performs bidirectional cleanup:
-        1. Policies where resource is the TARGET (policies granting access TO this resource)
-        2. Policies where resource is the PRINCIPAL (policies where this resource HAS access)
-
-        The operation:
-        1. Validates can_bootstrap_iam permission on platform:stigmer
-        2. Finds all policies where resource_id appears (as principal OR resource)
-        3. Deletes all matching policies from MongoDB
-        4. Removes all corresponding tuples from OpenFGA
-        5. Returns Empty (idempotent if no policies exist)
-
-        Authorization:
-        - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
-        - This is typically only granted to platform services
-
-        Use Cases:
-        - Resource deletion cleanup
-        - Preventing orphaned FGA tuples
-        - Maintaining authorization system integrity
-
-        Example:
-        Input: {kind: "organization", id: "org_demo-123"}
-        Result: All policies referencing org_demo-123 are deleted
-
-        Input: ApiResourceRef with resource kind and ID
-        Output: Empty (google.protobuf.Empty)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -238,27 +127,6 @@ class IamPolicyCommandControllerServicer(object):
         Removes every IAM policy that grants the specified identity account access to
         resources within the given organization, including policies on the organization
         itself and on child resources (environments, agents, etc.).
-
-        @internal
-        The operation:
-        1. Validates the input (identity_account_id and organization_id are present)
-        2. Authorizes caller (can_grant_access on the organization)
-        3. Loads all policies where the user is principal within the org scope
-        4. Deletes all matching policies from MongoDB
-        5. Removes all corresponding tuples from OpenFGA
-
-        Authorization:
-        - Caller must have 'can_grant_access' permission on the organization
-        - System flows running as the platform machine account cannot satisfy this
-        check (the machine account holds no org-scoped grants by design) and must
-        use bootstrapRevokeOrgAccess instead
-
-        Use Cases:
-        - Removing a member from an organization
-        - Offboarding a user from all org resources in one operation
-
-        Input: RevokeOrgAccessInput with identity_account_id and organization_id
-        Output: Empty (google.protobuf.Empty)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -270,36 +138,6 @@ class IamPolicyCommandControllerServicer(object):
         The system-flow twin of revokeOrgAccess: identical revocation behavior, but
         authorized by can_bootstrap_iam on platform:stigmer instead of
         can_grant_access on the organization.
-
-        @internal
-        Exists because system flows execute the revoke as the platform machine
-        account, which by design holds no org-scoped grants. The system channel does
-        NOT bypass authorization — it authenticates as the machine account, which
-        can only satisfy platform-scoped permissions. revokeOrgAccess therefore
-        always fails with PERMISSION_DENIED on the system channel; this RPC is the
-        sanctioned path, mirroring how bootstrapPolicy is the system-path twin of
-        create (see https://github.com/stigmer/stigmer/issues/332).
-
-        The operation (identical to revokeOrgAccess after authorization):
-        1. Validates can_bootstrap_iam permission on platform:stigmer
-        2. Loads all policies where the identity account is principal within the org
-        scope, plus policies directly on the organization itself
-        3. Deletes all matching policies from MongoDB
-        4. Removes all corresponding tuples from OpenFGA (idempotent if none exist)
-
-        Authorization:
-        - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
-        - This is typically only granted to platform services (machine accounts)
-
-        Use Cases:
-        - Federated account deprovisioning (deprovisionFederatedAccount's revoke step)
-        - Any platform-driven offboarding that runs under system credentials
-
-        End-user member removal must use revokeOrgAccess, which checks
-        can_grant_access on the organization.
-
-        Input: RevokeOrgAccessInput with identity_account_id and organization_id
-        Output: Empty (google.protobuf.Empty)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

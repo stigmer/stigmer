@@ -93,10 +93,6 @@ class AgentExecutionQueryControllerServicer(object):
 
     def listBySession(self, request, context):
         """List all executions in a specific session.
-
-        @internal
-        Authorization is handled in handler via FGA query for authorized agent_execution_ids,
-        then filtered by session_id. This ensures consistent authorization pattern across all list operations.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -104,9 +100,6 @@ class AgentExecutionQueryControllerServicer(object):
 
     def subscribe(self, request, context):
         """Subscribe to real-time execution updates (streaming).
-
-        @internal
-        Authorization is handled by the FJ model via proto configuration.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -125,48 +118,6 @@ class AgentExecutionQueryControllerServicer(object):
         an agent during execution, or an attachment submitted with the
         execution. The URL can be used with a simple HTTP GET request without
         authentication.
-
-        @internal
-
-        ## Authorization
-
-        Requires can_view permission on the execution. This ensures users can
-        only download files from executions they have access to.
-
-        ## Security
-
-        The storage_key is validated to ensure it belongs to the specified
-        execution. Two key forms are accepted:
-
-        - "artifacts/{execution_id}/..." — outputs published by the execution;
-        the embedded execution id is the ownership proof
-        - a key listed verbatim in the execution's spec.attachments — inputs
-        submitted with the turn ("attachments/{ulid}/{filename}", ULID-unique
-        per upload); ownership is the spec reference, since the key carries
-        no execution id
-
-        Any other key is rejected to prevent path traversal attacks.
-
-        ## URL Expiration
-
-        Download URLs expire after 7 days (configurable). After expiration,
-        call this endpoint again to get a fresh URL.
-
-        ## Use Cases
-
-        - CLI downloading agent-created files
-        - Web UI providing download links for artifacts
-        - Web UI rendering submitted attachments in the message thread
-        - Refreshing expired download URLs
-
-        ## Example Flow
-
-        1. Get execution via AgentExecutionQueryController.get
-        2. Find artifact in status.artifacts[] (or attachment in spec.attachments[])
-        3. Call getArtifactDownloadUrl with execution_id and storage_key
-        4. Use returned download_url for HTTP GET
-
-        @since Artifact Lifecycle (Attachments & Artifacts)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -181,35 +132,6 @@ class AgentExecutionQueryControllerServicer(object):
 
         For direct file downloads, use getArtifactDownloadUrl instead — it
         returns a presigned R2 URL that avoids proxying bytes through the server.
-
-        @internal
-
-        ## Authorization
-
-        Requires can_view permission on the execution. This ensures users can
-        only read artifacts from executions they have access to.
-
-        ## Security
-
-        The storage_key is validated to ensure it belongs to the specified
-        execution. Keys must start with "artifacts/{execution_id}/" to prevent
-        path traversal attacks.
-
-        ## Size Limit
-
-        Content is truncated to max_bytes (default: 512 KB). The response
-        includes total_size_bytes and a truncated flag so callers can decide
-        whether to offer a full download via getArtifactDownloadUrl.
-
-        ## Example Flow
-
-        1. Get execution via AgentExecutionQueryController.get
-        2. Find artifact in status.artifacts[]
-        3. Call getArtifactContent with execution_id and storage_key
-        4. Decode content bytes as UTF-8 for text artifacts
-        5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)
-
-        @since Artifact Lifecycle (Attachments & Artifacts)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -249,14 +171,6 @@ class AgentExecutionQueryControllerServicer(object):
         organization named in org_id; executions outside that organization are
         never included, so the report is the per-agent drill-down of
         getOrgUsageReport.
-
-        @internal
-        Org-scoped by design (oss#389). Agent can_view is a consumption
-        permission — public agents grant it to every authenticated account via
-        the FGA wildcard — so gating on the agent would leak cross-tenant usage.
-        Gating on the organization also keeps other tenants' sessions of a
-        shared agent out of the report. Consumed by the CLI (`stigmer usage
-        agent`).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -284,23 +198,6 @@ class AgentExecutionQueryControllerServicer(object):
 
         Returns counts by phase, active count, average duration, and top failing
         agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
-
-        @internal
-        Authorization:
-        Custom authorization — user must have organization-level access.
-        Results are scoped to the user's organization.
-
-        Use Cases:
-
-        1. Unified Dashboard Overview:
-        - Display combined agent + workflow KPI cards
-        - Agent phase counts are merged client-side with workflow phase counts
-
-        2. Reliability Monitoring:
-        - Surface top failing agents for investigation
-        - Track failure rates across the organization
-
-        @since Unified Platform Dashboard
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

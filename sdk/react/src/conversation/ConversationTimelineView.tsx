@@ -4,6 +4,7 @@ import { memo, useMemo } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Ban, Check, CheckCheck, Clock, Info, MessageSquare, TriangleAlert } from "lucide-react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
 import type { ConversationTimelineItem } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
 import { channelProviderOf, type ChannelProviderId } from "../channel/providers.js";
@@ -165,7 +166,7 @@ export function ConversationTimelineView({
                   >
                     {day.label}
                   </div>
-                  <ul className="stg:space-y-1.5">
+                  <ul className={cn(UNSTYLED_LIST, "stg:space-y-1.5")}>
                     {day.items.map((item) => (
                       <TimelineItemRow
                         key={item.itemId}

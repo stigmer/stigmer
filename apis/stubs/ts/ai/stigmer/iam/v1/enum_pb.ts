@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/iam/v1/enum.proto.
  */
 export const file_ai_stigmer_iam_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("ChxhaS9zdGlnbWVyL2lhbS92MS9lbnVtLnByb3RvEhFhaS5zdGlnbWVyLmlhbS52MSqTBwoNSWFtUGVybWlzc2lvbhIPCgt1bnNwZWNpZmllZBAAEgwKCGNhbl92aWV3EAESDAoIY2FuX2VkaXQQAhIOCgpjYW5fZGVsZXRlEAMSFAoQY2FuX2dyYW50X2FjY2VzcxAEEhMKD2Nhbl92aWV3X2FjY2VzcxAFEhQKEGNhbl9jcmVhdGVfYWdlbnQQBhIXChNjYW5fY3JlYXRlX3dvcmtmbG93EAcSFgoSY2FuX2NyZWF0ZV9zZXNzaW9uEAgSFAoQY2FuX2NyZWF0ZV9za2lsbBAJEhYKEmNhbl9jcmVhdGVfcHJvamVjdBAKEhIKDmNhbl9jcmVhdGVfaWRwEAsSGgoWY2FuX2NyZWF0ZV9lbnZpcm9ubWVudBAMEh8KG2Nhbl9jcmVhdGVfaWRlbnRpdHlfYWNjb3VudBAVEhgKFGNhbl9jcmVhdGVfb2F1dGhfYXBwEBcSHgoaY2FuX2NyZWF0ZV9wbGF0Zm9ybV9jbGllbnQQGBIbChdjYW5fY3JlYXRlX2V4ZWN1dGlvbl9pbhANEhcKE2Nhbl9jcmVhdGVfaW5zdGFuY2UQDhIPCgtjYW5fZXhlY3V0ZRAPEhQKEGNhbl9yZWFkX3NlY3JldHMQEBIVChFjYW5fYm9vdHN0cmFwX2lhbRAREiAKHGNhbl9tYW5hZ2VfaWRlbnRpdHlfYWNjb3VudHMQEhIYChRsb2dpbl90b19iYWNrX29mZmljZRAUEg8KC2Nhbl9jb25uZWN0EBYSFQoRY2FuX2NyZWF0ZV9ydW5uZXIQGRIaChJjYW5fZGVsZXRlX3Nlc3Npb24QGhoCCAESFAoQY2FuX3ZpZXdfYmlsbGluZxAbEhYKEmNhbl9tYW5hZ2VfYmlsbGluZxAcEhsKF2Nhbl9leGVjdXRlX2JpbGxpbmdfb3BzEB0SGgoWY2FuX2NyZWF0ZV9hZ2VudF9zaGFyZRAeEhoKFmNhbl9jcmVhdGVfY2hhbm5lbF9hcHAQHxIcChhjYW5fbWFuYWdlX21vZGVsX3ByaWNpbmcQIBIeChpjYW5fbWFuYWdlX2N1cnNvcl9hY2NvdW50cxAjEhMKD2Nhbl9wYXJ0aWNpcGF0ZRAkEh0KGWNhbl93cml0ZV9yZXNlcnZlZF9sYWJlbHMQJSIECCEQISIECCIQIioPY2FuX3VzZV9yZWNvcmRzKhRjYW5fY3JlYXRlX2RhdGFzdG9yZSpiCgdJYW1Sb2xlEhgKFGlhbV9yb2xlX3Vuc3BlY2lmaWVkEAASCQoFb3duZXIQARIJCgVhZG1pbhACEgoKBm1lbWJlchADEgoKBnZpZXdlchAEEg8KC3BhcnRpY2lwYW50EAViBnByb3RvMw");
+  fileDesc("ChxhaS9zdGlnbWVyL2lhbS92MS9lbnVtLnByb3RvEhFhaS5zdGlnbWVyLmlhbS52MSrSBwoNSWFtUGVybWlzc2lvbhIPCgt1bnNwZWNpZmllZBAAEgwKCGNhbl92aWV3EAESDAoIY2FuX2VkaXQQAhIOCgpjYW5fZGVsZXRlEAMSFAoQY2FuX2dyYW50X2FjY2VzcxAEEhMKD2Nhbl92aWV3X2FjY2VzcxAFEhQKEGNhbl9jcmVhdGVfYWdlbnQQBhIXChNjYW5fY3JlYXRlX3dvcmtmbG93EAcSFgoSY2FuX2NyZWF0ZV9zZXNzaW9uEAgSFAoQY2FuX2NyZWF0ZV9za2lsbBAJEhYKEmNhbl9jcmVhdGVfcHJvamVjdBAKEhIKDmNhbl9jcmVhdGVfaWRwEAsSGgoWY2FuX2NyZWF0ZV9lbnZpcm9ubWVudBAMEh8KG2Nhbl9jcmVhdGVfaWRlbnRpdHlfYWNjb3VudBAVEhgKFGNhbl9jcmVhdGVfb2F1dGhfYXBwEBcSHgoaY2FuX2NyZWF0ZV9wbGF0Zm9ybV9jbGllbnQQGBIbChdjYW5fY3JlYXRlX2V4ZWN1dGlvbl9pbhANEhcKE2Nhbl9jcmVhdGVfaW5zdGFuY2UQDhIPCgtjYW5fZXhlY3V0ZRAPEhQKEGNhbl9yZWFkX3NlY3JldHMQEBIVChFjYW5fYm9vdHN0cmFwX2lhbRAREiAKHGNhbl9tYW5hZ2VfaWRlbnRpdHlfYWNjb3VudHMQEhIYChRsb2dpbl90b19iYWNrX29mZmljZRAUEg8KC2Nhbl9jb25uZWN0EBYSFQoRY2FuX2NyZWF0ZV9ydW5uZXIQGRIaChJjYW5fZGVsZXRlX3Nlc3Npb24QGhoCCAESFAoQY2FuX3ZpZXdfYmlsbGluZxAbEhYKEmNhbl9tYW5hZ2VfYmlsbGluZxAcEhsKF2Nhbl9leGVjdXRlX2JpbGxpbmdfb3BzEB0SGgoWY2FuX2NyZWF0ZV9hZ2VudF9zaGFyZRAeEhoKFmNhbl9jcmVhdGVfY2hhbm5lbF9hcHAQHxIcChhjYW5fbWFuYWdlX21vZGVsX3ByaWNpbmcQIBIeChpjYW5fbWFuYWdlX2N1cnNvcl9hY2NvdW50cxAjEhMKD2Nhbl9wYXJ0aWNpcGF0ZRAkEh0KGWNhbl93cml0ZV9yZXNlcnZlZF9sYWJlbHMQJRIeChpjYW5fdmlld19wcm92aWRlcl9zdGFuZGluZxAmEh0KGWNhbl9zZXRfcHVibGljX3Zpc2liaWxpdHkQJyIECCEQISIECCIQIioPY2FuX3VzZV9yZWNvcmRzKhRjYW5fY3JlYXRlX2RhdGFzdG9yZSpiCgdJYW1Sb2xlEhgKFGlhbV9yb2xlX3Vuc3BlY2lmaWVkEAASCQoFb3duZXIQARIJCgVhZG1pbhACEgoKBm1lbWJlchADEgoKBnZpZXdlchAEEg8KC3BhcnRpY2lwYW50EAViBnByb3RvMw");
 
 /**
  * IamPermission defines the permissions checked by the authorization
@@ -251,12 +251,6 @@ export enum IamPermission {
    * conversations: reply to customers as the business, take over and
    * hand back the control token, and clear the attention flag.
    *
-   * @internal
-   * channel-conversations DD-010: computed from the participant role on
-   * agent_channel. Deliberately distinct from can_edit — "may talk to
-   * this channel's customers" and "may configure this channel" are
-   * different powers, and the ISC pilot's trainers hold only the first.
-   *
    * @generated from enum value: can_participate = 36;
    */
   can_participate = 36,
@@ -273,6 +267,34 @@ export enum IamPermission {
    * @generated from enum value: can_write_reserved_labels = 37;
    */
   can_write_reserved_labels = 37,
+
+  /**
+   * Platform-level permission to view platform provider standing: the
+   * canary-probe verdicts (health, billing/auth rejections, latency) for
+   * the platform's own LLM provider accounts. Read-only and gated to
+   * platform operators — provider account health is platform-internal,
+   * never org-visible. Deliberately distinct from the manage-class
+   * platform permissions: the standing console only observes (cloud#447).
+   *
+   * @generated from enum value: can_view_provider_standing = 38;
+   */
+  can_view_provider_standing = 38,
+
+  /**
+   * Platform-level permission to set a resource's visibility to PUBLIC —
+   * the only level that crosses every org boundary (the cross-org
+   * "explore" catalog). Gated to platform operators in the cloud
+   * edition: public listing is a curation decision, requested by the
+   * owner and granted by the platform team. Enforced at BOTH doors a
+   * resource can become public through — updateVisibility escalation and
+   * create-with-public — while org/platform levels and un-publishing
+   * stay self-service (resource can_edit). The OSS edition is
+   * deliberately unguarded: the self-hosted operator owns the store,
+   * the same scoping cloud#320 applied to reserved labels.
+   *
+   * @generated from enum value: can_set_public_visibility = 39;
+   */
+  can_set_public_visibility = 39,
 }
 
 /**
@@ -333,13 +355,6 @@ export enum IamRole {
    * Conversation participant on an agent channel: may read the channel's
    * conversations and speak to its customers as the business (reply, take
    * over, hand back, clear attention). Not a channel configurator.
-   *
-   * @internal
-   * channel-conversations DD-010. Grantable only on agent_channel — the
-   * second kind-scoped role after organization's admin/member; the
-   * grantable_roles subsetting is the mechanism, not a new one. Team
-   * usersets ([team#member]) are the named widening the day a team FGA
-   * type lands.
    *
    * @generated from enum value: participant = 5;
    */

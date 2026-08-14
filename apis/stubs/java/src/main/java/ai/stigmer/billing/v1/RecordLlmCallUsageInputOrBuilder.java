@@ -335,4 +335,40 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * @return The cursorKeySource.
    */
   ai.stigmer.agentic.agentexecution.v1.CursorKeySource getCursorKeySource();
+
+  /**
+   * <pre>
+   * Provider-reported service tier that actually served this call
+   * (native harness, stigmer/stigmer#361): Anthropic reports it in the
+   * response usage ("standard" | "priority" | "batch"), OpenAI at the
+   * response top level ("default" | "flex" | "priority"). Reported
+   * verbatim by the proxy from the SSE stream — the wire truth billing
+   * reconciles against the execution's REQUESTED tier (the
+   * service_tier.mismatch counter). Empty when the provider reported
+   * none, and for cursor-harness calls, whose billed variant arrives
+   * through the cursor path's pricing-variant resolution instead.
+   * </pre>
+   *
+   * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>
+   * @return The servedServiceTier.
+   */
+  java.lang.String getServedServiceTier();
+  /**
+   * <pre>
+   * Provider-reported service tier that actually served this call
+   * (native harness, stigmer/stigmer#361): Anthropic reports it in the
+   * response usage ("standard" | "priority" | "batch"), OpenAI at the
+   * response top level ("default" | "flex" | "priority"). Reported
+   * verbatim by the proxy from the SSE stream — the wire truth billing
+   * reconciles against the execution's REQUESTED tier (the
+   * service_tier.mismatch counter). Empty when the provider reported
+   * none, and for cursor-harness calls, whose billed variant arrives
+   * through the cursor path's pricing-variant resolution instead.
+   * </pre>
+   *
+   * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>
+   * @return The bytes for servedServiceTier.
+   */
+  com.google.protobuf.ByteString
+      getServedServiceTierBytes();
 }

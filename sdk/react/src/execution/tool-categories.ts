@@ -1,16 +1,22 @@
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
-import { ToolKind, resolveToolKind, resolveToolKindByName } from "@stigmer/sdk";
+import {
+  ToolKind,
+  resolveToolKind,
+  resolveToolKindByName,
+  shellIntentFromArgs,
+} from "@stigmer/sdk";
 
 /**
  * Discriminated tool categories for type-aware rendering.
  *
  * This is the presentation taxonomy. Classification (name -> kind) lives in
  * `@stigmer/sdk`'s `resolveToolKind` (single source of truth, shared with the
- * runner and Go CLI); this file maps each {@link ToolKind} to its presentation
- * metadata (label, primary argument). `"mcp"` covers tools originating from an
- * MCP server, whose names are dynamic.
+ * runner, @stigmer/ink, and the CLI's headless renderers); this file maps each
+ * {@link ToolKind} to its presentation metadata (label, primary argument).
+ * `"mcp"` covers tools originating from an MCP server, whose names are
+ * dynamic.
  */
 export type ToolCategory =
   | "shell"
@@ -192,6 +198,14 @@ export interface ToolCategoryInfo {
   readonly primaryArgField: string;
   /** Fallback argument keys tried when the primary key is absent. */
   readonly fallbackArgFields: readonly string[];
+  /**
+   * JSON argument key carrying a model-authored intent phrase for this kind
+   * (stigmer#276), or `undefined` for kinds without one. Shell is the only
+   * carrier today: both harnesses converge on `description` — the Cursor
+   * harness's built-in Shell tool ships it natively, and the native harness's
+   * tool-intent middleware adds it to the `execute` schema at bind time.
+   */
+  readonly intentArgField?: string;
 }
 
 interface KindDisplayEntry {
@@ -199,6 +213,7 @@ interface KindDisplayEntry {
   readonly label: string;
   readonly primaryField: string;
   readonly fallbackFields?: readonly string[];
+  readonly intentField?: string;
 }
 
 // Presentation metadata per ToolKind. Classification (name -> kind) is owned by
@@ -209,7 +224,7 @@ const KIND_DISPLAY: Partial<Record<ToolKind, KindDisplayEntry>> = {
   [ToolKind.FILE_WRITE]:  { category: "write",     label: "Write",     primaryField: "path", fallbackFields: ["file_path", "file", "filename"] },
   [ToolKind.FILE_EDIT]:   { category: "edit",      label: "Edit",      primaryField: "path", fallbackFields: ["file_path", "file", "filename"] },
   [ToolKind.FILE_DELETE]: { category: "delete",    label: "Delete",    primaryField: "path", fallbackFields: ["file_path", "file", "filename"] },
-  [ToolKind.SHELL]:       { category: "shell",     label: "Shell",     primaryField: "command" },
+  [ToolKind.SHELL]:       { category: "shell",     label: "Shell",     primaryField: "command", intentField: "description" },
   [ToolKind.SEARCH]:      { category: "search",    label: "Search",    primaryField: "pattern", fallbackFields: ["query", "q"] },
   [ToolKind.LIST]:        { category: "list",      label: "List",      primaryField: "path" },
   [ToolKind.FETCH]:       { category: "fetch",     label: "Fetch",     primaryField: "url", fallbackFields: ["uri"] },
@@ -264,6 +279,7 @@ export function toolKindToCategoryInfo(
       label: entry.label,
       primaryArgField: entry.primaryField,
       fallbackArgFields: entry.fallbackFields ?? [],
+      ...(entry.intentField ? { intentArgField: entry.intentField } : {}),
     };
   }
 
@@ -435,6 +451,88 @@ export function extractPrimaryArgFromPreview(
       info.primaryArgField,
       info.fallbackArgFields,
     );
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Extracts the model-authored intent phrase from a tool call's args
+ * (stigmer#276), or `null` when the kind carries none / the model omitted it.
+ *
+ * The intent is presentation metadata authored by the model *for the user* —
+ * "Run unit tests for the parser" — rendered as the row title in place of the
+ * bare category label. Extraction is kind-scoped via
+ * {@link ToolCategoryInfo.intentArgField} (shell-only today) so a same-named
+ * REAL argument on another kind (e.g. the sub-agent task tool's
+ * `description`, which is its subject) is never misread as an intent.
+ */
+export function extractIntent(toolCall: ToolCall): string | null {
+  const info = resolveToolCategoryFromCall(toolCall);
+  if (!info.intentArgField || !toolCall.args) return null;
+  const value = toolCall.args[info.intentArgField];
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+/**
+ * {@link extractIntent} for surfaces that carry a JSON `argsPreview` string
+ * instead of a full {@link ToolCall} — notably `PendingApproval`. Same
+ * kind-scoping; returns `null` on parse failure or when absent.
+ */
+export function extractIntentFromPreview(
+  toolName: string,
+  argsPreview: string,
+  mcpServerSlug?: string,
+  toolKind?: ToolKind,
+): string | null {
+  if (!argsPreview) return null;
+
+  const info =
+    toolKind !== undefined
+      ? resolveToolCategoryFromKind(toolKind, toolName, mcpServerSlug)
+      : resolveToolCategory(toolName, mcpServerSlug);
+  if (!info.intentArgField) return null;
+
+  try {
+    const parsed = JSON.parse(argsPreview);
+    if (typeof parsed !== "object" || parsed === null) return null;
+    const value = (parsed as Record<string, unknown>)[info.intentArgField];
+    return typeof value === "string" && value.length > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+// Intent-title extraction lives in @stigmer/sdk's tool-view module — the
+// cross-surface single source of truth the intent-title.json fixture pins —
+// so React, Ink, and the CLI's headless renderers share one implementation.
+// Re-exported here because this module is where React's public tool-view API
+// surfaced them first (#677).
+export { SHELL_INTENT_ARG_FIELD, extractShellIntent } from "@stigmer/sdk";
+
+/**
+ * Preview-string twin of {@link extractShellIntent} for surfaces that carry a
+ * `PendingApproval` (JSON `argsPreview`) instead of a full {@link ToolCall} —
+ * mirrors {@link extractPrimaryArgFromPreview}'s kind resolution.
+ */
+export function extractShellIntentFromPreview(
+  toolName: string,
+  argsPreview: string,
+  mcpServerSlug?: string,
+  toolKind?: ToolKind,
+): string | null {
+  if (!argsPreview) return null;
+
+  const kind =
+    toolKind !== undefined && toolKind !== ToolKind.UNSPECIFIED
+      ? toolKind
+      : resolveToolKindByName(toolName, mcpServerSlug);
+  if (kind !== ToolKind.SHELL) return null;
+
+  try {
+    const parsed = JSON.parse(argsPreview);
+    if (typeof parsed !== "object" || parsed === null) return null;
+    return shellIntentFromArgs(kind, parsed as JsonObject);
   } catch {
     return null;
   }

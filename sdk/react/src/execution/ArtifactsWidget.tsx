@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import {
   useSessionArtifacts,
   artifactKey,
@@ -116,7 +117,7 @@ export function ArtifactsWidget({
         </span>
       </div>
 
-      <ul role="list" className="stg:flex stg:flex-col">
+      <ul role="list" className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col")}>
         {artifacts.map((entry) => (
           <ArtifactRow
             key={artifactKey(entry.artifact)}

@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { SkillSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_skill_v1_api } from "./api_pb.js";
-import type { PushSkillFromExecutionArtifactRequestSchema, PushSkillRequestSchema, SkillIdSchema } from "./io_pb.js";
+import type { CreateSkillArtifactUploadUrlRequestSchema, PushSkillFromExecutionArtifactRequestSchema, PushSkillRequestSchema, SkillArtifactUploadUrlSchema, SkillIdSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_skill_v1_io } from "./io_pb.js";
 import type { UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/skill/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_skill_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxMrQFChZTa2lsbENvbW1hbmRDb250cm9sbGVyEpkBCgRwdXNoEi0uYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlB1c2hTa2lsbFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiPsK4GDoICRAeIgNvcmcqL3VuYXV0aG9yaXplZCB0byBwdXNoIHNraWxsIGluIHRoaXMgb3JnYW5pemF0aW9uEsMBChlwdXNoRnJvbUV4ZWN1dGlvbkFydGlmYWN0EkIuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlB1c2hTa2lsbEZyb21FeGVjdXRpb25BcnRpZmFjdFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiPsK4GDoICRAeIgNvcmcqL3VuYXV0aG9yaXplZCB0byBwdXNoIHNraWxsIGluIHRoaXMgb3JnYW5pemF0aW9uEq0BChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbCI+wrgYOggCECsiC3Jlc291cmNlX2lkKid1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHNraWxsIHZpc2liaWxpdHkSgQEKBmRlbGV0ZRIkLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbElkGiIuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsIi3CuBgpCAMQKyIFdmFsdWUqHHVuYXV0aG9yaXplZCB0byBkZWxldGUgc2tpbGwaBKD/KytiBnByb3RvMw", [file_ai_stigmer_agentic_skill_v1_api, file_ai_stigmer_agentic_skill_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxMocHChZTa2lsbENvbW1hbmRDb250cm9sbGVyEpkBCgRwdXNoEi0uYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlB1c2hTa2lsbFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiPsK4GDoICRAeIgNvcmcqL3VuYXV0aG9yaXplZCB0byBwdXNoIHNraWxsIGluIHRoaXMgb3JnYW5pemF0aW9uEtABChdjcmVhdGVBcnRpZmFjdFVwbG9hZFVybBJALmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5DcmVhdGVTa2lsbEFydGlmYWN0VXBsb2FkVXJsUmVxdWVzdBozLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbEFydGlmYWN0VXBsb2FkVXJsIj7CuBg6CAkQHiIDb3JnKi91bmF1dGhvcml6ZWQgdG8gcHVzaCBza2lsbCBpbiB0aGlzIG9yZ2FuaXphdGlvbhLDAQoZcHVzaEZyb21FeGVjdXRpb25BcnRpZmFjdBJCLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5QdXNoU2tpbGxGcm9tRXhlY3V0aW9uQXJ0aWZhY3RSZXF1ZXN0GiIuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsIj7CuBg6CAkQHiIDb3JnKi91bmF1dGhvcml6ZWQgdG8gcHVzaCBza2lsbCBpbiB0aGlzIG9yZ2FuaXphdGlvbhKtAQoQdXBkYXRlVmlzaWJpbGl0eRI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5VcGRhdGVWaXNpYmlsaXR5SW5wdXQaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiPsK4GDoIAhArIgtyZXNvdXJjZV9pZCondW5hdXRob3JpemVkIHRvIHVwZGF0ZSBza2lsbCB2aXNpYmlsaXR5EoEBCgZkZWxldGUSJC5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGxJZBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbCItwrgYKQgDECsiBXZhbHVlKhx1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHNraWxsGgSg/ysrYgZwcm90bzM", [file_ai_stigmer_agentic_skill_v1_api, file_ai_stigmer_agentic_skill_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * SkillCommandController handles write operations for skills.
@@ -30,20 +30,6 @@ export const SkillCommandController: GenService<{
    * Creates a skill if it does not exist, or creates a new version of an
    * existing skill. The artifact must contain a SKILL.md file.
    *
-   * @internal
-   * Authorization:
-   * - Organization-scoped skills: Caller must have can_create_skill permission in the organization
-   * - Platform-scoped skills: Caller must be a platform operator
-   *
-   * The backend will:
-   * 1. Normalize the name to a slug
-   * 2. Find or create the skill resource
-   * 3. Extract SKILL.md from the artifact
-   * 4. Calculate SHA256 hash (version identifier)
-   * 5. Store the artifact (deduplicated by hash)
-   * 6. Update skill spec and status
-   * 7. Archive the previous version (if updating)
-   *
    * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.push
    */
   push: {
@@ -52,18 +38,27 @@ export const SkillCommandController: GenService<{
     output: typeof SkillSchema;
   },
   /**
+   * Mint a short-lived, single-use upload URL for staging a skill artifact
+   * that exceeds the gRPC message-size cap (10MB). Flow:
+   *
+   * 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
+   * 2. HTTP PUT the ZIP bytes to url
+   * 3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,
+   *    validation, and versioning as an inline push
+   *
+   * The server refuses over-limit size_bytes here, before any bytes move.
+   *
+   * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.createArtifactUploadUrl
+   */
+  createArtifactUploadUrl: {
+    methodKind: "unary";
+    input: typeof CreateSkillArtifactUploadUrlRequestSchema;
+    output: typeof SkillArtifactUploadUrlSchema;
+  },
+  /**
    * Push a skill from an execution artifact already in storage.
    * Use this when an agent execution has already produced a skill artifact
    * and you want to publish it without downloading and re-uploading the ZIP.
-   *
-   * @internal
-   * Server-side equivalent of push() — reads the ZIP directly from artifact
-   * storage instead of receiving bytes from the client. This eliminates
-   * CORS concerns for SDK consumers.
-   *
-   * Authorization:
-   * - Requires can_view on the referenced execution (to read the artifact)
-   * - Requires can_create_skill in the target organization (to push the skill)
    *
    * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.pushFromExecutionArtifact
    */
@@ -78,8 +73,9 @@ export const SkillCommandController: GenService<{
    * metadata fields untouched. Use this to make a skill publicly accessible
    * or to revoke public access.
    *
-   * @internal
-   * Authorization: Requires can_edit permission on the skill resource.
+   * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+   * every org boundary, so it is granted by the platform team on request.
+   * Un-publishing and all other levels stay self-service.
    *
    * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.updateVisibility
    */
@@ -90,9 +86,6 @@ export const SkillCommandController: GenService<{
   },
   /**
    * Delete a skill and all its versions.
-   *
-   * @internal
-   * Removes the skill from the main collection but preserves audit history.
    *
    * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.delete
    */

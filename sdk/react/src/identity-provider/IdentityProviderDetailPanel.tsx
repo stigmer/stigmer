@@ -2,6 +2,7 @@
 
 import { type FormEvent, useCallback, useId, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -674,7 +675,7 @@ function JitEditSection({
   }
 
   return (
-    <fieldset className="stg:space-y-2.5" disabled={disabled}>
+    <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2.5")} disabled={disabled}>
       <hr className="stg:border-border-muted" />
       <legend className="stg:text-xs stg:font-medium stg:text-foreground">
         JIT provisioning

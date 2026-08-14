@@ -20,6 +20,10 @@ import { DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS, DEFAULT_CURSOR_STREAM_STALL_TI
 import type { WorkerActivities } from "./worker.js";
 import { resolveRunnerBootstrap } from "./bootstrap.js";
 import { assertLlmBackendsPreflight } from "./preflight.js";
+import {
+  captureRunnerSecrets,
+  setRunnerSecret,
+} from "./shared/runner-credential-store.js";
 import { markBoot, emitRunnerBootTiming } from "./shared/cold-start-timing.js";
 
 /**
@@ -118,11 +122,12 @@ export interface StigmerRunner {
  * Wire up self-renewal for a static cloud sandbox's control-plane credential
  * (see sandbox-token-renewal.ts for the model). The applied token reaches
  * every consumer: activity gRPC clients read {@code tokenRef} per request,
- * env-reading call sites (call-llm, registry-endpoint) read
- * {@code process.env.STIGMER_TOKEN} per call, artifact storage resolves the
- * ref per call, and the two Cursor SDK interceptors are updated directly —
- * a static runner has no {@code RunnerTokenCoordinator} minting a separate
- * proxy credential, so its x-stigmer-auth IS this token.
+ * per-call sites (call-llm, registry-endpoint headers) resolve it through
+ * the runner credential store (which replaced the process.env.STIGMER_TOKEN
+ * channel, #508), artifact storage resolves the ref per call, and the two
+ * Cursor SDK interceptors are updated directly — a static runner has no
+ * {@code RunnerTokenCoordinator} minting a separate proxy credential, so its
+ * x-stigmer-auth IS this token.
  */
 async function startStaticSandboxTokenRenewal(
   config: Config,
@@ -157,7 +162,9 @@ async function startStaticSandboxTokenRenewal(
       client.getRunnerScopedToken({ renewal: true }, currentToken),
     applyToken: (token) => {
       tokenRef.current = token;
-      process.env.STIGMER_TOKEN = token;
+      // Store write replaced the process.env.STIGMER_TOKEN write (#508) —
+      // same per-call readers (call-llm, registry headers), no env exposure.
+      setRunnerSecret("STIGMER_TOKEN", token);
       updateInterceptorToken(token);
       updateHttp2InterceptorToken(token);
     },
@@ -189,6 +196,12 @@ export async function createStigmerRunner(
   options: StigmerRunnerOptions,
 ): Promise<StigmerRunner> {
   validateOptions(options);
+
+  // Take custody of runner secrets BEFORE anything else can read them from
+  // env — and before any agent code could spawn with them (#508). Runs here
+  // (not only in main.ts) because this factory is a public library boot door
+  // for in-process embedders.
+  captureRunnerSecrets();
 
   const { registerStigmerDeepagentsProfiles } = await import(
     "./activities/execute-deep-agent/deepagents-profiles.js"
@@ -327,6 +340,12 @@ export async function createStigmerRunner(
       emitRunnerBootTiming({ task_queue: config.taskQueue, mode: config.mode });
       await worker.run();
       console.log("Worker stopped");
+      // The worker has drained — release any parked session agent so its
+      // executor lease disposes with the process (#215).
+      const { closeAllCachedAgents } = await import(
+        "./activities/execute-cursor/agent-session-cache.js"
+      );
+      closeAllCachedAgents();
     },
     shutdown() {
       tokenRenewal?.stop();
@@ -407,6 +426,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     { createCursorActivities },
     { createDeepAgentActivities },
     { createEnsureThreadActivities },
+    { createGenerateSessionSubjectActivities },
     { createClassifyToolApprovalsActivities },
     { createDiscoverMcpServerActivities },
     { createEvaluateExpressionsActivities },
@@ -425,6 +445,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     import("./activities/execute-cursor/index.js"),
     import("./activities/execute-deep-agent/index.js"),
     import("./activities/ensure-thread.js"),
+    import("./activities/generate-session-subject.js"),
     import("./activities/classify-tool-approvals.js"),
     import("./activities/discover-mcp-server.js"),
     import("./activities/evaluate-expressions.js"),
@@ -445,6 +466,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     ...createCursorActivities(config),
     ...createDeepAgentActivities(config),
     ...createEnsureThreadActivities(),
+    ...createGenerateSessionSubjectActivities(config),
     ...createClassifyToolApprovalsActivities(config),
     ...createDiscoverMcpServerActivities(config),
     ...createEvaluateExpressionsActivities(),

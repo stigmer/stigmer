@@ -24,8 +24,6 @@ const (
 )
 
 // Workflow defines a multi-step task orchestration with sequential, parallel, and conditional execution.
-//
-// @internal
 type Workflow struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

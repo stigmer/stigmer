@@ -4,6 +4,7 @@ import { memo, useCallback, useId, useRef } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { MessageSquare, TriangleAlert, User } from "lucide-react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import {
@@ -193,7 +194,7 @@ export function ConversationListPane({
             {/* One context-only provider arms every row's attention
                 tooltip (the WorkspaceSidebar recents-list precedent). */}
             <TooltipProvider>
-              <ul className="stg:space-y-0.5">
+              <ul className={cn(UNSTYLED_LIST, "stg:space-y-0.5")}>
                 {conversations.map((conversation) => (
                   <ConversationRow
                     key={`${conversation.agentChannelId}:${conversation.conversationKey}`}
@@ -333,6 +334,20 @@ function ConversationFilterToggle({
   );
 }
 
+/**
+ * The awaiting dot's meaning, shared verbatim by its tooltip and its
+ * sr-only text — one string per strength so sighted-hover and
+ * screen-reader users hear the identical fact. The copy carries the
+ * DISTINCTION, not just the fact (cloud#266): who holds the
+ * conversation is exactly what the two strengths encode, and it names
+ * the stake without promising an outcome — a muted dot survives a dead
+ * agent turn on purpose (DD-011 D-b's recovery path).
+ */
+const AWAITING_COPY: Record<"strong" | "muted", string> = {
+  strong: "Customer awaiting reply — a human has this conversation; the agent will not answer",
+  muted: "Customer awaiting reply — the agent has this conversation",
+};
+
 const ConversationRow = memo(function ConversationRow({
   conversation,
   label,
@@ -425,22 +440,29 @@ const ConversationRow = memo(function ConversationRow({
               // carries a dot under its timestamp. Strength maps the
               // holder (DD-011 D-a): strong when a human holds it — the
               // agent will not answer, a person must — muted when the
-              // agent does. No tooltip and no tab stop (the F-18
-              // discipline); the sr-only text is the accessible meaning.
-              <span className="stg:flex">
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "stg:size-2 stg:rounded-full",
-                    awaiting === "strong" ? "stg:bg-primary" : "stg:bg-muted-foreground",
-                  )}
-                />
-                <span className="stg:sr-only">
-                  {awaiting === "strong"
-                    ? "Customer awaiting reply — the conversation is human-held"
-                    : "Customer awaiting reply"}
-                </span>
-              </span>
+              // agent does. Strong is FILLED and muted is a hollow RING
+              // (cloud#266): fill-vs-outline reads as "act vs watching"
+              // without decoding color, and color alone inverted in dark
+              // mode, where the muted gray outshone the strong primary.
+              // The meaning rides the house tooltip (the attention
+              // icon's exact pattern above — span trigger inside the row
+              // button, out of the tab order, sr-only as the accessible
+              // name); a bare dot told a first-time viewer nothing.
+              <Tooltip>
+                <TooltipTrigger render={<span className="stg:flex" />}>
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "stg:size-2 stg:rounded-full",
+                      awaiting === "strong"
+                        ? "stg:bg-primary"
+                        : "stg:border-2 stg:border-muted-foreground",
+                    )}
+                  />
+                  <span className="stg:sr-only">{AWAITING_COPY[awaiting]}</span>
+                </TooltipTrigger>
+                <TooltipContent side="top">{AWAITING_COPY[awaiting]}</TooltipContent>
+              </Tooltip>
             )}
           </span>
         )}

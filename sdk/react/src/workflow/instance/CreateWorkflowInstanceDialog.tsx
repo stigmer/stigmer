@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useId, useRef, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { DialogShell } from "../../internal/DialogShell.js";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import type { ResourceRef } from "@stigmer/sdk";
@@ -39,7 +40,6 @@ export function CreateWorkflowInstanceDialog({
   workflowId,
   onCreated,
 }: CreateWorkflowInstanceDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const { create, isCreating, error, clearError } = useCreateWorkflowInstance();
 
   // Instance-scoped element ids (oss#571): a reusable component must not
@@ -65,10 +65,16 @@ export function CreateWorkflowInstanceDialog({
   }, [clearError]);
 
   const handleClose = useCallback(() => {
-    dialogRef.current?.close();
     onOpenChange(false);
     resetForm();
   }, [onOpenChange, resetForm]);
+
+  const handleShellOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) handleClose();
+    },
+    [handleClose],
+  );
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -93,30 +99,11 @@ export function CreateWorkflowInstanceDialog({
     [name, org, workflowId, description, environmentRefs, visibility, create, onCreated, handleClose],
   );
 
-  // Sync native dialog open state
-  const prevOpenRef = useRef(false);
-  if (open !== prevOpenRef.current) {
-    prevOpenRef.current = open;
-    if (open) {
-      // Must defer showModal to after render
-      requestAnimationFrame(() => {
-        if (dialogRef.current && !dialogRef.current.open) {
-          dialogRef.current.showModal();
-        }
-      });
-    } else if (dialogRef.current?.open) {
-      dialogRef.current.close();
-    }
-  }
-
   return (
-    <dialog
-      ref={dialogRef}
-      onClose={handleClose}
-      className={cn(
-        "stg:fixed stg:inset-0 stg:m-auto stg:w-full stg:max-w-lg stg:rounded-xl stg:border stg:border-border stg:bg-popover stg:p-0 stg:shadow-xl",
-        "stg:backdrop:bg-backdrop",
-      )}
+    <DialogShell
+      open={open}
+      onOpenChange={handleShellOpenChange}
+      width="lg"
       aria-labelledby={titleId}
     >
       <form onSubmit={handleSubmit} className="stg:flex stg:flex-col">
@@ -255,7 +242,7 @@ export function CreateWorkflowInstanceDialog({
           </button>
         </div>
       </form>
-    </dialog>
+    </DialogShell>
   );
 }
 

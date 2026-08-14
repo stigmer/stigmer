@@ -2,6 +2,7 @@
 
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { ArtifactFileContent } from "./ArtifactFileContent.js";
 import type { SkillPackageDetection } from "../library/detect-skill-package.js";
 
@@ -103,7 +104,7 @@ function DirectoryContentView({
           <h3 className="stg:mb-2 stg:text-xs stg:font-medium stg:text-muted-foreground">
             Files ({entries.length})
           </h3>
-          <ul className="stg:space-y-0.5" role="list">
+          <ul className={`${UNSTYLED_LIST} stg:space-y-0.5`} role="list">
             {entries.map((entry) => (
               <li
                 key={entry}

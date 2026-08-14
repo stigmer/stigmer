@@ -20,10 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SkillQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.skill.v1.SkillQueryController/get"
-	SkillQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getByReference"
-	SkillQueryController_GetArtifact_FullMethodName    = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifact"
-	SkillQueryController_ListVersions_FullMethodName   = "/ai.stigmer.agentic.skill.v1.SkillQueryController/listVersions"
+	SkillQueryController_Get_FullMethodName                    = "/ai.stigmer.agentic.skill.v1.SkillQueryController/get"
+	SkillQueryController_GetByReference_FullMethodName         = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getByReference"
+	SkillQueryController_GetArtifact_FullMethodName            = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifact"
+	SkillQueryController_GetArtifactDownloadUrl_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifactDownloadUrl"
+	SkillQueryController_ListVersions_FullMethodName           = "/ai.stigmer.agentic.skill.v1.SkillQueryController/listVersions"
 )
 
 // SkillQueryControllerClient is the client API for SkillQueryController service.
@@ -40,28 +41,22 @@ type SkillQueryControllerClient interface {
 	// - Empty/"latest" → Returns the current version
 	// - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
 	// - SHA256 hash (64 hex chars) → Returns the exact immutable version
-	//
-	// @internal
-	// Authorization is handled in the handler after resolving the reference to a skill ID.
-	// (Input doesn't contain skill ID, so proto-level auth cannot work)
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Skill, error)
 	// Download skill artifact from storage by its storage key.
 	// Returns the ZIP file containing SKILL.md and implementation files.
-	//
-	// @internal
-	// Used by the runner to download and extract skill artifacts into the
-	// sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
-	// storage key itself acts as a capability token.
 	GetArtifact(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*GetArtifactResponse, error)
+	// Mint a URL for downloading a skill artifact over HTTP.
+	//
+	// Preferred over getArtifact for anything that might exceed the gRPC
+	// message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
+	// limit is deliverable. Callers should try this first and fall back to
+	// getArtifact against servers that predate it (UNIMPLEMENTED).
+	GetArtifactDownloadUrl(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*SkillArtifactDownloadUrl, error)
 	// List version history for a skill.
 	//
 	// Returns all historical versions ordered by push time (newest first).
 	// Each entry includes the version hash, push timestamp, actor, tag,
 	// git provenance, and artifact storage key for historical artifact access.
-	//
-	// @internal
-	// Authorization is handled in the handler after resolving the skill.
-	// (Input uses org+slug, not skill ID, so proto-level auth cannot work)
 	ListVersions(ctx context.Context, in *ListSkillVersionsInput, opts ...grpc.CallOption) (*ListSkillVersionsResponse, error)
 }
 
@@ -103,6 +98,16 @@ func (c *skillQueryControllerClient) GetArtifact(ctx context.Context, in *GetArt
 	return out, nil
 }
 
+func (c *skillQueryControllerClient) GetArtifactDownloadUrl(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*SkillArtifactDownloadUrl, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SkillArtifactDownloadUrl)
+	err := c.cc.Invoke(ctx, SkillQueryController_GetArtifactDownloadUrl_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *skillQueryControllerClient) ListVersions(ctx context.Context, in *ListSkillVersionsInput, opts ...grpc.CallOption) (*ListSkillVersionsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListSkillVersionsResponse)
@@ -127,28 +132,22 @@ type SkillQueryControllerServer interface {
 	// - Empty/"latest" → Returns the current version
 	// - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
 	// - SHA256 hash (64 hex chars) → Returns the exact immutable version
-	//
-	// @internal
-	// Authorization is handled in the handler after resolving the reference to a skill ID.
-	// (Input doesn't contain skill ID, so proto-level auth cannot work)
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Skill, error)
 	// Download skill artifact from storage by its storage key.
 	// Returns the ZIP file containing SKILL.md and implementation files.
-	//
-	// @internal
-	// Used by the runner to download and extract skill artifacts into the
-	// sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
-	// storage key itself acts as a capability token.
 	GetArtifact(context.Context, *GetArtifactRequest) (*GetArtifactResponse, error)
+	// Mint a URL for downloading a skill artifact over HTTP.
+	//
+	// Preferred over getArtifact for anything that might exceed the gRPC
+	// message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
+	// limit is deliverable. Callers should try this first and fall back to
+	// getArtifact against servers that predate it (UNIMPLEMENTED).
+	GetArtifactDownloadUrl(context.Context, *GetArtifactRequest) (*SkillArtifactDownloadUrl, error)
 	// List version history for a skill.
 	//
 	// Returns all historical versions ordered by push time (newest first).
 	// Each entry includes the version hash, push timestamp, actor, tag,
 	// git provenance, and artifact storage key for historical artifact access.
-	//
-	// @internal
-	// Authorization is handled in the handler after resolving the skill.
-	// (Input uses org+slug, not skill ID, so proto-level auth cannot work)
 	ListVersions(context.Context, *ListSkillVersionsInput) (*ListSkillVersionsResponse, error)
 }
 
@@ -167,6 +166,9 @@ func (UnimplementedSkillQueryControllerServer) GetByReference(context.Context, *
 }
 func (UnimplementedSkillQueryControllerServer) GetArtifact(context.Context, *GetArtifactRequest) (*GetArtifactResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetArtifact not implemented")
+}
+func (UnimplementedSkillQueryControllerServer) GetArtifactDownloadUrl(context.Context, *GetArtifactRequest) (*SkillArtifactDownloadUrl, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetArtifactDownloadUrl not implemented")
 }
 func (UnimplementedSkillQueryControllerServer) ListVersions(context.Context, *ListSkillVersionsInput) (*ListSkillVersionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListVersions not implemented")
@@ -245,6 +247,24 @@ func _SkillQueryController_GetArtifact_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SkillQueryController_GetArtifactDownloadUrl_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetArtifactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SkillQueryControllerServer).GetArtifactDownloadUrl(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SkillQueryController_GetArtifactDownloadUrl_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SkillQueryControllerServer).GetArtifactDownloadUrl(ctx, req.(*GetArtifactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _SkillQueryController_ListVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListSkillVersionsInput)
 	if err := dec(in); err != nil {
@@ -281,6 +301,10 @@ var SkillQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getArtifact",
 			Handler:    _SkillQueryController_GetArtifact_Handler,
+		},
+		{
+			MethodName: "getArtifactDownloadUrl",
+			Handler:    _SkillQueryController_GetArtifactDownloadUrl_Handler,
 		},
 		{
 			MethodName: "listVersions",

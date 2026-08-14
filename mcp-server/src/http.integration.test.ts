@@ -68,11 +68,36 @@ afterAll(async () => {
 
 const base = () => `http://127.0.0.1:${port}`;
 
+/**
+ * Every refusal must be a JSON-RPC error object with Content-Type
+ * application/json (oss#316 — strict MCP clients parse the body; text/plain
+ * surfaced as opaque content-type errors). Returns the error for
+ * code-specific assertions.
+ */
+async function expectJsonRpcError(res: Response): Promise<{ code: number; message: string }> {
+  expect(res.headers.get("content-type")).toBe("application/json");
+  const body = (await res.json()) as { jsonrpc: string; error: { code: number; message: string }; id: null };
+  expect(body.jsonrpc).toBe("2.0");
+  expect(body.id).toBeNull();
+  expect(typeof body.error.code).toBe("number");
+  return body.error;
+}
+
 describe("HTTP transport hardening + OAuth discovery", () => {
   it("answers the /health probe without auth", async () => {
     const res = await fetch(`${base()}/health`);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ status: "ok" });
+  });
+
+  it("reports unready on /ready when the backend hop is down (no auth required)", async () => {
+    // The suite's backend address points at nothing — exactly the failure
+    // class /ready exists to expose while /health stays green (oss#316).
+    const res = await fetch(`${base()}/ready`);
+    expect(res.status).toBe(503);
+    const body = (await res.json()) as { status: string; reason?: string };
+    expect(body.status).toBe("unready");
+    expect(body.reason).toContain("backend health check failed");
   });
 
   it("serves RFC 9728 protected resource metadata", async () => {
@@ -95,7 +120,7 @@ describe("HTTP transport hardening + OAuth discovery", () => {
     expect(res.headers.get("access-control-allow-methods")).toContain("GET");
   });
 
-  it("challenges token-less requests with WWW-Authenticate", async () => {
+  it("challenges token-less requests with WWW-Authenticate and a JSON-RPC body", async () => {
     const res = await fetch(`${base()}/`, { method: "POST", body: "{}" });
     expect(res.status).toBe(401);
     const challenge = res.headers.get("www-authenticate") ?? "";
@@ -104,6 +129,9 @@ describe("HTTP transport hardening + OAuth discovery", () => {
       'resource_metadata="https://mcp.stigmer.ai/.well-known/oauth-protected-resource"',
     );
     expect(challenge).toContain('scope="read write"');
+    const error = await expectJsonRpcError(res);
+    expect(error.code).toBe(-32000);
+    expect(error.message).toContain("missing or malformed Authorization");
   });
 
   it("rejects a malformed Authorization header as token-less", async () => {
@@ -115,16 +143,22 @@ describe("HTTP transport hardening + OAuth discovery", () => {
     });
     expect(res.status).toBe(401);
     expect(res.headers.get("www-authenticate") ?? "").toContain('realm="stigmer"');
+    await expectJsonRpcError(res);
   });
 
-  it("returns 404 for an unknown MCP session even with a valid token", async () => {
+  it("returns the SDK's session-not-found shape (404, code -32001) for an unknown session", async () => {
+    // -32001 on a 404 is the streamable-HTTP recovery signal: on it a
+    // conformant client MUST open a new session with a fresh initialize —
+    // how clients survive the bridge's in-memory sessions dying on restart.
     const res = await fetch(`${base()}/`, {
       method: "POST",
       headers: { authorization: "Bearer test-token", "mcp-session-id": "does-not-exist" },
       body: "{}",
     });
     expect(res.status).toBe(404);
-    expect(await res.text()).toContain("unknown or expired MCP session");
+    const error = await expectJsonRpcError(res);
+    expect(error.code).toBe(-32001);
+    expect(error.message).toContain("unknown or expired MCP session");
   });
 
   it("rejects a sessionless non-initialize POST", async () => {
@@ -134,7 +168,9 @@ describe("HTTP transport hardening + OAuth discovery", () => {
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
     });
     expect(res.status).toBe(400);
-    expect(await res.text()).toContain("an initialize request is required");
+    const error = await expectJsonRpcError(res);
+    expect(error.code).toBe(-32000);
+    expect(error.message).toContain("an initialize request is required");
   });
 
   it("rejects a sessionless GET (no Mcp-Session-Id)", async () => {
@@ -143,7 +179,9 @@ describe("HTTP transport hardening + OAuth discovery", () => {
       headers: { authorization: "Bearer test-token" },
     });
     expect(res.status).toBe(400);
-    expect(await res.text()).toContain("missing Mcp-Session-Id header");
+    const error = await expectJsonRpcError(res);
+    expect(error.code).toBe(-32000);
+    expect(error.message).toContain("Mcp-Session-Id header is required");
   });
 });
 
@@ -189,6 +227,8 @@ describe("HTTP route dispatch (the closed route table)", () => {
     // except the send tool its attachment existed for.
     const res = await initialize("/no-such-roster");
     expect(res.status).toBe(404);
-    expect(await res.text()).toContain("unknown MCP route: /no-such-roster");
+    const error = await expectJsonRpcError(res);
+    expect(error.code).toBe(-32000);
+    expect(error.message).toContain("unknown MCP route: /no-such-roster");
   });
 });

@@ -19,27 +19,6 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_try: GenFile = /*@__PURE_
 /**
  * TryTaskConfig defines the configuration for try_catch tasks that handle errors.
  *
- * @internal
- * YAML Example:
- *   - taskName:
- *       try:
- *         - attemptTask:
- *             call: http
- *             with:
- *               method: POST
- *               endpoint:
- *                 uri: https://api.example.com/flaky
- *       catch:
- *         as: error
- *         do:
- *           - errorHandler:
- *               call: http
- *               with:
- *                 body:
- *                   error: ${ .error }
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 6
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig
  */
 export type TryTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig"> & {

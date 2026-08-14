@@ -60,11 +60,6 @@ class IdentityAccountCommandControllerServicer(object):
 
     def create(self, request, context):
         """Create a new identity account.
-
-        @internal
-        System-level RPC used by federated account creation and bootstrap migrations.
-        No FGA authorization — called via inProcessChannelAsSystem (machine account).
-        The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -72,9 +67,6 @@ class IdentityAccountCommandControllerServicer(object):
 
     def update(self, request, context):
         """Update an existing identity account.
-
-        @internal
-        Authorization: Requires can_edit permission on the identity account resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -82,9 +74,6 @@ class IdentityAccountCommandControllerServicer(object):
 
     def delete(self, request, context):
         """Delete an identity account.
-
-        @internal
-        Authorization: Requires can_delete permission on the identity account resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

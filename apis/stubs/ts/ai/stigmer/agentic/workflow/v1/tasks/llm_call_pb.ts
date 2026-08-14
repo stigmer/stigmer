@@ -15,55 +15,11 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/tasks/llm_call.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_tasks_llm_call: GenFile = /*@__PURE__*/
-  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvbGxtX2NhbGwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcyLIAwoRTGxtQ2FsbFRhc2tDb25maWcSGwoFbW9kZWwYASABKAlCDLpICcgBAXIEEAEYfxIbCg1zeXN0ZW1fcHJvbXB0GAIgASgJQgTYhSwBEh4KBnByb21wdBgDIAEoCUIOukgHyAEBcgIQAdiFLAESMAoPcmVzcG9uc2Vfc2NoZW1hGAQgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIkCgt0ZW1wZXJhdHVyZRgFIAEoAkIPukgMCgodAAAAQC0AAAAAEhsKCm1heF90b2tlbnMYBiABKAVCB7pIBBoCKAESGwoHdGltZW91dBgHIAEoBUIKukgHGgUY2AQoARJPCgpvbl9pbnZhbGlkGAggASgOMjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLk9uSW52YWxpZE91dHB1dFBvbGljeRIeCgttYXhfcmV0cmllcxgJIAEoBUIJukgGGgQYBSgBEhUKDWZhbGxiYWNrX3Rhc2sYCiABKAkSFwoPbWF4X2Nvc3RfbWljcm9zGAsgASgDEhgKEG1heF90b3RhbF90b2tlbnMYDCABKAM6DOqLLAhsbG1fY2FsbGIGcHJvdG8z", [file_ai_stigmer_agentic_workflow_v1_tasks_common, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvbGxtX2NhbGwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcyLRAwoRTGxtQ2FsbFRhc2tDb25maWcSGwoFbW9kZWwYASABKAlCDLpICcgBAXIEEAEYfxIbCg1zeXN0ZW1fcHJvbXB0GAIgASgJQgTYhSwBEh4KBnByb21wdBgDIAEoCUIOukgHyAEBcgIQAdiFLAESMAoPcmVzcG9uc2Vfc2NoZW1hGAQgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIkCgt0ZW1wZXJhdHVyZRgFIAEoAkIPukgMCgodAAAAQC0AAAAAEh4KCm1heF90b2tlbnMYBiABKAVCCrpIB9gBARoCKAESHgoHdGltZW91dBgHIAEoBUINukgK2AEBGgUY2AQoARJPCgpvbl9pbnZhbGlkGAggASgOMjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLk9uSW52YWxpZE91dHB1dFBvbGljeRIhCgttYXhfcmV0cmllcxgJIAEoBUIMukgJ2AEBGgQYBSgBEhUKDWZhbGxiYWNrX3Rhc2sYCiABKAkSFwoPbWF4X2Nvc3RfbWljcm9zGAsgASgDEhgKEG1heF90b3RhbF90b2tlbnMYDCABKAM6DOqLLAhsbG1fY2FsbGIGcHJvdG8z", [file_ai_stigmer_agentic_workflow_v1_tasks_common, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * LlmCallTaskConfig defines the configuration for llm_call tasks that make
  * direct LLM API calls without the overhead of a full agent invocation.
- *
- * @internal
- * Use llm_call when the task is focused and deterministic: classification,
- * extraction, scoring, summarization, moderation, or routing. An agent_call
- * carries setup overhead (system prompt, tool resolution, MCP server setup,
- * session management) that is unnecessary when all you need is a single
- * prompt-response cycle with optional structured output.
- *
- * When response_schema is set, the runner requests structured output from the
- * provider and validates the response against the schema. The on_invalid /
- * max_retries / fallback_task fields control what happens when validation fails,
- * using the same OnInvalidOutputPolicy enum as agent_call's output contract.
- *
- * YAML Example (classification with structured output):
- *   - classify_severity:
- *       call: llm
- *       with:
- *         model: "gpt-4o-mini"
- *         system_prompt: "You are a support ticket classifier."
- *         prompt: "Classify this ticket: ${ $context.ticket.description }"
- *         response_schema:
- *           type: object
- *           required: [severity, category]
- *           properties:
- *             severity:
- *               type: string
- *               enum: [low, medium, high, critical]
- *             category:
- *               type: string
- *         on_invalid: ON_INVALID_RETRY
- *         max_retries: 2
- *       export:
- *         as: "${ . }"
- *
- * YAML Example (simple summarization, no schema):
- *   - summarize:
- *       call: llm
- *       with:
- *         model: "claude-sonnet-4-5"
- *         prompt: "Summarize in 2 sentences: ${ $context.document.text }"
- *         temperature: 0.3
- *         max_tokens: 200
- *       export:
- *         as: "${ . }"
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
  */
@@ -127,14 +83,22 @@ export type LlmCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.Ll
    * Maximum tokens in the LLM response.
    * Optional — uses the provider's default when not set.
    *
+   * Unset (0) is valid: proto3 implicit presence makes an omitted field
+   * indistinguishable from 0, so the range rule must not fire on it (#673).
+   *
    * @generated from field: int32 max_tokens = 6;
    */
   maxTokens: number;
 
   /**
-   * Timeout for the LLM call in seconds.
-   * Default: 60. Max: 600 (10 minutes).
-   * Optional.
+   * Timeout for the LLM call in seconds. Max: 600 (10 minutes).
+   * Optional — unset (0) leaves the call bounded by the runner's activity
+   * timeout. When set, the runner bounds the provider request at this
+   * budget and a breach fails the task with LLM_TIMEOUT (non-retryable —
+   * catchable with try/catch); the activity timeout widens to fit (#686).
+   *
+   * Unset (0) is valid: proto3 implicit presence makes an omitted field
+   * indistinguishable from 0, so the range rule must not fire on it (#673).
    *
    * @generated from field: int32 timeout = 7;
    */
@@ -156,7 +120,10 @@ export type LlmCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.Ll
    * schema, giving it an opportunity to self-correct.
    *
    * Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.
-   * Default: 1. Valid range: 1-5.
+   * Default when unset: 1. Valid range when set: 1-5.
+   *
+   * Unset (0) is valid: proto3 implicit presence makes an omitted field
+   * indistinguishable from 0, so the range rule must not fire on it (#673).
    *
    * @generated from field: int32 max_retries = 9;
    */

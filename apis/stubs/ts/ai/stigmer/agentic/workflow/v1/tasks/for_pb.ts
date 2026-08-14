@@ -19,49 +19,6 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_for: GenFile = /*@__PURE_
 /**
  * ForTaskConfig defines the configuration for for_each tasks that iterate over collections.
  *
- * @internal
- * Supports both sequential (default) and parallel execution modes. When
- * max_parallelism is set, iterations run concurrently using Temporal
- * workflow goroutines with bounded concurrency.
- *
- * Backward compatibility: all new fields default to values that preserve
- * the pre-T17 sequential behavior. Existing workflows require no changes.
- *
- * YAML Example (sequential, unchanged from pre-T17):
- *   - taskName:
- *       for:
- *         each: item
- *         in: ${ $data.items }
- *       do:
- *         - processItem:
- *             call: http
- *             with:
- *               method: POST
- *               body:
- *                 item: ${ $data.item }
- *                 index: ${ $data.index }
- *
- * YAML Example (parallel with bounded concurrency):
- *   - batchProcess:
- *       for:
- *         each: item
- *         in: ${ $data.items }
- *         max_parallelism: 5
- *         on_error: FOR_EACH_CONTINUE
- *       do:
- *         - callApi:
- *             call: http
- *             with:
- *               method: POST
- *               endpoint:
- *                 uri: "https://api.example.com/process"
- *               body:
- *                 item: ${ $data.item }
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 4
- *
- * @since max_parallelism, batch_size, on_error: T17 (Advanced Agentic Orchestration)
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig
  */
 export type ForTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig"> & {
@@ -151,13 +108,6 @@ export const ForTaskConfigSchema: GenMessage<ForTaskConfig> = /*@__PURE__*/
 /**
  * ForEachErrorPolicy defines what happens when an individual iteration fails
  * during parallel or sequential for_each execution.
- *
- * @internal
- * When max_parallelism > 0 (parallel mode), error handling becomes critical
- * because multiple iterations are in-flight simultaneously. This policy
- * governs whether the entire loop fails fast or continues processing.
- *
- * @since T17 (Advanced Agentic Orchestration)
  *
  * @generated from enum ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy
  */

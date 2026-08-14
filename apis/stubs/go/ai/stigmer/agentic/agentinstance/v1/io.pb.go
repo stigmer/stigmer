@@ -82,12 +82,6 @@ type GetAgentInstancesByAgentRequest struct {
 	// org-context view a console tab needs. When empty, results are bounded
 	// only by the caller's view permissions, which for a member of several
 	// organizations spans all of them.
-	//
-	// @internal
-	// Optional by design: the OSS server resolves an agent's default instance
-	// through this RPC with no org (downstream/agentinstance client), and
-	// pre-existing callers rely on the permission-bounded behavior. Filtering
-	// happens in the query/list step of each edition's handler.
 	Org           string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -205,9 +199,6 @@ type ListAgentInstancesRequest struct {
 	// Organization slug to scope the listing.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Filter by metadata labels. AND semantics: all labels must match.
-	//
-	// @internal
-	// Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
 	Labels map[string]string `protobuf:"bytes,2,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Pagination options.
 	PageInfo      *rpc.PageInfo `protobuf:"bytes,3,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`

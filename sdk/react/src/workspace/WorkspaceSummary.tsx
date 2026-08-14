@@ -3,6 +3,7 @@
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { WorkspaceSource } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { TruncatedText } from "../internal/truncated-text.js";
 
@@ -43,7 +44,7 @@ export function WorkspaceSummary({
   if (entries.length === 0) return null;
 
   return (
-    <ul className={cn("stg:space-y-1.5", className)} aria-label="Workspace entries">
+    <ul className={cn(UNSTYLED_LIST, "stg:space-y-1.5", className)} aria-label="Workspace entries">
       {entries.map((entry) => (
         <li key={entry.name} className="stg:text-xs">
           <div className="stg:flex stg:items-center stg:gap-1.5 stg:font-medium">

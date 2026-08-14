@@ -27,9 +27,8 @@ message RaiseTaskConfig {
 
   // Error message.
   // Can contain expressions: "${ .errorMessage }"
-  string message = 2 [
-    (ai.stigmer.commons.apiresource.is_expression) = true,
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.min_len = 1
-  ];
+  // Optional — when omitted, the raised error carries only the error
+  // type/name. (The runtime maps this to the problem-details `detail`
+  // field only when present; requiring it was contract fiction, #685.)
+  string message = 2 [(ai.stigmer.commons.apiresource.is_expression) = true];
 }

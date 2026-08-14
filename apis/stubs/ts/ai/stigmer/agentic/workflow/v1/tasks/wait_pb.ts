@@ -78,24 +78,6 @@ export const DurationSchema: GenMessage<Duration> = /*@__PURE__*/
  *
  * Supports both relative durations and absolute timestamps.
  *
- * @internal
- * Implemented via Temporal timers.
- *
- * YAML Examples:
- *
- *   Relative duration:
- *   - waitForApproval:
- *       wait:
- *         duration:
- *           days: 7
- *
- *   Absolute timestamp:
- *   - waitUntilMarketOpen:
- *       wait:
- *         until: "2026-03-02T09:30:00Z"
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 8
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig
  */
 export type WaitTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig"> & {

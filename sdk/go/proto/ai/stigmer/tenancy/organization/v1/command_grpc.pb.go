@@ -32,27 +32,12 @@ const (
 // OrganizationCommandController handles write operations for organizations.
 type OrganizationCommandControllerClient interface {
 	// Create or update an organization.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on whether the organization
-	// is going to be created or updated which is determined as part of the request execution.
 	Apply(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Create an organization.
-	//
-	// @internal
-	// No authorization required — any authenticated user can create an organization.
-	// The creator automatically becomes the owner of the organization.
 	Create(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Update an existing organization.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the organization.
 	Update(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Delete an organization.
-	//
-	// @internal
-	// Authorization: Requires can_delete permission on the organization.
-	// This will cascade-delete all resources under the organization.
 	Delete(ctx context.Context, in *OrganizationId, opts ...grpc.CallOption) (*Organization, error)
 }
 
@@ -111,27 +96,12 @@ func (c *organizationCommandControllerClient) Delete(ctx context.Context, in *Or
 // OrganizationCommandController handles write operations for organizations.
 type OrganizationCommandControllerServer interface {
 	// Create or update an organization.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on whether the organization
-	// is going to be created or updated which is determined as part of the request execution.
 	Apply(context.Context, *Organization) (*Organization, error)
 	// Create an organization.
-	//
-	// @internal
-	// No authorization required — any authenticated user can create an organization.
-	// The creator automatically becomes the owner of the organization.
 	Create(context.Context, *Organization) (*Organization, error)
 	// Update an existing organization.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the organization.
 	Update(context.Context, *Organization) (*Organization, error)
 	// Delete an organization.
-	//
-	// @internal
-	// Authorization: Requires can_delete permission on the organization.
-	// This will cascade-delete all resources under the organization.
 	Delete(context.Context, *OrganizationId) (*Organization, error)
 }
 

@@ -29,9 +29,6 @@ export const ApiKeyCommandController: GenService<{
    * The raw key value is included in the response and is never returned again.
    * Store it securely before discarding the response.
    *
-   * @internal
-   * Any authenticated user can create API keys, so authorization is skipped.
-   *
    * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyCommandController.create
    */
   create: {
@@ -42,9 +39,6 @@ export const ApiKeyCommandController: GenService<{
   /**
    * Update an existing API key.
    *
-   * @internal
-   * Authorization: Requires can_edit permission on the API key resource.
-   *
    * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyCommandController.update
    */
   update: {
@@ -54,9 +48,6 @@ export const ApiKeyCommandController: GenService<{
   },
   /**
    * Delete an API key.
-   *
-   * @internal
-   * Authorization: Requires can_delete permission on the API key resource.
    *
    * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyCommandController.delete
    */

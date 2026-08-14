@@ -58,6 +58,17 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
         return new Builder(apiKey);
     }
 
+    /**
+     * The skill field carries push routing over the artifact transfer lane
+     * (stigmer#675): {@code client.skill.push} simply works for any valid
+     * skill size. Called from GeneratedClient's constructor — builds from
+     * the channel alone, per the hook's contract.
+     */
+    @Override
+    protected ai.stigmer.sdk.gen.SkillClient newSkillClient(io.grpc.Channel channel) {
+        return new RoutedSkillClient(channel);
+    }
+
     // -- Extra clients (not code-generated) ------------------------------------
 
     /** Returns the billing client for credit management and Stripe integration. */

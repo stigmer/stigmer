@@ -336,6 +336,12 @@ export interface HttpCallConfig {
   readonly query?: Record<string, string>;
   readonly output?: string;
   readonly redirect?: string;
+  /**
+   * Request timeout in seconds (proto: HttpCallTaskConfig.timeout_seconds,
+   * 1-300). Aborts the request and fails the task with HTTP_CALL_TIMEOUT;
+   * the engine also widens the activity's startToClose to fit it (#686).
+   */
+  readonly timeout_seconds?: number;
 }
 
 export type EndpointDef = string | { readonly uri: string; readonly authentication?: Record<string, unknown> };

@@ -36,7 +36,7 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n\034ai/stigmer/iam/v1/enum.proto\022\021ai.stigm" +
-      "er.iam.v1*\223\007\n\rIamPermission\022\017\n\013unspecifi" +
+      "er.iam.v1*\322\007\n\rIamPermission\022\017\n\013unspecifi" +
       "ed\020\000\022\014\n\010can_view\020\001\022\014\n\010can_edit\020\002\022\016\n\ncan_" +
       "delete\020\003\022\024\n\020can_grant_access\020\004\022\023\n\017can_vi" +
       "ew_access\020\005\022\024\n\020can_create_agent\020\006\022\027\n\023can" +
@@ -57,14 +57,16 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "_agent_share\020\036\022\032\n\026can_create_channel_app" +
       "\020\037\022\034\n\030can_manage_model_pricing\020 \022\036\n\032can_" +
       "manage_cursor_accounts\020#\022\023\n\017can_particip" +
-      "ate\020$\022\035\n\031can_write_reserved_labels\020%\"\004\010!" +
-      "\020!\"\004\010\"\020\"*\017can_use_records*\024can_create_da" +
-      "tastore*b\n\007IamRole\022\030\n\024iam_role_unspecifi" +
-      "ed\020\000\022\t\n\005owner\020\001\022\t\n\005admin\020\002\022\n\n\006member\020\003\022\n" +
-      "\n\006viewer\020\004\022\017\n\013participant\020\005BrB\tEnumProto" +
-      "P\001\242\002\003ASI\252\002\021Ai.Stigmer.Iam.V1\312\002\021Ai\\Stigme" +
-      "r\\Iam\\V1\342\002\035Ai\\Stigmer\\Iam\\V1\\GPBMetadata" +
-      "\352\002\024Ai::Stigmer::Iam::V1b\006proto3"
+      "ate\020$\022\035\n\031can_write_reserved_labels\020%\022\036\n\032" +
+      "can_view_provider_standing\020&\022\035\n\031can_set_" +
+      "public_visibility\020\'\"\004\010!\020!\"\004\010\"\020\"*\017can_use" +
+      "_records*\024can_create_datastore*b\n\007IamRol" +
+      "e\022\030\n\024iam_role_unspecified\020\000\022\t\n\005owner\020\001\022\t" +
+      "\n\005admin\020\002\022\n\n\006member\020\003\022\n\n\006viewer\020\004\022\017\n\013par" +
+      "ticipant\020\005BrB\tEnumProtoP\001\242\002\003ASI\252\002\021Ai.Sti" +
+      "gmer.Iam.V1\312\002\021Ai\\Stigmer\\Iam\\V1\342\002\035Ai\\Sti" +
+      "gmer\\Iam\\V1\\GPBMetadata\352\002\024Ai::Stigmer::I" +
+      "am::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

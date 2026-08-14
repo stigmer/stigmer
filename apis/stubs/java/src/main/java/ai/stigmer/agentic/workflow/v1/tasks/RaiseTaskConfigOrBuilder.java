@@ -34,9 +34,12 @@ public interface RaiseTaskConfigOrBuilder extends
    * <pre>
    * Error message.
    * Can contain expressions: "${ .errorMessage }"
+   * Optional — when omitted, the raised error carries only the error
+   * type/name. (The runtime maps this to the problem-details `detail`
+   * field only when present; requiring it was contract fiction, #685.)
    * </pre>
    *
-   * <code>string message = 2 [json_name = "message", (.buf.validate.field) = { ... }</code>
+   * <code>string message = 2 [json_name = "message", (.ai.stigmer.commons.apiresource.is_expression) = true];</code>
    * @return The message.
    */
   java.lang.String getMessage();
@@ -44,9 +47,12 @@ public interface RaiseTaskConfigOrBuilder extends
    * <pre>
    * Error message.
    * Can contain expressions: "${ .errorMessage }"
+   * Optional — when omitted, the raised error carries only the error
+   * type/name. (The runtime maps this to the problem-details `detail`
+   * field only when present; requiring it was contract fiction, #685.)
    * </pre>
    *
-   * <code>string message = 2 [json_name = "message", (.buf.validate.field) = { ... }</code>
+   * <code>string message = 2 [json_name = "message", (.ai.stigmer.commons.apiresource.is_expression) = true];</code>
    * @return The bytes for message.
    */
   com.google.protobuf.ByteString

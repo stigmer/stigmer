@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "transfer",
+    srcs = [
+        "handler.go",
+        "slots.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/transfer",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/services/stigmer-server/pkg/domain/skill/storage",
+        "@com_github_rs_zerolog//log",
+    ],
+)
+
+go_test(
+    name = "transfer_test",
+    srcs = [
+        "handler_test.go",
+        "slots_test.go",
+    ],
+    embed = [":transfer"],
+    deps = ["//backend/services/stigmer-server/pkg/domain/skill/storage"],
+)

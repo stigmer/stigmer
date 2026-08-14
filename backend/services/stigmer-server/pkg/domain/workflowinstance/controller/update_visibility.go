@@ -136,7 +136,7 @@ func (s *setInstanceVisibilityStep) Execute(ctx *pipeline.RequestContext[*apires
 
 	instance.Metadata.Visibility = input.GetVisibility()
 
-	if err := steps.SetAuditFieldsForUpdate(instance); err != nil {
+	if err := steps.SetAuditFieldsForUpdate(instance, steps.StatusAudit); err != nil {
 		return fmt.Errorf("failed to set audit fields: %w", err)
 	}
 

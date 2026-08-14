@@ -49,12 +49,6 @@ class AgentShareCommandControllerServicer(object):
 
     def apply(self, request, context):
         """Create or update an agent share.
-
-        @internal
-        The authorization and state-operation are determined depending on
-        whether the share is going to be created or updated, which is resolved
-        as part of the request execution. The share slug defaults to the
-        referenced agent's slug when omitted.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -65,16 +59,6 @@ class AgentShareCommandControllerServicer(object):
 
         Enabling a share is a billing-affecting decision: conversations over
         the hosted link consume the sharing organization's credits.
-
-        @internal
-        Authorization: requires can_edit on the REFERENCED AGENT
-        (spec.agent_ref), checked in-handler — the same bar as the former
-        updateSharing RPC, since creating a channel broadens who can chat with
-        the agent runtime. The standard org-scoped create tuples (owner =
-        creator) are written for the share itself; no visibility tuples are
-        written for visitors (guest admission is app-level by design — see
-        AgentShareSpec). Phase A invariant enforced here: metadata.org must
-        equal spec.agent_ref.org.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -86,11 +70,6 @@ class AgentShareCommandControllerServicer(object):
         Replaces the spec wholesale: a manifest that omits audience resets the
         share to public, and one that omits environment_refs unbinds them
         (fails closed). The slug and referenced agent are immutable.
-
-        @internal
-        Authorization: requires can_edit permission on the agent share.
-        status.share_link_token is preserved verbatim (rotateShareLink is its
-        sole writer).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -108,12 +87,6 @@ class AgentShareCommandControllerServicer(object):
         The token lives in status.share_link_token, so manifest applies never
         reset it. Rotation affects public-audience shares only; org-audience
         access is governed by live org membership instead.
-
-        @internal
-        Authorization: requires can_edit on the agent share — the same bar as
-        update, since both control shared-link access. The handler is the sole
-        writer of status.share_link_token (server-generated entropy; clients
-        never supply the token).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -127,10 +100,6 @@ class AgentShareCommandControllerServicer(object):
         (origins, messages, credentials, link token) is gone. To pause serving
         while keeping configuration, update the share with enabled=false
         instead.
-
-        @internal
-        Authorization: requires can_delete permission on the agent share. The
-        referenced agent is untouched.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

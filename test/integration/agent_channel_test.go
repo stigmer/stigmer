@@ -9,6 +9,7 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentchannelv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentchannel/v1"
+	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/test/integration/harness"
@@ -30,6 +31,12 @@ import (
 // channelFor builds a Slack channel manifest for an agent, as a YAML apply
 // would send it. Channels have no canonical-slug default (they are
 // N-per-agent), so a name is always provided.
+//
+// The model pin is load-bearing: channels are an unattended surface, so the
+// cloud backend refuses an apply whose run_config names no model when the
+// platform session-default harness is Cursor (stigmer/stigmer#362) — every
+// channel fixture in this package flows through here and inherits the pin
+// (stigmer/stigmer#745).
 func channelFor(agent *agentv1.Agent, name string, enabled bool) *agentchannelv1.AgentChannel {
 	return &agentchannelv1.AgentChannel{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -47,6 +54,7 @@ func channelFor(agent *agentv1.Agent, name string, enabled bool) *agentchannelv1
 			ProviderConfig: &agentchannelv1.AgentChannelSpec_Slack{
 				Slack: &agentchannelv1.SlackChannelConfig{},
 			},
+			RunConfig: &agentexecv1.RunConfig{ModelName: "gpt-5-mini"},
 		},
 	}
 }

@@ -26,50 +26,6 @@ const (
 
 // LlmCallTaskConfig defines the configuration for llm_call tasks that make
 // direct LLM API calls without the overhead of a full agent invocation.
-//
-// @internal
-// Use llm_call when the task is focused and deterministic: classification,
-// extraction, scoring, summarization, moderation, or routing. An agent_call
-// carries setup overhead (system prompt, tool resolution, MCP server setup,
-// session management) that is unnecessary when all you need is a single
-// prompt-response cycle with optional structured output.
-//
-// When response_schema is set, the runner requests structured output from the
-// provider and validates the response against the schema. The on_invalid /
-// max_retries / fallback_task fields control what happens when validation fails,
-// using the same OnInvalidOutputPolicy enum as agent_call's output contract.
-//
-// YAML Example (classification with structured output):
-//   - classify_severity:
-//     call: llm
-//     with:
-//     model: "gpt-4o-mini"
-//     system_prompt: "You are a support ticket classifier."
-//     prompt: "Classify this ticket: ${ $context.ticket.description }"
-//     response_schema:
-//     type: object
-//     required: [severity, category]
-//     properties:
-//     severity:
-//     type: string
-//     enum: [low, medium, high, critical]
-//     category:
-//     type: string
-//     on_invalid: ON_INVALID_RETRY
-//     max_retries: 2
-//     export:
-//     as: "${ . }"
-//
-// YAML Example (simple summarization, no schema):
-//   - summarize:
-//     call: llm
-//     with:
-//     model: "claude-sonnet-4-5"
-//     prompt: "Summarize in 2 sentences: ${ $context.document.text }"
-//     temperature: 0.3
-//     max_tokens: 200
-//     export:
-//     as: "${ . }"
 type LlmCallTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Model reference resolved via the Stigmer model registry.
@@ -104,10 +60,18 @@ type LlmCallTaskConfig struct {
 	Temperature float32 `protobuf:"fixed32,5,opt,name=temperature,proto3" json:"temperature,omitempty"`
 	// Maximum tokens in the LLM response.
 	// Optional — uses the provider's default when not set.
+	//
+	// Unset (0) is valid: proto3 implicit presence makes an omitted field
+	// indistinguishable from 0, so the range rule must not fire on it (#673).
 	MaxTokens int32 `protobuf:"varint,6,opt,name=max_tokens,json=maxTokens,proto3" json:"max_tokens,omitempty"`
-	// Timeout for the LLM call in seconds.
-	// Default: 60. Max: 600 (10 minutes).
-	// Optional.
+	// Timeout for the LLM call in seconds. Max: 600 (10 minutes).
+	// Optional — unset (0) leaves the call bounded by the runner's activity
+	// timeout. When set, the runner bounds the provider request at this
+	// budget and a breach fails the task with LLM_TIMEOUT (non-retryable —
+	// catchable with try/catch); the activity timeout widens to fit (#686).
+	//
+	// Unset (0) is valid: proto3 implicit presence makes an omitted field
+	// indistinguishable from 0, so the range rule must not fire on it (#673).
 	Timeout int32 `protobuf:"varint,7,opt,name=timeout,proto3" json:"timeout,omitempty"`
 	// Policy when the LLM response fails schema validation.
 	// Only meaningful when response_schema is set; ignored otherwise.
@@ -119,7 +83,10 @@ type LlmCallTaskConfig struct {
 	// schema, giving it an opportunity to self-correct.
 	//
 	// Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.
-	// Default: 1. Valid range: 1-5.
+	// Default when unset: 1. Valid range when set: 1-5.
+	//
+	// Unset (0) is valid: proto3 implicit presence makes an omitted field
+	// indistinguishable from 0, so the range rule must not fire on it (#673).
 	MaxRetries int32 `protobuf:"varint,9,opt,name=max_retries,json=maxRetries,proto3" json:"max_retries,omitempty"`
 	// Target task to branch to when schema validation cannot be resolved.
 	//
@@ -268,7 +235,7 @@ var File_ai_stigmer_agentic_workflow_v1_tasks_llm_call_proto protoreflect.FileDe
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_llm_call_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/workflow/v1/tasks/llm_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a1ai/stigmer/agentic/workflow/v1/tasks/common.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xda\x04\n" +
+	"3ai/stigmer/agentic/workflow/v1/tasks/llm_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a1ai/stigmer/agentic/workflow/v1/tasks/common.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xe3\x04\n" +
 	"\x11LlmCallTaskConfig\x12\"\n" +
 	"\x05model\x18\x01 \x01(\tB\f\xbaH\t\xc8\x01\x01r\x04\x10\x01\x18\x7fR\x05model\x12)\n" +
 	"\rsystem_prompt\x18\x02 \x01(\tB\x04\u0605,\x01R\fsystemPrompt\x12&\n" +
@@ -276,14 +243,15 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_llm_call_proto_rawDesc = "" +
 	"\x0fresponse_schema\x18\x04 \x01(\v2\x17.google.protobuf.StructR\x0eresponseSchema\x121\n" +
 	"\vtemperature\x18\x05 \x01(\x02B\x0f\xbaH\f\n" +
 	"\n" +
-	"\x1d\x00\x00\x00@-\x00\x00\x00\x00R\vtemperature\x12&\n" +
+	"\x1d\x00\x00\x00@-\x00\x00\x00\x00R\vtemperature\x12)\n" +
 	"\n" +
-	"max_tokens\x18\x06 \x01(\x05B\a\xbaH\x04\x1a\x02(\x01R\tmaxTokens\x12$\n" +
-	"\atimeout\x18\a \x01(\x05B\n" +
-	"\xbaH\a\x1a\x05\x18\xd8\x04(\x01R\atimeout\x12Z\n" +
+	"max_tokens\x18\x06 \x01(\x05B\n" +
+	"\xbaH\a\xd8\x01\x01\x1a\x02(\x01R\tmaxTokens\x12'\n" +
+	"\atimeout\x18\a \x01(\x05B\r\xbaH\n" +
+	"\xd8\x01\x01\x1a\x05\x18\xd8\x04(\x01R\atimeout\x12Z\n" +
 	"\n" +
-	"on_invalid\x18\b \x01(\x0e2;.ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicyR\tonInvalid\x12*\n" +
-	"\vmax_retries\x18\t \x01(\x05B\t\xbaH\x06\x1a\x04\x18\x05(\x01R\n" +
+	"on_invalid\x18\b \x01(\x0e2;.ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicyR\tonInvalid\x12-\n" +
+	"\vmax_retries\x18\t \x01(\x05B\f\xbaH\t\xd8\x01\x01\x1a\x04\x18\x05(\x01R\n" +
 	"maxRetries\x12#\n" +
 	"\rfallback_task\x18\n" +
 	" \x01(\tR\ffallbackTask\x12&\n" +

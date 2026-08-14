@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState, type FormEvent } from "react";
+import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { create } from "@bufbuild/protobuf";
 import { getUserMessage } from "@stigmer/sdk";
 import {
@@ -546,7 +547,7 @@ export function BaselineEditor({
         Featured (appears in the curated default picker list)
       </label>
 
-      <fieldset className="stg:space-y-2">
+      <fieldset className={`${UNSTYLED_FIELDSET} stg:space-y-2`}>
         <legend className="stg:text-xs stg:font-medium stg:text-foreground">
           Rates ($ per million tokens)
         </legend>
@@ -565,7 +566,7 @@ export function BaselineEditor({
         </div>
       </fieldset>
 
-      <fieldset className="stg:space-y-2">
+      <fieldset className={`${UNSTYLED_FIELDSET} stg:space-y-2`}>
         <legend className="stg:text-xs stg:font-medium stg:text-foreground">Pricing variants</legend>
         {form.variants.map((variant, index) => (
           <div key={index} className="stg:space-y-2 stg:rounded-md stg:border stg:border-border-muted stg:px-2.5 stg:py-2">

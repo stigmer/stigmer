@@ -31,10 +31,6 @@ type ApiKeySpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Hash of the raw API key.
 	// The actual key is returned only in the create response and never persisted.
-	//
-	// @internal
-	// SHA-256/Bcrypt hash of the raw key generated during creation.
-	// Only the last 6 chars are persisted in the fingerprint field for UI display.
 	KeyHash string `protobuf:"bytes,1,opt,name=key_hash,json=keyHash,proto3" json:"key_hash,omitempty"`
 	// Short fingerprint of the key for display purposes (last 6 characters).
 	Fingerprint string `protobuf:"bytes,2,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`

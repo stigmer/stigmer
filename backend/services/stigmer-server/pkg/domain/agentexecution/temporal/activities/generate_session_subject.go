@@ -10,18 +10,13 @@ import (
 // GenerateSessionSubjectActivity is the interface for generating a human-readable
 // session subject from the user's first message and agent context.
 //
-// KNOWN-DEAD IN OSS (issue #665): the retired Python agent-runner implemented
-// this activity, and no OSS worker registers it today — the TS unified runner
-// never picked it up, so the workflow's fire-and-forget dispatch fails quietly
-// and auto-created sessions keep the sentinel subject. The cloud edition's
-// Java worker registers its own implementation, which is why the contract is
-// kept intact here (#665 decides: implement in the runner, move server-side,
-// or delete the dispatch). Intended behavior:
+// This activity is implemented in the TypeScript unified runner
+// (backend/services/runner/src/activities/generate-session-subject.ts) and:
 // 1. Hydrates the execution via gRPC to get session_id, agent_id, user_message
 // 2. Checks the session subject is still the auto-created sentinel
 // 3. Fetches the agent name and description for LLM context
 // 4. Calls an economy-tier LLM to produce a concise title (3–7 words)
-// 5. Updates the session subject via gRPC
+// 5. Updates the session subject via the race-safe updateSubject RPC
 //
 // The activity is intentionally fire-and-forget: failures are non-critical and
 // must never affect the main execution path. A missing subject simply falls back
@@ -39,8 +34,7 @@ type GenerateSessionSubjectActivity interface {
 }
 
 // GenerateSessionSubjectActivityName is the activity name used for registration.
-// This is a WIRE IDENTIFIER: whichever worker implements it (#665) must
-// register exactly this name for in-flight workflow compatibility.
+// This MUST match the TypeScript runner's registration key exactly for polyglot to work.
 const GenerateSessionSubjectActivityName = "GenerateSessionSubject"
 
 // NewGenerateSessionSubjectActivityStub creates an activity stub for calling
@@ -48,7 +42,7 @@ const GenerateSessionSubjectActivityName = "GenerateSessionSubject"
 // a single attempt with a 60 s deadline, matching the Java workflow's policy.
 func NewGenerateSessionSubjectActivityStub(ctx workflow.Context, taskQueue string) GenerateSessionSubjectActivity {
 	options := workflow.ActivityOptions{
-		TaskQueue:              taskQueue, // Route to the runner queue (from memo)
+		TaskQueue:              taskQueue, // Route to the unified runner worker (from memo)
 		StartToCloseTimeout:    60 * time.Second,
 		ScheduleToStartTimeout: 30 * time.Second,
 		RetryPolicy: &temporal.RetryPolicy{

@@ -107,11 +107,6 @@ export type GetRunnerBootstrapConfigOutput = Message<"ai.stigmer.platform.v1.Get
    * server with no signing key configured. The runner keeps using its existing
    * token in that case.
    *
-   * @internal
-   * iss=stigmer, sub=caller identity account, token_type=embedded_runner. The
-   * runner treats this as its proxy credential, distinct from the control-plane
-   * token it authenticated this call with, and refreshes it before expiry.
-   *
    * @generated from field: string runner_access_token = 3;
    */
   runnerAccessToken: string;
@@ -145,13 +140,6 @@ export type GetRunnerBootstrapConfigOutput = Message<"ai.stigmer.platform.v1.Get
    * management. The runner then falls back to its env-configured key, or runs
    * without payload encryption. An explicitly env-configured key always wins
    * over this field.
-   *
-   * @internal
-   * Cloud-only. Per-identity rather than platform-wide because a desktop
-   * runner must never hold the platform key: compromise of one user's machine
-   * exposes only payloads encrypted under that identity's key. The control
-   * plane's decode-only codec resolves these keys by key id, so the service
-   * can read every runner's results while runners cannot read each other's.
    *
    * @generated from field: string payload_encryption_key = 6;
    */
@@ -259,15 +247,6 @@ export const GetRunnerScopedTokenInputSchema: GenMessage<GetRunnerScopedTokenInp
  * the control plane claims it for a session, the member presents this arm to
  * exchange that credential for the session's sandbox token.
  *
- * @internal
- * Cloud authorizes against the pool claim record, not FGA: the pool_sandboxes
- * row for the caller token's pool_member_id must be CLAIMED for exactly this
- * session_id (the DB is the authorization source). Identity and org are minted
- * from the values the claimer recorded on that row — never from the client —
- * and the TTL is the config-owned standard sandbox TTL, like every session
- * token (stigmer-cloud#256; renewal, not lifetime, carries long conversations).
- * OSS has no pool and mints nothing (empty output, presence-based contract).
- *
  * @generated from message ai.stigmer.platform.v1.PoolClaim
  */
 export type PoolClaim = Message<"ai.stigmer.platform.v1.PoolClaim"> & {
@@ -304,19 +283,6 @@ export const PoolClaimSchema: GenMessage<PoolClaim> = /*@__PURE__*/
  * claims, never from the client, so a renewed token is claim-identical to
  * the one it replaces.
  *
- * @internal
- * Cloud authorizes against the live sandbox record, not FGA (a sandbox
- * token is structurally not an FGA principal — the pool_claim posture): a
- * token_type=sandbox caller requires its session_sandboxes row to exist and
- * not be archived/deleting; a token_type=workflow_sandbox caller requires
- * the same of its workflow_sandboxes row. The record IS the revocation
- * lever: when the lifecycle reconciler reaps the sandbox, renewal dies with
- * it, so a credential's renewable lifetime is exactly its sandbox's
- * lifetime. Minted TTL is the standard sandbox TTL — every mint path uses it
- * (stigmer-cloud#256), and renewal is what makes short TTLs sufficient. OSS
- * has no signing key and mints nothing (empty output, presence-based
- * contract).
- *
  * @generated from message ai.stigmer.platform.v1.TokenRenewal
  */
 export type TokenRenewal = Message<"ai.stigmer.platform.v1.TokenRenewal"> & {
@@ -343,11 +309,6 @@ export type GetRunnerScopedTokenOutput = Message<"ai.stigmer.platform.v1.GetRunn
   /**
    * Stigmer-signed token scoped to the requested work. The runner presents it
    * for ExecutionContext reads in place of its unscoped bootstrap token.
-   *
-   * @internal
-   * iss=stigmer, sub=caller identity account, token_type=sandbox (with
-   * session_id claim) or workflow_sandbox (with workflow_execution_id claim),
-   * minted by the same SandboxTokenService that provisions cloud sandboxes.
    *
    * @generated from field: string runner_scoped_token = 1;
    */
@@ -463,13 +424,6 @@ export const PlatformQueryController: GenService<{
    * an environment shares one Temporal cluster, and task queues are
    * per-session/execution and gated separately by control-plane session access.
    *
-   * @internal
-   * The minted runner access token (iss=stigmer, sub=caller identity account)
-   * is a cloud-only capability — OSS has no Cursor proxy and leaves the token
-   * fields empty. The handler degrades gracefully: if minting is unavailable
-   * (signing key unconfigured, or no caller identity), it returns the Temporal
-   * coordinates with an empty token rather than failing the runner's boot.
-   *
    * @generated from rpc ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig
    */
   getRunnerBootstrapConfig: {
@@ -493,28 +447,6 @@ export const PlatformQueryController: GenService<{
    *
    * The token fields are empty when the server cannot mint (OSS, or no signing
    * key configured) — the runner falls back to its existing credential.
-   *
-   * @internal
-   * Cloud mints via SandboxTokenService: an agent_execution_id yields a
-   * token_type=sandbox token carrying the execution's parent session_id (one
-   * session sandbox serves multi-turn executions); a workflow_execution_id
-   * yields token_type=workflow_sandbox carrying that id. Both are then bound by
-   * RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
-   * cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
-   *
-   * is_skip_authorization because the FGA target is derived from the input
-   * oneof, which the declarative interceptor cannot express — the handler
-   * enforces authorization itself (same pattern as getRunnerBootstrapConfig):
-   * the caller must present a runner-class token_type=embedded_runner
-   * credential AND pass the same can_view check getByExecutionId performs on
-   * the named execution.
-   *
-   * Two arms are exceptions to the embedded_runner rule, each gated on its
-   * own credential class and authorized against a control-plane record
-   * instead of an execution: pool_claim (token_type=pool_sandbox, authorized
-   * against the pool claim record) and renewal (token_type=sandbox /
-   * workflow_sandbox, authorized against the live sandbox record). See each
-   * arm's own doc.
    *
    * @generated from rpc ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken
    */

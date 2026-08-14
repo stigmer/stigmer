@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
@@ -1356,7 +1357,7 @@ function EnvironmentRefList({
     return <span className="stg:text-sm stg:text-muted-foreground">—</span>;
   }
   return (
-    <ul className="stg:flex stg:flex-col stg:gap-0.5">
+    <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:gap-0.5")}>
       {refs.map((ref, i) => (
         <li
           key={`${ref.org}/${ref.slug}-${i}`}
@@ -1470,7 +1471,7 @@ function WorkspaceSummary({
     return <span className="stg:text-sm stg:text-muted-foreground">—</span>;
   }
   return (
-    <ul className="stg:flex stg:flex-col stg:gap-0.5">
+    <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:gap-0.5")}>
       {entries.map((entry, i) => {
         const git =
           entry.source?.source?.case === "gitRepo"

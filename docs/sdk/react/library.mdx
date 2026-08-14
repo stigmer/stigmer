@@ -100,6 +100,44 @@ function useBreadcrumbOverride(): { setLabel: (label: string | null) => void }
 ```
 
 
+### useCanSetPublicVisibility
+
+Whether the current user may set a resource's visibility to PUBLIC — the
+only level that crosses every org boundary (the cross-org "explore"
+catalog).
+
+In the cloud edition, publishing is a curation decision: the backend
+gates both write doors (updateVisibility escalation and
+create-with-public) on `can_set_public_visibility` on `platform:stigmer`,
+an explicit platform-operator capability. This hook runs the same check
+so selectors can present the Public option as locked instead of letting
+the request fail.
+
+Fail-closed, deliberately the opposite of the `useCheckPermission`
+default: an escalation gate must not open while the check is loading or
+when it errors — a locked option that unlocks a moment later is a far
+better failure than an unlocked option the server then rejects.
+
+In `local` deployment mode (OSS Go backend) the answer is always `true`:
+the self-hosted operator owns the store, the same scoping cloud#320
+applied to reserved labels.
+
+**Signature**
+
+```tsx
+function useCanSetPublicVisibility(): UseCanSetPublicVisibilityReturn
+```
+
+**Returns** — `UseCanSetPublicVisibilityReturn`
+
+<TypeTable
+  type={{
+    allowed: { type: "boolean", description: "Whether the current user may set resources to PUBLIC visibility." },
+    isLoading: { type: "boolean", description: "`true` while the permission check is in flight (cloud only)." },
+  }}
+/>
+
+
 ### useDetectSkillPackage
 
 Detects whether an execution artifact is a skill package and extracts
@@ -528,9 +566,14 @@ proto cannot know:
   operate an IdentityProvider — the backend rejects it otherwise
   (`ValidateVisibilityStep`), so the option only renders when the signal
   is present (use `useSsoProvider`, the permission-free lookup).
+- `canSetPublicVisibility`: entering PUBLIC is operator-gated in the
+  cloud edition; when the caller lacks the grant the Public option
+  renders locked instead of disappearing (use
+  `useCanSetPublicVisibility`, which is always `true` in local mode).
 
 <TypeTable
   type={{
+    canSetPublicVisibility: { type: "boolean", description: "", required: true },
     deploymentMode: { type: "\"local\" | \"cloud\"", description: "", required: true },
     hasIdentityProvider: { type: "boolean", description: "", required: true },
   }}
@@ -648,7 +691,7 @@ function findStreamingPlan(execution: AgentExecution | null | undefined): Stream
 ```
 
 
-### INSTANCE_VISIBILITY_LEVELS
+### instanceVisibilityLevels
 
 The levels an instance (agent_instance, workflow_instance) selector
 offers, in escalation order: Private / Organization / Public.
@@ -657,6 +700,23 @@ Platform is deliberately absent — instances are tenant-isolated by
 design (each managed org instantiates shared blueprints inside its own
 boundary). Descriptions are execution-oriented because org visibility on
 an instance is about who can run it and see its executions.
+
+```tsx
+function instanceVisibilityLevels(context: InstanceVisibilityLevelsContext): readonly VisibilityLevelOption[]
+```
+
+
+### InstanceVisibilityLevelsContext
+
+Inputs that gate the instance level set — only the publish gate; the set
+itself is fixed (instances have no platform level and no deployment-mode
+collapse).
+
+<TypeTable
+  type={{
+    canSetPublicVisibility: { type: "boolean", description: "", required: true },
+  }}
+/>
 
 
 ### isPlanArtifact
@@ -727,6 +787,13 @@ title and the `<id>` from its content hash; detection keys on this suffix.
 Kept in sync with the runner's `PLAN_ARTIFACT_SUFFIX` (shared/plan-artifact.ts)
 — the runner and browser SDK have disjoint module graphs, so the constant is
 duplicated by design, mirroring [`PLAN_ARTIFACT_NAME`](#plan_artifact_name).
+
+
+### PUBLIC_LOCKED_REASON
+
+The locked-row copy for a caller who may not set PUBLIC visibility. Names
+the path forward (ask the platform team) rather than a bare "disabled" —
+the option stays discoverable even though it is not self-service.
 
 
 ### PushSkillParams
@@ -879,6 +946,7 @@ private < org < platform < public); [`VisibilitySelector`](#visibilityselector) 
     confirmPrompt: { type: "string", description: "Light inline confirmation question shown inside the selector when the user escalates TO this level (e.g. private → org). Omitted for the least-exposed level (de-escalation never confirms — revoking access is always safe).  Levels that expand access far beyond the owning org carry a confirmDialog instead; see the severity ladder on VisibilityLevelOption." },
     description: { type: "string", description: "One-line explanation shown under the selector for the current level.", required: true },
     label: { type: "string", description: "", required: true },
+    lockedReason: { type: "string", description: "When present, the level cannot be selected by the current caller and the row renders locked (disabled, lock affordance) with this copy explaining why and what to do instead. Computed by the level builders from caller context — the component stays free of per-level branching, exactly like the confirmation ladder.  Today's only locked level is Public in the cloud edition for callers without `can_set_public_visibility` (publishing is operator-granted); the backend independently enforces the same gate." },
     tone: { type: "\"org\" | \"platform\" | \"private\" | \"public\"", description: "Color treatment for the selected segment and the confirmation prompt.", required: true },
     value: { type: "ApiResourceVisibility", description: "", required: true },
   }}

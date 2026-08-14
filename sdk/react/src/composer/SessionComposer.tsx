@@ -7,7 +7,7 @@ import { useComposer } from "./useComposer.js";
 import { ComposerToolbar } from "./ComposerToolbar.js";
 import { type ConfigureMenuItem } from "./ConfigureMenu.js";
 import type { HarnessOption } from "../models/harness.js";
-import type { ServiceTierOption } from "../models/service-tier.js";
+import { FAST_SERVICE_TIER, type ServiceTierOption } from "../models/service-tier.js";
 import type { InteractionModeOption } from "./InteractionModePicker.js";
 import { parseModelKey } from "../models/registry.js";
 import { useModelRegistry } from "../models/useModelRegistry.js";
@@ -659,8 +659,22 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
   // Service tier (#357): composer-local state like modelId. "standard" is
   // the resting default; the ModelSelector's fail-safe resets it when the
-  // user switches to a model without a fast tier.
+  // user switches to a model without a fast tier. Whether an armed "fast"
+  // actually rides the submit is decided by the derived effective run
+  // selection below (#663) — state here records the user's intent only.
   const [serviceTier, setServiceTier] = useState<ServiceTierOption>("standard");
+
+  // Active harness mirror: controlled hosts (both viewers) keep the
+  // `harness` prop current, but with `showHarnessSelector` the dropdown
+  // lives inside ModelSelector and an uncontrolled host would leave the
+  // prop stale — the mirror keeps the effective-model resolution scoped
+  // to the harness the picker is actually showing.
+  const [activeHarness, setActiveHarness] = useState<HarnessOption>(
+    harness ?? "native",
+  );
+  useEffect(() => {
+    if (harness !== undefined) setActiveHarness(harness);
+  }, [harness]);
 
   const [displayNames, setDisplayNames] = useState<Map<string, string>>(
     () => new Map(),
@@ -771,36 +785,91 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   const {
     getByKey: registryGetByKey,
     getModel: registryGetModel,
-    defaultModel: registryDefaultModel,
     visionLimits,
+    isLoading: isRegistryLoading,
   } = useModelRegistry();
-  const visionNotice = useMemo(() => {
-    if (!enableAttachments || attachments.entries.length === 0) return null;
+  const { defaultModel: harnessDefaultModel } = useModelRegistry({
+    harness: activeHarness,
+  });
+
+  // -------------------------------------------------------------------------
+  // Effective run selection (stigmer/stigmer#663) — the ONE resolution of
+  // "which model and tier will this send actually run". The model pill,
+  // the fast-tier gate, the vision preflight, and the submit payload all
+  // read it, so the pill can never promise a selection the wire doesn't
+  // carry (the #663 failure: a fallback pill with an armed fast tier over
+  // an empty model — refused fail-closed at create).
+  //
+  // Adoption of the harness default is gated on `showModelSelector`: with
+  // no pill there is no displayed promise, and whoever hid the picker owns
+  // the model (the guest share profile server-side, a host pin) — the
+  // guest no-modelName invariant depends on this gate staying put.
+  // -------------------------------------------------------------------------
+
+  const effective = useMemo(() => {
     // modelId may be a compound "harness/id" key (unified picker) or a
     // plain id — resolve through the unambiguous compound lookup first,
     // mirroring the submit path's parseModelKey handling.
-    const selectedModel = modelId
+    const stateModel = modelId
       ? (registryGetByKey(modelId) ?? registryGetModel(modelId))
-      : registryDefaultModel;
+      : undefined;
+
+    let effectiveModelId = modelId;
+    let effectiveModel = stateModel;
+    if (showModelSelector && !isRegistryLoading && stateModel === undefined) {
+      // Empty state, or an id the registry no longer lists (e.g. a retired
+      // model carried over from the last execution): the pill falls back to
+      // the harness default, so the submission adopts it too. While the
+      // registry is still loading nothing can be classified — pass the raw
+      // id through unmodified rather than misadopting the default.
+      effectiveModelId = harnessDefaultModel?.modelId ?? modelId;
+      effectiveModel = harnessDefaultModel;
+    }
+
+    // "fast" rides the submit only while the effective model prices the
+    // variant — the same rule the trigger badge renders and the server
+    // enforces fail-closed (#357). An armed tier surviving onto a model
+    // with no fast variant (e.g. a prop-driven `defaultModelId` re-sync,
+    // which bypasses ModelSelector's user-pick reset) is thereby
+    // unsendable, not just unstyled.
+    const effectiveServiceTier: ServiceTierOption =
+      serviceTier === "fast"
+        && (effectiveModel?.serviceTiers.includes(FAST_SERVICE_TIER) ?? false)
+        ? "fast"
+        : "standard";
+
+    return { modelId: effectiveModelId, model: effectiveModel, serviceTier: effectiveServiceTier };
+  }, [
+    modelId,
+    serviceTier,
+    showModelSelector,
+    isRegistryLoading,
+    registryGetByKey,
+    registryGetModel,
+    harnessDefaultModel,
+  ]);
+
+  // Vision preflight consumes the effective model — previously it kept a
+  // third private resolution (unified-registry default) that could name a
+  // different model than both the pill and the payload.
+  const visionNotice = useMemo(() => {
+    if (!enableAttachments || attachments.entries.length === 0) return null;
     const preflight = assessVisionPreflight(
       attachments.entries.map((e) => ({
         name: e.file.name,
         sizeBytes: e.file.size,
         contentType: e.contentType,
       })),
-      { model: selectedModel, limits: visionLimits },
+      { model: effective.model, limits: visionLimits },
     );
     return visionPreflightMessage(preflight, {
       limits: visionLimits,
-      modelDisplayName: selectedModel?.displayName,
+      modelDisplayName: effective.model?.displayName,
     });
   }, [
     enableAttachments,
     attachments.entries,
-    modelId,
-    registryGetByKey,
-    registryGetModel,
-    registryDefaultModel,
+    effective.model,
     visionLimits,
   ]);
 
@@ -974,27 +1043,32 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           : undefined);
       const hasFileRefs = enableFileReferences && fileRefs.hasRefs;
       const buildFromPlan = overrides?.buildFromPlan;
-      // Carried only when the user actively chose fast: an untouched
-      // tier means "platform default" (which resolves to standard in
-      // the runner), and the UNSPECIFIED-vs-explicit distinction is
-      // load-bearing telemetry (#357).
-      const effectiveServiceTier = serviceTier === "fast" ? serviceTier : undefined;
+      // Carried only when fast is actually in effect (armed by the user
+      // AND priced by the effective model — see the effective run
+      // selection): an untouched tier means "platform default" (which
+      // resolves to standard in the runner), and the UNSPECIFIED-vs-
+      // explicit distinction is load-bearing telemetry (#357).
+      const submitServiceTier =
+        effective.serviceTier === "fast" ? effective.serviceTier : undefined;
 
       const context: SessionComposerSubmitContext | undefined =
         hasEnv || hasAttachments || effectiveMode || hasFileRefs || buildFromPlan
-        || effectiveServiceTier
+        || submitServiceTier
           ? {
               runtimeEnv: hasEnv ? env : undefined,
               attachments: hasAttachments ? attachmentInputs : undefined,
               interactionMode: effectiveMode,
-              serviceTier: effectiveServiceTier,
+              serviceTier: submitServiceTier,
               workspaceFileRefs: hasFileRefs ? [...fileRefs.refs] : undefined,
               buildFromPlan,
             }
           : undefined;
 
-      const resolvedModelId = modelId
-        ? (parseModelKey(modelId)?.modelId ?? modelId)
+      // The payload carries the effective model — exactly what the pill
+      // displays (#663), stripped to a plain id when the state holds a
+      // compound "harness/id" key.
+      const resolvedModelId = effective.modelId
+        ? (parseModelKey(effective.modelId)?.modelId ?? effective.modelId)
         : undefined;
       onSubmit(message, resolvedModelId, context);
 
@@ -1005,7 +1079,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         fileRefs.clear();
       }
     },
-    [onSubmit, modelId, serviceTier, stigmer, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv, showInteractionModePicker, interactionMode],
+    [onSubmit, effective, stigmer, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv, showInteractionModePicker, interactionMode],
   );
 
   const composer = useComposer({
@@ -1033,6 +1107,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
   const handleHarnessChange = useCallback(
     (h: HarnessOption) => {
+      setActiveHarness(h);
       onHarnessChange?.(h);
     },
     [onHarnessChange],
@@ -1804,7 +1879,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           interactionMode={interactionMode}
           onInteractionModeChange={handleInteractionModeChange}
           showModelSelector={showModelSelector}
-          modelId={modelId}
+          // The pill renders the effective selection — the same value the
+          // submit payload carries (#663), never a fallback of its own.
+          modelId={effective.modelId}
           onModelChange={handleModelChange}
           serviceTier={serviceTier}
           onServiceTierChange={setServiceTier}

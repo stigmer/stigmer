@@ -19,15 +19,16 @@ import (
 // itself is removed (children before parent, so a mid-failure retry
 // converges: the agent/session cascade ordering).
 //
-// This deliberately goes FURTHER than the agent cascade
-// (agent/controller/delete_cascade.go), which spares personal instances as
-// "inert dangling references". That rationale holds for the dangling
-// REFERENCE (spec.workflow_id is an immutable ID, never reused) but not for
-// the dangling SLUG: WorkflowInstance slugs are org-scoped, and the parent
+// An earlier agent-side posture spared user instances as "inert dangling
+// references". That rationale holds for the dangling REFERENCE
+// (spec.workflow_id is an immutable ID, never reused) but not for the
+// dangling SLUG: WorkflowInstance slugs are org-scoped, and the parent
 // workflow's detail page is the only instance-management surface — so an
 // orphan occupies its slug org-wide forever with no UI left to delete it
 // (stigmer/stigmer#592, repro'd live). Instances are configuration OF the
-// workflow, meaningless without it; owner ruling: they go with it.
+// workflow, meaningless without it; owner ruling: they go with it. The
+// agent cascade (agent/controller/delete_cascade.go) follows the same
+// contract since stigmer/stigmer#611 extended the ruling.
 //
 // What deliberately SURVIVES a workflow delete, and must never be swept
 // into this cascade:
@@ -49,8 +50,8 @@ import (
 //
 // Instances are matched by spec.workflow_id — a required, validated field
 // on every instance — so a single ID sweep covers the default instance
-// too; no pointer-or-slug resolution is needed (unlike the agent cascade,
-// whose default instance may predate the status pointer).
+// too; no pointer-or-slug resolution is needed (the agent cascade shares
+// this shape).
 type cascadeDeleteInstancesStep struct {
 	store store.Store
 }

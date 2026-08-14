@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { getUserMessage, isPermissionDenied } from "@stigmer/sdk";
 import type { CursorAccount } from "@stigmer/protos/ai/stigmer/platform/cursoraccount/v1/cursor_account_pb";
 import type { CursorAccountSummary } from "@stigmer/protos/ai/stigmer/platform/cursoraccount/v1/io_pb";
@@ -145,7 +146,7 @@ export function CursorAccountsConsole({ className }: CursorAccountsConsoleProps)
             add member execution keys to make it routable.
           </p>
         ) : (
-          <ul role="list" aria-label="Cursor accounts" className="stg:m-0 stg:list-none stg:p-0">
+          <ul role="list" aria-label="Cursor accounts" className={UNSTYLED_LIST}>
             {accounts.map((summary) => (
               <AccountRow
                 key={summary.account?.accountId}

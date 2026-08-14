@@ -72,6 +72,7 @@ import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
 import { getModelPricing, ensureLoaded as ensurePricingLoaded } from "../../shared/model-pricing.js";
 import { getDefaultModel, getModelVisionCapability } from "../../shared/model-registry.js";
 import { buildChatModel } from "../../shared/model-client.js";
+import { resolveEffectiveServiceTier } from "../../shared/service-tier.js";
 import {
   loadArtifactStorageConfig,
   resolveUsableArtifactStorage,
@@ -580,11 +581,22 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     // The operator's STIGMER_LLM_REQUEST_TIMEOUT_MS bound is applied inside
     // buildChatModel (#468) — the sub-agent modelFactory below silently
     // dropped it when each caller parsed the env itself.
+    //
+    // The service tier resolves ONCE here (UNSPECIFIED → explicit
+    // STANDARD, shared/service-tier.ts) and rides every model this
+    // execution constructs — the primary below AND the sub-agent factory —
+    // so the provider account's default can never pick the price of any
+    // turn (#361, the native half of #357's contract). Sub-agents inherit
+    // it because the tier is an attribute of the EXECUTION's bill, and
+    // sub-agent calls land on the same ledger.
+    const serviceTier = resolveEffectiveServiceTier(
+      execution.spec!.executionConfig?.serviceTier);
     const { model } = await buildChatModel({
       modelName,
       proxyEndpoint: config.proxyEndpoint ?? undefined,
       stigmerToken: config.stigmerToken ?? undefined,
       headerScope: { executionId },
+      serviceTier,
     });
     timing.mark("build_model");
 
@@ -676,6 +688,14 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
           isCapturablePath,
           captureIgnored: captureMode && !!artifactStorage,
           recordBlockedSecret: (rawPath: string) => casObserver.recordBlockedSecret(rawPath),
+          // Pre-delete byte capture (issue #303): deepagents has no backend
+          // delete method for the CAS backend to observe, so a flowing delete's
+          // before-bytes are recorded by the gate at authorization time, through
+          // the SAME shared observer — the turn boundary then reads after=null
+          // and authors a reviewable, restorable DELETE. recordBefore's own
+          // ownership predicate (gitignored-only in a git tree, everything in
+          // non-git) agrees with the gate's not-capturable condition.
+          captureDeleteBefore: (rawPath: string) => casObserver.recordBefore(rawPath),
           unattended,
           unattendedSkips,
         }
@@ -768,6 +788,9 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
             proxyEndpoint: config.proxyEndpoint ?? undefined,
             stigmerToken: config.stigmerToken ?? undefined,
             headerScope: { executionId },
+            // The execution's tier, inherited: sub-agent calls bill to the
+            // same execution (#361 — see the Step 9 resolution comment).
+            serviceTier,
           })).model,
         // Presence of shellEnv is the shell-capability switch for sub-agent
         // backends too (undefined in plan mode; see buildShellEnv above).

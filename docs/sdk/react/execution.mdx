@@ -2696,6 +2696,28 @@ function extractPrimaryArg(toolCall: ToolCall): string | null
 ```
 
 
+### extractShellIntent
+
+Extracts the model-authored intent phrase from a SHELL tool call, or null
+when absent (legacy executions, models that skipped the optional arg, and
+every non-shell kind). See [`SHELL_INTENT_ARG_FIELD`](#shell_intent_arg_field).
+
+```tsx
+function extractShellIntent(toolCall: Pick<ToolCall, "name" | "mcpServerSlug" | "toolKind" | "args">): string | null
+```
+
+
+### extractShellIntentFromPreview
+
+Preview-string twin of [`extractShellIntent`](#extractshellintent) for surfaces that carry a
+`PendingApproval` (JSON `argsPreview`) instead of a full `ToolCall` —
+mirrors `extractPrimaryArgFromPreview`'s kind resolution.
+
+```tsx
+function extractShellIntentFromPreview(toolName: string, argsPreview: string, mcpServerSlug?: string, toolKind?: ToolKind): string | null
+```
+
+
 ### FILE_CHANGE_DOCUMENT_ENTRY_ID
 
 Virtual entry id of the file-change diff document FAMILY. Like artifacts
@@ -3269,6 +3291,45 @@ const shouldFetch = isTextArtifact(artifact) && Number(artifact.sizeBytes) < MAX
 ```
 
 
+### LivenessStatusLine
+
+The thread's ambient-liveness anchor (stigmer#277): a quiet one-line status
+at the bottom of the thread while an execution is live but nothing else on
+screen is visibly moving — the exact stretches (model generation between
+tool calls) where users conclude the agent died and reach for a restart.
+
+The label carries the shared `stgm-shimmer-label` sweep, the same treatment
+as a running tool row's title and the thinking indicator, so "alive" reads
+identically everywhere. [`MessageThread`](#messagethread) emits it only while the
+active execution is `IN_PROGRESS` with no running tool call, no live
+sub-agent, and no pending approval — when a gate is waiting on the *user*,
+shimmering "Working…" would be a lie, and when a tool is running, its own
+row carries the sweep. It disappears the moment the execution settles
+(phase-driven, DD-009 — never inferred from the stream going quiet).
+
+Replaceable via [`MessageThreadSlots.LivenessStatusLine`](#livenessstatusline) (the
+SetupProgress precedent) for hosts that want their own liveness voice.
+
+All visual properties flow through `--stgm-*` tokens.
+
+```tsx
+<LivenessStatusLine />
+<LivenessStatusLine label="Reviewing your data…" />
+```
+
+
+### LivenessStatusLineProps
+
+Props for [`LivenessStatusLine`](#livenessstatusline).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    label: { type: "string", description: "The status copy. Defaults to `\"Working…\"` — deliberately generic: the thread has no model-authored account of what the agent is doing between visible events (that seam is stigmer#276), so the line claims only what is provably true." },
+  }}
+/>
+
+
 ### MessageEntry
 
 Renders a single message in the conversation thread.
@@ -3332,6 +3393,7 @@ render defeats that for its rows.
   type={{
     ApprovalCard: { type: "ComponentType<ApprovalCardProps>", description: "The HITL tool-approval gate card." },
     ExecutionErrorNotice: { type: "ComponentType<ExecutionErrorNoticeProps>", description: "The terminal execution-failure notice. Receives the raw server-reported reason and the retry wiring, so a host can turn the failure into its own recovery moment (classify the reason, offer an alternate engine, link support) instead of the built-in Show more / Retry treatment." },
+    LivenessStatusLine: { type: "ComponentType<LivenessStatusLineProps>", description: "The ambient-liveness status line at the thread's tail while the active execution is live between visible events (stigmer#277). Override to supply a host-voiced label or richer treatment; the emission policy (when the line appears at all) stays with the thread." },
     MessageEntry: { type: "ComponentType<MessageEntryProps>", description: "All message bubbles — human, assistant, thinking, and system entries. Also wraps the failed-send bubble (the inline Retry chrome around it stays built-in)." },
     PlanArtifactCard: { type: "ComponentType<PlanArtifactCardProps>", description: "Completed Plan turn that published a plan artifact." },
     PlanCompletionCard: { type: "ComponentType<PlanCompletionCardProps>", description: "Completed Plan turn without an artifact — the bare Implement CTA." },
@@ -3735,6 +3797,21 @@ Fields shared by both variants of [`CreateAgentExecutionInput`](#createagentexec
 />
 
 
+### SHELL_INTENT_ARG_FIELD
+
+The tool-call argument that carries a model-authored intent phrase for
+SHELL tools (stigmer#276) — a short human description of what the command
+does and why, rendered as the row title with the command as secondary text.
+
+Two writers populate it, converged on one wire key by design: the native
+harness's tool-intent middleware (`backend/services/runner/src/middleware/
+tool-intent.ts`, `INTENT_ARG`) extends the shell tool's bind-time schema
+with it, and the Cursor harness's built-in Shell tool carries it natively.
+The shared, machine-checked contract is
+`test/fixtures/tool-view/intent-title.json` — keep the writers and this
+reader in lockstep.
+
+
 ### SubAgentSection
 
 Renders a sub-agent execution as a nested mini-thread inside the
@@ -4038,9 +4115,18 @@ The two disclosure axes — the card-level chevron and a block's
 content-overflow reveal — never govern the same body, which is what removes
 the old "expand, then Show more" double control.
 
+Orthogonal to the layout modes is the **chrome tier** (the density axis,
+stigmer#274): metadata-only categories (read / list / search / think)
+render as quiet unboxed lines — no card frame — while content-bearing
+categories keep their cards. A quiet row escalates to a card while gated
+or failed; its disclosed body renders under a light left rail instead of a
+border. See `ToolChrome`.
+
 Shows category-aware labels (e.g., "Shell", "Read", "Edit") with
 the primary argument as a subtitle, a category-specific icon, and
-an inline approval decision badge when applicable.
+an inline approval decision badge when applicable. A shell row whose
+call carries a model-authored intent phrase is titled with that phrase
+instead — the command becomes the subtitle (stigmer#276).
 
 Wrapped in `React.memo` — structural sharing (DD-009/010) preserves
 the `ToolCall` reference when unchanged, so a settled row skips
@@ -4116,13 +4202,16 @@ The fully-resolved presentation for a tool call, returned by [`useToolPresentati
 <TypeTable
   type={{
     category: { type: "ToolCategory", description: "Presentation category (1:1 with kind).", required: true },
+    chrome: { type: "ToolChrome", description: "Default chrome tier for this tool — `\"quiet\"` renders an unboxed line, `\"card\"` a bordered card (see ToolChrome). A pending gate or a failure escalates to `\"card\"` in the component layer; this is the *settled* default.", required: true },
     disclosure: { type: "ToolDisclosure", description: "Default inline disclosure for this tool — `\"preview\"` keeps a bounded, persistent preview of the result, `\"summary\"` keeps a compact row. The active/awaiting state can still force a row open; this is the *settled* default.", required: true, typeDescriptionLink: "#tooldisclosure" },
+    intent: { type: "string | null", description: "The model-authored intent phrase for a SHELL call (stigmer#276), or null when absent (legacy executions, skipped optional arg, non-shell kinds). Raw extraction — precedence against overrides is resolved in ToolPresentation.title.", required: true },
     kind: { type: "ToolKind", description: "Harness-agnostic kind (wire field, with name fallback).", required: true },
     label: { type: "string", description: "Display label, e.g. \"Edit\", \"Shell\".", required: true },
     primaryArg: { type: "string | null", description: "Primary argument (path, command, pattern...), or null.", required: true },
     result: { type: "ToolResultView", description: "Normalized result view for rendering with ResultView.", required: true },
     resultSummary: { type: "string | null", description: "One-line result summary suffix for the collapsed row (e.g. \"+40 -0\").", required: true },
     runGroupable: { type: "boolean", description: "Whether consecutive same-kind calls fold into one collapsible chip — the run-grouping axis, orthogonal to disclosure. See isRunGroupableCategory.", required: true },
+    title: { type: "string", description: "The row title: a registered presenter's `label` override wins (a host's explicit wording is never displaced by model output), then the model-authored intent, then the category label. Renderers that title a row use this; label stays the short kind label for chips and badges.", required: true },
   }}
 />
 
@@ -4133,6 +4222,7 @@ Optional per-kind overrides for label, summary, disclosure, and run-grouping.
 
 <TypeTable
   type={{
+    chrome: { type: "(toolCall: ToolCall, result: ToolResultView) => ToolChrome", description: "Overrides the default chrome tier — quiet unboxed line vs bordered card (see ToolChrome). Use to restore the boxed look for a kind (`() => \"card\"`) or to quiet a chatty custom tool (`() => \"quiet\"`). A pending approval gate or a failure always escalates the row to a card regardless of this override — a decision surface and error output must never render frameless." },
     disclosure: { type: "(toolCall: ToolCall, result: ToolResultView) => ToolDisclosure", description: "Overrides the default inline disclosure. Use to keep a noisy MCP tool compact (`() => \"summary\"`) or to foreground a custom tool's output (`() => \"preview\"`) without forking the components." },
     label: { type: "(toolCall: ToolCall) => string", description: "Overrides the display label (e.g. \"Shell\" -> \"Run command\")." },
     runGroupable: { type: "(toolCall: ToolCall) => boolean", description: "Overrides whether consecutive same-kind calls fold into one collapsible \"Read 5 files\" chip. Use to fold a chatty custom tool (`() => true`) or to keep a normally-folded category as standalone rows (`() => false`) without forking the thread layout. Defaults to isRunGroupableCategory." },

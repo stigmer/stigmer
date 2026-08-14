@@ -19,26 +19,6 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_fork: GenFile = /*@__PURE
 /**
  * ForkTaskConfig defines the configuration for fork tasks that execute branches in parallel.
  *
- * @internal
- * YAML Example:
- *   - taskName:
- *       fork:
- *         branches:
- *           - branch1:
- *               do:
- *                 - task1:
- *                     call: http
- *                     with:
- *                       method: POST
- *                       endpoint:
- *                         uri: https://api.example.com/branch1
- *           - branch2:
- *               do:
- *                 - task2:
- *                     call: http
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 5
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig
  */
 export type ForkTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig"> & {

@@ -22,11 +22,6 @@ export const file_ai_stigmer_agentic_schedule_v1_query: GenFile = /*@__PURE__*/
 /**
  * ScheduleQueryController handles read operations for schedules.
  *
- * @internal
- * No anonymous/public RPC by design (the AgentChannel posture): a
- * schedule has no public surface at all — its only runtime effect is the
- * executions its fires create.
- *
  * @generated from service ai.stigmer.agentic.schedule.v1.ScheduleQueryController
  */
 export const ScheduleQueryController: GenService<{
@@ -43,11 +38,6 @@ export const ScheduleQueryController: GenService<{
   /**
    * Get a schedule by its organization-scoped reference (org/slug).
    *
-   * @internal
-   * Custom authorization in handler — checks both direct resource access
-   * and organization-level visibility permissions (the AgentShare /
-   * AgentChannel pattern).
-   *
    * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleQueryController.getByReference
    */
   getByReference: {
@@ -62,11 +52,6 @@ export const ScheduleQueryController: GenService<{
    * This is how the agent's operational surfaces and CLI resolve an
    * agent's existing schedules regardless of slug.
    *
-   * @internal
-   * Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS
-   * (the getByAgent family convention — agent channels, agent shares,
-   * agent instances).
-   *
    * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleQueryController.getByAgent
    */
   getByAgent: {
@@ -76,10 +61,6 @@ export const ScheduleQueryController: GenService<{
   },
   /**
    * List schedules with optional label filtering.
-   *
-   * @internal
-   * Authorization in-handler via FGA-filtered queries (cloud) or
-   * unrestricted store queries (OSS).
    *
    * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleQueryController.list
    */
@@ -95,16 +76,6 @@ export const ScheduleQueryController: GenService<{
    * (a refused launch gate, a missing target agent) — with the refusing
    * gate's copy verbatim. This is the surface that explains
    * status.consecutive_failures.
-   *
-   * @internal
-   * Backed by the fire ledger (project DD-017 D-7). Authorization:
-   * can_view on the schedule — run history is the schedule's own
-   * operational record; the linked executions keep their own bars. Rows
-   * carrying an execution id but no terminal outcome are enriched with
-   * the execution's live phase at read time (one join), so manual fires
-   * need no tracker and outcome columns never lie. OSS implements the
-   * same contract against its store; the conformance suite holds both
-   * editions to it.
    *
    * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleQueryController.listRuns
    */

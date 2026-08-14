@@ -25,9 +25,6 @@ export const InvitationCommandController = {
      * The specified role must be in the organization's grantable_roles.
      * Platform-managed organizations cannot create invitations.
      *
-     * @internal
-     * Authorization: Requires can_grant_access permission on the organization.
-     *
      * @generated from rpc ai.stigmer.iam.invitation.v1.InvitationCommandController.create
      */
     create: {
@@ -41,12 +38,6 @@ export const InvitationCommandController = {
      *
      * Sets the invitation state to revoked. Idempotent — revoking an
      * already-revoked invitation is a no-op.
-     *
-     * @internal
-     * Authorization is handled in the handler: loads the invitation,
-     * resolves its organization, and checks can_grant_access on the org.
-     * Proto-level auth is skipped because the input (InvitationId) does
-     * not directly identify the org.
      *
      * @generated from rpc ai.stigmer.iam.invitation.v1.InvitationCommandController.revoke
      */
@@ -69,12 +60,6 @@ export const InvitationCommandController = {
      * - Invitation must not be expired
      * - Invitation must not have reached max_redemptions (if > 0)
      * - Redeemer must not already be a member of the organization
-     *
-     * @internal
-     * Authorization: The token itself is the authorization mechanism.
-     * The redeemer's identity is resolved from the authentication header.
-     * FGA authorization is skipped — any authenticated user with a valid
-     * token can redeem.
      *
      * @generated from rpc ai.stigmer.iam.invitation.v1.InvitationCommandController.redeem
      */

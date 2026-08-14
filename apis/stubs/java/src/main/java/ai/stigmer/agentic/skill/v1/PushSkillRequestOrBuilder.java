@@ -39,9 +39,11 @@ public interface PushSkillRequestOrBuilder extends
    * - description: Human-readable description (optional but recommended)
    * - Tool executables/scripts (optional)
    * - Additional files referenced in SKILL.md
+   *
+   * Mutually exclusive with artifact_upload_ref (see the message comment).
    * </pre>
    *
-   * <code>bytes artifact = 2 [json_name = "artifact", (.buf.validate.field) = { ... }</code>
+   * <code>bytes artifact = 2 [json_name = "artifact"];</code>
    * @return The artifact.
    */
   com.google.protobuf.ByteString getArtifact();
@@ -145,4 +147,32 @@ public interface PushSkillRequestOrBuilder extends
    */
   com.google.protobuf.ByteString
       getMessageBytes();
+
+  /**
+   * <pre>
+   * Reference to an artifact staged via createArtifactUploadUrl().
+   * Set this instead of artifact when the ZIP exceeds the gRPC message-size
+   * cap. The reference is single-use and expires with its upload URL.
+   *
+   * Mutually exclusive with artifact (see the message comment).
+   * </pre>
+   *
+   * <code>string artifact_upload_ref = 7 [json_name = "artifactUploadRef"];</code>
+   * @return The artifactUploadRef.
+   */
+  java.lang.String getArtifactUploadRef();
+  /**
+   * <pre>
+   * Reference to an artifact staged via createArtifactUploadUrl().
+   * Set this instead of artifact when the ZIP exceeds the gRPC message-size
+   * cap. The reference is single-use and expires with its upload URL.
+   *
+   * Mutually exclusive with artifact (see the message comment).
+   * </pre>
+   *
+   * <code>string artifact_upload_ref = 7 [json_name = "artifactUploadRef"];</code>
+   * @return The bytes for artifactUploadRef.
+   */
+  com.google.protobuf.ByteString
+      getArtifactUploadRefBytes();
 }

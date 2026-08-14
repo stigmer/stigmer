@@ -104,12 +104,24 @@ message LlmCallTaskConfig {
 
   // Maximum tokens in the LLM response.
   // Optional — uses the provider's default when not set.
-  int32 max_tokens = 6 [(buf.validate.field).int32.gte = 1];
+  //
+  // Unset (0) is valid: proto3 implicit presence makes an omitted field
+  // indistinguishable from 0, so the range rule must not fire on it (#673).
+  int32 max_tokens = 6 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).int32.gte = 1
+  ];
 
-  // Timeout for the LLM call in seconds.
-  // Default: 60. Max: 600 (10 minutes).
-  // Optional.
+  // Timeout for the LLM call in seconds. Max: 600 (10 minutes).
+  // Optional — unset (0) leaves the call bounded by the runner's activity
+  // timeout. When set, the runner bounds the provider request at this
+  // budget and a breach fails the task with LLM_TIMEOUT (non-retryable —
+  // catchable with try/catch); the activity timeout widens to fit (#686).
+  //
+  // Unset (0) is valid: proto3 implicit presence makes an omitted field
+  // indistinguishable from 0, so the range rule must not fire on it (#673).
   int32 timeout = 7 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
     (buf.validate.field).int32.gte = 1,
     (buf.validate.field).int32.lte = 600
   ];
@@ -125,8 +137,12 @@ message LlmCallTaskConfig {
   // schema, giving it an opportunity to self-correct.
   //
   // Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.
-  // Default: 1. Valid range: 1-5.
+  // Default when unset: 1. Valid range when set: 1-5.
+  //
+  // Unset (0) is valid: proto3 implicit presence makes an omitted field
+  // indistinguishable from 0, so the range rule must not fire on it (#673).
   int32 max_retries = 9 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
     (buf.validate.field).int32.gte = 1,
     (buf.validate.field).int32.lte = 5
   ];

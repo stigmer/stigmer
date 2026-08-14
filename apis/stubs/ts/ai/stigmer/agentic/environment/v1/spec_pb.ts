@@ -15,9 +15,6 @@ export const file_ai_stigmer_agentic_environment_v1_spec: GenFile = /*@__PURE__*
 /**
  * EnvironmentSpec defines the configurable properties of an environment.
  *
- * @internal
- * The overview.md file provides the SDK-facing description and example YAML.
- *
  * @generated from message ai.stigmer.agentic.environment.v1.EnvironmentSpec
  */
 export type EnvironmentSpec = Message<"ai.stigmer.agentic.environment.v1.EnvironmentSpec"> & {
@@ -53,21 +50,12 @@ export type EnvironmentValue = Message<"ai.stigmer.agentic.environment.v1.Enviro
   /**
    * The configuration or secret string.
    *
-   * @internal
-   * When is_secret is true the value is encrypted at rest and redacted in logs.
-   * When is_secret is false the value is stored as plaintext.
-   * Value can be empty when pre-declaring keys whose values are injected at runtime.
-   *
    * @generated from field: string value = 1;
    */
   value: string;
 
   /**
    * Whether this value should be treated as a secret.
-   *
-   * @internal
-   * When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal.
-   * When false: stored as plaintext, visible in audit logs.
    *
    * @generated from field: bool is_secret = 2;
    */
@@ -103,10 +91,6 @@ export type EnvVarDeclaration = Message<"ai.stigmer.agentic.environment.v1.EnvVa
   /**
    * Whether the resolved value should be treated as a secret.
    *
-   * @internal
-   * When true: encrypted at rest, redacted in logs and Temporal history.
-   * When false: stored as plaintext, visible in audit logs.
-   *
    * @generated from field: bool is_secret = 1;
    */
   isSecret: boolean;
@@ -121,12 +105,6 @@ export type EnvVarDeclaration = Message<"ai.stigmer.agentic.environment.v1.EnvVa
 
   /**
    * Whether this variable is optional.
-   *
-   * @internal
-   * When false (default): the execution pipeline rejects a run if this
-   * variable is missing from the user's environment.
-   * When true: a missing value is acceptable (the MCP server or agent
-   * degrades gracefully without it).
    *
    * @generated from field: bool optional = 3;
    */

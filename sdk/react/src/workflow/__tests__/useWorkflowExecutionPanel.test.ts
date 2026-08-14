@@ -16,6 +16,7 @@ import {
 import {
   useWorkflowExecutionPanel,
   workflowArtifactTabPath,
+  type UseWorkflowExecutionPanelOptions,
 } from "../useWorkflowExecutionPanel";
 
 function artifact(id: string, displayName: string) {
@@ -236,5 +237,104 @@ describe("useWorkflowExecutionPanel openDiagnosis", () => {
     expect(editors.map((e) => e.entryId)).toContain(
       DIAGNOSIS_DOCUMENT_ENTRY_ID,
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The controlled/observable open-state seam — the #651 contract mirrored from
+// useSessionPanel (#654). The panel opens ITSELF (Diagnose, artifact/change
+// opens), so onOpenChange fires in BOTH modes; controlled mode surfaces
+// requests without applying them, and a declined request stays re-fireable.
+// ---------------------------------------------------------------------------
+
+function renderSeamPanel(initial?: UseWorkflowExecutionPanelOptions) {
+  return renderHook(
+    (opts: UseWorkflowExecutionPanelOptions) => useWorkflowExecutionPanel(opts),
+    { initialProps: { ...initial } as UseWorkflowExecutionPanelOptions },
+  );
+}
+
+describe("useWorkflowExecutionPanel — observed open state (uncontrolled + onOpenChange)", () => {
+  it("reports the chip toggle without taking control", () => {
+    const seen: boolean[] = [];
+    const { result } = renderSeamPanel({ onOpenChange: (o) => seen.push(o) });
+    act(() => result.current.openPanel());
+    expect(result.current.isOpen).toBe(true);
+    act(() => result.current.closePanel());
+    expect(result.current.isOpen).toBe(false);
+    expect(seen).toEqual([true, false]);
+  });
+
+  it("reports internal open intents (openDiagnosis, openArtifact), once per actual transition", () => {
+    const seen: boolean[] = [];
+    const { result } = renderSeamPanel({ onOpenChange: (o) => seen.push(o) });
+    act(() => result.current.openDiagnosis());
+    // Already open — further open intents are not transitions.
+    act(() => result.current.openArtifact(artifact("art_1", "report.json")));
+    act(() => result.current.openPanel());
+    expect(seen).toEqual([true]);
+  });
+
+  it("starts open when defaultOpen is set, without a spurious notification", () => {
+    const seen: boolean[] = [];
+    const { result } = renderSeamPanel({
+      defaultOpen: true,
+      onOpenChange: (o) => seen.push(o),
+    });
+    expect(result.current.isOpen).toBe(true);
+    expect(seen).toEqual([]);
+  });
+});
+
+describe("useWorkflowExecutionPanel — controlled open state", () => {
+  it("follows the host's open value and ignores defaultOpen", () => {
+    const { result, rerender } = renderSeamPanel({ open: false, defaultOpen: true });
+    expect(result.current.isOpen).toBe(false);
+    rerender({ open: true, defaultOpen: true });
+    expect(result.current.isOpen).toBe(true);
+  });
+
+  it("surfaces intents through onOpenChange without flipping state itself", () => {
+    const seen: boolean[] = [];
+    const onOpenChange = (o: boolean) => seen.push(o);
+    const { result, rerender } = renderSeamPanel({ open: false, onOpenChange });
+    act(() => result.current.openPanel());
+    expect(seen).toEqual([true]);
+    expect(result.current.isOpen).toBe(false);
+    // The host grants the request.
+    rerender({ open: true, onOpenChange });
+    expect(result.current.isOpen).toBe(true);
+    act(() => result.current.closePanel());
+    expect(seen).toEqual([true, false]);
+    expect(result.current.isOpen).toBe(true);
+  });
+
+  it("re-fires a declined request (once per request, not per transition)", () => {
+    const seen: boolean[] = [];
+    const onOpenChange = (o: boolean) => seen.push(o);
+    const { result } = renderSeamPanel({ open: false, onOpenChange });
+    act(() => result.current.openArtifact(artifact("art_1", "a.json")));
+    // The host declined (open stayed false) — a later intent must re-fire,
+    // not be swallowed by a stale "already requested" memory.
+    act(() => result.current.openFileChange(fileChange("src/a.ts")));
+    expect(seen).toEqual([true, true]);
+  });
+
+  it("Diagnose is reported, not applied — but the tab is pinned and ready", () => {
+    const seen: boolean[] = [];
+    const onOpenChange = (o: boolean) => seen.push(o);
+    const { result } = renderSeamPanel({ open: false, onOpenChange });
+    act(() => result.current.openDiagnosis());
+    expect(seen).toEqual([true]);
+    expect(result.current.isOpen).toBe(false);
+    // Tab state stays SDK-owned: the diagnosis tab is pinned regardless, so
+    // the moment the host opens the panel the conversation greets the user.
+    expect(result.current.editorsStore.getSnapshot().editors).toEqual([
+      {
+        entryId: DIAGNOSIS_DOCUMENT_ENTRY_ID,
+        path: DIAGNOSIS_DOCUMENT_PATH,
+        preview: false,
+      },
+    ]);
   });
 });

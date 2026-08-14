@@ -36,21 +36,10 @@ const (
 // IdentityAccountCommandController handles write operations for identity accounts.
 type IdentityAccountCommandControllerClient interface {
 	// Create a new identity account.
-	//
-	// @internal
-	// System-level RPC used by federated account creation and bootstrap migrations.
-	// No FGA authorization — called via inProcessChannelAsSystem (machine account).
-	// The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
 	Create(ctx context.Context, in *IdentityAccount, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Update an existing identity account.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the identity account resource.
 	Update(ctx context.Context, in *IdentityAccount, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Delete an identity account.
-	//
-	// @internal
-	// Authorization: Requires can_delete permission on the identity account resource.
 	Delete(ctx context.Context, in *IdentityAccountId, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Create a federated identity account for an external platform user.
 	//
@@ -179,21 +168,10 @@ func (c *identityAccountCommandControllerClient) ProvisionMyAccount(ctx context.
 // IdentityAccountCommandController handles write operations for identity accounts.
 type IdentityAccountCommandControllerServer interface {
 	// Create a new identity account.
-	//
-	// @internal
-	// System-level RPC used by federated account creation and bootstrap migrations.
-	// No FGA authorization — called via inProcessChannelAsSystem (machine account).
-	// The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
 	Create(context.Context, *IdentityAccount) (*IdentityAccount, error)
 	// Update an existing identity account.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the identity account resource.
 	Update(context.Context, *IdentityAccount) (*IdentityAccount, error)
 	// Delete an identity account.
-	//
-	// @internal
-	// Authorization: Requires can_delete permission on the identity account resource.
 	Delete(context.Context, *IdentityAccountId) (*IdentityAccount, error)
 	// Create a federated identity account for an external platform user.
 	//

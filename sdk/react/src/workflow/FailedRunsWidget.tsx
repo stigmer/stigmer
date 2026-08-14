@@ -4,6 +4,7 @@ import { memo } from "react";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 
 export interface FailedRunsWidgetProps {
@@ -54,7 +55,7 @@ export const FailedRunsWidget = memo(function FailedRunsWidget({
           No recent failures
         </p>
       ) : (
-        <ul className="stg:space-y-2" role="list">
+        <ul className={cn(UNSTYLED_LIST, "stg:space-y-2")} role="list">
           {executions.map((exec) => {
             const id = exec.metadata?.id;
             const name =

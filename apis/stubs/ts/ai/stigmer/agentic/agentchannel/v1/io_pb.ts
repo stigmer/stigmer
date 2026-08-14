@@ -66,11 +66,6 @@ export type GetAgentChannelsByAgentRequest = Message<"ai.stigmer.agentic.agentch
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.
    *
-   * @internal
-   * Mirrors the org scoping on the sibling getByAgent/getByWorkflow
-   * requests (agent shares, agent instances, workflow instances). Handlers
-   * implementing this RPC must apply the filter in their query/list step.
-   *
    * @generated from field: string org = 3;
    */
   org: string;
@@ -193,10 +188,6 @@ export type InitiateChannelInstallOutput = Message<"ai.stigmer.agentic.agentchan
    * Single-use opaque state parameter bound to this install attempt.
    * Empty when the install completed directly.
    *
-   * @internal
-   * Persisted server-side (PendingOAuthStateDocument pattern) and consumed
-   * atomically by completeInstall; expired or replayed states are rejected.
-   *
    * @generated from field: string state = 2;
    */
   state: string;
@@ -206,11 +197,6 @@ export type InitiateChannelInstallOutput = Message<"ai.stigmer.agentic.agentchan
    * (direct-installed providers). Clients branch on this field — never on
    * provider knowledge of their own — so the server stays the single
    * source of install-style truth.
-   *
-   * @internal
-   * DD-WA-1b. The seam behind it is the sealed ChannelInstaller split:
-   * AuthorizationRedirectInstaller populates authorization_url + state;
-   * DirectInstaller populates completed.
    *
    * @generated from field: bool completed = 3;
    */

@@ -34,6 +34,12 @@ import {
   toFoundryDeploymentName,
 } from "./llm-backend.js";
 import { resolveToApiModelId } from "./model-registry.js";
+import {
+  toAnthropicServiceTier,
+  toOpenAiServiceTier,
+  type EffectiveServiceTier,
+} from "./service-tier.js";
+import { getRunnerSecret } from "./runner-credential-store.js";
 
 export interface BuildChatModelOptions {
   /** Registry id ("claude-haiku-4.5"), "provider:model", or a provider API id. */
@@ -63,6 +69,20 @@ export interface BuildChatModelOptions {
    */
   readonly timeoutMs?: number;
   readonly maxRetries?: number;
+  /**
+   * The execution's EFFECTIVE service tier (stigmer/stigmer#361) — already
+   * resolved by the caller (resolveEffectiveServiceTier), never
+   * UNSPECIFIED. When set, every provider request pins its tier explicitly
+   * (OpenAI `service_tier`; Anthropic `service_tier` via invocationKwargs)
+   * so the provider ACCOUNT's default can never pick the price — the #357
+   * contract, held on the native harness. Deliberately optional:
+   * platform-internal utility calls (tool-approval classification, session
+   * subjects, structured extraction, workflow llm_call) are not the
+   * execution's own turns and send no tier — the provider treats an absent
+   * parameter as its standard behavior, and those calls' models are
+   * platform-chosen economy models.
+   */
+  readonly serviceTier?: EffectiveServiceTier;
 }
 
 /**
@@ -128,11 +148,11 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
   // tests. Prerequisites are re-checked here (not only in
   // the factories' preflight) so paths that construct models without a
   // runner factory still fail at dispatch with the catalog message instead
-  // of mid-request. Credentials are read natively by each SDK from its
-  // standard conventions (GCP: CLOUD_ML_REGION + ADC; AWS: AWS_REGION +
-  // the credential chain / AWS_BEARER_TOKEN_BEDROCK; Foundry:
-  // ANTHROPIC_FOUNDRY_API_KEY, or the Azure credential chain when no key
-  // is set).
+  // of mid-request. Ambient credentials are read natively by each SDK from
+  // its standard conventions (GCP: CLOUD_ML_REGION + ADC; AWS: AWS_REGION +
+  // the credential chain); runner-held keys (AWS_BEARER_TOKEN_BEDROCK,
+  // ANTHROPIC_FOUNDRY_API_KEY) are passed explicitly from the credential
+  // store because the boot capture empties their env slots (#508).
   let backendCreateClient:
     | ((options: { maxRetries?: number; timeout?: number }) => unknown)
     | undefined;
@@ -149,8 +169,17 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     const prereq = checkBedrockPrerequisites();
     if (prereq !== null) throw new Error(prereq);
     const { AnthropicBedrock } = await import("@anthropic-ai/bedrock-sdk");
+    // The SDK's own default for `apiKey` is process.env.AWS_BEARER_TOKEN_BEDROCK,
+    // which the boot capture has emptied (#508) — hand it the stored value
+    // explicitly. `undefined` when absent preserves the SDK's fallthrough to
+    // the ambient AWS credential chain (env keys, IRSA, config files).
+    const bedrockBearerToken = getRunnerSecret("AWS_BEARER_TOKEN_BEDROCK");
     backendCreateClient = (options) =>
-      new AnthropicBedrock({ maxRetries: options.maxRetries, timeout: options.timeout });
+      new AnthropicBedrock({
+        apiKey: bedrockBearerToken,
+        maxRetries: options.maxRetries,
+        timeout: options.timeout,
+      });
     wireModelId = toBedrockModelId(apiModelId);
     if (maxTokens === undefined) {
       // LangChain's per-model maxTokens table prefix-matches the model
@@ -179,8 +208,13 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     // so refreshed tokens flow without reconstruction (pinned by
     // foundry-seam.test.ts). Endpoint (resource or base URL) and the key
     // are read natively by the SDK from its own env vars.
+    // The SDK's own default for `apiKey` is process.env.ANTHROPIC_FOUNDRY_API_KEY,
+    // which the boot capture has emptied (#508) — resolve it from the store
+    // and hand it over explicitly. The either/or stays intact: exactly one of
+    // apiKey / azureADTokenProvider reaches the constructor.
+    const foundryApiKey = getRunnerSecret("ANTHROPIC_FOUNDRY_API_KEY")?.trim() || undefined;
     let azureADTokenProvider: (() => Promise<string>) | undefined;
-    if (!process.env.ANTHROPIC_FOUNDRY_API_KEY?.trim()) {
+    if (!foundryApiKey) {
       const { DefaultAzureCredential, getBearerTokenProvider } = await import("@azure/identity");
       azureADTokenProvider = getBearerTokenProvider(
         new DefaultAzureCredential(),
@@ -191,7 +225,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
       new AnthropicFoundry({
         maxRetries: options.maxRetries,
         timeout: options.timeout,
-        ...(azureADTokenProvider ? { azureADTokenProvider } : {}),
+        ...(foundryApiKey ? { apiKey: foundryApiKey } : { azureADTokenProvider }),
       });
     // Unlike the vertex/bedrock ids, the deployment name needs no maxTokens
     // handling: stripping the snapshot date preserves LangChain's per-model
@@ -207,19 +241,27 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     ? buildProxyHeaders(opts.stigmerToken, opts.headerScope ?? {})
     : undefined;
 
-  // Proxy mode authenticates with the Stigmer token; direct mode falls back to
-  // the provider's own env-var key.
+  // Proxy mode authenticates with the Stigmer token; direct mode falls back
+  // to the provider's own key, resolved from the credential store (the boot
+  // capture moved it out of process.env, #508).
   const apiKey = opts.proxyEndpoint
     ? (opts.stigmerToken ?? "proxy-managed")
     : provider === "openai"
-      ? (process.env.OPENAI_API_KEY ?? "")
-      : (process.env.ANTHROPIC_API_KEY ?? "");
+      ? (getRunnerSecret("OPENAI_API_KEY") ?? "")
+      : (getRunnerSecret("ANTHROPIC_API_KEY") ?? "");
 
+  // maxRetries applies when a timeout is bound (a retry loop under a bound
+  // multiplies the wall-clock budget) or when the caller pinned it
+  // explicitly (call-llm hands retry ownership to Temporal, #686). Callers
+  // that set neither keep LangChain's default retry behavior unchanged.
+  const maxRetries = timeoutMs !== undefined || opts.maxRetries !== undefined
+    ? { maxRetries: opts.maxRetries ?? 0 }
+    : {};
   const common = {
     temperature: opts.temperature ?? 0,
     apiKey,
     ...(maxTokens ? { maxTokens } : {}),
-    ...(timeoutMs ? { maxRetries: opts.maxRetries ?? 0 } : {}),
+    ...maxRetries,
   };
 
   // The request timeout lives in a different slot per wrapper: ChatOpenAI
@@ -242,6 +284,18 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
       ? { clientOptions: anthropicClientOptions }
       : {};
 
+  // The tier rides the request body per provider dialect (#361): OpenAI
+  // takes `service_tier` as a first-class constructor field; ChatAnthropic
+  // has no such field, so it rides `invocationKwargs`, which the wrapper
+  // spreads into every request body. Both spellings resolve through the
+  // shared mapping so no construction site can invent a third one.
+  const openAiServiceTierField = opts.serviceTier !== undefined
+    ? { service_tier: toOpenAiServiceTier(opts.serviceTier) }
+    : {};
+  const anthropicServiceTierField = opts.serviceTier !== undefined
+    ? { invocationKwargs: { service_tier: toAnthropicServiceTier(opts.serviceTier) } }
+    : {};
+
   // The two SDKs name the transport-override block differently (OpenAI:
   // `configuration`, Anthropic: `clientOptions`) — encapsulating that here is
   // the whole point, since the shape mismatch is where bugs used to hide.
@@ -249,6 +303,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     ? new ChatOpenAI({
         model: apiModelId,
         ...common,
+        ...openAiServiceTierField,
         ...(timeoutMs ? { timeout: timeoutMs } : {}),
         ...(baseUrl || headers
           ? {
@@ -266,6 +321,13 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
         // provided) is what lets this construct with no ANTHROPIC_API_KEY.
         // (Backend mode never has a proxy — see the precedence rule above —
         // so the clientOptions here carry at most the timeout.)
+        //
+        // service_tier deliberately does NOT ride backend requests:
+        // standard/priority tiers are an Anthropic-FIRST-PARTY billing
+        // concept, and Vertex/Bedrock/Foundry bill through the cloud
+        // provider with no tier dimension — an unknown body param there is
+        // a request refusal waiting to happen. The account-default price
+        // hole this parameter closes does not exist on those backends.
         new ChatAnthropic({
           model: wireModelId,
           ...common,
@@ -275,6 +337,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
       : new ChatAnthropic({
           model: apiModelId,
           ...common,
+          ...anthropicServiceTierField,
           ...anthropicClientOptionsField,
         });
 

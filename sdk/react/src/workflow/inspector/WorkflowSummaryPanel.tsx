@@ -2,6 +2,7 @@
 
 import { memo, useMemo, useState, useCallback } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import type { WorkflowGraphModel, WorkflowGraphBudget, WorkflowGraphEnvVar } from "../workflow-graph-model.js";
 import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model.js";
 import { CATEGORY_DISPLAY_NAMES } from "../canvas-constants.js";
@@ -155,7 +156,7 @@ function ValidationSection({
       </button>
 
       {expanded && (
-        <ul className="stg:flex stg:flex-col stg:gap-1" role="list">
+        <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:gap-1")} role="list">
           {Array.from(errors.entries()).map(([nodeId, nodeErrors]) =>
             nodeErrors.map((error, i) => (
               <li

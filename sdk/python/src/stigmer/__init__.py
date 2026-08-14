@@ -17,6 +17,7 @@ from ._billing import (
     DecideModelPricingOverrideParams,
     GetBillingUsageReportParams,
     GetCreditLedgerParams,
+    GrantCreditsParams,
     RetireModelPricingBaselineParams,
     SetAutoRechargeConfigParams,
     UpsertModelPricingBaselineParams,
@@ -75,6 +76,7 @@ from ._gen._session import (
     WorkspaceSourceInput,
 )
 from ._gen._skill import SkillClient, SkillInput
+from ._skill import MAX_INLINE_ARTIFACT_BYTES, RoutedSkillClient
 from ._gen._workflow import (
     ExportInput,
     FlowControlInput,
@@ -131,6 +133,7 @@ __all__ = [
     "DecideModelPricingOverrideParams",
     "GetBillingUsageReportParams",
     "GetCreditLedgerParams",
+    "GrantCreditsParams",
     "RetireModelPricingBaselineParams",
     "SetAutoRechargeConfigParams",
     "UpsertModelPricingBaselineParams",
@@ -161,6 +164,8 @@ __all__ = [
     "ProjectClient",
     "SessionClient",
     "SkillClient",
+    "RoutedSkillClient",
+    "MAX_INLINE_ARTIFACT_BYTES",
     "WorkflowClient",
     "WorkflowExecutionClient",
     "WorkflowInstanceClient",

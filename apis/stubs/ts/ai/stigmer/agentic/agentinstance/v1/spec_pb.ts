@@ -19,10 +19,6 @@ export const file_ai_stigmer_agentic_agentinstance_v1_spec: GenFile = /*@__PURE_
 /**
  * AgentInstanceSpec defines the configurable properties of an agent instance.
  *
- * @internal
- * This is the "Instance" layer — stateful configuration with secrets.
- * The overview.md file provides the SDK-facing description and example YAML.
- *
  * @generated from message ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec
  */
 export type AgentInstanceSpec = Message<"ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec"> & {
@@ -42,11 +38,6 @@ export type AgentInstanceSpec = Message<"ai.stigmer.agentic.agentinstance.v1.Age
 
   /**
    * References to Environment resources providing secrets and configuration at runtime.
-   *
-   * @internal
-   * Environments are merged in order: later environments override earlier ones.
-   * Example: [base-env, aws-prod-env, github-team-env]
-   * This allows layering of configurations (base → specific overrides).
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3;
    */

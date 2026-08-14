@@ -108,7 +108,7 @@ func (s *rotateShareLinkTokenStep) Execute(ctx *pipeline.RequestContext[*agentsh
 	}
 	share.Status.ShareLinkToken = token
 
-	if err := steps.SetAuditFieldsForUpdate(share); err != nil {
+	if err := steps.SetAuditFieldsForUpdate(share, steps.StatusAudit); err != nil {
 		return fmt.Errorf("failed to set audit fields: %w", err)
 	}
 

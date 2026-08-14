@@ -24,8 +24,6 @@ const (
 )
 
 // Agent defines an AI assistant's identity, tools, skills, and delegation model.
-//
-// @internal
 type Agent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

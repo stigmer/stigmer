@@ -22,8 +22,6 @@ export const file_ai_stigmer_agentic_environment_v1_api: GenFile = /*@__PURE__*/
 /**
  * Environment stores configuration and secrets as key-value pairs for runtime use by agents and workflow instances.
  *
- * @internal
- *
  * @generated from message ai.stigmer.agentic.environment.v1.Environment
  */
 export type Environment = Message<"ai.stigmer.agentic.environment.v1.Environment"> & {
@@ -43,9 +41,6 @@ export type Environment = Message<"ai.stigmer.agentic.environment.v1.Environment
 
   /**
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * @internal
-   * Environments are typically PRIVATE visibility to prevent secret exposure.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
    */

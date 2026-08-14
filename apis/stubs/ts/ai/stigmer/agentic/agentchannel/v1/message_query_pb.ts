@@ -19,11 +19,6 @@ export const file_ai_stigmer_agentic_agentchannel_v1_message_query: GenFile = /*
  * ChannelMessageQueryController serves runtime reads that support
  * business-initiated messaging on agent channels.
  *
- * @internal
- * proactive-messaging DD-003 D6: the query sibling of
- * ChannelMessageCommandController — runtime messaging traffic (the send
- * and its supporting reads) stays off the resource CRUD surface.
- *
  * @generated from service ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController
  */
 export const ChannelMessageQueryController: GenService<{
@@ -33,17 +28,6 @@ export const ChannelMessageQueryController: GenService<{
    * Read live from the channel provider's registry (WhatsApp: the
    * WABA's templates), lightly cached. The provider is the source of
    * truth; entries carry its vocabulary verbatim.
-   *
-   * @internal
-   * DD-003 D6. Same in-handler token-class reach as sendMessage (DD-002
-   * D2/D4): sandbox tokens resolve through the serving channel, direct
-   * principals through channel visibility; fail closed. The WABA id is
-   * derived from the channel's phone_number_id on demand and cached —
-   * never stored (DD-003 D3). A token missing the management scope
-   * degrades this read only, never sends (DD-003 D7, Meta error 200 →
-   * FAILED_PRECONDITION pointing at token regeneration). Cloud-first
-   * runtime: the OSS edition returns FAILED_PRECONDITION (decision 001
-   * D-g posture).
    *
    * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController.listTemplates
    */
@@ -58,18 +42,6 @@ export const ChannelMessageQueryController: GenService<{
    *
    * Everything the read needs derives from the caller's credential; an
    * agent with no proactive-messaging channel receives an empty list.
-   *
-   * @internal
-   * proactive-messaging DD-006 D2: the runner's tool-attachment
-   * decision, replacing DD-002 D5's getByAgent plan (FGA-scoped — a
-   * sandbox token structurally receives an empty list there). Cloud
-   * answers from the SAME candidate computation ChannelMessagingReach
-   * uses (chain → serving proactive channels → sender-registry filter),
-   * so the attachment decision and the send authorization can never
-   * disagree. Session-bound callers only in this slice: direct
-   * principals get INVALID_ARGUMENT pointing at the channel resource
-   * surface. OSS returns an empty list (DD-006 D3) — a discovery read
-   * answering "none", unlike its action siblings' FAILED_PRECONDITION.
    *
    * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController.listMessagingChannels
    */

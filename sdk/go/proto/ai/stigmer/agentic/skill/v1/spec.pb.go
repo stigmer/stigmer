@@ -23,12 +23,6 @@ const (
 )
 
 // SkillSpec defines the desired state of a skill.
-//
-// @internal
-// All fields are extracted from the skill artifact by the backend.
-// This follows the Kubernetes spec pattern — contains user's desired state.
-// Source/provenance information is NOT stored here — it's in SkillStatus
-// as GitProvenance (observed state). See synth.proto for SDK input structure.
 type SkillSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// SKILL.md content extracted from the artifact.

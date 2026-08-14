@@ -33,11 +33,6 @@ const (
 // This service exists because the recents list spans two bounded contexts
 // (session and workflow_execution). A cross-cutting query service avoids
 // forcing the client to make two parallel calls and merge client-side.
-//
-// @internal
-// Authorization is handled in-handler: the implementation queries FGA for
-// authorized session and workflow_execution IDs, then runs a single merged
-// MongoDB query.
 type ActivityQueryControllerClient interface {
 	// List recent activity across sessions and workflow executions.
 	//
@@ -49,11 +44,6 @@ type ActivityQueryControllerClient interface {
 	// the OSS edition the server is single-tenant: the caller owns every
 	// stored resource, so there is no authorization set to enumerate and the
 	// request's org is a no-op (stigmer#461).
-	//
-	// @internal
-	// Authorization is handled in-handler: the FGA id enumeration is the only
-	// gate (hence is_skip_authorization); the request's org merely narrows
-	// the authorized set.
 	ListRecentActivity(ctx context.Context, in *ListRecentActivityRequest, opts ...grpc.CallOption) (*ListRecentActivityResponse, error)
 }
 
@@ -86,11 +76,6 @@ func (c *activityQueryControllerClient) ListRecentActivity(ctx context.Context, 
 // This service exists because the recents list spans two bounded contexts
 // (session and workflow_execution). A cross-cutting query service avoids
 // forcing the client to make two parallel calls and merge client-side.
-//
-// @internal
-// Authorization is handled in-handler: the implementation queries FGA for
-// authorized session and workflow_execution IDs, then runs a single merged
-// MongoDB query.
 type ActivityQueryControllerServer interface {
 	// List recent activity across sessions and workflow executions.
 	//
@@ -102,11 +87,6 @@ type ActivityQueryControllerServer interface {
 	// the OSS edition the server is single-tenant: the caller owns every
 	// stored resource, so there is no authorization set to enumerate and the
 	// request's org is a no-op (stigmer#461).
-	//
-	// @internal
-	// Authorization is handled in-handler: the FGA id enumeration is the only
-	// gate (hence is_skip_authorization); the request's org merely narrows
-	// the authorized set.
 	ListRecentActivity(context.Context, *ListRecentActivityRequest) (*ListRecentActivityResponse, error)
 }
 

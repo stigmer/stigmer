@@ -7,6 +7,7 @@ import {
   resolveToolKindByName,
   describeApprovalPolicySource,
 } from "@stigmer/sdk";
+import { extractShellIntentFromPreview } from "@stigmer/react";
 
 /** Props for {@link ApprovalPrompt}. */
 export interface ApprovalPromptProps {
@@ -155,6 +156,16 @@ export function ApprovalPrompt({
     pendingApproval.approvalPolicySource,
   );
 
+  // Model-authored shell intent (stigmer#276), mirroring the React card's
+  // header treatment: supplementary context only — the command in the Args
+  // line stays foregrounded, because it is the content being approved.
+  const intent = extractShellIntentFromPreview(
+    pendingApproval.toolName,
+    pendingApproval.argsPreview,
+    pendingApproval.mcpServerSlug,
+    pendingApproval.toolKind,
+  );
+
   return (
     <Box
       flexDirection="column"
@@ -180,6 +191,12 @@ export function ApprovalPrompt({
           <Text dimColor>Tool:</Text>
           <Text bold>{toolLabel}</Text>
         </Box>
+        {intent && (
+          <Box gap={1}>
+            <Text dimColor>Intent:</Text>
+            <Text wrap="truncate-end">{intent}</Text>
+          </Box>
+        )}
         {pendingApproval.argsPreview && (
           <Box gap={1}>
             <Text dimColor>Args:</Text>

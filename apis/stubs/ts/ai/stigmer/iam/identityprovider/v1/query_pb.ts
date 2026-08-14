@@ -28,9 +28,6 @@ export const IdentityProviderQueryController: GenService<{
   /**
    * Get an identity provider by its unique identifier.
    *
-   * @internal
-   * Authorization: Requires can_view permission on the identity provider resource.
-   *
    * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.get
    */
   get: {
@@ -44,10 +41,6 @@ export const IdentityProviderQueryController: GenService<{
    * Resolves a human-readable reference like "acme/planton" to the full
    * IdentityProvider resource.
    *
-   * @internal
-   * Custom authorization in handler — checks both direct resource access
-   * and organization-level visibility permissions.
-   *
    * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.getByReference
    */
   getByReference: {
@@ -60,9 +53,6 @@ export const IdentityProviderQueryController: GenService<{
    *
    * Returns every IdentityProvider whose metadata.org matches the input org.
    * Typically a small set (1-3 per org), so results are not paginated.
-   *
-   * @internal
-   * Authorization: Requires can_view permission on the organization resource.
    *
    * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.listByOrg
    */
@@ -81,9 +71,6 @@ export const IdentityProviderQueryController: GenService<{
    * This endpoint is called by the web app's login page before the user has
    * authenticated, so it requires no authorization. The response intentionally
    * omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
-   *
-   * @internal
-   * Authorization: none — unauthenticated, public endpoint for login page rendering.
    *
    * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.getSsoProvider
    */

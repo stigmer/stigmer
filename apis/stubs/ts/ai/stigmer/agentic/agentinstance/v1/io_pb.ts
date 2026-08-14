@@ -66,12 +66,6 @@ export type GetAgentInstancesByAgentRequest = Message<"ai.stigmer.agentic.agenti
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.
    *
-   * @internal
-   * Optional by design: the OSS server resolves an agent's default instance
-   * through this RPC with no org (downstream/agentinstance client), and
-   * pre-existing callers rely on the permission-bounded behavior. Filtering
-   * happens in the query/list step of each edition's handler.
-   *
    * @generated from field: string org = 3;
    */
   org: string;
@@ -127,9 +121,6 @@ export type ListAgentInstancesRequest = Message<"ai.stigmer.agentic.agentinstanc
 
   /**
    * Filter by metadata labels. AND semantics: all labels must match.
-   *
-   * @internal
-   * Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
    *
    * @generated from field: map<string, string> labels = 2;
    */

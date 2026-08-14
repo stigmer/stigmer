@@ -5,6 +5,7 @@
 
 import { useMemo } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import type {
   DerivedCostSummary,
   DerivedTaskState,
@@ -72,7 +73,7 @@ export function WorkflowUsageTab({
           <h3 className="stg:px-2 stg:text-xs stg:font-semibold stg:uppercase stg:tracking-wider stg:text-muted-foreground">
             By task
           </h3>
-          <ul role="list" className="stg:flex stg:flex-col">
+          <ul role="list" className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col")}>
             {items.map((item) => (
               <UsageRow key={item.taskName} item={item} />
             ))}

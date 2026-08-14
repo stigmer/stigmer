@@ -96,7 +96,7 @@ func (s *setInstanceExecutionVisibilityStep) Execute(ctx *pipeline.RequestContex
 	}
 	instance.Spec.ExecutionVisibility = input.GetExecutionVisibility()
 
-	if err := steps.SetAuditFieldsForUpdate(instance); err != nil {
+	if err := steps.SetAuditFieldsForUpdate(instance, steps.StatusAudit); err != nil {
 		return fmt.Errorf("failed to set audit fields: %w", err)
 	}
 

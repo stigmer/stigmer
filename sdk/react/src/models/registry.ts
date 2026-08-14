@@ -402,11 +402,28 @@ export interface DefaultModelResolution {
  *
  * Priority (Phase 1 — no backend):
  * 1. localStorage user preference (passed in as `userPreference`)
- * 2. First featured model for the harness from the registry
+ * 2. What the platform actually runs when nothing is pinned (see below)
  * 3. Hardcoded platform fallback
  *
  * Future phases will add org-level and agent-level defaults between
  * user preference and harness default.
+ *
+ * **The harness-default arm is a contract, not a suggestion**
+ * (stigmer/stigmer#663): this resolution feeds the composer's model pill,
+ * and the submission adopts what the pill displays — so the default MUST
+ * be the model the platform would run for an unpinned execution, or the
+ * pill promises one model while a different one serves the request.
+ * Concretely:
+ *
+ * - `cursor` — the registry's Auto entry ({@link DEFAULT_CURSOR_MODEL_ID}):
+ *   the runner coerces an empty `model_name` to `"default"` (Auto), so
+ *   suggesting Auto and sending it explicitly are byte-identical to the
+ *   pre-#663 empty send. Auto prices no fast variant, so the fast-tier
+ *   switch correctly never renders for a fresh composer.
+ * - `native` — the runner's own `getDefaultModel()` rule: featured AND
+ *   standard cost, then any standard-cost model. A first-featured pick
+ *   with no cost filter (the pre-#663 behavior) could suggest — and now
+ *   would run — a premium model for users who never opened the picker.
  */
 export function resolveDefaultModelId(
   harness: HarnessOption,
@@ -438,6 +455,28 @@ export function resolveDefaultModelId(
     if (model) return { modelId: model.modelId, source: "agent_default" };
   }
 
+  if (harness === "cursor") {
+    const auto = models.find(
+      (m) => m.harness === harness && m.modelId === DEFAULT_CURSOR_MODEL_ID,
+    );
+    if (auto) return { modelId: auto.modelId, source: "harness_default" };
+  } else {
+    // Mirrors the runner's unpinned resolution (featured+standard, then
+    // any standard). Deliberately NOT extracted to share with the runner:
+    // the runner reads its own registry snapshot on another process.
+    const standardDefault =
+      models.find(
+        (m) => m.harness === harness && m.featured && m.costTier === "standard",
+      )
+      ?? models.find((m) => m.harness === harness && m.costTier === "standard");
+    if (standardDefault) {
+      return { modelId: standardDefault.modelId, source: "harness_default" };
+    }
+  }
+
+  // Degenerate registries only (no Auto entry / no standard-cost model):
+  // fall back to the old first-featured pick before the hardcoded id, so
+  // the suggestion at least names a model that exists.
   const featured = models.find(
     (m) => m.harness === harness && m.featured,
   );

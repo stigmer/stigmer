@@ -41,6 +41,7 @@ export {
   isUnauthenticated,
   isPermissionDenied,
   isRetryable,
+  isUnimplemented,
   type ErrorCategory,
   isConnectError,
   classifyError,
@@ -103,6 +104,9 @@ export {
   type RemoveCursorMemberKeyParams,
   type SetCursorMemberKeyEnabledParams,
 } from "./cursor-accounts.js";
+
+// Provider standing client (platform operators only, read-only)
+export { ProviderStandingClient } from "./provider-standing.js";
 
 // Search client
 export {
@@ -271,6 +275,9 @@ export {
   resolveToolKind,
   resolveToolKindByName,
   normalizeToolResult,
+  SHELL_INTENT_ARG_FIELD,
+  extractShellIntent,
+  shellIntentFromArgs,
   type ToolResultView,
   type ToolSearchMatch,
   type ToolContentBlock,
@@ -287,6 +294,7 @@ export {
 } from "./execution/file-review-fold.js";
 export { toDisplayFileChange } from "./execution/to-display-file-change.js";
 export { SkillClient, type SkillInput } from "./gen/skill.js";
+export { RoutedSkillClient, MAX_INLINE_ARTIFACT_BYTES } from "./skill.js";
 export {
   WorkflowClient,
   type WorkflowInput,

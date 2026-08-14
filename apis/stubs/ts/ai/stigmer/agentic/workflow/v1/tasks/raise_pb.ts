@@ -12,19 +12,10 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/tasks/raise.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_tasks_raise: GenFile = /*@__PURE__*/
-  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvcmFpc2UucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcyJiCg9SYWlzZVRhc2tDb25maWcSHQoFZXJyb3IYASABKAlCDrpIB8gBAXICEAHYhSwBEh8KB21lc3NhZ2UYAiABKAlCDrpIB8gBAXICEAHYhSwBOg/qiywLcmFpc2VfZXJyb3JiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
+  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvcmFpc2UucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcyJYCg9SYWlzZVRhc2tDb25maWcSHQoFZXJyb3IYASABKAlCDrpIB8gBAXICEAHYhSwBEhUKB21lc3NhZ2UYAiABKAlCBNiFLAE6D+qLLAtyYWlzZV9lcnJvcmIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
 
 /**
  * RaiseTaskConfig defines the configuration for raise_error tasks that raise errors.
- *
- * @internal
- * YAML Example:
- *   - taskName:
- *       raise:
- *         error: ValidationError
- *         message: ${ .errorMessage }
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 11
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
  */
@@ -39,6 +30,9 @@ export type RaiseTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.Rais
   /**
    * Error message.
    * Can contain expressions: "${ .errorMessage }"
+   * Optional — when omitted, the raised error carries only the error
+   * type/name. (The runtime maps this to the problem-details `detail`
+   * field only when present; requiring it was contract fiction, #685.)
    *
    * @generated from field: string message = 2;
    */

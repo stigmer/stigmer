@@ -32,26 +32,16 @@ const (
 // PlatformClientQueryController provides read operations for platform client resources.
 type PlatformClientQueryControllerClient interface {
 	// Get a platform client by its unique identifier.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the platform client resource.
 	Get(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*PlatformClient, error)
 	// Get a platform client by its organization-scoped reference (org/slug).
 	//
 	// Resolves a human-readable reference like "acme/acme-dashboard" to the full
 	// PlatformClient resource.
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*PlatformClient, error)
 	// List all platform clients belonging to an organization.
 	//
 	// Returns every PlatformClient whose metadata.org matches the input org.
 	// Typically a small set per org, so results are not paginated.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the organization resource.
 	ListByOrg(ctx context.Context, in *ListPlatformClientsByOrgInput, opts ...grpc.CallOption) (*PlatformClients, error)
 }
 
@@ -100,26 +90,16 @@ func (c *platformClientQueryControllerClient) ListByOrg(ctx context.Context, in 
 // PlatformClientQueryController provides read operations for platform client resources.
 type PlatformClientQueryControllerServer interface {
 	// Get a platform client by its unique identifier.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the platform client resource.
 	Get(context.Context, *apiresource.ApiResourceId) (*PlatformClient, error)
 	// Get a platform client by its organization-scoped reference (org/slug).
 	//
 	// Resolves a human-readable reference like "acme/acme-dashboard" to the full
 	// PlatformClient resource.
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*PlatformClient, error)
 	// List all platform clients belonging to an organization.
 	//
 	// Returns every PlatformClient whose metadata.org matches the input org.
 	// Typically a small set per org, so results are not paginated.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the organization resource.
 	ListByOrg(context.Context, *ListPlatformClientsByOrgInput) (*PlatformClients, error)
 }
 

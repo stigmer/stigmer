@@ -27,96 +27,6 @@ const (
 )
 
 // AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.
-//
-// @internal
-// This message is the workflow DSL's adoption of the shared
-// AgentInvocation vocabulary (agentexecution/v1/invocation.proto) at
-// the TYPE level — issue stigmer/stigmer#358, per DD-018
-// (whatsapp-proactive-messaging, stigmer-cloud). Because
-// WorkflowTask.task_config is a "kind + Struct" envelope, this message
-// IS the authoring schema: its field names are the YAML keys workflow
-// authors write. Embedding AgentInvocation as a nested message would
-// force either a nested `invocation:` authoring block or
-// flatten/unflatten rewrites in every Struct consumer, so the DSL
-// stays flat and shares the vocabulary type-by-type instead.
-//
-// Field-by-field correspondence to AgentInvocation (keep in lockstep;
-// a field added there must be consciously adopted or consciously
-// excluded here, with the reason recorded):
-//   - agent      ↔ agent_ref  — the DSL string form ("org/slug"); the
-//     workflow runner parses it into an agent reference.
-//   - message    ↔ message    — expression-carrying in the DSL.
-//   - harness    ↔ harness    — same shared enum, same semantics.
-//   - run_config ↔ run_config — the shared message, embedded directly.
-//   - workspace_entries ↔ workspace_entries — same shared type; git
-//     sources only (no client is connected to serve a
-//     local_path when a workflow task fires).
-//   - environment_refs ↔ environment_refs — same shared type; resolved
-//     server-side at execution create, never carried in the
-//     create request (the schedule/channel/share posture).
-//
-// Surface-specific fields with their reasons (the DD-017/018 bucket
-// discipline):
-//   - env: the workflow's context-forwarding channel. Values are JQ
-//     expressions resolved from workflow state/secrets at run time, not
-//     plaintext literals in a manifest — which is why AgentInvocation's
-//     runtime_env exclusion does not apply to it.
-//   - output: the structured-output contract is a workflow-routing
-//     concern (switch_case on typed fields), meaningless to other
-//     invocation surfaces.
-//
-// Deleted in the #358 clean break (no reserved numbers; task configs
-// are stored as JSON Structs, so field numbers never hit a wire):
-//   - org: redundant with the "org/slug" form of `agent`, and the
-//     proto→YAML converter never emitted it.
-//   - AgentExecutionConfig (timeout, temperature, context_management,
-//     max_cost_micros): declared knobs the runtime silently ignored.
-//     The cost cap lives on run_config.max_cost_usd and is now actually
-//     enforced; timeout/temperature had no runtime counterpart at all.
-//
-// The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer").
-// Resolution order:
-// 1. "org/slug": look in that org's agents
-// 2. "slug" only: use the workflow's org
-// 3. Before external lookup, check manifest (current deployment)
-//
-// YAML Example (without structured output):
-//   - analyze:
-//     call: agent
-//     with:
-//     agent: "code-reviewer"
-//     message: "Review this code: ${ $context.fetchCode.body }"
-//     env:
-//     GITHUB_TOKEN: "${ .secrets.GH_TOKEN }"
-//     run_config:
-//     model_name: "claude-sonnet-4-6"
-//     max_cost_usd: 0.50
-//
-// YAML Example (with structured output):
-//   - triage_ticket:
-//     call: agent
-//     with:
-//     agent: "support-triage"
-//     message: "${ .ticket.description }"
-//     output:
-//     schema:
-//     type: object
-//     required: [severity, category, customer_impact]
-//     properties:
-//     severity:
-//     type: string
-//     enum: [low, medium, high, critical]
-//     category:
-//     type: string
-//     customer_impact:
-//     type: boolean
-//     rationale:
-//     type: string
-//     on_invalid: ON_INVALID_RETRY
-//     max_retries: 2
-//     fallback_task: human_review
-//     export:
-//     as: "${ .structured }"
 type AgentCallTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Agent reference in "org/slug" or "slug" format.
@@ -124,12 +34,6 @@ type AgentCallTaskConfig struct {
 	// - "org/slug": explicit organization reference
 	// Examples: "code-reviewer", "stigmer/code-reviewer", "acme/data-analyst"
 	// Required field.
-	//
-	// @internal
-	// The DSL string form of AgentInvocation.agent_ref. The structured
-	// ApiResourceReference shape is deliberately not used here: the
-	// authoring surface is YAML written by hand, and "org/slug" is its
-	// idiom.
 	Agent string `protobuf:"bytes,1,opt,name=agent,proto3" json:"agent,omitempty"`
 	// Instructions/prompt to send to the agent.
 	// Supports interpolation of workflow variables using JQ expressions.
@@ -144,18 +48,6 @@ type AgentCallTaskConfig struct {
 	Env map[string]string `protobuf:"bytes,3,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Per-call model choice and run bounds. Unset fields inherit the
 	// platform defaults.
-	//
-	// @internal
-	// The shared RunConfig (DD-018 D-2) — the same message schedules
-	// embed, so the run-bound vocabulary cannot drift between
-	// triggering surfaces. Semantics at the workflow surface:
-	// model_name replaces the agent's default outright; max_cost_usd
-	// maps to ExecutionConfig.max_cost_usd and is enforced by the
-	// runner's harness-generic cost guards; max_tool_rounds maps to
-	// ExecutionConfig.max_tool_rounds (native harness only — inert on
-	// cursor, whose sole bound is cost). No platform clamp profile is
-	// applied at this surface yet: per the RunConfig contract, an unset
-	// platform cap means the owner value stands.
 	RunConfig *v1.RunConfig `protobuf:"bytes,4,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
 	// Structured output contract for this agent call.
 	//
@@ -190,17 +82,6 @@ type AgentCallTaskConfig struct {
 	//     message: "Review this PR"
 	Harness v11.Harness `protobuf:"varint,6,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
 	// Workspace the child run's session operates on. Empty means no workspace.
-	//
-	// @internal
-	// The shared WorkspaceEntry type (AgentInvocation correspondence).
-	// Maps onto SessionSpec.workspace_entries of the session each call
-	// creates. Surface constraint, enforced in workflow validation (both
-	// editions): sources must be git_repo — no client is connected to
-	// serve a local_path when a workflow task fires. Credentials follow
-	// DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
-	// environment; for private repos the supported contract is an
-	// org-visibility Environment holding GITHUB_TOKEN bound via
-	// environment_refs. Public repos need no token.
 	WorkspaceEntries []*v11.WorkspaceEntry `protobuf:"bytes,7,rep,name=workspace_entries,json=workspaceEntries,proto3" json:"workspace_entries,omitempty"`
 	// References to Environment resources whose values are provided to
 	// the child runs this task creates.
@@ -209,18 +90,6 @@ type AgentCallTaskConfig struct {
 	// bind an org-shared environment holding the needed credentials, and
 	// the child runs receive its values at runtime. The agent and its
 	// default instance stay untouched.
-	//
-	// @internal
-	// The AgentShare/AgentChannel/Schedule environment_refs lineage.
-	// Never carried in the execution create request and never emitted
-	// into execution YAML: CreateExecutionContextStep resolves them from
-	// the Workflow row, gated on the trusted runner caller identity and
-	// keyed by parent_workflow_id + task label — prepended at LOWEST
-	// merge priority (instance refs and runtime_env override on key
-	// conflicts). No write-time existence or visibility check:
-	// enforcement lives solely at runtime resolution, which fails closed.
-	// When kind is unset in YAML, the DSL normalizer defaults it to
-	// environment.
 	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,8,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
@@ -380,7 +249,10 @@ type AgentCallOutputContract struct {
 	// the expected schema, giving the agent an opportunity to self-correct.
 	//
 	// Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.
-	// Default: 1. Valid range: 1-5.
+	// Default: 2 (the runner's retry loop). Valid range when set: 1-5.
+	//
+	// Unset (0) is valid: proto3 implicit presence makes an omitted field
+	// indistinguishable from 0, so the range rule must not fire on it (#673).
 	MaxRetries int32 `protobuf:"varint,3,opt,name=max_retries,json=maxRetries,proto3" json:"max_retries,omitempty"`
 	// Target task to branch to when schema validation cannot be resolved.
 	//
@@ -472,12 +344,12 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc = "" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:\x0e\xea\x8b,\n" +
-	"agent_call\"\xff\x01\n" +
+	"agent_call\"\x82\x02\n" +
 	"\x17AgentCallOutputContract\x127\n" +
 	"\x06schema\x18\x01 \x01(\v2\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\x06schema\x12Z\n" +
 	"\n" +
-	"on_invalid\x18\x02 \x01(\x0e2;.ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicyR\tonInvalid\x12*\n" +
-	"\vmax_retries\x18\x03 \x01(\x05B\t\xbaH\x06\x1a\x04\x18\x05(\x01R\n" +
+	"on_invalid\x18\x02 \x01(\x0e2;.ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicyR\tonInvalid\x12-\n" +
+	"\vmax_retries\x18\x03 \x01(\x05B\f\xbaH\t\xd8\x01\x01\x1a\x04\x18\x05(\x01R\n" +
 	"maxRetries\x12#\n" +
 	"\rfallback_task\x18\x04 \x01(\tR\ffallbackTaskB\xc1\x02\n" +
 	"(com.ai.stigmer.agentic.workflow.v1.tasksB\x0eAgentCallProtoP\x01ZMgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"

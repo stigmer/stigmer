@@ -5,7 +5,8 @@ import {
   VisibilitySelector,
   type VisibilitySelectorMode,
 } from "./VisibilitySelector.js";
-import { INSTANCE_VISIBILITY_LEVELS } from "./visibilityLevels.js";
+import { useCanSetPublicVisibility } from "./useCanSetPublicVisibility.js";
+import { instanceVisibilityLevels } from "./visibilityLevels.js";
 
 /** Props for {@link InstanceVisibilitySelector}. */
 export interface InstanceVisibilitySelectorProps {
@@ -69,10 +70,16 @@ export function InstanceVisibilitySelector({
   disabled = false,
   className,
 }: InstanceVisibilitySelectorProps) {
+  // Public is operator-granted in the cloud edition; the hook resolves the
+  // caller's grant here so every consumer (create dialogs, list rows) gets
+  // the locked Public row without wiring anything.
+  const canSetPublic = useCanSetPublicVisibility();
   return (
     <VisibilitySelector
       visibility={visibility}
-      options={INSTANCE_VISIBILITY_LEVELS}
+      options={instanceVisibilityLevels({
+        canSetPublicVisibility: canSetPublic.allowed,
+      })}
       onVisibilityChange={onVisibilityChange}
       mode={mode}
       isPending={isPending}

@@ -79,7 +79,7 @@ func TestSearchCriteria_EffectiveKindsFilterNonSearchableKinds(t *testing.T) {
 		// silently rendered empty while this filter dropped the kind
 		// (stigmer/stigmer#310 — the same defect class as environment/project).
 		apiresourcekind.ApiResourceKind_session,
-		apiresourcekind.ApiResourceKind_agent_execution, // Not searchable (read-side decision pending)
+		apiresourcekind.ApiResourceKind_agent_execution, // Searchable since the #439 parity decision
 		apiresourcekind.ApiResourceKind_skill,
 		// environment and project are searchable: the CLI's search-backed
 		// `list environment` / `list project` depend on them passing this
@@ -108,10 +108,12 @@ func TestSearchCriteria_EffectiveKindsFilterNonSearchableKinds(t *testing.T) {
 		t.Errorf("expected Kinds() to return all %d requested kinds verbatim, got %d", len(kinds), len(criteria.Kinds()))
 	}
 
-	// Should only contain agent, session, skill, environment, and project
+	// Should contain agent, session, agent_execution, skill, environment,
+	// and project — everything requested except the two by-design
+	// non-indexed kinds.
 	effective := criteria.EffectiveKinds()
-	if len(effective) != 5 {
-		t.Errorf("expected 5 effective kinds after filtering, got %d", len(effective))
+	if len(effective) != 6 {
+		t.Errorf("expected 6 effective kinds after filtering, got %d", len(effective))
 	}
 
 	kindsMap := make(map[apiresourcekind.ApiResourceKind]bool)
@@ -134,8 +136,8 @@ func TestSearchCriteria_EffectiveKindsFilterNonSearchableKinds(t *testing.T) {
 	if !kindsMap[apiresourcekind.ApiResourceKind_session] {
 		t.Error("expected session kind to be present (useSessionSearch depends on it)")
 	}
-	if kindsMap[apiresourcekind.ApiResourceKind_agent_execution] {
-		t.Error("expected agent_execution to be filtered out (read-side decision pending)")
+	if !kindsMap[apiresourcekind.ApiResourceKind_agent_execution] {
+		t.Error("expected agent_execution to be present (#439 read-side parity)")
 	}
 	if kindsMap[apiresourcekind.ApiResourceKind_agent_channel] {
 		t.Error("expected agent_channel to be filtered out (not_search_indexed by design)")
@@ -292,8 +294,11 @@ func TestSearchCriteria_EffectiveKinds(t *testing.T) {
 	// effective set to an empty result, which is the documented contract for
 	// this state.
 	t.Run("only non-searchable kinds returns empty, not discover mode", func(t *testing.T) {
+		// agent_channel is the stable exemplar: not_search_indexed by
+		// design, unlike the original agent_execution which joined
+		// SearchableKinds with the #439 parity decision.
 		criteria, _ := NewSearchCriteria(
-			[]apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent_execution},
+			[]apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent_channel},
 			"", "", false, false, 1, 20,
 		)
 

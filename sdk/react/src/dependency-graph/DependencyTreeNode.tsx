@@ -2,6 +2,7 @@
 
 import { useCallback, useState, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import type { DependencyNode, NodeKind } from "./types.js";
 
 interface DependencyTreeNodeProps {
@@ -152,7 +153,7 @@ export function DependencyTreeNode({
       {showChildren && (
         <ul
           role="group"
-          className="stg:relative stg:ml-[11px] stg:border-l stg:border-border stg:pl-3"
+          className={cn(UNSTYLED_LIST, "stg:relative stg:ml-[11px] stg:border-l stg:border-border stg:pl-3")}
         >
           {node.children.map((child) => (
             <DependencyTreeNode

@@ -32,6 +32,11 @@ import type { WorkerActivities } from "./worker.js";
 import { resolveWorkflowSource, OTEL_WORKFLOW_INTERCEPTOR_MODULE } from "./workflow-source.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
 import { assertLlmBackendsPreflight } from "./preflight.js";
+import {
+  captureRunnerSecrets,
+  getRunnerSecret,
+  setRunnerSecret,
+} from "./shared/runner-credential-store.js";
 import { createRunnerTokenCoordinator } from "./runner-token-coordinator.js";
 // Per-task-queue in-flight activity tracking lives in ./in-flight.ts so the
 // activity interceptor (no manager-closure handle) and unit tests can reach it.
@@ -214,6 +219,12 @@ export async function createStigmerRunnerManager(
 ): Promise<StigmerRunnerManager> {
   validateManagerOptions(options);
 
+  // Take custody of runner secrets BEFORE anything else can read them from
+  // env — and before any agent code could spawn with them (#508). Runs here
+  // (not only in main.ts) because this factory is a public library boot door:
+  // in-process embedders like the desktop never execute main.ts.
+  captureRunnerSecrets();
+
   const { registerStigmerDeepagentsProfiles } = await import(
     "./activities/execute-deep-agent/deepagents-profiles.js"
   );
@@ -365,7 +376,7 @@ export async function createStigmerRunnerManager(
   if (
     !bootstrap.payloadEncryption &&
     bootstrap.runnerAccessToken &&
-    !process.env.STIGMER_PAYLOAD_ENCRYPTION_KEY
+    !getRunnerSecret("STIGMER_PAYLOAD_ENCRYPTION_KEY")
   ) {
     console.warn(
       "[runner-manager] Server minted a runner token but returned no payload " +
@@ -530,6 +541,13 @@ export async function createStigmerRunnerManager(
       await removeManaged(
         sessions, sessionId, SESSION_QUEUE_PREFIX + sessionId, "session",
       );
+      // The session is done on this host — release its parked agent (and
+      // the executor + MCP subprocesses the lease pins) immediately rather
+      // than waiting out the idle TTL (#215).
+      const { evictSessionAgent } = await import(
+        "./activities/execute-cursor/agent-session-cache.js"
+      );
+      evictSessionAgent(sessionId);
     },
 
     activeSessions(): string[] {
@@ -585,12 +603,11 @@ export async function createStigmerRunnerManager(
       // proxy credential follows it: only when no token has been minted (so the
       // pre-mint lockstep is preserved), never once the runner owns a minted
       // token. See runner-token-coordinator.ts and the staleness changelogs.
+      // The credential store is the second leg of the pair (it replaced the
+      // process.env.STIGMER_TOKEN write, #508): per-call readers like
+      // call-llm and the registry headers resolve the current token there.
       tokenRef.current = token;
-      if (token) {
-        process.env.STIGMER_TOKEN = token;
-      } else {
-        delete process.env.STIGMER_TOKEN;
-      }
+      setRunnerSecret("STIGMER_TOKEN", token);
       tokenCoordinator.onControlPlaneTokenChanged(token);
       console.log("[runner-manager] Auth token updated");
     },
@@ -629,6 +646,12 @@ export async function createStigmerRunnerManager(
       }
 
       await Promise.all(shutdownPromises);
+      // Workers are drained — release every parked session agent so their
+      // executor leases dispose (stdio MCP subprocesses die with them) (#215).
+      const { closeAllCachedAgents } = await import(
+        "./activities/execute-cursor/agent-session-cache.js"
+      );
+      closeAllCachedAgents();
       sessions.clear();
       workflowExecutions.clear();
       poolControl = null;
@@ -703,6 +726,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     { createCursorActivities },
     { createDeepAgentActivities },
     { createEnsureThreadActivities },
+    { createGenerateSessionSubjectActivities },
     { createClassifyToolApprovalsActivities },
     { createDiscoverMcpServerActivities },
     { createEvaluateExpressionsActivities },
@@ -721,6 +745,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     import("./activities/execute-cursor/index.js"),
     import("./activities/execute-deep-agent/index.js"),
     import("./activities/ensure-thread.js"),
+    import("./activities/generate-session-subject.js"),
     import("./activities/classify-tool-approvals.js"),
     import("./activities/discover-mcp-server.js"),
     import("./activities/evaluate-expressions.js"),
@@ -741,6 +766,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     ...createCursorActivities(config),
     ...createDeepAgentActivities(config),
     ...createEnsureThreadActivities(),
+    ...createGenerateSessionSubjectActivities(config),
     ...createClassifyToolApprovalsActivities(config),
     ...createDiscoverMcpServerActivities(config),
     ...createEvaluateExpressionsActivities(),

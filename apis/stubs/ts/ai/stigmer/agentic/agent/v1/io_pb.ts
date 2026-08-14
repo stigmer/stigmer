@@ -35,13 +35,6 @@ export const AgentIdSchema: GenMessage<AgentId> = /*@__PURE__*/
 /**
  * GetDefaultAgentRequest is the input for retrieving the platform default agent.
  *
- * @internal
- * The handler resolves the default agent globally (by label stigmer.ai/default-agent: "true"
- * with visibility_public), but the org is needed for authorization scoping.
- * Resolution is deliberately NOT scoped to this org: the default agent is a
- * platform-level singleton seeded in the system org and served to callers of
- * every org (see the getDefault rpc docs for the determinism contract).
- *
  * @generated from message ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest
  */
 export type GetDefaultAgentRequest = Message<"ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest"> & {

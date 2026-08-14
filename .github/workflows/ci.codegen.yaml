@@ -31,6 +31,7 @@ on:
       - "sdk/typescript/Makefile"
       - "sdk/python/src/stigmer/_gen/**"
       - "sdk/python/Makefile"
+      - "sdk/go/proto/**"
       - ".github/workflows/ci.codegen.yaml"
   push:
     branches: [main]
@@ -43,12 +44,15 @@ on:
       - "sdk/typescript/Makefile"
       - "sdk/python/src/stigmer/_gen/**"
       - "sdk/python/Makefile"
+      - "sdk/go/proto/**"
       - ".github/workflows/ci.codegen.yaml"
   workflow_dispatch: {}
 
 concurrency:
   group: ci-codegen-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+  # PR pushes cancel superseded runs; main pushes queue instead, so every
+  # merge gets a completed, attributable run (stigmer/stigmer#725).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -84,3 +88,9 @@ jobs:
             mcp-server/src/gen \
             sdk/typescript/src/gen \
             sdk/python/src/stigmer/_gen
+
+      # Census guard for the stub scrub (oss#497): committed protoc stubs
+      # must carry no @internal comment sections. The scrub runs inside the
+      # generation paths; this catches a stub regen that bypassed them.
+      - name: Verify stubs carry no @internal comment sections
+        run: make stubs-internal-check

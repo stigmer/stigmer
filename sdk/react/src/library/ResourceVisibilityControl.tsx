@@ -1,15 +1,16 @@
 "use client";
 
 import { useCallback } from "react";
-import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { useSsoProvider } from "../identity-provider/useSsoProvider.js";
+import { useCanSetPublicVisibility } from "./useCanSetPublicVisibility.js";
 import { VisibilityBadge, VisibilitySelector } from "./VisibilitySelector.js";
 import {
   blueprintVisibilityLevels,
   environmentVisibilityLevels,
-  INSTANCE_VISIBILITY_LEVELS,
+  instanceVisibilityLevels,
 } from "./visibilityLevels.js";
 import {
   useUpdateVisibility,
@@ -85,9 +86,19 @@ export interface ResourceVisibilityControlProps {
  *   the org boundary. In `local` mode there are no levels to choose (the
  *   OSS backend is single-user), so the control degrades to a badge.
  *
+ * The Public level is operator-gated in the cloud edition (publishing is a
+ * curation decision): for callers without `can_set_public_visibility`
+ * ({@link useCanSetPublicVisibility}) the option renders locked with copy
+ * naming the path forward. The same permission opens the operator takedown
+ * lane — on a currently-public resource, an operator gets the interactive
+ * selector even without resource `can_edit`, so noisy public resources can
+ * be un-published directly from the console (every offered move off PUBLIC
+ * is a downgrade, which the backend allows operators unilaterally).
+ *
  * The backend remains the enforcer (`ValidateVisibilityStep` rejects
- * platform without an IdP); the gate here only prevents offering an option
- * that is guaranteed to fail.
+ * platform without an IdP; `AuthorizeVisibilityTransitionStep` gates the
+ * PUBLIC level); the gates here only prevent offering an option that is
+ * guaranteed to fail.
  */
 export function ResourceVisibilityControl({
   kind,
@@ -99,6 +110,7 @@ export function ResourceVisibilityControl({
 }: ResourceVisibilityControlProps) {
   const { updateVisibility, isPending } = useUpdateVisibility(kind, resourceId);
   const deploymentMode = useDeploymentMode();
+  const canSetPublic = useCanSetPublicVisibility();
 
   const isInstance = INSTANCE_KINDS.has(kind);
   const isEnvironment = kind === "environment";
@@ -113,10 +125,13 @@ export function ResourceVisibilityControl({
   const options = isEnvironment
     ? environmentVisibilityLevels(deploymentMode)
     : isInstance
-      ? INSTANCE_VISIBILITY_LEVELS
+      ? instanceVisibilityLevels({
+          canSetPublicVisibility: canSetPublic.allowed,
+        })
       : blueprintVisibilityLevels({
           deploymentMode,
           hasIdentityProvider: ssoProvider !== null,
+          canSetPublicVisibility: canSetPublic.allowed,
         });
 
   const handleChange = useCallback(
@@ -141,6 +156,31 @@ export function ResourceVisibilityControl({
     return badge;
   }
 
+  const selector = (
+    <VisibilitySelector
+      visibility={visibility}
+      options={options}
+      onVisibilityChange={handleChange}
+      isPending={isPending}
+      ariaLabel={isInstance ? "Instance visibility" : "Resource visibility"}
+      className={className}
+    />
+  );
+
+  // Operator takedown lane: on a currently-public resource, a caller holding
+  // can_set_public_visibility gets the control without resource can_edit —
+  // every offered move is a downgrade off PUBLIC, which the backend allows
+  // operators unilaterally (AuthorizeVisibilityTransitionStep), so no
+  // offered action can fail authorization. Scoped to the public state on
+  // purpose: on non-public foreign resources most transitions would be
+  // denied, and publishing those stays a request-to-operator flow.
+  if (
+    canSetPublic.allowed &&
+    visibility === ApiResourceVisibility.visibility_public
+  ) {
+    return selector;
+  }
+
   return (
     <PermissionGate
       resource={{ kind: FGA_KIND[kind], id: resourceId }}
@@ -148,14 +188,7 @@ export function ResourceVisibilityControl({
       fallback={badge}
       loading={badge}
     >
-      <VisibilitySelector
-        visibility={visibility}
-        options={options}
-        onVisibilityChange={handleChange}
-        isPending={isPending}
-        ariaLabel={isInstance ? "Instance visibility" : "Resource visibility"}
-        className={className}
-      />
+      {selector}
     </PermissionGate>
   );
 }

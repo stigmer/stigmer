@@ -1,6 +1,13 @@
 /**
- * Skill-artifact ZIP extraction: text-decoded entries with non-fatal
+ * Skill-artifact ZIP extraction: byte-preserving entries with non-fatal
  * structural failure.
+ *
+ * Entries are returned as raw bytes, never decoded: skill artifacts carry
+ * binary assets (images, fonts, archives) alongside text, and a UTF-8
+ * decode/encode round-trip silently corrupts anything that isn't valid
+ * UTF-8 (issue #683). No consumer parses entry content as text — SKILL.md
+ * is excluded from extraction on every path and written from the Skill
+ * spec instead — so there is deliberately no text accessor to misuse.
  *
  * Structural parsing lives in zip-structure.ts (central-directory-based —
  * see that module's doc for why local-header walks are never acceptable,
@@ -33,8 +40,8 @@ import { EOCD_MIN_SIZE, parseZipStructure, type ZipStructuralEntry } from "./zip
 export interface ZipFileEntry {
   /** Relative path within the archive (forward-slash separated). */
   readonly path: string;
-  /** Decoded text content of the file. */
-  readonly content: string;
+  /** Raw file bytes, exactly as stored in the archive. */
+  readonly content: Uint8Array;
 }
 
 /**
@@ -91,17 +98,17 @@ function isExcluded(name: string, excludeSet: ReadonlySet<string>): boolean {
 
 // ─── Decompression ───────────────────────────────────────────────────────
 
-async function decompressEntry(entry: ZipStructuralEntry): Promise<string> {
+async function decompressEntry(entry: ZipStructuralEntry): Promise<Uint8Array> {
   if (entry.compressionMethod === 0) {
-    return new TextDecoder().decode(entry.compressedData);
+    return entry.compressedData;
   }
 
   if (entry.compressionMethod === 8) {
-    return new Promise<string>((resolve, reject) => {
+    return new Promise<Uint8Array>((resolve, reject) => {
       const inflate = createInflateRaw();
       const chunks: Buffer[] = [];
       inflate.on("data", (chunk: Buffer) => chunks.push(chunk));
-      inflate.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
+      inflate.on("end", () => resolve(Buffer.concat(chunks)));
       inflate.on("error", reject);
       inflate.end(Buffer.from(entry.compressedData));
     });

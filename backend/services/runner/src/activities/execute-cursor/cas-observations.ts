@@ -1,5 +1,6 @@
 /**
- * The Cursor harness's disk-backed observer for gitignored file writes — the
+ * The Cursor harness's disk-backed observer for CAS-owned file mutations —
+ * gitignored / non-git writes, and (issue #303) pre-delete byte capture — the
  * out-of-process analog of the deep-agent `CasCaptureFilesystemBackend`
  * ({@link ../execute-deep-agent/cas-capture-backend.js}).
  *
@@ -185,14 +186,19 @@ export function buildSecretClassifyScript(): string {
 
 /**
  * Build the standalone Node.js script the hook runs to observe a single
- * gitignored write — the disk-backed mirror of `CasCaptureFilesystemBackend`'s
- * `recordBefore` plus the DD-E secret gate.
+ * CAS-owned mutation — the disk-backed mirror of `CasCaptureFilesystemBackend`'s
+ * `recordBefore` plus the DD-E secret gate. Staging is mutation-agnostic: it
+ * records the PRE-mutation bytes, so the hook runs it for a write/edit and —
+ * issue #303 — for a delete (whose before-bytes exist only until the tool runs;
+ * the boundary later reads after=null and authors the DELETE). The hook's
+ * delete arm pre-classifies secrets and never invokes this for a secret-like
+ * delete (a gated delete must not leave a "secret" marker in the sidecar).
  *
  * Invoked as `printf %s "$SALIENT" | node -e '<this>' <workspaceRoot> <obsDir>`
  * — the (arbitrary) salient path arrives on stdin so no argv escaping is needed;
  * the two absolute paths ride argv. Prints one token on stdout for the hook:
  *  - `captured` — non-secret: staged the pre-turn bytes (first-touch-wins), the
- *    hook then ALLOWS the write to flow;
+ *    hook then ALLOWS the mutation to flow;
  *  - `secret`   — secret-like: recorded a content-less marker, the hook then
  *    DENIES with the security message (nothing is written);
  *  - `error`    — the path escaped the workspace or a filesystem error occurred,

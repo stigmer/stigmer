@@ -82,7 +82,11 @@ Use the exact YAML `kind` names below. An unknown kind fails validation.
 ### Eventing & messaging
 
 - **`emit_event`** — Emit a structured domain event (type, subject, data). Often
-  used as a terminal step to signal an outcome (e.g. "plan approved").
+  used as a terminal step to signal an outcome (e.g. "plan approved"). Optional
+  `delivery` targets push the event out: `webhook` (HTTP POST of the CloudEvents
+  envelope) or `signal` (deliver to another execution's `listen` task by
+  `execution_id` + `signal_name`). Delivery is best-effort — failures land in
+  the task output's `delivery_errors`, never fail the task.
 - **`notification`** — Send a notification through a configured channel.
 
 ## Common patterns

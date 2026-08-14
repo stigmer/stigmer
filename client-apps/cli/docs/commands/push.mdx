@@ -49,6 +49,29 @@ stigmer push skill --git-url https://github.com/acme/skills --subdir api-validat
 stigmer push skill --git-url https://github.com/acme/skills --git-ref v2.0.0
 ```
 
+**Archive push**: Push a ZIP you already built, byte-for-byte. The registered
+version hash is the SHA-256 of the file itself, so it matches any checksum
+your release pipeline published for the artifact. The archive must contain
+`SKILL.md` at its root; packaging flags (`--ignore`, `--include`,
+`--no-gitignore`) don't apply since packaging already happened.
+
+```bash
+# Push a pre-packaged skill archive as-is
+stigmer push skill --archive dist/my-skill.zip --tag v1.2.3 -m "release v1.2.3"
+
+# Validate the archive without pushing
+stigmer push skill --archive dist/my-skill.zip --dry-run
+```
+
+### Version identity
+
+A skill version is identified by the SHA-256 of its uploaded ZIP, and the CLI
+packages directories deterministically (sorted entries, fixed timestamps):
+pushing unchanged content produces the same bytes — and therefore the same
+version — no matter when or where the push runs. A CI job that pushes on
+every merge only registers a new version when the skill's content actually
+changed; unchanged pushes report `Status: unchanged`.
+
 ### File filtering
 
 By default, the CLI respects `.gitignore` patterns. Use `--ignore` and

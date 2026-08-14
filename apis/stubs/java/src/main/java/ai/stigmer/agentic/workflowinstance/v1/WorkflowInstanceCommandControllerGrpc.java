@@ -347,8 +347,14 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * observability: workflow executions inherit visibility from their parent
      * instance via FGA. An ORG-visible instance means all org members can see
      * all executions — zero per-execution tuples needed.
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the workflow instance.
+     * Authorization: can_edit on the workflow instance for private/org
+     * transitions; escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition);
+     * downgrade from PUBLIC: can_edit OR the platform permission.
      * Visibility transitions trigger FGA tuple management in Cloud mode:
      * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
      * - PRIVATE → PUBLIC: creates workflow_instance#viewer&#64;identity_account:*
@@ -523,8 +529,14 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * observability: workflow executions inherit visibility from their parent
      * instance via FGA. An ORG-visible instance means all org members can see
      * all executions — zero per-execution tuples needed.
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the workflow instance.
+     * Authorization: can_edit on the workflow instance for private/org
+     * transitions; escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition);
+     * downgrade from PUBLIC: can_edit OR the platform permission.
      * Visibility transitions trigger FGA tuple management in Cloud mode:
      * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
      * - PRIVATE → PUBLIC: creates workflow_instance#viewer&#64;identity_account:*
@@ -677,8 +689,14 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * observability: workflow executions inherit visibility from their parent
      * instance via FGA. An ORG-visible instance means all org members can see
      * all executions — zero per-execution tuples needed.
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the workflow instance.
+     * Authorization: can_edit on the workflow instance for private/org
+     * transitions; escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition);
+     * downgrade from PUBLIC: can_edit OR the platform permission.
      * Visibility transitions trigger FGA tuple management in Cloud mode:
      * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
      * - PRIVATE → PUBLIC: creates workflow_instance#viewer&#64;identity_account:*
@@ -828,8 +846,14 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * observability: workflow executions inherit visibility from their parent
      * instance via FGA. An ORG-visible instance means all org members can see
      * all executions — zero per-execution tuples needed.
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the workflow instance.
+     * Authorization: can_edit on the workflow instance for private/org
+     * transitions; escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition);
+     * downgrade from PUBLIC: can_edit OR the platform permission.
      * Visibility transitions trigger FGA tuple management in Cloud mode:
      * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
      * - PRIVATE → PUBLIC: creates workflow_instance#viewer&#64;identity_account:*
@@ -982,8 +1006,14 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * observability: workflow executions inherit visibility from their parent
      * instance via FGA. An ORG-visible instance means all org members can see
      * all executions — zero per-execution tuples needed.
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the workflow instance.
+     * Authorization: can_edit on the workflow instance for private/org
+     * transitions; escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition);
+     * downgrade from PUBLIC: can_edit OR the platform permission.
      * Visibility transitions trigger FGA tuple management in Cloud mode:
      * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
      * - PRIVATE → PUBLIC: creates workflow_instance#viewer&#64;identity_account:*

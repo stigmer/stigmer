@@ -3,6 +3,9 @@
   "entryPoints": ["./src/index.ts"],
   "json": "typedoc-output.json",
   "externalSymbolLinkMappings": {
+    "typescript": {
+      "Error": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error"
+    },
     "@stigmer/protos": {
       "*": "https://stigmer.ai/docs/api-reference"
     },

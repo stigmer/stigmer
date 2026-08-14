@@ -22,10 +22,6 @@ const (
 )
 
 // Event types produced by command controller RPCs across all API resources.
-//
-// @internal
-// Different enums could be used per resource, but a shared enum is simpler
-// because events are converted to strings during message passing.
 type ApiResourceEventType int32
 
 const (
@@ -91,10 +87,6 @@ func (ApiResourceEventType) EnumDescriptor() ([]byte, []int) {
 }
 
 // Operation type for API resource state transitions.
-//
-// @internal
-// Used by the state machine to classify RPC operations and enforce
-// transition rules (e.g., a resource in "deleting" state rejects create).
 type ApiResourceStateOperationType int32
 
 const (
@@ -195,15 +187,18 @@ const (
 	// skill, workflow, project, mcp_server), so a private blueprint stays
 	// manageable — and visible — to its org's admins. Personal kinds
 	// (instances, environments, sessions) stay creator-only.
-	//
-	// @internal
-	// Named visibility_private to avoid Java reserved keyword conflict.
-	// Admin inheritance is the FGA-model composition
-	// `owner: [identity_account] or admin from organization` (T08).
 	ApiResourceVisibility_visibility_private ApiResourceVisibility = 1
 	// Anyone can access (read) this resource.
 	// Used for marketplace-published resources (e.g., "stigmer/web-search").
 	// Write access still requires org membership.
+	//
+	// In the cloud edition, entering this level is operator-gated
+	// (can_set_public_visibility on platform:stigmer): public listing is a
+	// curation decision, requested by the resource owner and granted by the
+	// platform team — at both doors, updateVisibility escalation and
+	// create-with-public. Leaving this level stays self-service for anyone
+	// with can_edit. The OSS edition is unguarded (the self-hosted operator
+	// owns the store).
 	// Named visibility_public to avoid Java reserved keyword conflict.
 	ApiResourceVisibility_visibility_public ApiResourceVisibility = 2
 	// Everyone in the owning organization can access (read) this resource —

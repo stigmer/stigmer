@@ -14,12 +14,14 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/transfer"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 )
 
 // Context keys for push operation
 const (
 	SkillKey              = "skill"              // The Skill being built (type transformation: PushSkillRequest → Skill)
+	ArtifactBytesKey      = "pushArtifactBytes"  // Resolved artifact ZIP bytes (inline or staged — see ResolveArtifactSourceStep)
 	ExtractResultKey      = "extractResult"      // Extracted SKILL.md content and hash
 	ArtifactStorageKeyKey = "artifactStorageKey" // Storage key for the artifact
 	ExistingSkillKey      = "existingSkill"      // Existing skill loaded by slug
@@ -85,18 +87,65 @@ func (c *SkillController) Push(ctx context.Context, req *skillv1.PushSkillReques
 // 10. Persists to database
 func (c *SkillController) buildPushPipeline() *pipeline.Pipeline[*skillv1.PushSkillRequest] {
 	return pipeline.NewPipeline[*skillv1.PushSkillRequest]("skill-push").
-		AddStep(steps.NewValidateProtoStep[*skillv1.PushSkillRequest]()). // 1. Validate request
-		AddStep(c.newBuildInitialSkillStep()).                            // 2. Build Skill (no ID yet)
-		AddStep(c.newExtractAndHashArtifactStep()).                       // 3. Extract SKILL.md + parse frontmatter
-		AddStep(c.newResolveSlugForPushStep()).                           // 4. Resolve slug from extracted name
-		AddStep(c.newFindExistingBySlugStep()).                           // 5. Find by slug
-		AddStep(c.newGenerateIDIfNeededStep()).                           // 6. Generate ID if creating
-		AddStep(c.newCheckAndStoreArtifactStep()).                        // 7. Store artifact
-		AddStep(c.newPopulateSkillFieldsStep()).                          // 8. Populate fields
-		AddStep(c.newArchiveCurrentSkillStep()).                          // 9. Archive NEW skill
-		AddStep(c.newStoreSkillStep()).                                   // 10. Persist to DB
-		AddStep(c.newIndexSkillSearchStep()).                             // 11. Update search index
+		AddStep(steps.NewValidateProtoStep[*skillv1.PushSkillRequest]()). // 1. Validate request (incl. exactly-one artifact source)
+		AddStep(c.newResolveArtifactSourceStep()).                        // 2. Resolve inline bytes or staged upload
+		AddStep(c.newBuildInitialSkillStep()).                            // 3. Build Skill (no ID yet)
+		AddStep(c.newExtractAndHashArtifactStep()).                       // 4. Extract SKILL.md + parse frontmatter
+		AddStep(c.newResolveSlugForPushStep()).                           // 5. Resolve slug from extracted name
+		AddStep(c.newFindExistingBySlugStep()).                           // 6. Find by slug
+		AddStep(c.newGenerateIDIfNeededStep()).                           // 7. Generate ID if creating
+		AddStep(c.newCheckAndStoreArtifactStep()).                        // 8. Store artifact
+		AddStep(c.newPopulateSkillFieldsStep()).                          // 9. Populate fields
+		AddStep(c.newArchiveCurrentSkillStep()).                          // 10. Archive NEW skill
+		AddStep(c.newStoreSkillStep()).                                   // 11. Persist to DB
+		AddStep(c.newIndexSkillSearchStep()).                             // 12. Update search index
 		Build()
+}
+
+// ResolveArtifactSourceStep materializes the artifact ZIP bytes from
+// whichever source the request carries (proto validation has already
+// guaranteed exactly one):
+//
+//   - inline artifact bytes — the classic ≤10MB path, passed through as-is
+//   - artifact_upload_ref — bytes staged via createArtifactUploadUrl + HTTP
+//     PUT (#675); consumed here, which retires the single-use reference
+//     regardless of how the rest of the pipeline fares
+//
+// Downstream steps read ArtifactBytesKey and never touch req.Artifact, so
+// the two sources are indistinguishable past this point — same validation,
+// hashing, dedup, and versioning either way.
+type ResolveArtifactSourceStep struct {
+	slots *transfer.UploadSlots
+}
+
+func (c *SkillController) newResolveArtifactSourceStep() *ResolveArtifactSourceStep {
+	return &ResolveArtifactSourceStep{slots: c.transferSlots}
+}
+
+func (s *ResolveArtifactSourceStep) Name() string {
+	return "ResolveArtifactSource"
+}
+
+func (s *ResolveArtifactSourceStep) Execute(ctx *pipeline.RequestContext[*skillv1.PushSkillRequest]) error {
+	req := ctx.Input()
+
+	if req.ArtifactUploadRef == "" {
+		ctx.Set(ArtifactBytesKey, req.Artifact)
+		return nil
+	}
+
+	if s.slots == nil {
+		return grpclib.FailedPreconditionError("skill artifact transfer lane is not configured on this server")
+	}
+	data, err := s.slots.Consume(req.ArtifactUploadRef)
+	if err != nil {
+		// The reference is client-supplied state, not server fault: unknown,
+		// expired, already consumed, or minted-but-never-uploaded all mean
+		// the client must re-mint and re-upload.
+		return grpclib.InvalidArgumentError("artifact_upload_ref not usable: %v — request a new upload URL via createArtifactUploadUrl", err)
+	}
+	ctx.Set(ArtifactBytesKey, data)
+	return nil
 }
 
 // BuildInitialSkillStep builds an initial Skill resource from PushSkillRequest
@@ -286,10 +335,10 @@ func (s *ExtractAndHashArtifactStep) Name() string {
 }
 
 func (s *ExtractAndHashArtifactStep) Execute(ctx *pipeline.RequestContext[*skillv1.PushSkillRequest]) error {
-	req := ctx.Input()
+	artifactBytes := ctx.Get(ArtifactBytesKey).([]byte)
 
 	// Extract SKILL.md and calculate hash (safely with all security checks)
-	extractResult, err := storage.ExtractSkillMd(req.Artifact)
+	extractResult, err := storage.ExtractSkillMd(artifactBytes)
 	if err != nil {
 		return grpclib.InvalidArgumentError("failed to extract SKILL.md: %v", err)
 	}
@@ -321,7 +370,7 @@ func (s *CheckAndStoreArtifactStep) Name() string {
 }
 
 func (s *CheckAndStoreArtifactStep) Execute(ctx *pipeline.RequestContext[*skillv1.PushSkillRequest]) error {
-	req := ctx.Input()
+	artifactBytes := ctx.Get(ArtifactBytesKey).([]byte)
 	extractResult := ctx.Get(ExtractResultKey).(*storage.ExtractSkillMdResult)
 
 	// Check if artifact already exists (content-addressable deduplication)
@@ -336,7 +385,7 @@ func (s *CheckAndStoreArtifactStep) Execute(ctx *pipeline.RequestContext[*skillv
 		storageKey = s.artifactStorage.GetStorageKey(extractResult.Hash)
 	} else {
 		// New artifact - store it with restricted permissions
-		storageKey, err = s.artifactStorage.Store(extractResult.Hash, req.Artifact)
+		storageKey, err = s.artifactStorage.Store(extractResult.Hash, artifactBytes)
 		if err != nil {
 			return grpclib.InternalError(err, "failed to store artifact")
 		}
@@ -444,7 +493,10 @@ func (s *ArchiveCurrentSkillStep) archiveSkill(ctx context.Context, skill *skill
 // 4. Sets status.version_hash and status.artifact_storage_key
 // 5. Sets audit fields using common library helpers:
 //   - For create: SetAuditFieldsForCreate (sets created_at = updated_at = now)
-//   - For update: Preserves existing audit, then updates with SetAuditFieldsForUpdate
+//   - For update: copy existing slot pointers onto a new audit wrapper,
+//     then SetAuditFieldsForUpdate(SpecAudit) — definition changed.
+//     The helper Sets a new spec_audit message so the copied pointers
+//     from the loaded skill are not mutated in place.
 type PopulateSkillFieldsStep struct{}
 
 func (c *SkillController) newPopulateSkillFieldsStep() *PopulateSkillFieldsStep {
@@ -521,13 +573,17 @@ func (s *PopulateSkillFieldsStep) Execute(ctx *pipeline.RequestContext[*skillv1.
 			if skill.Status.Audit == nil {
 				skill.Status.Audit = &apiresourcepb.ApiResourceAudit{}
 			}
-			// Copy spec_audit and status_audit from existing
+			// Copy slot pointers from the loaded skill. The helper below
+			// Sets a newly allocated spec_audit on this wrapper — it must
+			// not mutate SpecAudit in place, or this would also rewrite
+			// existingSkill (stigmer/stigmer#540).
 			skill.Status.Audit.SpecAudit = existingSkill.Status.Audit.SpecAudit
 			skill.Status.Audit.StatusAudit = existingSkill.Status.Audit.StatusAudit
 		}
 
-		// Now update the audit fields (preserves created_at, updates updated_at)
-		if err := steps.SetAuditFieldsForUpdate(skill); err != nil {
+		// Stamp spec_audit only: a push is a definition change. status_audit
+		// stays on the shared pointer, untouched.
+		if err := steps.SetAuditFieldsForUpdate(skill, steps.SpecAudit); err != nil {
 			return fmt.Errorf("failed to set audit fields for update: %w", err)
 		}
 	}

@@ -16,11 +16,25 @@ message SkillId {
 // Creates a skill if it does not exist, or creates a new version of an
 // existing skill.
 //
+// The artifact travels one of two ways (exactly one must be set):
+// - artifact: inline ZIP bytes. Simple one-round-trip push, but bounded by
+//   the gRPC transport's message-size cap (10MB) — well below the 100MB
+//   skill limit.
+// - artifact_upload_ref: reference to bytes already staged via
+//   createArtifactUploadUrl() + HTTP PUT. Required for artifacts above the
+//   transport cap; works for any size up to the skill limit.
+//
 // @internal
 // The skill name and description are extracted by the backend from the SKILL.md
 // YAML frontmatter within the artifact. The CLI validates the format but does not
 // send these fields — backend is the single source of truth for parsing.
 message PushSkillRequest {
+  option (buf.validate.message).cel = {
+    id: "push_skill_request.artifact_source"
+    message: "exactly one of artifact (inline bytes) or artifact_upload_ref must be set"
+    expression: "(this.artifact.size() > 0) != (this.artifact_upload_ref != '')"
+  };
+
   // Organization that owns this skill.
   string org = 1 [(buf.validate.field).required = true];
 
@@ -31,7 +45,9 @@ message PushSkillRequest {
   //   - description: Human-readable description (optional but recommended)
   // - Tool executables/scripts (optional)
   // - Additional files referenced in SKILL.md
-  bytes artifact = 2 [(buf.validate.field).required = true];
+  //
+  // Mutually exclusive with artifact_upload_ref (see the message comment).
+  bytes artifact = 2;
 
   // Optional tag to associate with this version.
   // If provided, this tag will point to the new version.
@@ -57,6 +73,79 @@ message PushSkillRequest {
   // Analogous to a git commit message. If empty, the version timeline falls
   // back to displaying git_provenance.commit message when available.
   string message = 6;
+
+  // Reference to an artifact staged via createArtifactUploadUrl().
+  // Set this instead of artifact when the ZIP exceeds the gRPC message-size
+  // cap. The reference is single-use and expires with its upload URL.
+  //
+  // Mutually exclusive with artifact (see the message comment).
+  string artifact_upload_ref = 7;
+}
+
+// CreateSkillArtifactUploadUrlRequest asks the server to mint a staging
+// slot for a skill artifact that is too large to travel inline in
+// PushSkillRequest.artifact (the gRPC message cap is 10MB; skills may be
+// up to 100MB).
+message CreateSkillArtifactUploadUrlRequest {
+  // Organization that will own the skill (authorization scope — the caller
+  // needs the same can_create_skill permission that push requires).
+  string org = 1 [(buf.validate.field).required = true];
+
+  // Declared size of the artifact ZIP in bytes.
+  //
+  // Lets the server refuse over-limit artifacts BEFORE any bytes move —
+  // the fail-loud-at-authoring contract from #675. The upload endpoint
+  // additionally enforces the declared size against the actual bytes.
+  int64 size_bytes = 2 [(buf.validate.field).int64.gt = 0];
+}
+
+// SkillArtifactUploadUrl is a short-lived, single-use capability for
+// staging a skill artifact over HTTP.
+//
+// @internal
+// The upload strategy differs by edition (mirrors ArtifactDownloadUrl):
+// - Cloud: pre-signed R2/S3 PUT URL with short TTL
+// - OSS: capability URL on the server's own HTTP lane (the unguessable
+//   token in the path is the credential, exactly like a presigned URL)
+//
+// This pattern avoids streaming large blobs through the gRPC control plane.
+message SkillArtifactUploadUrl {
+  // URL to PUT the artifact ZIP bytes to. Content-Type: application/zip.
+  string url = 1;
+
+  // Opaque reference to pass as PushSkillRequest.artifact_upload_ref after
+  // the PUT succeeds. Single-use; invalid after the push consumes it or
+  // the TTL lapses.
+  string artifact_upload_ref = 2;
+
+  // Time-to-live for the upload URL in seconds. After this duration the
+  // URL and the reference expire and a new one must be requested.
+  int32 ttl_seconds = 3;
+}
+
+// SkillArtifactDownloadUrl provides a URL for downloading a skill
+// artifact over HTTP.
+//
+// @internal
+// The download strategy differs by edition (mirrors ArtifactDownloadUrl):
+// - Cloud: pre-signed R2/S3 URL with short TTL (e.g., 15 minutes)
+// - OSS: capability URL on the server's own HTTP lane; the content-hash
+//   storage key in the path is the capability (the same trust model as
+//   getArtifact, which deliberately skips authorization)
+//
+// This pattern avoids streaming large blobs through the gRPC control
+// plane — the transport cap stays at 10MB while skills may be 100MB.
+message SkillArtifactDownloadUrl {
+  // URL to download the artifact ZIP via HTTP GET.
+  string url = 1;
+
+  // Time-to-live for the download URL in seconds.
+  // Typically 900 (15 minutes) for Cloud, 0 (no expiry) for OSS.
+  int32 ttl_seconds = 2;
+
+  // Size of the artifact ZIP in bytes. Lets clients pre-allocate or
+  // sanity-check before fetching.
+  int64 size_bytes = 3;
 }
 
 // PushSkillFromExecutionArtifactRequest publishes a skill from an execution

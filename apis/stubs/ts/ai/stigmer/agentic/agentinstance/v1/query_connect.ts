@@ -31,10 +31,6 @@ export const AgentInstanceQueryController = {
      * Get all instances of a specific agent template.
      * Returns only instances the caller has access to.
      *
-     * @internal
-     * Authorization is handled in handler via FGA query for authorized agent_instance_ids,
-     * then filtered by agent_id.
-     *
      * @generated from rpc ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController.getByAgent
      */
     getByAgent: {
@@ -46,9 +42,6 @@ export const AgentInstanceQueryController = {
     /**
      * Get an agent instance by its organization-scoped reference (org/slug).
      *
-     * @internal
-     * Custom authorization in handler.
-     *
      * @generated from rpc ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController.getByReference
      */
     getByReference: {
@@ -59,10 +52,6 @@ export const AgentInstanceQueryController = {
     },
     /**
      * List agent instances with optional label filtering.
-     *
-     * @internal
-     * Authorization is handled in-handler via FGA-filtered queries (cloud)
-     * or unrestricted store queries (OSS).
      *
      * @generated from rpc ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController.list
      */

@@ -17,13 +17,6 @@ import { MethodKind } from "@bufbuild/protobuf";
  * the resource holds provider key material and per-member spend, which
  * are platform-internal and never org-visible.
  *
- * @internal
- * Cloud-only. The OSS Go server does not implement this service — in the
- * OSS edition Cursor credentials are the user's own (BYOK env var), so
- * there is nothing to manage. Handlers refuse writes when secret
- * encryption is not enabled on the deployment (FAILED_PRECONDITION):
- * silently persisting plaintext keys is never acceptable for this store.
- *
  * @generated from service ai.stigmer.platform.cursoraccount.v1.CursorAccountCommandController
  */
 export const CursorAccountCommandController = {

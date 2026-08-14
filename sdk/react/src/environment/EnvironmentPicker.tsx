@@ -2,6 +2,7 @@
 
 import { useCallback, useId, useMemo } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import type { ResourceRef } from "@stigmer/sdk";
 import { useEnvironmentList } from "./useEnvironmentList.js";
@@ -217,7 +218,7 @@ function SelectedList({
   total,
 }: SelectedListProps) {
   return (
-    <ol className="stg:space-y-1.5" aria-label="Selected environments (merge order)">
+    <ol className={cn(UNSTYLED_LIST, "stg:space-y-1.5")} aria-label="Selected environments (merge order)">
       {value.map((ref, index) => (
         <li
           key={`${ref.org}-${ref.slug}-${index}`}

@@ -31,53 +31,27 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // ChannelAppCommandController handles write operations for channel apps.
-//
-// @internal
-// ChannelApps hold provider secrets (client_secret, signing_secret) and
-// are always org-private. There is no updateVisibility RPC — public
-// visibility is intentionally unsupported to prevent credential leakage
-// (the OAuthApp posture).
 type ChannelAppCommandControllerClient interface {
 	// Create or update a channel app.
 	//
 	// If the resource does not exist, creates a new channel app.
 	// If the resource exists, updates the existing channel app. Sending
 	// the redaction marker for a secret field preserves the stored value.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on
-	// whether the channel app is going to be created or updated, resolved
-	// as part of request execution.
 	Apply(ctx context.Context, in *ChannelApp, opts ...grpc.CallOption) (*ChannelApp, error)
 	// Create a channel app.
 	//
 	// The creator's organization owns the channel app. The creator is
 	// granted the owner role automatically.
-	//
-	// @internal
-	// Authorization: requires can_create_channel_app permission in the
-	// organization (admin-gated like can_create_oauth_app — the resource
-	// holds org-wide webhook credentials).
 	Create(ctx context.Context, in *ChannelApp, opts ...grpc.CallOption) (*ChannelApp, error)
 	// Update an existing channel app.
 	//
 	// Sending the redaction marker for a secret field preserves the
 	// stored value; the provider arm is immutable.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the channel_app
-	// resource.
 	Update(ctx context.Context, in *ChannelApp, opts ...grpc.CallOption) (*ChannelApp, error)
 	// Delete a channel app.
 	//
 	// Deletion is blocked while any AgentChannel references this app via
 	// spec.app_ref — disconnect or delete those channels first.
-	//
-	// @internal
-	// Authorization: requires can_delete permission on the channel_app
-	// resource. The referencing-channels block mirrors OAuthApp's
-	// referencing-mcp-servers check and fails with FAILED_PRECONDITION
-	// naming a referencing channel.
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*ChannelApp, error)
 }
 
@@ -134,53 +108,27 @@ func (c *channelAppCommandControllerClient) Delete(ctx context.Context, in *apir
 // for forward compatibility.
 //
 // ChannelAppCommandController handles write operations for channel apps.
-//
-// @internal
-// ChannelApps hold provider secrets (client_secret, signing_secret) and
-// are always org-private. There is no updateVisibility RPC — public
-// visibility is intentionally unsupported to prevent credential leakage
-// (the OAuthApp posture).
 type ChannelAppCommandControllerServer interface {
 	// Create or update a channel app.
 	//
 	// If the resource does not exist, creates a new channel app.
 	// If the resource exists, updates the existing channel app. Sending
 	// the redaction marker for a secret field preserves the stored value.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on
-	// whether the channel app is going to be created or updated, resolved
-	// as part of request execution.
 	Apply(context.Context, *ChannelApp) (*ChannelApp, error)
 	// Create a channel app.
 	//
 	// The creator's organization owns the channel app. The creator is
 	// granted the owner role automatically.
-	//
-	// @internal
-	// Authorization: requires can_create_channel_app permission in the
-	// organization (admin-gated like can_create_oauth_app — the resource
-	// holds org-wide webhook credentials).
 	Create(context.Context, *ChannelApp) (*ChannelApp, error)
 	// Update an existing channel app.
 	//
 	// Sending the redaction marker for a secret field preserves the
 	// stored value; the provider arm is immutable.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the channel_app
-	// resource.
 	Update(context.Context, *ChannelApp) (*ChannelApp, error)
 	// Delete a channel app.
 	//
 	// Deletion is blocked while any AgentChannel references this app via
 	// spec.app_ref — disconnect or delete those channels first.
-	//
-	// @internal
-	// Authorization: requires can_delete permission on the channel_app
-	// resource. The referencing-channels block mirrors OAuthApp's
-	// referencing-mcp-servers check and fails with FAILED_PRECONDITION
-	// naming a referencing channel.
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*ChannelApp, error)
 }
 

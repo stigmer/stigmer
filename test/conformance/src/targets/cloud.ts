@@ -39,6 +39,10 @@ export class CloudTarget implements TargetProfile {
     externalOrgLookup: true,
     organizationEnumeration: false,
     versionTagging: true,
+    // Cloud carries the transfer lane over pre-signed R2 URLs
+    // (stigmer-cloud#438) — the full mint → PUT → push-by-ref →
+    // download-URL pin block runs against this target.
+    skillArtifactTransferLane: true,
     workflowChildApprovalForwarding: true,
     // The hermetic cloud env boots Temporal and the Java service runs the
     // schedule clock (T04 slice 2) — triggers fire for real.
@@ -47,6 +51,7 @@ export class CloudTarget implements TargetProfile {
     // writes from the ordinary conformance user; unguarding requires the
     // platform-privileged caller lane (stigmer#547).
     clientReservedLabelWrites: false,
+    clientPublicVisibilityWrites: false,
   };
 
   private grpcBaseUrl: string | undefined;

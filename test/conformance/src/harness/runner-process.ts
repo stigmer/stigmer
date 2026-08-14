@@ -106,6 +106,14 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
         ? {
             STIGMER_PROXY_ENDPOINT: opts.proxy.endpoint,
             STIGMER_TOKEN: opts.proxy.token,
+            // The mock proxy speaks ONLY Anthropic. Background LLM callers
+            // (session titling, #690) route by config.primaryModel, whose
+            // baked default is an OpenAI model — without this pin their
+            // requests leave on the OpenAI proxy path, where the mock cannot
+            // recognize or answer them, and historically they silently ATE
+            // queued agent turns (#715). Keep every LLM caller on the one
+            // provider the mock implements.
+            STIGMER_PRIMARY_MODEL: "claude-sonnet-4-6",
             ARTIFACT_STORAGE_TYPE: "local",
             LOCAL_ARTIFACT_PATH: artifactDir,
             // Point blob downloads at the server's artifact file server when we

@@ -13,11 +13,6 @@ class ActivityQueryControllerStub(object):
     This service exists because the recents list spans two bounded contexts
     (session and workflow_execution). A cross-cutting query service avoids
     forcing the client to make two parallel calls and merge client-side.
-
-    @internal
-    Authorization is handled in-handler: the implementation queries FGA for
-    authorized session and workflow_execution IDs, then runs a single merged
-    MongoDB query.
     """
 
     def __init__(self, channel):
@@ -41,11 +36,6 @@ class ActivityQueryControllerServicer(object):
     This service exists because the recents list spans two bounded contexts
     (session and workflow_execution). A cross-cutting query service avoids
     forcing the client to make two parallel calls and merge client-side.
-
-    @internal
-    Authorization is handled in-handler: the implementation queries FGA for
-    authorized session and workflow_execution IDs, then runs a single merged
-    MongoDB query.
     """
 
     def listRecentActivity(self, request, context):
@@ -59,11 +49,6 @@ class ActivityQueryControllerServicer(object):
         the OSS edition the server is single-tenant: the caller owns every
         stored resource, so there is no authorization set to enumerate and the
         request's org is a no-op (stigmer#461).
-
-        @internal
-        Authorization is handled in-handler: the FGA id enumeration is the only
-        gate (hence is_skip_authorization); the request's org merely narrows
-        the authorized set.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -93,11 +78,6 @@ class ActivityQueryController(object):
     This service exists because the recents list spans two bounded contexts
     (session and workflow_execution). A cross-cutting query service avoids
     forcing the client to make two parallel calls and merge client-side.
-
-    @internal
-    Authorization is handled in-handler: the implementation queries FGA for
-    authorized session and workflow_execution IDs, then runs a single merged
-    MongoDB query.
     """
 
     @staticmethod

@@ -12,9 +12,6 @@ class CursorAccountQueryControllerStub(object):
     Platform-gated like the command controller: even redacted, the resource
     reveals team structure and per-member spend, which are
     platform-internal.
-
-    @internal
-    Cloud-only; not implemented by the OSS Go server.
     """
 
     def __init__(self, channel):
@@ -42,9 +39,6 @@ class CursorAccountQueryControllerServicer(object):
     Platform-gated like the command controller: even redacted, the resource
     reveals team structure and per-member spend, which are
     platform-internal.
-
-    @internal
-    Cloud-only; not implemented by the OSS Go server.
     """
 
     def listCursorAccounts(self, request, context):
@@ -93,9 +87,6 @@ class CursorAccountQueryController(object):
     Platform-gated like the command controller: even redacted, the resource
     reveals team structure and per-member spend, which are
     platform-internal.
-
-    @internal
-    Cloud-only; not implemented by the OSS Go server.
     """
 
     @staticmethod

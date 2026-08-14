@@ -14,11 +14,6 @@ class PlatformClientCommandControllerStub(object):
     platform builders embedding Stigmer into their products. The client_secret
     is generated server-side and returned only once in the create and
     rotateSecret responses.
-
-    @internal
-    PlatformClients hold credential material (client_secret_hash) and are always
-    org-private. There is no updateVisibility RPC — public visibility is
-    intentionally unsupported to prevent credential leakage.
     """
 
     def __init__(self, channel):
@@ -56,11 +51,6 @@ class PlatformClientCommandControllerServicer(object):
     platform builders embedding Stigmer into their products. The client_secret
     is generated server-side and returned only once in the create and
     rotateSecret responses.
-
-    @internal
-    PlatformClients hold credential material (client_secret_hash) and are always
-    org-private. There is no updateVisibility RPC — public visibility is
-    intentionally unsupported to prevent credential leakage.
     """
 
     def create(self, request, context):
@@ -76,9 +66,6 @@ class PlatformClientCommandControllerServicer(object):
         The slug `system-share-client` is platform-reserved (it identifies the org's
         system-managed share client) and is rejected with INVALID_ARGUMENT — including
         when derived from the resource name.
-
-        @internal
-        Authorization: Requires can_create_platform_client permission in the organization.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -91,9 +78,6 @@ class PlatformClientCommandControllerServicer(object):
         auto_grant_role, and allowed_origins. Credential fields (client_id,
         client_secret_hash, secret_fingerprint) are immutable after creation.
         Use rotateSecret to change the client secret.
-
-        @internal
-        Authorization: Requires can_edit permission on the platform client resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -105,9 +89,6 @@ class PlatformClientCommandControllerServicer(object):
         Immediately invalidates the client_id and client_secret. Any tokens
         previously minted by this platform client remain valid until their
         own expiration — deletion does not revoke already-issued tokens.
-
-        @internal
-        Authorization: Requires can_delete permission on the platform client resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -120,9 +101,6 @@ class PlatformClientCommandControllerServicer(object):
         and returns the new raw secret in the response. The client_id remains
         unchanged — platform builders do not need to update their client_id
         configuration after rotation.
-
-        @internal
-        Authorization: Requires can_edit permission on the platform client resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -166,11 +144,6 @@ class PlatformClientCommandController(object):
     platform builders embedding Stigmer into their products. The client_secret
     is generated server-side and returned only once in the create and
     rotateSecret responses.
-
-    @internal
-    PlatformClients hold credential material (client_secret_hash) and are always
-    org-private. There is no updateVisibility RPC — public visibility is
-    intentionally unsupported to prevent credential leakage.
     """
 
     @staticmethod

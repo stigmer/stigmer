@@ -35,6 +35,35 @@ message AdjustCreditsInput {
   string idempotency_key = 4 [(buf.validate.field).required = true];
 }
 
+// GrantCreditsInput creates a promotional credit grant, optionally expiring.
+//
+// Unlike adjustCredits (a signed balance adjustment), a grant is strictly
+// positive and carries use-it-or-lose-it semantics when expires_at is set:
+// the grant is consumed before adjustment and purchased credits (promotional
+// burn order), and whatever remains unconsumed at expiry is removed from the
+// balance with an expiry_debit ledger entry.
+message GrantCreditsInput {
+  string org_id = 1 [(buf.validate.field).required = true];
+
+  // Amount to grant. Must be positive; grants never remove credits.
+  int64 amount_micros = 2 [(buf.validate.field).int64.gt = 0];
+
+  // When the grant expires. Unset means the grant never expires.
+  //
+  // Must be in the future when the grant is created. Deliberately NOT
+  // enforced structurally: a replay of an already-applied idempotency key
+  // always returns the original ledger entry, even if the expiry has since
+  // passed — late retries of a successful grant must never fail. Expiry
+  // precision is whole seconds; sub-second precision is discarded.
+  google.protobuf.Timestamp expires_at = 3;
+
+  // Human-readable reason for the grant (audit trail).
+  string reason = 4 [(buf.validate.field).required = true];
+
+  // Client-supplied deduplication key to prevent double-processing.
+  string idempotency_key = 5 [(buf.validate.field).required = true];
+}
+
 // AuthorizeExecutionInput requests a credit reservation before execution starts.
 message AuthorizeExecutionInput {
   string org_id = 1 [(buf.validate.field).required = true];
@@ -128,6 +157,17 @@ message RecordLlmCallUsageInput {
   // proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
   // caller.
   ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17;
+
+  // Provider-reported service tier that actually served this call
+  // (native harness, stigmer/stigmer#361): Anthropic reports it in the
+  // response usage ("standard" | "priority" | "batch"), OpenAI at the
+  // response top level ("default" | "flex" | "priority"). Reported
+  // verbatim by the proxy from the SSE stream — the wire truth billing
+  // reconciles against the execution's REQUESTED tier (the
+  // service_tier.mismatch counter). Empty when the provider reported
+  // none, and for cursor-harness calls, whose billed variant arrives
+  // through the cursor path's pricing-variant resolution instead.
+  string served_service_tier = 18;
 }
 
 // RecordLlmCallUsageResponse returns the cost result so callers can

@@ -28,6 +28,14 @@ export interface CapabilityFlags {
   // Unimplemented) — version tags are instead set at apply time via
   // metadata.version.tag and resolved through getByReference.
   versionTagging: boolean;
+  // The skill artifact transfer lane (stigmer#675): createArtifactUploadUrl /
+  // push-by-reference / getArtifactDownloadUrl move artifact bytes over HTTP
+  // so skills above the 10MB gRPC message cap (up to the 100MB skill limit)
+  // can be pushed and mounted. True for local OSS since stigmer#675; false
+  // for cloud until its sibling implements the same contract over R2
+  // pre-signed URLs — where false, the suite pins that the RPCs answer
+  // Unimplemented (the fallback contract clients rely on).
+  skillArtifactTransferLane: boolean;
   // NOTE: there is deliberately no ExecutionContext secret-redaction
   // capability. The EC surface is edition-CONVERGED since stigmer#535 (the
   // stigmer#405 spawned EC-at-rest port): both editions encrypt EC values at
@@ -92,6 +100,24 @@ export interface CapabilityFlags {
   // retire this flag when the harness gains a platform-privileged caller
   // (stigmer#547) — until then the pin runs OSS-side only.
   clientReservedLabelWrites: boolean;
+  // The conformance caller may set a resource's visibility to PUBLIC — the
+  // only level that crosses every org boundary (the cross-org "explore"
+  // catalog).
+  //
+  // True for the local OSS targets: single-tenant, deliberately unguarded —
+  // the operator owns the store, the same scoping stigmer-cloud#320 applied
+  // to reserved labels.
+  //
+  // False for cloud: public listing is operator-gated at BOTH write doors
+  // (AuthorizeVisibilityTransitionStep on updateVisibility escalation,
+  // GuardPublicVisibilityStep on create-with-public — both requiring
+  // can_set_public_visibility on platform:stigmer), and the ordinary
+  // conformance user holds no platform-operator grant. Where false, the
+  // suite pins the gate itself: escalation to public returns
+  // PermissionDenied and leaves the stored level untouched. Flip or retire
+  // this flag when the harness gains a platform-privileged caller
+  // (stigmer#547) — until then the happy-path pin runs OSS-side only.
+  clientPublicVisibilityWrites: boolean;
 }
 
 // Tenancy scope a test operates within. Locally this is just a unique org slug

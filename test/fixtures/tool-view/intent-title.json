@@ -1,0 +1,60 @@
+{
+  "comment": "Model-authored intent titles for shell tool calls (stigmer#276). `argField` is the wire key the harnesses write the intent phrase into: the native harness's tool-intent middleware (backend/services/runner/src/middleware/tool-intent.ts INTENT_ARG) extends the shell tool's bind-time schema with it, and the Cursor harness's built-in Shell tool carries it natively. Clients render it as the row title when present, falling back to the category label. Extraction is SHELL-kind-scoped on purpose: `description` means other things on other tools (a task tool's description is the sub-agent subject, never a row title). Cases: `name`+`mcpServerSlug` classify the kind, `args` is the persisted ToolCall.args, `intent` is the expected extraction (null = fall back to the label).",
+  "argField": "description",
+  "cases": [
+    {
+      "name": "execute",
+      "mcpServerSlug": "",
+      "args": { "command": "npx vitest run src/parser", "description": "Run unit tests for the parser" },
+      "intent": "Run unit tests for the parser"
+    },
+    {
+      "name": "Shell",
+      "mcpServerSlug": "",
+      "args": { "command": "ls -la", "description": "List workspace files" },
+      "intent": "List workspace files"
+    },
+    {
+      "name": "bash",
+      "mcpServerSlug": "",
+      "args": { "command": "make build", "description": "Build the project binaries" },
+      "intent": "Build the project binaries"
+    },
+    {
+      "name": "execute",
+      "mcpServerSlug": "",
+      "args": { "command": "ls" },
+      "intent": null
+    },
+    {
+      "name": "execute",
+      "mcpServerSlug": "",
+      "args": { "command": "ls", "description": "   " },
+      "intent": null
+    },
+    {
+      "name": "execute",
+      "mcpServerSlug": "",
+      "args": { "command": "ls", "description": 42 },
+      "intent": null
+    },
+    {
+      "name": "read_file",
+      "mcpServerSlug": "",
+      "args": { "file_path": "config.yaml", "description": "Read the config" },
+      "intent": null
+    },
+    {
+      "name": "task",
+      "mcpServerSlug": "",
+      "args": { "description": "general-purpose research", "prompt": "Find the docs" },
+      "intent": null
+    },
+    {
+      "name": "run_query",
+      "mcpServerSlug": "postgres",
+      "args": { "query": "SELECT 1", "description": "Probe connectivity" },
+      "intent": null
+    }
+  ]
+}

@@ -33,36 +33,18 @@ const (
 // an access token for GitHub API calls. The service manages the
 // authorize URL construction and the authorization-code-for-token
 // exchange so callers do not handle OAuth details directly.
-//
-// @internal
-// This is a platform utility service — not a domain resource.
-// The backend protects the client_secret during the token exchange
-// and constructs the authorize URL with the registered client_id and
-// redirect_uri so the frontend never needs those values.
-// Tokens are ephemeral — returned to the caller and never persisted.
 type GitHubServiceClient interface {
 	// Get the GitHub OAuth authorize URL for initiating the OAuth flow.
 	//
 	// Returns a URL to redirect the user to and a random state value for
 	// CSRF protection. After the user authorizes, GitHub redirects back
 	// to your redirect_uri with an authorization code.
-	//
-	// @internal
-	// The backend constructs the URL with the registered client_id, requested
-	// scopes, and the state parameter. Authorization is skipped because this
-	// is a pre-authentication step.
 	GetOAuthAuthorizeUrl(ctx context.Context, in *GetOAuthAuthorizeUrlRequest, opts ...grpc.CallOption) (*GetOAuthAuthorizeUrlResponse, error)
 	// Exchange a GitHub OAuth authorization code for an access token.
 	//
 	// Call this after receiving the authorization code from GitHub's OAuth
 	// redirect. Pass the code, the state from the original authorize request,
 	// and the same redirect_uri. Returns an access token for GitHub API calls.
-	//
-	// @internal
-	// The backend performs the token exchange using the client_secret, which
-	// must never be exposed to the frontend. The returned access_token is NOT
-	// stored by the backend — the caller is responsible for persisting it and
-	// including it in subsequent requests that need GitHub access.
 	ExchangeOAuthCode(ctx context.Context, in *ExchangeOAuthCodeRequest, opts ...grpc.CallOption) (*ExchangeOAuthCodeResponse, error)
 }
 
@@ -104,36 +86,18 @@ func (c *gitHubServiceClient) ExchangeOAuthCode(ctx context.Context, in *Exchang
 // an access token for GitHub API calls. The service manages the
 // authorize URL construction and the authorization-code-for-token
 // exchange so callers do not handle OAuth details directly.
-//
-// @internal
-// This is a platform utility service — not a domain resource.
-// The backend protects the client_secret during the token exchange
-// and constructs the authorize URL with the registered client_id and
-// redirect_uri so the frontend never needs those values.
-// Tokens are ephemeral — returned to the caller and never persisted.
 type GitHubServiceServer interface {
 	// Get the GitHub OAuth authorize URL for initiating the OAuth flow.
 	//
 	// Returns a URL to redirect the user to and a random state value for
 	// CSRF protection. After the user authorizes, GitHub redirects back
 	// to your redirect_uri with an authorization code.
-	//
-	// @internal
-	// The backend constructs the URL with the registered client_id, requested
-	// scopes, and the state parameter. Authorization is skipped because this
-	// is a pre-authentication step.
 	GetOAuthAuthorizeUrl(context.Context, *GetOAuthAuthorizeUrlRequest) (*GetOAuthAuthorizeUrlResponse, error)
 	// Exchange a GitHub OAuth authorization code for an access token.
 	//
 	// Call this after receiving the authorization code from GitHub's OAuth
 	// redirect. Pass the code, the state from the original authorize request,
 	// and the same redirect_uri. Returns an access token for GitHub API calls.
-	//
-	// @internal
-	// The backend performs the token exchange using the client_secret, which
-	// must never be exposed to the frontend. The returned access_token is NOT
-	// stored by the backend — the caller is responsible for persisting it and
-	// including it in subsequent requests that need GitHub access.
 	ExchangeOAuthCode(context.Context, *ExchangeOAuthCodeRequest) (*ExchangeOAuthCodeResponse, error)
 }
 

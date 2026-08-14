@@ -17,7 +17,7 @@ import { WorkflowSpecSchema, WorkflowDocumentSchema, ExportSchema, FlowControlSc
 import { AgentCallOutputContractSchema, AgentCallTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/agent_call_pb";
 import { CallActivityTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/call_activity_pb";
 import { OnInvalidOutputPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/common_pb";
-import { EmitEventSpecSchema, EmitEventTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/emit_event_pb";
+import { EmitEventSpecSchema, WebhookDeliverySchema, SignalDeliverySchema, EmitDeliveryTargetSchema, EmitEventTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/emit_event_pb";
 import { EvalCriterionSchema, EvalTaskConfigSchema, EvalScoringMode, EvalFailPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/eval_pb";
 import { ForTaskConfigSchema, ForEachErrorPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/for_pb";
 import { ForkBranchSchema, ForkTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/fork_pb";
@@ -78,7 +78,7 @@ type RunConfigInput = z.infer<typeof RunConfigInputSchema>;
 const AgentCallOutputContractInputSchema = z.object({
   schema: z.record(z.unknown()).describe("JSON Schema that the agent's structured output must conform to. Standard JSON Schema (draft 2020-12 or compatible). The workflow runner extracts JSON from the agent's final response and validates it against this schema. If validation fails, the on_invalid policy determines what happens next. The schema is carried as a google.protobuf.Struct to preserve the existing kind+Struct envelope pattern and allow YAML authors to write standard JSON Schema inline without a Stigmer-specific schema language."),
   on_invalid: z.string().optional().describe("Policy when agent output fails schema validation. Default: ON_INVALID_FAIL (task fails immediately). Allowed values: ON_INVALID_FAIL, ON_INVALID_RETRY, ON_INVALID_FALLBACK."),
-  max_retries: z.number().optional().describe("Maximum retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the agent with the specific validation errors and the expected schema, giving the agent an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5."),
+  max_retries: z.number().optional().describe("Maximum retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the agent with the specific validation errors and the expected schema, giving the agent an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 2 (the runner's retry loop). Valid range when set: 1-5. Unset (0) is valid: proto3 implicit presence makes an omitted field indistinguishable from 0, so the range rule must not fire on it (#673)."),
   fallback_task: z.string().optional().describe("Target task to branch to when schema validation cannot be resolved. Used in two scenarios: 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry) Must reference a valid task name in the same workflow. When empty and retries are exhausted, the task fails."),
 });
 type AgentCallOutputContractInput = z.infer<typeof AgentCallOutputContractInputSchema>;
@@ -141,8 +141,27 @@ const EmitEventInputSchema = z.object({
 });
 type EmitEventInput = z.infer<typeof EmitEventInputSchema>;
 
+const WebhookDeliveryInputSchema = z.object({
+  url: z.string().describe("Endpoint URL to POST the event to. Can contain expressions: 'https://hooks.example.com/${ $context.tenant }'"),
+  headers: z.record(z.string()).optional().describe("HTTP headers to send with the POST (optional). Values can contain runtime placeholders resolved just-in-time by the runner: 'Authorization: Bearer ${.secrets.WEBHOOK_TOKEN}' or '${.env_vars.KEY}'. Secrets resolve inside the delivery activity and never enter workflow history."),
+});
+type WebhookDeliveryInput = z.infer<typeof WebhookDeliveryInputSchema>;
+
+const SignalDeliveryInputSchema = z.object({
+  execution_id: z.string().describe("Target workflow execution id ('wfx_...'), as returned by run/create. Usually flows from a prior task's output: '${ .start_processor.execution_id }'"),
+  signal_name: z.string().describe("Signal name, matching the target's listen task event id (verbatim)."),
+});
+type SignalDeliveryInput = z.infer<typeof SignalDeliveryInputSchema>;
+
+const EmitDeliveryTargetInputSchema = z.object({
+  webhook: z.lazy(() => WebhookDeliveryInputSchema).optional().describe("POST the CloudEvents envelope to an HTTP endpoint."),
+  signal: z.lazy(() => SignalDeliveryInputSchema).optional().describe("Signal another workflow execution's listen task."),
+});
+type EmitDeliveryTargetInput = z.infer<typeof EmitDeliveryTargetInputSchema>;
+
 const EmitEventTaskConfigInputSchema = z.object({
   event: z.lazy(() => EmitEventInputSchema).describe("The event specification to emit. Contains the CloudEvents envelope fields (type, source, data, subject). Required field."),
+  delivery: z.array(z.lazy(() => EmitDeliveryTargetInputSchema)).optional().describe("Delivery targets for the emitted event (optional). When empty, the task only constructs the CloudEvents envelope and exposes it as task output — no external delivery happens. Delivery is best-effort: a failed target never fails the task. Failures are collected into the 'delivery_errors' array on the task output, one entry per failed target, so workflows can branch on delivery health. Each target has a 30-second timeout."),
 });
 type EmitEventTaskConfigInput = z.infer<typeof EmitEventTaskConfigInputSchema>;
 
@@ -219,7 +238,7 @@ const HttpCallTaskConfigInputSchema = z.object({
   endpoint: z.lazy(() => HttpEndpointInputSchema).describe("HTTP endpoint configuration."),
   headers: z.record(z.string()).optional().describe("HTTP headers (optional). Values can contain expressions: 'Bearer ${TOKEN}'"),
   body: z.record(z.unknown()).optional().describe("Request body (optional). Can be any JSON structure. Supports expressions in string values."),
-  timeout_seconds: z.number().optional().describe("Request timeout in seconds (optional, default: 30)."),
+  timeout_seconds: z.number().optional().describe("Request timeout in seconds. Max: 300 (5 minutes). Optional — unset (0) leaves the request bounded by the runner's activity timeout. When set, the runner aborts the request at this budget and fails the task with HTTP_CALL_TIMEOUT (non-retryable — catchable with try/catch); the activity timeout widens to fit (#686). Unset (0) is valid: proto3 implicit presence makes an omitted field indistinguishable from 0, so the range rule must not fire on it (#673)."),
 });
 type HttpCallTaskConfigInput = z.infer<typeof HttpCallTaskConfigInputSchema>;
 
@@ -266,10 +285,10 @@ const LlmCallTaskConfigInputSchema = z.object({
   prompt: z.string().describe("User prompt / instruction sent to the LLM. Supports ${ } expression interpolation for injecting workflow context. Example: 'Classify this ticket: ${ $context.ticket.description }' Required field."),
   response_schema: z.record(z.unknown()).optional().describe("JSON Schema for structured output. When set, the runner requests structured output from the provider (e.g., OpenAI's response_format, Anthropic's tool_use extraction) and validates the response against this schema. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema for consistency across the workflow domain. When not set, the task output is the LLM's raw text response."),
   temperature: z.number().optional().describe("Sampling temperature (0.0 to 2.0). Lower = more deterministic, higher = more creative. Range is 0.0-2.0 to accommodate all major providers (OpenAI supports up to 2.0; others clamp to their supported range at runtime). Optional — uses the provider's default when not set."),
-  max_tokens: z.number().optional().describe("Maximum tokens in the LLM response. Optional — uses the provider's default when not set."),
-  timeout: z.number().optional().describe("Timeout for the LLM call in seconds. Default: 60. Max: 600 (10 minutes). Optional."),
+  max_tokens: z.number().optional().describe("Maximum tokens in the LLM response. Optional — uses the provider's default when not set. Unset (0) is valid: proto3 implicit presence makes an omitted field indistinguishable from 0, so the range rule must not fire on it (#673)."),
+  timeout: z.number().optional().describe("Timeout for the LLM call in seconds. Max: 600 (10 minutes). Optional — unset (0) leaves the call bounded by the runner's activity timeout. When set, the runner bounds the provider request at this budget and a breach fails the task with LLM_TIMEOUT (non-retryable — catchable with try/catch); the activity timeout widens to fit (#686). Unset (0) is valid: proto3 implicit presence makes an omitted field indistinguishable from 0, so the range rule must not fire on it (#673)."),
   on_invalid: z.string().optional().describe("Policy when the LLM response fails schema validation. Only meaningful when response_schema is set; ignored otherwise. Default: ON_INVALID_FAIL (task fails immediately). Allowed values: ON_INVALID_FAIL, ON_INVALID_RETRY, ON_INVALID_FALLBACK."),
-  max_retries: z.number().optional().describe("Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the LLM with the validation errors and expected schema, giving it an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5."),
+  max_retries: z.number().optional().describe("Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the LLM with the validation errors and expected schema, giving it an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default when unset: 1. Valid range when set: 1-5. Unset (0) is valid: proto3 implicit presence makes an omitted field indistinguishable from 0, so the range rule must not fire on it (#673)."),
   fallback_task: z.string().optional().describe("Target task to branch to when schema validation cannot be resolved. Used in two scenarios: 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry) Must reference a valid task name in the same workflow. When empty and retries are exhausted, the task fails."),
   max_cost_micros: z.union([z.number(), z.string()]).optional().describe("Per-task cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this specific LLM call if its cost exceeds this limit, independent of the workflow-level budget. The runtime checks both: per-task limit first, then workflow remaining budget. Optional — when 0, no per-task cost limit is enforced. @since T05 (Workflow-Level Budget Primitives)"),
   max_total_tokens: z.union([z.number(), z.string()]).optional().describe("Per-task token cap (input + output tokens combined). When set, the runtime terminates this specific LLM call if total tokens exceed this limit. Complements max_tokens (field 6), which limits only the output token count as a generation parameter. Optional — when 0, no per-task total token limit is enforced. @since T05 (Workflow-Level Budget Primitives)"),
@@ -288,7 +307,7 @@ type NotificationTaskConfigInput = z.infer<typeof NotificationTaskConfigInputSch
 
 const RaiseTaskConfigInputSchema = z.object({
   error: z.string().describe("Error type/name."),
-  message: z.string().describe("Error message. Can contain expressions: '${ .errorMessage }'"),
+  message: z.string().optional().describe("Error message. Can contain expressions: '${ .errorMessage }' Optional — when omitted, the raised error carries only the error type/name. (The runtime maps this to the problem-details 'detail' field only when present; requiring it was contract fiction, #685.)"),
 });
 type RaiseTaskConfigInput = z.infer<typeof RaiseTaskConfigInputSchema>;
 
@@ -575,9 +594,31 @@ function emitEventInputToProto(input: EmitEventInput) {
   return result;
 }
 
+function webhookDeliveryInputToProto(input: WebhookDeliveryInput) {
+  const result = create(WebhookDeliverySchema);
+  if (input.url !== undefined) result.url = input.url;
+  if (input.headers !== undefined) result.headers = input.headers;
+  return result;
+}
+
+function signalDeliveryInputToProto(input: SignalDeliveryInput) {
+  const result = create(SignalDeliverySchema);
+  if (input.execution_id !== undefined) result.executionId = input.execution_id;
+  if (input.signal_name !== undefined) result.signalName = input.signal_name;
+  return result;
+}
+
+function emitDeliveryTargetInputToProto(input: EmitDeliveryTargetInput) {
+  const result = create(EmitDeliveryTargetSchema);
+  if (input.webhook !== undefined) result.target = { case: "webhook", value: webhookDeliveryInputToProto(input.webhook) };
+  if (input.signal !== undefined) result.target = { case: "signal", value: signalDeliveryInputToProto(input.signal) };
+  return result;
+}
+
 function emitEventTaskConfigInputToProto(input: EmitEventTaskConfigInput) {
   const result = create(EmitEventTaskConfigSchema);
   if (input.event !== undefined) result.event = emitEventInputToProto(input.event);
+  if (input.delivery !== undefined) result.delivery = input.delivery.map(emitDeliveryTargetInputToProto);
   return result;
 }
 

@@ -262,11 +262,6 @@ type ToolCall struct {
 	// Identifier of the policy-engine logic that produced approval_policy_source,
 	// bumped when the merge/classification semantics change so decisions made by
 	// different engine versions stay distinguishable in audits.
-	//
-	// @internal
-	// Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
-	//
-	// Field 24: appended after approval_policy_source (23), the prior maximum.
 	PolicyEngineVersion string `protobuf:"bytes,24,opt,name=policy_engine_version,json=policyEngineVersion,proto3" json:"policy_engine_version,omitempty"`
 	// Stable digest of the authoritative edit content (the hook-captured tool
 	// input) for a gated file-mutating tool call, set by the runner's approval
@@ -282,13 +277,6 @@ type ToolCall struct {
 	// already content-exact (shell command, delete path), for read-only tools, and
 	// for executions that predate this field (the runner then degrades to the
 	// coarse (category, path) identity).
-	//
-	// @internal
-	// Runner-written and carried through update_status exactly like tool_kind /
-	// approval_policy_source — not owned by SubmitApproval, so no preserve logic is
-	// needed. See the runner's contentDigest() (shared/file-tools.ts).
-	//
-	// Field 25: appended after policy_engine_version (24), the prior maximum.
 	ApprovalContentDigest string `protobuf:"bytes,25,opt,name=approval_content_digest,json=approvalContentDigest,proto3" json:"approval_content_digest,omitempty"`
 	// Id of the FileChangeSet this flowed file-edit contributed to
 	// (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary

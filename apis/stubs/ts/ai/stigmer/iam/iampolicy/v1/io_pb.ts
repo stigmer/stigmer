@@ -572,9 +572,6 @@ export type CheckMyPermissionInput = Message<"ai.stigmer.iam.iampolicy.v1.CheckM
   /**
    * The permission to check (e.g., "can_edit", "can_grant_access").
    *
-   * @internal
-   * This is the FGA relation checked against the resource object.
-   *
    * @generated from field: string relation = 2;
    */
   relation: string;

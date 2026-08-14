@@ -33,19 +33,6 @@ const (
 // ChannelConversationCommandController operates a conversation's
 // participation state: staff replies, takeover and handback of the control
 // token, attention management, and the agent's escalation ingest.
-//
-// @internal
-// channel-conversations DD-003 D-f (takeOver/handBack), DD-008 D-d
-// (escalate), DD-009 D-a (reply), DD-010 D-b (the permission map). Two
-// audiences on one controller, split per method: the four human-facing
-// commands authorize declaratively on the channel with can_participate
-// (participants are org humans who may speak to the channel's customers
-// as the business — NOT channel configurators); escalate is agent-audience
-// only, session-bound, with identity derived server-side. Every state
-// transition funnels through the single participation writer (DD-003 D-c)
-// — CAS-guarded, one winner under concurrent takeover. Cloud-first
-// runtime: the OSS edition refuses every command FAILED_PRECONDITION (the
-// sendMessage posture). Never hangs, never lies.
 type ChannelConversationCommandControllerClient interface {
 	// Reply to a conversation as the business, through the same number the
 	// agent serves.
@@ -55,68 +42,26 @@ type ChannelConversationCommandControllerClient interface {
 	// conversation is an implicit takeover: the agent goes quiet until
 	// handBack. Replying requires an existing conversation — the customer
 	// must have written first; an unknown conversation answers NOT_FOUND.
-	//
-	// @internal
-	// channel-conversations DD-009: rides the outbound lane with the
-	// participant origin (amended by T03 Sitting 1's A1 — operator cannot
-	// distinguish a staff reply from a console cold-send, so the cap
-	// predicate would have nothing to key on), recipient derived from the
-	// conversation key (never an argument — the origin trap D-a dissolves),
-	// exempt from the proactive caps and the proactive consent lever
-	// (D-b/D-c: reply traffic inside the open service window; the authority
-	// bar is the control). The existing-conversation precondition is T03
-	// Sitting 2's A8, making D-c's "a customer who already wrote to us"
-	// literal: without it, this lane would be an uncapped, lever-free
-	// cold-send reachable below the sendMessage authority bar. The
-	// implicit-takeover flip orders before-or-with the send (T03).
 	Reply(ctx context.Context, in *ReplyToConversationInput, opts ...grpc.CallOption) (*SendChannelMessageOutput, error)
 	// Take over a conversation: the agent goes quiet until handBack.
 	//
 	// Taking over also clears the needs-attention flag — the human arriving
 	// is the answer to an escalation.
-	//
-	// @internal
-	// channel-conversations DD-005 (the suppression this arms), DD-007 D-f
-	// (CAS WHERE control='agent'; two concurrent attempts resolve to one
-	// winner, the loser receives the fresh state), DD-008 D-f (attention
-	// cleared on takeover).
 	TakeOver(ctx context.Context, in *ConversationControlInput, opts ...grpc.CallOption) (*ChannelConversation, error)
 	// Hand a conversation back to the agent, restoring automatic replies.
 	//
 	// The agent re-enters with the conversation context it missed while the
 	// human held control.
-	//
-	// @internal
-	// channel-conversations DD-007: CAS WHERE control='human'; any holder
-	// of can_participate may hand back, not only the takeover holder (v1
-	// single attention pool). Handback never touches the attention flag
-	// (DD-002 D-a #4). The missed-context digest is composed lazily at the
-	// next turn from the agent_witnessed_through watermark, not here.
 	HandBack(ctx context.Context, in *ConversationControlInput, opts ...grpc.CallOption) (*ChannelConversation, error)
 	// Clear a conversation's needs-attention flag without taking it over.
 	//
 	// The false-alarm dismissal: an escalation that needs no reply is
 	// cleared in place, never via a take-over-and-hand-back dance.
-	//
-	// @internal
-	// channel-conversations DD-008 D-f. Control is untouched; the clear is
-	// recorded on the conversation's event history through the
-	// participation writer.
 	ClearAttention(ctx context.Context, in *ConversationControlInput, opts ...grpc.CallOption) (*ChannelConversation, error)
 	// Flag this conversation for human attention.
 	//
 	// Non-blocking: the agent keeps serving while the flag summons humans.
 	// Repeated escalation is harmless; the latest reason wins.
-	//
-	// @internal
-	// channel-conversations DD-008: agent-audience only — session-bound
-	// sandbox tokens; the conversation identity derives server-side from
-	// the session's channel labels (never caller-supplied, the DD-003
-	// identity doctrine), so the input carries only the reason. Appends an
-	// internal-lane escalation event and updates the row projection through
-	// the participation writer, idempotently. Approval-free by construction
-	// (unattended surfaces skip gated tools — a gated escalation would
-	// never fire). Cloud-first runtime; OSS refuses FAILED_PRECONDITION.
 	Escalate(ctx context.Context, in *EscalateConversationInput, opts ...grpc.CallOption) (*ChannelConversation, error)
 }
 
@@ -185,19 +130,6 @@ func (c *channelConversationCommandControllerClient) Escalate(ctx context.Contex
 // ChannelConversationCommandController operates a conversation's
 // participation state: staff replies, takeover and handback of the control
 // token, attention management, and the agent's escalation ingest.
-//
-// @internal
-// channel-conversations DD-003 D-f (takeOver/handBack), DD-008 D-d
-// (escalate), DD-009 D-a (reply), DD-010 D-b (the permission map). Two
-// audiences on one controller, split per method: the four human-facing
-// commands authorize declaratively on the channel with can_participate
-// (participants are org humans who may speak to the channel's customers
-// as the business — NOT channel configurators); escalate is agent-audience
-// only, session-bound, with identity derived server-side. Every state
-// transition funnels through the single participation writer (DD-003 D-c)
-// — CAS-guarded, one winner under concurrent takeover. Cloud-first
-// runtime: the OSS edition refuses every command FAILED_PRECONDITION (the
-// sendMessage posture). Never hangs, never lies.
 type ChannelConversationCommandControllerServer interface {
 	// Reply to a conversation as the business, through the same number the
 	// agent serves.
@@ -207,68 +139,26 @@ type ChannelConversationCommandControllerServer interface {
 	// conversation is an implicit takeover: the agent goes quiet until
 	// handBack. Replying requires an existing conversation — the customer
 	// must have written first; an unknown conversation answers NOT_FOUND.
-	//
-	// @internal
-	// channel-conversations DD-009: rides the outbound lane with the
-	// participant origin (amended by T03 Sitting 1's A1 — operator cannot
-	// distinguish a staff reply from a console cold-send, so the cap
-	// predicate would have nothing to key on), recipient derived from the
-	// conversation key (never an argument — the origin trap D-a dissolves),
-	// exempt from the proactive caps and the proactive consent lever
-	// (D-b/D-c: reply traffic inside the open service window; the authority
-	// bar is the control). The existing-conversation precondition is T03
-	// Sitting 2's A8, making D-c's "a customer who already wrote to us"
-	// literal: without it, this lane would be an uncapped, lever-free
-	// cold-send reachable below the sendMessage authority bar. The
-	// implicit-takeover flip orders before-or-with the send (T03).
 	Reply(context.Context, *ReplyToConversationInput) (*SendChannelMessageOutput, error)
 	// Take over a conversation: the agent goes quiet until handBack.
 	//
 	// Taking over also clears the needs-attention flag — the human arriving
 	// is the answer to an escalation.
-	//
-	// @internal
-	// channel-conversations DD-005 (the suppression this arms), DD-007 D-f
-	// (CAS WHERE control='agent'; two concurrent attempts resolve to one
-	// winner, the loser receives the fresh state), DD-008 D-f (attention
-	// cleared on takeover).
 	TakeOver(context.Context, *ConversationControlInput) (*ChannelConversation, error)
 	// Hand a conversation back to the agent, restoring automatic replies.
 	//
 	// The agent re-enters with the conversation context it missed while the
 	// human held control.
-	//
-	// @internal
-	// channel-conversations DD-007: CAS WHERE control='human'; any holder
-	// of can_participate may hand back, not only the takeover holder (v1
-	// single attention pool). Handback never touches the attention flag
-	// (DD-002 D-a #4). The missed-context digest is composed lazily at the
-	// next turn from the agent_witnessed_through watermark, not here.
 	HandBack(context.Context, *ConversationControlInput) (*ChannelConversation, error)
 	// Clear a conversation's needs-attention flag without taking it over.
 	//
 	// The false-alarm dismissal: an escalation that needs no reply is
 	// cleared in place, never via a take-over-and-hand-back dance.
-	//
-	// @internal
-	// channel-conversations DD-008 D-f. Control is untouched; the clear is
-	// recorded on the conversation's event history through the
-	// participation writer.
 	ClearAttention(context.Context, *ConversationControlInput) (*ChannelConversation, error)
 	// Flag this conversation for human attention.
 	//
 	// Non-blocking: the agent keeps serving while the flag summons humans.
 	// Repeated escalation is harmless; the latest reason wins.
-	//
-	// @internal
-	// channel-conversations DD-008: agent-audience only — session-bound
-	// sandbox tokens; the conversation identity derives server-side from
-	// the session's channel labels (never caller-supplied, the DD-003
-	// identity doctrine), so the input carries only the reason. Appends an
-	// internal-lane escalation event and updates the row projection through
-	// the participation writer, idempotently. Approval-free by construction
-	// (unattended surfaces skip gated tools — a gated escalation would
-	// never fire). Cloud-first runtime; OSS refuses FAILED_PRECONDITION.
 	Escalate(context.Context, *EscalateConversationInput) (*ChannelConversation, error)
 }
 

@@ -32,6 +32,10 @@ import { createInterface } from "node:readline";
 import { preflightNodeRuntime } from "./preflight.js";
 import { markBoot, emitRunnerBootTiming } from "./shared/cold-start-timing.js";
 import { loadConfig } from "./config.js";
+import {
+  captureRunnerSecrets,
+  getRunnerSecret,
+} from "./shared/runner-credential-store.js";
 import { initTracing, initMetrics } from "./otel.js";
 import { createStigmerRunner } from "./runner.js";
 import { createStigmerRunnerManager } from "./runner-manager.js";
@@ -214,11 +218,12 @@ async function runPoolMode(
   });
 
   // Sandbox credential self-renewal (see sandbox-token-renewal.ts). Watches
-  // the env var because manager.updateToken keeps it in lockstep with the
-  // manager's internal ref: a blank member's pool_sandbox token parks the
-  // loop, the claim's updateToken swaps in a renewable session token, and
-  // from then on renewal applies fresh tokens back through the same
-  // updateToken (which also cascades to the proxy-credential coordinator).
+  // the credential store because manager.updateToken keeps it in lockstep
+  // with the manager's internal ref: a blank member's pool_sandbox token
+  // parks the loop, the claim's updateToken swaps in a renewable session
+  // token, and from then on renewal applies fresh tokens back through the
+  // same updateToken (which also cascades to the proxy-credential
+  // coordinator).
   const { startSandboxTokenRenewal } = await import("./sandbox-token-renewal.js");
   const { StigmerClient } = await import("./client/stigmer-client.js");
   const renewalClient = new StigmerClient({
@@ -226,7 +231,7 @@ async function runPoolMode(
     token: null,
   });
   const tokenRenewal = startSandboxTokenRenewal({
-    getToken: () => process.env.STIGMER_TOKEN ?? null,
+    getToken: () => getRunnerSecret("STIGMER_TOKEN") ?? null,
     renew: (currentToken) =>
       renewalClient.getRunnerScopedToken({ renewal: true }, currentToken),
     applyToken: (token) => manager.updateToken(token),
@@ -448,6 +453,11 @@ async function main(): Promise<void> {
   markBoot("node_start_and_preflight");
 
   checkBuildFreshness();
+
+  // Take custody of runner secrets before the config load reads them (#508).
+  // The factories capture too (they are the library boot doors); doing it
+  // here as well keeps main.ts's own late readers store-only from the start.
+  captureRunnerSecrets();
 
   const config = loadConfig();
   markBoot("config_loaded");

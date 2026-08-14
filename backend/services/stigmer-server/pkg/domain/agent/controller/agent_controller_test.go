@@ -242,12 +242,13 @@ func TestAgentController_Delete(t *testing.T) {
 	})
 }
 
-// TestAgentController_Delete_Cascade pins the T08 cascade contract: deleting
-// an agent removes its system-managed default instance and every AgentShare
-// referencing it, while personal instances (and look-alike instances of
-// OTHER agents) survive. The children are org+slug-resolved, so leaving them
-// behind poisons a recreate at the same slug (orphaned default instance) or
-// silently rebinds a stale share to the new agent.
+// TestAgentController_Delete_Cascade pins the cascade contract (#611
+// extended the #592 workflow ruling to agents): deleting an agent removes
+// ALL of its instances — the system-managed default AND members' personal
+// ones — and every AgentShare referencing it, while look-alike children of
+// OTHER agents survive. Instance slugs are org-scoped, so an orphan would
+// occupy its slug org-wide with no UI left to delete it; a stale share
+// would silently rebind to whatever agent is later created at the slug.
 func TestAgentController_Delete_Cascade(t *testing.T) {
 	newAgent := func(name string) *agentv1.Agent {
 		return &agentv1.Agent{
@@ -320,7 +321,7 @@ func TestAgentController_Delete_Cascade(t *testing.T) {
 		}
 	}
 
-	t.Run("deletes the default instance via the status pointer", func(t *testing.T) {
+	t.Run("deletes the default instance (status pointer set)", func(t *testing.T) {
 		s, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 		if err != nil {
 			t.Fatalf("failed to create store: %v", err)
@@ -346,7 +347,7 @@ func TestAgentController_Delete_Cascade(t *testing.T) {
 		assertGone(t, s, apiresourcekind.ApiResourceKind_agent_instance, "ain_pointer", &agentinstancev1.AgentInstance{})
 	})
 
-	t.Run("deletes a legacy default instance via the slug fallback", func(t *testing.T) {
+	t.Run("deletes a legacy default instance that predates the status pointer", func(t *testing.T) {
 		s, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 		if err != nil {
 			t.Fatalf("failed to create store: %v", err)
@@ -355,7 +356,8 @@ func TestAgentController_Delete_Cascade(t *testing.T) {
 		controller := NewAgentController(s, nil)
 
 		// No status.default_instance_id (nil instance client leaves it unset)
-		// — the half-created legacy shape the fallback exists for.
+		// — the half-created legacy shape. The spec.agent_id sweep covers it
+		// without any pointer-or-slug resolution.
 		created, err := controller.Create(contextWithAgentKind(), newAgent("Fallback Agent"))
 		if err != nil {
 			t.Fatalf("Create failed: %v", err)
@@ -369,7 +371,7 @@ func TestAgentController_Delete_Cascade(t *testing.T) {
 		assertGone(t, s, apiresourcekind.ApiResourceKind_agent_instance, "ain_fallback", &agentinstancev1.AgentInstance{})
 	})
 
-	t.Run("personal instances and other agents' look-alikes survive", func(t *testing.T) {
+	t.Run("cascades personal instances; other agents' look-alikes survive", func(t *testing.T) {
 		s, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 		if err != nil {
 			t.Fatalf("failed to create store: %v", err)
@@ -382,17 +384,19 @@ func TestAgentController_Delete_Cascade(t *testing.T) {
 			t.Fatalf("Create failed: %v", err)
 		}
 
-		// A member's personal instance of THIS agent (different slug).
+		// A member's personal instance of THIS agent (different slug): its
+		// org-scoped slug must be freed with the agent (#611 — the earlier
+		// posture left it as an orphan occupying the slug org-wide).
 		saveInstance(t, s, "ain_personal", "my-personal-setup", created.Metadata.Id)
 		// An instance that merely reuses the "-default" name but belongs to a
-		// DIFFERENT agent — the spec.agent_id guard must protect it.
+		// DIFFERENT agent — the spec.agent_id match must protect it.
 		saveInstance(t, s, "ain_lookalike", created.Metadata.Slug+"-default", "agt_someone_else")
 
 		if _, err := controller.Delete(contextWithAgentKind(), &agentv1.AgentId{Value: created.Metadata.Id}); err != nil {
 			t.Fatalf("Delete failed: %v", err)
 		}
 
-		assertSurvives(t, s, apiresourcekind.ApiResourceKind_agent_instance, "ain_personal", &agentinstancev1.AgentInstance{})
+		assertGone(t, s, apiresourcekind.ApiResourceKind_agent_instance, "ain_personal", &agentinstancev1.AgentInstance{})
 		assertSurvives(t, s, apiresourcekind.ApiResourceKind_agent_instance, "ain_lookalike", &agentinstancev1.AgentInstance{})
 	})
 
@@ -467,12 +471,12 @@ func TestAgentController_Delete_Cascade(t *testing.T) {
 }
 
 // TestAgentController_UpdateVisibility_PreservesCreationAudit pins the
-// call-site half of the stigmer/stigmer#453 fix: a visibility flip must
-// not rewrite spec_audit.created_by/created_at (before the fix,
-// steps.SetAuditFieldsForUpdate rebuilt the whole audit block, resetting
-// creation to system/now — which also reordered every created_at-sorted
-// list). The steps package pins the helper contract; this test proves the
-// preservation survives the full update-visibility pipeline.
+// call-site half of stigmer/stigmer#453 (creation identity) and
+// stigmer/stigmer#540 (slot granularity): a visibility flip must not
+// rewrite spec_audit at all — not created_*, not updated_*, not event.
+// Before #453 the helper reset creation to system/now; before #540 it
+// still stamped both slots, so spec_audit.event flipped to "updated"
+// and search recency jumped. Status_audit is the slot that moved.
 func TestAgentController_UpdateVisibility_PreservesCreationAudit(t *testing.T) {
 	s, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 	if err != nil {
@@ -496,10 +500,11 @@ func TestAgentController_UpdateVisibility_PreservesCreationAudit(t *testing.T) {
 		t.Fatalf("Create failed: %v", err)
 	}
 
-	originalSpecAudit := created.GetStatus().GetAudit().GetSpecAudit()
-	if originalSpecAudit.GetCreatedAt() == nil || originalSpecAudit.GetCreatedBy() == nil {
-		t.Fatalf("precondition: create should stamp spec_audit creation, got %v", originalSpecAudit)
+	originalSpecAudit, ok := proto.Clone(created.GetStatus().GetAudit().GetSpecAudit()).(*apiresource.ApiResourceAuditInfo)
+	if !ok || originalSpecAudit.GetCreatedAt() == nil || originalSpecAudit.GetCreatedBy() == nil {
+		t.Fatalf("precondition: create should stamp spec_audit creation, got %v", created.GetStatus().GetAudit().GetSpecAudit())
 	}
+	originalStatusUpdatedAt := created.GetStatus().GetAudit().GetStatusAudit().GetUpdatedAt()
 
 	updated, err := controller.UpdateVisibility(contextWithAgentKind(), &apiresource.UpdateVisibilityInput{
 		ResourceId: created.Metadata.Id,
@@ -514,16 +519,22 @@ func TestAgentController_UpdateVisibility_PreservesCreationAudit(t *testing.T) {
 	}
 
 	specAudit := updated.GetStatus().GetAudit().GetSpecAudit()
-	if !proto.Equal(specAudit.GetCreatedAt(), originalSpecAudit.GetCreatedAt()) {
-		t.Errorf("spec_audit.created_at destroyed by visibility flip: want %v, got %v",
-			originalSpecAudit.GetCreatedAt(), specAudit.GetCreatedAt())
+	if !proto.Equal(specAudit, originalSpecAudit) {
+		t.Errorf("spec_audit mutated by visibility flip: want %v, got %v", originalSpecAudit, specAudit)
 	}
-	if !proto.Equal(specAudit.GetCreatedBy(), originalSpecAudit.GetCreatedBy()) {
-		t.Errorf("spec_audit.created_by destroyed by visibility flip: want %v, got %v",
-			originalSpecAudit.GetCreatedBy(), specAudit.GetCreatedBy())
+
+	statusAudit := updated.GetStatus().GetAudit().GetStatusAudit()
+	if statusAudit.GetEvent() != "updated" {
+		t.Errorf("status_audit.event: want updated, got %q", statusAudit.GetEvent())
 	}
-	if specAudit.GetEvent() != "updated" {
-		t.Errorf("spec_audit.event: want updated, got %q", specAudit.GetEvent())
+	if !statusAudit.GetUpdatedAt().AsTime().After(originalStatusUpdatedAt.AsTime()) &&
+		!statusAudit.GetUpdatedAt().AsTime().Equal(originalStatusUpdatedAt.AsTime()) {
+		// Equal is possible if create+visibility land in the same timestamp
+		// tick; the spec-slot proto.Equal pin is the load-bearing check.
+		t.Errorf("status_audit.updated_at did not move: got %v", statusAudit.GetUpdatedAt())
+	}
+	if proto.Equal(statusAudit.GetUpdatedAt(), originalStatusUpdatedAt) && statusAudit.GetEvent() != "updated" {
+		t.Errorf("status_audit was not stamped")
 	}
 
 	// The persisted row must agree with the response.
@@ -531,9 +542,9 @@ func TestAgentController_UpdateVisibility_PreservesCreationAudit(t *testing.T) {
 	if err := s.GetResource(context.Background(), apiresourcekind.ApiResourceKind_agent, created.Metadata.Id, persisted); err != nil {
 		t.Fatalf("failed to reload agent: %v", err)
 	}
-	if !proto.Equal(persisted.GetStatus().GetAudit().GetSpecAudit().GetCreatedAt(), originalSpecAudit.GetCreatedAt()) {
-		t.Errorf("persisted spec_audit.created_at destroyed: want %v, got %v",
-			originalSpecAudit.GetCreatedAt(), persisted.GetStatus().GetAudit().GetSpecAudit().GetCreatedAt())
+	if !proto.Equal(persisted.GetStatus().GetAudit().GetSpecAudit(), originalSpecAudit) {
+		t.Errorf("persisted spec_audit mutated: want %v, got %v",
+			originalSpecAudit, persisted.GetStatus().GetAudit().GetSpecAudit())
 	}
 }
 

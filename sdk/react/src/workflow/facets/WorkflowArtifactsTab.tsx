@@ -5,6 +5,7 @@
 
 import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { useMemo } from "react";
+import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import { ArtifactRowView } from "../../execution/ArtifactRowView.js";
 import type { ArtifactRowItem } from "../../execution/artifact-row-item.js";
 import { deriveWorkflowArtifactItems } from "../deriveWorkflowArtifactItems.js";
@@ -55,7 +56,7 @@ export function WorkflowArtifactsTab({
   }
 
   return (
-    <ul role="list" className="stg:flex stg:flex-col">
+    <ul role="list" className={`${UNSTYLED_LIST} stg:flex stg:flex-col`}>
       {entries.map(({ artifact, item }) => (
         <WorkflowArtifactRow
           key={artifact.metadata?.id ?? item.name}

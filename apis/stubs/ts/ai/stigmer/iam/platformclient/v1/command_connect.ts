@@ -16,11 +16,6 @@ import { ApiResourceDeleteInput } from "../../../commons/apiresource/io_pbjs";
  * is generated server-side and returned only once in the create and
  * rotateSecret responses.
  *
- * @internal
- * PlatformClients hold credential material (client_secret_hash) and are always
- * org-private. There is no updateVisibility RPC — public visibility is
- * intentionally unsupported to prevent credential leakage.
- *
  * @generated from service ai.stigmer.iam.platformclient.v1.PlatformClientCommandController
  */
 export const PlatformClientCommandController = {
@@ -40,9 +35,6 @@ export const PlatformClientCommandController = {
      * system-managed share client) and is rejected with INVALID_ARGUMENT — including
      * when derived from the resource name.
      *
-     * @internal
-     * Authorization: Requires can_create_platform_client permission in the organization.
-     *
      * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.create
      */
     create: {
@@ -59,9 +51,6 @@ export const PlatformClientCommandController = {
      * client_secret_hash, secret_fingerprint) are immutable after creation.
      * Use rotateSecret to change the client secret.
      *
-     * @internal
-     * Authorization: Requires can_edit permission on the platform client resource.
-     *
      * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.update
      */
     update: {
@@ -76,9 +65,6 @@ export const PlatformClientCommandController = {
      * Immediately invalidates the client_id and client_secret. Any tokens
      * previously minted by this platform client remain valid until their
      * own expiration — deletion does not revoke already-issued tokens.
-     *
-     * @internal
-     * Authorization: Requires can_delete permission on the platform client resource.
      *
      * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.delete
      */
@@ -95,9 +81,6 @@ export const PlatformClientCommandController = {
      * and returns the new raw secret in the response. The client_id remains
      * unchanged — platform builders do not need to update their client_id
      * configuration after rotation.
-     *
-     * @internal
-     * Authorization: Requires can_edit permission on the platform client resource.
      *
      * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.rotateSecret
      */

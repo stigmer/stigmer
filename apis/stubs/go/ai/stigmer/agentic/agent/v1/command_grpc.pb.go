@@ -34,17 +34,8 @@ const (
 // AgentCommandController handles write operations for AI agents.
 type AgentCommandControllerClient interface {
 	// Create or update an agent.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on whether the agent
-	// is going to be created or updated which is determined as part of the request execution.
 	Apply(ctx context.Context, in *Agent, opts ...grpc.CallOption) (*Agent, error)
 	// Create an agent.
-	//
-	// @internal
-	// Authorization:
-	// - Organization-scoped agents: Caller must have can_create_agent permission in the organization
-	// - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
 	Create(ctx context.Context, in *Agent, opts ...grpc.CallOption) (*Agent, error)
 	// Update an existing agent.
 	Update(ctx context.Context, in *Agent, opts ...grpc.CallOption) (*Agent, error)
@@ -55,8 +46,9 @@ type AgentCommandControllerClient interface {
 	// make an agent publicly accessible or to revoke public access without
 	// sending the entire agent resource (avoiding read-modify-write races).
 	//
-	// @internal
-	// Authorization: Requires can_edit permission on the agent resource.
+	// In the cloud edition, PUBLIC is operator-gated: public listing crosses
+	// every org boundary, so it is granted by the platform team on request.
+	// Un-publishing and all other levels stay self-service.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Agent, error)
 	// Delete an agent.
 	//
@@ -65,18 +57,6 @@ type AgentCommandControllerClient interface {
 	// later agent created at the same org/slug starts clean. Personal
 	// instances, sessions, and other organizations' shares of this agent are
 	// not deleted — external shares stop resolving instead.
-	//
-	// @internal
-	// Cascade order is children-before-parent so a mid-failure retry
-	// converges. Shares are matched by spec.agent_ref (org + agent slug) and
-	// scoped to the agent's own org — leaving same-org shares behind would
-	// silently rebind a stale share (audience, link token, bound
-	// credentials) to whatever agent is later created at that slug, while
-	// cascading ANOTHER org's share would make delete a cross-principal
-	// destructive action (decision 013). Cross-org shares instead fail
-	// closed via the dangling-ref check and the status.agent_id pin; their
-	// owning orgs clean up their own rows. Cloud additionally cleans each
-	// cascaded child's FGA tuples.
 	Delete(ctx context.Context, in *AgentId, opts ...grpc.CallOption) (*Agent, error)
 }
 
@@ -145,17 +125,8 @@ func (c *agentCommandControllerClient) Delete(ctx context.Context, in *AgentId, 
 // AgentCommandController handles write operations for AI agents.
 type AgentCommandControllerServer interface {
 	// Create or update an agent.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on whether the agent
-	// is going to be created or updated which is determined as part of the request execution.
 	Apply(context.Context, *Agent) (*Agent, error)
 	// Create an agent.
-	//
-	// @internal
-	// Authorization:
-	// - Organization-scoped agents: Caller must have can_create_agent permission in the organization
-	// - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
 	Create(context.Context, *Agent) (*Agent, error)
 	// Update an existing agent.
 	Update(context.Context, *Agent) (*Agent, error)
@@ -166,8 +137,9 @@ type AgentCommandControllerServer interface {
 	// make an agent publicly accessible or to revoke public access without
 	// sending the entire agent resource (avoiding read-modify-write races).
 	//
-	// @internal
-	// Authorization: Requires can_edit permission on the agent resource.
+	// In the cloud edition, PUBLIC is operator-gated: public listing crosses
+	// every org boundary, so it is granted by the platform team on request.
+	// Un-publishing and all other levels stay self-service.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Agent, error)
 	// Delete an agent.
 	//
@@ -176,18 +148,6 @@ type AgentCommandControllerServer interface {
 	// later agent created at the same org/slug starts clean. Personal
 	// instances, sessions, and other organizations' shares of this agent are
 	// not deleted — external shares stop resolving instead.
-	//
-	// @internal
-	// Cascade order is children-before-parent so a mid-failure retry
-	// converges. Shares are matched by spec.agent_ref (org + agent slug) and
-	// scoped to the agent's own org — leaving same-org shares behind would
-	// silently rebind a stale share (audience, link token, bound
-	// credentials) to whatever agent is later created at that slug, while
-	// cascading ANOTHER org's share would make delete a cross-principal
-	// destructive action (decision 013). Cross-org shares instead fail
-	// closed via the dangling-ref check and the status.agent_id pin; their
-	// owning orgs clean up their own rows. Cloud additionally cleans each
-	// cascaded child's FGA tuples.
 	Delete(context.Context, *AgentId) (*Agent, error)
 }
 

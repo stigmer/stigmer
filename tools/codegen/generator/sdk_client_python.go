@@ -1369,6 +1369,17 @@ def is_retryable(err: BaseException) -> bool:
         ErrorCode.INTERNAL,
         ErrorCode.UNAVAILABLE,
     )
+
+
+def is_unimplemented(err: BaseException) -> bool:
+    """The server does not implement the called RPC.
+
+    The code clients key capability fallbacks on (e.g. the skill artifact
+    transfer lane's unary fallback, stigmer#675/#701). Checks the raw gRPC
+    code: UNIMPLEMENTED deliberately has no ErrorCode mapping, so it
+    surfaces as UNKNOWN.
+    """
+    return isinstance(err, StigmerError) and err.grpc_code == grpc.StatusCode.UNIMPLEMENTED
 `)
 	return os.WriteFile(filepath.Join(outputDir, "_errors.py"), buf.Bytes(), 0644)
 }
@@ -1554,6 +1565,7 @@ func generatePythonInit(outputDir string, resources []resourceGenInfo) error {
 	buf.WriteString("    is_permission_denied,\n")
 	buf.WriteString("    is_retryable,\n")
 	buf.WriteString("    is_unauthenticated,\n")
+	buf.WriteString("    is_unimplemented,\n")
 	buf.WriteString("    wrap_error,\n")
 	buf.WriteString(")\n")
 
@@ -1578,6 +1590,7 @@ func generatePythonInit(outputDir string, resources []resourceGenInfo) error {
 	buf.WriteString("    \"is_permission_denied\",\n")
 	buf.WriteString("    \"is_retryable\",\n")
 	buf.WriteString("    \"is_unauthenticated\",\n")
+	buf.WriteString("    \"is_unimplemented\",\n")
 	buf.WriteString("    \"wrap_error\",\n")
 	buf.WriteString("]\n")
 

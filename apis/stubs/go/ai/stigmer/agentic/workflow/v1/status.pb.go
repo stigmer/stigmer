@@ -36,29 +36,8 @@ type WorkflowStatus struct {
 	// Serverless Workflow YAML generation and validation state.
 	// Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.
 	// Check this field to determine whether a workflow is valid before executing it.
-	//
-	// @internal
-	// Populated asynchronously after workflow creation via a Temporal workflow.
-	// Workflow creation does NOT block on validation — the workflow is created immediately
-	// with status.state = PENDING, then validation runs in the background.
 	ServerlessWorkflowValidation *serverless.ServerlessWorkflowValidation `protobuf:"bytes,2,opt,name=serverless_workflow_validation,json=serverlessWorkflowValidation,proto3" json:"serverless_workflow_validation,omitempty"`
 	// SHA-256 hash of the generated CNCF YAML for the current valid version.
-	//
-	// @internal
-	// Updated only when validation produces state=VALID and the generated YAML
-	// differs from the previous version's hash. Empty for workflows that have
-	// never passed validation.
-	//
-	// This is the content-addressed version identifier for the workflow definition.
-	// The hash is computed from the `serverless_workflow_validation.yaml` string,
-	// ensuring that "same YAML = same hash = same execution behavior."
-	//
-	// Consumers:
-	// - Execution create pipeline reads this to pin executions to a specific version
-	// - getByReference resolves ApiResourceReference.version against this and audit entries
-	// - UI displays this as the current version identifier
-	//
-	// @since Workflow Versioning
 	VersionHash   string `protobuf:"bytes,3,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -1485,7 +1485,7 @@ func generateTSClientFile(outputDir string, resources []resourceGenInfo) error {
 		}
 	}
 	buf.WriteString("export { type ListParams, type ListResult, type DeleteResourceInput, type ResourceRef, type EnvSpecInput, type EnvVarInput, type Page } from \"./types.js\";\n")
-	buf.WriteString("export { StigmerError, type ErrorCode, isNotFound, isUnauthenticated, isPermissionDenied, isRetryable } from \"./errors.js\";\n")
+	buf.WriteString("export { StigmerError, type ErrorCode, isNotFound, isUnauthenticated, isPermissionDenied, isRetryable, isUnimplemented } from \"./errors.js\";\n")
 
 	return os.WriteFile(filepath.Join(outputDir, "client.ts"), buf.Bytes(), 0644)
 }
@@ -1571,6 +1571,16 @@ export function isPermissionDenied(err: unknown): boolean {
 
 export function isRetryable(err: unknown): boolean {
   return err instanceof StigmerError && (err.code === "internal" || err.code === "unavailable");
+}
+
+/**
+ * The server does not implement the called RPC — the code clients key
+ * capability fallbacks on (e.g. the skill artifact transfer lane's unary
+ * fallback, stigmer#675/#701). Checks the raw connect code: Unimplemented
+ * deliberately has no ErrorCode mapping, so it surfaces as "unknown".
+ */
+export function isUnimplemented(err: unknown): boolean {
+  return err instanceof StigmerError && err.connectCode === Code.Unimplemented;
 }
 `)
 	return os.WriteFile(filepath.Join(outputDir, "errors.ts"), buf.Bytes(), 0644)

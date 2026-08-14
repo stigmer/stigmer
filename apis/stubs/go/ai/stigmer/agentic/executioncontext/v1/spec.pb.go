@@ -23,18 +23,11 @@ const (
 )
 
 // Runtime configuration and secrets for a single execution.
-//
-// @internal
-// Created by the execution engine, deleted when execution completes.
 type ExecutionContextSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the parent AgentExecution or WorkflowExecution.
 	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
 	// Runtime key-value pairs, each marked as secret or plaintext.
-	//
-	// @internal
-	// Provided at runtime and only exist for the duration of the execution.
-	// Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
 	Data          map[string]*ExecutionValue `protobuf:"bytes,2,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -90,17 +83,8 @@ type ExecutionValue struct {
 	// String content of this entry. Empty strings are valid — optional
 	// workflow env vars may be provided with no value, and the workflow
 	// engine resolves them to "" in expression interpolation.
-	//
-	// @internal
-	// If is_secret=true: encrypted at rest and redacted in logs.
-	// If is_secret=false: stored as plaintext.
 	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	// Whether this value should be treated as a secret.
-	//
-	// @internal
-	// When true: value is encrypted at rest, redacted in logs, and deleted
-	// when execution completes.
-	// When false: value is stored as plaintext and visible in audit logs.
 	IsSecret      bool `protobuf:"varint,2,opt,name=is_secret,json=isSecret,proto3" json:"is_secret,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

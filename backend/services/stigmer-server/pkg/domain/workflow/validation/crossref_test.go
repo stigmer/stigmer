@@ -234,6 +234,98 @@ func TestValidateTaskConfigRequiredFields_AgentCallRunConfigBounds(t *testing.T)
 	})
 }
 
+// EmitDeliveryTarget's oneof-required and member required rules are
+// enforced here at Layer 2 because Layer-1 protovalidate cannot see inside
+// the task_config Struct envelope; a malformed target would otherwise
+// degrade to a silent run-time delivery_error (#530). The error strings
+// are pinned in lockstep with the cloud Java validator.
+func TestValidateTaskConfigRequiredFields_EmitEventDelivery(t *testing.T) {
+	makeEmitSpec := func(delivery []interface{}) *workflowv1.WorkflowSpec {
+		config := map[string]interface{}{
+			"event": map[string]interface{}{"type": "acme.order.fulfilled"},
+		}
+		if delivery != nil {
+			config["delivery"] = delivery
+		}
+		return &workflowv1.WorkflowSpec{
+			Tasks: []*workflowv1.WorkflowTask{
+				makeTask("notify", workflowv1.WorkflowTaskKind_emit_event, config),
+			},
+		}
+	}
+
+	t.Run("target with neither arm is rejected", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeEmitSpec([]interface{}{
+			map[string]interface{}{},
+		}))
+		want := "task 'notify' (emit_event): delivery[0] requires exactly one of 'webhook' or 'signal'"
+		if len(errors) != 1 || errors[0] != want {
+			t.Errorf("expected [%q], got %v", want, errors)
+		}
+	})
+
+	t.Run("target with both arms is rejected", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeEmitSpec([]interface{}{
+			map[string]interface{}{
+				"webhook": map[string]interface{}{"url": "https://hooks.acme.com"},
+				"signal":  map[string]interface{}{"execution_id": "wfx_1", "signal_name": "go"},
+			},
+		}))
+		want := "task 'notify' (emit_event): delivery[0] must set only one of 'webhook' or 'signal'"
+		if len(errors) != 1 || errors[0] != want {
+			t.Errorf("expected [%q], got %v", want, errors)
+		}
+	})
+
+	t.Run("webhook without url is rejected", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeEmitSpec([]interface{}{
+			map[string]interface{}{
+				"webhook": map[string]interface{}{"headers": map[string]interface{}{"X": "y"}},
+			},
+		}))
+		want := "task 'notify' (emit_event): delivery[0] required field 'webhook.url' is missing or empty"
+		if len(errors) != 1 || errors[0] != want {
+			t.Errorf("expected [%q], got %v", want, errors)
+		}
+	})
+
+	t.Run("signal missing both fields reports each", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeEmitSpec([]interface{}{
+			map[string]interface{}{
+				"signal": map[string]interface{}{},
+			},
+		}))
+		wantFirst := "task 'notify' (emit_event): delivery[0] required field 'signal.execution_id' is missing or empty"
+		wantSecond := "task 'notify' (emit_event): delivery[0] required field 'signal.signal_name' is missing or empty"
+		if len(errors) != 2 || errors[0] != wantFirst || errors[1] != wantSecond {
+			t.Errorf("expected [%q, %q], got %v", wantFirst, wantSecond, errors)
+		}
+	})
+
+	t.Run("valid webhook and signal targets pass", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeEmitSpec([]interface{}{
+			map[string]interface{}{
+				"webhook": map[string]interface{}{"url": "https://hooks.acme.com/orders"},
+			},
+			map[string]interface{}{
+				"signal": map[string]interface{}{
+					"execution_id": "${ .start_shipping.execution_id }",
+					"signal_name":  "order-fulfilled",
+				},
+			},
+		}))
+		if len(errors) != 0 {
+			t.Errorf("expected no errors, got %v", errors)
+		}
+	})
+
+	t.Run("absent delivery passes", func(t *testing.T) {
+		if errors := ValidateTaskConfigRequiredFields(makeEmitSpec(nil)); len(errors) != 0 {
+			t.Errorf("expected no errors, got %v", errors)
+		}
+	})
+}
+
 // The workflow surface accepts git_repo workspace sources only (no client
 // is connected to serve a local_path when a task fires) and mirrors
 // GitRepoSource's https-only proto CEL, unreachable at Layer 1 through the
@@ -319,6 +411,119 @@ func TestValidateTaskConfigRequiredFields_AgentCallWorkspaceEntries(t *testing.T
 		}))
 		if len(errors) != 1 || !strings.Contains(errors[0], "workspace_entries[1]") {
 			t.Errorf("expected one error naming workspace_entries[1], got %v", errors)
+		}
+	})
+}
+
+func TestValidateTaskConfigRequiredFields_LlmCall(t *testing.T) {
+	makeSpec := func(config map[string]interface{}) *workflowv1.WorkflowSpec {
+		return &workflowv1.WorkflowSpec{
+			Tasks: []*workflowv1.WorkflowTask{
+				makeTask("classify", workflowv1.WorkflowTaskKind_llm_call, config),
+			},
+		}
+	}
+
+	t.Run("missing model is rejected", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"prompt": "Classify this ticket",
+		}))
+		want := "task 'classify' (llm_call): required field 'model' is missing or empty"
+		if len(errors) != 1 || errors[0] != want {
+			t.Errorf("expected [%q], got %v", want, errors)
+		}
+	})
+
+	t.Run("missing prompt is rejected", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"model": "gpt-4o",
+		}))
+		want := "task 'classify' (llm_call): required field 'prompt' is missing or empty"
+		if len(errors) != 1 || errors[0] != want {
+			t.Errorf("expected [%q], got %v", want, errors)
+		}
+	})
+
+	t.Run("empty strings are rejected like absence", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"model":  "",
+			"prompt": "",
+		}))
+		if len(errors) != 2 {
+			t.Errorf("expected 2 errors (model, prompt), got %v", errors)
+		}
+	})
+
+	t.Run("model and prompt present pass", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"model":  "gpt-4o",
+			"prompt": "Classify this ticket: ${ $context.ticket }",
+		}))
+		if len(errors) != 0 {
+			t.Errorf("expected no errors, got %v", errors)
+		}
+	})
+}
+
+func TestValidateTaskConfigRequiredFields_RaiseError(t *testing.T) {
+	makeSpec := func(config map[string]interface{}) *workflowv1.WorkflowSpec {
+		return &workflowv1.WorkflowSpec{
+			Tasks: []*workflowv1.WorkflowTask{
+				makeTask("fail_fast", workflowv1.WorkflowTaskKind_raise_error, config),
+			},
+		}
+	}
+
+	t.Run("missing error is rejected", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"message": "something broke",
+		}))
+		want := "task 'fail_fast' (raise_error): required field 'error' is missing or empty"
+		if len(errors) != 1 || errors[0] != want {
+			t.Errorf("expected [%q], got %v", want, errors)
+		}
+	})
+
+	// message is deliberately NOT required: the DSL converter emits it as the
+	// optional problem-details `detail` and the docs teach message-less raise
+	// (#685 ruling — the proto's required flag was the fiction, now relaxed).
+	t.Run("error without message passes", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"error": "ValidationError",
+		}))
+		if len(errors) != 0 {
+			t.Errorf("expected no errors, got %v", errors)
+		}
+	})
+}
+
+func TestValidateTaskConfigRequiredFields_HumanInput(t *testing.T) {
+	makeSpec := func(config map[string]interface{}) *workflowv1.WorkflowSpec {
+		return &workflowv1.WorkflowSpec{
+			Tasks: []*workflowv1.WorkflowTask{
+				makeTask("review", workflowv1.WorkflowTaskKind_human_input, config),
+			},
+		}
+	}
+
+	t.Run("missing prompt is rejected", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"outcomes": []interface{}{
+				map[string]interface{}{"name": "approve"},
+			},
+		}))
+		want := "task 'review' (human_input): required field 'prompt' is missing or empty"
+		if len(errors) != 1 || errors[0] != want {
+			t.Errorf("expected [%q], got %v", want, errors)
+		}
+	})
+
+	t.Run("prompt present passes", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec(map[string]interface{}{
+			"prompt": "Approve this escalation?",
+		}))
+		if len(errors) != 0 {
+			t.Errorf("expected no errors, got %v", errors)
 		}
 	})
 }

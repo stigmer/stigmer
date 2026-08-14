@@ -24,8 +24,6 @@ const (
 )
 
 // AgentInstance defines a configured deployment of an Agent template.
-//
-// @internal
 type AgentInstance struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.
@@ -33,9 +31,6 @@ type AgentInstance struct {
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Resource metadata including name, organization, scope, and labels.
-	//
-	// @internal
-	// AgentInstances can have platform, organization, or identity_account scope.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Configurable properties: agent binding, description, and environment references.
 	Spec *AgentInstanceSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`

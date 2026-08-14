@@ -43,6 +43,7 @@ from ._errors import (
     is_permission_denied,
     is_retryable,
     is_unauthenticated,
+    is_unimplemented,
     wrap_error,
 )
 
@@ -144,5 +145,6 @@ __all__ = [
     "is_permission_denied",
     "is_retryable",
     "is_unauthenticated",
+    "is_unimplemented",
     "wrap_error",
 ]

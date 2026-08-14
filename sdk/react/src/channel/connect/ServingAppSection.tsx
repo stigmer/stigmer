@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_FIELDSET } from "../../internal/element-resets.js";
 import type { ResourceRef } from "@stigmer/sdk";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 
@@ -67,7 +68,7 @@ export function ServingAppSection({
   }
 
   return (
-    <fieldset>
+    <fieldset className={UNSTYLED_FIELDSET}>
       <legend className="stg:mb-1.5 stg:block stg:text-xs stg:font-medium stg:text-foreground">
         Connect as
       </legend>

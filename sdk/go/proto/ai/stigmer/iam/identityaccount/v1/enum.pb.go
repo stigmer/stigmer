@@ -22,9 +22,6 @@ const (
 )
 
 // IdentityAccountProvisioningMode defines how an identity account was created.
-//
-// @internal
-// Unspecified is the default for legacy accounts created before this enum was introduced.
 type IdentityAccountProvisioningMode int32
 
 const (

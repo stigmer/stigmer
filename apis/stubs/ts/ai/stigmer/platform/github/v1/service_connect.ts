@@ -14,13 +14,6 @@ import { MethodKind } from "@bufbuild/protobuf";
  * authorize URL construction and the authorization-code-for-token
  * exchange so callers do not handle OAuth details directly.
  *
- * @internal
- * This is a platform utility service — not a domain resource.
- * The backend protects the client_secret during the token exchange
- * and constructs the authorize URL with the registered client_id and
- * redirect_uri so the frontend never needs those values.
- * Tokens are ephemeral — returned to the caller and never persisted.
- *
  * @generated from service ai.stigmer.platform.github.v1.GitHubService
  */
 export const GitHubService = {
@@ -32,11 +25,6 @@ export const GitHubService = {
      * Returns a URL to redirect the user to and a random state value for
      * CSRF protection. After the user authorizes, GitHub redirects back
      * to your redirect_uri with an authorization code.
-     *
-     * @internal
-     * The backend constructs the URL with the registered client_id, requested
-     * scopes, and the state parameter. Authorization is skipped because this
-     * is a pre-authentication step.
      *
      * @generated from rpc ai.stigmer.platform.github.v1.GitHubService.getOAuthAuthorizeUrl
      */
@@ -52,12 +40,6 @@ export const GitHubService = {
      * Call this after receiving the authorization code from GitHub's OAuth
      * redirect. Pass the code, the state from the original authorize request,
      * and the same redirect_uri. Returns an access token for GitHub API calls.
-     *
-     * @internal
-     * The backend performs the token exchange using the client_secret, which
-     * must never be exposed to the frontend. The returned access_token is NOT
-     * stored by the backend — the caller is responsible for persisting it and
-     * including it in subsequent requests that need GitHub access.
      *
      * @generated from rpc ai.stigmer.platform.github.v1.GitHubService.exchangeOAuthCode
      */

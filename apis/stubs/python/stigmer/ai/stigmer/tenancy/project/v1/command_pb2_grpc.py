@@ -44,10 +44,6 @@ class ProjectCommandControllerServicer(object):
 
     def apply(self, request, context):
         """Create or update a project.
-
-        @internal
-        The authorization and state-operation are determined depending on whether the project
-        is going to be created or updated which is determined as part of the request execution.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -55,11 +51,6 @@ class ProjectCommandControllerServicer(object):
 
     def create(self, request, context):
         """Create a project.
-
-        @internal
-        Authorization:
-        - Organization-scoped projects: Caller must have can_create_project permission in the organization.
-        - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -67,9 +58,6 @@ class ProjectCommandControllerServicer(object):
 
     def update(self, request, context):
         """Update an existing project.
-
-        @internal
-        Authorization: Requires can_edit permission on the project.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -77,9 +65,6 @@ class ProjectCommandControllerServicer(object):
 
     def delete(self, request, context):
         """Delete a project.
-
-        @internal
-        Authorization: Requires can_delete permission on the project.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

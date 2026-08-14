@@ -67,16 +67,43 @@ const evalProxy = proxyLocalActivities<EvalActivities>({
   startToCloseTimeout: "10s",
 });
 
+const CALL_PROXY_RETRY = {
+  maximumAttempts: 5,
+  initialInterval: "1s",
+  backoffCoefficient: 2,
+  maximumInterval: "1m",
+} as const;
+
 const callProxy = proxyActivities<HttpActivities & GrpcActivities & FunctionActivities>({
   startToCloseTimeout: "5m",
   heartbeatTimeout: "30s",
-  retry: {
-    maximumAttempts: 5,
-    initialInterval: "1s",
-    backoffCoefficient: 2,
-    maximumInterval: "1m",
-  },
+  retry: CALL_PROXY_RETRY,
 });
+
+/**
+ * Task-config timeouts (llm_call.timeout ≤600s, http_call.timeout_seconds
+ * ≤300s) can exceed or crowd the default 5m startToClose, which would kill
+ * the activity before its own well-typed LLM_TIMEOUT / HTTP_CALL_TIMEOUT
+ * failure fires. When a task declares a budget, proxy its call with
+ * startToClose = budget + 30s so the in-activity bound always wins (#686).
+ *
+ * proxyActivities in workflow code is a deterministic proxy construction
+ * (no Temporal commands); the memo just avoids rebuilding per call.
+ */
+const timeoutAwareProxies = new Map<number, typeof callProxy>();
+function callProxyFor(timeoutSeconds: number | undefined): typeof callProxy {
+  if (!timeoutSeconds || !Number.isFinite(timeoutSeconds)) return callProxy;
+  let proxy = timeoutAwareProxies.get(timeoutSeconds);
+  if (!proxy) {
+    proxy = proxyActivities<HttpActivities & GrpcActivities & FunctionActivities>({
+      startToCloseTimeout: `${timeoutSeconds + 30}s`,
+      heartbeatTimeout: "30s",
+      retry: CALL_PROXY_RETRY,
+    });
+    timeoutAwareProxies.set(timeoutSeconds, proxy);
+  }
+  return proxy;
+}
 
 const runProxy = proxyActivities<RunActivities>({
   startToCloseTimeout: "5m",
@@ -240,7 +267,7 @@ export async function runWorkflowEngine(
     runWorkflow: (config: RunWorkflowExecutionConfig) => orchestrateRunWorkflow(config),
     awaitHumanInput: (config: HumanInputExecutionConfig) => orchestrateHumanInput(config),
     callHttp: (config: HttpCallConfig, runtimeEnv: Record<string, unknown>) =>
-      callProxy.CallHttp(config, runtimeEnv),
+      callProxyFor(config.timeout_seconds).CallHttp(config, runtimeEnv),
     callGrpc: (config: GrpcCallConfig, runtimeEnv: Record<string, unknown>) =>
       callProxy.CallGrpc(config, runtimeEnv),
     callFunction: (
@@ -249,7 +276,11 @@ export async function runWorkflowEngine(
       runtimeEnv: Record<string, unknown>,
       fnMeta: CallFunctionMetadata,
     ) =>
-      callProxy.CallFunction(
+      callProxyFor(
+        call === "llm" && typeof config.timeout === "number"
+          ? config.timeout
+          : undefined,
+      ).CallFunction(
         call,
         config,
         runtimeEnv,

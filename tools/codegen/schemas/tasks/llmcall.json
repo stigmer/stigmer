@@ -77,7 +77,7 @@
       "type": {
         "kind": "int32"
       },
-      "description": "Maximum tokens in the LLM response.\n Optional — uses the provider's default when not set.",
+      "description": "Maximum tokens in the LLM response.\n Optional — uses the provider's default when not set.\n\n Unset (0) is valid: proto3 implicit presence makes an omitted field\n indistinguishable from 0, so the range rule must not fire on it (#673).",
       "required": false,
       "validation": {
         "min": 1
@@ -90,7 +90,7 @@
       "type": {
         "kind": "int32"
       },
-      "description": "Timeout for the LLM call in seconds.\n Default: 60. Max: 600 (10 minutes).\n Optional.",
+      "description": "Timeout for the LLM call in seconds. Max: 600 (10 minutes).\n Optional — unset (0) leaves the call bounded by the runner's activity\n timeout. When set, the runner bounds the provider request at this\n budget and a breach fails the task with LLM_TIMEOUT (non-retryable —\n catchable with try/catch); the activity timeout widens to fit (#686).\n\n Unset (0) is valid: proto3 implicit presence makes an omitted field\n indistinguishable from 0, so the range rule must not fire on it (#673).",
       "required": false,
       "validation": {
         "min": 1,
@@ -120,7 +120,7 @@
       "type": {
         "kind": "int32"
       },
-      "description": "Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY.\n\n Each retry re-prompts the LLM with the validation errors and expected\n schema, giving it an opportunity to self-correct.\n\n Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.\n Default: 1. Valid range: 1-5.",
+      "description": "Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY.\n\n Each retry re-prompts the LLM with the validation errors and expected\n schema, giving it an opportunity to self-correct.\n\n Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.\n Default when unset: 1. Valid range when set: 1-5.\n\n Unset (0) is valid: proto3 implicit presence makes an omitted field\n indistinguishable from 0, so the range rule must not fire on it (#673).",
       "required": false,
       "validation": {
         "min": 1,

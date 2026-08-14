@@ -9,11 +9,6 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 
 class ScheduleQueryControllerStub(object):
     """ScheduleQueryController handles read operations for schedules.
-
-    @internal
-    No anonymous/public RPC by design (the AgentChannel posture): a
-    schedule has no public surface at all — its only runtime effect is the
-    executions its fires create.
     """
 
     def __init__(self, channel):
@@ -51,11 +46,6 @@ class ScheduleQueryControllerStub(object):
 
 class ScheduleQueryControllerServicer(object):
     """ScheduleQueryController handles read operations for schedules.
-
-    @internal
-    No anonymous/public RPC by design (the AgentChannel posture): a
-    schedule has no public surface at all — its only runtime effect is the
-    executions its fires create.
     """
 
     def get(self, request, context):
@@ -67,11 +57,6 @@ class ScheduleQueryControllerServicer(object):
 
     def getByReference(self, request, context):
         """Get a schedule by its organization-scoped reference (org/slug).
-
-        @internal
-        Custom authorization in handler — checks both direct resource access
-        and organization-level visibility permissions (the AgentShare /
-        AgentChannel pattern).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -83,11 +68,6 @@ class ScheduleQueryControllerServicer(object):
 
         This is how the agent's operational surfaces and CLI resolve an
         agent's existing schedules regardless of slug.
-
-        @internal
-        Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS
-        (the getByAgent family convention — agent channels, agent shares,
-        agent instances).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -95,10 +75,6 @@ class ScheduleQueryControllerServicer(object):
 
     def list(self, request, context):
         """List schedules with optional label filtering.
-
-        @internal
-        Authorization in-handler via FGA-filtered queries (cloud) or
-        unrestricted store queries (OSS).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -111,16 +87,6 @@ class ScheduleQueryControllerServicer(object):
         (a refused launch gate, a missing target agent) — with the refusing
         gate's copy verbatim. This is the surface that explains
         status.consecutive_failures.
-
-        @internal
-        Backed by the fire ledger (project DD-017 D-7). Authorization:
-        can_view on the schedule — run history is the schedule's own
-        operational record; the linked executions keep their own bars. Rows
-        carrying an execution id but no terminal outcome are enriched with
-        the execution's live phase at read time (one join), so manual fires
-        need no tracker and outcome columns never lie. OSS implements the
-        same contract against its store; the conformance suite holds both
-        editions to it.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -164,11 +130,6 @@ def add_ScheduleQueryControllerServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class ScheduleQueryController(object):
     """ScheduleQueryController handles read operations for schedules.
-
-    @internal
-    No anonymous/public RPC by design (the AgentChannel posture): a
-    schedule has no public surface at all — its only runtime effect is the
-    executions its fires create.
     """
 
     @staticmethod

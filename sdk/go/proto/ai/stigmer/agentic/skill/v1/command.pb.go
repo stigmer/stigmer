@@ -26,9 +26,10 @@ var File_ai_stigmer_agentic_skill_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_skill_v1_command_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/skill/v1/command.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a%ai/stigmer/agentic/skill/v1/api.proto\x1a$ai/stigmer/agentic/skill/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xb4\x05\n" +
+	")ai/stigmer/agentic/skill/v1/command.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a%ai/stigmer/agentic/skill/v1/api.proto\x1a$ai/stigmer/agentic/skill/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x87\a\n" +
 	"\x16SkillCommandController\x12\x99\x01\n" +
-	"\x04push\x12-.ai.stigmer.agentic.skill.v1.PushSkillRequest\x1a\".ai.stigmer.agentic.skill.v1.Skill\">¸\x18:\b\t\x10\x1e\"\x03org*/unauthorized to push skill in this organization\x12\xc3\x01\n" +
+	"\x04push\x12-.ai.stigmer.agentic.skill.v1.PushSkillRequest\x1a\".ai.stigmer.agentic.skill.v1.Skill\">¸\x18:\b\t\x10\x1e\"\x03org*/unauthorized to push skill in this organization\x12\xd0\x01\n" +
+	"\x17createArtifactUploadUrl\x12@.ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest\x1a3.ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl\">¸\x18:\b\t\x10\x1e\"\x03org*/unauthorized to push skill in this organization\x12\xc3\x01\n" +
 	"\x19pushFromExecutionArtifact\x12B.ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest\x1a\".ai.stigmer.agentic.skill.v1.Skill\">¸\x18:\b\t\x10\x1e\"\x03org*/unauthorized to push skill in this organization\x12\xad\x01\n" +
 	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a\".ai.stigmer.agentic.skill.v1.Skill\">¸\x18:\b\x02\x10+\"\vresource_id*'unauthorized to update skill visibility\x12\x81\x01\n" +
 	"\x06delete\x12$.ai.stigmer.agentic.skill.v1.SkillId\x1a\".ai.stigmer.agentic.skill.v1.Skill\"-¸\x18)\b\x03\x10+\"\x05value*\x1cunauthorized to delete skill\x1a\x04\xa0\xff++B\x90\x02\n" +
@@ -36,22 +37,26 @@ const file_ai_stigmer_agentic_skill_v1_command_proto_rawDesc = "" +
 
 var file_ai_stigmer_agentic_skill_v1_command_proto_goTypes = []any{
 	(*PushSkillRequest)(nil),                      // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest
-	(*PushSkillFromExecutionArtifactRequest)(nil), // 1: ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest
-	(*apiresource.UpdateVisibilityInput)(nil),     // 2: ai.stigmer.commons.apiresource.UpdateVisibilityInput
-	(*SkillId)(nil),                               // 3: ai.stigmer.agentic.skill.v1.SkillId
-	(*Skill)(nil),                                 // 4: ai.stigmer.agentic.skill.v1.Skill
+	(*CreateSkillArtifactUploadUrlRequest)(nil),   // 1: ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest
+	(*PushSkillFromExecutionArtifactRequest)(nil), // 2: ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest
+	(*apiresource.UpdateVisibilityInput)(nil),     // 3: ai.stigmer.commons.apiresource.UpdateVisibilityInput
+	(*SkillId)(nil),                               // 4: ai.stigmer.agentic.skill.v1.SkillId
+	(*Skill)(nil),                                 // 5: ai.stigmer.agentic.skill.v1.Skill
+	(*SkillArtifactUploadUrl)(nil),                // 6: ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl
 }
 var file_ai_stigmer_agentic_skill_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.skill.v1.SkillCommandController.push:input_type -> ai.stigmer.agentic.skill.v1.PushSkillRequest
-	1, // 1: ai.stigmer.agentic.skill.v1.SkillCommandController.pushFromExecutionArtifact:input_type -> ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest
-	2, // 2: ai.stigmer.agentic.skill.v1.SkillCommandController.updateVisibility:input_type -> ai.stigmer.commons.apiresource.UpdateVisibilityInput
-	3, // 3: ai.stigmer.agentic.skill.v1.SkillCommandController.delete:input_type -> ai.stigmer.agentic.skill.v1.SkillId
-	4, // 4: ai.stigmer.agentic.skill.v1.SkillCommandController.push:output_type -> ai.stigmer.agentic.skill.v1.Skill
-	4, // 5: ai.stigmer.agentic.skill.v1.SkillCommandController.pushFromExecutionArtifact:output_type -> ai.stigmer.agentic.skill.v1.Skill
-	4, // 6: ai.stigmer.agentic.skill.v1.SkillCommandController.updateVisibility:output_type -> ai.stigmer.agentic.skill.v1.Skill
-	4, // 7: ai.stigmer.agentic.skill.v1.SkillCommandController.delete:output_type -> ai.stigmer.agentic.skill.v1.Skill
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
+	1, // 1: ai.stigmer.agentic.skill.v1.SkillCommandController.createArtifactUploadUrl:input_type -> ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest
+	2, // 2: ai.stigmer.agentic.skill.v1.SkillCommandController.pushFromExecutionArtifact:input_type -> ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest
+	3, // 3: ai.stigmer.agentic.skill.v1.SkillCommandController.updateVisibility:input_type -> ai.stigmer.commons.apiresource.UpdateVisibilityInput
+	4, // 4: ai.stigmer.agentic.skill.v1.SkillCommandController.delete:input_type -> ai.stigmer.agentic.skill.v1.SkillId
+	5, // 5: ai.stigmer.agentic.skill.v1.SkillCommandController.push:output_type -> ai.stigmer.agentic.skill.v1.Skill
+	6, // 6: ai.stigmer.agentic.skill.v1.SkillCommandController.createArtifactUploadUrl:output_type -> ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl
+	5, // 7: ai.stigmer.agentic.skill.v1.SkillCommandController.pushFromExecutionArtifact:output_type -> ai.stigmer.agentic.skill.v1.Skill
+	5, // 8: ai.stigmer.agentic.skill.v1.SkillCommandController.updateVisibility:output_type -> ai.stigmer.agentic.skill.v1.Skill
+	5, // 9: ai.stigmer.agentic.skill.v1.SkillCommandController.delete:output_type -> ai.stigmer.agentic.skill.v1.Skill
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

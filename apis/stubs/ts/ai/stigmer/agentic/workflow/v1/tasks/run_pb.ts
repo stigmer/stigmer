@@ -18,18 +18,6 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_run: GenFile = /*@__PURE_
 /**
  * RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows.
  *
- * @internal
- * Implemented via Temporal child workflows.
- *
- * YAML Example:
- *   - taskName:
- *       run:
- *         workflow: "sub-workflow-name"
- *         input:
- *           data: ${ .data }
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 12
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
  */
 export type RunTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig"> & {

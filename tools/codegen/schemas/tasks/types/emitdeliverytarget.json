@@ -1,0 +1,32 @@
+{
+  "name": "EmitDeliveryTarget",
+  "description": "EmitDeliveryTarget selects one destination for an emitted event.\n\n Two delivery mechanisms are supported:\n - webhook: HTTP POST the CloudEvents envelope to an external endpoint.\n - signal: deliver the envelope as a signal to another workflow\n   execution's listen task (the emit/listen pairing).",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/emit_event.proto",
+  "fields": [
+    {
+      "name": "Webhook",
+      "jsonName": "webhook",
+      "protoField": "webhook",
+      "type": {
+        "kind": "message",
+        "messageType": "WebhookDelivery"
+      },
+      "description": "POST the CloudEvents envelope to an HTTP endpoint.",
+      "required": false,
+      "oneofGroup": "target"
+    },
+    {
+      "name": "Signal",
+      "jsonName": "signal",
+      "protoField": "signal",
+      "type": {
+        "kind": "message",
+        "messageType": "SignalDelivery"
+      },
+      "description": "Signal another workflow execution's listen task.",
+      "required": false,
+      "oneofGroup": "target"
+    }
+  ]
+}

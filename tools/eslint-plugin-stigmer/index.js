@@ -1,10 +1,12 @@
 "use strict";
 
+const noHandrolledDialog = require("./rules/no-handrolled-dialog");
 const noHardcodedBackdrop = require("./rules/no-hardcoded-backdrop");
 const noLiteralDomIds = require("./rules/no-literal-dom-ids");
 const noMainTokensInSidebar = require("./rules/no-main-tokens-in-sidebar");
 const noNativeTitle = require("./rules/no-native-title");
 const noTokenOpacityModifiers = require("./rules/no-token-opacity-modifiers");
+const requireListReset = require("./rules/require-list-reset");
 const sdkImportBoundaries = require("./rules/sdk-import-boundaries");
 
 const plugin = {
@@ -13,11 +15,13 @@ const plugin = {
     version: "0.0.0",
   },
   rules: {
+    "no-handrolled-dialog": noHandrolledDialog,
     "no-hardcoded-backdrop": noHardcodedBackdrop,
     "no-literal-dom-ids": noLiteralDomIds,
     "no-main-tokens-in-sidebar": noMainTokensInSidebar,
     "no-native-title": noNativeTitle,
     "no-token-opacity-modifiers": noTokenOpacityModifiers,
+    "require-list-reset": requireListReset,
     "sdk-import-boundaries": sdkImportBoundaries,
   },
 };

@@ -36,6 +36,26 @@ service SkillCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to push skill in this organization";
   }
 
+  // Mint a short-lived, single-use upload URL for staging a skill artifact
+  // that exceeds the gRPC message-size cap (10MB). Flow:
+  //
+  // 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
+  // 2. HTTP PUT the ZIP bytes to url
+  // 3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,
+  //    validation, and versioning as an inline push
+  //
+  // The server refuses over-limit size_bytes here, before any bytes move.
+  //
+  // @internal
+  // Authorization matches push() — the URL is a capability to stage bytes,
+  // so minting one requires the same permission as consuming it.
+  rpc createArtifactUploadUrl(CreateSkillArtifactUploadUrlRequest) returns (SkillArtifactUploadUrl) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_skill;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to push skill in this organization";
+  }
+
   // Push a skill from an execution artifact already in storage.
   // Use this when an agent execution has already produced a skill artifact
   // and you want to publish it without downloading and re-uploading the ZIP.
@@ -60,8 +80,15 @@ service SkillCommandController {
   // metadata fields untouched. Use this to make a skill publicly accessible
   // or to revoke public access.
   //
+  // In the cloud edition, PUBLIC is operator-gated: public listing crosses
+  // every org boundary, so it is granted by the platform team on request.
+  // Un-publishing and all other levels stay self-service.
+  //
   // @internal
-  // Authorization: Requires can_edit permission on the skill resource.
+  // Authorization: can_edit on the skill for private/org/platform
+  // transitions; escalation to PUBLIC instead requires
+  // can_set_public_visibility on platform:stigmer (cloud edition);
+  // downgrade from PUBLIC: can_edit OR the platform permission.
   rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (Skill) {
     option (ai.stigmer.commons.rpc.config).resource_kind = skill;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;

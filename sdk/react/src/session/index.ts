@@ -3,6 +3,7 @@ export type { ExecutionTargetOption } from "./execution-target.js";
 
 export type { RuntimeEnvProvider } from "./runtime-env.js";
 export type { SessionAudience, SessionPanelMode } from "./audience.js";
+export type { SessionRunConfig } from "./run-config.js";
 export {
   CHANNEL_SESSION_LABELS,
   isChannelOriginSession,
@@ -57,6 +58,7 @@ export type { UseSessionFileChangesReturn } from "./useSessionFileChanges.js";
 
 export { useSessionUsage } from "./useSessionUsage.js";
 export type {
+  ExecutionUsageEntry,
   ModelCostEntry,
   UseSessionUsageReturn,
 } from "./useSessionUsage.js";

@@ -30,9 +30,6 @@ export const OrganizationQueryController: GenService<{
   /**
    * Get an organization by ID.
    *
-   * @internal
-   * Authorization: Requires can_view permission on the organization.
-   *
    * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.get
    */
   get: {
@@ -42,9 +39,6 @@ export const OrganizationQueryController: GenService<{
   },
   /**
    * List organizations with pagination and filtering.
-   *
-   * @internal
-   * Authorization: Requires platform admin permission. Administrative use only.
    *
    * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.find
    */
@@ -57,9 +51,6 @@ export const OrganizationQueryController: GenService<{
    * Find organizations the authenticated user is a member of.
    * Returns only organizations the caller has access to.
    *
-   * @internal
-   * Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
-   *
    * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.findMyOrganizations
    */
   findMyOrganizations: {
@@ -70,9 +61,6 @@ export const OrganizationQueryController: GenService<{
   /**
    * Look up a platform-managed organization by its external platform coordinates.
    * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
-   *
-   * @internal
-   * Authorization: custom — checks can_view on the referenced IdentityProvider.
    *
    * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.getByExternalOrgId
    */

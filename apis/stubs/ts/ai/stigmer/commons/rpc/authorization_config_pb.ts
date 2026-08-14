@@ -19,11 +19,6 @@ export const file_ai_stigmer_commons_rpc_authorization_config: GenFile = /*@__PU
 /**
  * RpcAuthorizationConfig defines the authorization check performed before an RPC executes.
  *
- * @internal
- * The authorization interceptor reads these fields from the method option annotation
- * and performs an FGA check: does the caller have `permission` on
- * `resource_kind:<resolved_id>`?
- *
  * @generated from message ai.stigmer.commons.rpc.RpcAuthorizationConfig
  */
 export type RpcAuthorizationConfig = Message<"ai.stigmer.commons.rpc.RpcAuthorizationConfig"> & {
@@ -65,9 +60,6 @@ export type RpcAuthorizationConfig = Message<"ai.stigmer.commons.rpc.RpcAuthoriz
 
   /**
    * Static resource identifier used when the ID is not part of the request.
-   *
-   * @internal
-   * Used for platform-level RPCs where the resource is always "stigmer".
    *
    * @generated from field: string resource_id = 6;
    */

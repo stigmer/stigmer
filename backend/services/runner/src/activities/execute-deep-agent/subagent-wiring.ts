@@ -9,6 +9,9 @@
  *   same `permissions` option it bakes into the graph, keeping the rules
  *   and their normalization shim coupled.
  * - Fresh loop detection (independent cycle tracking)
+ * - Tool intent (issue #276) — the shell tool's bind-time schema gains the
+ *   optional model-authored `description`, so sub-agent shell rows carry
+ *   intent titles exactly like the parent's
  * - Fresh tool truncation (same limits as parent)
  * - Periodic execution budget (interval=30, max=4 advisories)
  * - Approval gate (so a mutating tool *inside* a sub-agent is gated, not
@@ -43,6 +46,7 @@ import { createPathNormalizationMiddleware } from "../../middleware/path-normali
 import { createLoopDetectionMiddleware } from "../../middleware/loop-detection.js";
 import { createToolTruncationMiddleware } from "../../middleware/tool-truncation.js";
 import { createExecutionBudgetMiddleware } from "../../middleware/execution-budget.js";
+import { createToolIntentMiddleware } from "../../middleware/tool-intent.js";
 import {
   createApprovalGateMiddleware,
   type ApprovalGateConfig,
@@ -83,7 +87,8 @@ export interface SubAgentMiddlewareOptions {
  *
  * Returns an ordered array mirroring the parent composition:
  * [path normalization] → loop detection → execution budget (periodic) →
- * tool truncation → [approval gate] → cost cap view → error hints.
+ * tool intent → tool truncation → [approval gate] → cost cap view →
+ * error hints.
  * Normalization is outermost so everything downstream observes canonical
  * workspace-absolute paths (matching the parent). The gate sits before the
  * cost-cap view so an approval pause happens before budget accounting, and
@@ -107,22 +112,33 @@ export function buildSubAgentMiddleware(
     maxWarnings: SUB_AGENT_MAX_ADVISORIES,
   }));
 
+  // Sub-agent shell rows render in the same thread as the parent's and must
+  // carry the same model-authored intent titles (issue #276).
+  stack.push(createToolIntentMiddleware());
+
   stack.push(createToolTruncationMiddleware(options.toolTruncation));
 
   if (options.approvalGate) {
-    // captureIgnored (DD-19): a sub-agent flows gitignored writes into CAS iff a
-    // CAS observer backs its filesystem backend (compileSubagents passes this as
+    // captureIgnored (DD-19): a sub-agent flows gitignored writes — and, since
+    // issue #303, non-secret CAS-owned deletes — into CAS iff a CAS observer
+    // backs its filesystem backend (compileSubagents passes this as
     // `!!casObserver`). When true, inherit the parent gate verbatim so its
-    // captureIgnored + recordBlockedSecret feed the SAME shared observer that
-    // backs the sub-agent's writes. When false (default; non-capture mode, or no
-    // observer), force CAS routing off and drop the blocked-secret sink so
-    // gitignored paths stay on the interrupt gate — a flowed gitignored edit on an
-    // unobserved backend would apply unobserved, unreviewable bytes. Sub-agent
-    // git-tracked edits are always captured by the backend-agnostic boundary diff.
+    // captureIgnored + recordBlockedSecret + captureDeleteBefore feed the SAME
+    // shared observer that backs the sub-agent's writes. When false (default;
+    // non-capture mode, or no observer), force CAS routing off and drop both
+    // observer sinks so gitignored paths stay on the interrupt gate — a flowed
+    // gitignored edit on an unobserved backend would apply unobserved,
+    // unreviewable bytes. Sub-agent git-tracked edits are always captured by
+    // the backend-agnostic boundary diff.
     stack.push(createApprovalGateMiddleware(
       options.captureIgnored
         ? options.approvalGate
-        : { ...options.approvalGate, captureIgnored: false, recordBlockedSecret: undefined },
+        : {
+            ...options.approvalGate,
+            captureIgnored: false,
+            recordBlockedSecret: undefined,
+            captureDeleteBefore: undefined,
+          },
     ));
   }
 

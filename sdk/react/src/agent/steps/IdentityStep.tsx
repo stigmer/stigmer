@@ -2,6 +2,7 @@
 
 import { useCallback, useId } from "react";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_FIELDSET } from "../../internal/element-resets.js";
 import { generateSlug } from "../../internal/slug.js";
 import type { AgentWizardData } from "./types.js";
 
@@ -173,7 +174,7 @@ export function IdentityStep({
           />
         </div>
 
-        <fieldset className="stg:space-y-1.5">
+        <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-1.5")}>
           <legend className="stg:text-sm stg:font-medium stg:text-foreground">
             Visibility
           </legend>

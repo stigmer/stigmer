@@ -88,7 +88,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check
+.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check
 build: libs-build build-web verify-desktop docs-build build-java-sdk build-runner ## Build all project artifacts
 	@mkdir -p bin
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
@@ -196,6 +196,9 @@ gen-task-registry-check: ## Verify the task kind registry is up to date and sync
 		echo "error: task kind registry is stale — run 'make gen-task-registry'"; exit 1; \
 	fi; \
 	echo "✓ Task kind registry is up to date"
+
+stubs-internal-check: ## Verify committed stubs carry no @internal comment sections (CI)
+	@go run ./tools/codegen/stubscrub -check apis/stubs sdk/go/proto
 
 gen-react-sdk-docs: ## Generate React SDK reference docs from TypeDoc
 	cd sdk/react && npm run typedoc:json
@@ -534,7 +537,7 @@ tidy: ## Run go mod tidy on all Go modules
        lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos \
        check-docs-inventory \
        test-web test-desktop test-runner-host test-e2e test-e2e-approval test-a11y check check-all \
-       check-prep check-go check-node check-site check-rust check-java
+       check-prep check-go check-node check-site check-rust check-java check-bazel
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
 	-npm run lint:fix -w @stigmer/react
@@ -728,7 +731,7 @@ OUTPUT_SYNC := $(shell test "$(MAKE_MAJOR)" -ge 4 2>/dev/null && echo -Otarget)
 
 check: ## Run full CI gate locally (parallelized)
 	$(MAKE) check-prep
-	$(MAKE) -j$(JOBS) $(OUTPUT_SYNC) check-go check-node check-site check-rust check-java
+	$(MAKE) -j$(JOBS) $(OUTPUT_SYNC) check-go check-node check-site check-rust check-java check-bazel
 	@echo ""
 	@echo "✓ check passed"
 
@@ -759,14 +762,24 @@ check-go: ## check bucket: Go vet/test/build + buf lint + binaries
 	@mkdir -p bin
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
 
+# Local twin of ci.bazel's required graph arm (oss#616). Build compiles and
+# links every target including test binaries (catches the #596/#604 class);
+# gazelle -mode=diff fails on stale BUILD files (the only detector for the
+# cloud#414 class — a target that was never generated cannot fail to build).
+# Tests deliberately NOT run here: check-go already runs them with -race.
+check-bazel: ## check bucket: bazel graph integrity — full-graph build + BUILD-file freshness
+	./bazelw build //...
+	@./bazelw run //:gazelle -- -mode=diff || \
+		(echo ""; echo "BUILD files are stale — fix: ./bazelw run //:gazelle, then commit."; exit 1)
+
 check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, desktop, runner, demos, e2e)
 	npm run typecheck -w @stigmer/sdk
 	npm run lint -w @stigmer/react
 	npm run typecheck -w @stigmer/react
 	npm run typecheck -w @stigmer/demos
 	# E2E specs typecheck against @stigmer/sdk + @stigmer/protos workspace
-	# source; this catches spec/helper drift that nothing else runs
-	# (the interactive Playwright project has no CI lane — cloud#275).
+	# source; this catches spec/helper drift faster than the full-stack
+	# ci.e2e-interactive lane (#572), which runs the interactive project.
 	npm run typecheck -w @stigmer/e2e
 	node scripts/verify-scenar-tours.mjs
 	npm run lint -w client-apps/web
@@ -843,8 +856,11 @@ format-docs-check: ## Check documentation formatting (CI, no writes)
 	@$(PRETTIER_GUARD)
 	@$(PRETTIER) --check --prose-wrap always $(DOCS_SOURCES)
 
-check-docs-yaml: ## Validate every docs YAML block against the proto contracts (CI)
-	@go run ./tools/codegen/generator --target=docs-yaml-check --docs-dir docs
+check-docs-yaml: ## Validate every docs YAML block against the proto contracts, incl. platform-parity protovalidate rules (CI)
+	@go run ./tools/codegen/generator --target=docs-yaml-check --docs-dir docs --rules=enforce
+
+report-docs-yaml-rules: ## Full-depth protovalidate rule report over docs YAML (incl. latent platform-blind findings; never fails)
+	@go run ./tools/codegen/generator --target=docs-yaml-check --docs-dir docs --rules=report
 
 check-docs-inventory: ## Verify every docs page is classified in docs/_inventory/classification.yaml (CI)
 	$(MAKE) -C site check-docs-inventory

@@ -138,7 +138,7 @@ func (s *setEnvironmentVisibilityStep) Execute(ctx *pipeline.RequestContext[*api
 
 	env.Metadata.Visibility = input.GetVisibility()
 
-	if err := steps.SetAuditFieldsForUpdate(env); err != nil {
+	if err := steps.SetAuditFieldsForUpdate(env, steps.StatusAudit); err != nil {
 		return fmt.Errorf("failed to set audit fields: %w", err)
 	}
 

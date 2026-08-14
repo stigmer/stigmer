@@ -22,6 +22,11 @@ class SkillCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
                 _registered_method=True)
+        self.createArtifactUploadUrl = channel.unary_unary(
+                '/ai.stigmer.agentic.skill.v1.SkillCommandController/createArtifactUploadUrl',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.CreateSkillArtifactUploadUrlRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillArtifactUploadUrl.FromString,
+                _registered_method=True)
         self.pushFromExecutionArtifact = channel.unary_unary(
                 '/ai.stigmer.agentic.skill.v1.SkillCommandController/pushFromExecutionArtifact',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillFromExecutionArtifactRequest.SerializeToString,
@@ -47,20 +52,21 @@ class SkillCommandControllerServicer(object):
         """Push a skill artifact.
         Creates a skill if it does not exist, or creates a new version of an
         existing skill. The artifact must contain a SKILL.md file.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
-        @internal
-        Authorization:
-        - Organization-scoped skills: Caller must have can_create_skill permission in the organization
-        - Platform-scoped skills: Caller must be a platform operator
+    def createArtifactUploadUrl(self, request, context):
+        """Mint a short-lived, single-use upload URL for staging a skill artifact
+        that exceeds the gRPC message-size cap (10MB). Flow:
 
-        The backend will:
-        1. Normalize the name to a slug
-        2. Find or create the skill resource
-        3. Extract SKILL.md from the artifact
-        4. Calculate SHA256 hash (version identifier)
-        5. Store the artifact (deduplicated by hash)
-        6. Update skill spec and status
-        7. Archive the previous version (if updating)
+        1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
+        2. HTTP PUT the ZIP bytes to url
+        3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,
+        validation, and versioning as an inline push
+
+        The server refuses over-limit size_bytes here, before any bytes move.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -70,15 +76,6 @@ class SkillCommandControllerServicer(object):
         """Push a skill from an execution artifact already in storage.
         Use this when an agent execution has already produced a skill artifact
         and you want to publish it without downloading and re-uploading the ZIP.
-
-        @internal
-        Server-side equivalent of push() — reads the ZIP directly from artifact
-        storage instead of receiving bytes from the client. This eliminates
-        CORS concerns for SDK consumers.
-
-        Authorization:
-        - Requires can_view on the referenced execution (to read the artifact)
-        - Requires can_create_skill in the target organization (to push the skill)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -90,8 +87,9 @@ class SkillCommandControllerServicer(object):
         metadata fields untouched. Use this to make a skill publicly accessible
         or to revoke public access.
 
-        @internal
-        Authorization: Requires can_edit permission on the skill resource.
+        In the cloud edition, PUBLIC is operator-gated: public listing crosses
+        every org boundary, so it is granted by the platform team on request.
+        Un-publishing and all other levels stay self-service.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -99,9 +97,6 @@ class SkillCommandControllerServicer(object):
 
     def delete(self, request, context):
         """Delete a skill and all its versions.
-
-        @internal
-        Removes the skill from the main collection but preserves audit history.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -114,6 +109,11 @@ def add_SkillCommandControllerServicer_to_server(servicer, server):
                     servicer.push,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
+            ),
+            'createArtifactUploadUrl': grpc.unary_unary_rpc_method_handler(
+                    servicer.createArtifactUploadUrl,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.CreateSkillArtifactUploadUrlRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillArtifactUploadUrl.SerializeToString,
             ),
             'pushFromExecutionArtifact': grpc.unary_unary_rpc_method_handler(
                     servicer.pushFromExecutionArtifact,
@@ -159,6 +159,33 @@ class SkillCommandController(object):
             '/ai.stigmer.agentic.skill.v1.SkillCommandController/push',
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def createArtifactUploadUrl(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.skill.v1.SkillCommandController/createArtifactUploadUrl',
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.CreateSkillArtifactUploadUrlRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillArtifactUploadUrl.FromString,
             options,
             channel_credentials,
             insecure,

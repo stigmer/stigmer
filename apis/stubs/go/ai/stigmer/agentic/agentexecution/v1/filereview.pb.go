@@ -32,16 +32,6 @@ const (
 // pending_approvals — recomputed on every status write from the file_review
 // event ledger, never merged, so it is always consistent with the authoritative
 // stream.
-//
-// @internal
-//
-// Server-authored: the runner never sends this; it is derived server-side in
-// both editions through one projection seam. status and decisions are DERIVED
-// folds over the ledger, not stored-mutable state. A terminal execution
-// projects no actionable review (the workflow that would reconcile is gone),
-// mirroring the phase-aware pending_approvals rule.
-//
-// @since File-Change HITL Redesign (Phase 1)
 type FileChangeSet struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Stable id of this change set, unique per turn. The correlation key a
@@ -526,12 +516,6 @@ func (x *GitTreeRef) GetRef() string {
 
 // A content-addressed snapshot manifest for paths git cannot capture
 // (gitignored or non-git workspaces).
-//
-// @internal
-// Realized in Phase 3 (CAS). Present in the contract now so the snapshot shape
-// is stable before producers exist.
-//
-// @since File-Change HITL Redesign (Phase 1)
 type CasManifestRef struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Digest of the manifest listing each captured path and its blob digest.
@@ -742,13 +726,6 @@ func (x *FileDecision) GetOrigin() FileDecisionOrigin {
 }
 
 // The baseline workspace state captured at turn start.
-//
-// @internal
-// Authored by the runner's turn-begin capture activity. The first event of a
-// change set's lifecycle; carries the change set's stable identity so the
-// projection can materialize the set before any candidate exists.
-//
-// @since File-Change HITL Redesign (Phase 1)
 type FileReviewBaselineCaptured struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Stable id of the change set this baseline opens.
@@ -825,21 +802,6 @@ func (x *FileReviewBaselineCaptured) GetBaselineSnapshot() *SnapshotRef {
 // (DD-28): its assertion that EVERY mutation in the candidate was produced by
 // executed shell commands the human had already authorized, with the consent
 // evidence the backend can verify.
-//
-// @internal
-//
-// Presence of this message on a candidate asserts the runner-owned turn facts
-// the server cannot derive (tool calls carry no turn marker): the turn executed
-// zero file-tool (write/delete) calls, zero MCP tools, and delegated zero
-// sub-agents — its only mutation source was consented commands. These facts
-// carry the SAME trust level as the captured bytes themselves. What the runner
-// can NEVER assert is the consent: the backend verifies every claimed row below
-// against the server-authored approval record before authoring the policy
-// decision, so a runner cannot mint authorization it was never given. Absent
-// on any turn that does not qualify — the set then reviews manually, exactly
-// as before this field existed (fail-closed).
-//
-// @since File-Change HITL Redesign (DD-28 approved-command auto-keep)
 type TurnCommandProvenance struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Ids of the transcript tool calls whose SERVER-AUTHORED approval_action
@@ -903,12 +865,6 @@ func (x *TurnCommandProvenance) GetAuthorizedByAutoApproveAll() bool {
 
 // The candidate workspace state captured at the turn boundary, carrying the
 // computed authoritative diff.
-//
-// @internal
-// Authored by the runner's turn-boundary capture activity. Large before/after
-// bodies are offloaded (FileContent.ref) before this event is persisted.
-//
-// @since File-Change HITL Redesign (Phase 1)
 type FileReviewCandidateCaptured struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The change set this candidate closes.
@@ -1005,13 +961,6 @@ func (x *FileReviewCandidateCaptured) GetCommandProvenance() *TurnCommandProvena
 }
 
 // The result of reconciling approved decisions into the workspace.
-//
-// @internal
-// Authored by the runner's reconcile activity after decisions land. Idempotent:
-// it reconciles to an exact approved snapshot and verifies hashes, so re-running
-// converges.
-//
-// @since File-Change HITL Redesign (Phase 1)
 type FileReviewReconciled struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The change set that was reconciled.
@@ -1067,13 +1016,6 @@ func (x *FileReviewReconciled) GetApprovedSnapshot() *SnapshotRef {
 }
 
 // A terminal failure in the file-review lifecycle.
-//
-// @internal
-// Authored by the runner. A DIFF_UNREVIEWABLE failure blocks the change set
-// from becoming approvable (the diff cannot be shown completely); the others
-// record capture/reconcile/verification failures for audit and resume.
-//
-// @since File-Change HITL Redesign (Phase 1)
 type FileReviewFailure struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The change set the failure pertains to.
@@ -1143,10 +1085,6 @@ func (x *FileReviewFailure) GetDetail() string {
 // The payload is a closed oneof so each event type is type-safe and
 // self-documenting, mirroring ApprovalEvent. event_type is the coarse bucket;
 // the payload carries fidelity.
-//
-// @internal
-//
-// @since File-Change HITL Redesign (Phase 1)
 type FileReviewEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unique id of this event, deterministic by design: derived from
@@ -1338,24 +1276,6 @@ func (*FileReviewEvent_Failed) isFileReviewEvent_Payload() {}
 // Persisted on AgentExecutionStatus.file_review_event_stream as a
 // server-authored, append-only record. FileChangeSet is the projection of this
 // stream; the stream is the source of truth.
-//
-// @internal
-//
-// Field ownership (one writer per event type):
-//   - BASELINE_CAPTURED / CANDIDATE_CAPTURED / RECONCILED / FAILED events are
-//     authored by the runner's capture and reconcile activities, which
-//     CONTRIBUTE them on the UpdateStatus payload; the server folds them into
-//     this server-owned stream append-only, by event_id.
-//   - FILE_DECIDED events are authored by the SubmitFileDecision handler,
-//     carrying reviewer_id and the user's comment. A runner-sent FILE_DECIDED is
-//     dropped — the runner can never forge a human decision.
-//
-// Every append is keyed by the deterministic FileReviewEvent.event_id, so the
-// stream is idempotent under retries and an existing event is never overwritten.
-// The stored stream is server-owned: preserved in place across UpdateStatus
-// writes and only ever extended by the fold above and by SubmitFileDecision.
-//
-// @since File-Change HITL Redesign (Phase 1)
 type FileReviewEventStream struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// AgentExecution.metadata.id this stream belongs to.
@@ -1412,27 +1332,6 @@ func (x *FileReviewEventStream) GetEvents() []*FileReviewEvent {
 
 // A transient, non-authoritative snapshot of the workspace delta accumulating
 // during the CURRENT turn — the live "N files changed so far" surface.
-//
-// @internal
-//
-// This is the file-review analogue of SetupProgress / streaming_usage: a
-// runner-owned, latest-snapshot-wins DISPLAY field, NOT an event-sourced
-// projection. It is deliberately NOT a FileChangeSet — a FileChangeSet is
-// server-authored, ledger-derived, digest-bound, and DECIDABLE; progress is
-// runner-sent, never in the ledger, carries NO file bytes or digests, and is
-// NEVER decidable or authoritative. The turn-boundary CANDIDATE_CAPTURED remains
-// the single reviewable diff (diff(baseline, candidate)); a mid-run snapshot is
-// no more authoritative than a streamed tool-call arg.
-//
-// Lifecycle: the runner overwrites this on each mid-run persist while its change
-// set is CAPTURING; the server clears it once that set leaves CAPTURING (mirroring
-// the setup_progress defense-in-depth clear), so it never outlives the turn.
-//
-// Secret safety: it carries paths + kinds + line counts ONLY — no file bodies —
-// so nothing new can leak. A secret-like path is surfaced with zeroed counts
-// (path visible, content withheld), consistent with the DD-12 rule.
-//
-// @since File-Change HITL Redesign (mid-run live capture)
 type FileChangeProgress struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Id of the CAPTURING change set this progress previews ("${executionId}:${turnSeq}").
@@ -1530,15 +1429,6 @@ func (x *FileChangeProgress) GetCapturedAt() string {
 }
 
 // One file within a FileChangeProgress snapshot — a slim, non-authoritative row.
-//
-// @internal
-//
-// Carries only what the live strip renders: paths, kind, and line counts. It is
-// NOT a CapturedFileChange (which is the digest-bound, reviewable ledger delta);
-// it has no content, no digests, no unified diff. Path/kind naming mirrors
-// CapturedFileChange so renames read honestly.
-//
-// @since File-Change HITL Redesign (mid-run live capture)
 type FileChangeProgressEntry struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Path before the change (workspace-root-relative). Empty for ADD.

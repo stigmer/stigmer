@@ -17,20 +17,6 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_listen: GenFile = /*@__PU
 /**
  * ListenTaskConfig defines the configuration for listen tasks that wait for external signals.
  *
- * @internal
- * Implemented via Temporal signals.
- *
- * YAML Example:
- *   - taskName:
- *       listen:
- *         to:
- *           one:
- *             with:
- *               id: approval_signal
- *               type: signal
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 7
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig
  */
 export type ListenTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig"> & {

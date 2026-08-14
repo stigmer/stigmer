@@ -354,12 +354,6 @@ func (CostCalculationStatus) EnumDescriptor() ([]byte, []int) {
 // record can therefore never disagree with what was sent on the wire. The
 // CursorAccount store is the only credential source, so MANAGED_KEY is the
 // only source a current proxy can report.
-//
-// @internal
-// UNSPECIFIED doubles as the legacy marker: records written before the
-// serving identity was threaded through the proxy payload (when the
-// billing handler re-read the session's key pin at stamp time) carry no
-// source and must not be re-interpreted.
 type CursorKeySource int32
 
 const (
@@ -1628,13 +1622,6 @@ type StreamingUsageSummary struct {
 	// Labeled "Estimated" in the UI — not provider-verified.
 	EstimatedCostUsd float64 `protobuf:"fixed64,7,opt,name=estimated_cost_usd,json=estimatedCostUsd,proto3" json:"estimated_cost_usd,omitempty"`
 	// Model identifier the runner requested for this execution's turns.
-	//
-	// @internal
-	// This is the validated REQUESTED model (UsageAccumulator constructor
-	// argument), not a provider-reported resolved id — the Cursor SDK echoes
-	// the requested selection and never reports the served variant, so the
-	// authoritative resolved model lives on billing's LlmCallUsageRecord
-	// (requested_model / resolved_model / service_tier), not here.
 	Model string `protobuf:"bytes,8,opt,name=model,proto3" json:"model,omitempty"`
 	// ISO 8601 timestamp of the last turn-ended event observed.
 	ObservedAt string `protobuf:"bytes,9,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
@@ -1647,12 +1634,6 @@ type StreamingUsageSummary struct {
 	// JSON-encoded provider variant parameters the runner sent with the model
 	// selection (Cursor ModelSelection.params, e.g.
 	// [{"id":"fast","value":"false"}]). Empty when the harness sent none.
-	//
-	// @internal
-	// Recorded verbatim for audit: tier→params translation depends on the
-	// provider catalog at send time, so the derivation is not reproducible
-	// later from the tier alone. Mirrors the Cursor SDK's own analytics
-	// convention (SdkRunCreatedProps.model_params).
 	RequestedModelParams string `protobuf:"bytes,11,opt,name=requested_model_params,json=requestedModelParams,proto3" json:"requested_model_params,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache

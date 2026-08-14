@@ -4,6 +4,7 @@ import { useId } from "react";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { cn } from "@stigmer/theme";
+import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { useRoleSelector } from "./useRoleSelector.js";
 
 /** Props for {@link RoleSelector}. */
@@ -73,7 +74,7 @@ export function RoleSelector({
   }
 
   return (
-    <fieldset className={cn("stg:space-y-1.5", className)}>
+    <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-1.5", className)}>
       <legend className="stg:text-xs stg:font-medium stg:text-foreground">Role</legend>
       <div className="stg:flex stg:flex-wrap stg:gap-2">
         {options.map((opt) => {
