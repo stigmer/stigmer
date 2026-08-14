@@ -17,16 +17,6 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_set: GenFile = /*@__PURE_
 /**
  * SetTaskConfig defines the configuration for set_vars tasks that assign variables in workflow state.
  *
- * @internal
- * YAML Example:
- *   - taskName:
- *       set:
- *         variable1: value
- *         variable2: ${ expression }
- *         computed: ${ .a + .b }
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 1
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
  */
 export type SetTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig"> & {

@@ -251,12 +251,6 @@ export enum IamPermission {
    * conversations: reply to customers as the business, take over and
    * hand back the control token, and clear the attention flag.
    *
-   * @internal
-   * channel-conversations DD-010: computed from the participant role on
-   * agent_channel. Deliberately distinct from can_edit — "may talk to
-   * this channel's customers" and "may configure this channel" are
-   * different powers, and the ISC pilot's trainers hold only the first.
-   *
    * @generated from enum value: can_participate = 36;
    */
   can_participate = 36,
@@ -345,13 +339,6 @@ export enum IamRole {
    * Conversation participant on an agent channel: may read the channel's
    * conversations and speak to its customers as the business (reply, take
    * over, hand back, clear attention). Not a channel configurator.
-   *
-   * @internal
-   * channel-conversations DD-010. Grantable only on agent_channel — the
-   * second kind-scoped role after organization's admin/member; the
-   * grantable_roles subsetting is the mechanism, not a new one. Team
-   * usersets ([team#member]) are the named widening the day a team FGA
-   * type lands.
    *
    * @generated from enum value: participant = 5;
    */

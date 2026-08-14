@@ -36,20 +36,6 @@ type SkillCommandControllerClient interface {
 	// Push a skill artifact.
 	// Creates a skill if it does not exist, or creates a new version of an
 	// existing skill. The artifact must contain a SKILL.md file.
-	//
-	// @internal
-	// Authorization:
-	// - Organization-scoped skills: Caller must have can_create_skill permission in the organization
-	// - Platform-scoped skills: Caller must be a platform operator
-	//
-	// The backend will:
-	// 1. Normalize the name to a slug
-	// 2. Find or create the skill resource
-	// 3. Extract SKILL.md from the artifact
-	// 4. Calculate SHA256 hash (version identifier)
-	// 5. Store the artifact (deduplicated by hash)
-	// 6. Update skill spec and status
-	// 7. Archive the previous version (if updating)
 	Push(ctx context.Context, in *PushSkillRequest, opts ...grpc.CallOption) (*Skill, error)
 	// Mint a short-lived, single-use upload URL for staging a skill artifact
 	// that exceeds the gRPC message-size cap (10MB). Flow:
@@ -60,36 +46,17 @@ type SkillCommandControllerClient interface {
 	//     validation, and versioning as an inline push
 	//
 	// The server refuses over-limit size_bytes here, before any bytes move.
-	//
-	// @internal
-	// Authorization matches push() — the URL is a capability to stage bytes,
-	// so minting one requires the same permission as consuming it.
 	CreateArtifactUploadUrl(ctx context.Context, in *CreateSkillArtifactUploadUrlRequest, opts ...grpc.CallOption) (*SkillArtifactUploadUrl, error)
 	// Push a skill from an execution artifact already in storage.
 	// Use this when an agent execution has already produced a skill artifact
 	// and you want to publish it without downloading and re-uploading the ZIP.
-	//
-	// @internal
-	// Server-side equivalent of push() — reads the ZIP directly from artifact
-	// storage instead of receiving bytes from the client. This eliminates
-	// CORS concerns for SDK consumers.
-	//
-	// Authorization:
-	// - Requires can_view on the referenced execution (to read the artifact)
-	// - Requires can_create_skill in the target organization (to push the skill)
 	PushFromExecutionArtifact(ctx context.Context, in *PushSkillFromExecutionArtifactRequest, opts ...grpc.CallOption) (*Skill, error)
 	// Update the visibility of an existing skill.
 	// Only modifies metadata.visibility, leaving spec, status, and other
 	// metadata fields untouched. Use this to make a skill publicly accessible
 	// or to revoke public access.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the skill resource.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Skill, error)
 	// Delete a skill and all its versions.
-	//
-	// @internal
-	// Removes the skill from the main collection but preserves audit history.
 	Delete(ctx context.Context, in *SkillId, opts ...grpc.CallOption) (*Skill, error)
 }
 
@@ -160,20 +127,6 @@ type SkillCommandControllerServer interface {
 	// Push a skill artifact.
 	// Creates a skill if it does not exist, or creates a new version of an
 	// existing skill. The artifact must contain a SKILL.md file.
-	//
-	// @internal
-	// Authorization:
-	// - Organization-scoped skills: Caller must have can_create_skill permission in the organization
-	// - Platform-scoped skills: Caller must be a platform operator
-	//
-	// The backend will:
-	// 1. Normalize the name to a slug
-	// 2. Find or create the skill resource
-	// 3. Extract SKILL.md from the artifact
-	// 4. Calculate SHA256 hash (version identifier)
-	// 5. Store the artifact (deduplicated by hash)
-	// 6. Update skill spec and status
-	// 7. Archive the previous version (if updating)
 	Push(context.Context, *PushSkillRequest) (*Skill, error)
 	// Mint a short-lived, single-use upload URL for staging a skill artifact
 	// that exceeds the gRPC message-size cap (10MB). Flow:
@@ -184,36 +137,17 @@ type SkillCommandControllerServer interface {
 	//     validation, and versioning as an inline push
 	//
 	// The server refuses over-limit size_bytes here, before any bytes move.
-	//
-	// @internal
-	// Authorization matches push() — the URL is a capability to stage bytes,
-	// so minting one requires the same permission as consuming it.
 	CreateArtifactUploadUrl(context.Context, *CreateSkillArtifactUploadUrlRequest) (*SkillArtifactUploadUrl, error)
 	// Push a skill from an execution artifact already in storage.
 	// Use this when an agent execution has already produced a skill artifact
 	// and you want to publish it without downloading and re-uploading the ZIP.
-	//
-	// @internal
-	// Server-side equivalent of push() — reads the ZIP directly from artifact
-	// storage instead of receiving bytes from the client. This eliminates
-	// CORS concerns for SDK consumers.
-	//
-	// Authorization:
-	// - Requires can_view on the referenced execution (to read the artifact)
-	// - Requires can_create_skill in the target organization (to push the skill)
 	PushFromExecutionArtifact(context.Context, *PushSkillFromExecutionArtifactRequest) (*Skill, error)
 	// Update the visibility of an existing skill.
 	// Only modifies metadata.visibility, leaving spec, status, and other
 	// metadata fields untouched. Use this to make a skill publicly accessible
 	// or to revoke public access.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the skill resource.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Skill, error)
 	// Delete a skill and all its versions.
-	//
-	// @internal
-	// Removes the skill from the main collection but preserves audit history.
 	Delete(context.Context, *SkillId) (*Skill, error)
 }
 

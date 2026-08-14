@@ -8,24 +8,6 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 
 class ExecutionContextCommandControllerStub(object):
     """ExecutionContextCommandController handles write operations for ExecutionContext resources.
-
-    @internal
-    Every write RPC uses is_skip_authorization with a real handler-level check
-    (the framework's declarative FGA options cannot express any of these):
-    - create: the caller-class differs by transport. Internal in-process
-    pipeline calls (agent execution, workflow execution, workflow recovery,
-    MCP connect) are trusted — the parent operation already authorized the
-    run against its session-or-org, and the EC is created before that parent
-    is persisted, so it carries no resource to re-check. External callers
-    must hold can_create_execution_in on metadata.org (the same bar that
-    gates creating an execution in the org; held by members and guests).
-    A declarative org option cannot encode the internal/external split.
-    - apply: intentionally unannotated router — it delegates to create
-    (create-or-fail; ExecutionContext has no update RPC) and the delegated
-    pipeline runs under create's handler, authorization included.
-    - delete: caller must have can_edit on execution_context:<id> (owner-only,
-    per the execution_context FGA model). The FGA target is the loaded
-    resource, so it cannot be a declarative method option.
     """
 
     def __init__(self, channel):
@@ -53,33 +35,10 @@ class ExecutionContextCommandControllerStub(object):
 
 class ExecutionContextCommandControllerServicer(object):
     """ExecutionContextCommandController handles write operations for ExecutionContext resources.
-
-    @internal
-    Every write RPC uses is_skip_authorization with a real handler-level check
-    (the framework's declarative FGA options cannot express any of these):
-    - create: the caller-class differs by transport. Internal in-process
-    pipeline calls (agent execution, workflow execution, workflow recovery,
-    MCP connect) are trusted — the parent operation already authorized the
-    run against its session-or-org, and the EC is created before that parent
-    is persisted, so it carries no resource to re-check. External callers
-    must hold can_create_execution_in on metadata.org (the same bar that
-    gates creating an execution in the org; held by members and guests).
-    A declarative org option cannot encode the internal/external split.
-    - apply: intentionally unannotated router — it delegates to create
-    (create-or-fail; ExecutionContext has no update RPC) and the delegated
-    pipeline runs under create's handler, authorization included.
-    - delete: caller must have can_edit on execution_context:<id> (owner-only,
-    per the execution_context FGA model). The FGA target is the loaded
-    resource, so it cannot be a declarative method option.
     """
 
     def apply(self, request, context):
         """Create or update an ExecutionContext.
-
-        @internal
-        Router only: delegates to create when the resource does not exist and
-        fails with ALREADY_EXISTS when it does (no update RPC). Authorization is
-        inherited from the delegated create pipeline.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -87,15 +46,6 @@ class ExecutionContextCommandControllerServicer(object):
 
     def create(self, request, context):
         """Create a new ExecutionContext for an execution.
-
-        @internal
-        Called by the execution pipelines (agent execution, workflow execution,
-        workflow recovery, MCP connect) as sub-steps, and reachable directly by
-        API clients. is_skip_authorization because the caller-class split cannot
-        be a declarative option: the create handler trusts internal in-process
-        calls (already authorized upstream) and requires external callers to hold
-        can_create_execution_in on metadata.org. The pipeline additionally grants
-        the caller the owner tuple, which gates all subsequent reads and delete.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -103,12 +53,6 @@ class ExecutionContextCommandControllerServicer(object):
 
     def delete(self, request, context):
         """Delete an ExecutionContext.
-
-        @internal
-        Called when execution completes. Handler-level auth (the FGA target is the
-        loaded resource, so it cannot be a declarative option): caller must have
-        can_edit on execution_context:<id>, which the FGA model resolves to the
-        owner written at create time.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -142,24 +86,6 @@ def add_ExecutionContextCommandControllerServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class ExecutionContextCommandController(object):
     """ExecutionContextCommandController handles write operations for ExecutionContext resources.
-
-    @internal
-    Every write RPC uses is_skip_authorization with a real handler-level check
-    (the framework's declarative FGA options cannot express any of these):
-    - create: the caller-class differs by transport. Internal in-process
-    pipeline calls (agent execution, workflow execution, workflow recovery,
-    MCP connect) are trusted — the parent operation already authorized the
-    run against its session-or-org, and the EC is created before that parent
-    is persisted, so it carries no resource to re-check. External callers
-    must hold can_create_execution_in on metadata.org (the same bar that
-    gates creating an execution in the org; held by members and guests).
-    A declarative org option cannot encode the internal/external split.
-    - apply: intentionally unannotated router — it delegates to create
-    (create-or-fail; ExecutionContext has no update RPC) and the delegated
-    pipeline runs under create's handler, authorization included.
-    - delete: caller must have can_edit on execution_context:<id> (owner-only,
-    per the execution_context FGA model). The FGA target is the loaded
-    resource, so it cannot be a declarative method option.
     """
 
     @staticmethod

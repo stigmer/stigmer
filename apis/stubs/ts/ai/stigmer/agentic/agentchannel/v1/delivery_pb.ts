@@ -18,16 +18,6 @@ export const file_ai_stigmer_agentic_agentchannel_v1_delivery: GenFile = /*@__PU
  * ChannelDelivery tracks the delivery of one agent reply to one external
  * conversation.
  *
- * @internal
- * Infrastructure-only. Not a public API resource — no kind, no apiVersion,
- * no CRUD RPCs, no FGA (the OAuthGrant / ExecutionReservation pattern).
- * Stored in an internal Mongo collection with a hand-written repo;
- * decision 002's correctness backbone. Created at webhook time in the same
- * motion as the Session/AgentExecution; claimed atomically by the delivery
- * worker (status-guarded findAndModify, the atomicIncrementConsumed idiom);
- * swept by a Temporal Schedule for executions whose terminal write raced
- * or bypassed the hook.
- *
  * @generated from message ai.stigmer.agentic.agentchannel.v1.ChannelDelivery
  */
 export type ChannelDelivery = Message<"ai.stigmer.agentic.agentchannel.v1.ChannelDelivery"> & {
@@ -159,16 +149,6 @@ export type ChannelDelivery = Message<"ai.stigmer.agentic.agentchannel.v1.Channe
    * delivery reached a terminal status. Empty while pending/delivering, and
    * on rows terminal before this field existed.
    *
-   * @internal
-   * channel-conversations DD-004 D-c as amended at T02 Sitting 3 (D1-A):
-   * the conversation timeline renders agent replies from THIS field, never
-   * by re-running ChannelReplyExtractor at read time — the extractor's
-   * error/cancelled/limit copy constants change over releases, and a
-   * re-derivation would attribute today's words to yesterday's send.
-   * Written by the processor on markDelivered AND markFailed (a
-   * dead-lettered reply's text is what a human taking over needs to see);
-   * deliberately not on markRetry, which is non-terminal and re-extracts.
-   *
    * @generated from field: string reply_text = 17;
    */
   replyText: string;
@@ -178,12 +158,6 @@ export type ChannelDelivery = Message<"ai.stigmer.agentic.agentchannel.v1.Channe
    * unless status is failed (and on rows terminal before this field
    * existed).
    *
-   * @internal
-   * cloud#262 (channel-conversations F-25): the classification that
-   * decides whether the failure's explanation may reach the conversation
-   * timeline. Written only by markFailed and the delete cascade, never by
-   * markRetry — a scheduled retry is not a verdict.
-   *
    * @generated from field: ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 18;
    */
   failureKind: ChannelAttemptFailureKind;
@@ -192,13 +166,6 @@ export type ChannelDelivery = Message<"ai.stigmer.agentic.agentchannel.v1.Channe
    * The thread-safe explanation of a FAILED delivery, when one was
    * authored for the conversation surface. Empty unless failure_kind is
    * attempt_refused or attempt_withdrawn.
-   *
-   * @internal
-   * cloud#262: PLATFORM-authored copy, unlike the outbound ledger's
-   * provider-owned receipt_detail. The write side is the guarantee: only
-   * the refusal and withdrawal arms carry copy here, so raw exception
-   * text (which stays in last_error, an operator-only fact) can
-   * structurally never reach the timeline relay.
    *
    * @generated from field: string attempt_detail = 19;
    */
@@ -236,11 +203,6 @@ export type SlackDeliveryContext = Message<"ai.stigmer.agentic.agentchannel.v1.S
   /**
    * Timestamp of the placeholder ("thinking") message to chat.update.
    *
-   * @internal
-   * Set on the @mention and degraded-DM paths only (decision 008); the
-   * Assistant DM path uses assistant.threads.setStatus and carries no
-   * placeholder timestamp.
-   *
    * @generated from field: string placeholder_ts = 3;
    */
   placeholderTs: string;
@@ -256,13 +218,6 @@ export const SlackDeliveryContextSchema: GenMessage<SlackDeliveryContext> = /*@_
 /**
  * WhatsAppDeliveryContext carries what the WhatsApp deliverer needs to
  * send the reply through the Meta Cloud API.
- *
- * @internal
- * No placeholder field: WhatsApp cannot edit a sent message, so there is
- * no "thinking" message to update (the Slack chat.update UX has no
- * analog). No credentials either — the deliverer loads the channel by
- * agent_channel_id and resolves the access token from its ChannelApp
- * (DD-WA-3), the SlackOutboundDeliverer channel-load pattern.
  *
  * @generated from message ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext
  */
@@ -291,14 +246,6 @@ export const WhatsAppDeliveryContextSchema: GenMessage<WhatsAppDeliveryContext> 
 
 /**
  * ChannelDeliveryStatus is the delivery record lifecycle.
- *
- * @internal
- * pending -> delivering is the atomic claim (single winner across
- * replicas). delivering -> delivered | pending (retry, with backoff via
- * next_attempt_at) | failed (dead-lettered after max attempts, or
- * immediately on a known-terminal provider refusal — cloud#263) |
- * suppressed (withheld under human control — channel-conversations
- * DD-005 D-e; terminal, intended behavior, never an alert condition).
  *
  * @generated from enum ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
  */
@@ -344,13 +291,6 @@ export enum ChannelDeliveryStatus {
    * Withheld because a human held the conversation when the reply came
    * due; the customer never received it.
    *
-   * @internal
-   * channel-conversations DD-005 D-e: terminal like delivered/failed,
-   * but intended behavior — a suppressed settle records its own metric
-   * and never feeds the bad-turn alert. The reply text is deliberately
-   * NOT extracted or persisted (the customer never saw any words, and
-   * the timeline's reply lane excludes this status by contract).
-   *
    * @generated from enum value: suppressed = 5;
    */
   suppressed = 5,
@@ -367,15 +307,6 @@ export const ChannelDeliveryStatusSchema: GenEnum<ChannelDeliveryStatus> = /*@__
  * status failed — and with it, whether the failure's stored explanation
  * was authored for the conversation surface (attempt_detail) or is an
  * operator-only diagnostic (last_error).
- *
- * @internal
- * cloud#262 (channel-conversations F-25, the DD-014 D-d deferred copy
- * ruling). Values carry the attempt_ prefix because proto3 enum values
- * are package-scoped — and, as with ChannelReceiptState's receipt_
- * prefix, that is also a feature: the attempt axis and the receipt axis
- * can never be confused on the wire. Shared by ChannelDelivery and
- * ChannelOutboundMessage exactly like ChannelDeliveryStatus (a twin
- * enum would not compile).
  *
  * @generated from enum ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind
  */

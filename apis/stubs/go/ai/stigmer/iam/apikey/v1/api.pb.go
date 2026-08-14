@@ -28,10 +28,6 @@ const (
 //
 // Each API key is scoped to a single identity account (user or machine) and
 // can optionally be configured to expire.
-//
-// @internal
-// The raw key value is returned only once in the create response. Only the
-// hash and fingerprint are persisted.
 type ApiKey struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

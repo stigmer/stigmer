@@ -54,12 +54,6 @@ class AgentChannelCommandControllerServicer(object):
 
     def apply(self, request, context):
         """Create or update an agent channel.
-
-        @internal
-        The authorization and state-operation are determined depending on
-        whether the channel is going to be created or updated, resolved as
-        part of request execution. status is preserved verbatim (the install
-        flow is its sole writer).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -71,15 +65,6 @@ class AgentChannelCommandControllerServicer(object):
         Connecting an agent to a channel is a billing-affecting decision:
         conversations arriving over the channel consume the connection-owning
         organization's credits.
-
-        @internal
-        Authorization: requires can_edit on the REFERENCED AGENT
-        (spec.agent_ref), checked in-handler — same bar as AgentShare create,
-        since connecting a channel broadens who can chat with the agent
-        runtime. Standard org-scoped create tuples (owner = creator) for the
-        channel itself; no visibility tuples (channel admission is app-level).
-        Invariant enforced here: metadata.org must equal spec.agent_ref.org.
-        status.install_state is initialized to pending_install.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -91,12 +76,6 @@ class AgentChannelCommandControllerServicer(object):
         Replaces the spec wholesale. The slug, referenced agent, and provider
         arm are immutable; status (install facts, credential reference) is
         never touched by updates.
-
-        @internal
-        Authorization: requires can_edit permission on the agent channel.
-        Provider-arm immutability (a slack channel cannot become whatsapp) is
-        enforced in-handler: the install state, credentials, and delivery
-        records are all provider-shaped.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -119,17 +98,6 @@ class AgentChannelCommandControllerServicer(object):
         already serves an agent through this channel app (one agent per
         number per app). Metadata: display_phone_number (the occupied
         number), channel_app_id (the serving app).
-
-        @internal
-        Authorization: requires can_edit on the agent channel — installing
-        grants a workspace access to the agent runtime, the same bar as
-        enabling. Redirect style generates and persists the single-use state
-        (pending-state pattern from MCP OAuth); direct style validates
-        against the provider, persists the status, and maps the
-        duplicate-number refusal (the completeInstall duplicate-workspace
-        mechanism). Cloud-first runtime: the OSS edition stores channel
-        resources but returns FAILED_PRECONDITION here (documented posture,
-        decision 001 D-g / T02 §0-b).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -158,14 +126,6 @@ class AgentChannelCommandControllerServicer(object):
 
         Other refusals (unconfigured deployment, provider-refused code
         exchange) carry no reason — their message is the interface.
-
-        @internal
-        Authorization: requires can_edit on the agent channel — the same bar
-        as initiateInstall (the two halves of one flow). The handler consumes
-        the state atomically, exchanges the code, stores credentials in the
-        system-managed Environment, records the grant, and writes the status
-        facts (sole writer). The OSS edition returns FAILED_PRECONDITION
-        (documented posture, decision 001 D-g / T02 §0-b).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -178,11 +138,6 @@ class AgentChannelCommandControllerServicer(object):
         resolving, pending deliveries are abandoned, and the credentials
         environment is deleted with the grant. To pause serving while keeping
         the install, update the channel with enabled=false instead.
-
-        @internal
-        Authorization: requires can_delete permission on the agent channel.
-        The referenced agent is untouched. Teardown cascade (managed env +
-        grant deletion) mirrors McpServer disconnectOAuth.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

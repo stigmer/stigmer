@@ -24,10 +24,6 @@ const (
 )
 
 // Ephemeral runtime configuration and secrets scoped to a single execution.
-//
-// @internal
-// Created by the execution engine at start, deleted when execution completes.
-// Used for B2B scenarios where secrets are injected at runtime.
 type ExecutionContext struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

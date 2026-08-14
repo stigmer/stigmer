@@ -22,13 +22,6 @@ export const file_ai_stigmer_agentic_channelapp_v1_query: GenFile = /*@__PURE__*
 /**
  * ChannelAppQueryController handles read operations for channel apps.
  *
- * @internal
- * Every response passes through secret redaction — client_secret and
- * signing_secret are replaced with the redaction marker. Runtime
- * consumers that need the real values (installer, webhook receiver)
- * read the repo directly, the documented OAuthAppResolutionService
- * exception.
- *
  * @generated from service ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController
  */
 export const ChannelAppQueryController: GenService<{
@@ -36,10 +29,6 @@ export const ChannelAppQueryController: GenService<{
    * Get a channel app by its unique identifier.
    *
    * Secret fields are redacted in the response.
-   *
-   * @internal
-   * Authorization: requires can_view permission on the channel_app
-   * resource.
    *
    * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.get
    */
@@ -52,10 +41,6 @@ export const ChannelAppQueryController: GenService<{
    * Get a channel app by its organization-scoped reference (org/slug).
    *
    * Secret fields are redacted in the response.
-   *
-   * @internal
-   * Custom authorization in handler — checks both direct resource access
-   * and organization-level visibility permissions (the OAuthApp pattern).
    *
    * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.getByReference
    */
@@ -70,10 +55,6 @@ export const ChannelAppQueryController: GenService<{
    * Returns every ChannelApp whose metadata.org matches the input org,
    * with secret fields redacted. Typically a small set, so results are
    * not paginated.
-   *
-   * @internal
-   * Authorization: requires can_view permission on the organization
-   * resource.
    *
    * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.listByOrg
    */

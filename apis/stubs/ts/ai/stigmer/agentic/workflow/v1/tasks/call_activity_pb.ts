@@ -18,27 +18,11 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_call_activity: GenFile = 
 /**
  * CallActivityTaskConfig defines the configuration for activity_call tasks that execute activities.
  *
- * @internal
- * Executes Temporal activities.
- *
- * YAML Example:
- *   - taskName:
- *       call: activity
- *       with:
- *         activity: "ProcessDataActivity"
- *         input:
- *           data: ${ .data }
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 10
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig
  */
 export type CallActivityTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig"> & {
   /**
    * Activity name to execute.
-   *
-   * @internal
-   * Must match a registered Temporal activity.
    *
    * @generated from field: string activity = 1;
    */

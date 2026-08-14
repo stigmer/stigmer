@@ -14,10 +14,6 @@ export const file_ai_stigmer_commons_apiresource_enum: GenFile = /*@__PURE__*/
 /**
  * Event types produced by command controller RPCs across all API resources.
  *
- * @internal
- * Different enums could be used per resource, but a shared enum is simpler
- * because events are converted to strings during message passing.
- *
  * @generated from enum ai.stigmer.commons.apiresource.ApiResourceEventType
  */
 export enum ApiResourceEventType {
@@ -72,10 +68,6 @@ export const ApiResourceEventTypeSchema: GenEnum<ApiResourceEventType> = /*@__PU
 
 /**
  * Operation type for API resource state transitions.
- *
- * @internal
- * Used by the state machine to classify RPC operations and enforce
- * transition rules (e.g., a resource in "deleting" state rejects create).
  *
  * @generated from enum ai.stigmer.commons.apiresource.ApiResourceStateOperationType
  */
@@ -173,11 +165,6 @@ export enum ApiResourceVisibility {
    * skill, workflow, project, mcp_server), so a private blueprint stays
    * manageable — and visible — to its org's admins. Personal kinds
    * (instances, environments, sessions) stay creator-only.
-   *
-   * @internal
-   * Named visibility_private to avoid Java reserved keyword conflict.
-   * Admin inheritance is the FGA-model composition
-   * `owner: [identity_account] or admin from organization` (T08).
    *
    * @generated from enum value: visibility_private = 1;
    */

@@ -15,9 +15,6 @@ class ProviderStandingQueryControllerStub(object):
     platform-internal, never org-visible, and this surface only observes —
     there is nothing to CRUD (the standing model is deliberately a
     lightweight status, not an API resource).
-
-    @internal
-    Cloud-only; not implemented by the OSS Go server.
     """
 
     def __init__(self, channel):
@@ -43,9 +40,6 @@ class ProviderStandingQueryControllerServicer(object):
     platform-internal, never org-visible, and this surface only observes —
     there is nothing to CRUD (the standing model is deliberately a
     lightweight status, not an API resource).
-
-    @internal
-    Cloud-only; not implemented by the OSS Go server.
     """
 
     def getProviderStandingView(self, request, context):
@@ -81,9 +75,6 @@ class ProviderStandingQueryController(object):
     platform-internal, never org-visible, and this surface only observes —
     there is nothing to CRUD (the standing model is deliberately a
     lightweight status, not an API resource).
-
-    @internal
-    Cloud-only; not implemented by the OSS Go server.
     """
 
     @staticmethod

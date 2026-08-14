@@ -28,34 +28,12 @@ const (
 //
 // ChannelMessageCommandController handles business-initiated outbound
 // messages on agent channels.
-//
-// @internal
-// proactive-messaging DD-002 D2: the runtime messaging surface beside
-// the AgentChannel resource controllers — a dedicated runtime service
-// next to the resource CRUD service, so resource CRUD and runtime
-// traffic never mix. Dual-audience by token-class dispatch: the agent's
-// send_channel_message tool calls with a session-scoped sandbox token;
-// direct principals (console, CLI, SDK) call with their own identity.
 type ChannelMessageCommandControllerClient interface {
 	// Send a business-initiated message to a recipient on an agent channel.
 	//
 	// The message is durably recorded and attempted once inline; transient
 	// failures are retried in the background. The outcome reports the
 	// truth of the inline attempt.
-	//
-	// @internal
-	// Authorization in-handler (DD-002 D2/D6/D9): token-class dispatch,
-	// fail closed; agent-anchored chain (never session-sender-anchored —
-	// the recipient is an argument). Error contract (DD-002 D4): unknown
-	// or foreign token class, no serving channel, proactive messaging not
-	// enabled, or channel/org mismatch → PERMISSION_DENIED with no policy
-	// detail leaked; malformed input or ambiguous channel/language →
-	// INVALID_ARGUMENT with the candidates listed; channel not installed →
-	// FAILED_PRECONDITION; rate caps, recipient policy, and provider
-	// refusals → outcome=refused; transient provider failures →
-	// outcome=queued. Cloud-first runtime: the OSS edition returns
-	// FAILED_PRECONDITION (decision 001 D-g posture, the initiateInstall
-	// precedent).
 	SendMessage(ctx context.Context, in *SendChannelMessageInput, opts ...grpc.CallOption) (*SendChannelMessageOutput, error)
 }
 
@@ -83,34 +61,12 @@ func (c *channelMessageCommandControllerClient) SendMessage(ctx context.Context,
 //
 // ChannelMessageCommandController handles business-initiated outbound
 // messages on agent channels.
-//
-// @internal
-// proactive-messaging DD-002 D2: the runtime messaging surface beside
-// the AgentChannel resource controllers — a dedicated runtime service
-// next to the resource CRUD service, so resource CRUD and runtime
-// traffic never mix. Dual-audience by token-class dispatch: the agent's
-// send_channel_message tool calls with a session-scoped sandbox token;
-// direct principals (console, CLI, SDK) call with their own identity.
 type ChannelMessageCommandControllerServer interface {
 	// Send a business-initiated message to a recipient on an agent channel.
 	//
 	// The message is durably recorded and attempted once inline; transient
 	// failures are retried in the background. The outcome reports the
 	// truth of the inline attempt.
-	//
-	// @internal
-	// Authorization in-handler (DD-002 D2/D6/D9): token-class dispatch,
-	// fail closed; agent-anchored chain (never session-sender-anchored —
-	// the recipient is an argument). Error contract (DD-002 D4): unknown
-	// or foreign token class, no serving channel, proactive messaging not
-	// enabled, or channel/org mismatch → PERMISSION_DENIED with no policy
-	// detail leaked; malformed input or ambiguous channel/language →
-	// INVALID_ARGUMENT with the candidates listed; channel not installed →
-	// FAILED_PRECONDITION; rate caps, recipient policy, and provider
-	// refusals → outcome=refused; transient provider failures →
-	// outcome=queued. Cloud-first runtime: the OSS edition returns
-	// FAILED_PRECONDITION (decision 001 D-g posture, the initiateInstall
-	// precedent).
 	SendMessage(context.Context, *SendChannelMessageInput) (*SendChannelMessageOutput, error)
 }
 

@@ -28,13 +28,6 @@ const (
 // An Organization's metadata.id equals its metadata.slug: unlike every other
 // resource (which is assigned a generated prefixed id), the tenancy root is
 // addressed by its slug, which is globally unique.
-//
-// @internal
-// Similar to GitHub organizations, all agents, workflows, sessions, and other
-// resources are scoped under an organization. This enables multi-tenancy and
-// proper resource isolation. Child resources reference their owning org by slug
-// (metadata.org), which is why the org's id is set to its slug rather than a
-// minted org_<ulid> (see OrganizationCommandController create pipeline).
 type Organization struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

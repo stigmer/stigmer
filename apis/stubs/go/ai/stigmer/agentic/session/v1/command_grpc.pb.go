@@ -33,15 +33,8 @@ const (
 // SessionCommandController handles write operations for agent sessions.
 type SessionCommandControllerClient interface {
 	// Create or update a session.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on whether the session
-	// is going to be created or updated which is determined as part of the request execution.
 	Apply(ctx context.Context, in *Session, opts ...grpc.CallOption) (*Session, error)
 	// Create a session.
-	//
-	// @internal
-	// Requires can_create_session permission in the organization.
 	Create(ctx context.Context, in *Session, opts ...grpc.CallOption) (*Session, error)
 	// Update an existing session (e.g., subject, thread_id).
 	Update(ctx context.Context, in *Session, opts ...grpc.CallOption) (*Session, error)
@@ -50,10 +43,6 @@ type SessionCommandControllerClient interface {
 	// This is a targeted update that modifies only the subject field,
 	// leaving other session fields untouched. Use this instead of the full
 	// update RPC when you only need to change the session subject.
-	//
-	// @internal
-	// Server-side field-level update, race-safe. Atomically modifies only
-	// spec.subject without touching other fields.
 	UpdateSubject(ctx context.Context, in *UpdateSessionSubjectRequest, opts ...grpc.CallOption) (*Session, error)
 	// Delete a session.
 	//
@@ -64,10 +53,6 @@ type SessionCommandControllerClient interface {
 	// Fails with FAILED_PRECONDITION while any agent execution in the
 	// session is still active (pending, in progress, waiting for approval,
 	// or paused); cancel it or wait for it to finish first.
-	//
-	// @internal
-	// Requires can_delete on the session (owner-only — sessions are personal
-	// resources, so org admins have no implicit delete access).
 	Delete(ctx context.Context, in *SessionId, opts ...grpc.CallOption) (*Session, error)
 }
 
@@ -136,15 +121,8 @@ func (c *sessionCommandControllerClient) Delete(ctx context.Context, in *Session
 // SessionCommandController handles write operations for agent sessions.
 type SessionCommandControllerServer interface {
 	// Create or update a session.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on whether the session
-	// is going to be created or updated which is determined as part of the request execution.
 	Apply(context.Context, *Session) (*Session, error)
 	// Create a session.
-	//
-	// @internal
-	// Requires can_create_session permission in the organization.
 	Create(context.Context, *Session) (*Session, error)
 	// Update an existing session (e.g., subject, thread_id).
 	Update(context.Context, *Session) (*Session, error)
@@ -153,10 +131,6 @@ type SessionCommandControllerServer interface {
 	// This is a targeted update that modifies only the subject field,
 	// leaving other session fields untouched. Use this instead of the full
 	// update RPC when you only need to change the session subject.
-	//
-	// @internal
-	// Server-side field-level update, race-safe. Atomically modifies only
-	// spec.subject without touching other fields.
 	UpdateSubject(context.Context, *UpdateSessionSubjectRequest) (*Session, error)
 	// Delete a session.
 	//
@@ -167,10 +141,6 @@ type SessionCommandControllerServer interface {
 	// Fails with FAILED_PRECONDITION while any agent execution in the
 	// session is still active (pending, in progress, waiting for approval,
 	// or paused); cancel it or wait for it to finish first.
-	//
-	// @internal
-	// Requires can_delete on the session (owner-only — sessions are personal
-	// resources, so org admins have no implicit delete access).
 	Delete(context.Context, *SessionId) (*Session, error)
 }
 

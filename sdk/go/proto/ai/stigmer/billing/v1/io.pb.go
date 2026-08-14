@@ -345,8 +345,18 @@ type RecordLlmCallUsageInput struct {
 	// proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
 	// caller.
 	CursorKeySource v1.CursorKeySource `protobuf:"varint,17,opt,name=cursor_key_source,json=cursorKeySource,proto3,enum=ai.stigmer.agentic.agentexecution.v1.CursorKeySource" json:"cursor_key_source,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Provider-reported service tier that actually served this call
+	// (native harness, stigmer/stigmer#361): Anthropic reports it in the
+	// response usage ("standard" | "priority" | "batch"), OpenAI at the
+	// response top level ("default" | "flex" | "priority"). Reported
+	// verbatim by the proxy from the SSE stream — the wire truth billing
+	// reconciles against the execution's REQUESTED tier (the
+	// service_tier.mismatch counter). Empty when the provider reported
+	// none, and for cursor-harness calls, whose billed variant arrives
+	// through the cursor path's pricing-variant resolution instead.
+	ServedServiceTier string `protobuf:"bytes,18,opt,name=served_service_tier,json=servedServiceTier,proto3" json:"served_service_tier,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *RecordLlmCallUsageInput) Reset() {
@@ -496,6 +506,13 @@ func (x *RecordLlmCallUsageInput) GetCursorKeySource() v1.CursorKeySource {
 		return x.CursorKeySource
 	}
 	return v1.CursorKeySource(0)
+}
+
+func (x *RecordLlmCallUsageInput) GetServedServiceTier() string {
+	if x != nil {
+		return x.ServedServiceTier
+	}
+	return ""
 }
 
 // RecordLlmCallUsageResponse returns the cost result so callers can
@@ -2345,7 +2362,7 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\x0ereservation_id\x18\x02 \x01(\tR\rreservationId\x12'\n" +
 	"\x0freserved_micros\x18\x03 \x01(\x03R\x0ereservedMicros\x128\n" +
 	"\x18available_balance_micros\x18\x04 \x01(\x03R\x16availableBalanceMicros\x12#\n" +
-	"\rdenial_reason\x18\x05 \x01(\tR\fdenialReason\"\xff\x06\n" +
+	"\rdenial_reason\x18\x05 \x01(\tR\fdenialReason\"\xaf\a\n" +
 	"\x17RecordLlmCallUsageInput\x12)\n" +
 	"\fexecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexecutionId\x12#\n" +
 	"\bsequence\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00R\bsequence\x12\"\n" +
@@ -2364,7 +2381,8 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\aharness\x18\x0e \x01(\tR\aharness\x12*\n" +
 	"\x11cursor_account_id\x18\x0f \x01(\tR\x0fcursorAccountId\x12\"\n" +
 	"\rcursor_key_id\x18\x10 \x01(\tR\vcursorKeyId\x12a\n" +
-	"\x11cursor_key_source\x18\x11 \x01(\x0e25.ai.stigmer.agentic.agentexecution.v1.CursorKeySourceR\x0fcursorKeySource\"\x81\x02\n" +
+	"\x11cursor_key_source\x18\x11 \x01(\x0e25.ai.stigmer.agentic.agentexecution.v1.CursorKeySourceR\x0fcursorKeySource\x12.\n" +
+	"\x13served_service_tier\x18\x12 \x01(\tR\x11servedServiceTier\"\x81\x02\n" +
 	"\x1aRecordLlmCallUsageResponse\x12&\n" +
 	"\x0fusage_record_id\x18\x01 \x01(\tR\rusageRecordId\x120\n" +
 	"\x14provider_cost_micros\x18\x02 \x01(\x03R\x12providerCostMicros\x12E\n" +

@@ -11,11 +11,6 @@ import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
 /**
  * AgentChannelQueryController handles read operations for agent channels.
  *
- * @internal
- * Deliberately no anonymous/public RPC (AgentShare's getSharedProfile has
- * no analog here): the channel's public surface is the provider webhook,
- * which authenticates by signature — never a query endpoint.
- *
  * @generated from service ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController
  */
 export const AgentChannelQueryController = {
@@ -35,10 +30,6 @@ export const AgentChannelQueryController = {
     /**
      * Get an agent channel by its organization-scoped reference (org/slug).
      *
-     * @internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions (AgentShare pattern).
-     *
      * @generated from rpc ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.getByReference
      */
     getByReference: {
@@ -54,9 +45,6 @@ export const AgentChannelQueryController = {
      * This is how the agent's integrations surface and CLI resolve an
      * agent's existing channels regardless of slug.
      *
-     * @internal
-     * Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS.
-     *
      * @generated from rpc ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.getByAgent
      */
     getByAgent: {
@@ -67,10 +55,6 @@ export const AgentChannelQueryController = {
     },
     /**
      * List agent channels with optional label filtering.
-     *
-     * @internal
-     * Authorization in-handler via FGA-filtered queries (cloud) or
-     * unrestricted store queries (OSS).
      *
      * @generated from rpc ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.list
      */

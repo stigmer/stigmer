@@ -44,33 +44,12 @@ export type WorkflowStatus = Message<"ai.stigmer.agentic.workflow.v1.WorkflowSta
    * Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.
    * Check this field to determine whether a workflow is valid before executing it.
    *
-   * @internal
-   * Populated asynchronously after workflow creation via a Temporal workflow.
-   * Workflow creation does NOT block on validation — the workflow is created immediately
-   * with status.state = PENDING, then validation runs in the background.
-   *
    * @generated from field: ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation serverless_workflow_validation = 2;
    */
   serverlessWorkflowValidation?: ServerlessWorkflowValidation;
 
   /**
    * SHA-256 hash of the generated CNCF YAML for the current valid version.
-   *
-   * @internal
-   * Updated only when validation produces state=VALID and the generated YAML
-   * differs from the previous version's hash. Empty for workflows that have
-   * never passed validation.
-   *
-   * This is the content-addressed version identifier for the workflow definition.
-   * The hash is computed from the `serverless_workflow_validation.yaml` string,
-   * ensuring that "same YAML = same hash = same execution behavior."
-   *
-   * Consumers:
-   * - Execution create pipeline reads this to pin executions to a specific version
-   * - getByReference resolves ApiResourceReference.version against this and audit entries
-   * - UI displays this as the current version identifier
-   *
-   * @since Workflow Versioning
    *
    * @generated from field: string version_hash = 3;
    */

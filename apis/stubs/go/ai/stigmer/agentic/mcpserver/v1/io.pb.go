@@ -148,32 +148,6 @@ func (x *McpServerId) GetValue() string {
 }
 
 // ConnectInput is the request for the connect RPC.
-//
-// @internal
-// Triggers server-side MCP discovery and tool approval classification:
-// the backend creates an ephemeral ExecutionContext with the resolved
-// environment variables, starts a Temporal workflow that connects to the
-// MCP server (via the runner), enumerates tools and resource
-// templates, classifies tool approval policies, and stores the results
-// in status.discovered_capabilities and status.tool_approvals.
-//
-// Environment variable resolution:
-//   - When runtime_env is provided, the backend creates an ExecutionContext directly
-//     from these values (one-time use, values are not persisted to any environment).
-//   - When runtime_env is empty, the backend resolves values from the authenticated
-//     user's personal environment.
-//
-// Callers:
-//   - Web console: calls connect after saving credentials to personal environment.
-//   - CLI: calls connect with runtime_env populated from local env vars.
-//   - Runner backfill: calls connect with runtime_env from execution context
-//     when status.discovered_capabilities is empty on first agent execution.
-//
-// Prerequisites:
-//   - The MCP server must exist and have a valid server_type (stdio or http)
-//   - org must be provided (the caller's active organization)
-//   - Either runtime_env must contain all required keys, or the keys must be
-//     present in the user's personal environment / managed OAuth environment
 type ConnectInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// System-generated ID of the MCP server to connect to.
@@ -247,17 +221,6 @@ func (x *ConnectInput) GetOrg() string {
 
 // InitiateOAuthConnectInput starts the OAuth authorization flow for an
 // MCP server that has an auth block in its spec.
-//
-// @internal
-// Returns an authorization URL that the frontend redirects the user to.
-// The backend performs all setup (DCR registration for MCP OAuth servers,
-// OAuthApp credential lookup for vendor OAuth servers, PKCE pair generation)
-// and stores the pending state for the subsequent completeOAuthConnect call.
-//
-// Prerequisites:
-// - The MCP server must exist and have spec.auth configured
-// - For DCR: the server must use HTTP transport (discovery requires a URL)
-// - For vendor OAuth: the referenced OAuthApp must exist and be accessible
 type InitiateOAuthConnectInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// System-generated ID of the MCP server to initiate OAuth for.
@@ -397,22 +360,6 @@ func (x *InitiateOAuthConnectOutput) GetProviderName() string {
 
 // CompleteOAuthConnectInput finishes the OAuth flow by exchanging the
 // authorization code for tokens.
-//
-// @internal
-// Called by the frontend after the user is redirected back from the
-// OAuth authorization server. The frontend extracts the authorization
-// code and state from the callback URL and passes them here.
-//
-// The backend:
-// 1. Validates the state parameter against the stored PendingOAuthState
-// 2. Exchanges the authorization code for tokens (using PKCE code_verifier)
-// 3. Stores the access token in the user's personal environment
-// 4. Stores the refresh token (if present) in the personal environment
-// 5. Creates an OAuthGrant record for pre-flight expiry checks
-//
-// After this succeeds, the frontend should call the regular connect RPC
-// to trigger tool discovery (which will find the fresh token in the
-// personal environment).
 type CompleteOAuthConnectInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// System-generated ID of the MCP server.
@@ -546,11 +493,6 @@ func (x *CompleteOAuthConnectOutput) GetTokenLifetimeHint() string {
 }
 
 // GetOAuthGrantStatusInput queries the OAuth grant status for a resource.
-//
-// @internal
-// Returns whether the authenticated user has an active OAuth grant for the
-// specified resource in the given org. Used by the frontend to determine
-// whether to show "Connected" vs. "Connect with OAuth" UI states.
 type GetOAuthGrantStatusInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// System-generated ID of the resource to check grant status for.
@@ -695,21 +637,6 @@ func (x *GetOAuthGrantStatusOutput) GetConnectionHealth() OAuthConnectionHealth 
 }
 
 // DisconnectOAuthInput tears down a user's OAuth connection for a resource.
-//
-// @internal
-// The handler:
-// 1. Finds the OAuthGrant for (caller, resource_id, org)
-// 2. Deletes the managed Environment that holds the tokens
-// 3. Deletes the OAuthGrant record
-//
-// After this, the user's access token and refresh token are gone. The
-// MCP server remains configured — only the user's personal OAuth connection
-// is removed. Other users' connections to the same resource are unaffected.
-//
-// Idempotent: if no OAuthGrant exists for the (caller, resource_id, org)
-// tuple, the handler returns disconnected=false without error. This
-// supports race conditions (concurrent disconnect calls), retries after
-// partial failures, and desired-state semantics ("ensure no connection").
 type DisconnectOAuthInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// System-generated ID of the resource to disconnect OAuth for.
@@ -816,30 +743,6 @@ func (x *DisconnectOAuthOutput) GetDisconnected() bool {
 
 // SetOrgOAuthAppInput creates or updates an org-level BYOA OAuth app
 // override for a resource.
-//
-// @internal
-// The handler:
-//  1. Looks up the platform-default OAuthApp via the resource's auth block
-//     to use as a template (authorization_url, token_url, scopes, etc.)
-//  2. Creates a new OAuthApp with the org-provided client_id + client_secret
-//     and the template's endpoint URLs and scopes
-//  3. Creates or updates an OAuthAppOverride binding
-//     (resource_id, resource_kind, org_id) → new OAuthApp ID
-//
-// If an override already exists for this resource + org, the handler
-// updates the existing OAuthApp's credentials and returns the same ID.
-//
-// After this, the resolution chain for this resource in this org will
-// return the org's OAuthApp instead of the platform default.
-//
-// Prerequisites:
-//   - The resource must exist and have an auth block with oauth_app_ref
-//     (BYOA requires a platform template to clone from)
-//   - The caller must have can_create_oauth_app permission in the org
-//
-// Errors:
-// - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
-// - NOT_FOUND: Resource does not exist
 type SetOrgOAuthAppInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// System-generated ID of the resource to set the BYOA override for.
@@ -962,11 +865,6 @@ func (x *SetOrgOAuthAppOutput) GetOauthAppId() string {
 }
 
 // GetOrgOAuthAppInput queries whether an org has a BYOA override for a resource.
-//
-// @internal
-// Returns override metadata without exposing secrets. The frontend uses
-// this to show "Using org credentials" vs. "Using platform credentials"
-// and to offer the option to remove the override.
 type GetOrgOAuthAppInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// System-generated ID of the resource to check for an override.
@@ -1089,23 +987,6 @@ func (x *GetOrgOAuthAppOutput) GetClientId() string {
 }
 
 // DeleteOrgOAuthAppInput removes an org-level BYOA override for a resource.
-//
-// @internal
-// The handler:
-// 1. Finds the OAuthAppOverride for (resource_id, resource_kind, org)
-// 2. Deletes the OAuthApp resource created for this override
-// 3. Deletes the OAuthAppOverride binding
-//
-// After this, the resolution chain falls back to the platform default.
-// Existing user OAuthGrants that were issued using the org's OAuthApp
-// will fail on next refresh — those users will need to re-authenticate
-// using the platform default (or a new org override).
-//
-// Prerequisites:
-// - An override must exist for this resource + org
-//
-// Errors:
-// - NOT_FOUND: No override exists for this resource + org
 type DeleteOrgOAuthAppInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// System-generated ID of the resource to remove the override for.

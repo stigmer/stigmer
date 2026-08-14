@@ -11,17 +11,6 @@ import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
 /**
  * ExecutionContextQueryController handles read operations for ExecutionContext resources.
  *
- * @internal
- * Authorization: All RPCs use is_skip_authorization with handler-level auth.
- * In cloud, the handler performs a direct FGA check: can_view on
- * execution_context:<metadata.id>, against the owner tuple written at creation
- * time by the create pipeline. OSS enforces no authorization.
- *
- * Secret handling: values with is_secret=true are returned in plaintext on OSS
- * (single-user local, no encryption). On cloud they are redacted for user-class
- * callers on every read RPC; only getByExecutionId can return decrypted values,
- * and only to runner-class credentials (see that RPC's comment).
- *
  * @generated from service ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController
  */
 export const ExecutionContextQueryController = {
@@ -29,10 +18,6 @@ export const ExecutionContextQueryController = {
   methods: {
     /**
      * Get an ExecutionContext by ID.
-     *
-     * @internal
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
-     * Secret values are redacted on cloud.
      *
      * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.get
      */
@@ -45,10 +30,6 @@ export const ExecutionContextQueryController = {
     /**
      * Get an ExecutionContext by reference (slug-based lookup).
      *
-     * @internal
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
-     * Secret values are redacted on cloud.
-     *
      * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.getByReference
      */
     getByReference: {
@@ -59,21 +40,6 @@ export const ExecutionContextQueryController = {
     },
     /**
      * Get the ExecutionContext for a given execution ID.
-     *
-     * @internal
-     * Primary lookup method used by runners to retrieve the merged environment
-     * variables during workflow/agent execution and MCP discovery.
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
-     *
-     * Secret handling (cloud): the decrypt path is gated by caller credential
-     * class AND scope, not by FGA — runners authenticate as the user who owns
-     * the execution, so permissions cannot tell them apart. Callers presenting
-     * a platform-minted runner token (token_type of sandbox, workflow_sandbox,
-     * or connect_sandbox) whose scope claim binds it to this very execution
-     * receive decrypted secret values. The unscoped embedded_runner bootstrap
-     * credential is refused; desktop runners exchange it for a scoped token
-     * via getRunnerScopedToken before reading. Every other caller (user JWT,
-     * SDK, console) receives the same redaction as get/getByReference.
      *
      * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.getByExecutionId
      */

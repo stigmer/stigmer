@@ -35,10 +35,6 @@ type AgentQueryControllerClient interface {
 	Get(ctx context.Context, in *AgentId, opts ...grpc.CallOption) (*Agent, error)
 	// Get an agent by its organization-scoped reference (org/slug).
 	// Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Agent, error)
 	// Get the platform default agent.
 	//
@@ -47,17 +43,6 @@ type AgentQueryControllerClient interface {
 	// to start a conversation without selecting an agent first.
 	//
 	// Returns NOT_FOUND if no default agent is configured.
-	//
-	// @internal
-	// Resolves the agent labeled stigmer.ai/default-agent: "true" with
-	// visibility_public. Custom authorization in handler.
-	//
-	// Resolution is deterministic (stigmer/stigmer#356): only public labeled
-	// agents are candidates, and with multiple candidates — a reachable state,
-	// since safe label rotation applies the new default before retiring the
-	// old — the one with the lowest metadata.id (the incumbent) wins. The
-	// default changes only when the incumbent's label is explicitly removed,
-	// never as a side effect of another agent gaining the label.
 	GetDefault(ctx context.Context, in *GetDefaultAgentRequest, opts ...grpc.CallOption) (*Agent, error)
 }
 
@@ -109,10 +94,6 @@ type AgentQueryControllerServer interface {
 	Get(context.Context, *AgentId) (*Agent, error)
 	// Get an agent by its organization-scoped reference (org/slug).
 	// Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Agent, error)
 	// Get the platform default agent.
 	//
@@ -121,17 +102,6 @@ type AgentQueryControllerServer interface {
 	// to start a conversation without selecting an agent first.
 	//
 	// Returns NOT_FOUND if no default agent is configured.
-	//
-	// @internal
-	// Resolves the agent labeled stigmer.ai/default-agent: "true" with
-	// visibility_public. Custom authorization in handler.
-	//
-	// Resolution is deterministic (stigmer/stigmer#356): only public labeled
-	// agents are candidates, and with multiple candidates — a reachable state,
-	// since safe label rotation applies the new default before retiring the
-	// old — the one with the lowest metadata.id (the incumbent) wins. The
-	// default changes only when the incumbent's label is explicitly removed,
-	// never as a side effect of another agent gaining the label.
 	GetDefault(context.Context, *GetDefaultAgentRequest) (*Agent, error)
 }
 

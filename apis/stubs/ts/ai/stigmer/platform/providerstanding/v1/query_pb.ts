@@ -25,9 +25,6 @@ export const file_ai_stigmer_platform_providerstanding_v1_query: GenFile = /*@__
  * there is nothing to CRUD (the standing model is deliberately a
  * lightweight status, not an API resource).
  *
- * @internal
- * Cloud-only; not implemented by the OSS Go server.
- *
  * @generated from service ai.stigmer.platform.providerstanding.v1.ProviderStandingQueryController
  */
 export const ProviderStandingQueryController: GenService<{

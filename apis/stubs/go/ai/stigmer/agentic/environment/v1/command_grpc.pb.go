@@ -36,25 +36,10 @@ const (
 // EnvironmentCommandController handles write operations for environments.
 type EnvironmentCommandControllerClient interface {
 	// Create or update an environment.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on whether the
-	// environment is going to be created or updated, which is resolved as part of
-	// the request execution.
 	Apply(ctx context.Context, in *Environment, opts ...grpc.CallOption) (*Environment, error)
 	// Create an environment.
-	//
-	// @internal
-	// Authorization:
-	//   - Organization-scoped environments: Caller must have can_create_environment
-	//     permission in the organization.
-	//   - Platform-scoped environments: Caller must be a platform operator
-	//     (handled automatically by common auth step).
 	Create(ctx context.Context, in *Environment, opts ...grpc.CallOption) (*Environment, error)
 	// Update an existing environment.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the environment resource.
 	Update(ctx context.Context, in *Environment, opts ...grpc.CallOption) (*Environment, error)
 	// Update the visibility of an existing environment.
 	//
@@ -65,33 +50,14 @@ type EnvironmentCommandControllerClient interface {
 	// and any execution in the organization may use its values at runtime.
 	// Secret values are revealed only to the environment's creator, at
 	// every visibility level.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the environment resource.
-	// public/platform levels are rejected via the kind's VisibilityConfig
-	// (supports_org only) — secret values must never be resolvable across the
-	// org boundary. Personal (stigmer.ai/personal) and OAuth-managed
-	// (stigmer.ai/managed) environments reject visibility changes entirely:
-	// sharing a personal credential bag or per-user OAuth tokens must be
-	// impossible, not merely discouraged.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Environment, error)
 	// Delete an environment.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the environment resource.
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*Environment, error)
 	// Add or update specific variables in an environment.
 	// Existing variables not included in the request are preserved unchanged.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the environment resource.
-	// Server-side merge — secret values are re-encrypted on write.
 	UpdateVariables(ctx context.Context, in *UpdateEnvironmentVariablesRequest, opts ...grpc.CallOption) (*Environment, error)
 	// Remove specific variables from an environment by key.
 	// Keys that do not exist are silently ignored.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the environment resource.
 	RemoveVariables(ctx context.Context, in *RemoveEnvironmentVariablesRequest, opts ...grpc.CallOption) (*Environment, error)
 }
 
@@ -180,25 +146,10 @@ func (c *environmentCommandControllerClient) RemoveVariables(ctx context.Context
 // EnvironmentCommandController handles write operations for environments.
 type EnvironmentCommandControllerServer interface {
 	// Create or update an environment.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on whether the
-	// environment is going to be created or updated, which is resolved as part of
-	// the request execution.
 	Apply(context.Context, *Environment) (*Environment, error)
 	// Create an environment.
-	//
-	// @internal
-	// Authorization:
-	//   - Organization-scoped environments: Caller must have can_create_environment
-	//     permission in the organization.
-	//   - Platform-scoped environments: Caller must be a platform operator
-	//     (handled automatically by common auth step).
 	Create(context.Context, *Environment) (*Environment, error)
 	// Update an existing environment.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the environment resource.
 	Update(context.Context, *Environment) (*Environment, error)
 	// Update the visibility of an existing environment.
 	//
@@ -209,33 +160,14 @@ type EnvironmentCommandControllerServer interface {
 	// and any execution in the organization may use its values at runtime.
 	// Secret values are revealed only to the environment's creator, at
 	// every visibility level.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the environment resource.
-	// public/platform levels are rejected via the kind's VisibilityConfig
-	// (supports_org only) — secret values must never be resolvable across the
-	// org boundary. Personal (stigmer.ai/personal) and OAuth-managed
-	// (stigmer.ai/managed) environments reject visibility changes entirely:
-	// sharing a personal credential bag or per-user OAuth tokens must be
-	// impossible, not merely discouraged.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Environment, error)
 	// Delete an environment.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the environment resource.
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*Environment, error)
 	// Add or update specific variables in an environment.
 	// Existing variables not included in the request are preserved unchanged.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the environment resource.
-	// Server-side merge — secret values are re-encrypted on write.
 	UpdateVariables(context.Context, *UpdateEnvironmentVariablesRequest) (*Environment, error)
 	// Remove specific variables from an environment by key.
 	// Keys that do not exist are silently ignored.
-	//
-	// @internal
-	// Authorization: requires can_edit permission on the environment resource.
 	RemoveVariables(context.Context, *RemoveEnvironmentVariablesRequest) (*Environment, error)
 }
 

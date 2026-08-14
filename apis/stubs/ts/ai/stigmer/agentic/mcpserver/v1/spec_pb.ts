@@ -21,10 +21,6 @@ export const file_ai_stigmer_agentic_mcpserver_v1_spec: GenFile = /*@__PURE__*/
 /**
  * McpServerSpec defines the configurable properties of an MCP server.
  *
- * @internal
- * This is the "Template" layer — declares capabilities and requirements.
- * The overview.md file provides the SDK-facing description and example YAML.
- *
  * @generated from message ai.stigmer.agentic.mcpserver.v1.McpServerSpec
  */
 export type McpServerSpec = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerSpec"> & {
@@ -86,25 +82,6 @@ export type McpServerSpec = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerSp
    * Empty list means all tools are enabled by default.
    * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
    *
-   * @internal
-   * Tool names must match exactly what the MCP server reports via tools/list.
-   * Only names from discovered_capabilities.tools are valid here.
-   * Do NOT include names from discovered_capabilities.resource_templates —
-   * resource templates are read-only data endpoints, not callable tools.
-   *
-   * Enforcement is two-layered:
-   *   - Apply time: mcpserver update/apply rejects (INVALID_ARGUMENT) any
-   *     name this server's own discovered_capabilities.tools does not
-   *     contain, with the valid names in the error. Skipped when the server
-   *     has never been connected (no capabilities yet) — which is always the
-   *     case on create, so the check only bites from the first re-apply
-   *     after discovery.
-   *   - Execution time: the runner enforces the INTERSECTION with the
-   *     server's live toolset — an unknown name is warned in the runner log
-   *     and ignored, so a stale entry narrows the toolset but never widens
-   *     it or fails the run. Enforcement is per harness — see
-   *     McpServerUsage.enabled_tools in agent/v1/spec.proto.
-   *
    * @generated from field: repeated string default_enabled_tools = 7;
    */
   defaultEnabledTools: string[];
@@ -113,51 +90,12 @@ export type McpServerSpec = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerSp
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
    *
-   * @internal
-   * Reserved platform keys — declared here like any other variable, but
-   * their values are injected by the runner per resolution context and are
-   * authoritative over same-named user env entries:
-   *   STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
-   *       ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
-   *   STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
-   *       email); empty for anonymous
-   *   STIGMER_SESSION_ID            — the session the identity was
-   *       resolved for; empty outside a session
-   * Reserved keys MUST be declared `optional: true`: they have no value at
-   * execution-create time, and a required declaration fails the pipeline's
-   * env-completeness validation before the runner ever injects them.
-   * Discovery (the connect workflow) runs with no session and injects the
-   * anonymous sentinel — a server consuming these keys must answer
-   * tools/list for anonymous callers and gate tool CALLS instead. The
-   * injected header is runner-asserted, not signed: pair it with a shared
-   * secret and treat it as trustworthy only for servers you operate.
-   *
    * @generated from field: map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 8;
    */
   env: { [key: string]: EnvVarDeclaration };
 
   /**
    * Tools pinned by the MCP server owner to always require approval.
-   *
-   * @internal
-   * These take precedence over system-generated `McpServerStatus.tool_approvals`.
-   * Never auto-modified — only changed by explicit user action (apply/update).
-   *
-   * Presence in this list IS the gate: every entry force-requires approval
-   * for its tool, overriding the classifier. The field cannot express the
-   * opposite direction — a pin can never exempt a tool. To un-gate a tool
-   * the classifier flagged, use `Agent.McpServerUsage.tool_approval_overrides`
-   * (layer 3 below), whose entries carry a real `requires_approval` boolean.
-   *
-   * Use cases:
-   * - Force approval for a tool the classifier marked as auto-approve
-   * - Establish organization-wide safety policies for dangerous tools
-   *
-   * Policy chain (lowest to highest priority):
-   * 1. McpServerStatus.tool_approvals - System-generated defaults
-   * 2. McpServerSpec.pinned_tool_approvals - Manual overrides (this field)
-   * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
-   * 4. AgentExecution.auto_approve_all - Runtime bypass
    *
    * @generated from field: repeated ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11;
    */
@@ -206,15 +144,6 @@ export const McpServerSpecSchema: GenMessage<McpServerSpec> = /*@__PURE__*/
 
 /**
  * StdioServerConfig defines an MCP server that runs as a subprocess.
- *
- * @internal
- * Communication happens via stdin/stdout using JSON-RPC messages.
- * The agent runner starts this process and communicates via stdio.
- *
- * Common examples:
- * - Node.js servers: npx @modelcontextprotocol/server-github
- * - Python servers: python -m mcp_server_sqlite
- * - Go servers: ./mcp-server-binary
  *
  * @generated from message ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
  */
@@ -275,16 +204,6 @@ export const StdioServerConfigSchema: GenMessage<StdioServerConfig> = /*@__PURE_
 /**
  * HttpServerConfig defines an MCP server accessible via HTTP + Server-Sent Events.
  *
- * @internal
- * Communication flow:
- * 1. Agent sends JSON-RPC requests via HTTP POST
- * 2. Server streams responses via Server-Sent Events (SSE)
- *
- * Use cases:
- * - Managed MCP services (e.g., hosted by a cloud provider)
- * - MCP servers behind a reverse proxy or API gateway
- * - Sharing a single MCP server instance across multiple agents
- *
  * @generated from message ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
  */
 export type HttpServerConfig = Message<"ai.stigmer.agentic.mcpserver.v1.HttpServerConfig"> & {
@@ -311,13 +230,6 @@ export type HttpServerConfig = Message<"ai.stigmer.agentic.mcpserver.v1.HttpServ
    *   "Authorization": "Bearer ${API_TOKEN}"
    *   "X-API-Version": "2024-01"
    *   "X-Tenant-ID": "${TENANT_ID}"
-   *
-   * @internal
-   * Templates may also reference the reserved caller-identity keys
-   * (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
-   * server declares them in spec.env — see the env field's reserved-key
-   * contract. Placeholders resolve against the env FILTERED to declared
-   * keys, so an undeclared reserved key in a template fails resolution.
    *
    * @generated from field: map<string, string> headers = 2;
    */
@@ -355,23 +267,6 @@ export const HttpServerConfigSchema: GenMessage<HttpServerConfig> = /*@__PURE__*
 
 /**
  * ToolApprovalPolicy defines approval requirements for a specific tool.
- *
- * @internal
- * The message field supports {{args.field}} placeholders that are resolved
- * at runtime using the actual tool arguments. This enables contextual
- * approval messages that help users make informed decisions.
- *
- * Placeholder syntax:
- *   {{args.field_name}} - Replaced with the tool argument value
- *   {{tool_name}} - Replaced with the tool name (always available)
- *
- * If a placeholder references a missing argument, it's replaced with "<unknown>".
- *
- * Policy chain (lowest to highest priority):
- * 1. McpServerStatus.tool_approvals - System-generated defaults
- * 2. McpServerSpec.pinned_tool_approvals - Manual overrides
- * 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
- * 4. AgentExecution.auto_approve_all - Runtime bypass
  *
  * @generated from message ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
  */
@@ -429,32 +324,6 @@ export const ToolApprovalPolicySchema: GenMessage<ToolApprovalPolicy> = /*@__PUR
 
 /**
  * McpServerAuth configures automated credential acquisition via OAuth.
- *
- * @internal
- * Two authentication modes are determined by the presence of oauth_app_ref:
- *
- * - When oauth_app_ref is empty: the MCP server implements the MCP
- *   Authorization specification (RFC 8414 discovery, RFC 7591 Dynamic Client
- *   Registration, OAuth 2.1 with PKCE). Stigmer auto-discovers everything
- *   from the server URL. No OAuthApp resource is needed — credentials are
- *   obtained automatically via DCR.
- *
- * - When oauth_app_ref is set: the MCP server requires pre-registered OAuth
- *   app credentials from a specific vendor (Slack, Salesforce, Figma, etc.).
- *   The referenced OAuthApp holds the client_id, client_secret, and endpoint
- *   URLs needed for the authorization code flow.
- *
- * In both cases, the acquired access token is stored in a system-managed
- * environment (labeled stigmer.ai/managed=true) as target_env_var. A refresh
- * token (if issued by the vendor) is stored alongside as
- * {target_env_var}_REFRESH_TOKEN by convention. The managed environment ID
- * is recorded on the OAuthGrant for all subsequent reads and refreshes.
- *
- * Token lifecycle:
- * - Pre-flight check before execution: if the access token is expired,
- *   the backend uses the refresh token to obtain a new one automatically.
- * - If the refresh token is also expired: execution fails with a clear
- *   error, and the user re-authenticates from the MCP server Connect page.
  *
  * @generated from message ai.stigmer.agentic.mcpserver.v1.McpServerAuth
  */

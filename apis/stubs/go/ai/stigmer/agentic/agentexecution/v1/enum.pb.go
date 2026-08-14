@@ -1108,11 +1108,6 @@ func (ApprovalAction) EnumDescriptor() ([]byte, []int) {
 // merged policy) and persisted on ToolCall.approval_policy_source, exactly as
 // ToolCall.tool_kind is set and persisted. Clients render it to answer "why was
 // this tool gated or auto-approved?".
-//
-// @internal
-// Mirrors the runner's internal PolicySource union (approval-policy.ts) one for
-// one. Layered precedence: a pinned or agent override wins over the classifier
-// default; a lease or the global bypass clears an otherwise-required approval.
 type ApprovalPolicySource int32
 
 const (
@@ -1542,16 +1537,6 @@ func (ApprovalMode) EnumDescriptor() ([]byte, []int) {
 // the provider account default. The runner always sends the provider an
 // explicit variant selection, so an out-of-band account setting can never
 // silently change what an execution pays (stigmer/stigmer#357).
-//
-// @internal
-// Resolution of UNSPECIFIED → STANDARD happens exactly once, in the runner's
-// translation layer; every upstream layer preserves the caller's raw value so
-// "user explicitly chose standard" stays distinguishable from "platform
-// default". v1 supports the Cursor harness only: FAST on a model without a
-// registry fast variant is refused at create time (INVALID_ARGUMENT), which
-// also covers native-harness models since only cursor-harness registry entries
-// carry fast variants today. Native (Anthropic/OpenAI) service-tier mapping is
-// a tracked follow-up.
 type ServiceTier int32
 
 const (
@@ -1560,14 +1545,6 @@ const (
 	ServiceTier_SERVICE_TIER_UNSPECIFIED ServiceTier = 0
 	// Standard tier: the model's base-priced configuration, requested
 	// explicitly.
-	//
-	// @internal
-	// For the Cursor harness the runner pins every price-bearing variant
-	// parameter to its base value (fast=false, and thinking=false where the
-	// parameter exists); price-neutral parameters (e.g. effort) follow the
-	// catalog default variant. Confirmed against the billing ledger 2026-08-06:
-	// explicit base params bill base wire ids on create AND resume (see
-	// stigmer-cloud _projects/2026-08/20260806.04.model-service-tier).
 	ServiceTier_SERVICE_TIER_STANDARD ServiceTier = 1
 	// Fast tier: the model's fast variant, billed at the registry's fast
 	// variant rates.

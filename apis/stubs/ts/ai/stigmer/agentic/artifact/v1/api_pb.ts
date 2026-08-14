@@ -46,27 +46,6 @@ export const file_ai_stigmer_agentic_artifact_v1_api: GenFile = /*@__PURE__*/
 /**
  * Artifact represents a persisted blob produced during execution.
  *
- * @internal
- * Follows the standard Stigmer resource pattern:
- * api_version + kind + metadata + spec + status.
- *
- * Artifacts are created by the runner when task
- * outputs exceed the auto-promotion threshold or when the workflow author
- * explicitly declares an artifact (Phase 1).
- *
- * The content blob is stored externally (local filesystem in OSS, S3 in Cloud).
- * The Artifact resource holds metadata and a content hash that references
- * the blob in the content-addressable store.
- *
- * Artifact lifecycle:
- * 1. Runner calls create() with spec + content bytes
- * 2. Backend hashes content, stores blob, creates metadata record
- * 3. Runner replaces inline task output with artifact reference
- * 4. Clients retrieve artifact via get() or download via getDownloadUrl()
- * 5. Background GC deletes expired artifacts based on retention policy
- *
- * @since T07 (Artifact Store)
- *
  * @generated from message ai.stigmer.agentic.artifact.v1.Artifact
  */
 export type Artifact = Message<"ai.stigmer.agentic.artifact.v1.Artifact"> & {
@@ -86,17 +65,6 @@ export type Artifact = Message<"ai.stigmer.agentic.artifact.v1.Artifact"> & {
 
   /**
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * @internal
-   * Naming Pattern:
-   * - ID Format: "art_{unique-suffix}" (auto-generated)
-   * - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-   * - Org: inherited from the producing execution's organization
-   *
-   * Labels:
-   * - source_type: "workflow_execution" or "agent_execution"
-   * - source_id: the execution ID that produced this artifact
-   * - task_name: the task that produced this artifact (if applicable)
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
    */
@@ -127,12 +95,6 @@ export const ArtifactSchema: GenMessage<Artifact> = /*@__PURE__*/
 /**
  * ArtifactStatus contains system-managed state for an artifact.
  *
- * @internal
- * Populated by the backend at creation time and updated by the GC job.
- * Users cannot modify status fields directly.
- *
- * @since T07 (Artifact Store)
- *
  * @generated from message ai.stigmer.agentic.artifact.v1.ArtifactStatus
  */
 export type ArtifactStatus = Message<"ai.stigmer.agentic.artifact.v1.ArtifactStatus"> & {
@@ -146,22 +108,12 @@ export type ArtifactStatus = Message<"ai.stigmer.agentic.artifact.v1.ArtifactSta
   /**
    * SHA-256 hash of the artifact content, hex-encoded (64 characters).
    *
-   * @internal
-   * Used as the blob storage key in the content-addressable store.
-   * Two artifacts with identical content share the same blob.
-   * The hash is computed by the backend at creation time and verified
-   * on download to ensure integrity.
-   *
    * @generated from field: string content_hash = 1;
    */
   contentHash: string;
 
   /**
    * Size of the artifact content in bytes.
-   *
-   * @internal
-   * Set at creation time. Used by the UI to display file sizes and
-   * by the GC job to track storage consumption per organization.
    *
    * @generated from field: int64 size_bytes = 2;
    */
@@ -177,15 +129,6 @@ export type ArtifactStatus = Message<"ai.stigmer.agentic.artifact.v1.ArtifactSta
   /**
    * ISO 8601 timestamp when this artifact expires and becomes eligible
    * for garbage collection.
-   *
-   * @internal
-   * Computed at creation time from spec.retention.ttl_days:
-   * - ttl_days > 0: created_at + ttl_days
-   * - ttl_days == 0: created_at + org_default_retention_days
-   * - ttl_days == -1: empty (permanent, never expires)
-   *
-   * The GC job scans for artifacts where expires_at < now() and
-   * transitions them to storage_state_deleted.
    *
    * @generated from field: string expires_at = 4;
    */

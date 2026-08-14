@@ -11,12 +11,6 @@ import { GetOAuthGrantStatusInput, GetOAuthGrantStatusOutput, GetOrgOAuthAppInpu
 /**
  * McpServerQueryController provides read operations for MCP server resources.
  *
- * @internal
- * Authorization model:
- * - Platform-scoped: Anyone can view (public marketplace)
- * - Organization-scoped: Org members can view
- * - Identity-account-scoped: Only the owner can view
- *
  * @generated from service ai.stigmer.agentic.mcpserver.v1.McpServerQueryController
  */
 export const McpServerQueryController = {
@@ -24,13 +18,6 @@ export const McpServerQueryController = {
   methods: {
     /**
      * Get an MCP server by its unique identifier.
-     *
-     * @internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The caller must have access based on the resource's scope:
-     * - Platform: All authenticated users
-     * - Organization: Organization members
-     * - Identity Account: Only the owner
      *
      * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.get
      */
@@ -45,10 +32,6 @@ export const McpServerQueryController = {
      *
      * Preferred method for looking up MCP servers by name/slug rather than
      * system-generated ID.
-     *
-     * @internal
-     * Authorization: Custom authorization in handler.
-     * The handler performs scope-aware authorization based on the reference.
      *
      * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.getByReference
      */
@@ -66,10 +49,6 @@ export const McpServerQueryController = {
      * without exposing any secret token values. The frontend uses this to
      * render the correct OAuth state in the MCP server detail page and
      * session composer.
-     *
-     * @internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
      *
      * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.getOAuthGrantStatus
      */
@@ -97,11 +76,6 @@ export const McpServerQueryController = {
      * an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
      * SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
      * surface without the other two and the client-side gate.
-     *
-     * @internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * Any user who can view the MCP server can check whether their org has
-     * an override — no secrets are exposed.
      *
      * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerQueryController.getOrgOAuthApp
      */

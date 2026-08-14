@@ -62,10 +62,6 @@ class SkillQueryControllerServicer(object):
         - Empty/"latest" → Returns the current version
         - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
         - SHA256 hash (64 hex chars) → Returns the exact immutable version
-
-        @internal
-        Authorization is handled in the handler after resolving the reference to a skill ID.
-        (Input doesn't contain skill ID, so proto-level auth cannot work)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -74,11 +70,6 @@ class SkillQueryControllerServicer(object):
     def getArtifact(self, request, context):
         """Download skill artifact from storage by its storage key.
         Returns the ZIP file containing SKILL.md and implementation files.
-
-        @internal
-        Used by the runner to download and extract skill artifacts into the
-        sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
-        storage key itself acts as a capability token.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -91,11 +82,6 @@ class SkillQueryControllerServicer(object):
         message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
         limit is deliverable. Callers should try this first and fall back to
         getArtifact against servers that predate it (UNIMPLEMENTED).
-
-        @internal
-        Authorization is skipped for the same reason as getArtifact: the
-        content-hash storage key acts as the capability token. Cloud returns a
-        pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -107,10 +93,6 @@ class SkillQueryControllerServicer(object):
         Returns all historical versions ordered by push time (newest first).
         Each entry includes the version hash, push timestamp, actor, tag,
         git provenance, and artifact storage key for historical artifact access.
-
-        @internal
-        Authorization is handled in the handler after resolving the skill.
-        (Input uses org+slug, not skill ID, so proto-level auth cannot work)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

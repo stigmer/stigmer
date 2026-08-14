@@ -36,21 +36,10 @@ type AgentInstanceQueryControllerClient interface {
 	Get(ctx context.Context, in *AgentInstanceId, opts ...grpc.CallOption) (*AgentInstance, error)
 	// Get all instances of a specific agent template.
 	// Returns only instances the caller has access to.
-	//
-	// @internal
-	// Authorization is handled in handler via FGA query for authorized agent_instance_ids,
-	// then filtered by agent_id.
 	GetByAgent(ctx context.Context, in *GetAgentInstancesByAgentRequest, opts ...grpc.CallOption) (*AgentInstanceList, error)
 	// Get an agent instance by its organization-scoped reference (org/slug).
-	//
-	// @internal
-	// Custom authorization in handler.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*AgentInstance, error)
 	// List agent instances with optional label filtering.
-	//
-	// @internal
-	// Authorization is handled in-handler via FGA-filtered queries (cloud)
-	// or unrestricted store queries (OSS).
 	List(ctx context.Context, in *ListAgentInstancesRequest, opts ...grpc.CallOption) (*AgentInstanceList, error)
 }
 
@@ -112,21 +101,10 @@ type AgentInstanceQueryControllerServer interface {
 	Get(context.Context, *AgentInstanceId) (*AgentInstance, error)
 	// Get all instances of a specific agent template.
 	// Returns only instances the caller has access to.
-	//
-	// @internal
-	// Authorization is handled in handler via FGA query for authorized agent_instance_ids,
-	// then filtered by agent_id.
 	GetByAgent(context.Context, *GetAgentInstancesByAgentRequest) (*AgentInstanceList, error)
 	// Get an agent instance by its organization-scoped reference (org/slug).
-	//
-	// @internal
-	// Custom authorization in handler.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*AgentInstance, error)
 	// List agent instances with optional label filtering.
-	//
-	// @internal
-	// Authorization is handled in-handler via FGA-filtered queries (cloud)
-	// or unrestricted store queries (OSS).
 	List(context.Context, *ListAgentInstancesRequest) (*AgentInstanceList, error)
 }
 

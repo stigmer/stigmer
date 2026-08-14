@@ -18,18 +18,6 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_grpc_call: GenFile = /*@_
 /**
  * GrpcCallTaskConfig defines the configuration for grpc_call tasks that make gRPC requests.
  *
- * @internal
- * YAML Example:
- *   - taskName:
- *       call: grpc
- *       with:
- *         service: "com.example.UserService"
- *         method: "GetUser"
- *         request:
- *           userId: ${ .userId }
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 9
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig
  */
 export type GrpcCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig"> & {

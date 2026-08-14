@@ -32,12 +32,6 @@ const (
 // tears the channel down; disabling it pauses serving while preserving
 // configuration. The referenced agent is never modified by share
 // operations.
-//
-// @internal
-// Promoted from Agent.spec.sharing (decision 011): sharing is channel
-// configuration with its own writer, lifecycle, and — in Phase B — its own
-// billing org per channel. metadata.slug appears in the hosted chat URL,
-// defaults to the referenced agent's slug, and is unique per org.
 type AgentShare struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

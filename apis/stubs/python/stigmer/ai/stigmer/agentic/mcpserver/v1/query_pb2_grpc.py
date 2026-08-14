@@ -9,12 +9,6 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 
 class McpServerQueryControllerStub(object):
     """McpServerQueryController provides read operations for MCP server resources.
-
-    @internal
-    Authorization model:
-    - Platform-scoped: Anyone can view (public marketplace)
-    - Organization-scoped: Org members can view
-    - Identity-account-scoped: Only the owner can view
     """
 
     def __init__(self, channel):
@@ -47,23 +41,10 @@ class McpServerQueryControllerStub(object):
 
 class McpServerQueryControllerServicer(object):
     """McpServerQueryController provides read operations for MCP server resources.
-
-    @internal
-    Authorization model:
-    - Platform-scoped: Anyone can view (public marketplace)
-    - Organization-scoped: Org members can view
-    - Identity-account-scoped: Only the owner can view
     """
 
     def get(self, request, context):
         """Get an MCP server by its unique identifier.
-
-        @internal
-        Authorization: Requires can_view permission on the mcp_server resource.
-        The caller must have access based on the resource's scope:
-        - Platform: All authenticated users
-        - Organization: Organization members
-        - Identity Account: Only the owner
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -74,10 +55,6 @@ class McpServerQueryControllerServicer(object):
 
         Preferred method for looking up MCP servers by name/slug rather than
         system-generated ID.
-
-        @internal
-        Authorization: Custom authorization in handler.
-        The handler performs scope-aware authorization based on the reference.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -91,10 +68,6 @@ class McpServerQueryControllerServicer(object):
         without exposing any secret token values. The frontend uses this to
         render the correct OAuth state in the MCP server detail page and
         session composer.
-
-        @internal
-        Authorization: Requires can_view permission on the mcp_server resource.
-        The resource_id field contains the MCP server's system-generated ID.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -118,11 +91,6 @@ class McpServerQueryControllerServicer(object):
         an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
         SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
         surface without the other two and the client-side gate.
-
-        @internal
-        Authorization: Requires can_view permission on the mcp_server resource.
-        Any user who can view the MCP server can check whether their org has
-        an override — no secrets are exposed.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -161,12 +129,6 @@ def add_McpServerQueryControllerServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class McpServerQueryController(object):
     """McpServerQueryController provides read operations for MCP server resources.
-
-    @internal
-    Authorization model:
-    - Platform-scoped: Anyone can view (public marketplace)
-    - Organization-scoped: Org members can view
-    - Identity-account-scoped: Only the owner can view
     """
 
     @staticmethod

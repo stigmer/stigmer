@@ -26,10 +26,6 @@ export const SessionCommandController: GenService<{
   /**
    * Create or update a session.
    *
-   * @internal
-   * The authorization and state-operation are determined depending on whether the session
-   * is going to be created or updated which is determined as part of the request execution.
-   *
    * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.apply
    */
   apply: {
@@ -39,9 +35,6 @@ export const SessionCommandController: GenService<{
   },
   /**
    * Create a session.
-   *
-   * @internal
-   * Requires can_create_session permission in the organization.
    *
    * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.create
    */
@@ -67,10 +60,6 @@ export const SessionCommandController: GenService<{
    * leaving other session fields untouched. Use this instead of the full
    * update RPC when you only need to change the session subject.
    *
-   * @internal
-   * Server-side field-level update, race-safe. Atomically modifies only
-   * spec.subject without touching other fields.
-   *
    * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.updateSubject
    */
   updateSubject: {
@@ -88,10 +77,6 @@ export const SessionCommandController: GenService<{
    * Fails with FAILED_PRECONDITION while any agent execution in the
    * session is still active (pending, in progress, waiting for approval,
    * or paused); cancel it or wait for it to finish first.
-   *
-   * @internal
-   * Requires can_delete on the session (owner-only — sessions are personal
-   * resources, so org admins have no implicit delete access).
    *
    * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.delete
    */

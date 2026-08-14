@@ -25,18 +25,9 @@ const (
 )
 
 // SessionSpec defines the configurable properties of a session.
-//
-// @internal
-// This is the "Execution" layer — ephemeral runtime against an AgentInstance.
-// The overview.md file provides the SDK-facing description and example YAML.
 type SessionSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Agent instance this session runs against.
-	//
-	// @internal
-	// When empty, the backend resolves the platform default agent
-	// (labeled stigmer.ai/default-agent: "true" with visibility_public)
-	// and auto-creates a default instance if needed.
 	AgentInstanceId string `protobuf:"bytes,1,opt,name=agent_instance_id,json=agentInstanceId,proto3" json:"agent_instance_id,omitempty"`
 	// Conversation title for UI display.
 	Subject string `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
@@ -52,25 +43,12 @@ type SessionSpec struct {
 	//   - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
 	//     returned by Agent.create(). Used for Agent.resume() on
 	//     subsequent executions.
-	//
-	// @internal
-	// Also serves as the immutability sentinel: when non-empty, the
-	// session's harness and cursor_mode cannot be changed — each harness
-	// owns its conversation state independently.
 	HarnessStateId string `protobuf:"bytes,3,opt,name=harness_state_id,json=harnessStateId,proto3" json:"harness_state_id,omitempty"`
 	// Prior harness state identifiers this session has owned, oldest first.
 	//
 	// A session can span multiple harness-side conversations: when the
 	// cursor-runner's resume fails, it creates a fresh Cursor agent and
 	// replaces harness_state_id, and the replaced id lands here.
-	//
-	// @internal
-	// Server-owned, append-only. The update handler computes the append from
-	// the observed harness_state_id transition — client-supplied values for
-	// this field are discarded, so a stale client resending an old spec can
-	// never clobber the history. Billing reconciliation joins Cursor ledger
-	// events on the union of current + prior ids; dropping a replaced id
-	// would orphan the ledger events of every turn that ran under it.
 	HarnessStateIdHistory []string `protobuf:"bytes,13,rep,name=harness_state_id_history,json=harnessStateIdHistory,proto3" json:"harness_state_id_history,omitempty"`
 	// Custom key-value pairs for client-specific information.
 	Metadata map[string]string `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -87,22 +65,12 @@ type SessionSpec struct {
 	// Augments the agent's tool set for this specific conversation without
 	// modifying the agent blueprint. Each usage references an McpServer
 	// resource.
-	//
-	// @internal
-	// Merge semantics: session-level usages are union'd with agent-level usages.
-	// If both reference the same MCP server slug, the session-level entry takes
-	// precedence (enables per-session tool restriction or expansion). The agent
-	// runner merges these with the agent's mcp_server_usages when constructing
-	// the execution graph.
 	McpServerUsages []*v1.McpServerUsage `protobuf:"bytes,7,rep,name=mcp_server_usages,json=mcpServerUsages,proto3" json:"mcp_server_usages,omitempty"`
 	// Skills to inject into this session's context.
 	//
 	// Provides domain-specific knowledge for this specific conversation without
 	// modifying the agent blueprint. Each reference points to a Skill resource
 	// whose content is added to the agent's context alongside agent-level skills.
-	//
-	// @internal
-	// Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
 	SkillRefs []*apiresource.ApiResourceReference `protobuf:"bytes,8,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
 	// Execution harness for this session.
 	//
@@ -127,16 +95,6 @@ type SessionSpec struct {
 	//
 	// Only meaningful when harness == HARNESS_CURSOR. Ignored for other
 	// harness types.
-	//
-	// @internal
-	// Runner-owned, never user-set (see the CursorMode enum docs): the
-	// cursor-runner stamps it on the first execution when UNSPECIFIED —
-	// always LOCAL while cloud mode is disabled platform-wide. The
-	// workflow reads it back on subsequent executions to route to the
-	// correct Agent.create / Agent.resume path.
-	//
-	// When UNSPECIFIED on an existing CURSOR session, the runner defaults
-	// to LOCAL for backward compatibility.
 	CursorMode CursorMode `protobuf:"varint,11,opt,name=cursor_mode,json=cursorMode,proto3,enum=ai.stigmer.agentic.session.v1.CursorMode" json:"cursor_mode,omitempty"`
 	// Where session activities are executed — local client or cloud sandbox.
 	//

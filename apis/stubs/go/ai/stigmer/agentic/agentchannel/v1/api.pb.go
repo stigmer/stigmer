@@ -33,14 +33,6 @@ const (
 // workspace identity and credential references produced by the install
 // flow live in status. Deleting the channel tears the connection down;
 // disabling pauses serving while preserving the install.
-//
-// @internal
-// Sibling of AgentShare (decision 001): one kind per target, provider
-// variance in spec.provider_config. metadata.org is the billing org
-// (decision 001 D-b). N channels per agent; the defaults resolver does
-// NOT default the slug to the agent slug (org+slug is unique and channels
-// are N-per-agent — P7), standard derive-from-name applies. The overview.md
-// file provides the SDK-facing description and example YAML.
 type AgentChannel struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

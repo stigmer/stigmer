@@ -17,9 +17,6 @@ import { MethodKind } from "@bufbuild/protobuf";
  * there is nothing to CRUD (the standing model is deliberately a
  * lightweight status, not an API resource).
  *
- * @internal
- * Cloud-only; not implemented by the OSS Go server.
- *
  * @generated from service ai.stigmer.platform.providerstanding.v1.ProviderStandingQueryController
  */
 export const ProviderStandingQueryController = {

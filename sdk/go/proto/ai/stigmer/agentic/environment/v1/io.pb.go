@@ -70,11 +70,6 @@ func (x *EnvironmentId) GetValue() string {
 }
 
 // Input for retrieving a single unredacted secret value from an environment.
-//
-// @internal
-// Single-key retrieval by design: limits blast radius if intercepted,
-// enables per-key audit trails, and matches the industry-standard
-// "reveal" UX pattern (AWS, GitHub, 1Password).
 type EnvironmentSecretValueInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The environment resource ID.
@@ -135,9 +130,6 @@ type ListEnvironmentsRequest struct {
 	// Organization to list environments for.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Filter by metadata labels. AND semantics: the resource must match all provided labels.
-	//
-	// @internal
-	// Example: {"stigmer.ai/personal": "true"} returns only personal environments.
 	Labels map[string]string `protobuf:"bytes,2,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Pagination options.
 	PageInfo      *rpc.PageInfo `protobuf:"bytes,3,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
@@ -253,10 +245,6 @@ func (x *EnvironmentList) GetItems() []*Environment {
 
 // Request to add or update specific variables in an environment.
 // Existing variables not included in this request are preserved.
-//
-// @internal
-// Server-side merge. For secret variables the new value replaces the old
-// one and is re-encrypted server-side.
 type UpdateEnvironmentVariablesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The environment resource ID.

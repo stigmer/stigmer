@@ -58,10 +58,6 @@ class WorkflowQueryControllerServicer(object):
         - Empty/"latest" → Returns the current version
         - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
         - SHA256 hash (64 hex chars) → Returns the exact immutable version
-
-        @internal
-        Custom authorization in handler — checks both direct resource access
-        and organization-level visibility permissions.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -73,12 +69,6 @@ class WorkflowQueryControllerServicer(object):
         Returns all historical versions ordered by applied_at (newest first).
         Each entry includes the version hash, applied timestamp, actor, tag,
         git provenance, and the validated CNCF YAML for historical access.
-
-        @internal
-        Authorization is handled in the handler after resolving the workflow.
-        (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
-
-        @since Workflow Versioning
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -89,11 +79,6 @@ class WorkflowQueryControllerServicer(object):
 
         Used by the runner (to hydrate execution from a pinned version) and
         the execution viewer (to render the graph for historical executions).
-
-        @internal
-        Authorization uses can_view on the workflow resource.
-
-        @since Workflow Versioning
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

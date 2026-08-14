@@ -863,13 +863,6 @@ export type StreamingUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v
   /**
    * Model identifier the runner requested for this execution's turns.
    *
-   * @internal
-   * This is the validated REQUESTED model (UsageAccumulator constructor
-   * argument), not a provider-reported resolved id — the Cursor SDK echoes
-   * the requested selection and never reports the served variant, so the
-   * authoritative resolved model lives on billing's LlmCallUsageRecord
-   * (requested_model / resolved_model / service_tier), not here.
-   *
    * @generated from field: string model = 8;
    */
   model: string;
@@ -896,12 +889,6 @@ export type StreamingUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v
    * JSON-encoded provider variant parameters the runner sent with the model
    * selection (Cursor ModelSelection.params, e.g.
    * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
-   *
-   * @internal
-   * Recorded verbatim for audit: tier→params translation depends on the
-   * provider catalog at send time, so the derivation is not reproducible
-   * later from the tier alone. Mirrors the Cursor SDK's own analytics
-   * convention (SdkRunCreatedProps.model_params).
    *
    * @generated from field: string requested_model_params = 11;
    */
@@ -1196,12 +1183,6 @@ export const CostCalculationStatusSchema: GenEnum<CostCalculationStatus> = /*@__
  * record can therefore never disagree with what was sent on the wire. The
  * CursorAccount store is the only credential source, so MANAGED_KEY is the
  * only source a current proxy can report.
- *
- * @internal
- * UNSPECIFIED doubles as the legacy marker: records written before the
- * serving identity was threaded through the proxy payload (when the
- * billing handler re-read the session's key pin at stamp time) carry no
- * source and must not be re-interpreted.
  *
  * @generated from enum ai.stigmer.agentic.agentexecution.v1.CursorKeySource
  */

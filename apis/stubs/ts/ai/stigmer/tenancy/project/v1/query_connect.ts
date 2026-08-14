@@ -30,9 +30,6 @@ export const ProjectQueryController = {
     /**
      * Get a project by reference (org/name).
      *
-     * @internal
-     * Custom authorization is handled in the controller implementation.
-     *
      * @generated from rpc ai.stigmer.tenancy.project.v1.ProjectQueryController.getByReference
      */
     getByReference: {

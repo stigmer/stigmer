@@ -33,9 +33,6 @@ type ProjectQueryControllerClient interface {
 	// Get a single project by ID.
 	Get(ctx context.Context, in *ProjectId, opts ...grpc.CallOption) (*Project, error)
 	// Get a project by reference (org/name).
-	//
-	// @internal
-	// Custom authorization is handled in the controller implementation.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Project, error)
 }
 
@@ -76,9 +73,6 @@ type ProjectQueryControllerServer interface {
 	// Get a single project by ID.
 	Get(context.Context, *ProjectId) (*Project, error)
 	// Get a project by reference (org/name).
-	//
-	// @internal
-	// Custom authorization is handled in the controller implementation.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Project, error)
 }
 

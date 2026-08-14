@@ -30,19 +30,6 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // ArtifactQueryController handles read operations for Artifact resources.
-//
-// @internal
-// Follows the Command-Query Separation (CQS) pattern.
-//
-// These RPCs are exposed to the SDK and consumed by:
-// - Execution viewer (T09): lists artifacts per execution, provides download links
-// - CLI: `stigmer workflow artifacts <execution-id>`
-// - React SDK: useArtifact() hook for artifact metadata and download
-//
-// Authorization follows the parent execution's access model:
-// if a user can view an execution, they can view its artifacts.
-//
-// @since T07 (Artifact Store)
 type ArtifactQueryControllerClient interface {
 	// Get a single artifact by ID.
 	//
@@ -130,20 +117,6 @@ type ArtifactQueryControllerClient interface {
 	//
 	// For direct file downloads, use getDownloadUrl instead — it returns a
 	// presigned URL that avoids proxying bytes through the server.
-	//
-	// @internal
-	// Mirrors AgentExecutionQueryController.getArtifactContent (same
-	// truncation contract). Content is truncated to max_bytes (default:
-	// 512 KB); the response includes total_size_bytes and a truncated flag
-	// so callers can decide whether to offer a full download.
-	//
-	// Error Cases:
-	//
-	// - NOT_FOUND: No Artifact exists with the given ID
-	// - PERMISSION_DENIED: User doesn't have view access to the parent execution
-	// - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
-	//
-	// @since Review Payloads (stigmer/stigmer#234)
 	GetContent(ctx context.Context, in *GetArtifactContentRequest, opts ...grpc.CallOption) (*GetArtifactContentResponse, error)
 }
 
@@ -200,19 +173,6 @@ func (c *artifactQueryControllerClient) GetContent(ctx context.Context, in *GetA
 // for forward compatibility.
 //
 // ArtifactQueryController handles read operations for Artifact resources.
-//
-// @internal
-// Follows the Command-Query Separation (CQS) pattern.
-//
-// These RPCs are exposed to the SDK and consumed by:
-// - Execution viewer (T09): lists artifacts per execution, provides download links
-// - CLI: `stigmer workflow artifacts <execution-id>`
-// - React SDK: useArtifact() hook for artifact metadata and download
-//
-// Authorization follows the parent execution's access model:
-// if a user can view an execution, they can view its artifacts.
-//
-// @since T07 (Artifact Store)
 type ArtifactQueryControllerServer interface {
 	// Get a single artifact by ID.
 	//
@@ -300,20 +260,6 @@ type ArtifactQueryControllerServer interface {
 	//
 	// For direct file downloads, use getDownloadUrl instead — it returns a
 	// presigned URL that avoids proxying bytes through the server.
-	//
-	// @internal
-	// Mirrors AgentExecutionQueryController.getArtifactContent (same
-	// truncation contract). Content is truncated to max_bytes (default:
-	// 512 KB); the response includes total_size_bytes and a truncated flag
-	// so callers can decide whether to offer a full download.
-	//
-	// Error Cases:
-	//
-	// - NOT_FOUND: No Artifact exists with the given ID
-	// - PERMISSION_DENIED: User doesn't have view access to the parent execution
-	// - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
-	//
-	// @since Review Payloads (stigmer/stigmer#234)
 	GetContent(context.Context, *GetArtifactContentRequest) (*GetArtifactContentResponse, error)
 }
 

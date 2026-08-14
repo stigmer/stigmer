@@ -1035,9 +1035,6 @@ type CheckMyPermissionInput struct {
 	// The resource being accessed (WHAT)
 	Resource *ApiResourceRef `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
 	// The permission to check (e.g., "can_edit", "can_grant_access").
-	//
-	// @internal
-	// This is the FGA relation checked against the resource object.
 	Relation string `protobuf:"bytes,2,opt,name=relation,proto3" json:"relation,omitempty"`
 	// Optional contextual policies for "what-if" scenarios
 	ContextualPolicies []*IamPolicySpec `protobuf:"bytes,3,rep,name=contextual_policies,json=contextualPolicies,proto3" json:"contextual_policies,omitempty"`

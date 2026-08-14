@@ -26,50 +26,6 @@ const (
 
 // LlmCallTaskConfig defines the configuration for llm_call tasks that make
 // direct LLM API calls without the overhead of a full agent invocation.
-//
-// @internal
-// Use llm_call when the task is focused and deterministic: classification,
-// extraction, scoring, summarization, moderation, or routing. An agent_call
-// carries setup overhead (system prompt, tool resolution, MCP server setup,
-// session management) that is unnecessary when all you need is a single
-// prompt-response cycle with optional structured output.
-//
-// When response_schema is set, the runner requests structured output from the
-// provider and validates the response against the schema. The on_invalid /
-// max_retries / fallback_task fields control what happens when validation fails,
-// using the same OnInvalidOutputPolicy enum as agent_call's output contract.
-//
-// YAML Example (classification with structured output):
-//   - classify_severity:
-//     call: llm
-//     with:
-//     model: "gpt-4o-mini"
-//     system_prompt: "You are a support ticket classifier."
-//     prompt: "Classify this ticket: ${ $context.ticket.description }"
-//     response_schema:
-//     type: object
-//     required: [severity, category]
-//     properties:
-//     severity:
-//     type: string
-//     enum: [low, medium, high, critical]
-//     category:
-//     type: string
-//     on_invalid: ON_INVALID_RETRY
-//     max_retries: 2
-//     export:
-//     as: "${ . }"
-//
-// YAML Example (simple summarization, no schema):
-//   - summarize:
-//     call: llm
-//     with:
-//     model: "claude-sonnet-4-5"
-//     prompt: "Summarize in 2 sentences: ${ $context.document.text }"
-//     temperature: 0.3
-//     max_tokens: 200
-//     export:
-//     as: "${ . }"
 type LlmCallTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Model reference resolved via the Stigmer model registry.

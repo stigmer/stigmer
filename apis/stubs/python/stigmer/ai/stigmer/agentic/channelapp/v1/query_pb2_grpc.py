@@ -9,13 +9,6 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 
 class ChannelAppQueryControllerStub(object):
     """ChannelAppQueryController handles read operations for channel apps.
-
-    @internal
-    Every response passes through secret redaction — client_secret and
-    signing_secret are replaced with the redaction marker. Runtime
-    consumers that need the real values (installer, webhook receiver)
-    read the repo directly, the documented OAuthAppResolutionService
-    exception.
     """
 
     def __init__(self, channel):
@@ -43,23 +36,12 @@ class ChannelAppQueryControllerStub(object):
 
 class ChannelAppQueryControllerServicer(object):
     """ChannelAppQueryController handles read operations for channel apps.
-
-    @internal
-    Every response passes through secret redaction — client_secret and
-    signing_secret are replaced with the redaction marker. Runtime
-    consumers that need the real values (installer, webhook receiver)
-    read the repo directly, the documented OAuthAppResolutionService
-    exception.
     """
 
     def get(self, request, context):
         """Get a channel app by its unique identifier.
 
         Secret fields are redacted in the response.
-
-        @internal
-        Authorization: requires can_view permission on the channel_app
-        resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -69,10 +51,6 @@ class ChannelAppQueryControllerServicer(object):
         """Get a channel app by its organization-scoped reference (org/slug).
 
         Secret fields are redacted in the response.
-
-        @internal
-        Custom authorization in handler — checks both direct resource access
-        and organization-level visibility permissions (the OAuthApp pattern).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -84,10 +62,6 @@ class ChannelAppQueryControllerServicer(object):
         Returns every ChannelApp whose metadata.org matches the input org,
         with secret fields redacted. Typically a small set, so results are
         not paginated.
-
-        @internal
-        Authorization: requires can_view permission on the organization
-        resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -121,13 +95,6 @@ def add_ChannelAppQueryControllerServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class ChannelAppQueryController(object):
     """ChannelAppQueryController handles read operations for channel apps.
-
-    @internal
-    Every response passes through secret redaction — client_secret and
-    signing_secret are replaced with the redaction marker. Runtime
-    consumers that need the real values (installer, webhook receiver)
-    read the repo directly, the documented OAuthAppResolutionService
-    exception.
     """
 
     @staticmethod

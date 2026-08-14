@@ -26,21 +26,6 @@ const (
 // Each entry represents one tool call waiting for a user decision (approve, skip,
 // or reject). Sub-agent approvals are included with from_sub_agent set to true
 // and sub_agent_name identifying the origin.
-//
-// @internal
-//
-// Computed server-side by the UpdateStatus handlers on every write. The handler
-// scans messages[].tool_calls and sub_agent_executions[].messages[].tool_calls,
-// collecting entries where status == WAITING_APPROVAL && requires_approval == true.
-// Because the list is recomputed rather than merged, it is always consistent
-// with the authoritative tool call state embedded in messages.
-//
-// Lifecycle:
-// 1. Tool with requires_approval=true is about to execute
-// 2. The runner sets ToolCall.status = WAITING_APPROVAL on the message
-// 3. Server recomputes pending_approvals, entry appears
-// 4. User calls SubmitApproval RPC with their decision
-// 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
 type PendingApproval struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the tool call waiting for approval.
@@ -273,23 +258,6 @@ func (x *PendingApproval) GetApprovalPolicySource() ApprovalPolicySource {
 // Contains all pending approvals from a single child agent execution,
 // enabling the parent workflow to surface approval requests to users
 // without polling.
-//
-// @internal
-//
-// Signal Flow:
-// 1. Child agent requires tool approval (phase = WAITING_FOR_APPROVAL)
-// 2. Java workflow detects this and builds ChildApprovalNotification
-// 3. Java sends Temporal signal "child_approval_required" to parent workflow
-// 4. Parent Go workflow receives signal via signal channel
-// 5. Parent updates task status to WORKFLOW_TASK_WAITING_APPROVAL
-// 6. Parent populates WorkflowExecution.status.pending_approvals
-//
-// Graceful Degradation:
-// If the signal fails to send (parent workflow completed, network error),
-// the system continues to function. Users can still submit approvals directly
-// via the AgentExecution.SubmitApproval RPC.
-//
-// @since Phase 5.1 (Events-Based Approval Notification)
 type ChildApprovalNotification struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Child agent execution ID that requires approval.

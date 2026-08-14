@@ -35,10 +35,6 @@ export const SkillQueryController = {
      * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
      * - SHA256 hash (64 hex chars) → Returns the exact immutable version
      *
-     * @internal
-     * Authorization is handled in the handler after resolving the reference to a skill ID.
-     * (Input doesn't contain skill ID, so proto-level auth cannot work)
-     *
      * @generated from rpc ai.stigmer.agentic.skill.v1.SkillQueryController.getByReference
      */
     getByReference: {
@@ -50,11 +46,6 @@ export const SkillQueryController = {
     /**
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
-     *
-     * @internal
-     * Used by the runner to download and extract skill artifacts into the
-     * sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
-     * storage key itself acts as a capability token.
      *
      * @generated from rpc ai.stigmer.agentic.skill.v1.SkillQueryController.getArtifact
      */
@@ -72,11 +63,6 @@ export const SkillQueryController = {
      * limit is deliverable. Callers should try this first and fall back to
      * getArtifact against servers that predate it (UNIMPLEMENTED).
      *
-     * @internal
-     * Authorization is skipped for the same reason as getArtifact: the
-     * content-hash storage key acts as the capability token. Cloud returns a
-     * pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
-     *
      * @generated from rpc ai.stigmer.agentic.skill.v1.SkillQueryController.getArtifactDownloadUrl
      */
     getArtifactDownloadUrl: {
@@ -91,10 +77,6 @@ export const SkillQueryController = {
      * Returns all historical versions ordered by push time (newest first).
      * Each entry includes the version hash, push timestamp, actor, tag,
      * git provenance, and artifact storage key for historical artifact access.
-     *
-     * @internal
-     * Authorization is handled in the handler after resolving the skill.
-     * (Input uses org+slug, not skill ID, so proto-level auth cannot work)
      *
      * @generated from rpc ai.stigmer.agentic.skill.v1.SkillQueryController.listVersions
      */

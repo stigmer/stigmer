@@ -42,9 +42,6 @@ class ApiKeyCommandControllerServicer(object):
 
         The raw key value is included in the response and is never returned again.
         Store it securely before discarding the response.
-
-        @internal
-        Any authenticated user can create API keys, so authorization is skipped.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -52,9 +49,6 @@ class ApiKeyCommandControllerServicer(object):
 
     def update(self, request, context):
         """Update an existing API key.
-
-        @internal
-        Authorization: Requires can_edit permission on the API key resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -62,9 +56,6 @@ class ApiKeyCommandControllerServicer(object):
 
     def delete(self, request, context):
         """Delete an API key.
-
-        @internal
-        Authorization: Requires can_delete permission on the API key resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

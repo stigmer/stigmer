@@ -46,27 +46,6 @@ const (
 )
 
 // Artifact represents a persisted blob produced during execution.
-//
-// @internal
-// Follows the standard Stigmer resource pattern:
-// api_version + kind + metadata + spec + status.
-//
-// Artifacts are created by the runner when task
-// outputs exceed the auto-promotion threshold or when the workflow author
-// explicitly declares an artifact (Phase 1).
-//
-// The content blob is stored externally (local filesystem in OSS, S3 in Cloud).
-// The Artifact resource holds metadata and a content hash that references
-// the blob in the content-addressable store.
-//
-// Artifact lifecycle:
-// 1. Runner calls create() with spec + content bytes
-// 2. Backend hashes content, stores blob, creates metadata record
-// 3. Runner replaces inline task output with artifact reference
-// 4. Clients retrieve artifact via get() or download via getDownloadUrl()
-// 5. Background GC deletes expired artifacts based on retention policy
-//
-// @since T07 (Artifact Store)
 type Artifact struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.
@@ -74,17 +53,6 @@ type Artifact struct {
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Resource metadata including name, organization, visibility, and labels.
-	//
-	// @internal
-	// Naming Pattern:
-	// - ID Format: "art_{unique-suffix}" (auto-generated)
-	// - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-	// - Org: inherited from the producing execution's organization
-	//
-	// Labels:
-	// - source_type: "workflow_execution" or "agent_execution"
-	// - source_id: the execution ID that produced this artifact
-	// - task_name: the task that produced this artifact (if applicable)
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Artifact properties provided at creation time.
 	Spec *ArtifactSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
@@ -160,43 +128,18 @@ func (x *Artifact) GetStatus() *ArtifactStatus {
 }
 
 // ArtifactStatus contains system-managed state for an artifact.
-//
-// @internal
-// Populated by the backend at creation time and updated by the GC job.
-// Users cannot modify status fields directly.
-//
-// @since T07 (Artifact Store)
 type ArtifactStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Standard audit information.
 	Audit *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
 	// SHA-256 hash of the artifact content, hex-encoded (64 characters).
-	//
-	// @internal
-	// Used as the blob storage key in the content-addressable store.
-	// Two artifacts with identical content share the same blob.
-	// The hash is computed by the backend at creation time and verified
-	// on download to ensure integrity.
 	ContentHash string `protobuf:"bytes,1,opt,name=content_hash,json=contentHash,proto3" json:"content_hash,omitempty"`
 	// Size of the artifact content in bytes.
-	//
-	// @internal
-	// Set at creation time. Used by the UI to display file sizes and
-	// by the GC job to track storage consumption per organization.
 	SizeBytes int64 `protobuf:"varint,2,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
 	// Current storage state of the artifact's blob.
 	StorageState ArtifactStorageState `protobuf:"varint,3,opt,name=storage_state,json=storageState,proto3,enum=ai.stigmer.agentic.artifact.v1.ArtifactStorageState" json:"storage_state,omitempty"`
 	// ISO 8601 timestamp when this artifact expires and becomes eligible
 	// for garbage collection.
-	//
-	// @internal
-	// Computed at creation time from spec.retention.ttl_days:
-	// - ttl_days > 0: created_at + ttl_days
-	// - ttl_days == 0: created_at + org_default_retention_days
-	// - ttl_days == -1: empty (permanent, never expires)
-	//
-	// The GC job scans for artifacts where expires_at < now() and
-	// transitions them to storage_state_deleted.
 	ExpiresAt     string `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

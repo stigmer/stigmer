@@ -26,13 +26,6 @@ const (
 
 // HumanInputTimeoutPolicy defines what happens when a human_input task's
 // timeout expires without a response from any approver.
-//
-// @internal
-// Timeout behavior is a workflow design decision: should the workflow fail
-// (safest), auto-approve (for non-critical gates), auto-deny (for opt-in
-// flows), or escalate to a different handler?
-//
-// @since T03 (P0 New Task Types)
 type HumanInputTimeoutPolicy int32
 
 const (
@@ -103,17 +96,6 @@ func (HumanInputTimeoutPolicy) EnumDescriptor() ([]byte, []int) {
 
 // HumanInputOutcome defines a named outcome that a reviewer can select
 // when responding to a human_input task.
-//
-// @internal
-// Outcomes enable rich branching beyond binary approve/deny. Each outcome
-// can route to a different downstream task via the `then` field, enabling
-// patterns like "approve → continue", "deny → re_classify", "needs_revision
-// → gather_more_context".
-//
-// When no outcomes are defined, the task defaults to binary approve/deny
-// behavior: approve continues to the next task, deny fails the task.
-//
-// @since T03 (P0 New Task Types)
 type HumanInputOutcome struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Outcome identifier used in task output and routing.
@@ -186,84 +168,6 @@ func (x *HumanInputOutcome) GetThen() string {
 // HumanInputTaskConfig defines the configuration for human_input tasks that
 // pause workflow execution to collect typed input or approval from a human
 // reviewer, then resume based on the reviewer's response.
-//
-// @internal
-// Use human_input when a workflow needs human judgment before proceeding:
-// approvals before API calls, sign-off before publishing, confirmation
-// before customer-impacting actions, or structured data collection from
-// a human operator.
-//
-// This is a workflow-level approval gate — distinct from agent-level HITL
-// (tool approval inside an agent session). Workflow-level gates are visible
-// in the execution viewer as explicit tasks with input/output/timing, and
-// they can route to different branches based on the reviewer's decision.
-//
-// Runtime implementation (T13) will use Temporal signals for workflow
-// resumption. The proto definition is intentionally runtime-agnostic.
-//
-// The reviewer's response (selected outcome + form data) becomes the task
-// output, accessible via export:
-//
-//	{
-//	  "outcome": "approve",
-//	  "form_data": { <validated form response if form_schema is set> },
-//	  "reviewer": "<canonical identity of the user who responded>",
-//	  "reviewer_actor": {
-//	    "id": "<canonical identity>",
-//	    "display_name": "<human-readable name, empty when unknown>",
-//	    "email": "<email address, empty when unknown>",
-//	    "avatar": "<avatar URL, empty when unknown>"
-//	  },
-//	  "responded_at": "<ISO 8601 timestamp>"
-//	}
-//
-// "reviewer" is the stable audit key (use it in switch conditions and
-// audit joins); "reviewer_actor" is a display snapshot stamped server-side
-// at decision time (use it in notifications and UIs). Both are absent when
-// the gate resolves without attribution (timeout policies, OSS single-user
-// edition).
-//
-// YAML Example (approval gate with custom outcomes):
-//   - manager_approval:
-//     human_input:
-//     prompt: "Customer-impacting incident classified as ${ $context.triage.severity }. Approve escalation?"
-//     form_schema:
-//     type: object
-//     properties:
-//     notes:
-//     type: string
-//     description: "Optional notes for the engineering team"
-//     priority_override:
-//     type: string
-//     enum: [P1, P2, P3]
-//     outcomes:
-//   - name: approve
-//     label: "Approve Escalation"
-//   - name: deny
-//     label: "Reject — Not Customer-Impacting"
-//     then: re_classify
-//   - name: needs_revision
-//     label: "Needs More Info"
-//     then: gather_more_context
-//     approvers:
-//   - "team:engineering-leads"
-//     timeout: 86400
-//     on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE
-//     notification_channels:
-//   - "slack:#incident-approvals"
-//     export:
-//     as: "${ . }"
-//
-// YAML Example (simple binary approval, no form):
-//   - confirm_publish:
-//     human_input:
-//     prompt: "Ready to publish ${ $context.document.title } to production?"
-//     approvers:
-//   - "role:content-admin"
-//     timeout: 3600
-//     on_timeout: HUMAN_INPUT_TIMEOUT_FAIL
-//     export:
-//     as: "${ . }"
 type HumanInputTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Message shown to the reviewer explaining what needs approval or input.
@@ -344,18 +248,6 @@ type HumanInputTaskConfig struct {
 	// Distinct from prompt (the instruction to the reviewer) and form_schema
 	// (the shape of the reviewer's response): payload is the thing under
 	// review — an article diff, a proposed record set, a generated plan.
-	//
-	// @internal
-	// Resolved payloads at or above the artifact promotion threshold (256KB)
-	// are stored in the artifact store; the approval_requested event then
-	// carries payload_artifact_id instead of the inline value. See
-	// ApprovalRequestedPayload in workflowexecution/v1/event.proto.
-	//
-	// Expression support is documented here rather than via the
-	// is_expression option, which annotates string fields only — matching
-	// how other Struct/Value-typed expression-bearing configs are handled.
-	//
-	// @since Review Payloads (stigmer/stigmer#234)
 	Payload *structpb.Value `protobuf:"bytes,8,opt,name=payload,proto3" json:"payload,omitempty"`
 	// Hint identifying which UI should present the payload.
 	//
@@ -365,13 +257,6 @@ type HumanInputTaskConfig struct {
 	// is viewed from a surface without custom renderers (CLI, plain
 	// console) — the payload is shown as structured data by the built-in
 	// approval card, so workflows stay portable across surfaces.
-	//
-	// @internal
-	// Deliberately a hint, not a contract: an unrecognized value must never
-	// block the gate. Not expression-valued — the hint is workflow design,
-	// not runtime data.
-	//
-	// @since Review Payloads (stigmer/stigmer#234)
 	UiHint        string `protobuf:"bytes,9,opt,name=ui_hint,json=uiHint,proto3" json:"ui_hint,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -28,19 +28,6 @@ export const file_ai_stigmer_agentic_agentchannel_v1_conversation_io: GenFile = 
  * one channel conversation: one external customer on one agent channel,
  * spanning sessions.
  *
- * @internal
- * channel-conversations DD-001/DD-003: the Conversation aggregate.
- * Infrastructure aggregate — no kind, no apiVersion (the ChannelDelivery
- * posture) — but WITH a public query/command surface, because the console
- * reads conversations and operates the control token (the
- * ChannelMessageQueryController precedent for channel-scoped public RPCs
- * without a kind). Identity is (agent_channel_id, conversation_key), the
- * same key channel_conversation_binding anchors (DD-013 of
- * agent-channel-integrations); the binding stays a separate aggregate (the
- * session pointer) and never carries participation state. Field ownership
- * is single-writer per DD-003 D-c; last_activity_at is the documented
- * commutative-max exception.
- *
  * @generated from message ai.stigmer.agentic.agentchannel.v1.ChannelConversation
  */
 export type ChannelConversation = Message<"ai.stigmer.agentic.agentchannel.v1.ChannelConversation"> & {
@@ -60,10 +47,6 @@ export type ChannelConversation = Message<"ai.stigmer.agentic.agentchannel.v1.Ch
 
   /**
    * Organization that owns the channel.
-   *
-   * @internal
-   * Denormalized from the channel (its metadata.org) so the org-wide
-   * list never joins — the schedule_fire.org precedent.
    *
    * @generated from field: string org = 3;
    */
@@ -92,12 +75,6 @@ export type ChannelConversation = Message<"ai.stigmer.agentic.agentchannel.v1.Ch
 
   /**
    * True when the conversation is flagged for human attention.
-   *
-   * @internal
-   * DD-008 D-e: a projection of the latest escalation event, updated by
-   * the participation writer in the same motion that appends the event.
-   * Orthogonal to control (DD-002 D-a #4): takeover clears it, handback
-   * never touches it.
    *
    * @generated from field: bool needs_attention = 7;
    */
@@ -143,20 +120,6 @@ export type ChannelConversation = Message<"ai.stigmer.agentic.agentchannel.v1.Ch
    * True when the customer's last message has not yet received a real
    * answer — from the agent or from a teammate.
    *
-   * @internal
-   * channel-conversations DD-011 D-b/D-c: derived on read from
-   * last_customer_message_at vs the server-side last_answered_at fact
-   * column — never stored, so no boolean exists to drift. Only real
-   * answers stamp the fact (an agent turn delivered with Outcome.OK; a
-   * participant-origin staff reply at its Delivered settle); apology,
-   * cancellation, and limit copy, the platform acknowledgment, operator
-   * sends, and escalations never count. Ties go to answered. The raw
-   * instant stays server-side deliberately: carrying the derived boolean
-   * keeps the NULL-and-compare rule in one place instead of re-implemented
-   * per client, and "waiting since" already rides field 11. proto3
-   * default (false) degrades to the pre-T05 surface in both skew
-   * directions.
-   *
    * @generated from field: bool awaiting_reply = 13;
    */
   awaitingReply: boolean;
@@ -171,15 +134,6 @@ export const ChannelConversationSchema: GenMessage<ChannelConversation> = /*@__P
 
 /**
  * ConversationTimelineItem is one entry in a conversation's timeline.
- *
- * @internal
- * channel-conversations DD-004: computed on read by stitching four
- * stores — inbound webhook events, reply deliveries (rendered from the
- * same extraction the delivery posted, never from execution transcripts),
- * the outbound ledger, and the internal-lane event store (joined at T03
- * Sitting 4). item_id is source-prefixed ("wa:", "dl:", "ob:", "ev:"),
- * which makes cross-store collisions structurally impossible and gives
- * cursors a total order without a synthetic sequence.
  *
  * @generated from message ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem
  */
@@ -225,15 +179,6 @@ export type ConversationTimelineItem = Message<"ai.stigmer.agentic.agentchannel.
    * The provider's verbatim message type for inbound items ("text",
    * "image", "audio", "document", ...). Empty on outbound items in v1.
    *
-   * @internal
-   * channel-conversations DD-004 amendment (T02 planning): non-text
-   * inbound is ignored by the reply pipeline today
-   * (WhatsAppInboundEventProcessor marks "non_text:<type>"), but the
-   * customer still sent it — a handoff timeline that hides it fails the
-   * product. Verbatim pass-through, never re-encoded (the DD-004 S-6
-   * posture); the UI renders known kinds as placeholders. Media content
-   * retrieval is a named non-goal of this slice.
-   *
    * @generated from field: string provider_message_type = 6;
    */
   providerMessageType: string;
@@ -273,15 +218,6 @@ export type ConversationTimelineItem = Message<"ai.stigmer.agentic.agentchannel.
    * receipt_failed (WhatsApp: the errors[0] title, plus error_data
    * details when present). Empty otherwise.
    *
-   * @internal
-   * channel-conversations DD-014 D-c: a pure relay of
-   * ChannelOutboundMessage.receipt_detail (field 17), inheriting its
-   * discipline verbatim — provider-owned vocabulary, relayed, never
-   * pattern-matched; receipt_error_code is the structured twin a
-   * branching client must key on instead. Rides outbound-ledger ("ob:")
-   * items only: the reply lane has no receipt axis at all, so "dl:" and
-   * inbound items always answer empty.
-   *
    * @generated from field: string receipt_detail = 11;
    */
   receiptDetail: string;
@@ -290,11 +226,6 @@ export type ConversationTimelineItem = Message<"ai.stigmer.agentic.agentchannel.
    * The provider's numeric error code when receipt_state is
    * receipt_failed (WhatsApp: errors[0].code, e.g. 131047 "re-engagement
    * required"). Zero otherwise.
-   *
-   * @internal
-   * The relay of the row's field 18 (DD-014 D-c), shipped WITH
-   * receipt_detail and never after it: a client handed prose first will
-   * pattern-match the prose, which is the coupling this pair prevents.
    *
    * @generated from field: int32 receipt_error_code = 12;
    */
@@ -307,14 +238,6 @@ export type ConversationTimelineItem = Message<"ai.stigmer.agentic.agentchannel.
    * declined to ingest (disallowed type, over the size cap) — those
    * keep the bare provider_message_type placeholder.
    *
-   * @internal
-   * whatsapp-media DD-001 D4: descriptive facts only — the storage key
-   * deliberately never rides the wire. Clients fetch bytes through
-   * getMediaDownloadUrl addressed by (channel, conversation, item_id),
-   * and the server resolves the key from its own row, so the read path
-   * is conversation-viewer-scoped by construction and blob capabilities
-   * never leave the server.
-   *
    * @generated from field: ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13;
    */
   media?: ConversationMediaRef;
@@ -326,17 +249,6 @@ export type ConversationTimelineItem = Message<"ai.stigmer.agentic.agentchannel.
    * Empty on non-failed items and on technical failures, whose
    * diagnostics deliberately stay off the thread.
    *
-   * @internal
-   * cloud#262 (channel-conversations F-25). The attempt-axis sibling of
-   * receipt_detail (field 11) with one deliberate doctrine difference:
-   * receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
-   * field carries PLATFORM-authored thread-safe copy — the guarantee is
-   * the write-side classification (the ledgers' attempt_detail is only
-   * ever written by the refusal/withdrawal arms; raw exception text
-   * lands in last_error, which never rides the wire). A pure relay of
-   * the row's own pair, never gated here: the stamp writer owns when
-   * the pair is meaningful. Rides both "ob:" and "dl:" items.
-   *
    * @generated from field: string attempt_detail = 14;
    */
   attemptDetail: string;
@@ -345,13 +257,6 @@ export type ConversationTimelineItem = Message<"ai.stigmer.agentic.agentchannel.
    * Why a FAILED send attempt failed, in the platform's classification.
    * Unspecified on non-failed items and on rows written before the
    * classification existed.
-   *
-   * @internal
-   * The structured twin, shipped WITH attempt_detail and never after it
-   * (the receipt_error_code discipline): a client that branches on the
-   * failure keys on this enum, never the prose. attempt_errored rows
-   * carry no detail by construction — clients render their own generic
-   * copy for that arm.
    *
    * @generated from field: ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15;
    */
@@ -369,13 +274,6 @@ export const ConversationTimelineItemSchema: GenMessage<ConversationTimelineItem
  * ConversationMediaRef describes a media file attached to an inbound
  * timeline item — enough for a client to render a chip (name, kind,
  * size) and decide whether to fetch the bytes.
- *
- * @internal
- * whatsapp-media DD-001 D4. Deliberately NOT the agentexecution
- * Attachment shape: that message carries transport facts (storage_key,
- * mount_path) for the sandbox, while this one is a display reference —
- * sharing a message would couple the console's read surface to the
- * runner's transport contract.
  *
  * @generated from message ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef
  */
@@ -556,14 +454,6 @@ export const GetConversationTimelineInputSchema: GenMessage<GetConversationTimel
  * ConversationTimeline contains one page of a conversation's timeline,
  * newest first.
  *
- * @internal
- * Cursor pagination, not PageInfo, deliberately (DD-004 D-b): the
- * timeline is stitched across three stores at read time, so an offset is
- * neither cheap nor stable while new items land; the cursor encodes
- * (instant, item_id). No total_count for the same reason — a
- * cross-store count would be a second full stitch pretending to be a
- * number.
- *
  * @generated from message ai.stigmer.agentic.agentchannel.v1.ConversationTimeline
  */
 export type ConversationTimeline = Message<"ai.stigmer.agentic.agentchannel.v1.ConversationTimeline"> & {
@@ -686,14 +576,6 @@ export const ConversationControlInputSchema: GenMessage<ConversationControlInput
 /**
  * Input for replying to a conversation as the business.
  *
- * @internal
- * channel-conversations DD-009 D-a: conversation-scoped by design — the
- * operator addresses a conversation they are looking at, never types a
- * recipient, and the handler derives the recipient from the conversation
- * key. This seam (not the cold-send lane) is where staff-reply semantics
- * live: implicit takeover orders the control flip before-or-with the send
- * (T03), and staff replies are exempt from the proactive caps (DD-009 D-c).
- *
  * @generated from message ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput
  */
 export type ReplyToConversationInput = Message<"ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput"> & {
@@ -753,12 +635,6 @@ export const EscalateConversationInputSchema: GenMessage<EscalateConversationInp
  * ConversationControl names who may speak to the customer on a
  * conversation's public lane.
  *
- * @internal
- * channel-conversations DD-002 (lane x control): exactly one holder at a
- * time; transitions are CAS-guarded through the participation writer
- * (DD-007 D-f). Values carry the control_ prefix — proto3 enum values are
- * package-scoped and bare names invite collisions (the receipt_ precedent).
- *
  * @generated from enum ai.stigmer.agentic.agentchannel.v1.ConversationControl
  */
 export enum ConversationControl {
@@ -792,11 +668,6 @@ export const ConversationControlSchema: GenEnum<ConversationControl> = /*@__PURE
 
 /**
  * ConversationLane distinguishes customer-visible items from internal ones.
- *
- * @internal
- * channel-conversations DD-002: every timeline item has a lane. lane_internal
- * carries the internal event store's items — escalations and attention clears
- * since T03 Sitting 4, notes when their writer lands (the v1-stretch decision).
  *
  * @generated from enum ai.stigmer.agentic.agentchannel.v1.ConversationLane
  */
@@ -867,12 +738,6 @@ export enum ConversationItemAuthor {
    * Platform-authored conversation copy (e.g. the takeover
    * acknowledgment), neither the agent's words nor a teammate's.
    *
-   * @internal
-   * channel-conversations DD-005 D-d: acknowledgment rows carry the
-   * platform outbound origin (lands in T03); rendering them as the agent
-   * would be a lie. The value exists from day one so the item vocabulary
-   * never needs a patch when the first platform row appears.
-   *
    * @generated from enum value: author_platform = 4;
    */
   author_platform = 4,
@@ -887,15 +752,6 @@ export const ConversationItemAuthorSchema: GenEnum<ConversationItemAuthor> = /*@
 /**
  * ChannelConversationListFilter names the server-evaluated predicates the
  * conversation list can be narrowed to.
- *
- * @internal
- * channel-conversations DD-011 D-f/D-g: filter_wants_human expresses
- * EXACTLY the nav badge's union, and the badge count is the filtered
- * list's total_count — one predicate in one handler, so the count and the
- * list it opens can never disagree. Server-side deliberately (T04 D1's
- * standing objection): a client-side tab over one fetched page would
- * silently lie across pages. Values carry the filter_ prefix — proto3
- * enum values are package-scoped (the control_ precedent).
  *
  * @generated from enum ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter
  */

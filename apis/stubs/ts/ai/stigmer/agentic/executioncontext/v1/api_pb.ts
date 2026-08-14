@@ -22,10 +22,6 @@ export const file_ai_stigmer_agentic_executioncontext_v1_api: GenFile = /*@__PUR
 /**
  * Ephemeral runtime configuration and secrets scoped to a single execution.
  *
- * @internal
- * Created by the execution engine at start, deleted when execution completes.
- * Used for B2B scenarios where secrets are injected at runtime.
- *
  * @generated from message ai.stigmer.agentic.executioncontext.v1.ExecutionContext
  */
 export type ExecutionContext = Message<"ai.stigmer.agentic.executioncontext.v1.ExecutionContext"> & {

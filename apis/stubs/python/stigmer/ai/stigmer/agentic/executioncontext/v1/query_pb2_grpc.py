@@ -9,17 +9,6 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 
 class ExecutionContextQueryControllerStub(object):
     """ExecutionContextQueryController handles read operations for ExecutionContext resources.
-
-    @internal
-    Authorization: All RPCs use is_skip_authorization with handler-level auth.
-    In cloud, the handler performs a direct FGA check: can_view on
-    execution_context:<metadata.id>, against the owner tuple written at creation
-    time by the create pipeline. OSS enforces no authorization.
-
-    Secret handling: values with is_secret=true are returned in plaintext on OSS
-    (single-user local, no encryption). On cloud they are redacted for user-class
-    callers on every read RPC; only getByExecutionId can return decrypted values,
-    and only to runner-class credentials (see that RPC's comment).
     """
 
     def __init__(self, channel):
@@ -47,25 +36,10 @@ class ExecutionContextQueryControllerStub(object):
 
 class ExecutionContextQueryControllerServicer(object):
     """ExecutionContextQueryController handles read operations for ExecutionContext resources.
-
-    @internal
-    Authorization: All RPCs use is_skip_authorization with handler-level auth.
-    In cloud, the handler performs a direct FGA check: can_view on
-    execution_context:<metadata.id>, against the owner tuple written at creation
-    time by the create pipeline. OSS enforces no authorization.
-
-    Secret handling: values with is_secret=true are returned in plaintext on OSS
-    (single-user local, no encryption). On cloud they are redacted for user-class
-    callers on every read RPC; only getByExecutionId can return decrypted values,
-    and only to runner-class credentials (see that RPC's comment).
     """
 
     def get(self, request, context):
         """Get an ExecutionContext by ID.
-
-        @internal
-        Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
-        Secret values are redacted on cloud.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -73,10 +47,6 @@ class ExecutionContextQueryControllerServicer(object):
 
     def getByReference(self, request, context):
         """Get an ExecutionContext by reference (slug-based lookup).
-
-        @internal
-        Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
-        Secret values are redacted on cloud.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -84,21 +54,6 @@ class ExecutionContextQueryControllerServicer(object):
 
     def getByExecutionId(self, request, context):
         """Get the ExecutionContext for a given execution ID.
-
-        @internal
-        Primary lookup method used by runners to retrieve the merged environment
-        variables during workflow/agent execution and MCP discovery.
-        Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
-
-        Secret handling (cloud): the decrypt path is gated by caller credential
-        class AND scope, not by FGA — runners authenticate as the user who owns
-        the execution, so permissions cannot tell them apart. Callers presenting
-        a platform-minted runner token (token_type of sandbox, workflow_sandbox,
-        or connect_sandbox) whose scope claim binds it to this very execution
-        receive decrypted secret values. The unscoped embedded_runner bootstrap
-        credential is refused; desktop runners exchange it for a scoped token
-        via getRunnerScopedToken before reading. Every other caller (user JWT,
-        SDK, console) receives the same redaction as get/getByReference.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -132,17 +87,6 @@ def add_ExecutionContextQueryControllerServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class ExecutionContextQueryController(object):
     """ExecutionContextQueryController handles read operations for ExecutionContext resources.
-
-    @internal
-    Authorization: All RPCs use is_skip_authorization with handler-level auth.
-    In cloud, the handler performs a direct FGA check: can_view on
-    execution_context:<metadata.id>, against the owner tuple written at creation
-    time by the create pipeline. OSS enforces no authorization.
-
-    Secret handling: values with is_secret=true are returned in plaintext on OSS
-    (single-user local, no encryption). On cloud they are redacted for user-class
-    callers on every read RPC; only getByExecutionId can return decrypted values,
-    and only to runner-class credentials (see that RPC's comment).
     """
 
     @staticmethod

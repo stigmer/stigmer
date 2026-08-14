@@ -36,10 +36,6 @@ export const BillingCommandController: GenService<{
    * Provision or retrieve the billing account for an organization.
    * Idempotent: creates the account on first call, returns existing on subsequent calls.
    *
-   * @internal
-   * Called during org creation or first billing interaction.
-   * Initializes balance to zero with default thresholds.
-   *
    * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.getOrCreateBillingAccount
    */
   getOrCreateBillingAccount: {
@@ -62,10 +58,6 @@ export const BillingCommandController: GenService<{
    * Reserve credits before starting an agent execution.
    * Returns authorization status and reservation details.
    *
-   * @internal
-   * Called by the Temporal workflow before dispatching to the agent runner.
-   * The runner must not start if authorized is false.
-   *
    * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.authorizeExecution
    */
   authorizeExecution: {
@@ -78,10 +70,6 @@ export const BillingCommandController: GenService<{
    * Computes cost server-side from the model registry, inserts an immutable
    * LlmCallUsageRecord, and debits credits from the execution's reservation.
    *
-   * @internal
-   * Called by the proxy after each LLM SSE stream completes.
-   * Deduplicated by (execution_id, sequence, metering_source).
-   *
    * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.recordLlmCallUsage
    */
   recordLlmCallUsage: {
@@ -92,9 +80,6 @@ export const BillingCommandController: GenService<{
   /**
    * Settle billing for a completed execution.
    * Releases unused reservation credits and produces the final billing record.
-   *
-   * @internal
-   * Called by the Temporal workflow after the agent runner completes.
    *
    * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.finalizeExecution
    */

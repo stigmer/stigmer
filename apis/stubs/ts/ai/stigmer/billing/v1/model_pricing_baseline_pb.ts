@@ -198,16 +198,6 @@ export type ModelCapabilities = Message<"ai.stigmer.billing.v1.ModelCapabilities
    * server-side, so a model that is text-only by its own documentation
    * (composer-2.5) still sees images when dispatched via Cursor.
    *
-   * @internal
-   * Cursor-path values are established empirically — a nonce-bearing image
-   * probe per model (production executions, 2026-08-10; evidence table on
-   * stigmer-cloud#281, methodology from the whatsapp-media project's T06
-   * probe) — because Cursor's own docs under-report: the server-side
-   * vision hand-off is undocumented behavior. If Cursor changes that
-   * behavior, re-probe; do not re-read the docs. The OSS runner's vision
-   * gate (attachment-vision.ts, stigmer#370) fails open — it degrades
-   * image delivery only on an explicit false.
-   *
    * @generated from field: bool vision = 2;
    */
   vision: boolean;

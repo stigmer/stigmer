@@ -357,16 +357,6 @@ type ModelCapabilities struct {
 	// path": Cursor's serving stack hands vision off to a multimodal model
 	// server-side, so a model that is text-only by its own documentation
 	// (composer-2.5) still sees images when dispatched via Cursor.
-	//
-	// @internal
-	// Cursor-path values are established empirically — a nonce-bearing image
-	// probe per model (production executions, 2026-08-10; evidence table on
-	// stigmer-cloud#281, methodology from the whatsapp-media project's T06
-	// probe) — because Cursor's own docs under-report: the server-side
-	// vision hand-off is undocumented behavior. If Cursor changes that
-	// behavior, re-probe; do not re-read the docs. The OSS runner's vision
-	// gate (attachment-vision.ts, stigmer#370) fails open — it degrades
-	// image delivery only on an explicit false.
 	Vision bool `protobuf:"varint,2,opt,name=vision,proto3" json:"vision,omitempty"`
 	// Whether the model streams incremental output tokens.
 	Streaming bool `protobuf:"varint,3,opt,name=streaming,proto3" json:"streaming,omitempty"`

@@ -50,10 +50,6 @@ export type IamPolicySpec = Message<"ai.stigmer.iam.iampolicy.v1.IamPolicySpec">
    * Maps to a role_code from ai.stigmer.iam.v1.IamRole.
    * Examples: "admin", "editor", "viewer", "owner", "member"
    *
-   * @internal
-   * This is the FGA relation in the authorization tuple:
-   * principal.kind:principal.id#principal.relation@resource.kind:resource.id#relation
-   *
    * @generated from field: string relation = 3;
    */
   relation: string;
@@ -106,9 +102,6 @@ export type ApiResourceRef = Message<"ai.stigmer.iam.iampolicy.v1.ApiResourceRef
    *
    * This field qualifies HOW the principal relates to this resource reference,
    * NOT the permission being granted (that's IamPolicySpec.relation).
-   *
-   * @internal
-   * In OpenFGA tuple notation: team:tm-123#member (as the subject of the tuple)
    *
    * @generated from field: string relation = 3;
    */

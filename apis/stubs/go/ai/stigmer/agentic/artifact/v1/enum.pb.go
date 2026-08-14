@@ -22,16 +22,6 @@ const (
 )
 
 // ArtifactStorageState tracks the lifecycle of an artifact's blob in storage.
-//
-// @internal
-// The state machine is linear:
-// storage_state_pending → storage_state_stored → storage_state_deleted
-//
-// Pending: metadata record created, blob upload not yet confirmed.
-// Stored: blob successfully written to object storage and verified.
-// Deleted: blob has been garbage-collected (metadata may be retained for audit).
-//
-// @since T07 (Artifact Store)
 type ArtifactStorageState int32
 
 const (

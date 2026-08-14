@@ -23,28 +23,6 @@ const (
 
 // OAuthGrant tracks OAuth metadata for a user's OAuth connection to an
 // API resource.
-//
-// @internal
-// Infrastructure-only. Not a public API resource — no kind, no apiVersion,
-// no CRUD RPCs. Stored in the backend's database, keyed by the composite
-// of (identity_account_id, resource_id, org_id).
-//
-// The grant is resource-agnostic: currently used for MCP servers, but the
-// data model supports any API resource kind that needs OAuth credentials
-// (e.g., workflows in the future).
-//
-// Actual tokens (access + refresh) live in a managed environment
-// (stigmer.ai/managed=true label) as encrypted secret env vars.
-// OAuthGrant only holds non-secret metadata needed by the refresh
-// mechanism and pre-flight expiry checks.
-//
-// Storage split rationale:
-//   - Managed environment: access token (target_env_var), refresh token
-//     ({target_env_var}_REFRESH_TOKEN). These are secrets, encrypted at rest,
-//     subject to Environment access control.
-//   - OAuthGrant: expiry timestamp, client_id, token_endpoint, env var names.
-//     These are non-secret metadata that the backend reads during pre-flight
-//     checks without needing secret-read permissions on the Environment.
 type OAuthGrant struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Which user owns this grant.
@@ -199,36 +177,6 @@ func (x *OAuthGrant) GetOrgId() string {
 
 // OAuthAppOverride binds a specific OAuthApp to an API resource within an
 // organization, overriding the platform-default OAuthApp for that resource.
-//
-// @internal
-// Infrastructure-only. Not a public API resource — no kind, no apiVersion,
-// no CRUD RPCs. Stored in the backend's database, keyed by the composite
-// of (resource_id, resource_kind, org_id).
-//
-// This is the "Bring Your Own App" (BYOA) binding: it records that org Z
-// wants resource Y to use OAuthApp X instead of the platform default
-// referenced by McpServerAuth.oauth_app_ref.
-//
-// Separation of concerns:
-//   - OAuthApp (credential resource): holds client_id, client_secret, and
-//     vendor endpoint URLs. Reusable — may be referenced by multiple overrides
-//     or MCP servers.
-//   - OAuthAppOverride (binding document): maps (resource, org) to an OAuthApp.
-//     Analogous to OAuthGrant, which maps (user, resource, org) to token metadata.
-//
-// Resolution chain (evaluated at connect time and token refresh):
-//  1. OAuthAppOverride for (resource_id, resource_kind, org_id) — org override
-//  2. McpServerAuth.oauth_app_ref on the resource spec — platform default
-//  3. None — no OAuth app available (manual token or DCR only)
-//
-// Edition scoping: the override binding — and the whole resolution chain
-// above it — exists only on the hosted platform. OSS resolves the
-// oauth_app_ref directly against its flat OAuthApp store (the ref IS the
-// whole resolution) and answers UNIMPLEMENTED for the org-OAuth-app RPCs;
-// see McpServerQueryController.getOrgOAuthApp for the contract.
-//
-// The override is resource-agnostic: currently used for MCP servers, but the
-// composite key supports any API resource kind that needs BYOA (e.g., workflows).
 type OAuthAppOverride struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// System-generated ID (metadata.id) of the API resource this override

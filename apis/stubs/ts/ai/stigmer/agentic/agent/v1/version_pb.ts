@@ -26,11 +26,6 @@ export const file_ai_stigmer_agentic_agent_v1_version: GenFile = /*@__PURE__*/
  * version entry. The version is identified by its content hash (SHA-256 of
  * the canonical protojson representation of AgentSpec).
  *
- * @internal
- * NOT YET IMPLEMENTED — design placeholder for the agent versioning phase.
- *
- * @since Agent Versioning (future)
- *
  * @generated from message ai.stigmer.agentic.agent.v1.AgentVersionEntry
  */
 export type AgentVersionEntry = Message<"ai.stigmer.agentic.agent.v1.AgentVersionEntry"> & {

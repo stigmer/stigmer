@@ -23,11 +23,6 @@ const (
 )
 
 // WorkspaceSource defines where the workspace content comes from.
-//
-// @internal
-// Pure source-definition type: describes the origin of workspace content
-// without any identity or naming. Use WorkspaceEntry to pair a source with
-// a name for session-level usage.
 type WorkspaceSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Source:
@@ -117,12 +112,6 @@ func (*WorkspaceSource_LocalPath) isWorkspaceSource_Source() {}
 // Each entry is a separate directory or repository that the agent can
 // operate on. The name serves as the entry's identity and must be unique
 // within a session's workspace_entries list.
-//
-// @internal
-// In a multi-root workspace (VS Code model), the name appears in the system
-// prompt and in cloud mode it becomes the subdirectory name under the
-// workspace root. Names are auto-derived by the CLI from the repository
-// name (last URL path segment sans ".git") or the directory basename.
 type WorkspaceEntry struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Short identifier for this workspace entry.
@@ -181,11 +170,6 @@ func (x *WorkspaceEntry) GetSource() *WorkspaceSource {
 //
 // The agent operates directly on the user's files — changes are immediate
 // and persistent. No copy or clone is made.
-//
-// @internal
-// Deployment constraint: only valid when the runner is in local mode.
-// Cloud runners reject this at provisioning time with a clear error, the same
-// way GitRepoSource rejects SSH URLs at validation time.
 type LocalPathSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Absolute path to an existing directory on the host filesystem.
@@ -234,16 +218,6 @@ func (x *LocalPathSource) GetPath() string {
 // GitRepoSource provisions a workspace by cloning a git repository.
 //
 // Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.
-//
-// @internal
-// Authentication: The provisioner resolves GITHUB_TOKEN from the merged
-// environment (instance environment_refs < ExecutionContext.runtime_env). As a
-// workspace-provisioning key it is re-injected past the Agent.spec.env
-// declared-key filter when the session has git_repo entries, with a fallback
-// to the caller's personal environment (see the agentexecution controller's
-// executionContextBuilder). The token is injected into the clone URL, consumed
-// by provisioning, and stripped before forwarding to the agent runtime (see
-// AD-05). SSH key authentication is a future enhancement.
 type GitRepoSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// HTTPS clone URL for the repository.
@@ -262,25 +236,8 @@ type GitRepoSource struct {
 	//
 	// When not set, defaults to a shallow clone with depth 1. Set to 0 for
 	// a full clone with complete history.
-	//
-	// @internal
-	// Uses proto3 optional to distinguish "not set" from "set to 0."
-	// Absent: shallow clone depth 1; 0: full clone; N > 0: shallow clone depth N.
 	Depth *int32 `protobuf:"varint,4,opt,name=depth,proto3,oneof" json:"depth,omitempty"`
 	// Controls whether the platform creates a branch and pull request from the agent's file changes.
-	//
-	// @internal
-	// This is a platform-level workflow, not an agent-level decision. The
-	// agent focuses on making code changes; the platform packages them
-	// incrementally — the PR appears the moment the first file is written
-	// and the diff grows in real time as the agent works.
-	//
-	// Requires GITHUB_TOKEN in the execution environment. If credentials
-	// are not available, the write-back is silently skipped regardless of
-	// this setting.
-	//
-	// Default (UNSPECIFIED): platform decides. Currently defaults to
-	// write-back enabled when git credentials are available.
 	WriteBackMode GitWriteBackMode `protobuf:"varint,5,opt,name=write_back_mode,json=writeBackMode,proto3,enum=ai.stigmer.agentic.session.v1.GitWriteBackMode" json:"write_back_mode,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

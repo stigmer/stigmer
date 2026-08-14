@@ -23,12 +23,6 @@ const (
 )
 
 // ArtifactId wraps an artifact identifier.
-//
-// @internal
-// Using a wrapper (instead of a raw string) provides validation,
-// clear field naming, and extensibility.
-//
-// @since T07 (Artifact Store)
 type ArtifactId struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Artifact identifier.
@@ -76,11 +70,6 @@ func (x *ArtifactId) GetValue() string {
 }
 
 // ArtifactList contains a paginated list of artifacts.
-//
-// @internal
-// Returned by list operations (listByExecution).
-//
-// @since T07 (Artifact Store)
 type ArtifactList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Total number of pages available for this query.
@@ -136,33 +125,11 @@ func (x *ArtifactList) GetEntries() []*Artifact {
 }
 
 // CreateArtifactInput provides the data needed to create an artifact.
-//
-// @internal
-// Used by the runner (stigmer-runner) to persist task outputs.
-// This is a system-level RPC — not exposed to end users or the SDK.
-//
-// The backend:
-// 1. Computes SHA-256 hash of content
-// 2. Checks if a blob with that hash already exists (deduplication)
-// 3. If not, writes blob to storage (filesystem in OSS, S3 in Cloud)
-// 4. Creates the Artifact metadata record
-// 5. Returns the created Artifact with status populated
-//
-// Size limit: 50MB per request. This matches Temporal's max history size
-// and covers all practical workflow task outputs. For larger artifacts,
-// multipart upload will be added in a future phase.
-//
-// @since T07 (Artifact Store)
 type CreateArtifactInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Artifact properties (content type, display name, source, retention).
 	Spec *ArtifactSpec `protobuf:"bytes,1,opt,name=spec,proto3" json:"spec,omitempty"`
 	// Raw artifact content bytes.
-	//
-	// @internal
-	// Maximum size: 50MB (52,428,800 bytes).
-	// The backend computes the SHA-256 hash of this content for
-	// content-addressable storage and deduplication.
 	Content       []byte `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -213,12 +180,6 @@ func (x *CreateArtifactInput) GetContent() []byte {
 }
 
 // ListArtifactsByExecutionRequest lists artifacts produced by a specific execution.
-//
-// @internal
-// Supports listing by either workflow_execution_id or agent_execution_id.
-// At least one must be provided.
-//
-// @since T07 (Artifact Store)
 type ListArtifactsByExecutionRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// WorkflowExecution ID to list artifacts for.
@@ -301,19 +262,6 @@ func (x *ListArtifactsByExecutionRequest) GetPageToken() string {
 // Stigmer API. This eliminates CORS concerns for SDK consumers who need to
 // read artifact content programmatically — e.g., rendering an artifact-backed
 // review payload inside an embedded approval gate.
-//
-// @internal
-// Mirrors AgentExecutionQueryController.getArtifactContent, which was added
-// for the same reason on the agent-execution side. Artifacts are addressed
-// by artifact ID here (the T07 store's identity) rather than by
-// execution_id + storage_key.
-//
-// The server enforces a maximum content size (default: 512 KB). If the
-// artifact exceeds max_bytes, the response contains the first max_bytes of
-// content with truncated=true. Callers use total_size_bytes to decide
-// whether to offer a full download via getDownloadUrl instead.
-//
-// @since Review Payloads (stigmer/stigmer#234)
 type GetArtifactContentRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Artifact identifier.
@@ -467,23 +415,9 @@ func (x *GetArtifactContentResponse) GetTruncated() bool {
 }
 
 // ArtifactDownloadUrl provides a URL for downloading artifact content.
-//
-// @internal
-// The download strategy differs by edition:
-// - Cloud: pre-signed S3 URL with short TTL (e.g., 15 minutes)
-// - OSS: direct URL to the local artifact server endpoint
-//
-// This pattern avoids streaming large blobs through the gRPC control plane.
-// The client receives a URL and fetches the content via HTTP GET.
-//
-// @since T07 (Artifact Store)
 type ArtifactDownloadUrl struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// URL to download the artifact content via HTTP GET.
-	//
-	// @internal
-	// Cloud: pre-signed S3 URL (expires after ttl_seconds)
-	// OSS: http://localhost:{port}/artifacts/{hash}
 	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	// Time-to-live for the download URL in seconds.
 	// After this duration, the URL expires and a new one must be requested.

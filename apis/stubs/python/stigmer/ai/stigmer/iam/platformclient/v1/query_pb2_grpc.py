@@ -40,9 +40,6 @@ class PlatformClientQueryControllerServicer(object):
 
     def get(self, request, context):
         """Get a platform client by its unique identifier.
-
-        @internal
-        Authorization: Requires can_view permission on the platform client resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -53,10 +50,6 @@ class PlatformClientQueryControllerServicer(object):
 
         Resolves a human-readable reference like "acme/acme-dashboard" to the full
         PlatformClient resource.
-
-        @internal
-        Custom authorization in handler — checks both direct resource access
-        and organization-level visibility permissions.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -67,9 +60,6 @@ class PlatformClientQueryControllerServicer(object):
 
         Returns every PlatformClient whose metadata.org matches the input org.
         Typically a small set per org, so results are not paginated.
-
-        @internal
-        Authorization: Requires can_view permission on the organization resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

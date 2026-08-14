@@ -29,16 +29,6 @@ export const file_ai_stigmer_agentic_channelapp_v1_api: GenFile = /*@__PURE__*/
  * serve the same workspace side by side. One ChannelApp can be
  * referenced by many AgentChannel connections via spec.app_ref.
  *
- * @internal
- * T04 item 2 (channel strategy tasks/T03_4). Structural sibling of
- * OAuthApp (kind 22) — an org-owned credential holder with encrypted
- * inline secrets — but a different trust surface: OAuthApp models
- * user-authorization OAuth (authorize/token/userinfo URLs); a ChannelApp
- * carries webhook signing secrets and install credentials, so it is a
- * separate kind in the agentic group, never a reuse. Provider variance
- * is a oneof (the AgentChannelSpec.provider_config idiom); WhatsApp
- * (T05) extends the oneof, touching zero kinds.
- *
  * @generated from message ai.stigmer.agentic.channelapp.v1.ChannelApp
  */
 export type ChannelApp = Message<"ai.stigmer.agentic.channelapp.v1.ChannelApp"> & {

@@ -45,10 +45,6 @@ export const WorkflowQueryController: GenService<{
    * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
    * - SHA256 hash (64 hex chars) → Returns the exact immutable version
    *
-   * @internal
-   * Custom authorization in handler — checks both direct resource access
-   * and organization-level visibility permissions.
-   *
    * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowQueryController.getByReference
    */
   getByReference: {
@@ -63,12 +59,6 @@ export const WorkflowQueryController: GenService<{
    * Each entry includes the version hash, applied timestamp, actor, tag,
    * git provenance, and the validated CNCF YAML for historical access.
    *
-   * @internal
-   * Authorization is handled in the handler after resolving the workflow.
-   * (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
-   *
-   * @since Workflow Versioning
-   *
    * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowQueryController.listVersions
    */
   listVersions: {
@@ -81,11 +71,6 @@ export const WorkflowQueryController: GenService<{
    *
    * Used by the runner (to hydrate execution from a pinned version) and
    * the execution viewer (to render the graph for historical executions).
-   *
-   * @internal
-   * Authorization uses can_view on the workflow resource.
-   *
-   * @since Workflow Versioning
    *
    * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowQueryController.getVersion
    */

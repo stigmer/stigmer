@@ -22,23 +22,6 @@ export const file_ai_stigmer_tenancy_project_v1_api: GenFile = /*@__PURE__*/
 /**
  * Project groups related resources under a single unit of management with automatic orphan pruning.
  *
- * @internal
- * Two tracks are supported:
- *
- * Declarative Track (no entry_point):
- *   Place YAML resource files alongside stigmer.yaml. The CLI scans the
- *   directory, applies each resource individually, and updates the project
- *   membership. Resources removed from the directory are pruned.
- *
- * SDK Track (entry_point set):
- *   The CLI executes the entry_point to synthesize resources, applies each
- *   individually, and updates the project membership. The runtime is inferred
- *   from the entry_point file extension (.go, .py, .ts, .js).
- *
- * In both tracks, the project stores only references (org/kind/slug) to its
- * members — never full resource objects. Orphan pruning is a set-difference
- * between previous and current members.
- *
  * @generated from message ai.stigmer.tenancy.project.v1.Project
  */
 export type Project = Message<"ai.stigmer.tenancy.project.v1.Project"> & {

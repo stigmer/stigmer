@@ -38,67 +38,28 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // McpServerCommandController provides write operations for MCP server resources.
-//
-// @internal
-// Authorization model for writes:
-// - Platform-scoped: Only platform operators can create/modify
-// - Organization-scoped: Org admins can create/modify
-// - Identity-account-scoped: Only the owner can create/modify
-//
-// Primary interface: The `apply` method provides Kubernetes-style idempotent
-// create-or-update semantics, which is the recommended approach for CLI usage.
 type McpServerCommandControllerClient interface {
 	// Create or update an MCP server resource.
 	//
 	// If the resource doesn't exist, creates it. If it exists, updates it.
 	// The resource is identified by its (scope, org, slug) combination.
-	//
-	// @internal
-	// The handler determines whether this is a create or update operation
-	// and performs appropriate scope-aware authorization:
-	// - Create: Requires permission to create in the target scope
-	// - Update: Requires can_edit on the existing resource
 	Apply(ctx context.Context, in *McpServer, opts ...grpc.CallOption) (*McpServer, error)
 	// Create an MCP server resource.
 	//
 	// Returns an error if a resource with the same (scope, org, slug) already exists.
 	// Use `apply` for idempotent create-or-update semantics.
-	//
-	// @internal
-	// Authorization: Custom authorization in handler.
-	// Requires permission to create MCP servers in the specified scope:
-	// - Platform: Requires platform operator role
-	// - Organization: Requires org admin role or can_create_mcp_server permission
-	// - Identity Account: Automatically allowed for the authenticated user
 	Create(ctx context.Context, in *McpServer, opts ...grpc.CallOption) (*McpServer, error)
 	// Update an existing MCP server resource.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the mcp_server resource.
-	// Only the owner (based on scope) can update:
-	// - Platform: Platform operators
-	// - Organization: Org admins or resource owner
-	// - Identity Account: The owner
 	Update(ctx context.Context, in *McpServer, opts ...grpc.CallOption) (*McpServer, error)
 	// Delete an MCP server resource.
 	//
 	// Permanently removes the MCP server definition.
 	// Agents referencing this server will need to be updated.
-	//
-	// @internal
-	// Authorization: Requires can_delete permission on the mcp_server resource.
-	// Only the owner can delete:
-	// - Platform: Platform operators
-	// - Organization: Org admins or resource owner
-	// - Identity Account: The owner
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*McpServer, error)
 	// Update the visibility of an existing MCP server.
 	//
 	// Only modifies metadata.visibility, leaving spec, status, and other
 	// metadata fields untouched.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the mcp_server resource.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*McpServer, error)
 	// Connect to an MCP server: discover its tools and classify approval policies.
 	//
@@ -106,24 +67,6 @@ type McpServerCommandControllerClient interface {
 	// classifies tool approval policies via a lightweight LLM, and stores the
 	// results in status.discovered_capabilities and status.tool_approvals.
 	// Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
-	//
-	// @internal
-	// Typical flows:
-	//   - Web console: user clicks Connect, backend resolves env vars from the
-	//     user's personal environment, starts a Temporal workflow on the runner
-	//     (stigmer-runner).
-	//   - CLI: `stigmer discover mcp-server <name>` calls connect with runtime_env
-	//     populated from local env vars, delegating discovery to the backend.
-	//   - Runner backfill: the runner calls connect on first use when
-	//     status.discovered_capabilities is empty, passing runtime_env from the
-	//     execution context (shared/connect-backfill.ts).
-	//
-	// Errors:
-	// - FAILED_PRECONDITION: Required credentials missing from personal environment
-	// - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
-	// - NOT_FOUND: MCP server does not exist
-	//
-	// Authorization: Requires can_connect permission on the mcp_server resource.
 	Connect(ctx context.Context, in *ConnectInput, opts ...grpc.CallOption) (*McpServer, error)
 	// Start the OAuth authorization flow for an MCP server.
 	//
@@ -131,21 +74,6 @@ type McpServerCommandControllerClient interface {
 	// generation) and returns an authorization URL for the frontend to
 	// redirect the user to. The frontend calls completeOAuthConnect after
 	// the user authorizes.
-	//
-	// @internal
-	// Two auth modes determined by the MCP server's spec.auth block:
-	//   - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
-	//     discovers the authorization server, registers a client via DCR,
-	//     and builds the auth URL automatically.
-	//   - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
-	//     OAuthApp for client credentials and endpoint URLs.
-	//
-	// Errors:
-	//   - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
-	//     without oauth_app_ref (DCR requires HTTP transport)
-	//   - NOT_FOUND: MCP server or referenced OAuthApp does not exist
-	//
-	// Authorization: Requires can_connect permission on the mcp_server resource.
 	InitiateOAuthConnect(ctx context.Context, in *InitiateOAuthConnectInput, opts ...grpc.CallOption) (*InitiateOAuthConnectOutput, error)
 	// Complete the OAuth authorization flow by exchanging the authorization
 	// code for tokens.
@@ -157,15 +85,6 @@ type McpServerCommandControllerClient interface {
 	//
 	// After success, the frontend should call connect() to trigger tool
 	// discovery using the freshly acquired token.
-	//
-	// @internal
-	// Errors:
-	//   - FAILED_PRECONDITION: State parameter is invalid, expired, or does
-	//     not match the mcp_server_id
-	//   - UNAVAILABLE: Token exchange with the authorization server failed
-	//   - NOT_FOUND: No pending OAuth state found for the given state param
-	//
-	// Authorization: Requires can_connect permission on the mcp_server resource.
 	CompleteOAuthConnect(ctx context.Context, in *CompleteOAuthConnectInput, opts ...grpc.CallOption) (*CompleteOAuthConnectOutput, error)
 	// Disconnect the authenticated user's OAuth connection for a resource.
 	//
@@ -179,11 +98,6 @@ type McpServerCommandControllerClient interface {
 	// Idempotent: returns disconnected=true when a grant was deleted,
 	// disconnected=false when no grant existed. Never returns an error
 	// for a missing grant.
-	//
-	// @internal
-	// Authorization: Requires can_connect permission on the mcp_server resource.
-	// Uses the same permission as connect/initiateOAuthConnect — if you can
-	// establish a connection, you can tear it down.
 	DisconnectOAuth(ctx context.Context, in *DisconnectOAuthInput, opts ...grpc.CallOption) (*DisconnectOAuthOutput, error)
 	// Create or update an org-level BYOA OAuth app override for a resource.
 	//
@@ -198,16 +112,6 @@ type McpServerCommandControllerClient interface {
 	// design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp —
 	// see the full scoping note on McpServerQueryController.getOrgOAuthApp,
 	// the RPC clients probe.
-	//
-	// @internal
-	// Authorization: Requires can_create_oauth_app permission on the organization.
-	// This is an org-admin operation — setting credentials that affect all users
-	// in the org who connect to this resource.
-	//
-	// Errors:
-	//   - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
-	//     (BYOA requires a platform template to clone from)
-	//   - NOT_FOUND: Resource does not exist
 	SetOrgOAuthApp(ctx context.Context, in *SetOrgOAuthAppInput, opts ...grpc.CallOption) (*SetOrgOAuthAppOutput, error)
 	// Remove an org-level BYOA override for a resource.
 	//
@@ -223,13 +127,6 @@ type McpServerCommandControllerClient interface {
 	// Existing user OAuthGrants that were issued using the org's OAuthApp
 	// will fail on next token refresh — those users will need to
 	// re-authenticate using the platform default or a new org override.
-	//
-	// @internal
-	// Authorization: Requires can_create_oauth_app permission on the organization.
-	// Same gate as setOrgOAuthApp — org-admin authority for credential management.
-	//
-	// Errors:
-	// - NOT_FOUND: No override exists for this resource + org
 	DeleteOrgOAuthApp(ctx context.Context, in *DeleteOrgOAuthAppInput, opts ...grpc.CallOption) (*DeleteOrgOAuthAppOutput, error)
 }
 
@@ -356,67 +253,28 @@ func (c *mcpServerCommandControllerClient) DeleteOrgOAuthApp(ctx context.Context
 // for forward compatibility.
 //
 // McpServerCommandController provides write operations for MCP server resources.
-//
-// @internal
-// Authorization model for writes:
-// - Platform-scoped: Only platform operators can create/modify
-// - Organization-scoped: Org admins can create/modify
-// - Identity-account-scoped: Only the owner can create/modify
-//
-// Primary interface: The `apply` method provides Kubernetes-style idempotent
-// create-or-update semantics, which is the recommended approach for CLI usage.
 type McpServerCommandControllerServer interface {
 	// Create or update an MCP server resource.
 	//
 	// If the resource doesn't exist, creates it. If it exists, updates it.
 	// The resource is identified by its (scope, org, slug) combination.
-	//
-	// @internal
-	// The handler determines whether this is a create or update operation
-	// and performs appropriate scope-aware authorization:
-	// - Create: Requires permission to create in the target scope
-	// - Update: Requires can_edit on the existing resource
 	Apply(context.Context, *McpServer) (*McpServer, error)
 	// Create an MCP server resource.
 	//
 	// Returns an error if a resource with the same (scope, org, slug) already exists.
 	// Use `apply` for idempotent create-or-update semantics.
-	//
-	// @internal
-	// Authorization: Custom authorization in handler.
-	// Requires permission to create MCP servers in the specified scope:
-	// - Platform: Requires platform operator role
-	// - Organization: Requires org admin role or can_create_mcp_server permission
-	// - Identity Account: Automatically allowed for the authenticated user
 	Create(context.Context, *McpServer) (*McpServer, error)
 	// Update an existing MCP server resource.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the mcp_server resource.
-	// Only the owner (based on scope) can update:
-	// - Platform: Platform operators
-	// - Organization: Org admins or resource owner
-	// - Identity Account: The owner
 	Update(context.Context, *McpServer) (*McpServer, error)
 	// Delete an MCP server resource.
 	//
 	// Permanently removes the MCP server definition.
 	// Agents referencing this server will need to be updated.
-	//
-	// @internal
-	// Authorization: Requires can_delete permission on the mcp_server resource.
-	// Only the owner can delete:
-	// - Platform: Platform operators
-	// - Organization: Org admins or resource owner
-	// - Identity Account: The owner
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*McpServer, error)
 	// Update the visibility of an existing MCP server.
 	//
 	// Only modifies metadata.visibility, leaving spec, status, and other
 	// metadata fields untouched.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the mcp_server resource.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*McpServer, error)
 	// Connect to an MCP server: discover its tools and classify approval policies.
 	//
@@ -424,24 +282,6 @@ type McpServerCommandControllerServer interface {
 	// classifies tool approval policies via a lightweight LLM, and stores the
 	// results in status.discovered_capabilities and status.tool_approvals.
 	// Blocks until completion (up to ~30 seconds) and returns the updated McpServer.
-	//
-	// @internal
-	// Typical flows:
-	//   - Web console: user clicks Connect, backend resolves env vars from the
-	//     user's personal environment, starts a Temporal workflow on the runner
-	//     (stigmer-runner).
-	//   - CLI: `stigmer discover mcp-server <name>` calls connect with runtime_env
-	//     populated from local env vars, delegating discovery to the backend.
-	//   - Runner backfill: the runner calls connect on first use when
-	//     status.discovered_capabilities is empty, passing runtime_env from the
-	//     execution context (shared/connect-backfill.ts).
-	//
-	// Errors:
-	// - FAILED_PRECONDITION: Required credentials missing from personal environment
-	// - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
-	// - NOT_FOUND: MCP server does not exist
-	//
-	// Authorization: Requires can_connect permission on the mcp_server resource.
 	Connect(context.Context, *ConnectInput) (*McpServer, error)
 	// Start the OAuth authorization flow for an MCP server.
 	//
@@ -449,21 +289,6 @@ type McpServerCommandControllerServer interface {
 	// generation) and returns an authorization URL for the frontend to
 	// redirect the user to. The frontend calls completeOAuthConnect after
 	// the user authorizes.
-	//
-	// @internal
-	// Two auth modes determined by the MCP server's spec.auth block:
-	//   - No oauth_app_ref: MCP Authorization spec (DCR + PKCE). Backend
-	//     discovers the authorization server, registers a client via DCR,
-	//     and builds the auth URL automatically.
-	//   - oauth_app_ref set: Vendor OAuth. Backend loads the referenced
-	//     OAuthApp for client credentials and endpoint URLs.
-	//
-	// Errors:
-	//   - FAILED_PRECONDITION: MCP server has no auth block, or is stdio
-	//     without oauth_app_ref (DCR requires HTTP transport)
-	//   - NOT_FOUND: MCP server or referenced OAuthApp does not exist
-	//
-	// Authorization: Requires can_connect permission on the mcp_server resource.
 	InitiateOAuthConnect(context.Context, *InitiateOAuthConnectInput) (*InitiateOAuthConnectOutput, error)
 	// Complete the OAuth authorization flow by exchanging the authorization
 	// code for tokens.
@@ -475,15 +300,6 @@ type McpServerCommandControllerServer interface {
 	//
 	// After success, the frontend should call connect() to trigger tool
 	// discovery using the freshly acquired token.
-	//
-	// @internal
-	// Errors:
-	//   - FAILED_PRECONDITION: State parameter is invalid, expired, or does
-	//     not match the mcp_server_id
-	//   - UNAVAILABLE: Token exchange with the authorization server failed
-	//   - NOT_FOUND: No pending OAuth state found for the given state param
-	//
-	// Authorization: Requires can_connect permission on the mcp_server resource.
 	CompleteOAuthConnect(context.Context, *CompleteOAuthConnectInput) (*CompleteOAuthConnectOutput, error)
 	// Disconnect the authenticated user's OAuth connection for a resource.
 	//
@@ -497,11 +313,6 @@ type McpServerCommandControllerServer interface {
 	// Idempotent: returns disconnected=true when a grant was deleted,
 	// disconnected=false when no grant existed. Never returns an error
 	// for a missing grant.
-	//
-	// @internal
-	// Authorization: Requires can_connect permission on the mcp_server resource.
-	// Uses the same permission as connect/initiateOAuthConnect — if you can
-	// establish a connection, you can tear it down.
 	DisconnectOAuth(context.Context, *DisconnectOAuthInput) (*DisconnectOAuthOutput, error)
 	// Create or update an org-level BYOA OAuth app override for a resource.
 	//
@@ -516,16 +327,6 @@ type McpServerCommandControllerServer interface {
 	// design, as one capability with getOrgOAuthApp and deleteOrgOAuthApp —
 	// see the full scoping note on McpServerQueryController.getOrgOAuthApp,
 	// the RPC clients probe.
-	//
-	// @internal
-	// Authorization: Requires can_create_oauth_app permission on the organization.
-	// This is an org-admin operation — setting credentials that affect all users
-	// in the org who connect to this resource.
-	//
-	// Errors:
-	//   - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
-	//     (BYOA requires a platform template to clone from)
-	//   - NOT_FOUND: Resource does not exist
 	SetOrgOAuthApp(context.Context, *SetOrgOAuthAppInput) (*SetOrgOAuthAppOutput, error)
 	// Remove an org-level BYOA override for a resource.
 	//
@@ -541,13 +342,6 @@ type McpServerCommandControllerServer interface {
 	// Existing user OAuthGrants that were issued using the org's OAuthApp
 	// will fail on next token refresh — those users will need to
 	// re-authenticate using the platform default or a new org override.
-	//
-	// @internal
-	// Authorization: Requires can_create_oauth_app permission on the organization.
-	// Same gate as setOrgOAuthApp — org-admin authority for credential management.
-	//
-	// Errors:
-	// - NOT_FOUND: No override exists for this resource + org
 	DeleteOrgOAuthApp(context.Context, *DeleteOrgOAuthAppInput) (*DeleteOrgOAuthAppOutput, error)
 }
 

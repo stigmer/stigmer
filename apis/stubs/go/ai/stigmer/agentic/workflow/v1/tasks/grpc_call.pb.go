@@ -25,18 +25,6 @@ const (
 )
 
 // GrpcCallTaskConfig defines the configuration for grpc_call tasks that make gRPC requests.
-//
-// @internal
-// YAML Example:
-//   - taskName:
-//     call: grpc
-//     with:
-//     service: "com.example.UserService"
-//     method: "GetUser"
-//     request:
-//     userId: ${ .userId }
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 9
 type GrpcCallTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Fully qualified service name.

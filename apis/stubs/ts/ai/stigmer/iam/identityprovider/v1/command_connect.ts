@@ -21,11 +21,6 @@ export const IdentityProviderCommandController = {
      * If the resource does not exist, creates a new identity provider.
      * If the resource exists, updates the existing identity provider.
      *
-     * @internal
-     * The authorization and state-operation are determined depending on whether the
-     * identity provider is going to be created or updated, which is determined as
-     * part of the request execution.
-     *
      * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.apply
      */
     apply: {
@@ -39,9 +34,6 @@ export const IdentityProviderCommandController = {
      *
      * The creator's organization owns the identity provider.
      *
-     * @internal
-     * Authorization: Requires can_create_idp permission in the organization.
-     *
      * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.create
      */
     create: {
@@ -52,9 +44,6 @@ export const IdentityProviderCommandController = {
     },
     /**
      * Update an existing identity provider.
-     *
-     * @internal
-     * Authorization: Requires can_edit permission on the identity provider resource.
      *
      * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.update
      */
@@ -69,9 +58,6 @@ export const IdentityProviderCommandController = {
      *
      * Deletion is blocked if any platform-managed organizations reference this
      * identity provider.
-     *
-     * @internal
-     * Authorization: Requires can_delete permission on the identity provider resource.
      *
      * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.delete
      */

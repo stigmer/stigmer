@@ -29,13 +29,6 @@ export const file_ai_stigmer_search_v1_io: GenFile = /*@__PURE__*/
  * - Search: Find resources matching a text query
  * - Discover: Search across all resource kinds
  *
- * @internal
- * Examples:
- *   List agents in org:         {kinds: [agent], org: "acme", query: ""}
- *   Search agents by text:      {kinds: [agent], query: "code review"}
- *   Discover all:               {kinds: [], query: "kubernetes"}
- *   Search multiple kinds:      {kinds: [agent, skill], query: "security", org: "acme"}
- *
  * @generated from message ai.stigmer.search.v1.SearchRequest
  */
 export type SearchRequest = Message<"ai.stigmer.search.v1.SearchRequest"> & {
@@ -83,9 +76,6 @@ export type SearchRequest = Message<"ai.stigmer.search.v1.SearchRequest"> & {
    * Behavior:
    * - Empty: Search all organizations the caller has access to
    * - Non-empty: Search only within the specified organization
-   *
-   * @internal
-   * Caller must have access to at least one resource in the org.
    *
    * @generated from field: string org = 3;
    */
@@ -220,13 +210,6 @@ export const SearchResponseSchema: GenMessage<SearchResponse> = /*@__PURE__*/
  * This is not the full resource. To get the complete resource, call the
  * get method for that resource kind (e.g., client.agent.get()).
  *
- * @internal
- * The description field is populated by each resource's Searchable interface:
- * - Agent: spec.instructions (may be truncated)
- * - Skill: spec.description
- * - McpServer: spec.description
- * - Workflow: spec.description
- *
  * @generated from message ai.stigmer.search.v1.SearchResult
  */
 export type SearchResult = Message<"ai.stigmer.search.v1.SearchResult"> & {
@@ -250,9 +233,6 @@ export type SearchResult = Message<"ai.stigmer.search.v1.SearchResult"> & {
   /**
    * Human-readable display name of the resource.
    *
-   * @internal
-   * From metadata.name.
-   *
    * @generated from field: string name = 3;
    */
   name: string;
@@ -261,9 +241,6 @@ export type SearchResult = Message<"ai.stigmer.search.v1.SearchResult"> & {
    * URL-friendly identifier, unique within the organization.
    *
    * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
-   *
-   * @internal
-   * From metadata.slug.
    *
    * @generated from field: string slug = 4;
    */
@@ -284,9 +261,6 @@ export type SearchResult = Message<"ai.stigmer.search.v1.SearchResult"> & {
   /**
    * Organization that owns this resource (e.g., "stigmer", "acme-corp").
    *
-   * @internal
-   * From metadata.org.
-   *
    * @generated from field: string org = 6;
    */
   org: string;
@@ -295,15 +269,6 @@ export type SearchResult = Message<"ai.stigmer.search.v1.SearchResult"> & {
    * Brief description of the resource for display in search results.
    *
    * May be empty if the resource has no description.
-   *
-   * @internal
-   * Extracted from the resource spec via the Searchable interface.
-   * The source field varies by resource type:
-   * - Agent: spec.instructions (may be truncated)
-   * - Skill: spec.description
-   * - McpServer: spec.description
-   * - Workflow: spec.description
-   * Truncation for display is a presentation concern (CLI/UI responsibility).
    *
    * @generated from field: string description = 7;
    */
@@ -322,9 +287,6 @@ export type SearchResult = Message<"ai.stigmer.search.v1.SearchResult"> & {
   /**
    * User-provided tags for categorization and filtering.
    *
-   * @internal
-   * From metadata.tags.
-   *
    * @generated from field: repeated string tags = 9;
    */
   tags: string[];
@@ -334,18 +296,12 @@ export type SearchResult = Message<"ai.stigmer.search.v1.SearchResult"> & {
    *
    * Used for sorting in list mode (when no query is provided).
    *
-   * @internal
-   * From status.audit.created_at.
-   *
    * @generated from field: google.protobuf.Timestamp created_at = 10;
    */
   createdAt?: Timestamp;
 
   /**
    * When the resource was last updated.
-   *
-   * @internal
-   * From status.audit.updated_at.
    *
    * @generated from field: google.protobuf.Timestamp updated_at = 11;
    */

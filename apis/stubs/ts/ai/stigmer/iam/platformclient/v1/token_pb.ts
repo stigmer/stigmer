@@ -167,29 +167,6 @@ export type MintGuestTokenRequest = Message<"ai.stigmer.iam.platformclient.v1.Mi
    * literal value "null" reports a framed page whose parent origin could not
    * be determined (opaque origin).
    *
-   * @internal
-   * Validated at mint against the share's spec.allowed_origins: empty list
-   * admits any origin; a non-empty list refuses PERMISSION_DENIED for
-   * unlisted origins and for "null". An empty field always passes for
-   * hosted-page and non-browser requests (the anyone-with-link hosted
-   * page). The validated value is stamped into the guest JWT as the
-   * embed_origin claim and re-validated against the live list by the
-   * guest create-time gate.
-   *
-   * The hosted server cross-checks this field against the request's
-   * browser-enforced Origin header (stigmer-cloud#341). When the header
-   * is a third-party origin (a direct SDK embed), the header is
-   * authoritative: a non-empty field that disagrees with it is refused
-   * PERMISSION_DENIED naming both origins, and an empty field resolves
-   * to the header instead of the hosted-page exemption. When the header
-   * is Stigmer's own hosted-page origin, this self-report is the only
-   * embedder signal (the iframe'd page's RPCs carry Stigmer's origin) —
-   * the widget code derives it from browser-authentic sources the
-   * embedder cannot alter. Non-browser callers send no Origin header and
-   * keep the self-report semantics; they gain nothing by omitting it
-   * since the hosted link is anyone-with-link (decision 001) — rate
-   * limits and the billing gate remain the API guards.
-   *
    * @generated from field: string embed_origin = 4;
    */
   embedOrigin: string;
@@ -199,15 +176,6 @@ export type MintGuestTokenRequest = Message<"ai.stigmer.iam.platformclient.v1.Mi
    *
    * Required when the share link has been locked with rotateShareLink;
    * ignored for plain share links.
-   *
-   * @internal
-   * Validated at mint against the share's live status.share_link_token
-   * (mismatch or absence answers the same NOT_FOUND as a disabled share,
-   * so a killed link is indistinguishable from a nonexistent one). The
-   * validated value is stamped into the guest JWT as the link_token claim
-   * and re-validated against the live value by the guest create-time gate
-   * on every session/execution create — rotation therefore revokes live
-   * guest tokens on their next message, exactly like disabling the share.
    *
    * @generated from field: string link_token = 5;
    */
@@ -319,11 +287,6 @@ export const PlatformClientTokenController: GenService<{
    * is not on the list are refused PERMISSION_DENIED (see the
    * allowed_origins field docs in spec.proto for the exact semantics).
    *
-   * @internal
-   * This RPC is public — no Bearer token is required. The caller authenticates
-   * by providing client_id + client_secret in the request body. The handler
-   * validates these credentials as business logic, not via the auth interceptor.
-   *
    * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientTokenController.mintUserToken
    */
   mintUserToken: {
@@ -337,13 +300,6 @@ export const PlatformClientTokenController: GenService<{
    * Resolves org+slug to an AgentShare, provisions the org's system-managed
    * PlatformClient and guest identity account lazily, and returns a short-lived
    * Stigmer-signed JWT scoped to that org.
-   *
-   * @internal
-   * Public — no Bearer token. No PlatformClient credentials. The handler gates
-   * on an enabled public-audience share (NOT_FOUND when disabled or missing)
-   * and stamps the resolved share's id into the guest JWT as the share_id
-   * claim — the create-time gate re-reads the live share by that id on every
-   * session/execution create (decision 011 D6).
    *
    * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientTokenController.mintGuestToken
    */

@@ -29,11 +29,6 @@ const (
 // Each apply/update that changes the agent spec creates a new immutable
 // version entry. The version is identified by its content hash (SHA-256 of
 // the canonical protojson representation of AgentSpec).
-//
-// @internal
-// NOT YET IMPLEMENTED — design placeholder for the agent versioning phase.
-//
-// @since Agent Versioning (future)
 type AgentVersionEntry struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// SHA-256 hash of the canonical protojson of AgentSpec.

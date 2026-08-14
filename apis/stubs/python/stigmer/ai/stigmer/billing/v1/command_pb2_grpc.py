@@ -91,10 +91,6 @@ class BillingCommandControllerServicer(object):
     def getOrCreateBillingAccount(self, request, context):
         """Provision or retrieve the billing account for an organization.
         Idempotent: creates the account on first call, returns existing on subsequent calls.
-
-        @internal
-        Called during org creation or first billing interaction.
-        Initializes balance to zero with default thresholds.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -111,10 +107,6 @@ class BillingCommandControllerServicer(object):
     def authorizeExecution(self, request, context):
         """Reserve credits before starting an agent execution.
         Returns authorization status and reservation details.
-
-        @internal
-        Called by the Temporal workflow before dispatching to the agent runner.
-        The runner must not start if authorized is false.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -124,10 +116,6 @@ class BillingCommandControllerServicer(object):
         """Record a single LLM call's usage for billing.
         Computes cost server-side from the model registry, inserts an immutable
         LlmCallUsageRecord, and debits credits from the execution's reservation.
-
-        @internal
-        Called by the proxy after each LLM SSE stream completes.
-        Deduplicated by (execution_id, sequence, metering_source).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -136,9 +124,6 @@ class BillingCommandControllerServicer(object):
     def finalizeExecution(self, request, context):
         """Settle billing for a completed execution.
         Releases unused reservation credits and produces the final billing record.
-
-        @internal
-        Called by the Temporal workflow after the agent runner completes.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

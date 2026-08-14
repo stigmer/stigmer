@@ -60,13 +60,15 @@ case "$lang" in
 esac
 
 # Hash of everything that affects generated output: the proto sources, the buf
-# workspace config, the pinned dependency lock, and this language's template
-# (which carries the plugin versions). Generated stubs are excluded so the hash
-# describes inputs only.
+# workspace config, the pinned dependency lock, this language's template
+# (which carries the plugin versions), and the post-generation scrub tool —
+# a scrub change must invalidate the stamp exactly like a plugin bump would.
+# Generated stubs are excluded so the hash describes inputs only.
 compute_hash() {
   {
     find . -name '*.proto' -not -path './stubs/*' | LC_ALL=C sort | xargs cat
     cat buf.yaml buf.lock "$template"
+    find ../tools/codegen/stubscrub ../tools/codegen/internalcomment -name '*.go' | LC_ALL=C sort | xargs cat
   } | shasum -a 256 | cut -d' ' -f1
 }
 
@@ -89,6 +91,13 @@ if [ "$lang" = "go" ] && [ -d "$tmp/stubs/go/github.com" ]; then
   mv "$tmp/stubs/go/github.com/stigmer/stigmer/apis/stubs/go/"* "$tmp/stubs/go/" 2>/dev/null || true
   rm -rf "$tmp/stubs/go/github.com"
 fi
+
+# Scrub @internal comment sections before the swap, so the scrub inherits the
+# non-destructive guarantee: protoc copies proto leading comments into stubs
+# verbatim, the one generated surface the proto2schema strip cannot reach
+# (oss#497). Java is a structural no-op (protoc-java emits no doc comments
+# from proto sources) — the tool only touches .go/.ts/.py files.
+(cd .. && go run ./tools/codegen/stubscrub "$tmp/$outroot")
 
 # Atomic-ish swap: replace each managed subtree only now that generation worked.
 mkdir -p "$outroot"

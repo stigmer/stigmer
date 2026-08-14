@@ -29,9 +29,6 @@ export const SessionQueryController = {
     /**
      * List all sessions with pagination and optional filtering.
      *
-     * @internal
-     * Authorization is handled in-handler via FGA-filtered queries.
-     *
      * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.list
      */
     list: {
@@ -42,10 +39,6 @@ export const SessionQueryController = {
     },
     /**
      * List all sessions for a specific agent instance.
-     *
-     * @internal
-     * Authorization is handled in handler via FGA query for authorized
-     * session_ids, then filtered by agent_instance_id.
      *
      * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.listByAgentInstance
      */
@@ -62,12 +55,6 @@ export const SessionQueryController = {
      * the given agent channel, newest first. The caller must be able to view
      * the channel; results are additionally filtered to sessions the caller
      * can view.
-     *
-     * @internal
-     * Authorization is two-stage in the handler: an explicit can_view check on
-     * the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
-     * then an FGA query for authorized session_ids intersected with the
-     * stigmer.ai/channel-id label filter.
      *
      * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.listByChannel
      */

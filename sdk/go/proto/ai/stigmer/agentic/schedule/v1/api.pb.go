@@ -31,16 +31,6 @@ const (
 // firing state (next fire time, failure streak, auto-pause) lives in
 // status. Deleting a schedule stops firing permanently; disabling pauses
 // firing while preserving the schedule and its history.
-//
-// @internal
-// DD-008 D1 (as amended by DD-009): standalone kind (56), target oneof
-// extensible to workflows without a new kind. One agent may have many
-// schedules with different prompts; metadata.org is the billing org for
-// every fire. Calendar semantics live in the Temporal server (D2) — the
-// platform parses no cron in either edition. The defaults resolver does
-// NOT default the slug to the agent slug (schedules are N-per-agent, the
-// AgentChannel P7 rule); standard derive-from-name applies. The
-// overview.md file provides the SDK-facing description and example YAML.
 type Schedule struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

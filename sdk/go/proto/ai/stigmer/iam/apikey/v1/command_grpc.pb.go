@@ -34,19 +34,10 @@ type ApiKeyCommandControllerClient interface {
 	//
 	// The raw key value is included in the response and is never returned again.
 	// Store it securely before discarding the response.
-	//
-	// @internal
-	// Any authenticated user can create API keys, so authorization is skipped.
 	Create(ctx context.Context, in *ApiKey, opts ...grpc.CallOption) (*ApiKey, error)
 	// Update an existing API key.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the API key resource.
 	Update(ctx context.Context, in *ApiKey, opts ...grpc.CallOption) (*ApiKey, error)
 	// Delete an API key.
-	//
-	// @internal
-	// Authorization: Requires can_delete permission on the API key resource.
 	Delete(ctx context.Context, in *ApiKeyId, opts ...grpc.CallOption) (*ApiKey, error)
 }
 
@@ -98,19 +89,10 @@ type ApiKeyCommandControllerServer interface {
 	//
 	// The raw key value is included in the response and is never returned again.
 	// Store it securely before discarding the response.
-	//
-	// @internal
-	// Any authenticated user can create API keys, so authorization is skipped.
 	Create(context.Context, *ApiKey) (*ApiKey, error)
 	// Update an existing API key.
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the API key resource.
 	Update(context.Context, *ApiKey) (*ApiKey, error)
 	// Delete an API key.
-	//
-	// @internal
-	// Authorization: Requires can_delete permission on the API key resource.
 	Delete(context.Context, *ApiKeyId) (*ApiKey, error)
 }
 

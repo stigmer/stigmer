@@ -14,9 +14,6 @@ import { MethodKind } from "@bufbuild/protobuf";
  * reveals team structure and per-member spend, which are
  * platform-internal.
  *
- * @internal
- * Cloud-only; not implemented by the OSS Go server.
- *
  * @generated from service ai.stigmer.platform.cursoraccount.v1.CursorAccountQueryController
  */
 export const CursorAccountQueryController = {

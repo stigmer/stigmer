@@ -17,18 +17,6 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_switch: GenFile = /*@__PU
 /**
  * SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally.
  *
- * @internal
- * YAML Example:
- *   - taskName:
- *       switch:
- *         - case1:
- *             when: ${ $context.value > 5 }
- *             then: highValueTask
- *         - defaultCase:
- *             then: unknownTask
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 3
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig
  */
 export type SwitchTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig"> & {

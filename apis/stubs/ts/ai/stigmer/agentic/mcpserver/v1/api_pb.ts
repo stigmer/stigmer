@@ -22,19 +22,6 @@ export const file_ai_stigmer_agentic_mcpserver_v1_api: GenFile = /*@__PURE__*/
 /**
  * McpServer represents a reusable MCP (Model Context Protocol) server configuration.
  *
- * @internal
- * Unlike inline McpServerDefinition in AgentSpec, McpServer is a first-class resource that:
- * - Can be referenced by multiple agents (reusability)
- * - Has proper access control via FGA (authorization)
- * - Can be discovered in the marketplace (discoverability)
- * - Belongs to an organization with PUBLIC/PRIVATE visibility
- *
- * Lifecycle:
- * 1. Create McpServer definition (this resource) with server type and env requirements
- * 2. Reference in Agent via mcp_server_usages
- * 3. Create AgentInstance with environment_ref providing actual secrets
- * 4. Agent runner resolves McpServer, gets secrets from Environment, starts server
- *
  * @generated from message ai.stigmer.agentic.mcpserver.v1.McpServer
  */
 export type McpServer = Message<"ai.stigmer.agentic.mcpserver.v1.McpServer"> & {
@@ -56,19 +43,6 @@ export type McpServer = Message<"ai.stigmer.agentic.mcpserver.v1.McpServer"> & {
 
   /**
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * @internal
-   * Key fields:
-   * - name: Human-readable name (e.g., "GitHub MCP Server")
-   * - slug: URL-friendly identifier (e.g., "github")
-   * - org: Organization that owns this MCP server (required)
-   * - visibility: Access control (PUBLIC or PRIVATE)
-   *
-   * Visibility semantics:
-   * - PUBLIC: Marketplace server, discoverable by all users
-   * - PRIVATE: Only accessible to organization members
-   *
-   * Reference format: "org/slug" (e.g., "stigmer/github", "acme/internal-tools")
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
    */

@@ -74,24 +74,12 @@ type PlatformClientTokenControllerClient interface {
 	// the PlatformClient lists allowed_origins, requests whose Origin header
 	// is not on the list are refused PERMISSION_DENIED (see the
 	// allowed_origins field docs in spec.proto for the exact semantics).
-	//
-	// @internal
-	// This RPC is public — no Bearer token is required. The caller authenticates
-	// by providing client_id + client_secret in the request body. The handler
-	// validates these credentials as business logic, not via the auth interceptor.
 	MintUserToken(ctx context.Context, in *MintUserTokenRequest, opts ...grpc.CallOption) (*MintUserTokenResponse, error)
 	// Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
 	//
 	// Resolves org+slug to an AgentShare, provisions the org's system-managed
 	// PlatformClient and guest identity account lazily, and returns a short-lived
 	// Stigmer-signed JWT scoped to that org.
-	//
-	// @internal
-	// Public — no Bearer token. No PlatformClient credentials. The handler gates
-	// on an enabled public-audience share (NOT_FOUND when disabled or missing)
-	// and stamps the resolved share's id into the guest JWT as the share_id
-	// claim — the create-time gate re-reads the live share by that id on every
-	// session/execution create (decision 011 D6).
 	MintGuestToken(ctx context.Context, in *MintGuestTokenRequest, opts ...grpc.CallOption) (*MintGuestTokenResponse, error)
 }
 
@@ -174,24 +162,12 @@ type PlatformClientTokenControllerServer interface {
 	// the PlatformClient lists allowed_origins, requests whose Origin header
 	// is not on the list are refused PERMISSION_DENIED (see the
 	// allowed_origins field docs in spec.proto for the exact semantics).
-	//
-	// @internal
-	// This RPC is public — no Bearer token is required. The caller authenticates
-	// by providing client_id + client_secret in the request body. The handler
-	// validates these credentials as business logic, not via the auth interceptor.
 	MintUserToken(context.Context, *MintUserTokenRequest) (*MintUserTokenResponse, error)
 	// Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
 	//
 	// Resolves org+slug to an AgentShare, provisions the org's system-managed
 	// PlatformClient and guest identity account lazily, and returns a short-lived
 	// Stigmer-signed JWT scoped to that org.
-	//
-	// @internal
-	// Public — no Bearer token. No PlatformClient credentials. The handler gates
-	// on an enabled public-audience share (NOT_FOUND when disabled or missing)
-	// and stamps the resolved share's id into the guest JWT as the share_id
-	// claim — the create-time gate re-reads the live share by that id on every
-	// session/execution create (decision 011 D6).
 	MintGuestToken(context.Context, *MintGuestTokenRequest) (*MintGuestTokenResponse, error)
 }
 

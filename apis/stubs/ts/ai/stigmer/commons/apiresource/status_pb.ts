@@ -126,12 +126,6 @@ export type ApiResourceAuditActor = Message<"ai.stigmer.commons.apiresource.ApiR
   /**
    * Unique identifier of the actor.
    *
-   * @internal
-   * Historically, some writers populate this with the actor's email address
-   * rather than the identity-account ID. New writers should use the
-   * identity-account ID and carry the email in the dedicated field below;
-   * renderers must treat this value as an opaque last-resort label.
-   *
    * @generated from field: string id = 1;
    */
   id: string;

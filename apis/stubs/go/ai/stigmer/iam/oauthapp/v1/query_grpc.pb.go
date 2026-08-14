@@ -32,26 +32,16 @@ const (
 // OAuthAppQueryController provides read operations for OAuth app resources.
 type OAuthAppQueryControllerClient interface {
 	// Get an OAuth app by its unique identifier.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the oauth_app resource.
 	Get(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*OAuthApp, error)
 	// Get an OAuth app by its organization-scoped reference (org/slug).
 	//
 	// Resolves a human-readable reference like "acme/slack-oauth" to the full
 	// OAuthApp resource.
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*OAuthApp, error)
 	// List all OAuth apps belonging to an organization.
 	//
 	// Returns every OAuthApp whose metadata.org matches the input org.
 	// Typically a small set (1-5 per org), so results are not paginated.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the organization resource.
 	ListByOrg(ctx context.Context, in *ListOAuthAppsByOrgInput, opts ...grpc.CallOption) (*OAuthApps, error)
 }
 
@@ -100,26 +90,16 @@ func (c *oAuthAppQueryControllerClient) ListByOrg(ctx context.Context, in *ListO
 // OAuthAppQueryController provides read operations for OAuth app resources.
 type OAuthAppQueryControllerServer interface {
 	// Get an OAuth app by its unique identifier.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the oauth_app resource.
 	Get(context.Context, *apiresource.ApiResourceId) (*OAuthApp, error)
 	// Get an OAuth app by its organization-scoped reference (org/slug).
 	//
 	// Resolves a human-readable reference like "acme/slack-oauth" to the full
 	// OAuthApp resource.
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*OAuthApp, error)
 	// List all OAuth apps belonging to an organization.
 	//
 	// Returns every OAuthApp whose metadata.org matches the input org.
 	// Typically a small set (1-5 per org), so results are not paginated.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the organization resource.
 	ListByOrg(context.Context, *ListOAuthAppsByOrgInput) (*OAuthApps, error)
 }
 

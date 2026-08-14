@@ -22,169 +22,50 @@ const (
 )
 
 // WorkflowTaskKind defines the supported task types in a workflow.
-//
-// @internal
-// These map directly to Zigflow DSL task types.
-//
-// Naming conventions:
-// - Zero value: Prefixed for clarity (workflow_task_kind_unspecified)
-// - Invocations: Consistent _call suffix (http_call, grpc_call, agent_call, activity_call)
-// - Control flow keywords: Semantic suffixes to avoid reserved words (switch_case, for_each, try_catch)
-// - Self-descriptive verbs: No suffix needed (fork, listen, wait)
-// - Verb + object: For clarity when verb alone is ambiguous (set_vars, run_workflow, raise_error)
-//
-// Task config schemas (for each kind):
-//
-// set_vars: {"variables": {"key": "value", ...}}
-// http_call: {"method": "POST", "endpoint": {"uri": "..."}, "headers": {...}, "body": {...}}
-// grpc_call: {"service": "...", "method": "...", "request": {...}}
-// activity_call: {"activity": "ActivityName", "input": {...}}
-// switch_case: {"cases": [{"name": "...", "when": "${expr}", "then": "taskName"}, ...]}
-// for_each: {"each": "item", "in": "${$data.items}", "do": [{task}, ...]}
-// fork: {"branches": [{"name": "...", "do": [{task}, ...]}, ...], "compete": false}
-// try_catch: {"try": [{task}, ...], "catch": {"as": "error", "do": [{task}, ...]}}
-// listen: {"to": {"mode": "one", "signals": [{"id": "...", "type": "signal"}]}}
-// wait: {"seconds": 5}
-// raise_error: {"error": "ErrorType", "message": "${...}"}
-// run_workflow: {"workflow": "workflow-name", "input": {...}}
-// agent_call: {"agent": "agent-slug", "message": "...", "env": {...}}
-// llm_call: {"model": "...", "prompt": "...", "response_schema": {...}, "on_invalid": "..."}
-// transform: {"engine": "jq", "expression": "...", "input": "${...}"}
-// human_input: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...], "timeout": 86400}
-// validate: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
-// emit_event: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
-// notification: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "...", "template": "...", "metadata": {...}}
-// eval: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "EVAL_PASS_FAIL", "threshold": 0.7, "on_fail": "EVAL_FAIL_RAISE", "criteria": [...]}
 type WorkflowTaskKind int32
 
 const (
 	// Default value, not a valid task kind.
 	WorkflowTaskKind_workflow_task_kind_unspecified WorkflowTaskKind = 0
 	// Set variables in workflow state.
-	//
-	// @internal
-	// Config: {"variables": {"key": "value", ...}}
 	WorkflowTaskKind_set_vars WorkflowTaskKind = 1
 	// Make an HTTP request (GET, POST, PUT, DELETE, PATCH).
-	//
-	// @internal
-	// Config: {"method": "POST", "endpoint": {"uri": "..."}, "headers": {...}, "body": {...}}
 	WorkflowTaskKind_http_call WorkflowTaskKind = 2
 	// Make a gRPC request to an external service.
-	//
-	// @internal
-	// Config: {"service": "...", "method": "...", "request": {...}}
 	WorkflowTaskKind_grpc_call WorkflowTaskKind = 3
 	// Execute an activity.
-	//
-	// @internal
-	// Config: {"activity": "ActivityName", "input": {...}}
-	// Executes a Temporal activity.
 	WorkflowTaskKind_activity_call WorkflowTaskKind = 4
 	// Branch conditionally based on expressions.
-	//
-	// @internal
-	// Config: {"cases": [{"name": "...", "when": "${expr}", "then": "taskName"}, ...]}
 	WorkflowTaskKind_switch_case WorkflowTaskKind = 5
 	// Iterate over a collection, executing tasks for each item.
-	//
-	// @internal
-	// Config: {"each": "item", "in": "${$data.items}", "do": [{task}, ...]}
 	WorkflowTaskKind_for_each WorkflowTaskKind = 6
 	// Execute multiple branches in parallel.
-	//
-	// @internal
-	// Config: {"branches": [{"name": "...", "do": [{task}, ...]}, ...], "compete": false}
 	WorkflowTaskKind_fork WorkflowTaskKind = 7
 	// Handle errors with try/catch logic.
-	//
-	// @internal
-	// Config: {"try": [{task}, ...], "catch": {"as": "error", "do": [{task}, ...]}}
 	WorkflowTaskKind_try_catch WorkflowTaskKind = 8
 	// Wait for external signals or events.
-	//
-	// @internal
-	// Config: {"to": {"mode": "one", "signals": [{"id": "...", "type": "signal"}]}}
-	// Implemented via Temporal signals.
 	WorkflowTaskKind_listen WorkflowTaskKind = 9
 	// Pause execution for a duration or until a timestamp.
-	//
-	// @internal
-	// Config: {"seconds": 5}
-	// Implemented via Temporal timers.
 	WorkflowTaskKind_wait WorkflowTaskKind = 10
 	// Raise an error to terminate or trigger error handling.
-	//
-	// @internal
-	// Config: {"error": "ErrorType", "message": "${...}"}
 	WorkflowTaskKind_raise_error WorkflowTaskKind = 11
 	// Execute a sub-workflow.
-	//
-	// @internal
-	// Config: {"workflow": "workflow-name", "input": {...}}
-	// Implemented via Temporal child workflows.
 	WorkflowTaskKind_run_workflow WorkflowTaskKind = 12
 	// Invoke an AI agent as a workflow task.
-	//
-	// @internal
-	// Allows workflows to delegate complex operations to specialized agents.
-	// Config: {"agent": "agent-slug", "message": "...", "env": {...}, "config": {...}}
 	WorkflowTaskKind_agent_call WorkflowTaskKind = 13
 	// Direct LLM call for classification, extraction, scoring, or routing.
-	//
-	// @internal
-	// Lightweight alternative to agent_call for focused LLM tasks without
-	// agent overhead (no system prompt resolution, tool setup, or MCP wiring).
-	// Config: {"model": "...", "prompt": "...", "response_schema": {...}}
 	WorkflowTaskKind_llm_call WorkflowTaskKind = 14
 	// Deterministic data transformation using JQ, JSONata, or template engines.
-	//
-	// @internal
-	// Reshapes data between tasks without LLM calls. Produces explicit output
-	// via export, unlike set_vars which mutates workflow state as a side effect.
-	// Config: {"engine": "jq", "expression": "...", "input": "${...}"}
 	WorkflowTaskKind_transform WorkflowTaskKind = 15
 	// Workflow-level approval gate for human input, review, or sign-off.
-	//
-	// @internal
-	// Pauses workflow execution to collect typed input or approval from a
-	// human reviewer. Supports custom outcomes, form schemas, approver
-	// lists, timeouts, and notification channels.
-	// Config: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...]}
 	WorkflowTaskKind_human_input WorkflowTaskKind = 16
 	// Schema and business-rule validation checkpoint.
-	//
-	// @internal
-	// Validates workflow data against JSON Schema and/or business rules
-	// before downstream tasks consume it. Supports fail, branch, and warn
-	// policies for flexible error handling.
-	// Config: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
 	WorkflowTaskKind_validate WorkflowTaskKind = 17
 	// Emit a CloudEvents-formatted event for external consumers or other workflows.
-	//
-	// @internal
-	// Completes the listen/emit duality: listen waits for Temporal signals,
-	// emit_event publishes business events using the CloudEvents envelope.
-	// The runtime bridges the two when events target other workflows.
-	// Config: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
 	WorkflowTaskKind_emit_event WorkflowTaskKind = 18
 	// Send a notification to humans through a channel (Slack, email, Discord, etc.).
-	//
-	// @internal
-	// Fire-and-forget convenience abstraction for operational notifications.
-	// For notifications requiring acknowledgment, use human_input instead.
-	// Config: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "..."}
 	WorkflowTaskKind_notification WorkflowTaskKind = 19
 	// LLM-as-a-judge evaluation for semantic quality assessment.
-	//
-	// @internal
-	// Assesses quality, correctness, safety, or completeness of LLM-generated
-	// or agent-produced content using an LLM judge. Fills the gap between
-	// structural validation (validate task) and human review (human_input).
-	// Supports pass/fail, numeric scoring, and multi-criteria evaluation modes.
-	// Config: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "...", "threshold": 0.7, "on_fail": "..."}
-	//
-	// @since T17 (Advanced Agentic Orchestration)
 	WorkflowTaskKind_eval WorkflowTaskKind = 20
 )
 

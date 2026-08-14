@@ -31,34 +31,18 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // AgentChannelQueryController handles read operations for agent channels.
-//
-// @internal
-// Deliberately no anonymous/public RPC (AgentShare's getSharedProfile has
-// no analog here): the channel's public surface is the provider webhook,
-// which authenticates by signature — never a query endpoint.
 type AgentChannelQueryControllerClient interface {
 	// Get a single agent channel by ID.
 	Get(ctx context.Context, in *AgentChannelId, opts ...grpc.CallOption) (*AgentChannel, error)
 	// Get an agent channel by its organization-scoped reference (org/slug).
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions (AgentShare pattern).
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*AgentChannel, error)
 	// Get all channels of a specific agent.
 	// Returns only channels the caller has access to.
 	//
 	// This is how the agent's integrations surface and CLI resolve an
 	// agent's existing channels regardless of slug.
-	//
-	// @internal
-	// Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS.
 	GetByAgent(ctx context.Context, in *GetAgentChannelsByAgentRequest, opts ...grpc.CallOption) (*AgentChannelList, error)
 	// List agent channels with optional label filtering.
-	//
-	// @internal
-	// Authorization in-handler via FGA-filtered queries (cloud) or
-	// unrestricted store queries (OSS).
 	List(ctx context.Context, in *ListAgentChannelsRequest, opts ...grpc.CallOption) (*AgentChannelList, error)
 }
 
@@ -115,34 +99,18 @@ func (c *agentChannelQueryControllerClient) List(ctx context.Context, in *ListAg
 // for forward compatibility.
 //
 // AgentChannelQueryController handles read operations for agent channels.
-//
-// @internal
-// Deliberately no anonymous/public RPC (AgentShare's getSharedProfile has
-// no analog here): the channel's public surface is the provider webhook,
-// which authenticates by signature — never a query endpoint.
 type AgentChannelQueryControllerServer interface {
 	// Get a single agent channel by ID.
 	Get(context.Context, *AgentChannelId) (*AgentChannel, error)
 	// Get an agent channel by its organization-scoped reference (org/slug).
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions (AgentShare pattern).
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*AgentChannel, error)
 	// Get all channels of a specific agent.
 	// Returns only channels the caller has access to.
 	//
 	// This is how the agent's integrations surface and CLI resolve an
 	// agent's existing channels regardless of slug.
-	//
-	// @internal
-	// Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS.
 	GetByAgent(context.Context, *GetAgentChannelsByAgentRequest) (*AgentChannelList, error)
 	// List agent channels with optional label filtering.
-	//
-	// @internal
-	// Authorization in-handler via FGA-filtered queries (cloud) or
-	// unrestricted store queries (OSS).
 	List(context.Context, *ListAgentChannelsRequest) (*AgentChannelList, error)
 }
 

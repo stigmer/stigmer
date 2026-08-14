@@ -109,12 +109,6 @@ const (
 	// Resource-level permission to participate in an agent channel's
 	// conversations: reply to customers as the business, take over and
 	// hand back the control token, and clear the attention flag.
-	//
-	// @internal
-	// channel-conversations DD-010: computed from the participant role on
-	// agent_channel. Deliberately distinct from can_edit — "may talk to
-	// this channel's customers" and "may configure this channel" are
-	// different powers, and the ISC pilot's trainers hold only the first.
 	IamPermission_can_participate IamPermission = 36
 	// Platform-level permission to introduce or change labels in the
 	// reserved stigmer.ai/* key namespace through client-facing write
@@ -124,6 +118,13 @@ const (
 	// default agent served to every organization — so ordinary requests
 	// may echo or remove them but never write them (cloud#320).
 	IamPermission_can_write_reserved_labels IamPermission = 37
+	// Platform-level permission to view platform provider standing: the
+	// canary-probe verdicts (health, billing/auth rejections, latency) for
+	// the platform's own LLM provider accounts. Read-only and gated to
+	// platform operators — provider account health is platform-internal,
+	// never org-visible. Deliberately distinct from the manage-class
+	// platform permissions: the standing console only observes (cloud#447).
+	IamPermission_can_view_provider_standing IamPermission = 38
 )
 
 // Enum value maps for IamPermission.
@@ -164,6 +165,7 @@ var (
 		35: "can_manage_cursor_accounts",
 		36: "can_participate",
 		37: "can_write_reserved_labels",
+		38: "can_view_provider_standing",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -201,6 +203,7 @@ var (
 		"can_manage_cursor_accounts":   35,
 		"can_participate":              36,
 		"can_write_reserved_labels":    37,
+		"can_view_provider_standing":   38,
 	}
 )
 
@@ -256,13 +259,6 @@ const (
 	// Conversation participant on an agent channel: may read the channel's
 	// conversations and speak to its customers as the business (reply, take
 	// over, hand back, clear attention). Not a channel configurator.
-	//
-	// @internal
-	// channel-conversations DD-010. Grantable only on agent_channel — the
-	// second kind-scoped role after organization's admin/member; the
-	// grantable_roles subsetting is the mechanism, not a new one. Team
-	// usersets ([team#member]) are the named widening the day a team FGA
-	// type lands.
 	IamRole_participant IamRole = 5
 )
 
@@ -317,7 +313,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\x93\a\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xb3\a\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -355,7 +351,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x18can_manage_model_pricing\x10 \x12\x1e\n" +
 	"\x1acan_manage_cursor_accounts\x10#\x12\x13\n" +
 	"\x0fcan_participate\x10$\x12\x1d\n" +
-	"\x19can_write_reserved_labels\x10%\"\x04\b!\x10!\"\x04\b\"\x10\"*\x0fcan_use_records*\x14can_create_datastore*b\n" +
+	"\x19can_write_reserved_labels\x10%\x12\x1e\n" +
+	"\x1acan_view_provider_standing\x10&\"\x04\b!\x10!\"\x04\b\"\x10\"*\x0fcan_use_records*\x14can_create_datastore*b\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

@@ -21,31 +21,11 @@ export const file_ai_stigmer_agentic_workflowinstance_v1_spec: GenFile = /*@__PU
 /**
  * WorkflowInstanceSpec defines the configurable properties of a workflow instance.
  *
- * @internal
- * This is the "Instance" layer in the Template→Instance→Execution pattern.
- * It provides stateful configuration with environment bindings and secrets.
- *
- * The spec contains:
- * - A reference to the Workflow template (the orchestration blueprint)
- * - Descriptive metadata for humans
- * - Environment references (layered configuration with secrets)
- *
- * Design Philosophy:
- * WorkflowInstanceSpec separates "what to run" (Workflow) from "how to run it" (Environments).
- * This allows the same Workflow template to be instantiated multiple times with different
- * configurations (dev vs prod, different cloud accounts, different teams).
- *
  * @generated from message ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec
  */
 export type WorkflowInstanceSpec = Message<"ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec"> & {
   /**
    * Reference to the Workflow template this instance deploys.
-   *
-   * @internal
-   * This links the instance to a reusable orchestration blueprint.
-   * The Workflow defines which AgentInstances to orchestrate and in what order.
-   * Format: Workflow resource ID (e.g., "wfl_abc123")
-   * Validation: Minimum length of 1 character (required field)
    *
    * @generated from field: string workflow_id = 1;
    */
@@ -63,30 +43,6 @@ export type WorkflowInstanceSpec = Message<"ai.stigmer.agentic.workflowinstance.
    *
    * Environments are merged in declaration order — later entries override
    * earlier ones when keys conflict.
-   *
-   * @internal
-   * Environments are layered configuration containers that provide:
-   * - Environment variables (API keys, endpoints, flags)
-   * - Secrets (credentials, tokens, passwords)
-   * - Configuration values (timeouts, limits, settings)
-   *
-   * Example layering:
-   *   [base-env, aws-prod-env, github-team-env]
-   *   └─ base-env: Common settings for all instances
-   *   └─ aws-prod-env: AWS production credentials (overrides base AWS settings)
-   *   └─ github-team-env: Team-specific GitHub tokens (overrides generic tokens)
-   *
-   * Use Cases:
-   * - Single env: [prod-env] - Simple, all config in one place
-   * - Base + specific: [base, prod] - Common config + environment-specific
-   * - Layered: [base, cloud, team] - Base + cloud credentials + team settings
-   *
-   * References use ApiResourceReference which supports:
-   * - By ID: {id: "env_abc123"}
-   * - By slug: {slug: "aws-prod-env"}
-   *
-   * At execution time, the WorkflowExecution runtime merges these environments
-   * and provides the combined configuration to all agents in the workflow.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3;
    */

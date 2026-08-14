@@ -44,10 +44,6 @@ type IamPolicySpec struct {
 	// The permission being granted (e.g., "admin", "viewer", "owner").
 	// Maps to a role_code from ai.stigmer.iam.v1.IamRole.
 	// Examples: "admin", "editor", "viewer", "owner", "member"
-	//
-	// @internal
-	// This is the FGA relation in the authorization tuple:
-	// principal.kind:principal.id#principal.relation@resource.kind:resource.id#relation
 	Relation      string `protobuf:"bytes,3,opt,name=relation,proto3" json:"relation,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -130,9 +126,6 @@ type ApiResourceRef struct {
 	//
 	// This field qualifies HOW the principal relates to this resource reference,
 	// NOT the permission being granted (that's IamPolicySpec.relation).
-	//
-	// @internal
-	// In OpenFGA tuple notation: team:tm-123#member (as the subject of the tuple)
 	Relation      string `protobuf:"bytes,3,opt,name=relation,proto3" json:"relation,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

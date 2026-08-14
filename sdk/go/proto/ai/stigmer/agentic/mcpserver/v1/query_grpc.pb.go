@@ -31,30 +31,13 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // McpServerQueryController provides read operations for MCP server resources.
-//
-// @internal
-// Authorization model:
-// - Platform-scoped: Anyone can view (public marketplace)
-// - Organization-scoped: Org members can view
-// - Identity-account-scoped: Only the owner can view
 type McpServerQueryControllerClient interface {
 	// Get an MCP server by its unique identifier.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the mcp_server resource.
-	// The caller must have access based on the resource's scope:
-	// - Platform: All authenticated users
-	// - Organization: Organization members
-	// - Identity Account: Only the owner
 	Get(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*McpServer, error)
 	// Get an MCP server by reference (scope + org + slug).
 	//
 	// Preferred method for looking up MCP servers by name/slug rather than
 	// system-generated ID.
-	//
-	// @internal
-	// Authorization: Custom authorization in handler.
-	// The handler performs scope-aware authorization based on the reference.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*McpServer, error)
 	// Check whether the authenticated user has an active OAuth grant for
 	// an MCP server in the specified org.
@@ -63,10 +46,6 @@ type McpServerQueryControllerClient interface {
 	// without exposing any secret token values. The frontend uses this to
 	// render the correct OAuth state in the MCP server detail page and
 	// session composer.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the mcp_server resource.
-	// The resource_id field contains the MCP server's system-generated ID.
 	GetOAuthGrantStatus(ctx context.Context, in *GetOAuthGrantStatusInput, opts ...grpc.CallOption) (*GetOAuthGrantStatusOutput, error)
 	// Query whether an org has a BYOA override for a resource.
 	//
@@ -85,11 +64,6 @@ type McpServerQueryControllerClient interface {
 	// an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
 	// SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
 	// surface without the other two and the client-side gate.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the mcp_server resource.
-	// Any user who can view the MCP server can check whether their org has
-	// an override — no secrets are exposed.
 	GetOrgOAuthApp(ctx context.Context, in *GetOrgOAuthAppInput, opts ...grpc.CallOption) (*GetOrgOAuthAppOutput, error)
 }
 
@@ -146,30 +120,13 @@ func (c *mcpServerQueryControllerClient) GetOrgOAuthApp(ctx context.Context, in 
 // for forward compatibility.
 //
 // McpServerQueryController provides read operations for MCP server resources.
-//
-// @internal
-// Authorization model:
-// - Platform-scoped: Anyone can view (public marketplace)
-// - Organization-scoped: Org members can view
-// - Identity-account-scoped: Only the owner can view
 type McpServerQueryControllerServer interface {
 	// Get an MCP server by its unique identifier.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the mcp_server resource.
-	// The caller must have access based on the resource's scope:
-	// - Platform: All authenticated users
-	// - Organization: Organization members
-	// - Identity Account: Only the owner
 	Get(context.Context, *apiresource.ApiResourceId) (*McpServer, error)
 	// Get an MCP server by reference (scope + org + slug).
 	//
 	// Preferred method for looking up MCP servers by name/slug rather than
 	// system-generated ID.
-	//
-	// @internal
-	// Authorization: Custom authorization in handler.
-	// The handler performs scope-aware authorization based on the reference.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*McpServer, error)
 	// Check whether the authenticated user has an active OAuth grant for
 	// an MCP server in the specified org.
@@ -178,10 +135,6 @@ type McpServerQueryControllerServer interface {
 	// without exposing any secret token values. The frontend uses this to
 	// render the correct OAuth state in the MCP server detail page and
 	// session composer.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the mcp_server resource.
-	// The resource_id field contains the MCP server's system-generated ID.
 	GetOAuthGrantStatus(context.Context, *GetOAuthGrantStatusInput) (*GetOAuthGrantStatusOutput, error)
 	// Query whether an org has a BYOA override for a resource.
 	//
@@ -200,11 +153,6 @@ type McpServerQueryControllerServer interface {
 	// an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
 	// SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
 	// surface without the other two and the client-side gate.
-	//
-	// @internal
-	// Authorization: Requires can_view permission on the mcp_server resource.
-	// Any user who can view the MCP server can check whether their org has
-	// an override — no secrets are exposed.
 	GetOrgOAuthApp(context.Context, *GetOrgOAuthAppInput) (*GetOrgOAuthAppOutput, error)
 }
 

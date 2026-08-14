@@ -25,25 +25,9 @@ const (
 )
 
 // CallActivityTaskConfig defines the configuration for activity_call tasks that execute activities.
-//
-// @internal
-// Executes Temporal activities.
-//
-// YAML Example:
-//   - taskName:
-//     call: activity
-//     with:
-//     activity: "ProcessDataActivity"
-//     input:
-//     data: ${ .data }
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 10
 type CallActivityTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Activity name to execute.
-	//
-	// @internal
-	// Must match a registered Temporal activity.
 	Activity string `protobuf:"bytes,1,opt,name=activity,proto3" json:"activity,omitempty"`
 	// Activity input (optional).
 	// Can be any JSON structure.

@@ -39,9 +39,6 @@ class InvitationQueryControllerServicer(object):
 
     def get(self, request, context):
         """Get an invitation by its unique identifier.
-
-        @internal
-        Authorization: Requires can_view permission on the invitation resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -51,11 +48,6 @@ class InvitationQueryControllerServicer(object):
         """List all invitations belonging to an organization.
 
         Returns invitations ordered by creation time (newest first).
-
-        @internal
-        Authorization: Requires can_view_access permission on the organization.
-        This is intentionally stricter than can_view — only users who can
-        manage org access (admins and owners) should see invitation links.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -73,11 +65,6 @@ class InvitationQueryControllerServicer(object):
         has authenticated, so it requires no authorization. The response
         intentionally omits the token value, redemption history, and internal
         invitation metadata.
-
-        @internal
-        Authorization: none — unauthenticated, public endpoint for rendering
-        the invite acceptance page. Marked is_public so the authentication
-        interceptor skips token validation entirely.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

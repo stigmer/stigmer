@@ -15,11 +15,6 @@ export const file_ai_stigmer_iam_identityaccount_v1_webhook: GenFile = /*@__PURE
 /**
  * Auth0Webhook represents a log-stream event payload from Auth0.
  *
- * @internal
- * Stigmer receives these events via a custom Auth0 log stream to trigger
- * identity account provisioning on signup.
- * See: https://auth0.com/docs/customize/log-streams/custom-log-streams
- *
  * @generated from message ai.stigmer.iam.identityaccount.v1.Auth0Webhook
  */
 export type Auth0Webhook = Message<"ai.stigmer.iam.identityaccount.v1.Auth0Webhook"> & {

@@ -30,39 +30,20 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // ChannelAppQueryController handles read operations for channel apps.
-//
-// @internal
-// Every response passes through secret redaction — client_secret and
-// signing_secret are replaced with the redaction marker. Runtime
-// consumers that need the real values (installer, webhook receiver)
-// read the repo directly, the documented OAuthAppResolutionService
-// exception.
 type ChannelAppQueryControllerClient interface {
 	// Get a channel app by its unique identifier.
 	//
 	// Secret fields are redacted in the response.
-	//
-	// @internal
-	// Authorization: requires can_view permission on the channel_app
-	// resource.
 	Get(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*ChannelApp, error)
 	// Get a channel app by its organization-scoped reference (org/slug).
 	//
 	// Secret fields are redacted in the response.
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions (the OAuthApp pattern).
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*ChannelApp, error)
 	// List all channel apps belonging to an organization.
 	//
 	// Returns every ChannelApp whose metadata.org matches the input org,
 	// with secret fields redacted. Typically a small set, so results are
 	// not paginated.
-	//
-	// @internal
-	// Authorization: requires can_view permission on the organization
-	// resource.
 	ListByOrg(ctx context.Context, in *ListChannelAppsByOrgInput, opts ...grpc.CallOption) (*ChannelApps, error)
 }
 
@@ -109,39 +90,20 @@ func (c *channelAppQueryControllerClient) ListByOrg(ctx context.Context, in *Lis
 // for forward compatibility.
 //
 // ChannelAppQueryController handles read operations for channel apps.
-//
-// @internal
-// Every response passes through secret redaction — client_secret and
-// signing_secret are replaced with the redaction marker. Runtime
-// consumers that need the real values (installer, webhook receiver)
-// read the repo directly, the documented OAuthAppResolutionService
-// exception.
 type ChannelAppQueryControllerServer interface {
 	// Get a channel app by its unique identifier.
 	//
 	// Secret fields are redacted in the response.
-	//
-	// @internal
-	// Authorization: requires can_view permission on the channel_app
-	// resource.
 	Get(context.Context, *apiresource.ApiResourceId) (*ChannelApp, error)
 	// Get a channel app by its organization-scoped reference (org/slug).
 	//
 	// Secret fields are redacted in the response.
-	//
-	// @internal
-	// Custom authorization in handler — checks both direct resource access
-	// and organization-level visibility permissions (the OAuthApp pattern).
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*ChannelApp, error)
 	// List all channel apps belonging to an organization.
 	//
 	// Returns every ChannelApp whose metadata.org matches the input org,
 	// with secret fields redacted. Typically a small set, so results are
 	// not paginated.
-	//
-	// @internal
-	// Authorization: requires can_view permission on the organization
-	// resource.
 	ListByOrg(context.Context, *ListChannelAppsByOrgInput) (*ChannelApps, error)
 }
 

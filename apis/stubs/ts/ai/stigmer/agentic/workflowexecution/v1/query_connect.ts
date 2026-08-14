@@ -37,72 +37,6 @@ export const WorkflowExecutionQueryController = {
      * - status: Current execution state (phase, tasks, progress_events, output/error)
      * - metadata: Resource identification (id, name, labels, tags)
      *
-     * @internal
-     * Authorization:
-     * Standard authorization checks that user has "get" permission on the WorkflowExecution.
-     * Permission is granted if:
-     * - User created the execution (metadata.audit.created_by matches user)
-     * - User has organization-level "workflow_execution:get" permission
-     * - User has explicit permission via IamPolicy
-     *
-     * Use Cases:
-     *
-     * 1. View Execution Details:
-     * - User clicks on an execution in the UI
-     * - UI calls get() to fetch full details
-     * - UI displays execution status, tasks, progress, output/error
-     *
-     * 2. Poll for Completion:
-     * - Client triggers execution via create()
-     * - Client periodically calls get() to check if phase is terminal
-     * - Client retrieves output when phase == EXECUTION_COMPLETED
-     *
-     * 3. Debug Failed Execution:
-     * - User sees execution failed
-     * - User calls get() to inspect status.error and status.tasks
-     * - User checks status.tasks[] for task-level execution details
-     *
-     * 4. Retry Failed Execution:
-     * - User calls get() to retrieve failed execution's spec
-     * - User creates new execution with same spec values
-     * - New execution retries with identical inputs
-     *
-     * Error Cases:
-     *
-     * - NOT_FOUND:
-     *   - No WorkflowExecution exists with the given ID
-     *
-     * - PERMISSION_DENIED:
-     *   - User doesn't have "get" permission on this WorkflowExecution
-     *   - WorkflowExecution belongs to different organization
-     *
-     * Example Request:
-     * {
-     *   "value": "wfx_abc123xyz456"
-     * }
-     *
-     * Example Response:
-     * {
-     *   "api_version": "agentic.stigmer.ai/v1",
-     *   "kind": "WorkflowExecution",
-     *   "metadata": {
-     *     "id": "wfx_abc123xyz456",
-     *     "name": "customer-onboarding-20250111-143022",
-     *     "org": "acme"
-     *   },
-     *   "spec": {
-     *     "workflow_instance_id": "wfi_customer-onboarding-prod",
-     *     "trigger_message": "New signup: john.doe@example.com"
-     *   },
-     *   "status": {
-     *     "phase": 2,  // EXECUTION_IN_PROGRESS
-     *     "total_tasks": 3,
-     *     "completed_tasks": 1,
-     *     "tasks": [ ... ],
-     *     "started_at": "2025-01-11T14:30:22Z"
-     *   }
-     * }
-     *
      * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.get
      */
     get: {
@@ -117,74 +51,6 @@ export const WorkflowExecutionQueryController = {
      * Returns a paginated list of WorkflowExecution resources that the user has access to.
      * Results are automatically filtered based on user's permissions and owner scope.
      *
-     * @internal
-     * Authorization:
-     * Custom authorization filters results to only include executions the user can access:
-     * - Organization users: Only executions in their organization
-     * - Users with cross-org access: Public executions from other orgs
-     *
-     * Pagination:
-     * - page_size: Maximum number of results to return (default: 50, max: 100)
-     * - page_token: Opaque token from previous response for next page
-     * - Returns total_pages count for UI pagination
-     *
-     * Filtering:
-     * - phase: Filter by execution phase (PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED)
-     * - tags: Filter by resource tags (AND logic - must match all tags)
-     *
-     * Sorting:
-     * Results are sorted by created_at descending (newest first).
-     *
-     * Use Cases:
-     *
-     * 1. Execution History Dashboard:
-     * - UI displays list of all recent executions
-     * - User can filter by status (show only failed, show only in-progress)
-     * - User can page through historical executions
-     *
-     * 2. Monitor Active Executions:
-     * - UI calls list(phase=EXECUTION_IN_PROGRESS) to show running executions
-     * - UI displays progress for each execution (completed_tasks / total_tasks)
-     * - UI refreshes list periodically to show updates
-     *
-     * 3. Audit and Compliance:
-     * - Admin lists all executions for a time period
-     * - Admin filters by tags (environment, team, project)
-     * - Admin exports execution history for audit logs
-     *
-     * 4. Debug and Troubleshooting:
-     * - Developer lists failed executions (phase=EXECUTION_FAILED)
-     * - Developer inspects error messages and retry patterns
-     * - Developer identifies systematic failures
-     *
-     * Error Cases:
-     *
-     * - INVALID_ARGUMENT:
-     *   - page_size is negative or exceeds maximum
-     *   - Invalid page_token (expired, corrupted)
-     *
-     * Example Request (Filter for failed executions):
-     * {
-     *   "page_size": 20,
-     *   "phase": 4,  // EXECUTION_FAILED
-     *   "tags": ["environment:production"]
-     * }
-     *
-     * Example Response:
-     * {
-     *   "total_pages": 3,
-     *   "entries": [
-     *     {
-     *       "metadata": { "id": "wfx_failed-1", ... },
-     *       "status": { "phase": 4, "error": "Task failed: API timeout", ... }
-     *     },
-     *     {
-     *       "metadata": { "id": "wfx_failed-2", ... },
-     *       "status": { "phase": 4, "error": "Task failed: Rate limit", ... }
-     *     }
-     *   ]
-     * }
-     *
      * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.list
      */
     list: {
@@ -198,74 +64,6 @@ export const WorkflowExecutionQueryController = {
      *
      * Returns executions filtered by a specific Workflow ID.
      * This is useful for viewing execution history of a particular workflow.
-     *
-     * @internal
-     * Authorization:
-     * Custom authorization verifies:
-     * 1. User has access to the referenced Workflow or WorkflowInstance
-     * 2. Results are filtered to only include executions user can access
-     *
-     * Pagination:
-     * - page_size: Maximum number of results to return (default: 50, max: 100)
-     * - page_token: Opaque token from previous response for next page
-     *
-     * Sorting:
-     * Results are sorted by created_at descending (newest first).
-     *
-     * Use Cases:
-     *
-     * 1. Workflow Execution History:
-     * - User views a Workflow in the UI
-     * - UI calls listByWorkflow(workflow_id) to show all executions
-     * - UI displays timeline of executions with success/failure indicators
-     *
-     * 2. Performance Analysis:
-     * - Developer wants to analyze workflow performance over time
-     * - Developer calls listByWorkflow() to get all executions
-     * - Developer calculates average duration, success rate, failure patterns
-     *
-     * 3. Retry Analysis:
-     * - User sees failed execution
-     * - User calls listByWorkflow() to see if other executions also failed
-     * - User determines if failure is systematic or one-off
-     *
-     * 4. Workflow Testing:
-     * - Developer tests a workflow with multiple executions
-     * - Developer calls listByWorkflow() to see all test runs
-     * - Developer compares outputs across executions
-     *
-     * Error Cases:
-     *
-     * - INVALID_ARGUMENT:
-     *   - workflow_id is empty or invalid format
-     *   - page_size is negative or exceeds maximum
-     *
-     * - PERMISSION_DENIED:
-     *   - User doesn't have access to the referenced Workflow/WorkflowInstance
-     *
-     * - NOT_FOUND:
-     *   - No Workflow or WorkflowInstance exists with the given ID
-     *
-     * Example Request:
-     * {
-     *   "workflow_id": "wfi_customer-onboarding-prod",
-     *   "page_size": 50
-     * }
-     *
-     * Example Response:
-     * {
-     *   "total_pages": 5,
-     *   "entries": [
-     *     {
-     *       "metadata": { "id": "wfx_latest", "created_at": "2025-01-11T14:30:22Z" },
-     *       "status": { "phase": 3, ... }  // COMPLETED
-     *     },
-     *     {
-     *       "metadata": { "id": "wfx_previous", "created_at": "2025-01-11T10:15:00Z" },
-     *       "status": { "phase": 4, ... }  // FAILED
-     *     }
-     *   ]
-     * }
      *
      * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.listByWorkflow
      */
@@ -285,114 +83,6 @@ export const WorkflowExecutionQueryController = {
      * - Progress events are appended
      * - Output or error fields are set
      *
-     * @internal
-     * Authorization:
-     * Standard authorization checks that user has "get" permission on the WorkflowExecution.
-     * This is the same permission check as get() RPC.
-     *
-     * Stream Lifecycle:
-     * 1. Client sends SubscribeWorkflowExecutionRequest with execution_id
-     * 2. Server validates authorization
-     * 3. Server sends initial WorkflowExecution (current state)
-     * 4. Server streams updates as execution progresses
-     * 5. Server closes stream when execution reaches terminal state (COMPLETED/FAILED/CANCELLED)
-     * 6. Client can close stream early (e.g., user navigates away from page)
-     *
-     * Update Frequency:
-     * - Updates are sent immediately when execution state changes
-     * - No polling necessary (server pushes updates)
-     * - Typical update latency: < 100ms
-     *
-     * Use Cases:
-     *
-     * 1. Real-Time Progress Monitoring:
-     * - User triggers an execution from UI
-     * - UI subscribes to execution updates
-     * - UI displays live progress: tasks completing, progress bar updating
-     * - UI shows final output when execution completes
-     *
-     * 2. Long-Running Workflow Monitoring:
-     * - Workflow takes hours to complete (e.g., data processing)
-     * - UI subscribes and shows live progress
-     * - User can leave page, come back, and reconnect to same execution
-     *
-     * 3. Debugging with Live Updates:
-     * - Developer triggers test execution
-     * - Developer subscribes to watch execution progress
-     * - Developer sees exactly which task is running and when failures occur
-     *
-     * 4. Multi-User Collaboration:
-     * - Multiple users watching same execution
-     * - All users receive same updates simultaneously
-     * - All users see consistent view of execution state
-     *
-     * Stream Message Format:
-     * Each message is a complete WorkflowExecution resource with updated status.
-     *
-     * Error Cases:
-     *
-     * - NOT_FOUND:
-     *   - No WorkflowExecution exists with the given ID
-     *
-     * - PERMISSION_DENIED:
-     *   - User doesn't have "get" permission on this WorkflowExecution
-     *
-     * - DEADLINE_EXCEEDED:
-     *   - Client timeout (client should reconnect)
-     *
-     * - UNAVAILABLE:
-     *   - Server unavailable (client should retry with backoff)
-     *
-     * Example Request:
-     * {
-     *   "execution_id": "wfx_abc123xyz456"
-     * }
-     *
-     * Example Stream (sequence of messages):
-     *
-     * Message 1 (initial state):
-     * {
-     *   "metadata": { "id": "wfx_abc123xyz456" },
-     *   "status": {
-     *     "phase": 1,  // EXECUTION_PENDING
-     *     "total_tasks": 3,
-     *     "completed_tasks": 0
-     *   }
-     * }
-     *
-     * Message 2 (execution started):
-     * {
-     *   "metadata": { "id": "wfx_abc123xyz456" },
-     *   "status": {
-     *     "phase": 2,  // EXECUTION_IN_PROGRESS
-     *     "started_at": "2025-01-11T14:30:22Z"
-     *   }
-     * }
-     *
-     * Message 3 (task 1 completed):
-     * {
-     *   "metadata": { "id": "wfx_abc123xyz456" },
-     *   "status": {
-     *     "phase": 2,  // EXECUTION_IN_PROGRESS
-     *     "completed_tasks": 1,
-     *     "tasks": [
-     *       { "task_id": "task-1", "status": 3, "output": { ... } }
-     *     ]
-     *   }
-     * }
-     *
-     * Message 4 (execution completed):
-     * {
-     *   "metadata": { "id": "wfx_abc123xyz456" },
-     *   "status": {
-     *     "phase": 3,  // EXECUTION_COMPLETED
-     *     "completed_tasks": 3,
-     *     "output": { ... },
-     *     "completed_at": "2025-01-11T14:35:47Z"
-     *   }
-     * }
-     * [Stream closes]
-     *
      * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.subscribe
      */
     subscribe: {
@@ -406,40 +96,6 @@ export const WorkflowExecutionQueryController = {
      *
      * Returns execution events ordered by sequence_number ascending, with
      * cursor-based pagination and optional filtering by event type or task name.
-     *
-     * @internal
-     * Authorization:
-     * Standard authorization checks that user has "get" permission on the
-     * WorkflowExecution. Same permission as get() and subscribe().
-     *
-     * The event log complements the status snapshot: the snapshot tells you
-     * current state, the event log tells you what happened and when.
-     *
-     * Use Cases:
-     *
-     * 1. Execution Viewer Timeline:
-     *    - Load full event history for a completed execution
-     *    - Render timeline with task transitions, retries, approvals, cost
-     *
-     * 2. Task Drill-Down:
-     *    - Filter by task_name to see all events for a specific task
-     *    - Inspect retry history, duration, cost per attempt
-     *
-     * 3. Cost Audit:
-     *    - Filter by budget_checkpoint events to chart cost over time
-     *    - Correlate cost spikes with specific agent_call tasks
-     *
-     * 4. Approval Audit Trail:
-     *    - Filter by approval_requested and approval_resolved
-     *    - See who approved what, when, and with what comment
-     *
-     * Error Cases:
-     *
-     * - NOT_FOUND: No WorkflowExecution exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have "get" permission
-     * - INVALID_ARGUMENT: page_size exceeds maximum (500)
-     *
-     * @since T06 (Execution Event Stream Model)
      *
      * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.getEventLog
      */
@@ -457,55 +113,6 @@ export const WorkflowExecutionQueryController = {
      * Unlike subscribe() which streams full WorkflowExecution snapshots,
      * this streams lightweight incremental events for the timeline view.
      *
-     * @internal
-     * Authorization:
-     * Standard authorization checks that user has "get" permission on the
-     * WorkflowExecution. Same permission as get() and subscribe().
-     *
-     * Stream Lifecycle:
-     * 1. Client sends SubscribeEventsRequest with execution_id
-     * 2. Server validates authorization
-     * 3. If after_sequence > 0: Server replays missed events from persistence
-     * 4. Server streams new events in real-time as the runner emits them
-     * 5. Server closes stream when execution reaches a terminal phase
-     *    (COMPLETED, FAILED, CANCELLED, TERMINATED)
-     * 6. Client can close stream early
-     *
-     * Reconnection:
-     * On disconnect, the client reconnects with after_sequence set to the
-     * sequence_number of the last received event. The server replays any
-     * events missed during the disconnect, then resumes live streaming.
-     * No events are lost.
-     *
-     * Complementary Streams:
-     * - subscribe(): Full snapshots for current-state views (progress bars, dashboards)
-     * - subscribeEvents(): Incremental events for timeline views (execution viewer)
-     * Both streams can be used simultaneously for different UI concerns.
-     *
-     * Use Cases:
-     *
-     * 1. Live Execution Timeline:
-     *    - User watches a running execution in the execution viewer
-     *    - Events stream in real-time, building the timeline as tasks progress
-     *    - Each event adds a row: "task X started", "task X completed (2.3s, $0.05)"
-     *
-     * 2. Cost Monitoring:
-     *    - Dashboard subscribes with event_types filter for budget_checkpoint
-     *    - Budget gauge updates in real-time as costs accumulate
-     *
-     * 3. Approval Notifications:
-     *    - Subscribe with event_types filter for approval_requested
-     *    - Surface approval gates immediately when they activate
-     *
-     * Error Cases:
-     *
-     * - NOT_FOUND: No WorkflowExecution exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have "get" permission
-     * - DEADLINE_EXCEEDED: Client timeout (reconnect with after_sequence)
-     * - UNAVAILABLE: Server unavailable (retry with backoff)
-     *
-     * @since T06 (Execution Event Stream Model)
-     *
      * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.subscribeEvents
      */
     subscribeEvents: {
@@ -521,27 +128,6 @@ export const WorkflowExecutionQueryController = {
      * workflows, and per-workflow cost breakdown — scoped to a configurable
      * time window (24h, 7d, 30d, all-time).
      *
-     * @internal
-     * Authorization:
-     * Custom authorization — user must have organization-level access.
-     * Results are scoped to the user's organization.
-     *
-     * Use Cases:
-     *
-     * 1. Dashboard Overview:
-     *    - Display KPI cards: active runs, completed, failed, total cost
-     *    - Time window selector toggles between 24h / 7d / 30d views
-     *
-     * 2. Cost Monitoring:
-     *    - Show per-workflow cost breakdown to identify expensive workflows
-     *    - Track cost trends across time windows
-     *
-     * 3. Reliability Monitoring:
-     *    - Surface top failing workflows for investigation
-     *    - Track failure rates across the organization
-     *
-     * @since T14 (Dashboard Integration)
-     *
      * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.getExecutionSummary
      */
     getExecutionSummary: {
@@ -556,24 +142,6 @@ export const WorkflowExecutionQueryController = {
      * Returns a paginated list of executions where at least one human_input
      * task is actively waiting for a response. Each entry includes the
      * execution context, task details, requester, and timeout information.
-     *
-     * @internal
-     * Authorization:
-     * Custom authorization — user must have organization-level access.
-     * Results are scoped to the user's organization.
-     *
-     * Use Cases:
-     *
-     * 1. Pending Approvals Dashboard Widget:
-     *    - Display a list of items requiring human attention
-     *    - Show time waiting and timeout countdown
-     *    - Link to execution viewer for review action
-     *
-     * 2. Approval Queue:
-     *    - Reviewers see all pending approvals in one view
-     *    - Sorted by urgency (closest to timeout first)
-     *
-     * @since T14 (Dashboard Integration)
      *
      * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.listPendingApprovals
      */

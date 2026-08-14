@@ -37,17 +37,8 @@ const (
 // WorkflowCommandController handles write operations for workflows.
 type WorkflowCommandControllerClient interface {
 	// Create or update a workflow.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on whether the workflow
-	// is going to be created or updated which is determined as part of the request execution.
 	Apply(ctx context.Context, in *Workflow, opts ...grpc.CallOption) (*Workflow, error)
 	// Create a workflow.
-	//
-	// @internal
-	// Authorization:
-	// - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization
-	// - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)
 	Create(ctx context.Context, in *Workflow, opts ...grpc.CallOption) (*Workflow, error)
 	// Update an existing workflow.
 	Update(ctx context.Context, in *Workflow, opts ...grpc.CallOption) (*Workflow, error)
@@ -57,12 +48,6 @@ type WorkflowCommandControllerClient interface {
 	// leaving spec, status, and other metadata fields untouched. Use this to
 	// make a workflow publicly accessible or to revoke public access without
 	// sending the entire workflow resource (avoiding read-modify-write races).
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the workflow resource.
-	// Visibility transitions trigger FGA tuple management in Cloud mode:
-	// - PRIVATE → PUBLIC: creates workflow#viewer@identity_account:* tuple
-	// - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Workflow, error)
 	// Delete a workflow.
 	Delete(ctx context.Context, in *WorkflowId, opts ...grpc.CallOption) (*Workflow, error)
@@ -72,9 +57,9 @@ type WorkflowCommandControllerClient interface {
 	// user-fixable spec problem: it always returns a structured
 	// ServerlessWorkflowValidation the caller can render field-by-field.
 	//
-	//	Layer 1: proto field constraints (buf validate / protovalidate)
-	//	Layer 2: in-process structural validation (proto → CNCF YAML plus
-	//	         structural, cross-reference, model, and budget checks)
+	// 	Layer 1: proto field constraints (buf validate / protovalidate)
+	// 	Layer 2: in-process structural validation (proto → CNCF YAML plus
+	// 	         structural, cross-reference, model, and budget checks)
 	//
 	// Result states:
 	//   - VALID: workflow structure passed all checks
@@ -85,25 +70,12 @@ type WorkflowCommandControllerClient interface {
 	// workflow or spec) and to genuine internal faults. This RPC does NOT persist,
 	// authorize, or create instances. It is a pure validation endpoint suitable for
 	// iterative authoring where the caller needs fast feedback before committing.
-	//
-	// @internal
-	// Authorization: Uses the same permission as create — caller must have
-	// can_create_workflow in the org. This prevents unauthenticated abuse
-	// of the validation pipeline while allowing any user who could create
-	// a workflow to also validate one.
 	ValidateSpec(ctx context.Context, in *Workflow, opts ...grpc.CallOption) (*serverless.ServerlessWorkflowValidation, error)
 	// Assign or move a tag to a specific workflow version.
 	//
 	// Tags are human-readable pointers to immutable versions. Calling this
 	// with an existing tag name moves it from the previous version to the
 	// specified version. Common tags: "stable", "production", "v2.0".
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the workflow resource.
-	// The handler validates that the version_hash exists in the workflow's
-	// audit history before assigning the tag.
-	//
-	// @since Workflow Versioning
 	TagVersion(ctx context.Context, in *TagWorkflowVersionInput, opts ...grpc.CallOption) (*Workflow, error)
 }
 
@@ -192,17 +164,8 @@ func (c *workflowCommandControllerClient) TagVersion(ctx context.Context, in *Ta
 // WorkflowCommandController handles write operations for workflows.
 type WorkflowCommandControllerServer interface {
 	// Create or update a workflow.
-	//
-	// @internal
-	// The authorization and state-operation are determined depending on whether the workflow
-	// is going to be created or updated which is determined as part of the request execution.
 	Apply(context.Context, *Workflow) (*Workflow, error)
 	// Create a workflow.
-	//
-	// @internal
-	// Authorization:
-	// - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization
-	// - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)
 	Create(context.Context, *Workflow) (*Workflow, error)
 	// Update an existing workflow.
 	Update(context.Context, *Workflow) (*Workflow, error)
@@ -212,12 +175,6 @@ type WorkflowCommandControllerServer interface {
 	// leaving spec, status, and other metadata fields untouched. Use this to
 	// make a workflow publicly accessible or to revoke public access without
 	// sending the entire workflow resource (avoiding read-modify-write races).
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the workflow resource.
-	// Visibility transitions trigger FGA tuple management in Cloud mode:
-	// - PRIVATE → PUBLIC: creates workflow#viewer@identity_account:* tuple
-	// - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Workflow, error)
 	// Delete a workflow.
 	Delete(context.Context, *WorkflowId) (*Workflow, error)
@@ -227,9 +184,9 @@ type WorkflowCommandControllerServer interface {
 	// user-fixable spec problem: it always returns a structured
 	// ServerlessWorkflowValidation the caller can render field-by-field.
 	//
-	//	Layer 1: proto field constraints (buf validate / protovalidate)
-	//	Layer 2: in-process structural validation (proto → CNCF YAML plus
-	//	         structural, cross-reference, model, and budget checks)
+	// 	Layer 1: proto field constraints (buf validate / protovalidate)
+	// 	Layer 2: in-process structural validation (proto → CNCF YAML plus
+	// 	         structural, cross-reference, model, and budget checks)
 	//
 	// Result states:
 	//   - VALID: workflow structure passed all checks
@@ -240,25 +197,12 @@ type WorkflowCommandControllerServer interface {
 	// workflow or spec) and to genuine internal faults. This RPC does NOT persist,
 	// authorize, or create instances. It is a pure validation endpoint suitable for
 	// iterative authoring where the caller needs fast feedback before committing.
-	//
-	// @internal
-	// Authorization: Uses the same permission as create — caller must have
-	// can_create_workflow in the org. This prevents unauthenticated abuse
-	// of the validation pipeline while allowing any user who could create
-	// a workflow to also validate one.
 	ValidateSpec(context.Context, *Workflow) (*serverless.ServerlessWorkflowValidation, error)
 	// Assign or move a tag to a specific workflow version.
 	//
 	// Tags are human-readable pointers to immutable versions. Calling this
 	// with an existing tag name moves it from the previous version to the
 	// specified version. Common tags: "stable", "production", "v2.0".
-	//
-	// @internal
-	// Authorization: Requires can_edit permission on the workflow resource.
-	// The handler validates that the version_hash exists in the workflow's
-	// audit history before assigning the tag.
-	//
-	// @since Workflow Versioning
 	TagVersion(context.Context, *TagWorkflowVersionInput) (*Workflow, error)
 }
 

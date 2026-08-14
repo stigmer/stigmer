@@ -80,11 +80,6 @@ func (x *SkillId) GetValue() string {
 //   - artifact_upload_ref: reference to bytes already staged via
 //     createArtifactUploadUrl() + HTTP PUT. Required for artifacts above the
 //     transport cap; works for any size up to the skill limit.
-//
-// @internal
-// The skill name and description are extracted by the backend from the SKILL.md
-// YAML frontmatter within the artifact. The CLI validates the format but does not
-// send these fields — backend is the single source of truth for parsing.
 type PushSkillRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization that owns this skill.
@@ -107,12 +102,6 @@ type PushSkillRequest struct {
 	Tag string `protobuf:"bytes,3,opt,name=tag,proto3" json:"tag,omitempty"`
 	// Git provenance for this skill version.
 	// Absent when pushed from a non-git directory.
-	//
-	// @internal
-	// Populated by CLI during push:
-	// - For local pushes: auto-detected if directory is within a git repository
-	// - For git pushes: resolved from user-provided URL/ref
-	// Stored in SkillStatus.git_provenance for traceability.
 	GitProvenance *GitProvenance `protobuf:"bytes,4,opt,name=git_provenance,json=gitProvenance,proto3" json:"git_provenance,omitempty"`
 	// Optional human-readable message describing what changed in this version.
 	// Stored in metadata.version.message for version history display.
@@ -266,14 +255,6 @@ func (x *CreateSkillArtifactUploadUrlRequest) GetSizeBytes() int64 {
 
 // SkillArtifactUploadUrl is a short-lived, single-use capability for
 // staging a skill artifact over HTTP.
-//
-// @internal
-// The upload strategy differs by edition (mirrors ArtifactDownloadUrl):
-//   - Cloud: pre-signed R2/S3 PUT URL with short TTL
-//   - OSS: capability URL on the server's own HTTP lane (the unguessable
-//     token in the path is the credential, exactly like a presigned URL)
-//
-// This pattern avoids streaming large blobs through the gRPC control plane.
 type SkillArtifactUploadUrl struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// URL to PUT the artifact ZIP bytes to. Content-Type: application/zip.
@@ -342,16 +323,6 @@ func (x *SkillArtifactUploadUrl) GetTtlSeconds() int32 {
 
 // SkillArtifactDownloadUrl provides a URL for downloading a skill
 // artifact over HTTP.
-//
-// @internal
-// The download strategy differs by edition (mirrors ArtifactDownloadUrl):
-//   - Cloud: pre-signed R2/S3 URL with short TTL (e.g., 15 minutes)
-//   - OSS: capability URL on the server's own HTTP lane; the content-hash
-//     storage key in the path is the capability (the same trust model as
-//     getArtifact, which deliberately skips authorization)
-//
-// This pattern avoids streaming large blobs through the gRPC control
-// plane — the transport cap stays at 10MB while skills may be 100MB.
 type SkillArtifactDownloadUrl struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// URL to download the artifact ZIP via HTTP GET.
@@ -419,34 +390,14 @@ func (x *SkillArtifactDownloadUrl) GetSizeBytes() int64 {
 
 // PushSkillFromExecutionArtifactRequest publishes a skill from an execution
 // artifact already in storage, without downloading and re-uploading the ZIP.
-//
-// @internal
-// Server-side push flow: reads the ZIP directly from artifact storage and
-// delegates to the standard push logic.
-//
-// Authorization:
-// - Requires can_view on the agent execution (to read the artifact)
-// - Requires can_create_skill in the target organization (to push the skill)
-//
-// Security:
-// The storage_key is validated to start with "artifacts/{execution_id}/"
-// to prevent access to other executions' artifacts.
 type PushSkillFromExecutionArtifactRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization that will own the skill.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// ID of the agent execution that produced the artifact (e.g., "aex_abc123xyz456").
-	//
-	// @internal
-	// Used for authorization (can_view check) and storage_key validation.
-	// Format: "aex_{ulid}".
 	ExecutionId string `protobuf:"bytes,2,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
 	// Storage key of the directory artifact (ZIP) to push as a skill.
 	// Obtain this from ExecutionArtifact.storage_key in the execution status.
-	//
-	// @internal
-	// Must start with "artifacts/{execution_id}/" for security.
-	// Format: "artifacts/{execution_id}/{filename}.zip".
 	StorageKey string `protobuf:"bytes,3,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
 	// Optional version tag (same semantics as PushSkillRequest.tag).
 	// Examples: "stable", "v1.0", "latest"
@@ -517,9 +468,6 @@ func (x *PushSkillFromExecutionArtifactRequest) GetTag() string {
 type GetArtifactRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The artifact storage key from skill.status.artifact_storage_key.
-	//
-	// @internal
-	// Identifies the location of the ZIP file in storage (R2/S3).
 	ArtifactStorageKey string `protobuf:"bytes,1,opt,name=artifact_storage_key,json=artifactStorageKey,proto3" json:"artifact_storage_key,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
