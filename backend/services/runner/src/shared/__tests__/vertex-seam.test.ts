@@ -4,13 +4,13 @@
  *
  * This is NOT a unit test of our code (there is no production vertex code
  * yet). It pins the exact cross-package behavior production will rely on:
- * the REAL `ChatAnthropic` (@langchain/anthropic, bundling @anthropic-ai/sdk
- * 0.95.x) driving the REAL `AnthropicVertex` client (@anthropic-ai/vertex-sdk,
- * bundling its own nested @anthropic-ai/sdk >=0.115). If a future bump of
+ * the REAL `ChatAnthropic` (@langchain/anthropic) driving the REAL
+ * `AnthropicVertex` client (@anthropic-ai/vertex-sdk), both resolving the
+ * single override-pinned @anthropic-ai/sdk copy. If a future bump of
  * either side changes request shaping, streaming event handling, tool-call
  * assembly, or usage accounting across this seam, this suite fails in CI
- * instead of production. See scripts/check-langchain-deps.sh for why two
- * @anthropic-ai/sdk copies coexist and when they collapse to one.
+ * instead of production. See scripts/check-langchain-deps.sh for the
+ * override rationale and the single-copy invariant it guards.
  *
  * Determinism: zero credentials, zero network. Google auth is bypassed by
  * injecting a fake `authClient` (the SDK's supported constructor option —

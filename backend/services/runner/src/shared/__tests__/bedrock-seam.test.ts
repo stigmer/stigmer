@@ -2,11 +2,11 @@
  * Characterization test for the ChatAnthropic `createClient` ->
  * AnthropicBedrock seam — the integration the T04 bedrock backend adapter
  * is built on. Sibling of vertex-seam.test.ts; same rules: this pins REAL
- * cross-package behavior (`@langchain/anthropic` bundling @anthropic-ai/sdk
- * 0.95.x driving `@anthropic-ai/bedrock-sdk` bundling its own nested
- * >=0.115 copy), so a future bump of either side fails here in CI instead
- * of in production. See scripts/check-langchain-deps.sh for why the two
- * @anthropic-ai/sdk versions coexist and when they collapse to one.
+ * cross-package behavior (`@langchain/anthropic` driving
+ * `@anthropic-ai/bedrock-sdk`, both resolving the single override-pinned
+ * @anthropic-ai/sdk copy), so a future bump of either side fails here in
+ * CI instead of in production. See scripts/check-langchain-deps.sh for
+ * the override rationale and the single-copy invariant it guards.
  *
  * Determinism: zero live credentials, zero network. SigV4 signing runs for
  * real — it is pure HMAC over static test keys passed through the SDK's
