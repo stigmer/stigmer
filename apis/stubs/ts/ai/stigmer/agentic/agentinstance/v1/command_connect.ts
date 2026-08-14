@@ -63,6 +63,10 @@ export const AgentInstanceCommandController = {
      * executions against this instance. Sessions remain personal regardless of
      * instance visibility (conversation privacy is preserved).
      *
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
+     *
      * @generated from rpc ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController.updateVisibility
      */
     updateVisibility: {

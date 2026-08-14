@@ -125,6 +125,17 @@ const (
 	// never org-visible. Deliberately distinct from the manage-class
 	// platform permissions: the standing console only observes (cloud#447).
 	IamPermission_can_view_provider_standing IamPermission = 38
+	// Platform-level permission to set a resource's visibility to PUBLIC —
+	// the only level that crosses every org boundary (the cross-org
+	// "explore" catalog). Gated to platform operators in the cloud
+	// edition: public listing is a curation decision, requested by the
+	// owner and granted by the platform team. Enforced at BOTH doors a
+	// resource can become public through — updateVisibility escalation and
+	// create-with-public — while org/platform levels and un-publishing
+	// stay self-service (resource can_edit). The OSS edition is
+	// deliberately unguarded: the self-hosted operator owns the store,
+	// the same scoping cloud#320 applied to reserved labels.
+	IamPermission_can_set_public_visibility IamPermission = 39
 )
 
 // Enum value maps for IamPermission.
@@ -166,6 +177,7 @@ var (
 		36: "can_participate",
 		37: "can_write_reserved_labels",
 		38: "can_view_provider_standing",
+		39: "can_set_public_visibility",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -204,6 +216,7 @@ var (
 		"can_participate":              36,
 		"can_write_reserved_labels":    37,
 		"can_view_provider_standing":   38,
+		"can_set_public_visibility":    39,
 	}
 )
 
@@ -313,7 +326,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xb3\a\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xd2\a\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -352,7 +365,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x1acan_manage_cursor_accounts\x10#\x12\x13\n" +
 	"\x0fcan_participate\x10$\x12\x1d\n" +
 	"\x19can_write_reserved_labels\x10%\x12\x1e\n" +
-	"\x1acan_view_provider_standing\x10&\"\x04\b!\x10!\"\x04\b\"\x10\"*\x0fcan_use_records*\x14can_create_datastore*b\n" +
+	"\x1acan_view_provider_standing\x10&\x12\x1d\n" +
+	"\x19can_set_public_visibility\x10'\"\x04\b!\x10!\"\x04\b\"\x10\"*\x0fcan_use_records*\x14can_create_datastore*b\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

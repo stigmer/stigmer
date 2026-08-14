@@ -304,8 +304,14 @@ public final class SkillCommandControllerGrpc {
      * Only modifies metadata.visibility, leaving spec, status, and other
      * metadata fields untouched. Use this to make a skill publicly accessible
      * or to revoke public access.
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the skill resource.
+     * Authorization: can_edit on the skill for private/org/platform
+     * transitions; escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition);
+     * downgrade from PUBLIC: can_edit OR the platform permission.
      * </pre>
      */
     default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -430,8 +436,14 @@ public final class SkillCommandControllerGrpc {
      * Only modifies metadata.visibility, leaving spec, status, and other
      * metadata fields untouched. Use this to make a skill publicly accessible
      * or to revoke public access.
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the skill resource.
+     * Authorization: can_edit on the skill for private/org/platform
+     * transitions; escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition);
+     * downgrade from PUBLIC: can_edit OR the platform permission.
      * </pre>
      */
     public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -541,8 +553,14 @@ public final class SkillCommandControllerGrpc {
      * Only modifies metadata.visibility, leaving spec, status, and other
      * metadata fields untouched. Use this to make a skill publicly accessible
      * or to revoke public access.
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the skill resource.
+     * Authorization: can_edit on the skill for private/org/platform
+     * transitions; escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition);
+     * downgrade from PUBLIC: can_edit OR the platform permission.
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.Skill updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
@@ -650,8 +668,14 @@ public final class SkillCommandControllerGrpc {
      * Only modifies metadata.visibility, leaving spec, status, and other
      * metadata fields untouched. Use this to make a skill publicly accessible
      * or to revoke public access.
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the skill resource.
+     * Authorization: can_edit on the skill for private/org/platform
+     * transitions; escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition);
+     * downgrade from PUBLIC: can_edit OR the platform permission.
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.Skill updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
@@ -762,8 +786,14 @@ public final class SkillCommandControllerGrpc {
      * Only modifies metadata.visibility, leaving spec, status, and other
      * metadata fields untouched. Use this to make a skill publicly accessible
      * or to revoke public access.
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the skill resource.
+     * Authorization: can_edit on the skill for private/org/platform
+     * transitions; escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition);
+     * downgrade from PUBLIC: can_edit OR the platform permission.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.Skill> updateVisibility(

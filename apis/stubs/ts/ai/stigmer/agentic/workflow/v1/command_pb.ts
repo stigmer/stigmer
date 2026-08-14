@@ -67,6 +67,10 @@ export const WorkflowCommandController: GenService<{
    * make a workflow publicly accessible or to revoke public access without
    * sending the entire workflow resource (avoiding read-modify-write races).
    *
+   * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+   * every org boundary, so it is granted by the platform team on request.
+   * Un-publishing and all other levels stay self-service.
+   *
    * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.updateVisibility
    */
   updateVisibility: {

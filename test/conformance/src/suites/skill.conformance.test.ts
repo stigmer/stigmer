@@ -531,6 +531,14 @@ describe("Skill conformance — listVersions", () => {
 
 describe("Skill conformance — updateVisibility", () => {
   it("changes an org-default skill to public", async () => {
+    // Escalation to PUBLIC is operator-gated in the cloud edition (both
+    // write doors require can_set_public_visibility on platform:stigmer),
+    // and the ordinary conformance user holds no operator grant — see the
+    // capability's doc in targets/target.ts. The gate itself is pinned by
+    // the PermissionDenied case below; this happy path runs where the
+    // caller may publish (the local OSS targets, deliberately unguarded).
+    if (!target.capabilities.clientPublicVisibilityWrites) return;
+
     const { org } = await target.provisionTenancy();
     const pushed = await pushSkill(org, makeSkillArtifact({ name: uniqueName("skill") }));
     expect(pushed.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
@@ -552,6 +560,35 @@ describe("Skill conformance — updateVisibility", () => {
     const pushedSpecUpdatedAt = pushed.status?.audit?.specAudit?.updatedAt;
     expect(pushedSpecUpdatedAt, "push stamps spec_audit.updated_at").toBeDefined();
     expect(fetched.status?.audit?.specAudit?.updatedAt).toEqual(pushedSpecUpdatedAt);
+  });
+
+  it("rejects escalation to public from a non-operator (PermissionDenied) and leaves the stored level untouched", async () => {
+    // The inverse pin of the happy path above: where the caller holds no
+    // operator grant (the cloud edition), escalation to PUBLIC is a
+    // curation decision the platform team makes —
+    // AuthorizeVisibilityTransitionStep answers PermissionDenied and the
+    // stored level must not move. Skipped where publishing is
+    // self-service (the local OSS targets).
+    if (target.capabilities.clientPublicVisibilityWrites) return;
+
+    const { org } = await target.provisionTenancy();
+    const pushed = await pushSkill(org, makeSkillArtifact({ name: uniqueName("skill") }));
+    expect(pushed.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+
+    await expectGrpcCode(
+      () =>
+        clients.skillCommand.updateVisibility({
+          resourceId: pushed.metadata!.id,
+          visibility: ApiResourceVisibility.visibility_public,
+        }),
+      Code.PermissionDenied,
+      "update skill visibility to public as a non-operator",
+    );
+
+    const stored = await clients.skillQuery.get({ value: pushed.metadata!.id });
+    expect(stored.metadata?.visibility, "the rejected escalation must not change the stored level").toBe(
+      ApiResourceVisibility.visibility_org,
+    );
   });
 
   it("returns NotFound for an unknown skill", async () => {

@@ -134,6 +134,18 @@ enum IamPermission {
   // never org-visible. Deliberately distinct from the manage-class
   // platform permissions: the standing console only observes (cloud#447).
   can_view_provider_standing = 38;
+
+  // Platform-level permission to set a resource's visibility to PUBLIC —
+  // the only level that crosses every org boundary (the cross-org
+  // "explore" catalog). Gated to platform operators in the cloud
+  // edition: public listing is a curation decision, requested by the
+  // owner and granted by the platform team. Enforced at BOTH doors a
+  // resource can become public through — updateVisibility escalation and
+  // create-with-public — while org/platform levels and un-publishing
+  // stay self-service (resource can_edit). The OSS edition is
+  // deliberately unguarded: the self-hosted operator owns the store,
+  // the same scoping cloud#320 applied to reserved labels.
+  can_set_public_visibility = 39;
 }
 
 // IamRole defines the roles that can be assigned to principals on resources

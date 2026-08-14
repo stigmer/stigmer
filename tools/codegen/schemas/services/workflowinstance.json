@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
           "outputType": "WorkflowInstance",
           "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
-          "description": "Update the visibility of an existing workflow instance.\n\n Changes who can view this instance and its executions. Supports the full\n visibility spectrum: PRIVATE (owner only), ORG (all org members), or\n PUBLIC (all authenticated users).\n\n For workflow instances, visibility has cascading effects on execution\n observability: workflow executions inherit visibility from their parent\n instance via FGA. An ORG-visible instance means all org members can see\n all executions — zero per-execution tuples needed."
+          "description": "Update the visibility of an existing workflow instance.\n\n Changes who can view this instance and its executions. Supports the full\n visibility spectrum: PRIVATE (owner only), ORG (all org members), or\n PUBLIC (all authenticated users).\n\n For workflow instances, visibility has cascading effects on execution\n observability: workflow executions inherit visibility from their parent\n instance via FGA. An ORG-visible instance means all org members can see\n all executions — zero per-execution tuples needed.\n\n In the cloud edition, PUBLIC is operator-gated: public listing crosses\n every org boundary, so it is granted by the platform team on request.\n Un-publishing and all other levels stay self-service."
         },
         {
           "name": "UpdateExecutionVisibility",
@@ -345,7 +345,7 @@
         {
           "name": "visibility_public",
           "number": 2,
-          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n\n In the cloud edition, entering this level is operator-gated\n (can_set_public_visibility on platform:stigmer): public listing is a\n curation decision, requested by the resource owner and granted by the\n platform team — at both doors, updateVisibility escalation and\n create-with-public. Leaving this level stays self-service for anyone\n with can_edit. The OSS edition is unguarded (the self-hosted operator\n owns the store).\n Named visibility_public to avoid Java reserved keyword conflict."
         },
         {
           "name": "visibility_org",

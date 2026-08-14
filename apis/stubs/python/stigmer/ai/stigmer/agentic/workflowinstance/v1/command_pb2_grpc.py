@@ -85,6 +85,10 @@ class WorkflowInstanceCommandControllerServicer(object):
         observability: workflow executions inherit visibility from their parent
         instance via FGA. An ORG-visible instance means all org members can see
         all executions — zero per-execution tuples needed.
+
+        In the cloud edition, PUBLIC is operator-gated: public listing crosses
+        every org boundary, so it is granted by the platform team on request.
+        Un-publishing and all other levels stay self-service.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

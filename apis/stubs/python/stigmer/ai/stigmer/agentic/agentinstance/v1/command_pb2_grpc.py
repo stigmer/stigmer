@@ -82,6 +82,10 @@ class AgentInstanceCommandControllerServicer(object):
         For agent instances, visibility controls who can create sessions and run
         executions against this instance. Sessions remain personal regardless of
         instance visibility (conversation privacy is preserved).
+
+        In the cloud edition, PUBLIC is operator-gated: public listing crosses
+        every org boundary, so it is granted by the platform team on request.
+        Un-publishing and all other levels stay self-service.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

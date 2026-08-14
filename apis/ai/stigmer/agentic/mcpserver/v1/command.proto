@@ -87,8 +87,15 @@ service McpServerCommandController {
   // Only modifies metadata.visibility, leaving spec, status, and other
   // metadata fields untouched.
   //
+  // In the cloud edition, PUBLIC is operator-gated: public listing crosses
+  // every org boundary, so it is granted by the platform team on request.
+  // Un-publishing and all other levels stay self-service.
+  //
   // @internal
-  // Authorization: Requires can_edit permission on the mcp_server resource.
+  // Authorization: can_edit on the mcp_server for private/org/platform
+  // transitions; escalation to PUBLIC instead requires
+  // can_set_public_visibility on platform:stigmer (cloud edition);
+  // downgrade from PUBLIC: can_edit OR the platform permission.
   rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (McpServer) {
     option (ai.stigmer.commons.rpc.config).resource_kind = mcp_server;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;

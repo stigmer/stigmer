@@ -63,12 +63,14 @@ export type {
 
 export {
   blueprintVisibilityLevels,
-  INSTANCE_VISIBILITY_LEVELS,
+  instanceVisibilityLevels,
+  PUBLIC_LOCKED_REASON,
   visibilityLabel,
   visibilityOption,
 } from "./visibilityLevels.js";
 export type {
   BlueprintVisibilityLevelsContext,
+  InstanceVisibilityLevelsContext,
   VisibilityLevelOption,
 } from "./visibilityLevels.js";
 
@@ -80,6 +82,9 @@ export type {
   VisibilityResourceKind,
   UseUpdateVisibilityReturn,
 } from "./useUpdateVisibility.js";
+
+export { useCanSetPublicVisibility } from "./useCanSetPublicVisibility.js";
+export type { UseCanSetPublicVisibilityReturn } from "./useCanSetPublicVisibility.js";
 
 export { InstanceVisibilitySelector } from "./InstanceVisibilitySelector.js";
 export type { InstanceVisibilitySelectorProps } from "./InstanceVisibilitySelector.js";

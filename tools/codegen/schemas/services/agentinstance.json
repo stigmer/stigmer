@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
           "outputType": "AgentInstance",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
-          "description": "Update the visibility of an existing agent instance.\n\n Changes who can view this instance and interact with it. Supports the\n full visibility spectrum: PRIVATE (owner only), ORG (all org members),\n or PUBLIC (all authenticated users).\n\n For agent instances, visibility controls who can create sessions and run\n executions against this instance. Sessions remain personal regardless of\n instance visibility (conversation privacy is preserved)."
+          "description": "Update the visibility of an existing agent instance.\n\n Changes who can view this instance and interact with it. Supports the\n full visibility spectrum: PRIVATE (owner only), ORG (all org members),\n or PUBLIC (all authenticated users).\n\n For agent instances, visibility controls who can create sessions and run\n executions against this instance. Sessions remain personal regardless of\n instance visibility (conversation privacy is preserved).\n\n In the cloud edition, PUBLIC is operator-gated: public listing crosses\n every org boundary, so it is granted by the platform team on request.\n Un-publishing and all other levels stay self-service."
         },
         {
           "name": "Delete",
@@ -357,7 +357,7 @@
         {
           "name": "visibility_public",
           "number": 2,
-          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n\n In the cloud edition, entering this level is operator-gated\n (can_set_public_visibility on platform:stigmer): public listing is a\n curation decision, requested by the resource owner and granted by the\n platform team — at both doors, updateVisibility escalation and\n create-with-public. Leaving this level stays self-service for anyone\n with can_edit. The OSS edition is unguarded (the self-hosted operator\n owns the store).\n Named visibility_public to avoid Java reserved keyword conflict."
         },
         {
           "name": "visibility_org",

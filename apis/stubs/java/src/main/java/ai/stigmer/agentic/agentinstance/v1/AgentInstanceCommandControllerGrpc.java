@@ -294,8 +294,14 @@ public final class AgentInstanceCommandControllerGrpc {
      * For agent instances, visibility controls who can create sessions and run
      * executions against this instance. Sessions remain personal regardless of
      * instance visibility (conversation privacy is preserved).
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the agent instance.
+     * Authorization: can_edit on the agent instance for private/org
+     * transitions; escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition);
+     * downgrade from PUBLIC: can_edit OR the platform permission.
      * Visibility transitions trigger FGA tuple management in Cloud mode:
      * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
      * - PRIVATE → PUBLIC: creates agent_instance#viewer&#64;identity_account:*
@@ -415,8 +421,14 @@ public final class AgentInstanceCommandControllerGrpc {
      * For agent instances, visibility controls who can create sessions and run
      * executions against this instance. Sessions remain personal regardless of
      * instance visibility (conversation privacy is preserved).
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the agent instance.
+     * Authorization: can_edit on the agent instance for private/org
+     * transitions; escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition);
+     * downgrade from PUBLIC: can_edit OR the platform permission.
      * Visibility transitions trigger FGA tuple management in Cloud mode:
      * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
      * - PRIVATE → PUBLIC: creates agent_instance#viewer&#64;identity_account:*
@@ -521,8 +533,14 @@ public final class AgentInstanceCommandControllerGrpc {
      * For agent instances, visibility controls who can create sessions and run
      * executions against this instance. Sessions remain personal regardless of
      * instance visibility (conversation privacy is preserved).
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the agent instance.
+     * Authorization: can_edit on the agent instance for private/org
+     * transitions; escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition);
+     * downgrade from PUBLIC: can_edit OR the platform permission.
      * Visibility transitions trigger FGA tuple management in Cloud mode:
      * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
      * - PRIVATE → PUBLIC: creates agent_instance#viewer&#64;identity_account:*
@@ -625,8 +643,14 @@ public final class AgentInstanceCommandControllerGrpc {
      * For agent instances, visibility controls who can create sessions and run
      * executions against this instance. Sessions remain personal regardless of
      * instance visibility (conversation privacy is preserved).
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the agent instance.
+     * Authorization: can_edit on the agent instance for private/org
+     * transitions; escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition);
+     * downgrade from PUBLIC: can_edit OR the platform permission.
      * Visibility transitions trigger FGA tuple management in Cloud mode:
      * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
      * - PRIVATE → PUBLIC: creates agent_instance#viewer&#64;identity_account:*
@@ -732,8 +756,14 @@ public final class AgentInstanceCommandControllerGrpc {
      * For agent instances, visibility controls who can create sessions and run
      * executions against this instance. Sessions remain personal regardless of
      * instance visibility (conversation privacy is preserved).
+     * In the cloud edition, PUBLIC is operator-gated: public listing crosses
+     * every org boundary, so it is granted by the platform team on request.
+     * Un-publishing and all other levels stay self-service.
      * &#64;internal
-     * Authorization: Requires can_edit permission on the agent instance.
+     * Authorization: can_edit on the agent instance for private/org
+     * transitions; escalation to PUBLIC instead requires
+     * can_set_public_visibility on platform:stigmer (cloud edition);
+     * downgrade from PUBLIC: can_edit OR the platform permission.
      * Visibility transitions trigger FGA tuple management in Cloud mode:
      * - PRIVATE → ORG: creates agent_instance#viewer&#64;organization:&lt;org&gt;#member
      * - PRIVATE → PUBLIC: creates agent_instance#viewer&#64;identity_account:*
