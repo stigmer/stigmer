@@ -104,6 +104,7 @@ class PlatformClientInput:
     auto_grant_on_org: bool = False
     auto_grant_role: int = 0
     allowed_origins: list[str] = field(default_factory=list)
+    environment_refs: list[ResourceRef] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.PlatformClient:
         spec = spec_pb2.PlatformClientSpec(
@@ -119,6 +120,10 @@ class PlatformClientInput:
             spec.expires_at.FromJsonString(self.expires_at)
         if self.allowed_origins:
             spec.allowed_origins.extend(self.allowed_origins)
+        for ref in self.environment_refs:
+            _ref = ref._to_proto()
+            _ref.kind = 53
+            spec.environment_refs.append(_ref)
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

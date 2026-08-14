@@ -4,6 +4,7 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
+import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import ai.stigmer.iam.platformclient.v1.PlatformClient;
 import ai.stigmer.iam.platformclient.v1.PlatformClientSpec;
 import ai.stigmer.iam.v1.IamRole;
@@ -25,6 +26,7 @@ public final class PlatformClientInput {
     private final boolean autoGrantOnOrg;
     private final IamRole autoGrantRole;
     private final java.util.List<String> allowedOrigins;
+    private final java.util.List<ResourceRef> environmentRefs;
 
     private PlatformClientInput(Builder builder) {
         this.name = builder.name;
@@ -41,6 +43,7 @@ public final class PlatformClientInput {
         this.autoGrantOnOrg = builder.autoGrantOnOrg;
         this.autoGrantRole = builder.autoGrantRole;
         this.allowedOrigins = builder.allowedOrigins;
+        this.environmentRefs = builder.environmentRefs;
     }
 
     PlatformClient toProto() {
@@ -69,6 +72,12 @@ public final class PlatformClientInput {
         }
         if (this.allowedOrigins != null && !this.allowedOrigins.isEmpty()) {
             spec.addAllAllowedOrigins(this.allowedOrigins);
+        }
+        if (this.environmentRefs != null) {
+            for (ResourceRef item : this.environmentRefs) {
+                spec.addEnvironmentRefs(item.toProto().toBuilder()
+                    .setKind(ApiResourceKind.environment).build());
+            }
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -107,6 +116,7 @@ public final class PlatformClientInput {
         private boolean autoGrantOnOrg;
         private IamRole autoGrantRole;
         private java.util.List<String> allowedOrigins;
+        private java.util.List<ResourceRef> environmentRefs;
 
         private Builder() {}
 
@@ -124,6 +134,7 @@ public final class PlatformClientInput {
         public Builder autoGrantOnOrg(boolean autoGrantOnOrg) { this.autoGrantOnOrg = autoGrantOnOrg; return this; }
         public Builder autoGrantRole(IamRole autoGrantRole) { this.autoGrantRole = autoGrantRole; return this; }
         public Builder allowedOrigins(java.util.List<String> allowedOrigins) { this.allowedOrigins = allowedOrigins; return this; }
+        public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
 
         public PlatformClientInput build() { return new PlatformClientInput(this); }
     }

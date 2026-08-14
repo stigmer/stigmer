@@ -103,6 +103,7 @@ type PlatformClientInput struct {
 	AutoGrantOnOrg        bool
 	AutoGrantRole         iamv1.IamRole
 	AllowedOrigins        []string
+	EnvironmentRefs       []ResourceRef
 }
 
 func (i *PlatformClientInput) toProto() (*platformclientv1.PlatformClient, error) {
@@ -133,6 +134,11 @@ func (i *PlatformClientInput) toProto() (*platformclientv1.PlatformClient, error
 	resource.Spec.AutoGrantOnOrg = i.AutoGrantOnOrg
 	resource.Spec.AutoGrantRole = i.AutoGrantRole
 	resource.Spec.AllowedOrigins = i.AllowedOrigins
+	for _, r := range i.EnvironmentRefs {
+		ref := r.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_environment
+		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, ref)
+	}
 	return resource, nil
 }
 
@@ -161,6 +167,9 @@ func PlatformClientInputFromProto(p *platformclientv1.PlatformClient) *PlatformC
 		input.AutoGrantOnOrg = s.GetAutoGrantOnOrg()
 		input.AutoGrantRole = s.GetAutoGrantRole()
 		input.AllowedOrigins = s.GetAllowedOrigins()
+		for _, r := range s.GetEnvironmentRefs() {
+			input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
+		}
 	}
 	return input
 }
