@@ -401,6 +401,23 @@
           "description": "The vendor rejected the OAuth app. Sign-in is disabled."
         }
       ]
+    },
+    {
+      "name": "TokenEndpointAuthMethod",
+      "description": "Client authentication method for the vendor's OAuth token endpoint,\n mirroring the RFC 8414 token_endpoint_auth_methods_supported vocabulary.\n\n Only confidential-client methods appear here: public (DCR) clients\n authenticate with PKCE alone and never carry a client secret, so this\n enum is meaningful only for OAuthApp-backed vendor OAuth.",
+      "protoType": "ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod",
+      "values": [
+        {
+          "name": "TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC",
+          "number": 1,
+          "description": "client_secret_basic: the secret rides the Authorization header as\n HTTP Basic credentials (RFC 6749 §2.3.1's baseline method)."
+        },
+        {
+          "name": "TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST",
+          "number": 2,
+          "description": "client_secret_post: the secret rides the request body as the\n client_secret form parameter. Required by vendors whose token\n endpoints do not accept Basic (e.g. HubSpot)."
+        }
+      ]
     }
   ],
   "resourceDescription": "OAuthApp represents a registered OAuth application with an external vendor.\n\n An OAuthApp is owned by an organization and holds the client credentials\n needed for vendor-specific OAuth flows. It enables Stigmer to authenticate\n with external services (Slack, Salesforce, Figma, etc.) on behalf of users.\n\n OAuthApp is the outbound counterpart to IdentityProvider (inbound auth).\n While IdentityProvider configures how external platforms authenticate\n *into* Stigmer, OAuthApp configures how Stigmer authenticates *outward*\n to external services.\n\n Referenced by McpServer resources via McpServerVendorOAuth to enable\n automated credential acquisition for MCP servers that require\n vendor-specific OAuth.\n\n Example YAML:\n   apiVersion: iam.stigmer.ai/v1\n   kind: OAuthApp\n   metadata:\n     name: Slack OAuth\n     slug: slack-oauth\n     org: acme\n   spec:\n     provider: \"Slack\"\n     client_id: \"1234567890.abcdef\"\n     client_secret: \"xoxs-...\"\n     authorization_url: \"https://slack.com/oauth/v2/authorize\"\n     token_url: \"https://slack.com/api/oauth.v2.access\"\n     scopes: [\"channels:read\", \"chat:write\"]"

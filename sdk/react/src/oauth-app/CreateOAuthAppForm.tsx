@@ -4,7 +4,10 @@ import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
-import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
+import {
+  TokenEndpointAuthMethod,
+  VendorApprovalStatus,
+} from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import { useCreateOAuthApp } from "./useCreateOAuthApp.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
@@ -30,8 +33,8 @@ export interface CreateOAuthAppFormProps {
  * Collects the required OAuth configuration: **name**, **provider**,
  * **client ID**, **client secret**, **authorization URL**, and
  * **token URL**. An expandable "Advanced" section provides optional
- * fields for scopes, userinfo URL, scope parameter name, and vendor
- * approval settings.
+ * fields for scopes, userinfo URL, scope parameter name, token endpoint
+ * auth method, and vendor approval settings.
  *
  * This is a pure presentational component with no dialog wrapper
  * (headless-first). The parent is responsible for rendering it inside
@@ -71,6 +74,9 @@ export function CreateOAuthAppForm({
   const [scopes, setScopes] = useState("");
   const [userinfoUrl, setUserinfoUrl] = useState("");
   const [scopeParameterName, setScopeParameterName] = useState("");
+  const [tokenEndpointAuthMethod, setTokenEndpointAuthMethod] = useState<
+    "unspecified" | "client_secret_basic" | "client_secret_post"
+  >("unspecified");
   const [vendorApprovalStatus, setVendorApprovalStatus] = useState<
     "unspecified" | "pending" | "approved" | "rejected"
   >("unspecified");
@@ -117,6 +123,10 @@ export function CreateOAuthAppForm({
           ...(scopeParameterName.trim() && {
             scopeParameterName: scopeParameterName.trim(),
           }),
+          ...(tokenEndpointAuthMethod !== "unspecified" && {
+            tokenEndpointAuthMethod:
+              TOKEN_AUTH_METHOD_MAP[tokenEndpointAuthMethod],
+          }),
           ...(vendorApprovalStatus !== "unspecified" && {
             vendorApprovalStatus: APPROVAL_STATUS_MAP[vendorApprovalStatus],
           }),
@@ -141,6 +151,7 @@ export function CreateOAuthAppForm({
       scopes,
       userinfoUrl,
       scopeParameterName,
+      tokenEndpointAuthMethod,
       vendorApprovalStatus,
       vendorApprovalDocsUrl,
       create,
@@ -261,6 +272,45 @@ export function CreateOAuthAppForm({
 
               <div className="stg:space-y-1">
                 <label
+                  htmlFor={`${baseId}-token-auth-method`}
+                  className="stg:text-xs stg:font-medium stg:text-foreground"
+                >
+                  Token endpoint auth method
+                </label>
+                <select
+                  id={`${baseId}-token-auth-method`}
+                  value={tokenEndpointAuthMethod}
+                  onChange={(e) =>
+                    setTokenEndpointAuthMethod(
+                      e.target.value as typeof tokenEndpointAuthMethod,
+                    )
+                  }
+                  disabled={isCreating}
+                  className={cn(
+                    "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+                    "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+                    "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+                  )}
+                >
+                  <option value="unspecified">
+                    Unspecified (treated as HTTP Basic)
+                  </option>
+                  <option value="client_secret_basic">
+                    client_secret_basic (HTTP Basic header)
+                  </option>
+                  <option value="client_secret_post">
+                    client_secret_post (form body)
+                  </option>
+                </select>
+                <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+                  How the client secret is sent to the vendor&apos;s token
+                  endpoint. Most vendors accept HTTP Basic; some (e.g.
+                  HubSpot) require client_secret_post.
+                </p>
+              </div>
+
+              <div className="stg:space-y-1">
+                <label
                   htmlFor={`${baseId}-approval-status`}
                   className="stg:text-xs stg:font-medium stg:text-foreground"
                 >
@@ -352,6 +402,11 @@ const APPROVAL_STATUS_MAP = {
   pending: VendorApprovalStatus.PENDING,
   approved: VendorApprovalStatus.APPROVED,
   rejected: VendorApprovalStatus.REJECTED,
+} as const;
+
+const TOKEN_AUTH_METHOD_MAP = {
+  client_secret_basic: TokenEndpointAuthMethod.CLIENT_SECRET_BASIC,
+  client_secret_post: TokenEndpointAuthMethod.CLIENT_SECRET_POST,
 } as const;
 
 // ---------------------------------------------------------------------------

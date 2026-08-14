@@ -215,26 +215,28 @@ const oAuthApp = await stigmer.oauthapp.apply({
   scopeParameterName: "...",
   vendorApprovalStatus: "...",
   vendorApprovalDocsUrl: "...",
+  tokenEndpointAuthMethod: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 oAuthApp, err := client.OAuthApp.Apply(ctx, &stigmer.OAuthAppInput{
-  Name:                  "my-oauth-app",
-  Org:                   "acme",
-  Slug:                  "...",
-  Labels:                map[string]string{},
-  Provider:              "...",
-  ClientId:              "...",
-  ClientSecret:          "...",
-  AuthorizationUrl:      "...",
-  TokenUrl:              "...",
-  Scopes:                []string{},
-  UserinfoUrl:           "...",
-  ScopeParameterName:    "...",
-  VendorApprovalStatus:  "...",
-  VendorApprovalDocsUrl: "...",
+  Name:                    "my-oauth-app",
+  Org:                     "acme",
+  Slug:                    "...",
+  Labels:                  map[string]string{},
+  Provider:                "...",
+  ClientId:                "...",
+  ClientSecret:            "...",
+  AuthorizationUrl:        "...",
+  TokenUrl:                "...",
+  Scopes:                  []string{},
+  UserinfoUrl:             "...",
+  ScopeParameterName:      "...",
+  VendorApprovalStatus:    "...",
+  VendorApprovalDocsUrl:   "...",
+  TokenEndpointAuthMethod: "...",
 })
 ```
 </Tab>
@@ -255,6 +257,7 @@ o_auth_app = client.oauthapps.apply(OAuthAppInput(
     scope_parameter_name="...",
     vendor_approval_status="...",
     vendor_approval_docs_url="...",
+    token_endpoint_auth_method="...",
 ))
 ```
 </Tab>
@@ -275,6 +278,7 @@ OAuthApp oAuthApp = client.oauthapps().apply(OAuthAppInput.builder()
     .scopeParameterName("...")
     .vendorApprovalStatus("...")
     .vendorApprovalDocsUrl("...")
+    .tokenEndpointAuthMethod("...")
     .build());
 ```
 </Tab>
@@ -308,26 +312,28 @@ const oAuthApp = await stigmer.oauthapp.create({
   scopeParameterName: "...",
   vendorApprovalStatus: "...",
   vendorApprovalDocsUrl: "...",
+  tokenEndpointAuthMethod: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 oAuthApp, err := client.OAuthApp.Create(ctx, &stigmer.OAuthAppInput{
-  Name:                  "my-oauth-app",
-  Org:                   "acme",
-  Slug:                  "...",
-  Labels:                map[string]string{},
-  Provider:              "...",
-  ClientId:              "...",
-  ClientSecret:          "...",
-  AuthorizationUrl:      "...",
-  TokenUrl:              "...",
-  Scopes:                []string{},
-  UserinfoUrl:           "...",
-  ScopeParameterName:    "...",
-  VendorApprovalStatus:  "...",
-  VendorApprovalDocsUrl: "...",
+  Name:                    "my-oauth-app",
+  Org:                     "acme",
+  Slug:                    "...",
+  Labels:                  map[string]string{},
+  Provider:                "...",
+  ClientId:                "...",
+  ClientSecret:            "...",
+  AuthorizationUrl:        "...",
+  TokenUrl:                "...",
+  Scopes:                  []string{},
+  UserinfoUrl:             "...",
+  ScopeParameterName:      "...",
+  VendorApprovalStatus:    "...",
+  VendorApprovalDocsUrl:   "...",
+  TokenEndpointAuthMethod: "...",
 })
 ```
 </Tab>
@@ -348,6 +354,7 @@ o_auth_app = client.oauthapps.create(OAuthAppInput(
     scope_parameter_name="...",
     vendor_approval_status="...",
     vendor_approval_docs_url="...",
+    token_endpoint_auth_method="...",
 ))
 ```
 </Tab>
@@ -368,6 +375,7 @@ OAuthApp oAuthApp = client.oauthapps().create(OAuthAppInput.builder()
     .scopeParameterName("...")
     .vendorApprovalStatus("...")
     .vendorApprovalDocsUrl("...")
+    .tokenEndpointAuthMethod("...")
     .build());
 ```
 </Tab>
@@ -399,26 +407,28 @@ const oAuthApp = await stigmer.oauthapp.update({
   scopeParameterName: "...",
   vendorApprovalStatus: "...",
   vendorApprovalDocsUrl: "...",
+  tokenEndpointAuthMethod: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 oAuthApp, err := client.OAuthApp.Update(ctx, &stigmer.OAuthAppInput{
-  Name:                  "my-oauth-app",
-  Org:                   "acme",
-  Slug:                  "...",
-  Labels:                map[string]string{},
-  Provider:              "...",
-  ClientId:              "...",
-  ClientSecret:          "...",
-  AuthorizationUrl:      "...",
-  TokenUrl:              "...",
-  Scopes:                []string{},
-  UserinfoUrl:           "...",
-  ScopeParameterName:    "...",
-  VendorApprovalStatus:  "...",
-  VendorApprovalDocsUrl: "...",
+  Name:                    "my-oauth-app",
+  Org:                     "acme",
+  Slug:                    "...",
+  Labels:                  map[string]string{},
+  Provider:                "...",
+  ClientId:                "...",
+  ClientSecret:            "...",
+  AuthorizationUrl:        "...",
+  TokenUrl:                "...",
+  Scopes:                  []string{},
+  UserinfoUrl:             "...",
+  ScopeParameterName:      "...",
+  VendorApprovalStatus:    "...",
+  VendorApprovalDocsUrl:   "...",
+  TokenEndpointAuthMethod: "...",
 })
 ```
 </Tab>
@@ -439,6 +449,7 @@ o_auth_app = client.oauthapps.update(OAuthAppInput(
     scope_parameter_name="...",
     vendor_approval_status="...",
     vendor_approval_docs_url="...",
+    token_endpoint_auth_method="...",
 ))
 ```
 </Tab>
@@ -459,6 +470,7 @@ OAuthApp oAuthApp = client.oauthapps().update(OAuthAppInput.builder()
     .scopeParameterName("...")
     .vendorApprovalStatus("...")
     .vendorApprovalDocsUrl("...")
+    .tokenEndpointAuthMethod("...")
     .build());
 ```
 </Tab>
@@ -533,6 +545,7 @@ Input for creating or updating an OAuth App.
     scopeParameterName: { type: "string", description: "Name of the query parameter used to send scopes in the authorization URL." },
     vendorApprovalStatus: { type: "VendorApprovalStatus", description: "Vendor marketplace/app-review approval status for this OAuth app.", typeDescriptionLink: "#vendorapprovalstatus" },
     vendorApprovalDocsUrl: { type: "string", description: "Documentation URL explaining how users can bring their own OAuth app credentials or personal access tokens for this vendor while the platform's OAuth app is pending approval." },
+    tokenEndpointAuthMethod: { type: "TokenEndpointAuthMethod", description: "How the client secret is presented to the vendor's token endpoint during authorization-code exchange and refresh.", typeDescriptionLink: "#tokenendpointauthmethod" },
   }}
 />
 
@@ -592,4 +605,13 @@ Lifecycle status of an OAuthApp's vendor marketplace approval.
 | `VENDOR_APPROVAL_STATUS_PENDING` | The OAuth app has been submitted to the vendor for review and is awaiting approval. |
 | `VENDOR_APPROVAL_STATUS_APPROVED` | The vendor has approved the OAuth app. |
 | `VENDOR_APPROVAL_STATUS_REJECTED` | The vendor rejected the OAuth app. |
+
+### TokenEndpointAuthMethod
+
+Client authentication method for the vendor's OAuth token endpoint, mirroring the RFC 8414 token_endpoint_auth_methods_supported vocabulary.
+
+| Value | Description |
+|-------|-------------|
+| `TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC` | client_secret_basic: the secret rides the Authorization header as HTTP Basic credentials (RFC 6749 §2.3.1's baseline method). |
+| `TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST` | client_secret_post: the secret rides the request body as the client_secret form parameter. |
 

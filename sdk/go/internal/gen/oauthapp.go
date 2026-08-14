@@ -78,21 +78,22 @@ func (o *OAuthAppClient) ListByOrg(ctx context.Context, input *oauthappv1.ListOA
 
 // OAuthAppInput holds the fields for creating/updating a OAuthApp.
 type OAuthAppInput struct {
-	Name                  string
-	Slug                  string
-	Org                   string
-	Labels                map[string]string
-	Visibility            apiresource.ApiResourceVisibility
-	Provider              string
-	ClientId              string
-	ClientSecret          string
-	AuthorizationUrl      string
-	TokenUrl              string
-	Scopes                []string
-	UserinfoUrl           string
-	ScopeParameterName    string
-	VendorApprovalStatus  oauthappv1.VendorApprovalStatus
-	VendorApprovalDocsUrl string
+	Name                    string
+	Slug                    string
+	Org                     string
+	Labels                  map[string]string
+	Visibility              apiresource.ApiResourceVisibility
+	Provider                string
+	ClientId                string
+	ClientSecret            string
+	AuthorizationUrl        string
+	TokenUrl                string
+	Scopes                  []string
+	UserinfoUrl             string
+	ScopeParameterName      string
+	VendorApprovalStatus    oauthappv1.VendorApprovalStatus
+	VendorApprovalDocsUrl   string
+	TokenEndpointAuthMethod oauthappv1.TokenEndpointAuthMethod
 }
 
 func (i *OAuthAppInput) toProto() (*oauthappv1.OAuthApp, error) {
@@ -118,6 +119,7 @@ func (i *OAuthAppInput) toProto() (*oauthappv1.OAuthApp, error) {
 	resource.Spec.ScopeParameterName = i.ScopeParameterName
 	resource.Spec.VendorApprovalStatus = i.VendorApprovalStatus
 	resource.Spec.VendorApprovalDocsUrl = i.VendorApprovalDocsUrl
+	resource.Spec.TokenEndpointAuthMethod = i.TokenEndpointAuthMethod
 	return resource, nil
 }
 
@@ -145,6 +147,7 @@ func OAuthAppInputFromProto(p *oauthappv1.OAuthApp) *OAuthAppInput {
 		input.ScopeParameterName = s.GetScopeParameterName()
 		input.VendorApprovalStatus = s.GetVendorApprovalStatus()
 		input.VendorApprovalDocsUrl = s.GetVendorApprovalDocsUrl()
+		input.TokenEndpointAuthMethod = s.GetTokenEndpointAuthMethod()
 	}
 	return input
 }

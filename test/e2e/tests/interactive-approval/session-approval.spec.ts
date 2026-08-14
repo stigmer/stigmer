@@ -7,8 +7,12 @@
 //
 // The execution is SEEDED via the node SDK client (agent + native session +
 // gated execution); the browser is used only to render and resolve the gate. The
-// gated tool is the built-in `write_file` (approval category `write`), which
-// gates fail-closed in the native runner with no MCP fixture or agent override.
+// gated tool is the built-in `execute` (approval category `shell`), which gates
+// fail-closed in EVERY stack shape with no MCP fixture or agent override. It
+// deliberately is NOT `write_file`: this stack has a capture substrate (local
+// artifact store), so file writes follow apply-then-review (phase-7 capture
+// mode) and never gate — the file-write GATE surface lives in
+// tool-card-ux.spec.ts against the file-gate stack (STIGMER_E2E_FILE_GATES).
 //
 // Serial + a shared single-FIFO mock queue: the project runs `--workers=1`
 // (Makefile) and resets the queue per test.
@@ -18,7 +22,7 @@ import {
   MockControl,
   getMockControlUrl,
   seedGatedSession,
-  writeFileBlock,
+  shellBlock,
   awaitExecutionPhase,
   awaitExecutionTerminal,
   awaitMockRemaining,
@@ -72,7 +76,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
 
     await page.goto(`/sessions/${seeded.sessionId}`);
 
-    // The gate renders INLINE on the write_file row: its decision buttons are
+    // The gate renders INLINE on the execute row: its decision buttons are
     // present and there is NO detached bottom approval card (a built-in tool's
     // approval has an inline home, so the orphan backstop must not duplicate it).
     await expect(approveButton(page)).toBeVisible({ timeout: 30_000 });
@@ -126,13 +130,14 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     page,
     stigmerClient,
   }) => {
-    // Two write_file calls in one assistant turn -> two co-pending approvals,
-    // both inline. One APPROVE_ALL resolves the whole class and flips the
-    // session-scoped auto-approve preference.
+    // Two execute calls in one assistant turn -> two co-pending approvals,
+    // both inline. One APPROVE_ALL resolves the whole class (a run-lifetime
+    // lease on the `shell` category) and flips the session-scoped
+    // auto-approve preference.
     seeded = await seedGatedSession(stigmerClient, control, {
       gateBlocks: [
-        writeFileBlock("call_all_1", "/tmp/e2e-all-1.txt", "one"),
-        writeFileBlock("call_all_2", "/tmp/e2e-all-2.txt", "two"),
+        shellBlock("call_all_1", "echo co-pending-one"),
+        shellBlock("call_all_2", "echo co-pending-two"),
       ],
     });
     await awaitExecutionPhase(
@@ -173,26 +178,25 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     page,
     stigmerClient,
   }) => {
-    // Two SEQUENTIAL gated turns (not co-pending): write A pauses; approving it
-    // resumes the run, which then calls write B and pauses again. This is the
-    // resume-to-next-gate chain — the exact shape the runner's transcript guard +
-    // workflow watchdog coordinate on. Scope note: this drives the NATIVE
-    // deep-agent harness, not the Cursor SDK; it is a cross-stack
+    // Two SEQUENTIAL gated turns (not co-pending): command A pauses; approving
+    // it resumes the run, which then calls command B and pauses again. This is
+    // the resume-to-next-gate chain — the exact shape the runner's transcript
+    // guard + workflow watchdog coordinate on. Scope note: this drives the
+    // NATIVE deep-agent harness, not the Cursor SDK; it is a cross-stack
     // runner->guard->watchdog->UI contract backstop, not a Cursor reproduction.
     //
     // A plain APPROVE (not approve-all) is deliberate: it must NOT flip the
     // session auto-approve, so gate B re-gates rather than sailing through.
-    const pathA = "/tmp/e2e-step-a.txt";
-    const pathB = "/tmp/e2e-step-b.txt";
-    // FilePathLink renders the path workspace-relative (it strips the leading
-    // slash: "/tmp/e2e-step-a.txt" -> "tmp/e2e-step-a.txt"), so match the stable
-    // distinct basename rather than the absolute path the tool was called with.
-    const nameA = "e2e-step-a.txt";
-    const nameB = "e2e-step-b.txt";
+    //
+    // The gate rows are keyed by distinct sentinel strings inside each command:
+    // the shell row renders its command text, so the sentinel proves WHICH gate
+    // is on screen (B's only renders after the resume consumed turn 2).
+    const nameA = "e2e-step-a-sentinel";
+    const nameB = "e2e-step-b-sentinel";
     seeded = await seedGatedSession(stigmerClient, control, {
       gateTurns: [
-        [writeFileBlock("call_step_a", pathA, "step a")],
-        [writeFileBlock("call_step_b", pathB, "step b")],
+        [shellBlock("call_step_a", `echo ${nameA}`)],
+        [shellBlock("call_step_b", `echo ${nameB}`)],
       ],
     });
 
@@ -246,9 +250,12 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     test.use({ viewport: { width: 1000, height: 300 } });
 
     test("surfaces the off-screen gate and jumps back to it", async ({ page, stigmerClient }) => {
-      const tallContent = Array.from({ length: 24 }, (_, i) => `line ${i + 1}`).join("\n");
+      // A tall multi-line command auto-expands the gate row past the short
+      // viewport, forcing the thread to overflow (same role the 24-line file
+      // content played when this spec seeded a write gate).
+      const tallCommand = Array.from({ length: 24 }, (_, i) => `echo "line ${i + 1}"`).join("\n");
       seeded = await seedGatedSession(stigmerClient, control, {
-        gateBlocks: [writeFileBlock("call_peek", "/tmp/e2e-peek.txt", tallContent)],
+        gateBlocks: [shellBlock("call_peek", tallCommand)],
       });
       await awaitExecutionPhase(
         stigmerClient,

@@ -6,6 +6,7 @@ import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.iam.oauthapp.v1.OAuthApp;
 import ai.stigmer.iam.oauthapp.v1.OAuthAppSpec;
+import ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod;
 import ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus;
 
 /** Input for creating/updating a OAuthApp. */
@@ -25,6 +26,7 @@ public final class OAuthAppInput {
     private final String scopeParameterName;
     private final VendorApprovalStatus vendorApprovalStatus;
     private final String vendorApprovalDocsUrl;
+    private final TokenEndpointAuthMethod tokenEndpointAuthMethod;
 
     private OAuthAppInput(Builder builder) {
         this.name = builder.name;
@@ -42,6 +44,7 @@ public final class OAuthAppInput {
         this.scopeParameterName = builder.scopeParameterName;
         this.vendorApprovalStatus = builder.vendorApprovalStatus;
         this.vendorApprovalDocsUrl = builder.vendorApprovalDocsUrl;
+        this.tokenEndpointAuthMethod = builder.tokenEndpointAuthMethod;
     }
 
     OAuthApp toProto() {
@@ -75,6 +78,9 @@ public final class OAuthAppInput {
         }
         if (this.vendorApprovalDocsUrl != null) {
             spec.setVendorApprovalDocsUrl(this.vendorApprovalDocsUrl);
+        }
+        if (this.tokenEndpointAuthMethod != null) {
+            spec.setTokenEndpointAuthMethod(this.tokenEndpointAuthMethod);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -114,6 +120,7 @@ public final class OAuthAppInput {
         private String scopeParameterName;
         private VendorApprovalStatus vendorApprovalStatus;
         private String vendorApprovalDocsUrl;
+        private TokenEndpointAuthMethod tokenEndpointAuthMethod;
 
         private Builder() {}
 
@@ -132,6 +139,7 @@ public final class OAuthAppInput {
         public Builder scopeParameterName(String scopeParameterName) { this.scopeParameterName = scopeParameterName; return this; }
         public Builder vendorApprovalStatus(VendorApprovalStatus vendorApprovalStatus) { this.vendorApprovalStatus = vendorApprovalStatus; return this; }
         public Builder vendorApprovalDocsUrl(String vendorApprovalDocsUrl) { this.vendorApprovalDocsUrl = vendorApprovalDocsUrl; return this; }
+        public Builder tokenEndpointAuthMethod(TokenEndpointAuthMethod tokenEndpointAuthMethod) { this.tokenEndpointAuthMethod = tokenEndpointAuthMethod; return this; }
 
         public OAuthAppInput build() { return new OAuthAppInput(this); }
     }

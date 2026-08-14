@@ -25,6 +25,24 @@ export function getMockControlUrl(): string | null {
 }
 
 /**
+ * Whether the stack was booted in FILE-GATE mode (STIGMER_E2E_FILE_GATES): the
+ * runner has no artifact store, so file writes take the pre-execution approval
+ * gate instead of apply-then-review. The file-diff gate-card specs require it;
+ * capture-stack specs must skip under it. `false` when the state is absent.
+ */
+export function isFileGateStack(): boolean {
+  if (!fs.existsSync(STATE_FILE)) return false;
+  try {
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, "utf-8")) as {
+      fileGateMode?: boolean;
+    };
+    return state.fileGateMode === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * HTTP client for the mock LLM proxy's control API. A Playwright worker runs in
  * a separate process from the proxy (which lives in globalSetup), so it programs
  * the shared FIFO queue over HTTP rather than by direct method calls.

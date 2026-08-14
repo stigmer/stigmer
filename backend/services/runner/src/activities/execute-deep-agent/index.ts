@@ -617,15 +617,20 @@ export function createDeepAgentActivities(config: Config) {
                 policyEngineVersion: intr.policySource ? POLICY_ENGINE_VERSION : "",
               });
 
-              // Capture a sanitized args preview while the graph is paused, so the
-              // approval UI renders the proposed change before the tool runs. Args
-              // are correlated from the AI-message tool call in graph state (the
-              // single source of truth).
-              const { argsPreview } = captureApprovalArtifacts({
+              // Capture a sanitized args preview AND the redacted args object
+              // while the graph is paused, so the approval UI renders the
+              // proposed change before the tool runs — and the row header can
+              // extract its filename-first path from `args` like every other
+              // row (issue #754: a placeholder without args rendered a
+              // pathless "Write" header). Args are correlated from the
+              // AI-message tool call in graph state (the single source of
+              // truth).
+              const { argsPreview, args } = captureApprovalArtifacts({
                 toolCallId: intr.toolCallId,
                 messages: aiMessages,
               });
               if (argsPreview) toolCall.argsPreview = argsPreview;
+              if (args) toolCall.args = args as typeof toolCall.args;
 
               aiMsg.toolCalls.push(toolCall);
             }

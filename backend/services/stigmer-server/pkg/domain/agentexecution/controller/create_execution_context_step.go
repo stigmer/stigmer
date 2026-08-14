@@ -588,8 +588,9 @@ func inlineRefreshIfExpired(
 	// No client_secret resolution in the execution context path — DCR/public
 	// clients work without it, and vendor OAuth would require loading the
 	// OAuthApp (cross-domain). The connect pre-flight refresh handles
-	// vendor OAuth; this inline path is a best-effort fallback.
-	result, err := oauth.RefreshTokenIfExpired(ctx, grant, refreshToken, "")
+	// vendor OAuth; this inline path is a best-effort fallback. No secret
+	// means no token-endpoint auth method either.
+	result, err := oauth.RefreshTokenIfExpired(ctx, grant, refreshToken, "", "")
 	if err != nil {
 		return nil, err
 	}

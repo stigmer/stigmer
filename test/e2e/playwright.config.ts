@@ -34,6 +34,12 @@ const baseURL = process.env.STIGMER_E2E_BASE_URL ?? "http://localhost:3000";
 export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
+  // Visual baselines are minted per-platform (…-darwin.png, committed from
+  // macOS dev machines) and CI runs Linux, where no baseline exists — a
+  // `toHaveScreenshot` there would fail on the missing snapshot, not on a
+  // regression. CI skips the pixel comparisons; every functional assertion
+  // still runs. The screenshots remain a local regression tool.
+  ignoreSnapshots: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI
@@ -65,9 +71,25 @@ export default defineConfig({
     {
       name: "interactive-approval",
       testDir: "./tests/interactive-approval",
+      // The file-write GATE-CARD specs need the file-gate stack — they are the
+      // sibling project below, run as a separate invocation with its own boot.
+      testIgnore: /tool-card-ux\.spec\.ts/,
       // The mock LLM proxy is a single shared FIFO queue, so the gated specs
       // must not interleave. `make test-e2e-approval` additionally pins
       // `--workers=1` to enforce single-consumer ordering across files.
+      fullyParallel: false,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      // The file-write gate-card surface: same spec dir, FILE-GATE stack
+      // (STIGMER_E2E_FILE_GATES boots the runner with no artifact store, so
+      // writes gate pre-execution — the only shape where the gate's file-diff
+      // card exists). Separate project because one Playwright invocation boots
+      // exactly one stack: `make test-e2e-approval` runs the two projects as
+      // two invocations with their respective boots.
+      name: "interactive-approval-gate",
+      testDir: "./tests/interactive-approval",
+      testMatch: /tool-card-ux\.spec\.ts/,
       fullyParallel: false,
       use: { ...devices["Desktop Chrome"] },
     },

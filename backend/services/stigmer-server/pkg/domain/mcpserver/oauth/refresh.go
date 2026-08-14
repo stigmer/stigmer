@@ -27,6 +27,8 @@ type RefreshResult struct {
 //   - grant: the OAuthGrant record (must not be nil)
 //   - currentRefreshToken: the decrypted refresh token from the managed environment
 //   - clientSecret: decrypted client_secret (empty for DCR/public clients)
+//   - tokenAuthMethod: how the secret is presented (TokenAuthMethodBasic/-Post;
+//     empty falls back to Basic, and is meaningless without a secret)
 //
 // Returns:
 //   - RefreshResult with new token values if refreshed
@@ -37,6 +39,7 @@ func RefreshTokenIfExpired(
 	grant *OAuthGrant,
 	currentRefreshToken string,
 	clientSecret string,
+	tokenAuthMethod string,
 ) (*RefreshResult, error) {
 	if grant.AccessTokenExpiresAt == 0 {
 		// Token does not expire (e.g., long-lived tokens from Notion/Slack)
@@ -70,6 +73,7 @@ func RefreshTokenIfExpired(
 		currentRefreshToken,
 		grant.ClientID,
 		clientSecret,
+		tokenAuthMethod,
 	)
 	if err != nil {
 		return nil, fmt.Errorf(
