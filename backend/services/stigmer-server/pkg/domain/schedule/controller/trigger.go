@@ -229,7 +229,7 @@ func (s *fireDirectRunStep) stampLastFireAt(ctx context.Context, scheduleID stri
 				live.Status = &schedulev1.ScheduleStatus{}
 			}
 			live.Status.LastFireAt = timestamppb.New(nominal)
-			return steps.SetAuditFieldsForUpdate(live)
+			return steps.SetAuditFieldsForUpdate(live, steps.StatusAudit)
 		})
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		log.Warn().Err(err).Str("schedule_id", scheduleID).

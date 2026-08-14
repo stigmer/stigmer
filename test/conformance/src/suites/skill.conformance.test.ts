@@ -544,6 +544,14 @@ describe("Skill conformance — updateVisibility", () => {
     // The change is durable and observable via a fresh read.
     const fetched = await clients.skillQuery.get({ value: pushed.metadata!.id });
     expect(fetched.metadata?.visibility).toBe(ApiResourceVisibility.visibility_public);
+
+    // Cross-edition audit-slot contract (stigmer#540): a visibility flip is
+    // a lifecycle change, not a definition change, so the live skill's
+    // spec_audit.updated_at — what search recency and version history read
+    // as "definition changed" — must not move from its post-push value.
+    const pushedSpecUpdatedAt = pushed.status?.audit?.specAudit?.updatedAt;
+    expect(pushedSpecUpdatedAt, "push stamps spec_audit.updated_at").toBeDefined();
+    expect(fetched.status?.audit?.specAudit?.updatedAt).toEqual(pushedSpecUpdatedAt);
   });
 
   it("returns NotFound for an unknown skill", async () => {

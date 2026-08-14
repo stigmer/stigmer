@@ -90,7 +90,7 @@ func (s *setWorkflowVisibilityStep) Execute(ctx *pipeline.RequestContext[*apires
 
 	workflow.Metadata.Visibility = input.GetVisibility()
 
-	if err := steps.SetAuditFieldsForUpdate(workflow); err != nil {
+	if err := steps.SetAuditFieldsForUpdate(workflow, steps.StatusAudit); err != nil {
 		return fmt.Errorf("failed to set audit fields: %w", err)
 	}
 

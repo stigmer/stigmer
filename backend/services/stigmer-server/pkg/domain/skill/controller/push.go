@@ -493,7 +493,10 @@ func (s *ArchiveCurrentSkillStep) archiveSkill(ctx context.Context, skill *skill
 // 4. Sets status.version_hash and status.artifact_storage_key
 // 5. Sets audit fields using common library helpers:
 //   - For create: SetAuditFieldsForCreate (sets created_at = updated_at = now)
-//   - For update: Preserves existing audit, then updates with SetAuditFieldsForUpdate
+//   - For update: copy existing slot pointers onto a new audit wrapper,
+//     then SetAuditFieldsForUpdate(SpecAudit) — definition changed.
+//     The helper Sets a new spec_audit message so the copied pointers
+//     from the loaded skill are not mutated in place.
 type PopulateSkillFieldsStep struct{}
 
 func (c *SkillController) newPopulateSkillFieldsStep() *PopulateSkillFieldsStep {
@@ -570,13 +573,17 @@ func (s *PopulateSkillFieldsStep) Execute(ctx *pipeline.RequestContext[*skillv1.
 			if skill.Status.Audit == nil {
 				skill.Status.Audit = &apiresourcepb.ApiResourceAudit{}
 			}
-			// Copy spec_audit and status_audit from existing
+			// Copy slot pointers from the loaded skill. The helper below
+			// Sets a newly allocated spec_audit on this wrapper — it must
+			// not mutate SpecAudit in place, or this would also rewrite
+			// existingSkill (stigmer/stigmer#540).
 			skill.Status.Audit.SpecAudit = existingSkill.Status.Audit.SpecAudit
 			skill.Status.Audit.StatusAudit = existingSkill.Status.Audit.StatusAudit
 		}
 
-		// Now update the audit fields (preserves created_at, updates updated_at)
-		if err := steps.SetAuditFieldsForUpdate(skill); err != nil {
+		// Stamp spec_audit only: a push is a definition change. status_audit
+		// stays on the shared pointer, untouched.
+		if err := steps.SetAuditFieldsForUpdate(skill, steps.SpecAudit); err != nil {
 			return fmt.Errorf("failed to set audit fields for update: %w", err)
 		}
 	}

@@ -90,7 +90,7 @@ func (s *setAgentVisibilityStep) Execute(ctx *pipeline.RequestContext[*apiresour
 
 	agent.Metadata.Visibility = input.GetVisibility()
 
-	if err := steps.SetAuditFieldsForUpdate(agent); err != nil {
+	if err := steps.SetAuditFieldsForUpdate(agent, steps.StatusAudit); err != nil {
 		return fmt.Errorf("failed to set audit fields: %w", err)
 	}
 

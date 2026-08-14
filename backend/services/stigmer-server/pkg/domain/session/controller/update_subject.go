@@ -5,12 +5,11 @@ import (
 	"errors"
 
 	"github.com/rs/zerolog/log"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
-	commonspb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 )
@@ -48,7 +47,9 @@ func (c *SessionController) UpdateSubject(
 	}
 	session.Spec.Subject = req.GetSubject()
 
-	updateSpecAuditTimestamp(session)
+	if err := steps.SetAuditFieldsForUpdate(session, steps.SpecAudit); err != nil {
+		return nil, grpclib.InternalError(err, "failed to set audit fields")
+	}
 
 	if err := c.store.SaveResource(ctx, kind, req.GetId(), session); err != nil {
 		return nil, grpclib.InternalError(err, "failed to persist session")
@@ -57,23 +58,6 @@ func (c *SessionController) UpdateSubject(
 	indexSessionSearch(ctx, c, kind, session)
 
 	return session, nil
-}
-
-// updateSpecAuditTimestamp sets updated_at on the session's spec audit.
-func updateSpecAuditTimestamp(session *sessionv1.Session) {
-	now := timestamppb.Now()
-
-	if session.Status == nil {
-		session.Status = &commonspb.ApiResourceAuditStatus{}
-	}
-	if session.Status.Audit == nil {
-		session.Status.Audit = &commonspb.ApiResourceAudit{}
-	}
-	if session.Status.Audit.SpecAudit == nil {
-		session.Status.Audit.SpecAudit = &commonspb.ApiResourceAuditInfo{}
-	}
-	session.Status.Audit.SpecAudit.UpdatedAt = now
-	session.Status.Audit.SpecAudit.Event = "updated"
 }
 
 // indexSessionSearch refreshes the FTS5 search index for a session.

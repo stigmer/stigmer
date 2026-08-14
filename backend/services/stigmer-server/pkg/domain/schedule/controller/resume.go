@@ -107,7 +107,7 @@ func (s *clearSchedulePauseStep) Execute(ctx *pipeline.RequestContext[*schedulev
 			live.Status.ConsecutiveFailures = 0
 			// Resuming with strikes left would re-pause on the next
 			// failure — a lie; both clear together, always.
-			if auditErr := steps.SetAuditFieldsForUpdate(live); auditErr != nil {
+			if auditErr := steps.SetAuditFieldsForUpdate(live, steps.StatusAudit); auditErr != nil {
 				return auditErr
 			}
 			return nil

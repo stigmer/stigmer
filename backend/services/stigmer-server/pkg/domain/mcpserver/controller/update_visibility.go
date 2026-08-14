@@ -90,7 +90,7 @@ func (s *setMcpServerVisibilityStep) Execute(ctx *pipeline.RequestContext[*apire
 
 	mcpServer.Metadata.Visibility = input.GetVisibility()
 
-	if err := steps.SetAuditFieldsForUpdate(mcpServer); err != nil {
+	if err := steps.SetAuditFieldsForUpdate(mcpServer, steps.StatusAudit); err != nil {
 		return fmt.Errorf("failed to set audit fields: %w", err)
 	}
 

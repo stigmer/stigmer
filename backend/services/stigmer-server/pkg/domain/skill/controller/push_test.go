@@ -346,6 +346,98 @@ func TestPush_Update_PreservesCreatedAt(t *testing.T) {
 	)
 }
 
+// TestPush_Update_StatusAuditUntouched pins the stigmer/stigmer#540 slot
+// contract at the push call site: a push is a definition change, so it
+// stamps spec_audit only — status_audit stays proto-equal to before.
+// It also proves the in-memory existing skill (whose slot pointers push
+// copies onto the new audit wrapper) is not corrupted by the stamp.
+func TestPush_Update_StatusAuditUntouched(t *testing.T) {
+	controller, store := setupTestController(t)
+	defer store.Close()
+
+	content1 := storage.ValidSkillContent("slot-pin", "# Slot Pin v1")
+	req1 := &skillv1.PushSkillRequest{
+		Artifact: storage.CreateTestZip(content1),
+		Org:      "test-org",
+	}
+	result1, err := controller.Push(contextWithSkillKind(), req1)
+	require.NoError(t, err)
+	require.NotNil(t, result1.Status.Audit.StatusAudit)
+	originalStatusAudit := proto.Clone(result1.Status.Audit.StatusAudit).(*apiresourcepb.ApiResourceAuditInfo)
+
+	time.Sleep(1100 * time.Millisecond)
+
+	content2 := storage.ValidSkillContent("slot-pin", "# Slot Pin v2")
+	req2 := &skillv1.PushSkillRequest{
+		Artifact: storage.CreateTestZip(content2),
+		Org:      "test-org",
+	}
+	result2, err := controller.Push(contextWithSkillKind(), req2)
+	require.NoError(t, err)
+
+	assert.True(t,
+		proto.Equal(result2.Status.Audit.StatusAudit, originalStatusAudit),
+		"push must not stamp status_audit: want %v, got %v",
+		originalStatusAudit, result2.Status.Audit.StatusAudit,
+	)
+	assert.Greater(t,
+		result2.Status.Audit.SpecAudit.UpdatedAt.GetSeconds(),
+		result1.Status.Audit.SpecAudit.UpdatedAt.GetSeconds(),
+		"push must stamp spec_audit.updated_at",
+	)
+
+	// The persisted row agrees.
+	persisted := &skillv1.Skill{}
+	require.NoError(t, store.GetResource(contextWithSkillKind(), apiresourcekind.ApiResourceKind_skill, result2.Metadata.Id, persisted))
+	assert.True(t,
+		proto.Equal(persisted.Status.Audit.StatusAudit, originalStatusAudit),
+		"persisted status_audit mutated by push",
+	)
+}
+
+// TestUpdateVisibility_SpecAuditFrozen pins the stigmer/stigmer#540 slot
+// contract at the skill visibility call site: a visibility flip is a
+// lifecycle change, so it stamps status_audit only. The live skill's
+// spec_audit — the field search extractors read as "definition changed"
+// and version history reads as pushed_at/pushed_by — stays proto-equal
+// to its post-push value.
+func TestUpdateVisibility_SpecAuditFrozen(t *testing.T) {
+	controller, store := setupTestController(t)
+	defer store.Close()
+
+	content := storage.ValidSkillContent("vis-audit-pin", "# Visibility Audit Pin")
+	pushed, err := controller.Push(contextWithSkillKind(), &skillv1.PushSkillRequest{
+		Artifact: storage.CreateTestZip(content),
+		Org:      "test-org",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, pushed.Status.Audit.SpecAudit)
+	postPushSpecAudit := proto.Clone(pushed.Status.Audit.SpecAudit).(*apiresourcepb.ApiResourceAuditInfo)
+
+	updated, err := controller.UpdateVisibility(contextWithSkillKind(), &apiresourcepb.UpdateVisibilityInput{
+		ResourceId: pushed.Metadata.Id,
+		Visibility: apiresourcepb.ApiResourceVisibility_visibility_public,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, apiresourcepb.ApiResourceVisibility_visibility_public, updated.Metadata.Visibility)
+
+	assert.True(t,
+		proto.Equal(updated.Status.Audit.SpecAudit, postPushSpecAudit),
+		"visibility flip must not touch spec_audit: want %v, got %v",
+		postPushSpecAudit, updated.Status.Audit.SpecAudit,
+	)
+	assert.Equal(t, "updated", updated.Status.Audit.StatusAudit.GetEvent(),
+		"visibility flip must stamp status_audit")
+
+	// The persisted row agrees.
+	persisted := &skillv1.Skill{}
+	require.NoError(t, store.GetResource(contextWithSkillKind(), apiresourcekind.ApiResourceKind_skill, pushed.Metadata.Id, persisted))
+	assert.True(t,
+		proto.Equal(persisted.Status.Audit.SpecAudit, postPushSpecAudit),
+		"persisted spec_audit mutated by visibility flip",
+	)
+}
+
 // TestPush_Update_UpdatesTimestamp verifies that updating a skill
 // sets a new updated_at timestamp that's later than the initial push.
 func TestPush_Update_UpdatesTimestamp(t *testing.T) {
